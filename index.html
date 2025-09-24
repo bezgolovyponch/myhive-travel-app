@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MyHive - Epic Weekend of Freedom</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo" data-navigate="/">MyHive</a>
+            <nav class="nav-links">
+                <a href="/" data-navigate="/">Destinations</a>
+                <a href="#" onclick="alert('About page coming soon!')">About</a>
+                <a href="#" onclick="alert('Contact page coming soon!')">Contact</a>
+            </nav>
+            <button class="trip-builder-btn" id="trip-builder-btn">TRIP BUILDER</button>
+        </div>
+        <div class="breadcrumbs" id="breadcrumbs" style="display: none;">
+            <div class="breadcrumbs-content">
+                <!-- Breadcrumbs will be populated by JavaScript -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Homepage -->
+    <div id="homepage" class="page">
+        <!-- Hero Section -->
+        <section class="hero">
+            <video autoplay muted loop playsinline class="hero-video">
+                <source src="https://res.cloudinary.com/dfhvltbjz/video/upload/v1758716526/panorama_sqshpf.mp4" type="video/mp4"/>
+                Your browser does not support the video tag.
+            </video>
+            <div class="hero-content">
+                <h1 class="hero-title">Epic Weekend of Freedom</h1>
+                <p class="hero-subtitle">Discover hand-curated experiences in Europe’s most exciting destinations</p>
+                <a href="#destinations" class="btn btn--primary btn--lg">Explore Destinations</a>
+            </div>
+        </section>
+
+        <!-- Destinations Section -->
+        <section class="destinations-section" id="destinations">
+            <h2 class="section-title">Destinations</h2>
+            <div class="destinations-grid" id="destinations-grid">
+                <!-- Destination cards populated by JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Tenerife Destination Page -->
+    <div id="tenerife-page" class="page" style="display: none;">
+        <div class="destination-header">
+            <h1>Tenerife</h1>
+            <p>Volcanic adventures and beach parties</p>
+        </div>
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="activities">Activities</button>
+            <button class="tab-btn" data-tab="packages">Packages</button>
+            <button class="tab-btn" data-tab="trip-builder">Trip Builder</button>
+        </nav>
+        <div id="activities-tab" class="tab-content">
+            <div class="tab-header">
+                <h2>Activities</h2>
+                <div class="category-filters">
+                    <button class="filter-btn active" data-category="all">All</button>
+                    <button class="filter-btn" data-category="nightlife">Nightlife</button>
+                    <button class="filter-btn" data-category="adventure">Adventure</button>
+                    <button class="filter-btn" data-category="daytime">Daytime</button>
+                </div>
+            </div>
+            <div class="activities-grid" id="activities-grid">
+                <!-- Activities populated by JavaScript -->
+            </div>
+        </div>
+        <div id="packages-tab" class="tab-content" style="display: none;">
+            <div class="tab-header">
+                <h2>Packages</h2>
+                <p>Pre-curated experiences for the perfect getaway</p>
+            </div>
+            <div class="packages-grid" id="packages-grid">
+                <!-- Packages populated by JavaScript -->
+            </div>
+        </div>
+        <div id="trip-builder-tab" class="tab-content" style="display: none;">
+            <div class="trip-builder-layout">
+                <div class="trip-builder-left">
+                    <div class="itinerary-header">
+                        <h2>Your Itinerary</h2>
+                        <p id="itinerary-count">0 activities selected</p>
+                    </div>
+                    <div class="itinerary-list" id="itinerary-list">
+                        <div class="empty-state">
+                            <p>Start building your trip by adding activities!</p>
+                        </div>
+                    </div>
+                    <button class="btn btn--primary btn--full-width confirm-btn" id="confirm-btn" style="display: none;">
+                        Proceed to Confirmation
+                    </button>
+                </div>
+                <div class="trip-builder-right">
+                    <div class="browse-header">
+                        <h3>Browse More Activities</h3>
+                        <div class="browse-filters">
+                            <button class="filter-btn active" data-category="all">All</button>
+                            <button class="filter-btn" data-category="nightlife">Nightlife</button>
+                            <button class="filter-btn" data-category="adventure">Adventure</button>
+                            <button class="filter-btn" data-category="daytime">Daytime</button>
+                        </div>
+                    </div>
+                    <div class="browse-activities" id="browse-activities">
+                        <!-- Browse activities populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trip Builder Modal -->
+    <div class="modal hidden" id="trip-builder-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Trip Builder</h2>
+                <button class="modal-close-btn" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="empty-trip-state">
+                    <h3>Start Planning Your Trip</h3>
+                    <p>Choose a destination first, then add activities to build your perfect getaway!</p>
+                    <button class="btn btn--primary" id="browse-destinations-btn">Browse Destinations</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="chat-panel" id="chat-panel">
+        <div class="chat-header">
+            <h3 class="chat-title">AI Travel Assistant</h3>
+            <button class="chat-close-btn" id="chat-close-btn">&times;</button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages populated by JavaScript -->
+        </div>
+        <div class="chat-input-container">
+            <input type="text" class="chat-input" id="chat-input" placeholder="Tell me about your ideal trip..." />
+        </div>
+    </div>
+    <button class="chat-trigger-btn" id="chat-trigger-btn">🤖</button>
+
+    <script>
+        window.MyHiveApp = {
+            navigateTo: function(path) { console.log('Navigate to:', path); },
+            handleDestinationClick: function(id) { console.log('Destination:', id); },
+            switchTab: function(tab) { console.log('Switch tab:', tab); },
+            toggleChat: function() { console.log('Toggle chat'); }
+        };
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>
