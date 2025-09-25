@@ -883,6 +883,8 @@ body {
   padding-top: 80px;
   color: var(--myhive-white);
   overflow: hidden;
+  /* Ensure primary buttons in hero use white text without !important */
+  --color-btn-primary-text: var(--myhive-white);
 }
 
 .hero-video {
