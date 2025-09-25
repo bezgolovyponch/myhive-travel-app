@@ -150,6 +150,10 @@ class MyHiveApp {
         console.log('Initializing MyHive application...');
         
         try {
+        // Always control scroll ourselves
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
             // Initialize router
             this.initRouter();
             
@@ -195,6 +199,8 @@ class MyHiveApp {
 
     navigateTo(path, addToHistory = true) {
         console.log('Navigating to:', path);
+    // Always start new views at the top
+    window.scrollTo(0, 0);
         
         appState.currentPath = path;
         
