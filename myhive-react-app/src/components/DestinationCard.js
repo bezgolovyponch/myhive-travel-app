@@ -6,8 +6,13 @@ function DestinationCard({ destination }) {
   const { dispatch } = useContext(AppContext);
   const navigate = useNavigate();
 
+  // Map backend data to frontend format
+  const imageUrl = destination.imageUrl || `https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop`;
+  const isClickable = destination.id === 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22'; // Tenerife UUID
+  const badge = destination.rating >= 4.7 ? 'Popular' : 'Hot Deal';
+
   const handleClick = () => {
-    if (destination.clickable) {
+    if (isClickable) {
       dispatch({ type: 'NAVIGATE', path: `/destination/${destination.id}` });
       navigate(`/destination/${destination.id}`);
     } else {
@@ -17,18 +22,20 @@ function DestinationCard({ destination }) {
 
   return (
     <div 
-      className={`destination-card ${destination.clickable ? '' : 'disabled'}`}
+      className={`destination-card ${isClickable ? '' : 'disabled'}`}
       onClick={handleClick}
     >
       <img 
-        src={destination.image} 
+        src={imageUrl} 
         alt={destination.name} 
         className="destination-image" 
         loading="lazy" 
       />
-      <div className={`destination-badge badge-${destination.badge.toLowerCase().replace(' ', '-')}`}>
-        {destination.badge}
-      </div>
+      {badge && (
+        <div className={`destination-badge badge-${badge.toLowerCase().replace(' ', '-')}`}>
+          {badge}
+        </div>
+      )}
       <div className="destination-content">
         <h3 className="destination-name">{destination.name}</h3>
         <p className="destination-description">{destination.description}</p>

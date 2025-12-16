@@ -1,24 +1,57 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import ActivityCard from '../components/ActivityCard';
 import TripBuilder from '../components/TripBuilder';
 import { useParams } from 'react-router-dom';
-import PackageCard from '../components/PackageCard'; // Added import statement for PackageCard
+import PackageCard from '../components/PackageCard';
+import api from '../services/api';
 
 function DestinationPage() {
   const { id } = useParams();
-  const { state } = useContext(AppContext);
+  const { state, dispatch } = useContext(AppContext);
   const [currentFilter, setCurrentFilter] = useState('all');
+  const [destination, setDestination] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDestinationData = async () => {
+      try {
+        setLoading(true);
+        const [destData, activities] = await Promise.all([
+          api.getDestination(id),
+          api.getActivities(id)
+        ]);
+        setDestination(destData);
+        dispatch({ type: 'SET_ACTIVITIES', activities });
+      } catch (error) {
+        console.error('Error fetching destination data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDestinationData();
+  }, [id, dispatch]);
   
   const filteredActivities = currentFilter === 'all' 
     ? state.activities 
     : state.activities.filter(a => a.category === currentFilter);
 
+  if (loading) {
+    return (
+      <div className="destination-page">
+        <div className="destination-header">
+          <h1>Loading...</h1>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="destination-page">
       <div className="destination-header">
-        <h1>Destination: {id}</h1>
-        <p>Volcanic adventures and beach parties</p>
+        <h1>{destination?.name || 'Destination'}</h1>
+        <p>{destination?.description || ''}</p>
       </div>
       
       <nav className="tab-nav">

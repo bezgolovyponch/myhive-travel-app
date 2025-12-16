@@ -1,70 +1,36 @@
-import { createContext, useReducer } from 'react';
-
-// Initial data mirroring original appData
-const initialDestinations = [
-  {
-    id: "prague",
-    name: "Prague",
-    image: "https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop",
-    clickable: true,
-    badge: "Popular",
-    badgeColor: "#4CAF50",
-    description: "Medieval charm meets epic nightlife"
-  },
-  {
-    id: "tenerife",
-    name: "Tenerife",
-    image: "https://images.unsplash.com/photo-1594401708939-49f49fdf596a?w=400&h=300&fit=crop",
-    clickable: true,
-    badge: "Hot Deal",
-    badgeColor: "#FF5722",
-    description: "Volcanic adventures and beach parties"
-  },
-  // Other destinations...
-];
-
-const initialActivities = [
-  {
-    id: "sunset-boat-party",
-    title: "Sunset Boat Party",
-    category: "nightlife",
-    description: "3-hour catamaran cruise with live DJ and open bar",
-    price: "€69 pp",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop"
-  },
-  // Other activities...
-];
-
-const initialPackages = [
-  {
-    id: "action-stag-weekend",
-    title: "Action Stag Weekend",
-    description: "2 days of adventure and nightlife with pub crawl, jet ski, and VIP club entry",
-    activities: ["pub-crawl", "jet-ski-adventure", "sunset-boat-party"],
-    price: "€189 pp",
-    image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&h=300&fit=crop"
-  },
-  // Other packages...
-];
+import { createContext, useReducer, useEffect } from 'react';
+import api from '../services/api';
 
 export const AppContext = createContext();
 
 export function AppProvider({ children }) {
   const initialState = {
-    destinations: initialDestinations,
-    activities: initialActivities,
-    packages: initialPackages,
+    destinations: [],
+    activities: [],
+    packages: [],
     currentPath: '/',
     currentTab: 'activities',
     tripItems: [],
     chatOpen: false,
     chatMessages: [
       { sender: 'ai', text: 'Hi! I\'m your AI travel assistant. What type of trip are you looking for?' }
-    ]
+    ],
+    loading: true,
+    error: null
   };
 
   const reducer = (state, action) => {
     switch (action.type) {
+      case 'SET_DESTINATIONS':
+        return { ...state, destinations: action.destinations, loading: false };
+      case 'SET_ACTIVITIES':
+        return { ...state, activities: action.activities };
+      case 'SET_PACKAGES':
+        return { ...state, packages: action.packages };
+      case 'SET_ERROR':
+        return { ...state, error: action.error, loading: false };
+      case 'SET_LOADING':
+        return { ...state, loading: action.loading };
       case 'NAVIGATE':
         return { ...state, currentPath: action.path };
       case 'ADD_TO_TRIP':
@@ -81,7 +47,6 @@ export function AppProvider({ children }) {
           tripItems: state.tripItems.filter(item => item.id !== action.activityId)
         };
       case 'SELECT_PACKAGE':
-        // Add all package activities to trip
         const newItems = [...state.tripItems];
         action.pkg.activities.forEach(actId => {
           const activity = state.activities.find(a => a.id === actId);
@@ -105,6 +70,27 @@ export function AppProvider({ children }) {
   };
 
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        
+        const [destinations, activities] = await Promise.all([
+          api.getDestinations(),
+          api.getActivities()
+        ]);
+
+        dispatch({ type: 'SET_DESTINATIONS', destinations });
+        dispatch({ type: 'SET_ACTIVITIES', activities });
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        dispatch({ type: 'SET_ERROR', error: error.message });
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
