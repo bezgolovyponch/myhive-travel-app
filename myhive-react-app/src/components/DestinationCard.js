@@ -1,6 +1,6 @@
-import { useContext } from 'react';
-import { AppContext } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import {useContext} from 'react';
+import {AppContext} from '../context/AppContext';
+import {useNavigate} from 'react-router-dom';
 
 function DestinationCard({ destination }) {
   const { dispatch } = useContext(AppContext);
@@ -16,7 +16,8 @@ function DestinationCard({ destination }) {
       dispatch({ type: 'NAVIGATE', path: `/destination/${destination.id}` });
       navigate(`/destination/${destination.id}`);
     } else {
-      alert(`⏳ ${destination.name} is coming soon!\n\nWe're working hard to bring you amazing experiences here.`);
+      // Show coming soon modal instead of alert
+      dispatch({type: 'OPEN_DESTINATION_MODAL', destination});
     }
   };
 

@@ -12,6 +12,8 @@ export function AppProvider({ children }) {
     currentTab: 'activities',
     tripItems: [],
     tripBuilderModalOpen: false,
+    destinationModalOpen: false,
+    selectedDestination: null,
     chatOpen: false,
     chatMessages: [
       { sender: 'ai', text: 'Hi! I\'m your AI travel assistant. What type of trip are you looking for?' }
@@ -63,6 +65,10 @@ export function AppProvider({ children }) {
         return {...state, tripBuilderModalOpen: true};
       case 'CLOSE_TRIP_BUILDER_MODAL':
         return {...state, tripBuilderModalOpen: false};
+      case 'OPEN_DESTINATION_MODAL':
+        return {...state, destinationModalOpen: true, selectedDestination: action.destination};
+      case 'CLOSE_DESTINATION_MODAL':
+        return {...state, destinationModalOpen: false, selectedDestination: null};
       case 'TOGGLE_CHAT':
         return { ...state, chatOpen: !state.chatOpen };
       case 'SET_AUTO_ENGAGED':

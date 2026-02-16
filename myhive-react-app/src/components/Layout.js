@@ -37,6 +37,25 @@ function Layout() {
           </div>
         </div>
       </div>
+      <div className={`modal ${state.destinationModalOpen ? '' : 'hidden'}`}>
+        <div className="modal-content">
+          <div className="modal-header">
+            <h2>Coming Soon</h2>
+            <button className="modal-close-btn" onClick={() => dispatch({type: 'CLOSE_DESTINATION_MODAL'})}>
+              ×
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="empty-trip-state">
+              <h3>{state.selectedDestination?.name || 'This destination'} is coming soon!</h3>
+              <p>We're working hard to bring you amazing experiences here. Stay tuned!</p>
+              <button className="btn btn--primary" onClick={() => dispatch({type: 'CLOSE_DESTINATION_MODAL'})}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
