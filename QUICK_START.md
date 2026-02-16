@@ -5,7 +5,7 @@
 ```bash
 # 1. Start backend with database
 cd myhive-backend
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 
 # 2. Start frontend (new terminal)
 cd myhive-react-app
@@ -24,7 +24,7 @@ npm start
 ```bash
 # Stop backend services
 cd myhive-backend
-docker-compose down
+docker-compose -f docker-compose.dev.yml down
 
 # Stop frontend (Ctrl+C in terminal)
 ```
@@ -34,7 +34,7 @@ docker-compose down
 ```bash
 # Check backend containers
 cd myhive-backend
-docker-compose ps
+docker-compose -f docker-compose.dev.yml ps
 
 # Test API
 curl http://localhost:8081/api/destinations
@@ -44,7 +44,7 @@ curl http://localhost:8081/api/destinations
 
 ```bash
 # Development (default)
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 
 # Development with explicit config
 docker-compose -f docker-compose.dev.yml up -d

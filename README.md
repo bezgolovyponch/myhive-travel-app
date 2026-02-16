@@ -3,9 +3,9 @@
 ## 🚀 Quick Start (5 minutes)
 
 ```bash
-# 1. Start backend with database
+# 1. Start backend with database (development)
 cd myhive-backend
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 
 # 2. Start frontend (new terminal)
 cd myhive-react-app
@@ -46,7 +46,7 @@ myhive-travel-app/
 
 ```bash
 cd myhive-backend
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
 This starts:
@@ -217,13 +217,13 @@ cd myhive-backend
 docker build -t myhive-backend .
 
 # Run with database
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 
 # View logs
-docker-compose logs -f backend
+docker-compose -f docker-compose.dev.yml logs -f backend
 
 # Stop services
-docker-compose down
+docker-compose -f docker-compose.dev.yml down
 ```
 
 ## Database Setup
@@ -254,16 +254,16 @@ Sample data includes:
 
 ```bash
 # Check container status
-docker-compose ps
+docker-compose -f docker-compose.dev.yml ps
 
 # View logs
-docker-compose logs backend
+docker-compose -f docker-compose.dev.yml logs backend
 
 # Restart services
-docker-compose restart backend
+docker-compose -f docker-compose.dev.yml restart backend
 
 # Rebuild and restart
-docker-compose down -v && docker-compose up -d
+docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d
 ```
 
 ### Frontend Issues
@@ -281,10 +281,10 @@ curl http://localhost:8081/api/destinations
 
 ```bash
 # Check PostgreSQL container
-docker exec myhive-postgres pg_isready -U myhive_user -d myhive_db
+docker exec myhive-postgres-dev pg_isready -U myhive_user -d myhive_db
 
 # Reset database
-docker-compose down -v && docker-compose up -d
+docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d
 ```
 
 ## Production Deployment
@@ -315,9 +315,9 @@ docker-compose -f docker-compose.prod.yml up -d
 
 For issues:
 
-1. Check Docker containers are running: `docker-compose ps`
+1. Check Docker containers are running: `docker-compose -f docker-compose.dev.yml ps`
 2. Verify backend health: `curl http://localhost:8081/api/destinations`
-3. Check logs: `docker-compose logs backend`
+3. Check logs: `docker-compose -f docker-compose.dev.yml logs backend`
 4. Ensure environment variables are set correctly
 
 ## Next Steps
