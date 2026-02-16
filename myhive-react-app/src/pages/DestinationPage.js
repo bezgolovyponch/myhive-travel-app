@@ -1,14 +1,16 @@
-import { useContext, useState, useEffect } from 'react';
-import { AppContext } from '../context/AppContext';
+import {useContext, useEffect, useState} from 'react';
+import {AppContext} from '../context/AppContext';
 import ActivityCard from '../components/ActivityCard';
 import TripBuilder from '../components/TripBuilder';
-import { useParams } from 'react-router-dom';
+import {useLocation, useNavigate, useParams} from 'react-router-dom';
 import PackageCard from '../components/PackageCard';
 import api from '../services/api';
 
 function DestinationPage() {
   const { id } = useParams();
   const { state, dispatch } = useContext(AppContext);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentFilter, setCurrentFilter] = useState('all');
   const [destination, setDestination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,21 @@ function DestinationPage() {
 
     fetchDestinationData();
   }, [id, dispatch]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab && tab !== state.currentTab) {
+      dispatch({type: 'SWITCH_TAB', tab});
+    }
+  }, [location.search, state.currentTab, dispatch]);
+
+  const handleTabChange = (tabName) => {
+    dispatch({type: 'SWITCH_TAB', tab: tabName});
+    const params = new URLSearchParams(location.search);
+    params.set('tab', tabName);
+    navigate({pathname: location.pathname, search: params.toString()});
+  };
   
   const filteredActivities = currentFilter === 'all' 
     ? state.activities 
@@ -57,25 +74,28 @@ function DestinationPage() {
       <nav className="tab-nav">
         <button 
           className={`tab-btn ${state.currentTab === 'activities' ? 'active' : ''}`}
-          onClick={() => setCurrentFilter('all')}
+          onClick={() => {
+            setCurrentFilter('all');
+            handleTabChange('activities');
+          }}
         >
           Activities
         </button>
         <button 
           className={`tab-btn ${state.currentTab === 'packages' ? 'active' : ''}`}
-          onClick={() => state.currentTab = 'packages'}
+          onClick={() => handleTabChange('packages')}
         >
           Packages
         </button>
         <button 
           className={`tab-btn ${state.currentTab === 'trip-builder' ? 'active' : ''}`}
-          onClick={() => state.currentTab = 'trip-builder'}
+          onClick={() => handleTabChange('trip-builder')}
         >
           Trip Builder
         </button>
       </nav>
 
-      <div className="tab-content">
+      <div className="tab-content" style={{display: state.currentTab === 'activities' ? 'block' : 'none'}}>
         <div className="tab-header">
           <h2>Activities</h2>
           <div className="category-filters">

@@ -1,4 +1,4 @@
-import { createContext, useReducer, useEffect } from 'react';
+import {createContext, useEffect, useReducer} from 'react';
 import api from '../services/api';
 
 export const AppContext = createContext();
@@ -11,10 +11,12 @@ export function AppProvider({ children }) {
     currentPath: '/',
     currentTab: 'activities',
     tripItems: [],
+    tripBuilderModalOpen: false,
     chatOpen: false,
     chatMessages: [
       { sender: 'ai', text: 'Hi! I\'m your AI travel assistant. What type of trip are you looking for?' }
     ],
+    autoEngaged: false,
     loading: true,
     error: null
   };
@@ -57,8 +59,16 @@ export function AppProvider({ children }) {
         return { ...state, tripItems: newItems };
       case 'SWITCH_TAB':
         return { ...state, currentTab: action.tab };
+      case 'OPEN_TRIP_BUILDER_MODAL':
+        return {...state, tripBuilderModalOpen: true};
+      case 'CLOSE_TRIP_BUILDER_MODAL':
+        return {...state, tripBuilderModalOpen: false};
       case 'TOGGLE_CHAT':
         return { ...state, chatOpen: !state.chatOpen };
+      case 'SET_AUTO_ENGAGED':
+        return {...state, autoEngaged: action.value};
+      case 'SET_TRIP_ITEMS':
+        return {...state, tripItems: action.tripItems};
       case 'ADD_CHAT_MESSAGE':
         return { 
           ...state, 
@@ -70,6 +80,24 @@ export function AppProvider({ children }) {
   };
 
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Load tripItems from localStorage on mount
+  useEffect(() => {
+    const savedTripItems = localStorage.getItem('myhive-trip-items');
+    if (savedTripItems) {
+      try {
+        const parsed = JSON.parse(savedTripItems);
+        dispatch({type: 'SET_TRIP_ITEMS', tripItems: parsed});
+      } catch (e) {
+        console.error('Failed to load trip items from localStorage', e);
+      }
+    }
+  }, []);
+
+  // Save tripItems to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('myhive-trip-items', JSON.stringify(state.tripItems));
+  }, [state.tripItems]);
 
   useEffect(() => {
     const fetchData = async () => {
