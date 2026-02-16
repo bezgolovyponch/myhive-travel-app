@@ -1,0 +1,55 @@
+# Docker Compose for Development Environment
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: myhive-postgres-dev
+    environment:
+      POSTGRES_DB: myhive_db
+      POSTGRES_USER: myhive_user
+      POSTGRES_PASSWORD: myhive_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - myhive-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U myhive_user -d myhive_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myhive-backend-dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/myhive_db
+      SPRING_DATASOURCE_USERNAME: myhive_user
+      SPRING_DATASOURCE_PASSWORD: myhive_password
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      DATABASE_URL: jdbc:postgresql://postgres:5432/myhive_db
+      DB_USERNAME: myhive_user
+      DB_PASSWORD: myhive_password
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - myhive-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  myhive-network:
+    driver: bridge
