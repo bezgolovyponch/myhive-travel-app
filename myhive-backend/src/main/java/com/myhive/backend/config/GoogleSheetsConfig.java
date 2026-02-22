@@ -59,7 +59,7 @@ public class GoogleSheetsConfig {
                 .build();
     }
 
-    private GoogleCredentials createCredentials() throws IOException {
+    public GoogleCredentials createCredentials() throws IOException {
         // Method 1: Environment variable (preferred)
         if (credentialsJson != null && !credentialsJson.trim().isEmpty()) {
             log.info("Using Google Sheets credentials from environment variable");

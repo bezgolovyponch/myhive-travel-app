@@ -9,14 +9,13 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.*;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.myhive.backend.config.GoogleSheetsProperties;
+import com.myhive.backend.config.GoogleSheetsConfig;
 import com.myhive.backend.dto.SheetData;
 import com.myhive.backend.dto.TripExportRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -32,11 +31,11 @@ public class GoogleSheetsService {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);
 
-    private final GoogleSheetsProperties properties;
+    private final GoogleSheetsConfig config;
     // private final EmailService emailService; // Temporarily commented out
 
     public boolean isConfigured() {
-        return properties.isConfigured();
+        return config.isConfigured();
     }
 
     public String exportTripToSheet(TripExportRequest request) throws IOException, GeneralSecurityException {
@@ -47,7 +46,7 @@ public class GoogleSheetsService {
         Sheets sheetsService = getSheetsService();
 
         String spreadsheetId = request.getSpreadsheetId() != null ?
-                request.getSpreadsheetId() : properties.getEffectiveSpreadsheetId();
+                request.getSpreadsheetId() : config.getEffectiveSpreadsheetId();
 
         String sheetName = request.getSheetName() != null ?
                 request.getSheetName() : generateSheetName(request.getTripName());
@@ -123,12 +122,12 @@ public class GoogleSheetsService {
 
     private Sheets getSheetsService() throws IOException, GeneralSecurityException {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        GoogleCredentials credentials = GoogleCredentials.fromStream(
-                new FileInputStream(properties.getCredentialsPath())
-        ).createScoped(SCOPES);
+        JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
 
-        return new Sheets.Builder(httpTransport, JSON_FACTORY, new HttpCredentialsAdapter(credentials))
-                .setApplicationName(properties.getApplicationName())
+        GoogleCredentials credentials = config.createCredentials();
+
+        return new Sheets.Builder(httpTransport, jsonFactory, new HttpCredentialsAdapter(credentials))
+                .setApplicationName(config.getApplicationName())
                 .build();
     }
 
@@ -333,7 +332,7 @@ public class GoogleSheetsService {
         try {
             // Get existing sheets to find the next available number
             Sheets sheetsService = getSheetsService();
-            String spreadsheetId = properties.getSpreadsheetId();
+            String spreadsheetId = config.getEffectiveSpreadsheetId();
             Spreadsheet spreadsheet = sheetsService.spreadsheets()
                     .get(spreadsheetId)
                     .execute();
