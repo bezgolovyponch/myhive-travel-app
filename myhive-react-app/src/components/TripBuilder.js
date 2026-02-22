@@ -1,9 +1,18 @@
 import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
+import GoogleSheetsService from '../services/googleSheetsService';
+import ContactForm from './ContactForm';
+import SuccessModal from './SuccessModal';
+import './TripBuilder.css';
 
 function TripBuilder() {
   const { state, dispatch } = useContext(AppContext);
   const [browseFilter, setBrowseFilter] = useState('all');
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successContactData, setSuccessContactData] = useState(null);
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
@@ -14,7 +23,79 @@ function TripBuilder() {
   };
 
   const handleConfirmTrip = () => {
-    alert(`🎉 Proceeding to confirmation!\n\nYour trip includes ${state.tripItems.length} activities:\n${state.tripItems.map(item => `• ${item.name || item.title}`).join('\n')}\n\nThis would normally take you to the booking confirmation page.`);
+    setShowContactForm(true);
+  };
+
+  const handleContactSubmit = async (contactData) => {
+    if (state.tripItems.length === 0) {
+      alert('Please add some activities to your trip before submitting.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // Check if Google Sheets is configured
+      const status = await GoogleSheetsService.getStatus();
+      if (!status.configured) {
+        setSubmitError('Google Sheets integration is not configured. Please contact support.');
+        return;
+      }
+
+      // Prepare comprehensive booking data for export
+      const bookingData = {
+        tripName: 'Booking',
+        userEmail: contactData.email,
+        destinations: [{
+          destinationName: 'Custom Travel Package',
+          country: 'Not specified',
+          duration: contactData.startDate && contactData.endDate ?
+              Math.ceil((new Date(contactData.endDate) - new Date(contactData.startDate)) / (1000 * 60 * 60 * 24)) + 1 : 1,
+          startDate: contactData.startDate,
+          endDate: contactData.endDate,
+          activities: state.tripItems.map(item => ({
+            activityName: item.name || item.title,
+            category: item.category || 'General',
+            description: item.description || '',
+            price: item.price || 0,
+            duration: item.duration || 0,
+            timeOfDay: item.timeOfDay || 'Any'
+          }))
+        }],
+        notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`,
+        // Additional contact information for the sheet
+        contactInfo: {
+          fullName: contactData.fullName,
+          phone: contactData.phone,
+          numberOfTravelers: contactData.numberOfTravelers,
+          contactMethod: contactData.contactMethod,
+          specialRequirements: contactData.specialRequirements,
+          hearAboutUs: contactData.hearAboutUs
+        }
+      };
+
+      const result = await GoogleSheetsService.exportTrip(bookingData);
+
+      if (result.success) {
+        // Close the contact form
+        setShowContactForm(false);
+
+        // Store contact data and show success modal
+        setSuccessContactData(contactData);
+        setShowSuccessModal(true);
+
+        // Optionally clear the trip
+        // dispatch({ type: 'CLEAR_TRIP' });
+      } else {
+        setSubmitError(result.message || 'Failed to submit booking');
+      }
+    } catch (error) {
+      console.error('Booking submission error:', error);
+      setSubmitError(error.message || 'Failed to submit booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredBrowseActivities = browseFilter === 'all'
@@ -54,9 +135,16 @@ function TripBuilder() {
           )}
         </div>
         {state.tripItems.length > 0 && (
+            <div className="trip-actions">
             <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>
-              Proceed to Confirmation
+              Complete Booking
             </button>
+              {submitError && (
+                  <div className="export-error">
+                    <p>{submitError}</p>
+                  </div>
+              )}
+            </div>
         )}
       </div>
       <div className="trip-builder-right">
@@ -98,6 +186,22 @@ function TripBuilder() {
           })}
         </div>
       </div>
+
+      <ContactForm
+          isOpen={showContactForm}
+          onClose={() => setShowContactForm(false)}
+          onSubmit={handleContactSubmit}
+          tripData={{tripItems: state.tripItems}}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
+      />
+
+      <SuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          userName={successContactData?.fullName || 'Traveler'}
+          userEmail={successContactData?.email || ''}
+      />
     </div>
   );
 }

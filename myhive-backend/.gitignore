@@ -35,3 +35,33 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables & Secrets ###
+.env
+.env.local
+.env.*.local
+*.env
+secrets/
+credentials/
+
+### Service Account Keys & Certificates ###
+service-account-key.json
+*.json
+*.pem
+*.p12
+*.key
+*.crt
+*.cer
+
+### Google Cloud & AWS ###
+google-credentials.json
+aws-credentials.json
+firebase-admin.json
+application_default_credentials.json
+
+### IDE & Editor Files ###
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

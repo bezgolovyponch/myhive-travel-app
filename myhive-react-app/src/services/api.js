@@ -71,6 +71,43 @@ export const api = {
     if (!response.ok) throw new Error('Failed to update booking status');
     return response.json();
   },
+
+    // Google Sheets
+    async getGoogleSheetsStatus() {
+        const response = await fetch(`${API_BASE_URL}/google-sheets/status`);
+        if (!response.ok) throw new Error('Failed to check Google Sheets status');
+        return response.json();
+    },
+
+    async exportTripToSheets(tripData) {
+        const response = await fetch(`${API_BASE_URL}/google-sheets/export-trip`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(tripData),
+        });
+        if (!response.ok) throw new Error('Failed to export trip to Google Sheets');
+        return response.json();
+    },
+
+    async createSpreadsheet(title) {
+        const response = await fetch(`${API_BASE_URL}/google-sheets/create-spreadsheet`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({title}),
+        });
+        if (!response.ok) throw new Error('Failed to create spreadsheet');
+        return response.json();
+    },
+
+    async getSpreadsheetSheets(spreadsheetId) {
+        const response = await fetch(`${API_BASE_URL}/google-sheets/spreadsheet/${spreadsheetId}/sheets`);
+        if (!response.ok) throw new Error('Failed to get spreadsheet sheets');
+        return response.json();
+    },
 };
 
 export default api;
