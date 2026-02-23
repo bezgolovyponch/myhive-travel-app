@@ -31,7 +31,7 @@ public class HomeController {
         return response;
     }
 
-    @GetMapping("/api/health/detailed")
+    @GetMapping("/health/detailed")
     public Map<String, Object> detailedHealth() {
         Map<String, Object> health = new HashMap<>();
 
