@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/google-sheets")
+@RequestMapping("/google-sheets")
 @RequiredArgsConstructor
 @Slf4j
 public class GoogleSheetsController {
