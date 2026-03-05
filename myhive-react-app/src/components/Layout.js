@@ -30,7 +30,20 @@ function Layout() {
             <div className="empty-trip-state">
               <h3>Start Planning Your Trip</h3>
               <p>Choose a destination first, then add activities to build your perfect getaway!</p>
-              <Link className="btn btn--primary" to="/" onClick={() => dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'})}>
+              <Link
+                  className="btn btn--primary"
+                  to="/"
+                  onClick={() => {
+                    dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
+                    // Small delay to ensure modal closes before navigation
+                    setTimeout(() => {
+                      const section = document.getElementById('destinations');
+                      if (section) {
+                        section.scrollIntoView({behavior: 'smooth'});
+                      }
+                    }, 100);
+                  }}
+              >
                 Browse Destinations
               </Link>
             </div>
