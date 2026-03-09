@@ -47,6 +47,7 @@ function TripBuilder() {
       const bookingData = {
         tripName: 'Booking',
         userEmail: contactData.email,
+        customerName: contactData.fullName,
         destinations: [{
           destinationName: 'Custom Travel Package',
           country: 'Not specified',

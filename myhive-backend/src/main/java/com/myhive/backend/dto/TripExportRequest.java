@@ -19,6 +19,9 @@ public class TripExportRequest {
     @NotBlank(message = "User email is required")
     private String userEmail;
 
+    @NotBlank(message = "Customer name is required")
+    private String customerName;
+
     @NotEmpty(message = "Destinations cannot be empty")
     private List<DestinationExport> destinations;
 

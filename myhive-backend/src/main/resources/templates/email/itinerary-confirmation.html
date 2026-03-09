@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>MyHive Travel Itinerary Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            background: #f8f9fa;
+        }
+
+        .activity {
+            margin: 10px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .price {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🌍 Your MyHive Travel Itinerary</h1>
+        <p>Thank you for choosing MyHive Travel, <span th:text="${customerName}">Customer</span>!</p>
+    </div>
+    <div class="content">
+
+        <div class="section">
+            <h2>📋 Booking Details</h2>
+            <p><strong>Booking Date:</strong> <span th:text="${bookingDate}">March 5, 2026</span></p>
+            <p><strong>Trip Name:</strong> <span th:text="${tripData.tripName}">Booking</span></p>
+            <p><strong>Status:</strong> <span style="color: #28a745;">Confirmed</span></p>
+        </div>
+
+        <!-- Destinations and Activities -->
+        <div th:if="${tripData.destinations}" th:each="destination : ${tripData.destinations}">
+            <div class="section">
+                <h2>📍 <span th:text="${destination.destinationName}">Destination</span></h2>
+                <p><strong>Country:</strong> <span th:text="${destination.country}">Country</span></p>
+                <p><strong>Duration:</strong> <span th:text="${destination.duration}">1</span> days</p>
+
+                <div th:if="${destination.startDate and destination.endDate}">
+                    <p><strong>Travel Dates:</strong>
+                        <span th:text="${destination.startDate}">Start Date</span> to <span
+                                th:text="${destination.endDate}">End Date</span>
+                    </p>
+                </div>
+
+                <div th:if="${destination.activities and not #lists.isEmpty(destination.activities)}">
+                    <h3>🎯 Planned Activities</h3>
+                    <div th:with="totalPrice=0">
+                        <div th:each="activity : ${destination.activities}" class="activity">
+                            <h4 th:text="${activity.activityName}">Activity Name</h4>
+                            <p><strong>Category:</strong> <span th:text="${activity.category}">Category</span></p>
+                            <p><strong>Description:</strong> <span
+                                    th:text="${activity.description ?: 'No description available'}">Description</span>
+                            </p>
+                            <p><strong>Duration:</strong> <span th:text="${activity.duration ?: 0}">0</span> hours</p>
+                            <p><strong>Price:</strong> <span class="price">€<span
+                                    th:text="${#numbers.formatDecimal(activity.price ?: 0, 1, 2)}">0.00</span></span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div th:if="${tripData.notes and not #strings.isEmpty(tripData.notes)}" class="section">
+            <h2>📝 Additional Information</h2>
+            <p th:text="${tripData.notes}">Additional notes</p>
+        </div>
+
+        <div class="section">
+            <h2>📞 Next Steps</h2>
+            <ol>
+                <li>Our team will contact you within 24 hours to confirm details</li>
+                <li>Payment arrangements will be discussed during the call</li>
+                <li>Final confirmations and travel documents will be provided</li>
+            </ol>
+        </div>
+
+    </div>
+    <div class="footer">
+        <p>🌍 <strong>MyHive Travel</strong></p>
+        <p>Creating unforgettable travel experiences</p>
+        <p style="font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
+        <p style="font-size: 12px;">For support, contact us at support@myhive-travel.com</p>
+    </div>
+</div>
+</body>
+</html>

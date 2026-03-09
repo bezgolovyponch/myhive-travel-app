@@ -1,0 +1,10 @@
+New booking received:
+
+Customer: ${customerName}
+Email: ${userEmail}
+Trip: ${tripName}
+Activities: ${activityCount} selected
+Booking Date: ${bookingDate}
+Google Sheet: ${googleSheetUrl}
+
+Please check the Google Sheet for complete details.

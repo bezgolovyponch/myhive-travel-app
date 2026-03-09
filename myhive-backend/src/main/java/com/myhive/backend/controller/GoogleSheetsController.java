@@ -1,10 +1,12 @@
 package com.myhive.backend.controller;
 
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.service.EmailService;
 import com.myhive.backend.service.GoogleSheetsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,10 @@ import java.util.Map;
 public class GoogleSheetsController {
 
     private final GoogleSheetsService googleSheetsService;
+    private final EmailService emailService;
+
+    @Value("${app.email.enabled:false}")
+    private boolean emailEnabled;
 
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
@@ -41,11 +47,47 @@ public class GoogleSheetsController {
             }
 
             String spreadsheetId = googleSheetsService.exportTripToSheet(request);
+            String googleSheetUrl = "https://docs.google.com/spreadsheets/d/" + spreadsheetId;
+
+            // Send confirmation email to customer (if enabled)
+            if (emailEnabled) {
+                try {
+                    emailService.sendItineraryConfirmation(
+                            request.getUserEmail(),
+                            request.getCustomerName(),
+                            request
+                    );
+                    log.info("Confirmation email sent to customer: {}", request.getUserEmail());
+                } catch (Exception emailError) {
+                    log.warn("Failed to send confirmation email to customer: {}", request.getUserEmail(), emailError);
+                    // Don't fail the whole operation if email fails
+                }
+            } else {
+                log.info("Email sending is disabled. Skipping confirmation email to: {}", request.getUserEmail());
+            }
+
+            // Send notification email to admin (if enabled)
+            if (emailEnabled) {
+                try {
+                    emailService.sendBookingNotification(
+                            "admin@myhive-travel.com", // Replace with actual admin email
+                            request.getCustomerName(),
+                            request,
+                            googleSheetUrl
+                    );
+                    log.info("Booking notification sent to admin");
+                } catch (Exception emailError) {
+                    log.warn("Failed to send booking notification to admin", emailError);
+                    // Don't fail the whole operation if email fails
+                }
+            } else {
+                log.info("Email sending is disabled. Skipping admin notification.");
+            }
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "spreadsheetId", spreadsheetId,
-                    "message", "Trip exported successfully to Google Sheets"
+                    "message", "Trip exported successfully" + (emailEnabled ? " and confirmation emails sent" : " (email sending disabled)")
             ));
 
         } catch (Exception e) {
