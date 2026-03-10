@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminBookingDetail from './pages/AdminBookingDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           </AuthProvider>
         }>
           <Route index element={<AdminDashboard/>}/>
+          <Route path="bookings/:id" element={<AdminBookingDetail/>}/>
         </Route>
 
         {/* Public routes — existing app */}

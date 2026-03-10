@@ -3,6 +3,7 @@ package com.myhive.backend.service;
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingItemDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
+import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
@@ -71,6 +72,35 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public BookingDTO createBookingFromExport(TripExportRequest request) {
+        Booking booking = new Booking();
+        booking.setUserEmail(request.getUserEmail());
+        booking.setStatus("PENDING");
+
+        List<BookingItem> items = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (TripExportRequest.DestinationExport dest : request.getDestinations()) {
+            for (TripExportRequest.ActivityExport act : dest.getActivities()) {
+                BookingItem item = new BookingItem();
+                item.setBooking(booking);
+                item.setActivityName(act.getActivityName());
+                item.setDestinationName(dest.getDestinationName());
+                item.setPrice(act.getPrice() != null ? BigDecimal.valueOf(act.getPrice()) : BigDecimal.ZERO);
+                item.setQuantity(1);
+                items.add(item);
+                totalAmount = totalAmount.add(item.getPrice());
+            }
+        }
+
+        booking.setBookingItems(items);
+        booking.setTotalAmount(totalAmount);
+
+        Booking saved = bookingRepository.save(booking);
+        return convertToDTO(saved);
+    }
+
     public List<BookingDTO> getAllBookings() {
         return bookingRepository.findAll().stream()
                 .map(this::convertToDTO)
@@ -116,7 +146,7 @@ public class BookingService {
     private BookingItemDTO convertItemToDTO(BookingItem item) {
         BookingItemDTO dto = new BookingItemDTO();
         dto.setId(item.getId());
-        dto.setActivityId(item.getActivity().getId());
+        dto.setActivityId(item.getActivity() != null ? item.getActivity().getId() : null);
         dto.setActivityName(item.getActivityName());
         dto.setDestinationName(item.getDestinationName());
         dto.setPrice(item.getPrice());

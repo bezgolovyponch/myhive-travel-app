@@ -1,6 +1,8 @@
 package com.myhive.backend.controller;
 
+import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.service.BookingService;
 import com.myhive.backend.service.EmailService;
 import com.myhive.backend.service.GoogleSheetsService;
 import jakarta.validation.Valid;
@@ -21,6 +23,7 @@ import java.util.Map;
 public class GoogleSheetsController {
 
     private final GoogleSheetsService googleSheetsService;
+    private final BookingService bookingService;
     private final EmailService emailService;
 
     @Value("${app.email.enabled:false}")
@@ -38,65 +41,54 @@ public class GoogleSheetsController {
 
     @PostMapping("/export-trip")
     public ResponseEntity<Map<String, Object>> exportTrip(@Valid @RequestBody TripExportRequest request) {
+        Map<String, Object> response = new HashMap<>();
+
+        // 1. Always save booking to database
         try {
-            if (!googleSheetsService.isConfigured()) {
-                return ResponseEntity.badRequest().body(Map.of(
-                        "success", false,
-                        "message", "Google Sheets integration is not configured"
-                ));
-            }
-
-            String spreadsheetId = googleSheetsService.exportTripToSheet(request);
-            String googleSheetUrl = "https://docs.google.com/spreadsheets/d/" + spreadsheetId;
-
-            // Send confirmation email to customer (if enabled)
-            if (emailEnabled) {
-                try {
-                    emailService.sendItineraryConfirmation(
-                            request.getUserEmail(),
-                            request.getCustomerName(),
-                            request
-                    );
-                    log.info("Confirmation email sent to customer: {}", request.getUserEmail());
-                } catch (Exception emailError) {
-                    log.warn("Failed to send confirmation email to customer: {}", request.getUserEmail(), emailError);
-                    // Don't fail the whole operation if email fails
-                }
-            } else {
-                log.info("Email sending is disabled. Skipping confirmation email to: {}", request.getUserEmail());
-            }
-
-            // Send notification email to admin (if enabled)
-            if (emailEnabled) {
-                try {
-                    emailService.sendBookingNotification(
-                            "admin@myhive-travel.com", // Replace with actual admin email
-                            request.getCustomerName(),
-                            request,
-                            googleSheetUrl
-                    );
-                    log.info("Booking notification sent to admin");
-                } catch (Exception emailError) {
-                    log.warn("Failed to send booking notification to admin", emailError);
-                    // Don't fail the whole operation if email fails
-                }
-            } else {
-                log.info("Email sending is disabled. Skipping admin notification.");
-            }
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "spreadsheetId", spreadsheetId,
-                    "message", "Trip exported successfully" + (emailEnabled ? " and confirmation emails sent" : " (email sending disabled)")
-            ));
-
+            BookingDTO booking = bookingService.createBookingFromExport(request);
+            log.info("Booking saved to database: id={}, email={}", booking.getId(), request.getUserEmail());
+            response.put("bookingId", booking.getId().toString());
         } catch (Exception e) {
-            log.error("Error exporting trip to Google Sheets", e);
-            return ResponseEntity.internalServerError().body(Map.of(
-                    "success", false,
-                    "message", "Failed to export trip: " + e.getMessage()
-            ));
+            log.error("Failed to save booking to database for {}", request.getUserEmail(), e);
+            response.put("bookingError", e.getMessage());
         }
+
+        // 2. Export to Google Sheets (independent — skip if not configured)
+        String googleSheetUrl = null;
+        if (googleSheetsService.isConfigured()) {
+            try {
+                String spreadsheetId = googleSheetsService.exportTripToSheet(request);
+                googleSheetUrl = "https://docs.google.com/spreadsheets/d/" + spreadsheetId;
+                response.put("spreadsheetId", spreadsheetId);
+                log.info("Trip exported to Google Sheets for {}", request.getUserEmail());
+            } catch (Exception e) {
+                log.warn("Failed to export to Google Sheets for {}", request.getUserEmail(), e);
+            }
+        } else {
+            log.info("Google Sheets not configured — skipping export for {}", request.getUserEmail());
+        }
+
+        // 3. Send emails (independent — skip if disabled)
+        if (emailEnabled) {
+            try {
+                emailService.sendItineraryConfirmation(request.getUserEmail(), request.getCustomerName(), request);
+                log.info("Confirmation email sent to {}", request.getUserEmail());
+            } catch (Exception e) {
+                log.warn("Failed to send confirmation email to {}", request.getUserEmail(), e);
+            }
+            if (googleSheetUrl != null) {
+                try {
+                    emailService.sendBookingNotification("admin@myhive-travel.com", request.getCustomerName(), request, googleSheetUrl);
+                    log.info("Booking notification sent to admin");
+                } catch (Exception e) {
+                    log.warn("Failed to send admin notification", e);
+                }
+            }
+        }
+
+        response.put("success", true);
+        response.put("message", "Booking received successfully");
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/create-spreadsheet")

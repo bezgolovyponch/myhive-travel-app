@@ -130,7 +130,8 @@ function AdminDashboard() {
                             </thead>
                             <tbody>
                             {bookings.map((booking) => (
-                                <tr key={booking.id}>
+                                <tr key={booking.id} onClick={() => navigate(`/admin/bookings/${booking.id}`)}
+                                    style={{cursor: 'pointer'}}>
                                     <td>
                                         <code className="text-muted small" title={booking.id}>
                                             {booking.id?.substring(0, 8)}...

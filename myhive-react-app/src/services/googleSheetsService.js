@@ -52,11 +52,12 @@ export class GoogleSheetsService {
     }
 
     static formatTripForExport(tripData) {
-        const {tripName, userEmail, destinations, notes} = tripData;
+        const {tripName, userEmail, customerName, destinations, notes} = tripData;
 
         return {
             tripName: tripName || 'My Trip',
             userEmail: userEmail || '',
+            customerName: customerName || 'Guest',
             destinations: destinations.map(dest => ({
                 destinationName: dest.name || dest.destinationName || '',
                 country: dest.country || '',

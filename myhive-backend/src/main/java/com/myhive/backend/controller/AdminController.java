@@ -8,10 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -25,6 +27,12 @@ public class AdminController {
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
         List<BookingDTO> bookings = bookingService.getAllBookings();
         return ResponseEntity.ok(bookings);
+    }
+
+    @GetMapping("/bookings/{id}")
+    public ResponseEntity<BookingDTO> getBookingById(@PathVariable UUID id) {
+        BookingDTO booking = bookingService.getBookingById(id);
+        return ResponseEntity.ok(booking);
     }
 
     @GetMapping("/bookings/stats")

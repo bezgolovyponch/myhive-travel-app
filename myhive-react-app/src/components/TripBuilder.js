@@ -36,13 +36,6 @@ function TripBuilder() {
     setSubmitError(null);
 
     try {
-      // Check if Google Sheets is configured
-      const status = await GoogleSheetsService.getStatus();
-      if (!status.configured) {
-        setSubmitError('Google Sheets integration is not configured. Please contact support.');
-        return;
-      }
-
       // Prepare comprehensive booking data for export
       const bookingData = {
         tripName: 'Booking',

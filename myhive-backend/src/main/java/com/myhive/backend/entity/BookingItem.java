@@ -24,7 +24,7 @@ public class BookingItem {
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "activity_id", nullable = false)
+    @JoinColumn(name = "activity_id")
     private Activity activity;
 
     @Column(name = "activity_name")

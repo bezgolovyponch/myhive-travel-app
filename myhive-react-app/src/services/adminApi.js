@@ -62,6 +62,18 @@ const adminApi = {
         return response.json();
     },
 
+    async getBookingById(id) {
+        const response = await fetch(`${API_BASE_URL}/api/admin/bookings/${id}`, {
+            headers: authHeaders(),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to fetch booking');
+        return response.json();
+    },
+
     async getBookingStats() {
         const response = await fetch(`${API_BASE_URL}/api/admin/bookings/stats`, {
             headers: authHeaders(),
