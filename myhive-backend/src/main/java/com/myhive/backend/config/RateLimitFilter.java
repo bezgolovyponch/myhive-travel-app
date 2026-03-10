@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
@@ -14,6 +17,11 @@ public class RateLimitFilter implements Filter {
 
     private static final int MAX_REQUESTS_PER_MINUTE = 100;
     private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "rate-limit-cleanup");
+        t.setDaemon(true);
+        return t;
+    });
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -31,19 +39,17 @@ public class RateLimitFilter implements Filter {
             return;
         }
 
-        // Reset counter after 1 minute
+        // Schedule cleanup after 1 minute for new entries
         if (count.get() == 1) {
-            new Thread(() -> {
-                try {
-                    Thread.sleep(60000); // 1 minute
-                    requestCounts.remove(clientIp);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }).start();
+            scheduler.schedule(() -> requestCounts.remove(clientIp), 1, TimeUnit.MINUTES);
         }
 
         chain.doFilter(request, response);
+    }
+
+    @Override
+    public void destroy() {
+        scheduler.shutdownNow();
     }
 
     private String getClientIp(HttpServletRequest request) {

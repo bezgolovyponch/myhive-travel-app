@@ -71,6 +71,12 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
+    public List<BookingDTO> getAllBookings() {
+        return bookingRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public BookingDTO updateBookingStatus(UUID id, String status, String stripeSessionId) {
         Booking booking = bookingRepository.findById(id)

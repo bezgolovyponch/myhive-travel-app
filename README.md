@@ -1,329 +1,252 @@
-# MyHive Travel App - Quick Start Guide
+# MyHive Travel App
 
-## 🚀 Quick Start (5 minutes)
-
-```bash
-# 1. Start backend with database (development)
-cd myhive-backend
-docker-compose -f docker-compose.dev.yml up -d
-
-# 2. Start frontend (new terminal)
-cd myhive-react-app
-npm install
-npm start
-
-# 3. Open browser
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8081/api
-```
-
-That's it! The app is running with:
-
-- ✅ React frontend with trip builder
-- ✅ Spring Boot API with PostgreSQL
-- ✅ Sample destinations and activities
-- ✅ Real images from Unsplash
-
-## Prerequisites
-
-- Java 25 JDK installed
-- Docker and Docker Compose installed
-- Node.js 18+ installed (for frontend)
-- Git
+A full-stack travel booking platform with a React frontend and Spring Boot backend.
 
 ## Project Structure
 
 ```
 myhive-travel-app/
-├── myhive-backend/          # Spring Boot API
-├── myhive-react-app/        # React frontend
-└── index.html              # Original HTML reference
+├── myhive-backend/        # Spring Boot 4.0 API (Java 25)
+├── myhive-react-app/      # React frontend
+├── index.html             # Original static prototype
+└── README.md
 ```
+
+## Tech Stack
+
+| Layer               | Technology                                        |
+|---------------------|---------------------------------------------------|
+| **Frontend**        | React, Context API                                |
+| **Backend**         | Spring Boot 4.0, Spring Security, Spring Data JPA |
+| **Auth**            | JWT (jjwt 0.13) with BCrypt passwords             |
+| **Database (dev)**  | H2 in-memory (PostgreSQL compatibility mode)      |
+| **Database (prod)** | PostgreSQL 16                                     |
+| **Build**           | Gradle 9.3, Java 25                               |
+| **Container**       | Docker (multi-stage, Eclipse Temurin Alpine)      |
+| **Integrations**    | Google Sheets (prod only), Email (SMTP)           |
 
 ## Quick Start (Development)
 
-### 1. Start Backend (with Database)
+### Prerequisites
+
+- **Java 25** JDK
+- **Node.js 18+**
+- **Docker** (optional, for containerized run)
+
+### Option A: Run with Gradle (no Docker needed)
 
 ```bash
+# Backend
 cd myhive-backend
-docker-compose -f docker-compose.dev.yml up -d
-```
+./gradlew bootRun --args='--spring.profiles.active=dev'
 
-This starts:
-
-- PostgreSQL database on port 5432
-- Spring Boot API on port 8081 (mapped to container port 8080)
-
-### 2. Start Frontend
-
-```bash
+# Frontend (new terminal)
 cd myhive-react-app
-npm install
-npm start
+npm install && npm start
 ```
 
-Frontend runs on http://localhost:3000
-
-### 3. Access the Application
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8081/api
-- **API Documentation**:
-    - Destinations: http://localhost:8081/api/destinations
-    - Activities: http://localhost:8081/api/activities
-    - Bookings: http://localhost:8081/api/bookings
-
-## Environment Configurations
-
-### Development Environment
+### Option B: Run with Docker
 
 ```bash
+# Build and run backend
 cd myhive-backend
-docker-compose -f docker-compose.dev.yml up -d
+docker build --build-arg SPRING_PROFILE=dev -t myhive-backend:dev .
+docker run -d --name myhive-backend-dev -p 8080:8080 myhive-backend:dev
+
+# Frontend (new terminal)
+cd myhive-react-app
+npm install && npm start
 ```
 
-Features:
+### Verify
 
-- Local PostgreSQL database
-- Debug logging enabled
-- CORS allows localhost:3000
-- SQL queries visible in logs
+| URL                                   | Description                    |
+|---------------------------------------|--------------------------------|
+| http://localhost:3000                 | React frontend                 |
+| http://localhost:8080                 | Backend API root               |
+| http://localhost:8080/destinations    | All destinations               |
+| http://localhost:8080/actuator/health | Health check                   |
+| http://localhost:8080/h2-console      | H2 database browser (dev only) |
 
-### Production Environment
-
-```bash
-cd myhive-backend
-# Set environment variables first
-export DATABASE_URL=jdbc:postgresql://your-db-host:5432/myhive_prod_db
-export DB_USERNAME=your_db_user
-export DB_PASSWORD=your_secure_password
-export CORS_ALLOWED_ORIGINS=https://yourdomain.com
-
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-Features:
-
-- External database connection
-- Minimal logging
-- Restricted CORS to your domain
-- Resource limits and health checks
-
-## Environment Variables
-
-Create a `.env` file in `myhive-backend/`:
-
-```bash
-# Application Profile
-SPRING_PROFILES_ACTIVE=dev
-
-# Database Configuration
-DATABASE_URL=jdbc:postgresql://localhost:5432/myhive_db
-DB_USERNAME=myhive_user
-DB_PASSWORD=your_secure_password_here
-
-# CORS Configuration
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-
-# Google Sheets (future use)
-GOOGLE_SHEETS_CREDENTIALS_PATH=path/to/service-account.json
-GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id_here
-```
-
-## Available Features
-
-### Frontend (React)
-
-- ✅ Destination browsing
-- ✅ Activity filtering and selection
-- ✅ Trip builder with state persistence
-- ✅ Breadcrumb navigation
-- ✅ Tab-based destination pages
-- ✅ Coming soon modals for unavailable destinations
-- ⚠️ Chat bot (temporarily hidden)
-
-### Backend (Spring Boot)
-
-- ✅ RESTful API for destinations, activities, bookings
-- ✅ PostgreSQL database with sample data
-- ✅ Input validation and error handling
-- ✅ Rate limiting (100 requests/minute)
-- ✅ Security headers
-- ✅ CORS configuration
-- ✅ Environment-specific configurations
+H2 console credentials: JDBC URL `jdbc:h2:mem:devdb`, user `sa`, no password.
 
 ## API Endpoints
 
-### Destinations
+### Public Endpoints
 
-```http
-GET    /api/destinations           # List all destinations
-GET    /api/destinations/{id}      # Get specific destination
+```
+GET  /                          # Service info
+GET  /destinations              # All destinations
+GET  /destinations/{id}         # Destination by ID
+GET  /activities                # All activities
+GET  /activities?destinationId= # Activities by destination
+GET  /activities?category=      # Activities by category
+GET  /activities/{id}           # Activity by ID
+POST /bookings                  # Create booking
+GET  /bookings/{id}             # Booking by ID
+GET  /bookings?email=           # Bookings by email
+PATCH /bookings/{id}/status     # Update booking status
+GET  /google-sheets/status      # Google Sheets integration status
+GET  /actuator/health           # Health check
 ```
 
-### Activities
+### Authentication
 
-```http
-GET    /api/activities            # List all activities
-GET    /api/activities?destinationId={id}    # Activities by destination
-GET    /api/activities?category={category}  # Activities by category
-GET    /api/activities/{id}       # Get specific activity
+```
+POST /auth/login                # Login, returns JWT token
+GET  /auth/validate             # Validate JWT token
 ```
 
-### Bookings
+**Dev credentials:** `admin@myhive.com` / `admin123`
 
-```http
-POST   /api/bookings               # Create booking
-GET    /api/bookings/{id}          # Get booking by ID
-GET    /api/bookings?email={email} # Get bookings by email
-PATCH  /api/bookings/{id}/status  # Update booking status
+```bash
+# Login
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@myhive.com","password":"admin123"}'
+
+# Use token
+curl http://localhost:8080/api/admin/bookings \
+  -H "Authorization: Bearer <token>"
 ```
 
-## Development Workflow
+### Protected Admin Endpoints (JWT + ADMIN role required)
 
-### 1. Backend Development
+```
+GET  /api/admin/bookings        # All bookings
+GET  /api/admin/bookings/stats  # Booking statistics
+```
+
+## Environment Profiles
+
+### `dev` (default)
+
+- H2 in-memory database (auto-created, reset on restart)
+- Sample data loaded from `data.sql` (5 destinations, 8 activities, 3 bookings)
+- Debug logging, SQL query logging
+- CORS: `localhost:3000`
+- Google Sheets: disabled
+- Email: disabled
+
+### `prod`
+
+- PostgreSQL (external, configured via env vars)
+- Minimal logging
+- CORS: restricted to production domain
+- Google Sheets: optional (enabled via env vars)
+- Email: configurable via SMTP env vars
+
+### `test`
+
+- H2 in-memory with `create-drop` schema
+- Used for automated tests
+
+## Environment Variables (Production)
+
+```bash
+# Required
+SPRING_PROFILES_ACTIVE=prod
+DATABASE_URL=jdbc:postgresql://host:5432/myhive_db
+DB_USERNAME=your_user
+DB_PASSWORD=your_password
+PORT=8080
+JWT_SECRET=your-secret-key
+ADMIN_EMAIL=admin@yourdomain.com
+ADMIN_PASSWORD=your-secure-password
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+
+# Optional: Google Sheets
+GOOGLE_SHEETS_ENABLED=true
+GOOGLE_SHEETS_CREDENTIALS_JSON={"type":"service_account",...}
+GOOGLE_SHEETS_SPREADSHEET_ID=your-spreadsheet-id
+
+# Optional: Email
+EMAIL_USERNAME=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+```
+
+## Security
+
+- **JWT Authentication** with 24-hour token expiration
+- **BCrypt** password hashing
+- **Role-based access control** (ADMIN role for `/api/admin/**`)
+- **Rate limiting** at 100 requests/minute per IP
+- **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`,
+  `Content-Security-Policy`
+- **CORS** restricted to configured origins
+- **CSRF** disabled (stateless API)
+- **Stateless sessions** (no server-side session state)
+
+## Docker
+
+### Build
 
 ```bash
 cd myhive-backend
-# Run tests
-./gradlew test
 
-# Build application
-./gradlew build
+# Dev build (H2, sample data)
+docker build --build-arg SPRING_PROFILE=dev -t myhive-backend:dev .
 
-# Run locally (requires external database)
-./gradlew bootRun
+# Prod build (requires env vars at runtime)
+docker build -t myhive-backend:prod .
 ```
 
-### 2. Frontend Development
+### Run
+
+```bash
+# Dev
+docker run -d --name myhive-backend-dev -p 8080:8080 myhive-backend:dev
+
+# Prod
+docker run -d --name myhive-backend \
+  -p 8080:8080 \
+  -e DATABASE_URL=jdbc:postgresql://host:5432/db \
+  -e DB_USERNAME=user \
+  -e DB_PASSWORD=pass \
+  -e JWT_SECRET=secret \
+  -e ADMIN_EMAIL=admin@example.com \
+  -e ADMIN_PASSWORD=password \
+  myhive-backend:prod
+```
+
+## Development
+
+### Backend
+
+```bash
+cd myhive-backend
+./gradlew test              # Run tests
+./gradlew build             # Build JAR
+./gradlew bootRun           # Run locally (dev profile)
+```
+
+### Frontend
 
 ```bash
 cd myhive-react-app
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-
-# Build for production
-npm run build
+npm install                 # Install dependencies
+npm start                   # Dev server on :3000
+npm run build               # Production build
 ```
 
-### 3. Docker Development
+## Sample Data (dev profile)
 
-```bash
-# Build backend image
-cd myhive-backend
-docker build -t myhive-backend .
+Loaded automatically on startup:
 
-# Run with database
-docker-compose -f docker-compose.dev.yml up -d
-
-# View logs
-docker-compose -f docker-compose.dev.yml logs -f backend
-
-# Stop services
-docker-compose -f docker-compose.dev.yml down
-```
-
-## Database Setup
-
-The application uses PostgreSQL with sample data automatically loaded via `init.sql`:
-
-- **Database**: myhive_db
-- **User**: myhive_user
-- **Password**: myhive_password (development)
-
-Sample data includes:
-
-- 5 destinations (Prague, Tenerife, Bali, Dubai, New York)
-- Activities for Tenerife and Prague
-- Real Unsplash images for all destinations and activities
-
-## Security Features
-
-- **Rate Limiting**: 100 requests per minute per IP
-- **Input Validation**: Email format, required fields, size limits
-- **Security Headers**: XSS protection, content type options, CSP
-- **CORS**: Restricted to allowed origins
-- **Environment Variables**: Sensitive data not in code
+- **5 destinations**: Prague, Tenerife, Bali, Dubai, New York
+- **8 activities** across destinations (nightlife, adventure, daytime, culture)
+- **3 bookings** with different statuses (PAID, CONFIRMED, PENDING)
 
 ## Troubleshooting
 
-### Backend Issues
+**Port in use:** Change `server.port` in `application-dev.properties` or use `-p <port>:8080` with Docker.
 
+**JWT issues:** Tokens expire after 24 hours. Verify header format: `Authorization: Bearer <token>`.
+
+**Docker logs:**
 ```bash
-# Check container status
-docker-compose -f docker-compose.dev.yml ps
-
-# View logs
-docker-compose -f docker-compose.dev.yml logs backend
-
-# Restart services
-docker-compose -f docker-compose.dev.yml restart backend
-
-# Rebuild and restart
-docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d
+docker logs myhive-backend-dev
 ```
 
-### Frontend Issues
-
-```bash
-# Clear node modules
-rm -rf node_modules package-lock.json
-npm install
-
-# Check if backend is running
-curl http://localhost:8081/api/destinations
-```
-
-### Database Issues
-
-```bash
-# Check PostgreSQL container
-docker exec myhive-postgres-dev pg_isready -U myhive_user -d myhive_db
-
-# Reset database
-docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d
-```
-
-## Production Deployment
-
-### Using Docker Compose (Production)
-
-```bash
-# Set production environment variables
-export SPRING_PROFILES_ACTIVE=prod
-export DATABASE_URL=jdbc:postgresql://your-db-host:5432/myhive_prod_db
-export DB_USERNAME=your_db_user
-export DB_PASSWORD=your_secure_password
-export CORS_ALLOWED_ORIGINS=https://yourdomain.com
-
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Environment Setup
-
-1. Copy `.env.example` to `.env`
-2. Update with your values
-3. Set `SPRING_PROFILES_ACTIVE=prod` for production
-4. Configure external database
-5. Update CORS origins to your domain
-
-## Support
-
-For issues:
-
-1. Check Docker containers are running: `docker-compose -f docker-compose.dev.yml ps`
-2. Verify backend health: `curl http://localhost:8081/api/destinations`
-3. Check logs: `docker-compose -f docker-compose.dev.yml logs backend`
-4. Ensure environment variables are set correctly
-
-## Next Steps
-
-- Configure Google Sheets integration for trip exports
-- Set up production database
-- Configure domain and HTTPS
-- Set up monitoring and logging
-- Implement payment processing (Stripe integration exists)
+**Frontend can't reach backend:** Ensure backend is on `:8080` and `REACT_APP_API_URL` in `myhive-react-app/.env` is
+correct.

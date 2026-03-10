@@ -1,41 +1,44 @@
 package com.myhive.backend.service;
 
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
-import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.*;
-import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.myhive.backend.config.GoogleSheetsConfig;
 import com.myhive.backend.dto.SheetData;
 import com.myhive.backend.dto.TripExportRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class GoogleSheetsService {
 
-    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-    private static final List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);
-
     private final GoogleSheetsConfig config;
-    // private final EmailService emailService; // Temporarily commented out
+    private final Optional<Sheets> sheetsService;
+
+    @Autowired
+    public GoogleSheetsService(GoogleSheetsConfig config, Optional<Sheets> sheetsService) {
+        this.config = config;
+        this.sheetsService = sheetsService;
+        if (sheetsService.isEmpty()) {
+            log.info("Google Sheets service is not available (non-prod or not configured)");
+        }
+    }
 
     public boolean isConfigured() {
-        return config.isConfigured();
+        return sheetsService.isPresent() && config.isConfigured();
+    }
+
+    private Sheets getSheets() {
+        return sheetsService.orElseThrow(() ->
+                new IllegalStateException("Google Sheets is not available in this environment"));
     }
 
     public String exportTripToSheet(TripExportRequest request) throws IOException, GeneralSecurityException {
@@ -43,10 +46,10 @@ public class GoogleSheetsService {
             throw new IllegalStateException("Google Sheets is not properly configured");
         }
 
-        Sheets sheetsService = getSheetsService();
+        Sheets sheets = getSheets();
 
         String spreadsheetId = request.getSpreadsheetId() != null ?
-                request.getSpreadsheetId() : config.getEffectiveSpreadsheetId();
+                request.getSpreadsheetId() : config.getSpreadsheetId();
 
         String sheetName = request.getSheetName() != null ?
                 request.getSheetName() : generateSheetName(request.getTripName());
@@ -54,7 +57,7 @@ public class GoogleSheetsService {
         Object[][] tripData = formatTripData(request);
         SheetData sheetData = SheetData.fromTripExport(spreadsheetId, sheetName, tripData);
 
-        String resultSpreadsheetId = writeDataToSheet(sheetsService, sheetData);
+        String resultSpreadsheetId = writeDataToSheet(sheets, sheetData);
 
         // Temporarily disable master summary sheet to isolate the issue
         // updateMasterSummarySheet(sheetsService, resultSpreadsheetId, request, sheetName);
@@ -87,13 +90,13 @@ public class GoogleSheetsService {
             throw new IllegalStateException("Google Sheets is not properly configured");
         }
 
-        Sheets sheetsService = getSheetsService();
+        Sheets sheets = getSheets();
 
         Spreadsheet spreadsheet = new Spreadsheet()
                 .setProperties(new SpreadsheetProperties()
                         .setTitle(title));
 
-        spreadsheet = sheetsService.spreadsheets()
+        spreadsheet = sheets.spreadsheets()
                 .create(spreadsheet)
                 .setFields("spreadsheetId")
                 .execute();
@@ -107,8 +110,8 @@ public class GoogleSheetsService {
             throw new IllegalStateException("Google Sheets is not properly configured");
         }
 
-        Sheets sheetsService = getSheetsService();
-        Spreadsheet spreadsheet = sheetsService.spreadsheets()
+        Sheets sheets = getSheets();
+        Spreadsheet spreadsheet = sheets.spreadsheets()
                 .get(spreadsheetId)
                 .execute();
 
@@ -118,17 +121,6 @@ public class GoogleSheetsService {
         }
 
         return sheetNames;
-    }
-
-    private Sheets getSheetsService() throws IOException, GeneralSecurityException {
-        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
-
-        GoogleCredentials credentials = config.createCredentials();
-
-        return new Sheets.Builder(httpTransport, jsonFactory, new HttpCredentialsAdapter(credentials))
-                .setApplicationName(config.getApplicationName())
-                .build();
     }
 
     private Object[][] formatTripData(TripExportRequest request) {
@@ -331,9 +323,9 @@ public class GoogleSheetsService {
     private String generateSheetName(String tripName) {
         try {
             // Get existing sheets to find the next available number
-            Sheets sheetsService = getSheetsService();
-            String spreadsheetId = config.getEffectiveSpreadsheetId();
-            Spreadsheet spreadsheet = sheetsService.spreadsheets()
+            Sheets sheets = getSheets();
+            String spreadsheetId = config.getSpreadsheetId();
+            Spreadsheet spreadsheet = sheets.spreadsheets()
                     .get(spreadsheetId)
                     .execute();
 
@@ -373,7 +365,7 @@ public class GoogleSheetsService {
         return request.getTripName() != null ? request.getTripName() : "Valued Customer";
     }
 
-    private void updateMasterSummarySheet(Sheets sheetsService, String spreadsheetId, TripExportRequest request, String sheetName) throws IOException {
+    private void updateMasterSummarySheet(Sheets sheets, String spreadsheetId, TripExportRequest request, String sheetName) throws IOException {
         try {
             // Check if master summary sheet exists, if not create it
             String masterSheetName = "BOOKING_SUMMARY";
@@ -416,7 +408,7 @@ public class GoogleSheetsService {
             // Try to append to existing summary sheet or create new one
             try {
                 // Check if summary sheet exists by trying to read it
-                ValueRange existingData = sheetsService.spreadsheets().values()
+                ValueRange existingData = sheets.spreadsheets().values()
                         .get(spreadsheetId, masterSheetName + "!A1:M1")
                         .execute();
 
@@ -424,7 +416,7 @@ public class GoogleSheetsService {
                 List<List<Object>> appendValues = new ArrayList<>();
                 appendValues.add(Arrays.asList(summaryRow));
                 ValueRange appendData = new ValueRange().setValues(appendValues);
-                sheetsService.spreadsheets().values()
+                sheets.spreadsheets().values()
                         .append(spreadsheetId, masterSheetName + "!A:M", appendData)
                         .setValueInputOption("USER_ENTERED")
                         .execute();
@@ -442,7 +434,7 @@ public class GoogleSheetsService {
                         Arrays.stream(headerData).map(Arrays::asList).collect(java.util.stream.Collectors.toList())
                 );
 
-                sheetsService.spreadsheets().values()
+                sheets.spreadsheets().values()
                         .update(spreadsheetId, masterSheetName + "!A1", headerRange)
                         .setValueInputOption("USER_ENTERED")
                         .execute();

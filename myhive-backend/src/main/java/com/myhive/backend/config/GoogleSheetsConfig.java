@@ -8,99 +8,79 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 
 @Configuration
-@Data
+@Getter
+@Setter
 @Slf4j
 @ConfigurationProperties(prefix = "google.sheets")
 public class GoogleSheetsConfig {
 
-    // File-based credentials (fallback)
+    private static final List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);
+
+    private boolean enabled = false;
     private String credentialsPath;
+    private String credentialsJson;
     private String spreadsheetId;
     private String applicationName = "MyHive Travel App";
-    private boolean enabled = false;
-
-    // Environment variable credentials (preferred)
-    @Value("${GOOGLE_SHEETS_CREDENTIALS_JSON:}")
-    private String credentialsJson;
-
-    @Value("${GOOGLE_SHEETS_SPREADSHEET_ID:}")
-    private String envSpreadsheetId;
-
-    @Value("${GOOGLE_SHEETS_ENABLED:false}")
-    private boolean envEnabled;
 
     @Bean
-    public Sheets sheetsService() throws IOException, GeneralSecurityException {
+    @Profile("prod")
+    public Sheets sheetsService() throws Exception {
         if (!isConfigured()) {
-            throw new IllegalStateException("Google Sheets is not properly configured");
+            log.warn("Google Sheets is enabled in prod but missing credentials or spreadsheet ID. Bean will not be created.");
+            return null;
         }
 
+        log.info("Initializing Google Sheets service...");
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
-
         GoogleCredentials credentials = createCredentials();
 
+        log.info("Google Sheets service initialized successfully");
         return new Sheets.Builder(httpTransport, jsonFactory, new HttpCredentialsAdapter(credentials))
                 .setApplicationName(applicationName)
                 .build();
     }
 
+    public boolean isConfigured() {
+        boolean hasCredentials = hasText(credentialsJson) || hasText(credentialsPath);
+        return enabled && hasCredentials && hasText(spreadsheetId);
+    }
+
     public GoogleCredentials createCredentials() throws IOException {
-        // Method 1: Environment variable (preferred)
-        if (credentialsJson != null && !credentialsJson.trim().isEmpty()) {
-            log.info("Using Google Sheets credentials from environment variable");
-            byte[] credentialsBytes = credentialsJson.getBytes();
+        if (hasText(credentialsJson)) {
+            log.info("Using Google Sheets credentials from JSON property");
             return GoogleCredentials.fromStream(
-                    new ByteArrayInputStream(credentialsBytes)
+                    new ByteArrayInputStream(credentialsJson.getBytes())
             ).createScoped(SCOPES);
         }
 
-        // Method 2: File-based (fallback)
-        if (credentialsPath != null && !credentialsPath.trim().isEmpty()) {
+        if (hasText(credentialsPath)) {
             log.info("Using Google Sheets credentials from file: {}", credentialsPath);
             return GoogleCredentials.fromStream(
-                    new java.io.FileInputStream(credentialsPath)
+                    new FileInputStream(credentialsPath)
             ).createScoped(SCOPES);
         }
 
-        throw new IllegalStateException("No Google Sheets credentials configured. Set GOOGLE_SHEETS_CREDENTIALS_JSON or google.sheets.credentials-path");
+        throw new IllegalStateException(
+                "No Google Sheets credentials configured. Set google.sheets.credentials-json or google.sheets.credentials-path");
     }
 
-    public boolean isConfigured() {
-        boolean hasCredentials = (credentialsJson != null && !credentialsJson.trim().isEmpty()) ||
-                (credentialsPath != null && !credentialsPath.trim().isEmpty());
-
-        String effectiveSpreadsheetId = envSpreadsheetId != null && !envSpreadsheetId.trim().isEmpty() ?
-                envSpreadsheetId : spreadsheetId;
-
-        boolean effectiveEnabled = envEnabled || enabled;
-
-        return effectiveEnabled && hasCredentials &&
-                effectiveSpreadsheetId != null && !effectiveSpreadsheetId.trim().isEmpty();
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
-
-    public String getEffectiveSpreadsheetId() {
-        return envSpreadsheetId != null && !envSpreadsheetId.trim().isEmpty() ?
-                envSpreadsheetId : spreadsheetId;
-    }
-
-    public boolean isEffectivelyEnabled() {
-        return envEnabled || enabled;
-    }
-
-    private static final List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);
 }
