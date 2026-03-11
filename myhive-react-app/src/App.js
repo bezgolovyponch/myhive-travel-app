@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
-import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
+import {HashRouter as Router, Route, Routes} from 'react-router-dom';
 import {AppProvider} from './context/AppContext';
 import {AuthProvider} from './context/AuthContext';
 import Layout from './components/Layout';
