@@ -4,7 +4,9 @@ const path = require('path');
 const buildDir = path.join(__dirname, '..', 'build');
 const indexHtml = path.join(buildDir, 'index.html');
 
-// All client-side routes that need to work on direct navigation
+// All client-side routes that need to work on direct navigation.
+// Render Static Sites resolve /path to path.html (clean URLs).
+// Do NOT create directory/index.html — Render won't resolve those without trailing slash.
 const routes = [
     'admin',
     'admin/login',
@@ -14,15 +16,14 @@ const routes = [
 const indexContent = fs.readFileSync(indexHtml, 'utf8');
 
 routes.forEach(route => {
-    const dir = path.join(buildDir, route);
-    fs.mkdirSync(dir, {recursive: true});
+    // Ensure parent directories exist for nested routes
+    const parentDir = path.dirname(path.join(buildDir, route));
+    fs.mkdirSync(parentDir, {recursive: true});
 
-    const target = path.join(dir, 'index.html');
-    // Don't overwrite if the route dir itself is the build root
-    if (target !== indexHtml) {
-        fs.writeFileSync(target, indexContent, 'utf8');
-        console.log(`Created: ${route}/index.html`);
-    }
+    // Create flat .html file: /admin/login → admin/login.html
+    const target = path.join(buildDir, route + '.html');
+    fs.writeFileSync(target, indexContent, 'utf8');
+    console.log(`Created: ${route}.html`);
 });
 
 console.log('Post-build: SPA route files created successfully.');
