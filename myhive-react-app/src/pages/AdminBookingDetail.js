@@ -48,6 +48,13 @@ function AdminBookingDetail() {
         });
     };
 
+    const formatTravelDate = (dateStr) => {
+        if (!dateStr) return '—';
+        return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', {
+            day: '2-digit', month: 'short', year: 'numeric',
+        });
+    };
+
     const formatAmount = (amount) => {
         if (amount == null) return '—';
         return `€${Number(amount).toFixed(2)}`;
@@ -88,10 +95,10 @@ function AdminBookingDetail() {
 
             <Row className="g-3 mb-4">
                 <Col md={8}>
-                    <Card className="shadow-sm bg-white">
+                    <Card className="shadow-sm bg-white mb-3">
                         <Card.Header className="bg-white border-bottom">
                             <div className="d-flex align-items-center justify-content-between">
-                                <h6 className="fw-semibold mb-0 text-dark">Booking Information</h6>
+                                <h6 className="fw-semibold mb-0 text-dark">Customer Information</h6>
                                 <Badge bg={STATUS_VARIANTS[booking.status?.toUpperCase()] || 'secondary'}
                                        className="fs-6">
                                     {booking.status}
@@ -101,23 +108,41 @@ function AdminBookingDetail() {
                         <Card.Body>
                             <Row className="g-3">
                                 <Col sm={6}>
-                                    <div className="text-muted small">Booking ID</div>
-                                    <div className="fw-semibold text-dark">
-                                        <code>{booking.id}</code>
-                                    </div>
+                                    <div className="text-muted small">Full Name</div>
+                                    <div className="fw-semibold text-dark">{booking.customerName || '—'}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Email</div>
                                     <div className="fw-semibold text-dark">{booking.userEmail}</div>
                                 </Col>
                                 <Col sm={6}>
+                                    <div className="text-muted small">Phone</div>
+                                    <div className="fw-semibold text-dark">{booking.phone || '—'}</div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">Number of Travelers</div>
+                                    <div className="fw-semibold text-dark">{booking.numberOfTravelers || '—'}</div>
+                                </Col>
+                            </Row>
+                        </Card.Body>
+                    </Card>
+
+                    <Card className="shadow-sm bg-white">
+                        <Card.Header className="bg-white border-bottom">
+                            <h6 className="fw-semibold mb-0 text-dark">Booking Details</h6>
+                        </Card.Header>
+                        <Card.Body>
+                            <Row className="g-3">
+                                <Col sm={6}>
                                     <div className="text-muted small">Total Amount</div>
                                     <div className="fw-bold text-dark fs-5">{formatAmount(booking.totalAmount)}</div>
                                 </Col>
                                 <Col sm={6}>
-                                    <div className="text-muted small">Stripe Session</div>
+                                    <div className="text-muted small">Travel Dates</div>
                                     <div className="fw-semibold text-dark">
-                                        {booking.stripeSessionId ? <code>{booking.stripeSessionId}</code> : '—'}
+                                        {booking.startDate && booking.endDate
+                                            ? `${formatTravelDate(booking.startDate)} — ${formatTravelDate(booking.endDate)}`
+                                            : '—'}
                                     </div>
                                 </Col>
                                 <Col sm={6}>
@@ -128,6 +153,25 @@ function AdminBookingDetail() {
                                     <div className="text-muted small">Paid At</div>
                                     <div className="fw-semibold text-dark">{formatDate(booking.paidAt)}</div>
                                 </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">Booking ID</div>
+                                    <div className="fw-semibold text-dark">
+                                        <code className="small">{booking.id}</code>
+                                    </div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">Stripe Session</div>
+                                    <div className="fw-semibold text-dark">
+                                        {booking.stripeSessionId ?
+                                            <code className="small">{booking.stripeSessionId}</code> : '—'}
+                                    </div>
+                                </Col>
+                                {booking.notes && (
+                                    <Col sm={12}>
+                                        <div className="text-muted small">Notes</div>
+                                        <div className="fw-semibold text-dark">{booking.notes}</div>
+                                    </Col>
+                                )}
                             </Row>
                         </Card.Body>
                     </Card>
@@ -141,7 +185,12 @@ function AdminBookingDetail() {
                         <Card.Body className="d-flex flex-column justify-content-center">
                             <div className="text-center">
                                 <div className="fs-1 fw-bold text-dark">{booking.items?.length || 0}</div>
-                                <div className="text-muted">Items</div>
+                                <div className="text-muted">Activities</div>
+                            </div>
+                            <hr/>
+                            <div className="text-center">
+                                <div className="fs-4 fw-bold text-dark">{booking.numberOfTravelers || '—'}</div>
+                                <div className="text-muted">Travelers</div>
                             </div>
                             <hr/>
                             <div className="text-center">

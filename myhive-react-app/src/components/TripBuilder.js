@@ -40,6 +40,8 @@ function TripBuilder() {
         tripName: 'Booking',
         userEmail: contactData.email,
         customerName: contactData.fullName,
+        phone: contactData.phone,
+        numberOfTravelers: parseInt(contactData.numberOfTravelers, 10) || 1,
         destinations: [{
           destinationName: 'Custom Travel Package',
           country: 'Not specified',

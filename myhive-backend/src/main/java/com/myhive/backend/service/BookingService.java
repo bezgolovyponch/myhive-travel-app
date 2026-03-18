@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,11 +78,22 @@ public class BookingService {
         Booking booking = new Booking();
         booking.setUserEmail(request.getUserEmail());
         booking.setStatus("PENDING");
+        booking.setCustomerName(request.getCustomerName());
+        booking.setPhone(request.getPhone());
+        booking.setNumberOfTravelers(request.getNumberOfTravelers());
+        booking.setNotes(request.getNotes());
 
         List<BookingItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (TripExportRequest.DestinationExport dest : request.getDestinations()) {
+            if (booking.getStartDate() == null && dest.getStartDate() != null) {
+                booking.setStartDate(LocalDate.parse(dest.getStartDate()));
+            }
+            if (booking.getEndDate() == null && dest.getEndDate() != null) {
+                booking.setEndDate(LocalDate.parse(dest.getEndDate()));
+            }
+
             for (TripExportRequest.ActivityExport act : dest.getActivities()) {
                 BookingItem item = new BookingItem();
                 item.setBooking(booking);
@@ -133,7 +145,13 @@ public class BookingService {
         dto.setStatus(booking.getStatus());
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setPaidAt(booking.getPaidAt());
-        
+        dto.setCustomerName(booking.getCustomerName());
+        dto.setPhone(booking.getPhone());
+        dto.setNumberOfTravelers(booking.getNumberOfTravelers());
+        dto.setStartDate(booking.getStartDate());
+        dto.setEndDate(booking.getEndDate());
+        dto.setNotes(booking.getNotes());
+
         if (booking.getBookingItems() != null) {
             dto.setItems(booking.getBookingItems().stream()
                     .map(this::convertItemToDTO)

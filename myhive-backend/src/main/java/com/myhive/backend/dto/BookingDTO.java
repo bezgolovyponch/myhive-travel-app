@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -20,5 +21,11 @@ public class BookingDTO {
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime paidAt;
+    private String customerName;
+    private String phone;
+    private Integer numberOfTravelers;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private String notes;
     private List<BookingItemDTO> items;
 }

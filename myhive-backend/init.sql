@@ -40,7 +40,13 @@ CREATE TABLE bookings (
     total_amount DECIMAL(10,2),
     status VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    paid_at TIMESTAMP
+    paid_at             TIMESTAMP,
+    customer_name       VARCHAR(255),
+    phone               VARCHAR(50),
+    number_of_travelers INT,
+    start_date          DATE,
+    end_date            DATE,
+    notes               TEXT
 );
 
 -- Create booking_items table
@@ -133,3 +139,37 @@ INSERT INTO activities (id, destination_id, name, description, price, duration, 
                                                                                                              40.00, 120,
                                                                                                              'nightlife',
                                                                                                              'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&h=600&fit=crop');
+
+-- Insert sample bookings
+INSERT INTO bookings (id, user_email, total_amount, status, customer_name, phone, number_of_travelers, start_date,
+                      end_date, notes)
+VALUES ('aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b01',
+        'john.doe@example.com', 165.00, 'PAID',
+        'John Doe', '+44 7700 900123', 2,
+        '2026-04-10', '2026-04-15',
+        'Full Name: John Doe | Special requirements: Vegetarian meals | Contact method: email | Number of travelers: 2'),
+       ('aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b02',
+        'maria.garcia@example.com', 120.00, 'CONFIRMED',
+        'Maria Garcia', '+34 612 345 678', 4,
+        '2026-05-01', '2026-05-07',
+        'Full Name: Maria Garcia | Special requirements: Wheelchair accessible | Contact method: whatsapp | Number of travelers: 4'),
+       ('aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b03',
+        'alex.smith@example.com', 95.00, 'PENDING',
+        'Alex Smith', '+1 555 234 5678', 1,
+        '2026-06-20', '2026-06-25',
+        'Full Name: Alex Smith | Special requirements: None | Contact method: phone | Number of travelers: 1');
+
+-- Insert sample booking items
+INSERT INTO booking_items (id, booking_id, activity_id, activity_name, destination_name, price, quantity)
+VALUES (uuid_generate_v4(), 'aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66',
+        'Sunset Boat Party', 'Tenerife', 50.00, 1),
+       (uuid_generate_v4(), 'aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'f6eebc99-9c0b-4ef8-bb6d-6bb9bd380a77',
+        'Teide National Park Tour', 'Tenerife', 45.00, 1),
+       (uuid_generate_v4(), 'aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a88',
+        'Jet Ski Adventure', 'Tenerife', 70.00, 1),
+       (uuid_generate_v4(), 'aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b02', 'f9eebc99-9c0b-4ef8-bb6d-6bb9bd380aaa',
+        'Prague Castle Tour', 'Prague', 35.00, 2),
+       (uuid_generate_v4(), 'aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b02', 'faeebc99-9c0b-4ef8-bb6d-6bb9bd380abb',
+        'Beer Tasting Experience', 'Prague', 40.00, 1),
+       (uuid_generate_v4(), 'aa00bc99-9c0b-4ef8-bb6d-6bb9bd380b03', 'f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a99',
+        'Luxury Spa Session', 'Tenerife', 90.00, 1);

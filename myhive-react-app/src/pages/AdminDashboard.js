@@ -119,13 +119,12 @@ function AdminDashboard() {
                         <Table responsive hover className="mb-0 align-middle">
                             <thead className="table-light">
                             <tr>
-                                <th className="small text-muted text-uppercase">ID</th>
-                                <th className="small text-muted text-uppercase">Email</th>
+                                <th className="small text-muted text-uppercase">Customer</th>
                                 <th className="small text-muted text-uppercase">Amount</th>
                                 <th className="small text-muted text-uppercase">Status</th>
-                                <th className="small text-muted text-uppercase">Items</th>
+                                <th className="small text-muted text-uppercase">Travel Dates</th>
+                                <th className="small text-muted text-uppercase">Travelers</th>
                                 <th className="small text-muted text-uppercase">Created</th>
-                                <th className="small text-muted text-uppercase">Paid At</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -133,20 +132,23 @@ function AdminDashboard() {
                                 <tr key={booking.id} onClick={() => navigate(`/admin/bookings/${booking.id}`)}
                                     style={{cursor: 'pointer'}}>
                                     <td>
-                                        <code className="text-muted small" title={booking.id}>
-                                            {booking.id?.substring(0, 8)}...
-                                        </code>
+                                        <div className="small fw-semibold">{booking.customerName || '—'}</div>
+                                        <div className="text-muted"
+                                             style={{fontSize: '0.75rem'}}>{booking.userEmail}</div>
                                     </td>
-                                    <td className="small">{booking.userEmail}</td>
                                     <td className="small fw-semibold">{formatAmount(booking.totalAmount)}</td>
                                     <td>
                                         <Badge bg={STATUS_VARIANTS[booking.status?.toUpperCase()] || 'secondary'}>
                                             {booking.status}
                                         </Badge>
                                     </td>
-                                    <td className="small">{booking.items?.length || 0}</td>
+                                    <td className="small">
+                                        {booking.startDate && booking.endDate
+                                            ? `${formatDate(booking.startDate)} — ${formatDate(booking.endDate)}`
+                                            : '—'}
+                                    </td>
+                                    <td className="small">{booking.numberOfTravelers || '—'}</td>
                                     <td className="small">{formatDate(booking.createdAt)}</td>
-                                    <td className="small">{formatDate(booking.paidAt)}</td>
                                 </tr>
                             ))}
                             </tbody>
