@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,7 +30,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.sameOrigin()) // Allow H2 console iframes in dev
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin) // Allow H2 console iframes in dev
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Auth endpoints
@@ -38,7 +39,6 @@ public class SecurityConfig {
                         .requestMatchers("/destinations/**").permitAll()
                         .requestMatchers("/activities/**").permitAll()
                         .requestMatchers("/bookings/**").permitAll()
-                        .requestMatchers("/google-sheets/**").permitAll()
                         // Health & info
                         .requestMatchers("/", "/health/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()

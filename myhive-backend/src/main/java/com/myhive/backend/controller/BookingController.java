@@ -2,6 +2,7 @@ package com.myhive.backend.controller;
 
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
+import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.service.BookingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -28,6 +29,12 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<BookingDTO> createBooking(@Valid @RequestBody CreateBookingRequest request) {
         BookingDTO booking = bookingService.createBooking(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
+    }
+
+    @PostMapping("/trip")
+    public ResponseEntity<BookingDTO> createBookingFromTrip(@Valid @RequestBody TripExportRequest request) {
+        BookingDTO booking = bookingService.createBookingFromExport(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }
 

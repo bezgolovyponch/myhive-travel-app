@@ -1,6 +1,6 @@
 import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
-import GoogleSheetsService from '../services/googleSheetsService';
+import api from '../services/api';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import './TripBuilder.css';
@@ -36,7 +36,6 @@ function TripBuilder() {
     setSubmitError(null);
 
     try {
-      // Prepare comprehensive booking data for export
       const bookingData = {
         tripName: 'Booking',
         userEmail: contactData.email,
@@ -57,33 +56,14 @@ function TripBuilder() {
             timeOfDay: item.timeOfDay || 'Any'
           }))
         }],
-        notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`,
-        // Additional contact information for the sheet
-        contactInfo: {
-          fullName: contactData.fullName,
-          phone: contactData.phone,
-          numberOfTravelers: contactData.numberOfTravelers,
-          contactMethod: contactData.contactMethod,
-          specialRequirements: contactData.specialRequirements,
-          hearAboutUs: contactData.hearAboutUs
-        }
+        notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`
       };
 
-      const result = await GoogleSheetsService.exportTrip(bookingData);
+      await api.createBookingFromTrip(bookingData);
 
-      if (result.success) {
-        // Close the contact form
-        setShowContactForm(false);
-
-        // Store contact data and show success modal
-        setSuccessContactData(contactData);
-        setShowSuccessModal(true);
-
-        // Optionally clear the trip
-        // dispatch({ type: 'CLEAR_TRIP' });
-      } else {
-        setSubmitError(result.message || 'Failed to submit booking');
-      }
+      setShowContactForm(false);
+      setSuccessContactData(contactData);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Booking submission error:', error);
       setSubmitError(error.message || 'Failed to submit booking. Please try again.');

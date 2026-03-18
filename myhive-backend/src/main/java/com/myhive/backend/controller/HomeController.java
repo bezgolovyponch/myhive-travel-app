@@ -25,7 +25,6 @@ public class HomeController {
                 "health", "/api/actuator/health",
                 "destinations", "/api/destinations",
                 "activities", "/api/activities",
-                "google-sheets-status", "/api/google-sheets/status",
                 "detailed-health", "/api/health/detailed"
         ));
         return response;

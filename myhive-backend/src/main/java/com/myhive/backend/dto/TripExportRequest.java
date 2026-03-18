@@ -26,8 +26,6 @@ public class TripExportRequest {
     private List<DestinationExport> destinations;
 
     private String notes;
-    private String spreadsheetId;
-    private String sheetName;
 
     @Data
     @NoArgsConstructor
