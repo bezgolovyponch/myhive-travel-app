@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import adminApi from '../services/adminApi';
 import {useAuth} from '../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
-import {Alert, Badge, Button, Card, Col, Row, Spinner, Table} from 'react-bootstrap';
+import {Alert, Badge, Button, Card, Col, Form, Row, Spinner, Table} from 'react-bootstrap';
 
 const STATUS_VARIANTS = {
     PAID: 'success',
@@ -19,6 +19,7 @@ function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [statusFilter, setStatusFilter] = useState(null);
+    const [destinationFilter, setDestinationFilter] = useState('');
 
     const fetchData = useCallback(async () => {
         try {
@@ -57,6 +58,16 @@ function AdminDashboard() {
         if (amount == null) return '—';
         return `€${Number(amount).toFixed(2)}`;
     };
+
+    const allDestinations = [...new Set(
+        bookings.flatMap(b => (b.items || []).map(i => i.destinationName).filter(Boolean))
+    )].sort();
+
+    const filteredBookings = bookings.filter(b => {
+        if (statusFilter && b.status?.toUpperCase() !== statusFilter) return false;
+        if (destinationFilter && !(b.items || []).some(i => i.destinationName === destinationFilter)) return false;
+        return true;
+    });
 
     if (loading) {
         return (
@@ -119,18 +130,34 @@ function AdminDashboard() {
             <Card className="border-0 shadow-sm bg-white">
                 <Card.Header className="bg-white border-bottom">
                     <div className="d-flex align-items-center justify-content-between">
-                        <h6 className="fw-semibold mb-0 text-dark">
-                            Bookings{statusFilter ? ` — ${statusFilter}` : ''}
-                        </h6>
-                        {statusFilter && (
-                            <Button variant="outline-secondary" size="sm" onClick={() => setStatusFilter(null)}>
-                                Clear filter
+                        <div className="d-flex align-items-center gap-3">
+                            <h6 className="fw-semibold mb-0 text-dark">
+                                Bookings{statusFilter ? ` — ${statusFilter}` : ''}
+                            </h6>
+                            <Form.Select
+                                size="sm"
+                                style={{width: 'auto'}}
+                                value={destinationFilter}
+                                onChange={e => setDestinationFilter(e.target.value)}
+                            >
+                                <option value="">All Destinations</option>
+                                {allDestinations.map(d => (
+                                    <option key={d} value={d}>{d}</option>
+                                ))}
+                            </Form.Select>
+                        </div>
+                        {(statusFilter || destinationFilter) && (
+                            <Button variant="outline-secondary" size="sm" onClick={() => {
+                                setStatusFilter(null);
+                                setDestinationFilter('');
+                            }}>
+                                Clear filters
                             </Button>
                         )}
                     </div>
                 </Card.Header>
                 <Card.Body className="p-0">
-                    {bookings.filter(b => !statusFilter || b.status?.toUpperCase() === statusFilter).length === 0 ? (
+                    {filteredBookings.length === 0 ? (
                         <p className="text-muted text-center py-5">No bookings found.</p>
                     ) : (
                         <Table responsive hover className="mb-0 align-middle">
@@ -145,7 +172,7 @@ function AdminDashboard() {
                             </tr>
                             </thead>
                             <tbody>
-                            {bookings.filter(b => !statusFilter || b.status?.toUpperCase() === statusFilter).map((booking) => (
+                            {filteredBookings.map((booking) => (
                                 <tr key={booking.id} onClick={() => navigate(`/admin/bookings/${booking.id}`)}
                                     style={{cursor: 'pointer'}}>
                                     <td>
