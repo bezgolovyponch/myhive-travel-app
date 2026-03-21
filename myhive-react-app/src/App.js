@@ -8,6 +8,7 @@ import AdminLayout from './components/AdminLayout';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminBookingDetail from './pages/AdminBookingDetail';
+import AdminActivities from './pages/AdminActivities';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
         }>
           <Route index element={<AdminDashboard/>}/>
           <Route path="bookings/:id" element={<AdminBookingDetail/>}/>
+          <Route path="activities" element={<AdminActivities/>}/>
         </Route>
 
         {/* Public routes — existing app */}

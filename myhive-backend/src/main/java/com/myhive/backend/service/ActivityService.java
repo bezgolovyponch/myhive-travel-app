@@ -2,7 +2,9 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.DestinationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 public class ActivityService {
 
     private final ActivityRepository activityRepository;
+    private final DestinationRepository destinationRepository;
 
     public List<ActivityDTO> getAllActivities() {
         return activityRepository.findAll().stream()
@@ -46,6 +49,52 @@ public class ActivityService {
         return activityRepository.findByDestinationIdAndCategory(destinationId, category).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ActivityDTO createActivity(ActivityDTO dto) {
+        Destination destination = destinationRepository.findById(dto.getDestinationId())
+                .orElseThrow(() -> new RuntimeException("Destination not found with id: " + dto.getDestinationId()));
+
+        Activity activity = new Activity();
+        activity.setDestination(destination);
+        activity.setName(dto.getName());
+        activity.setDescription(dto.getDescription());
+        activity.setPrice(dto.getPrice());
+        activity.setDuration(dto.getDuration());
+        activity.setCategory(dto.getCategory());
+        activity.setImageUrl(dto.getImageUrl());
+
+        return convertToDTO(activityRepository.save(activity));
+    }
+
+    @Transactional
+    public ActivityDTO updateActivity(UUID id, ActivityDTO dto) {
+        Activity activity = activityRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Activity not found with id: " + id));
+
+        if (dto.getDestinationId() != null && !dto.getDestinationId().equals(activity.getDestination().getId())) {
+            Destination destination = destinationRepository.findById(dto.getDestinationId())
+                    .orElseThrow(() -> new RuntimeException("Destination not found with id: " + dto.getDestinationId()));
+            activity.setDestination(destination);
+        }
+
+        activity.setName(dto.getName());
+        activity.setDescription(dto.getDescription());
+        activity.setPrice(dto.getPrice());
+        activity.setDuration(dto.getDuration());
+        activity.setCategory(dto.getCategory());
+        activity.setImageUrl(dto.getImageUrl());
+
+        return convertToDTO(activityRepository.save(activity));
+    }
+
+    @Transactional
+    public void deleteActivity(UUID id) {
+        if (!activityRepository.existsById(id)) {
+            throw new RuntimeException("Activity not found with id: " + id);
+        }
+        activityRepository.deleteById(id);
     }
 
     private ActivityDTO convertToDTO(Activity activity) {

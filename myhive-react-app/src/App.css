@@ -1501,7 +1501,7 @@ body {
 }
 
 /* Modal */
-.modal {
+.app-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -1514,11 +1514,11 @@ body {
     z-index: 70;
 }
 
-.modal.hidden {
+.app-modal.hidden {
     display: none !important;
 }
 
-.modal-content {
+.app-modal-content {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
     max-width: 500px;
@@ -1528,7 +1528,7 @@ body {
     box-shadow: var(--shadow-lg);
 }
 
-.modal-header {
+.app-modal-header {
     padding: var(--space-20);
     border-bottom: 1px solid var(--color-border);
     display: flex;
@@ -1537,14 +1537,14 @@ body {
     background: var(--color-background);
 }
 
-.modal-header h2 {
+.app-modal-header h2 {
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-bold);
     color: var(--color-text);
     margin: 0;
 }
 
-.modal-close-btn {
+.app-modal-close-btn {
     background: none;
     border: none;
     font-size: var(--font-size-2xl);
@@ -1553,11 +1553,11 @@ body {
     padding: var(--space-4);
 }
 
-.modal-close-btn:hover {
+.app-modal-close-btn:hover {
     color: var(--color-text);
 }
 
-.modal-body {
+.app-modal-body {
     padding: var(--space-24);
 }
 

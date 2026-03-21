@@ -18,15 +18,16 @@ function Layout() {
         </Routes>
       </main>
       {/* <ChatPanel /> */}
-      <div className={`modal ${state.tripBuilderModalOpen ? '' : 'hidden'}`}>
-        <div className="modal-content">
-          <div className="modal-header">
+        <div className={`app-modal ${state.tripBuilderModalOpen ? '' : 'hidden'}`}>
+            <div className="app-modal-content">
+                <div className="app-modal-header">
             <h2>Trip Builder</h2>
-            <button className="modal-close-btn" onClick={() => dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'})}>
+                    <button className="app-modal-close-btn"
+                            onClick={() => dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'})}>
               ×
             </button>
           </div>
-          <div className="modal-body">
+                <div className="app-modal-body">
             <div className="empty-trip-state">
               <h3>Start Planning Your Trip</h3>
               <p>Choose a destination first, then add activities to build your perfect getaway!</p>
@@ -50,15 +51,15 @@ function Layout() {
           </div>
         </div>
       </div>
-      <div className={`modal ${state.destinationModalOpen ? '' : 'hidden'}`}>
-        <div className="modal-content">
-          <div className="modal-header">
+        <div className={`app-modal ${state.destinationModalOpen ? '' : 'hidden'}`}>
+            <div className="app-modal-content">
+                <div className="app-modal-header">
             <h2>Coming Soon</h2>
-            <button className="modal-close-btn" onClick={() => dispatch({type: 'CLOSE_DESTINATION_MODAL'})}>
+                    <button className="app-modal-close-btn" onClick={() => dispatch({type: 'CLOSE_DESTINATION_MODAL'})}>
               ×
             </button>
           </div>
-          <div className="modal-body">
+                <div className="app-modal-body">
             <div className="empty-trip-state">
               <h3>{state.selectedDestination?.name || 'This destination'} is coming soon!</h3>
               <p>We're working hard to bring you amazing experiences here. Stay tuned!</p>

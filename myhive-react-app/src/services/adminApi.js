@@ -86,6 +86,66 @@ const adminApi = {
         return response.json();
     },
 
+    async getActivities() {
+        const response = await fetch(`${API_BASE_URL}/api/admin/activities`, {
+            headers: authHeaders(),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to fetch activities');
+        return response.json();
+    },
+
+    async createActivity(activity) {
+        const response = await fetch(`${API_BASE_URL}/api/admin/activities`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', ...authHeaders()},
+            body: JSON.stringify(activity),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to create activity');
+        return response.json();
+    },
+
+    async updateActivity(id, activity) {
+        const response = await fetch(`${API_BASE_URL}/api/admin/activities/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json', ...authHeaders()},
+            body: JSON.stringify(activity),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to update activity');
+        return response.json();
+    },
+
+    async deleteActivity(id) {
+        const response = await fetch(`${API_BASE_URL}/api/admin/activities/${id}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to delete activity');
+    },
+
+    async getDestinations() {
+        const response = await fetch(`${API_BASE_URL}/destinations`, {
+            headers: authHeaders(),
+        });
+        if (!response.ok) throw new Error('Failed to fetch destinations');
+        return response.json();
+    },
+
     logout() {
         removeToken();
     },
