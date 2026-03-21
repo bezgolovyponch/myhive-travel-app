@@ -6,24 +6,36 @@ import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.service.ActivityService;
 import com.myhive.backend.service.BookingService;
+import com.myhive.backend.service.ImageUploadService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
-@RequiredArgsConstructor
 @Slf4j
 public class AdminController {
 
     private final BookingService bookingService;
     private final ActivityService activityService;
+    private final ImageUploadService imageUploadService;
+
+    public AdminController(BookingService bookingService,
+                           ActivityService activityService,
+                           @Nullable ImageUploadService imageUploadService) {
+        this.bookingService = bookingService;
+        this.activityService = activityService;
+        this.imageUploadService = imageUploadService;
+    }
 
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
@@ -71,5 +83,15 @@ public class AdminController {
     public ResponseEntity<Void> deleteActivity(@PathVariable UUID id) {
         activityService.deleteActivity(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
+        if (imageUploadService == null) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Image upload is not configured"));
+        }
+        String url = imageUploadService.uploadImage(file);
+        return ResponseEntity.ok(Map.of("url", url));
     }
 }

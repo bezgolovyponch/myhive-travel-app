@@ -27,6 +27,7 @@ function AdminActivities() {
     const [saving, setSaving] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [filterDestination, setFilterDestination] = useState('');
+    const [uploading, setUploading] = useState(false);
 
     const handleAuthError = useCallback((err) => {
         if (err.message === 'Unauthorized') {
@@ -297,12 +298,45 @@ function AdminActivities() {
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label className="small fw-semibold text-white">Image URL</Form.Label>
+                            <Form.Label className="small fw-semibold text-white">Image</Form.Label>
                             <Form.Control
-                                value={form.imageUrl}
-                                onChange={e => setForm({...form, imageUrl: e.target.value})}
-                                placeholder="https://..."
+                                type="file"
+                                accept="image/*"
+                                disabled={uploading}
+                                onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    try {
+                                        setUploading(true);
+                                        setError('');
+                                        const {url} = await adminApi.uploadImage(file);
+                                        setForm(prev => ({...prev, imageUrl: url}));
+                                    } catch (err) {
+                                        if (handleAuthError(err)) return;
+                                        setError(err.message || 'Failed to upload image');
+                                    } finally {
+                                        setUploading(false);
+                                    }
+                                }}
                             />
+                            {uploading && (
+                                <div className="mt-2">
+                                    <Spinner animation="border" size="sm"/> <span
+                                    className="small text-muted">Uploading...</span>
+                                </div>
+                            )}
+                            {form.imageUrl && !uploading && (
+                                <div className="mt-2">
+                                    <img
+                                        src={form.imageUrl}
+                                        alt="Preview"
+                                        style={{maxHeight: 120, borderRadius: 6, objectFit: 'cover'}}
+                                    />
+                                    <div className="small text-muted mt-1 text-truncate" style={{maxWidth: 300}}>
+                                        {form.imageUrl}
+                                    </div>
+                                </div>
+                            )}
                         </Form.Group>
                     </Form>
                 </Modal.Body>
@@ -311,7 +345,7 @@ function AdminActivities() {
                         Cancel
                     </Button>
                     <Button variant="primary" size="sm" onClick={handleSave}
-                            disabled={saving || !form.name || !form.destinationId || !form.price}>
+                            disabled={saving || uploading || !form.name || !form.destinationId || !form.price}>
                         {saving ? <Spinner animation="border" size="sm"/> : (editing ? 'Save Changes' : 'Create')}
                     </Button>
                 </Modal.Footer>

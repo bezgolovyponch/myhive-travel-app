@@ -138,6 +138,22 @@ const adminApi = {
         if (!response.ok) throw new Error('Failed to delete activity');
     },
 
+    async uploadImage(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await fetch(`${API_BASE_URL}/api/admin/upload`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: formData,
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to upload image');
+        return response.json();
+    },
+
     async getDestinations() {
         const response = await fetch(`${API_BASE_URL}/destinations`, {
             headers: authHeaders(),

@@ -32,6 +32,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
+    // Cloudflare R2 (S3-compatible) image uploads
+    implementation platform('software.amazon.awssdk:bom:2.31.8')
+    implementation 'software.amazon.awssdk:s3'
+
     // JWT Authentication
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'io.jsonwebtoken:jjwt-api:0.13.0'

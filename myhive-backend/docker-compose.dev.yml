@@ -26,6 +26,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: myhive-backend-dev
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/myhive_db
