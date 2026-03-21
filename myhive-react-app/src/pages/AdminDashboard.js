@@ -18,6 +18,7 @@ function AdminDashboard() {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [statusFilter, setStatusFilter] = useState(null);
 
     const fetchData = useCallback(async () => {
         try {
@@ -86,18 +87,25 @@ function AdminDashboard() {
             {stats && (
                 <Row className="g-3 mb-4">
                     {[
-                        {label: 'Total Bookings', value: stats.total, color: '#0d6efd'},
-                        {label: 'Pending', value: stats.pending, color: '#ffc107'},
-                        {label: 'Confirmed', value: stats.confirmed, color: '#0dcaf0'},
-                        {label: 'Paid', value: stats.paid, color: '#198754'},
-                    ].map(({label, value, color}) => (
+                        {label: 'Total Bookings', value: stats.total, color: '#0d6efd', status: null},
+                        {label: 'Pending', value: stats.pending, color: '#ffc107', status: 'PENDING'},
+                        {label: 'Confirmed', value: stats.confirmed, color: '#0dcaf0', status: 'CONFIRMED'},
+                        {label: 'Paid', value: stats.paid, color: '#198754', status: 'PAID'},
+                    ].map(({label, value, color, status}) => (
                         <Col xs={6} md={3} key={label}>
-                            <Card className="shadow-sm h-100 bg-white" style={{
-                                borderLeft: `4px solid ${color}`,
-                                borderTop: 'none',
-                                borderRight: 'none',
-                                borderBottom: 'none'
-                            }}>
+                            <Card
+                                className="shadow-sm h-100 bg-white"
+                                onClick={() => setStatusFilter(statusFilter === status ? null : status)}
+                                style={{
+                                    borderLeft: `4px solid ${color}`,
+                                    borderTop: 'none',
+                                    borderRight: 'none',
+                                    borderBottom: 'none',
+                                    cursor: 'pointer',
+                                    outline: statusFilter === status ? `2px solid ${color}` : 'none',
+                                    outlineOffset: '-2px',
+                                }}
+                            >
                                 <Card.Body className="py-3">
                                     <div className="fs-2 fw-bold text-dark">{value}</div>
                                     <div className="text-muted small">{label}</div>
@@ -110,10 +118,19 @@ function AdminDashboard() {
 
             <Card className="border-0 shadow-sm bg-white">
                 <Card.Header className="bg-white border-bottom">
-                    <h6 className="fw-semibold mb-0 text-dark">Bookings</h6>
+                    <div className="d-flex align-items-center justify-content-between">
+                        <h6 className="fw-semibold mb-0 text-dark">
+                            Bookings{statusFilter ? ` — ${statusFilter}` : ''}
+                        </h6>
+                        {statusFilter && (
+                            <Button variant="outline-secondary" size="sm" onClick={() => setStatusFilter(null)}>
+                                Clear filter
+                            </Button>
+                        )}
+                    </div>
                 </Card.Header>
                 <Card.Body className="p-0">
-                    {bookings.length === 0 ? (
+                    {bookings.filter(b => !statusFilter || b.status?.toUpperCase() === statusFilter).length === 0 ? (
                         <p className="text-muted text-center py-5">No bookings found.</p>
                     ) : (
                         <Table responsive hover className="mb-0 align-middle">
@@ -128,7 +145,7 @@ function AdminDashboard() {
                             </tr>
                             </thead>
                             <tbody>
-                            {bookings.map((booking) => (
+                            {bookings.filter(b => !statusFilter || b.status?.toUpperCase() === statusFilter).map((booking) => (
                                 <tr key={booking.id} onClick={() => navigate(`/admin/bookings/${booking.id}`)}
                                     style={{cursor: 'pointer'}}>
                                     <td>
