@@ -134,6 +134,19 @@ function AdminBookingDetail() {
                         <Card.Body>
                             <Row className="g-3">
                                 <Col sm={6}>
+                                    <div className="text-muted small">Destination</div>
+                                    <div className="fw-semibold text-dark">
+                                        {(() => {
+                                            const destinations = [...new Set(
+                                                (booking.items || [])
+                                                    .map(i => i.destinationName)
+                                                    .filter(Boolean)
+                                            )];
+                                            return destinations.length > 0 ? destinations.join(', ') : '—';
+                                        })()}
+                                    </div>
+                                </Col>
+                                <Col sm={6}>
                                     <div className="text-muted small">Total Amount</div>
                                     <div className="fw-bold text-dark fs-5">{formatAmount(booking.totalAmount)}</div>
                                 </Col>
