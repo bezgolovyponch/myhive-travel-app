@@ -10,6 +10,7 @@ import com.myhive.backend.service.ImageUploadService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -85,11 +86,27 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @Value("${app.upload.max-file-size}")
+    private long maxFileSize;
+
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
         if (imageUploadService == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Image upload is not configured"));
+        }
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "File is empty"));
+        }
+        if (file.getSize() > maxFileSize) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "File size exceeds the maximum allowed size of " + (maxFileSize / 1024 / 1024) + "MB"));
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Only image files are allowed"));
         }
         String url = imageUploadService.uploadImage(file);
         return ResponseEntity.ok(Map.of("url", url));
