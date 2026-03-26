@@ -3,6 +3,7 @@ import {useContext} from 'react';
 import Header from './Header';
 import HomePage from '../pages/HomePage';
 import DestinationPage from '../pages/DestinationPage';
+import ActivityDetailPage from '../pages/ActivityDetailPage';
 import {AppContext} from '../context/AppContext';
 
 function Layout() {
@@ -15,6 +16,7 @@ function Layout() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/destination/:id" element={<DestinationPage />} />
+            <Route path="/activity/:id" element={<ActivityDetailPage/>}/>
         </Routes>
       </main>
       {/* <ChatPanel /> */}

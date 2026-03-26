@@ -1767,6 +1767,125 @@ body {
     }
 }
 
+/* Activity Detail Page */
+.activity-detail-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--space-32) var(--space-48);
+  min-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.activity-detail-loading {
+  text-align: center;
+  padding: var(--space-64) 0;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+}
+
+.activity-detail-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  padding: var(--space-8) 0;
+  margin-bottom: var(--space-16);
+  transition: color var(--duration-fast);
+}
+
+.activity-detail-back:hover {
+  color: var(--color-text);
+}
+
+.activity-detail-container {
+  display: flex;
+  gap: var(--space-48);
+  align-items: center;
+}
+
+.activity-detail-image-section {
+  flex: 3;
+  min-width: 0;
+}
+
+.activity-detail-image {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  aspect-ratio: 4 / 3;
+  max-height: 70vh;
+}
+
+.activity-detail-info {
+  flex: 2;
+  min-width: 0;
+  text-align: center;
+}
+
+.activity-detail-title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: var(--space-12) 0 var(--space-16);
+  line-height: 1.2;
+}
+
+.activity-detail-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
+}
+
+.activity-detail-price {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--myhive-orange);
+}
+
+.activity-detail-duration {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-1);
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-full);
+}
+
+.activity-detail-description {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-32);
+}
+
+.activity-detail-add-btn {
+  padding: var(--space-12) var(--space-32);
+  font-size: var(--font-size-base);
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 768px) {
+  .activity-detail-container {
+    flex-direction: column;
+    gap: var(--space-24);
+  }
+
+  .activity-detail-title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .activity-detail-page {
+    padding: var(--space-16);
+  }
+
+}
+
 /* Hidden utility */
 .hidden {
     display: none !important;
