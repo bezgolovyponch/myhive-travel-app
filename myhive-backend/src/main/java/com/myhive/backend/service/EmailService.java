@@ -1,6 +1,7 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.exception.EmailSendException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +51,7 @@ public class EmailService {
 
         } catch (Exception e) {
             log.error("Failed to send itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Failed to send confirmation email", e);
+            throw new EmailSendException("Failed to send confirmation email", e);
         }
     }
 

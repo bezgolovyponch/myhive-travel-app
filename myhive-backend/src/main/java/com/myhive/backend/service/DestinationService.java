@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.DestinationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class DestinationService {
 
     public DestinationDTO getDestinationById(UUID id) {
         Destination destination = destinationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Destination not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
         return convertToDTO(destination);
     }
 

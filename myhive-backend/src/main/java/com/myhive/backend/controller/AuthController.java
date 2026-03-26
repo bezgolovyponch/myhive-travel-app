@@ -4,6 +4,7 @@ import com.myhive.backend.dto.AuthRequest;
 import com.myhive.backend.dto.AuthResponse;
 import com.myhive.backend.dto.AuthValidationResponse;
 import com.myhive.backend.util.JwtUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         try {
             // Authenticate the user
             Authentication authentication = authenticationManager.authenticate(
@@ -52,7 +53,8 @@ public class AuthController {
             String email = jwtUtil.extractEmail(token);
 
             if (jwtUtil.validateToken(token, email)) {
-                return ResponseEntity.ok(new AuthValidationResponse(true, email, "ADMIN"));
+                String role = jwtUtil.extractRole(token);
+                return ResponseEntity.ok(new AuthValidationResponse(true, email, role));
             }
         }
         return ResponseEntity.ok(new AuthValidationResponse(false, null, null));

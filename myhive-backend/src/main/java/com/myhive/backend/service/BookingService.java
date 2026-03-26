@@ -7,6 +7,7 @@ import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
+import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,7 @@ public class BookingService {
 
         for (CreateBookingRequest.BookingActivityItem item : request.getActivities()) {
             Activity activity = activityRepository.findById(item.getActivityId())
-                    .orElseThrow(() -> new RuntimeException("Activity not found: " + item.getActivityId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Activity", item.getActivityId()));
 
             BookingItem bookingItem = new BookingItem();
             bookingItem.setBooking(booking);
@@ -70,7 +71,7 @@ public class BookingService {
 
     public BookingDTO getBookingById(UUID id) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", id));
         return convertToDTO(booking);
     }
 
@@ -106,7 +107,7 @@ public class BookingService {
                 item.setBooking(booking);
                 if (act.getActivityId() != null) {
                     Activity activity = activityRepository.findById(act.getActivityId())
-                            .orElseThrow(() -> new RuntimeException("Activity not found: " + act.getActivityId()));
+                            .orElseThrow(() -> new ResourceNotFoundException("Activity", act.getActivityId()));
                     item.setActivity(activity);
                 }
                 item.setActivityName(act.getActivityName());
@@ -150,7 +151,7 @@ public class BookingService {
     @Transactional
     public BookingDTO updateBookingStatus(UUID id, String status, String stripeSessionId) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", id));
         
         booking.setStatus(status);
         if (stripeSessionId != null) {

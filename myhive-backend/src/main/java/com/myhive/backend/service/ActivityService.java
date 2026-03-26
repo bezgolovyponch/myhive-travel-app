@@ -3,6 +3,7 @@ package com.myhive.backend.service;
 import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class ActivityService {
 
     public ActivityDTO getActivityById(UUID id) {
         Activity activity = activityRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Activity not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Activity", id));
         return convertToDTO(activity);
     }
 
@@ -54,7 +55,7 @@ public class ActivityService {
     @Transactional
     public ActivityDTO createActivity(ActivityDTO dto) {
         Destination destination = destinationRepository.findById(dto.getDestinationId())
-                .orElseThrow(() -> new RuntimeException("Destination not found with id: " + dto.getDestinationId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Destination", dto.getDestinationId()));
 
         Activity activity = new Activity();
         activity.setDestination(destination);
@@ -71,11 +72,11 @@ public class ActivityService {
     @Transactional
     public ActivityDTO updateActivity(UUID id, ActivityDTO dto) {
         Activity activity = activityRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Activity not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Activity", id));
 
         if (dto.getDestinationId() != null && !dto.getDestinationId().equals(activity.getDestination().getId())) {
             Destination destination = destinationRepository.findById(dto.getDestinationId())
-                    .orElseThrow(() -> new RuntimeException("Destination not found with id: " + dto.getDestinationId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Destination", dto.getDestinationId()));
             activity.setDestination(destination);
         }
 
@@ -92,7 +93,7 @@ public class ActivityService {
     @Transactional
     public void deleteActivity(UUID id) {
         if (!activityRepository.existsById(id)) {
-            throw new RuntimeException("Activity not found with id: " + id);
+            throw new ResourceNotFoundException("Activity", id);
         }
         activityRepository.deleteById(id);
     }

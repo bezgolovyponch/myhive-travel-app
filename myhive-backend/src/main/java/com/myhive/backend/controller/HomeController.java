@@ -35,16 +35,10 @@ public class HomeController {
         Map<String, Object> health = new HashMap<>();
 
         // Database health
-        try (Connection connection = dataSource.getConnection()) {
-            health.put("database", Map.of(
-                    "status", "UP",
-                    "url", connection.getMetaData().getURL()
-            ));
+        try (Connection _ = dataSource.getConnection()) {
+            health.put("database", Map.of("status", "UP"));
         } catch (Exception e) {
-            health.put("database", Map.of(
-                    "status", "DOWN",
-                    "error", e.getMessage()
-            ));
+            health.put("database", Map.of("status", "DOWN"));
         }
 
         // Overall status
