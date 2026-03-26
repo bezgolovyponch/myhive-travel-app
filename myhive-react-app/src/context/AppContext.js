@@ -39,9 +39,10 @@ export function AppProvider({ children }) {
         return { ...state, currentPath: action.path };
       case 'ADD_TO_TRIP':
         if (!state.tripItems.some(item => item.id === action.activity.id)) {
-          return { 
-            ...state, 
-            tripItems: [...state.tripItems, action.activity] 
+            return {
+                ...state,
+                tripItems: [...state.tripItems, action.activity],
+                tripBuilderModalOpen: action.silent ? state.tripBuilderModalOpen : true
           };
         }
         return state;

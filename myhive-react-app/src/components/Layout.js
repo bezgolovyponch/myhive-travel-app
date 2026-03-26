@@ -1,4 +1,4 @@
-import {Link, Route, Routes} from 'react-router-dom';
+import {Route, Routes} from 'react-router-dom';
 import {useContext} from 'react';
 import Header from './Header';
 import HomePage from '../pages/HomePage';
@@ -19,40 +19,6 @@ function Layout() {
             <Route path="/activity/:id" element={<ActivityDetailPage/>}/>
         </Routes>
       </main>
-      {/* <ChatPanel /> */}
-        <div className={`app-modal ${state.tripBuilderModalOpen ? '' : 'hidden'}`}>
-            <div className="app-modal-content">
-                <div className="app-modal-header">
-            <h2>Trip Builder</h2>
-                    <button className="app-modal-close-btn"
-                            onClick={() => dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'})}>
-              ×
-            </button>
-          </div>
-                <div className="app-modal-body">
-            <div className="empty-trip-state">
-              <h3>Start Planning Your Trip</h3>
-              <p>Choose a destination first, then add activities to build your perfect getaway!</p>
-              <Link
-                  className="btn btn--primary"
-                  to="/"
-                  onClick={() => {
-                    dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
-                    // Small delay to ensure modal closes before navigation
-                    setTimeout(() => {
-                      const section = document.getElementById('destinations');
-                      if (section) {
-                        section.scrollIntoView({behavior: 'smooth'});
-                      }
-                    }, 100);
-                  }}
-              >
-                Browse Destinations
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
         <div className={`app-modal ${state.destinationModalOpen ? '' : 'hidden'}`}>
             <div className="app-modal-content">
                 <div className="app-modal-header">

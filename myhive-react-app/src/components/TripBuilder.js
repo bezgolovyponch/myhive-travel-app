@@ -19,7 +19,7 @@ function TripBuilder() {
   };
 
   const handleAddActivity = (activity) => {
-    dispatch({type: 'ADD_TO_TRIP', activity});
+      dispatch({type: 'ADD_TO_TRIP', activity, silent: true});
   };
 
   const handleConfirmTrip = () => {
