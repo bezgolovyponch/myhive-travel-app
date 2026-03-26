@@ -104,6 +104,11 @@ public class BookingService {
             for (TripExportRequest.ActivityExport act : dest.getActivities()) {
                 BookingItem item = new BookingItem();
                 item.setBooking(booking);
+                if (act.getActivityId() != null) {
+                    Activity activity = activityRepository.findById(act.getActivityId())
+                            .orElseThrow(() -> new RuntimeException("Activity not found: " + act.getActivityId()));
+                    item.setActivity(activity);
+                }
                 item.setActivityName(act.getActivityName());
                 item.setDestinationName(dest.getDestinationName());
                 item.setPrice(act.getPrice() != null ? BigDecimal.valueOf(act.getPrice()) : BigDecimal.ZERO);
