@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -47,6 +48,7 @@ public class TripExportRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ActivityExport {
+        private UUID activityId;
         private String activityName;
         private String category;
         private String description;

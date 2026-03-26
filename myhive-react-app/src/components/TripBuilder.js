@@ -50,6 +50,7 @@ function TripBuilder() {
           startDate: contactData.startDate,
           endDate: contactData.endDate,
           activities: state.tripItems.map(item => ({
+            activityId: item.id,
             activityName: item.name || item.title,
             category: item.category || 'General',
             description: item.description || '',
