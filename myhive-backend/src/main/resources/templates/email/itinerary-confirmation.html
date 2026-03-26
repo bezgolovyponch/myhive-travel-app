@@ -78,14 +78,14 @@
                 <p><strong>Country:</strong> <span th:text="${destination.country}">Country</span></p>
                 <p><strong>Duration:</strong> <span th:text="${destination.duration}">1</span> days</p>
 
-                <div th:if="${destination.startDate and destination.endDate}">
+                <div th:if="${destination.startDate != null and destination.endDate != null}">
                     <p><strong>Travel Dates:</strong>
                         <span th:text="${destination.startDate}">Start Date</span> to <span
                                 th:text="${destination.endDate}">End Date</span>
                     </p>
                 </div>
 
-                <div th:if="${destination.activities and not #lists.isEmpty(destination.activities)}">
+                <div th:if="${destination.activities != null and not #lists.isEmpty(destination.activities)}">
                     <h3>🎯 Planned Activities</h3>
                     <div th:with="totalPrice=0">
                         <div th:each="activity : ${destination.activities}" class="activity">
@@ -105,7 +105,7 @@
         </div>
 
         <!-- Additional Information -->
-        <div th:if="${tripData.notes and not #strings.isEmpty(tripData.notes)}" class="section">
+        <div th:if="${tripData.notes != null and not #strings.isEmpty(tripData.notes)}" class="section">
             <h2>📝 Additional Information</h2>
             <p th:text="${tripData.notes}">Additional notes</p>
         </div>

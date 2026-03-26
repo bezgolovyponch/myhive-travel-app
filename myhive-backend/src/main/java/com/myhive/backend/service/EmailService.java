@@ -21,34 +21,35 @@ public class EmailService {
     
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
-    
-    @Value("${spring.mail.username:noreply@myhive-travel.com}")
+
+    @Value("${app.email.from}")
     private String fromEmail;
 
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData) {
+        log.info("Preparing itinerary confirmation email: from={}, to={}, customer={}", fromEmail, toEmail, customerName);
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
+
             helper.setFrom(fromEmail);
             helper.setTo(toEmail);
-            helper.setSubject("🎉 Your MyHive Travel Itinerary Confirmation");
+            helper.setSubject("Your Trivlu Travel Itinerary Confirmation");
 
-            // Prepare template context
             Context context = new Context();
             context.setVariable("customerName", customerName);
             context.setVariable("tripData", tripData);
             context.setVariable("bookingDate", java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
 
-            // Process template
-            String htmlContent = templateEngine.process("email/itinerary-confirmation", context);
+            log.debug("Processing email template: email/itinerary-confirmation");
+            String htmlContent = templateEngine.process("itinerary-confirmation", context);
             helper.setText(htmlContent, true);
-            
+
+            log.info("Sending email via SMTP to: {}", toEmail);
             mailSender.send(message);
-            log.info("Itinerary confirmation email sent to: {}", toEmail);
-            
+            log.info("Itinerary confirmation email sent successfully to: {}", toEmail);
+
         } catch (Exception e) {
-            log.error("Failed to send itinerary confirmation email to: {}", toEmail, e);
+            log.error("Failed to send itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Failed to send confirmation email", e);
         }
     }
@@ -70,7 +71,7 @@ public class EmailService {
             context.setVariable("googleSheetUrl", googleSheetUrl);
 
             // Process template
-            String textContent = templateEngine.process("email/booking-notification", context);
+            String textContent = templateEngine.process("booking-notification", context);
             message.setText(textContent);
             
             mailSender.send(message);

@@ -10,6 +10,8 @@ import com.myhive.backend.entity.BookingItem;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +26,15 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final ActivityRepository activityRepository;
+    private final EmailService emailService;
+
+    @Value("${app.email.enabled:false}")
+    private boolean emailEnabled;
 
     @Transactional
     public BookingDTO createBooking(CreateBookingRequest request) {
@@ -110,6 +117,22 @@ public class BookingService {
         booking.setTotalAmount(totalAmount);
 
         Booking saved = bookingRepository.save(booking);
+        log.info("Booking created successfully: id={}, customer={}, email={}, items={}, total={}",
+                saved.getId(), saved.getCustomerName(), saved.getUserEmail(),
+                saved.getBookingItems().size(), saved.getTotalAmount());
+
+        if (emailEnabled) {
+            try {
+                log.info("Email sending is enabled, attempting to send confirmation to: {}", saved.getUserEmail());
+                emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request);
+                log.info("Confirmation email sent successfully to: {}", saved.getUserEmail());
+            } catch (Exception e) {
+                log.error("Failed to send confirmation email to: {}. Error: {}", saved.getUserEmail(), e.getMessage(), e);
+            }
+        } else {
+            log.info("Email sending is disabled (app.email.enabled=false), skipping confirmation email");
+        }
+
         return convertToDTO(saved);
     }
 
