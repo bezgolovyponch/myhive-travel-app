@@ -1,11 +1,12 @@
 import {Link, useLocation, useNavigate} from 'react-router-dom';
-import {useContext} from 'react';
+import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 
 function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const {state, dispatch} = useContext(AppContext);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleTripBuilderClick = () => {
       if (state.tripBuilderModalOpen) {
@@ -40,17 +41,31 @@ function Header() {
     <header className="header">
       <div className="header-content">
         <Link to="/" className="logo">MyHive</Link>
-        <nav className="nav-links">
-          <a href="/" onClick={handleDestinationsClick}>Destinations</a>
-          <a 
-            href="#" 
-            onClick={(e) => { e.preventDefault(); alert('About page coming soon!'); }}
+        <button className="hamburger-btn" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
+          <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
+        </button>
+        <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
+          <a href="/" onClick={(e) => {
+            handleDestinationsClick(e);
+            setMobileNavOpen(false);
+          }}>Destinations</a>
+          <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setMobileNavOpen(false);
+                alert('About page coming soon!');
+              }}
           >
             About
           </a>
-          <a 
-            href="#" 
-            onClick={(e) => { e.preventDefault(); alert('Contact page coming soon!'); }}
+          <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setMobileNavOpen(false);
+                alert('Contact page coming soon!');
+              }}
           >
             Contact
           </a>
