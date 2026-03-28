@@ -1,6 +1,7 @@
 import {Route, Routes} from 'react-router-dom';
 import {useContext} from 'react';
 import Header from './Header';
+import Footer from './Footer';
 import HomePage from '../pages/HomePage';
 import DestinationPage from '../pages/DestinationPage';
 import ActivityDetailPage from '../pages/ActivityDetailPage';
@@ -19,6 +20,7 @@ function Layout() {
             <Route path="/activity/:id" element={<ActivityDetailPage/>}/>
         </Routes>
       </main>
+        <Footer/>
         <div className={`app-modal ${state.destinationModalOpen ? '' : 'hidden'}`}>
             <div className="app-modal-content">
                 <div className="app-modal-header">
