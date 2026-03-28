@@ -2208,6 +2208,93 @@ body {
   }
 }
 
+/* Cookie Consent Banner */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-card-border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  padding: var(--space-24) 10%;
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.cookie-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-32);
+}
+
+.cookie-content p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cookie-actions {
+  display: flex;
+  gap: var(--space-12);
+  flex-shrink: 0;
+}
+
+.cookie-btn {
+  padding: var(--space-12) var(--space-24);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  border: none;
+  transition: all var(--duration-fast);
+}
+
+.cookie-btn--accept {
+  background: var(--myhive-primary);
+  color: var(--myhive-white);
+}
+
+.cookie-btn--accept:hover {
+  background: var(--myhive-secondary);
+}
+
+.cookie-btn--decline {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-card-border);
+}
+
+.cookie-btn--decline:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .cookie-banner {
+    padding: var(--space-20) var(--space-16);
+  }
+
+  .cookie-content {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-16);
+  }
+}
+
 /* Hidden utility */
 .hidden {
     display: none !important;
