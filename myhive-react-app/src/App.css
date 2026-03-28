@@ -141,7 +141,7 @@
   --container-sm: 640px;
   --container-md: 768px;
   --container-lg: 1024px;
-  --container-xl: 1280px;
+  --container-xl: 1440px;
 }
 
 /* Dark mode colors */
@@ -784,9 +784,7 @@ body {
 }
 
 .header-content {
-    max-width: var(--container-xl);
-    margin: 0 auto;
-    padding: var(--space-16);
+  padding: var(--space-16) 10%;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -813,6 +811,7 @@ body {
     color: var(--myhive-white);
     text-decoration: none;
     font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-lg);
     transition: opacity var(--duration-fast);
     cursor: pointer;
 }
@@ -965,9 +964,7 @@ body {
 }
 
 .breadcrumbs-content {
-    max-width: var(--container-xl);
-    margin: 0 auto;
-    padding: var(--space-12) var(--space-16);
+  padding: var(--space-12) var(--space-48);
     display: flex;
     align-items: center;
     gap: var(--space-8);
@@ -1066,9 +1063,9 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: var(--space-24);
-    max-width: var(--container-xl);
+  padding: 0 80px;
+  max-width: 1400px;
     margin: 0 auto;
-    padding: 0 var(--space-16);
 }
 
 .destination-card {
@@ -1195,9 +1192,7 @@ body {
 
 /* Tab Content */
 .tab-content {
-    padding: var(--space-32) var(--space-16);
-    max-width: var(--container-xl);
-    margin: 0 auto;
+  padding: var(--space-32) var(--space-48);
     min-height: 60vh;
 }
 
@@ -1876,13 +1871,26 @@ body {
 
   .header-content {
     position: relative;
+    padding: var(--space-12) var(--space-16);
   }
 
   .trip-builder-dropdown {
     width: 300px;
-    }
-    
-    .chat-panel {
+  }
+
+  .breadcrumbs-content {
+    padding: var(--space-12) var(--space-16);
+  }
+
+  .destinations-grid {
+    padding: 0 var(--space-32);
+  }
+
+  .tab-content {
+    padding: var(--space-24) var(--space-16);
+  }
+
+  .chat-panel {
         width: 100vw;
     }
     
