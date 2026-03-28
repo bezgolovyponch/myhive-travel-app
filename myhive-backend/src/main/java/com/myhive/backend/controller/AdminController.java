@@ -1,10 +1,12 @@
 package com.myhive.backend.controller;
 
 import com.myhive.backend.dto.ActivityDTO;
+import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.service.ActivityService;
+import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.BookingService;
 import com.myhive.backend.service.ImageUploadService;
 import jakarta.validation.Valid;
@@ -28,13 +30,16 @@ public class AdminController {
 
     private final BookingService bookingService;
     private final ActivityService activityService;
+    private final BlogPostService blogPostService;
     private final ImageUploadService imageUploadService;
 
     public AdminController(BookingService bookingService,
                            ActivityService activityService,
+                           BlogPostService blogPostService,
                            @Nullable ImageUploadService imageUploadService) {
         this.bookingService = bookingService;
         this.activityService = activityService;
+        this.blogPostService = blogPostService;
         this.imageUploadService = imageUploadService;
     }
 
@@ -83,6 +88,29 @@ public class AdminController {
     @DeleteMapping("/activities/{id}")
     public ResponseEntity<Void> deleteActivity(@PathVariable UUID id) {
         activityService.deleteActivity(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/blog")
+    public ResponseEntity<List<BlogPostDTO>> getAllBlogPosts() {
+        return ResponseEntity.ok(blogPostService.getAllBlogPosts());
+    }
+
+    @PostMapping("/blog")
+    public ResponseEntity<BlogPostDTO> createBlogPost(@RequestBody BlogPostDTO blogPostDTO) {
+        BlogPostDTO created = blogPostService.createBlogPost(blogPostDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/blog/{id}")
+    public ResponseEntity<BlogPostDTO> updateBlogPost(@PathVariable UUID id, @RequestBody BlogPostDTO blogPostDTO) {
+        BlogPostDTO updated = blogPostService.updateBlogPost(id, blogPostDTO);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/blog/{id}")
+    public ResponseEntity<Void> deleteBlogPost(@PathVariable UUID id) {
+        blogPostService.deleteBlogPost(id);
         return ResponseEntity.noContent().build();
     }
 

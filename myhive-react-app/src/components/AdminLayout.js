@@ -47,6 +47,16 @@ function AdminLayout() {
                         >
                             Activities
                         </Nav.Link>
+                        <Nav.Link
+                            active={location.pathname.startsWith('/admin/blog')}
+                            href="/admin/blog"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                navigate('/admin/blog');
+                            }}
+                        >
+                            Blog
+                        </Nav.Link>
                     </Nav>
                     <Nav className="d-flex align-items-center gap-3">
                         <span className="text-muted small d-none d-md-inline">{user?.email}</span>

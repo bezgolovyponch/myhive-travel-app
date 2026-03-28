@@ -38,6 +38,7 @@ public class SecurityConfig {
                         // Public API endpoints
                         .requestMatchers("/destinations/**").permitAll()
                         .requestMatchers("/activities/**").permitAll()
+                        .requestMatchers("/blog/**").permitAll()
                         .requestMatchers("/bookings/**").permitAll()
                         // Health & info
                         .requestMatchers("/", "/health/**").permitAll()

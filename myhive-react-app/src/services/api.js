@@ -72,6 +72,19 @@ export const api = {
     return response.json();
   },
 
+    // Blog
+    async getBlogPosts() {
+        const response = await fetch(`${API_BASE_URL}/blog`);
+        if (!response.ok) throw new Error('Failed to fetch blog posts');
+        return response.json();
+    },
+
+    async getBlogPost(id) {
+        const response = await fetch(`${API_BASE_URL}/blog/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch blog post');
+        return response.json();
+    },
+
   // Trip booking
   async createBookingFromTrip(tripData) {
     const response = await fetch(`${API_BASE_URL}/bookings/trip`, {

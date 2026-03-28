@@ -154,6 +154,58 @@ const adminApi = {
         return response.json();
     },
 
+    async getBlogPosts() {
+        const response = await fetch(`${API_BASE_URL}/api/admin/blog`, {
+            headers: authHeaders(),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to fetch blog posts');
+        return response.json();
+    },
+
+    async createBlogPost(post) {
+        const response = await fetch(`${API_BASE_URL}/api/admin/blog`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', ...authHeaders()},
+            body: JSON.stringify(post),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to create blog post');
+        return response.json();
+    },
+
+    async updateBlogPost(id, post) {
+        const response = await fetch(`${API_BASE_URL}/api/admin/blog/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json', ...authHeaders()},
+            body: JSON.stringify(post),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to update blog post');
+        return response.json();
+    },
+
+    async deleteBlogPost(id) {
+        const response = await fetch(`${API_BASE_URL}/api/admin/blog/${id}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+        });
+        if (response.status === 401 || response.status === 403) {
+            removeToken();
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Failed to delete blog post');
+    },
+
     async getDestinations() {
         const response = await fetch(`${API_BASE_URL}/destinations`, {
             headers: authHeaders(),
