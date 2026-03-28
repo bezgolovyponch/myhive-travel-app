@@ -7,6 +7,8 @@ import HomePage from '../pages/HomePage';
 import DestinationPage from '../pages/DestinationPage';
 import ActivityDetailPage from '../pages/ActivityDetailPage';
 import AboutPage from '../pages/AboutPage';
+import BlogPage from '../pages/BlogPage';
+import BlogPostPage from '../pages/BlogPostPage';
 import {AppContext} from '../context/AppContext';
 
 function Layout() {
@@ -21,6 +23,8 @@ function Layout() {
           <Route path="/destination/:id" element={<DestinationPage />} />
             <Route path="/activity/:id" element={<ActivityDetailPage/>}/>
             <Route path="/about" element={<AboutPage/>}/>
+            <Route path="/blog" element={<BlogPage/>}/>
+            <Route path="/blog/:id" element={<BlogPostPage/>}/>
         </Routes>
       </main>
         <Footer/>

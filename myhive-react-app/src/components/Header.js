@@ -52,16 +52,9 @@ function Header() {
             <Link to="/about" onClick={() => setMobileNavOpen(false)}>
             About
             </Link>
-          <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setMobileNavOpen(false);
-                alert('Contact page coming soon!');
-              }}
-          >
-            Contact
-          </a>
+          <Link to="/blog" onClick={() => setMobileNavOpen(false)}>
+            Blog
+          </Link>
         </nav>
           <div className="trip-builder-wrapper">
               <button className="trip-builder-btn" onClick={handleTripBuilderClick}>
