@@ -49,16 +49,9 @@ function Header() {
             handleDestinationsClick(e);
             setMobileNavOpen(false);
           }}>Destinations</a>
-          <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setMobileNavOpen(false);
-                alert('About page coming soon!');
-              }}
-          >
+            <Link to="/about" onClick={() => setMobileNavOpen(false)}>
             About
-          </a>
+            </Link>
           <a
               href="#"
               onClick={(e) => {

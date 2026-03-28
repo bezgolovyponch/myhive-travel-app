@@ -13,7 +13,7 @@ function Footer() {
                     <h4>Explore</h4>
                     <ul>
                         <li><a href="#destinations">Destinations</a></li>
-                        <li><a href="#about">About</a></li>
+                        <li><Link to="/about">About</Link></li>
                         <li><a href="#contact">Contact</a></li>
                     </ul>
                 </div>

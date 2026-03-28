@@ -6,6 +6,7 @@ import CookieConsent from './CookieConsent';
 import HomePage from '../pages/HomePage';
 import DestinationPage from '../pages/DestinationPage';
 import ActivityDetailPage from '../pages/ActivityDetailPage';
+import AboutPage from '../pages/AboutPage';
 import {AppContext} from '../context/AppContext';
 
 function Layout() {
@@ -19,6 +20,7 @@ function Layout() {
           <Route path="/" element={<HomePage />} />
           <Route path="/destination/:id" element={<DestinationPage />} />
             <Route path="/activity/:id" element={<ActivityDetailPage/>}/>
+            <Route path="/about" element={<AboutPage/>}/>
         </Routes>
       </main>
         <Footer/>
