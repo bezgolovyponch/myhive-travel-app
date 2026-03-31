@@ -1,5 +1,6 @@
 import {useContext, useEffect, useRef, useState} from 'react';
 import {AppContext} from '../context/AppContext';
+import './ChatPanel.css';
 
 function ChatPanel() {
   const { state, dispatch } = useContext(AppContext);

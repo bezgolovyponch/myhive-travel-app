@@ -1,5 +1,6 @@
-import { useContext } from 'react';
-import { AppContext } from '../context/AppContext';
+import {useContext} from 'react';
+import {AppContext} from '../context/AppContext';
+import './PackageCard.css';
 
 function PackageCard({ pkg }) {
   const { dispatch } = useContext(AppContext);

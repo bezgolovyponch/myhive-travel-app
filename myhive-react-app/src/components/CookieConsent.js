@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import './CookieConsent.css';
 
 function CookieConsent() {
     const [visible, setVisible] = useState(false);

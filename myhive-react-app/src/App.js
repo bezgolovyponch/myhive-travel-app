@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
+import './styles/global.css';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import {AppProvider} from './context/AppContext';
 import {AuthProvider} from './context/AuthContext';

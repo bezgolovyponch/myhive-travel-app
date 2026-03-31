@@ -2,6 +2,7 @@ import {useContext, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
+import './ActivityDetailPage.css';
 
 function ActivityDetailPage() {
     const {id} = useParams();

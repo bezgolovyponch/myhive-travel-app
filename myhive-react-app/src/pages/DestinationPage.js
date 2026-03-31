@@ -5,6 +5,7 @@ import TripBuilder from '../components/TripBuilder';
 import {useLocation, useNavigate, useParams} from 'react-router-dom';
 import PackageCard from '../components/PackageCard';
 import api from '../services/api';
+import './DestinationPage.css';
 
 function DestinationPage() {
   const { id } = useParams();
@@ -95,7 +96,7 @@ function DestinationPage() {
         </button>
       </nav>
 
-      <div className="tab-content" style={{display: state.currentTab === 'activities' ? 'block' : 'none'}}>
+        <div className="tab-content" style={{display: state.currentTab === 'activities' ? 'flex' : 'none'}}>
         <div className="tab-header">
           <h2>Activities</h2>
           <div className="category-filters">
@@ -123,7 +124,8 @@ function DestinationPage() {
       </div>
 
       {/* Packages Tab */}
-      <div id="packages-tab" className="tab-content" style={{ display: state.currentTab === 'packages' ? 'block' : 'none' }}>
+        <div id="packages-tab" className="tab-content"
+             style={{display: state.currentTab === 'packages' ? 'flex' : 'none'}}>
         <div className="packages-grid">
           {state.packages.map(pkg => (
             <PackageCard key={pkg.id} pkg={pkg} />
@@ -132,7 +134,8 @@ function DestinationPage() {
       </div>
 
       {/* Trip Builder Tab */}
-      <div id="trip-builder-tab" className="tab-content" style={{ display: state.currentTab === 'trip-builder' ? 'block' : 'none' }}>
+        <div id="trip-builder-tab" className="tab-content"
+             style={{display: state.currentTab === 'trip-builder' ? 'flex' : 'none'}}>
         <TripBuilder />
       </div>
     </div>

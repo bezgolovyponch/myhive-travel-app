@@ -1,0 +1,353 @@
+/* Header */
+.header {
+    background: var(--myhive-primary);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    box-shadow: var(--shadow-md);
+}
+
+.header-content {
+    padding: var(--space-24) var(--page-padding);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--myhive-white);
+    text-decoration: none;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.nav-links {
+    display: flex;
+    gap: var(--space-32);
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.nav-links a {
+    color: var(--myhive-white);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-lg);
+    transition: opacity var(--duration-fast);
+    cursor: pointer;
+}
+
+.nav-links a:hover {
+    opacity: 0.8;
+}
+
+.hamburger-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--space-8);
+}
+
+.hamburger-icon,
+.hamburger-icon::before,
+.hamburger-icon::after {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: var(--myhive-white);
+    border-radius: 2px;
+    transition: all var(--duration-normal);
+    position: relative;
+}
+
+.hamburger-icon::before,
+.hamburger-icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 24px;
+}
+
+.hamburger-icon::before {
+    top: -7px;
+}
+
+.hamburger-icon::after {
+    top: 7px;
+}
+
+.hamburger-icon.open {
+    background: transparent;
+}
+
+.hamburger-icon.open::before {
+    top: 0;
+    transform: rotate(45deg);
+}
+
+.hamburger-icon.open::after {
+    top: 0;
+    transform: rotate(-45deg);
+}
+
+.trip-builder-btn {
+    background: var(--myhive-orange);
+    color: var(--myhive-white);
+    padding: var(--space-8) var(--space-20);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-bold);
+    border: none;
+    cursor: pointer;
+    transition: all var(--duration-fast);
+    font-size: var(--font-size-base);
+}
+
+.trip-builder-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.trip-builder-wrapper {
+    position: relative;
+}
+
+.trip-builder-count {
+    background: var(--myhive-white);
+    color: var(--myhive-orange);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: var(--space-8);
+}
+
+.trip-builder-dropdown {
+    position: absolute;
+    top: calc(100% + var(--space-12));
+    right: 0;
+    width: 360px;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    border: 1px solid var(--color-card-border);
+}
+
+.trip-builder-dropdown-header {
+    padding: var(--space-16) var(--space-20);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.trip-builder-dropdown-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+    margin: 0;
+}
+
+.trip-builder-dropdown-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: var(--space-16);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.trip-builder-complete-btn {
+    width: 100%;
+    padding: var(--space-12);
+    background: var(--myhive-primary);
+    color: var(--myhive-white);
+    border: none;
+    border-radius: var(--radius-base);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.trip-builder-complete-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Trip Builder Modal Items (used in Header dropdown) */
+.trip-modal-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+}
+
+.trip-modal-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-12);
+    background: var(--color-bg-1);
+    border-radius: var(--radius-base);
+}
+
+.trip-modal-item-image {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-base);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.trip-modal-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+.trip-modal-item-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+}
+
+.trip-modal-item-price {
+    font-size: var(--font-size-sm);
+    color: var(--myhive-orange);
+    font-weight: var(--font-weight-bold);
+}
+
+.trip-modal-item-remove {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-lg);
+    cursor: pointer;
+    padding: var(--space-4) var(--space-8);
+    flex-shrink: 0;
+    transition: color var(--duration-fast);
+}
+
+.trip-modal-item-remove:hover {
+    color: #e74c3c;
+}
+
+.trip-modal-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-16) var(--space-12);
+    border-top: 1px solid var(--color-card-border);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+}
+
+.trip-modal-total-price {
+    color: var(--myhive-orange);
+    font-size: var(--font-size-lg);
+}
+
+.empty-trip-state {
+    text-align: center;
+    padding: var(--space-32);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-16);
+}
+
+.empty-trip-state h3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text);
+}
+
+.empty-trip-state p {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+    background: rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.breadcrumbs-content {
+    padding: var(--space-12) var(--space-48);
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    font-size: var(--font-size-sm);
+}
+
+.breadcrumb-item {
+    color: var(--myhive-white);
+    text-decoration: none;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.breadcrumb-item:hover {
+    opacity: 1;
+}
+
+.breadcrumb-item.current {
+    opacity: 1;
+    font-weight: var(--font-weight-medium);
+}
+
+.breadcrumb-separator {
+    color: var(--myhive-white);
+    opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+    .hamburger-btn {
+        display: block;
+    }
+
+    .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--myhive-primary);
+        flex-direction: column;
+        gap: 0;
+        padding: var(--space-8) 0;
+        box-shadow: var(--shadow-md);
+    }
+
+    .nav-links.nav-open {
+        display: flex;
+    }
+
+    .nav-links a {
+        padding: var(--space-12) var(--space-24);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header-content {
+        position: relative;
+    }
+
+    .trip-builder-dropdown {
+        width: 300px;
+    }
+}

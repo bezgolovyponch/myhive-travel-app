@@ -1,6 +1,7 @@
 import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
+import './Header.css';
 
 function Header() {
   const navigate = useNavigate();
@@ -41,9 +42,6 @@ function Header() {
     <header className="header">
       <div className="header-content">
         <Link to="/" className="logo">MyHive</Link>
-        <button className="hamburger-btn" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
-          <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
-        </button>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a href="/" onClick={(e) => {
             handleDestinationsClick(e);
@@ -126,6 +124,9 @@ function Header() {
                   </div>
               )}
           </div>
+          <button className="hamburger-btn" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
+              <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
+          </button>
       </div>
       {showBreadcrumbs && (
           <div className="breadcrumbs">

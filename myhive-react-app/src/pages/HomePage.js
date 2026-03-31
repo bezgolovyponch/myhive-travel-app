@@ -1,6 +1,7 @@
-import { useContext } from 'react';
-import { AppContext } from '../context/AppContext';
+import {useContext} from 'react';
+import {AppContext} from '../context/AppContext';
 import DestinationCard from '../components/DestinationCard';
+import './HomePage.css';
 
 function HomePage() {
   const { state } = useContext(AppContext);

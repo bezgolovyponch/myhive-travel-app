@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
+import './ActivityCard.css';
 
 function ActivityCard({ activity, isAdded = false }) {
   const { dispatch } = useContext(AppContext);

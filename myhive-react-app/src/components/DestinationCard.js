@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 import {AppContext} from '../context/AppContext';
 import {useNavigate} from 'react-router-dom';
+import './DestinationCard.css';
 
 function DestinationCard({ destination }) {
   const { dispatch } = useContext(AppContext);

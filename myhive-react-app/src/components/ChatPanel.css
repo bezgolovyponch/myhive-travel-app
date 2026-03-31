@@ -1,0 +1,149 @@
+/* Chat Button */
+.chat-trigger-btn {
+    position: fixed;
+    bottom: var(--space-24);
+    right: var(--space-24);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--myhive-orange);
+    color: var(--myhive-white);
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 55;
+    transition: all var(--duration-normal);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-trigger-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Chat Panel */
+.chat-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 100vh;
+    background: var(--color-surface);
+    transform: translateX(100%);
+    transition: transform var(--duration-normal);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+}
+
+.chat-panel.open {
+    transform: translateX(0);
+}
+
+.chat-header {
+    padding: var(--space-20);
+    background: var(--myhive-primary);
+    color: var(--myhive-white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+}
+
+.chat-close-btn {
+    background: none;
+    border: none;
+    color: var(--myhive-white);
+    font-size: var(--font-size-2xl);
+    cursor: pointer;
+    padding: var(--space-4);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-20);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    background: var(--color-background);
+}
+
+.chat-message {
+    display: flex;
+    gap: var(--space-12);
+    align-items: flex-start;
+}
+
+.chat-message.user {
+    flex-direction: row-reverse;
+}
+
+.chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--myhive-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--myhive-white);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
+    flex-shrink: 0;
+}
+
+.chat-message.user .chat-avatar {
+    background: var(--myhive-orange);
+}
+
+.chat-bubble {
+    background: var(--color-bg-1);
+    padding: var(--space-12) var(--space-16);
+    border-radius: var(--radius-lg);
+    max-width: 280px;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    color: var(--color-text);
+    border: 1px solid var(--color-card-border);
+}
+
+.chat-message.user .chat-bubble {
+    background: var(--color-bg-6);
+}
+
+.chat-input-container {
+    padding: var(--space-20);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.chat-input {
+    width: 100%;
+    padding: var(--space-12);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background: var(--color-background);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: var(--myhive-primary);
+    box-shadow: var(--focus-ring);
+}
+
+@media (max-width: 768px) {
+    .chat-panel {
+        width: 100vw;
+    }
+}
