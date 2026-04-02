@@ -23,7 +23,7 @@ function ActivityCard({ activity, isAdded = false }) {
   const duration = activity.duration ? ` (${activity.duration} min)` : '';
 
   return (
-      <div className="activity-card" onClick={handleCardClick} style={{cursor: 'pointer'}}>
+      <div className="card activity-card" onClick={handleCardClick}>
           <img
               src={imageUrl}
               alt={title}

@@ -20,54 +20,63 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: var(--space-60) var(--page-padding);
+    padding: 60px var(--page-padding);
 }
 
 .blog-post-category {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-semibold);
-    color: var(--myhive-primary);
+    font-size: 11px;
+    font-weight: 550;
+    color: var(--brand);
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: var(--space-12);
+    margin-bottom: 12px;
 }
 
 .blog-post-hero-overlay h1 {
-    font-size: var(--font-size-4xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--myhive-white);
-    margin-bottom: var(--space-12);
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 12px;
     max-width: 800px;
 }
 
 .blog-post-date {
-    font-size: var(--font-size-sm);
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
 }
 
 .blog-post-container {
     max-width: 900px;
     width: 100%;
-    padding: var(--space-60) var(--space-24);
+    padding: 60px var(--gap-lg);
 }
 
 .blog-post-container p {
-    font-size: var(--font-size-lg);
-    color: var(--color-text-secondary);
+    font-size: 16px;
+    color: var(--text-muted);
     line-height: 1.9;
-    margin-bottom: var(--space-24);
+    margin-bottom: var(--gap-lg);
 }
 
 .blog-post-container p:first-child {
     font-size: 22px;
-    color: var(--color-text);
+    color: var(--text);
     line-height: 1.7;
 }
 
+.blog-post-container h1 {
+    font-size: 30px;
+    margin-bottom: var(--gap);
+}
+
+.blog-post-container .blog-post-date {
+    color: var(--text-muted);
+}
+
 .blog-post-back {
-    margin-top: var(--space-32);
-    padding-top: var(--space-32);
-    border-top: 1px solid var(--color-card-border);
+    margin-top: var(--gap-xl);
+    padding-top: var(--gap-xl);
+    border-top: 1px solid var(--card-border);
 }
 
 @media (max-width: 768px) {
@@ -76,14 +85,14 @@
     }
 
     .blog-post-hero-overlay {
-        padding: var(--space-40) var(--page-padding);
+        padding: 40px var(--page-padding);
     }
 
     .blog-post-hero-overlay h1 {
-        font-size: var(--font-size-2xl);
+        font-size: 20px;
     }
 
     .blog-post-container {
-        padding: var(--space-40) var(--page-padding);
+        padding: 40px var(--page-padding);
     }
 }

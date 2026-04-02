@@ -2,64 +2,64 @@
 .trip-builder-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-32);
+    gap: var(--gap-xl);
 }
 
 .trip-builder-left {
-    background: var(--color-surface);
+    background: var(--surface);
     border-radius: var(--radius-lg);
-    padding: var(--space-24);
-    border: 1px solid var(--color-card-border);
+    padding: var(--gap-lg);
+    border: 1px solid var(--card-border);
     height: fit-content;
     display: flex;
     flex-direction: column;
-    gap: var(--space-24);
+    gap: var(--gap-lg);
 }
 
 .itinerary-header {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--gap-sm);
 }
 
 .itinerary-header h2 {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
 }
 
 .itinerary-list {
     min-height: 300px;
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
+    gap: 12px;
 }
 
 .empty-state {
     text-align: center;
-    padding: var(--space-32);
-    color: var(--color-text-secondary);
+    padding: var(--gap-xl);
+    color: var(--text-muted);
 }
 
 .empty-state p {
-    font-size: var(--font-size-base);
+    font-size: 14px;
     margin: 0;
 }
 
 .itinerary-item {
     display: flex;
     align-items: center;
-    gap: var(--space-16);
-    padding: var(--space-16);
-    border: 1px solid var(--color-card-border-inner);
-    border-radius: var(--radius-base);
-    background: var(--color-background);
+    gap: var(--gap);
+    padding: var(--gap);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    background: var(--bg);
 }
 
 .itinerary-item-image {
     width: 60px;
     height: 60px;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     object-fit: cover;
     flex-shrink: 0;
 }
@@ -68,34 +68,34 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: 4px;
 }
 
 .itinerary-item-title {
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
 }
 
 .itinerary-item-price {
-    font-size: var(--font-size-sm);
-    color: var(--myhive-orange);
-    font-weight: var(--font-weight-medium);
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
 }
 
 .remove-item-btn {
-    background: var(--color-error);
-    color: var(--myhive-white);
+    background: var(--error);
+    color: var(--white);
     border: none;
     width: 24px;
     height: 24px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: var(--font-size-xs);
+    font-size: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all var(--duration-fast);
+    transition: all 150ms;
 }
 
 .remove-item-btn:hover {
@@ -103,33 +103,33 @@
 }
 
 .trip-builder-right {
-    background: var(--color-surface);
+    background: var(--surface);
     border-radius: var(--radius-lg);
-    padding: var(--space-24);
-    border: 1px solid var(--color-card-border);
+    padding: var(--gap-lg);
+    border: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
-    gap: var(--space-24);
+    gap: var(--gap-lg);
 }
 
 .browse-header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-16);
+    gap: var(--gap);
     text-align: center;
 }
 
 .browse-header h3 {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
 }
 
 .browse-activities {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--gap);
     max-height: 500px;
     overflow-y: auto;
 }
@@ -137,22 +137,22 @@
 .browse-activity-item {
     display: flex;
     align-items: center;
-    gap: var(--space-12);
-    padding: var(--space-12);
-    border: 1px solid var(--color-card-border-inner);
-    border-radius: var(--radius-base);
-    background: var(--color-background);
-    transition: all var(--duration-fast);
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    transition: all 150ms;
 }
 
 .browse-activity-item:hover {
-    background: var(--color-bg-1);
+    background: var(--tint-blue);
 }
 
 .browse-activity-image {
     width: 50px;
     height: 50px;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     object-fit: cover;
     flex-shrink: 0;
 }
@@ -161,44 +161,44 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: 2px;
 }
 
 .browse-activity-title {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
 }
 
 .browse-activity-price {
-    font-size: var(--font-size-xs);
-    color: var(--myhive-orange);
-    font-weight: var(--font-weight-medium);
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
 }
 
 .browse-add-btn {
-    background: var(--myhive-primary);
-    color: var(--myhive-white);
+    background: var(--brand);
+    color: var(--white);
     border: none;
-    padding: var(--space-6) var(--space-12);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
     cursor: pointer;
-    transition: all var(--duration-fast);
+    transition: all 150ms;
 }
 
 .browse-add-btn:hover {
-    background: var(--myhive-secondary);
+    background: var(--brand-dark);
 }
 
 .browse-add-btn:disabled {
-    background: var(--color-gray-300);
+    background: var(--gray);
     cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
     .trip-builder-layout {
         grid-template-columns: 1fr;
-        gap: var(--space-24);
+        gap: var(--gap-lg);
     }
 }

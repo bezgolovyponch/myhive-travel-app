@@ -1,128 +1,121 @@
 /* Destination Page Styles */
 .destination-header {
-    background: linear-gradient(135deg, var(--myhive-primary) 0%, var(--myhive-secondary) 100%);
-    color: var(--myhive-white);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-120) var(--page-padding) var(--space-32);
-    gap: var(--space-16);
+    padding-top: 120px;
 }
 
 .destination-header h1 {
-    font-size: var(--font-size-4xl);
-    font-weight: var(--font-weight-bold);
+    font-size: 30px;
+    font-weight: 600;
 }
 
 .destination-header p {
-    font-size: var(--font-size-lg);
+    font-size: 16px;
     opacity: 0.9;
 }
 
 /* Tab Navigation */
 .tab-nav {
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: center;
-    padding: 0 var(--space-16);
+    padding: 0 var(--gap);
 }
 
 .tab-btn {
     background: none;
     border: none;
-    padding: var(--space-16) var(--space-32);
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
+    padding: var(--gap) var(--gap-xl);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
     cursor: pointer;
     border-bottom: 3px solid transparent;
-    transition: all var(--duration-fast);
+    transition: all 150ms;
 }
 
 .tab-btn.active {
-    color: var(--myhive-primary);
-    border-bottom-color: var(--myhive-primary);
+    color: var(--brand);
+    border-bottom-color: var(--brand);
 }
 
 .tab-btn:hover {
-    color: var(--color-text);
+    color: var(--text);
 }
 
 /* Tab Content */
 .tab-content {
-    padding: var(--space-32) var(--space-48);
+    padding: var(--gap-xl) var(--gap-2xl);
     min-height: 60vh;
     display: flex;
     flex-direction: column;
-    gap: var(--space-32);
+    gap: var(--gap-xl);
 }
 
 .tab-header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-16);
+    gap: var(--gap);
     text-align: center;
 }
 
 .tab-header h2 {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
 }
 
 .tab-header p {
-    font-size: var(--font-size-lg);
-    color: var(--color-text-secondary);
+    font-size: 16px;
+    color: var(--text-muted);
 }
 
 /* Category Filters */
 .category-filters, .browse-filters {
     display: flex;
     justify-content: center;
-    gap: var(--space-16);
+    gap: var(--gap);
 }
 
 .filter-btn {
-    background: var(--color-secondary);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-    padding: var(--space-8) var(--space-20);
+    background: rgba(119, 124, 124, 0.15);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: var(--gap-sm) 20px;
     border-radius: var(--radius-full);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all var(--duration-fast);
+    transition: all 150ms;
 }
 
 .filter-btn.active {
-    background: var(--myhive-primary);
-    color: var(--myhive-white);
-    border-color: var(--myhive-primary);
+    background: var(--brand);
+    color: var(--white);
+    border-color: var(--brand);
 }
 
 .filter-btn:hover {
-    background: var(--color-secondary-hover);
+    background: rgba(119, 124, 124, 0.25);
 }
 
 .filter-btn.active:hover {
-    background: var(--myhive-secondary);
+    background: var(--brand-dark);
 }
 
 /* Activities Grid */
 .activities-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: var(--space-24);
+    gap: var(--gap-lg);
 }
 
 /* Packages Grid */
 .packages-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: var(--space-32);
+    gap: var(--gap-xl);
 }
 
 @media (max-width: 768px) {
@@ -136,7 +129,7 @@
 
     .category-filters, .browse-filters {
         flex-wrap: wrap;
-        gap: var(--space-8);
+        gap: var(--gap-sm);
     }
 
     .tab-nav {

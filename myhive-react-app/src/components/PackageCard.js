@@ -11,7 +11,7 @@ function PackageCard({ pkg }) {
   };
 
   return (
-    <div className="package-card">
+      <div className="card package-card">
       <img 
         src={pkg.image} 
         alt={pkg.title} 

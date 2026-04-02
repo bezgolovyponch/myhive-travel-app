@@ -20,7 +20,7 @@ function BlogPostPage() {
         return (
             <div className="blog-post-page">
                 <div className="blog-post-container">
-                    <p style={{textAlign: 'center', color: 'var(--color-text-secondary)'}}>Loading...</p>
+                    <p className="text-center">Loading...</p>
                 </div>
             </div>
         );
@@ -30,7 +30,7 @@ function BlogPostPage() {
         return (
             <div className="blog-post-page">
                 <div className="blog-post-container">
-                    <h1 style={{color: 'var(--color-text)'}}>Post not found</h1>
+                    <h1>Post not found</h1>
                     <Link to="/blog" className="btn btn--primary">Back to Blog</Link>
                 </div>
             </div>
@@ -55,13 +55,8 @@ function BlogPostPage() {
                 {!post.imageUrl && (
                     <>
                         {post.category && <span className="blog-post-category">{post.category}</span>}
-                        <h1 style={{
-                            color: 'var(--color-text)',
-                            fontSize: 'var(--font-size-4xl)',
-                            marginBottom: 'var(--space-16)'
-                        }}>{post.title}</h1>
-                        {post.date && <span className="blog-post-date"
-                                            style={{color: 'var(--color-text-secondary)'}}>{post.date}</span>}
+                        <h1>{post.title}</h1>
+                        {post.date && <span className="blog-post-date">{post.date}</span>}
                     </>
                 )}
                 {paragraphs.map((paragraph, index) => (

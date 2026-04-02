@@ -16,21 +16,21 @@ function BlogPage() {
 
     return (
         <div className="blog-page">
-            <section className="blog-hero">
+            <section className="page-hero">
                 <h1>Blog</h1>
                 <p>Stories, tips, and inspiration for your next group adventure.</p>
             </section>
 
             <section className="blog-section">
                 {loading ? (
-                    <p style={{textAlign: 'center', color: 'var(--color-text-secondary)'}}>Loading posts...</p>
+                    <p style={{textAlign: 'center', color: 'var(--text-muted)'}}>Loading posts...</p>
                 ) : posts.length === 0 ? (
-                    <p style={{textAlign: 'center', color: 'var(--color-text-secondary)'}}>No blog posts yet. Check back
+                    <p style={{textAlign: 'center', color: 'var(--text-muted)'}}>No blog posts yet. Check back
                         soon!</p>
                 ) : (
                     <div className="blog-grid">
                         {posts.map(post => (
-                            <Link key={post.id} to={`/blog/${post.id}`} className="blog-card">
+                            <Link key={post.id} to={`/blog/${post.id}`} className="card blog-card">
                                 {post.imageUrl && (
                                     <img src={post.imageUrl} alt={post.title} className="blog-card-image"/>
                                 )}

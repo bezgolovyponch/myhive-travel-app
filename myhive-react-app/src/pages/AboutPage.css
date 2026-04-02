@@ -3,112 +3,70 @@
     padding-top: var(--header-height);
 }
 
-.about-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-16);
-    background: linear-gradient(135deg, var(--myhive-primary) 0%, var(--myhive-secondary) 100%);
-    color: var(--myhive-white);
-    text-align: center;
-    padding: var(--space-80) var(--page-padding) var(--space-60);
-}
-
-.about-hero h1 {
-    font-size: var(--font-size-4xl);
-    font-weight: var(--font-weight-bold);
-}
-
-.about-hero p {
-    font-size: var(--font-size-lg);
-    opacity: 0.9;
-    max-width: 600px;
-}
-
 .about-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: var(--space-60) var(--page-padding);
-}
-
-.about-content {
     max-width: 800px;
+    margin: 0 auto;
     text-align: center;
-}
-
-.about-text {
+    padding: 60px var(--page-padding);
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--gap);
 }
 
-.about-text h2 {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+.about-section h2 {
+    font-size: 24px;
+    font-weight: 600;
 }
 
-.about-text p {
-    font-size: var(--font-size-lg);
-    color: var(--color-text-secondary);
+.about-section p {
+    font-size: 16px;
+    color: var(--text-muted);
     line-height: 1.8;
-    margin-bottom: var(--space-16);
 }
 
 .about-values {
-    background: var(--color-surface);
+    background: var(--surface);
+    max-width: none;
 }
 
 .about-values > h2 {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
-    text-align: center;
-    margin-bottom: var(--space-40);
+    margin-bottom: 24px;
 }
 
 .values-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-32);
+    gap: var(--gap-xl);
+    max-width: 1000px;
+    margin: 0 auto;
 }
 
 .value-card {
-    background: var(--color-background);
+    background: var(--bg);
     border-radius: var(--radius-lg);
-    padding: var(--space-32);
-    border: 1px solid var(--color-card-border);
+    padding: var(--gap-xl);
+    border: 1px solid var(--card-border);
 }
 
 .value-card h3 {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--myhive-primary);
-    margin-bottom: var(--space-12);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--brand);
+    margin-bottom: 12px;
 }
 
 .value-card p {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
+    font-size: 12px;
     line-height: 1.7;
 }
 
 @media (max-width: 768px) {
-    .about-hero {
-        padding: var(--space-60) var(--page-padding) var(--space-40);
-    }
-
-    .about-hero h1 {
-        font-size: var(--font-size-3xl);
-    }
-
     .about-section {
-        padding: var(--space-40) var(--page-padding);
+        padding: 40px var(--page-padding);
     }
 
     .values-grid {
         grid-template-columns: 1fr;
-        gap: var(--space-16);
+        gap: var(--gap);
     }
 }

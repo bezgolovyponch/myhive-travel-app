@@ -1,18 +1,4 @@
 /* Package Card */
-.package-card {
-    background: var(--color-surface);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    border: 1px solid var(--color-card-border);
-    box-shadow: var(--shadow-sm);
-    transition: all var(--duration-normal);
-}
-
-.package-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
 .package-image {
     width: 100%;
     height: 250px;
@@ -20,21 +6,21 @@
 }
 
 .package-content {
-    padding: var(--space-24);
+    padding: var(--gap-lg);
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--gap);
 }
 
 .package-title {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
 }
 
 .package-description {
-    font-size: var(--font-size-base);
-    color: var(--color-text-secondary);
+    font-size: 14px;
+    color: var(--text-muted);
     line-height: 1.6;
 }
 
@@ -45,24 +31,24 @@
 }
 
 .package-price {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--myhive-orange);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
 }
 
 .select-package-btn {
-    background: var(--myhive-primary);
-    color: var(--myhive-white);
-    padding: var(--space-10) var(--space-20);
-    border-radius: var(--radius-base);
+    background: var(--brand);
+    color: var(--white);
+    padding: 10px 20px;
+    border-radius: var(--radius);
     border: none;
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-medium);
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all var(--duration-fast);
+    transition: all 150ms;
 }
 
 .select-package-btn:hover {
-    background: var(--myhive-secondary);
+    background: var(--brand-dark);
     transform: translateY(-1px);
 }

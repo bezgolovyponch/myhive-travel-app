@@ -58,7 +58,7 @@ function DestinationPage() {
   if (loading) {
     return (
       <div className="destination-page">
-        <div className="destination-header">
+          <div className="page-hero destination-header">
           <h1>Loading...</h1>
         </div>
       </div>
@@ -67,7 +67,7 @@ function DestinationPage() {
 
   return (
     <div className="destination-page">
-      <div className="destination-header">
+        <div className="page-hero destination-header">
         <h1>{destination?.name || 'Destination'}</h1>
         <p>{destination?.description || ''}</p>
       </div>

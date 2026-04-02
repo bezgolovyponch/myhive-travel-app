@@ -4,16 +4,15 @@ function SuccessModal({isOpen, onClose, userName, userEmail}) {
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h3>Booking Submitted Successfully! ✅</h3>
-                    <button className="modal-close" onClick={onClose}>×</button>
+        <div className="app-modal">
+            <div className="app-modal-content">
+                <div className="app-modal-header">
+                    <h2>Booking Submitted Successfully!</h2>
+                    <button className="app-modal-close-btn" onClick={onClose}>×</button>
                 </div>
 
-                <div className="modal-body">
+                <div className="app-modal-body">
                     <div className="success-message">
-                        <div className="success-icon">🎉</div>
                         <h4>Thank you, {userName}!</h4>
                         <p>Your travel booking has been submitted successfully.</p>
                         <p>We will contact you soon at <strong>{userEmail}</strong> to confirm the details.</p>
@@ -30,11 +29,8 @@ function SuccessModal({isOpen, onClose, userName, userEmail}) {
                     </div>
                 </div>
 
-                <div className="modal-footer">
-                    <button
-                        className="btn btn--primary"
-                        onClick={onClose}
-                    >
+                <div className="app-modal-footer">
+                    <button className="btn btn--primary" onClick={onClose}>
                         Got it!
                     </button>
                 </div>

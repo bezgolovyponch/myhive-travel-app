@@ -23,8 +23,8 @@ function DestinationCard({ destination }) {
   };
 
   return (
-    <div 
-      className={`destination-card ${isClickable ? '' : 'disabled'}`}
+    <div
+        className={`card destination-card ${isClickable ? '' : 'disabled'}`}
       onClick={handleClick}
     >
       <img 

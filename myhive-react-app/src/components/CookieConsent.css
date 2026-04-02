@@ -5,10 +5,10 @@
     left: 0;
     right: 0;
     z-index: 100;
-    background: var(--color-surface);
-    border-top: 1px solid var(--color-card-border);
+    background: var(--surface);
+    border-top: 1px solid var(--card-border);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-    padding: var(--space-24) var(--page-padding);
+    padding: var(--gap-lg) var(--page-padding);
     animation: slideUp 0.4s ease-out;
 }
 
@@ -27,60 +27,60 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-32);
+    gap: var(--gap-xl);
 }
 
 .cookie-content p {
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-size: 12px;
     line-height: 1.5;
     margin: 0;
 }
 
 .cookie-actions {
     display: flex;
-    gap: var(--space-12);
+    gap: 12px;
     flex-shrink: 0;
 }
 
 .cookie-btn {
-    padding: var(--space-12) var(--space-24);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
+    padding: 12px var(--gap-lg);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 550;
     cursor: pointer;
     border: none;
-    transition: all var(--duration-fast);
+    transition: all 150ms;
 }
 
 .cookie-btn--accept {
-    background: var(--myhive-primary);
-    color: var(--myhive-white);
+    background: var(--brand);
+    color: var(--white);
 }
 
 .cookie-btn--accept:hover {
-    background: var(--myhive-secondary);
+    background: var(--brand-dark);
 }
 
 .cookie-btn--decline {
     background: transparent;
-    color: var(--color-text-secondary);
-    border: 1px solid var(--color-card-border);
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
 }
 
 .cookie-btn--decline:hover {
-    color: var(--color-text);
-    border-color: var(--color-text-secondary);
+    color: var(--text);
+    border-color: var(--text-muted);
 }
 
 @media (max-width: 768px) {
     .cookie-banner {
-        padding: var(--space-20) var(--space-16);
+        padding: 20px var(--gap);
     }
 
     .cookie-content {
         flex-direction: column;
         text-align: center;
-        gap: var(--space-16);
+        gap: var(--gap);
     }
 }

@@ -7,9 +7,9 @@
     justify-content: center;
     text-align: center;
     padding-top: var(--header-height);
-    color: var(--myhive-white);
+    color: var(--white);
     overflow: hidden;
-    --color-btn-primary-text: var(--myhive-white);
+    --primary-text: var(--white);
 }
 
 .hero-video {
@@ -27,54 +27,54 @@
     position: relative;
     z-index: 1;
     max-width: 800px;
-    padding: 0 var(--space-16);
+    padding: 0 var(--gap);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-24);
+    gap: var(--gap-lg);
 }
 
 .hero-title {
     font-size: clamp(2.5rem, 6vw, 4.5rem);
-    font-weight: var(--font-weight-bold);
-    line-height: var(--line-height-tight);
+    font-weight: 600;
+    line-height: 1.2;
     color: white;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .hero-subtitle {
-    font-size: var(--font-size-xl);
+    font-size: 18px;
     color: white;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 /* Destinations Section */
 .destinations-section {
-    padding: var(--space-32) 0 var(--space-120);
-    background: var(--color-background);
+    padding: var(--gap-xl) 0 120px;
+    background: var(--bg);
     scroll-margin-top: var(--header-height);
     display: flex;
     flex-direction: column;
-    gap: var(--space-32);
+    gap: var(--gap-xl);
 }
 
 .section-title {
     text-align: center;
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
 }
 
 .destinations-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--space-24);
+    gap: var(--gap-lg);
     padding: 0 var(--page-padding);
 }
 
 @media (max-width: 768px) {
     .destinations-grid {
         grid-template-columns: 1fr;
-        gap: var(--space-16);
+        gap: var(--gap);
     }
 }

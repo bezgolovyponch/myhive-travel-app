@@ -1,6 +1,6 @@
 /* Header */
 .header {
-    background: var(--myhive-primary);
+    background: var(--brand);
     position: fixed;
     top: 0;
     left: 0;
@@ -10,16 +10,16 @@
 }
 
 .header-content {
-    padding: var(--space-24) var(--page-padding);
+    padding: var(--gap-lg) var(--page-padding);
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
 .logo {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--myhive-white);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--white);
     text-decoration: none;
     cursor: pointer;
     flex-shrink: 0;
@@ -27,18 +27,18 @@
 
 .nav-links {
     display: flex;
-    gap: var(--space-32);
+    gap: var(--gap-xl);
     align-items: center;
     justify-content: center;
     flex: 1;
 }
 
 .nav-links a {
-    color: var(--myhive-white);
+    color: var(--white);
     text-decoration: none;
-    font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-lg);
-    transition: opacity var(--duration-fast);
+    font-weight: 500;
+    font-size: 16px;
+    transition: opacity 150ms;
     cursor: pointer;
 }
 
@@ -51,7 +51,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: var(--space-8);
+    padding: var(--gap-sm);
 }
 
 .hamburger-icon,
@@ -60,9 +60,9 @@
     display: block;
     width: 24px;
     height: 2px;
-    background: var(--myhive-white);
+    background: var(--white);
     border-radius: 2px;
-    transition: all var(--duration-normal);
+    transition: all 250ms;
     position: relative;
 }
 
@@ -97,15 +97,15 @@
 }
 
 .trip-builder-btn {
-    background: var(--myhive-orange);
-    color: var(--myhive-white);
-    padding: var(--space-8) var(--space-20);
+    background: var(--accent);
+    color: var(--white);
+    padding: var(--gap-sm) 20px;
     border-radius: var(--radius-full);
-    font-weight: var(--font-weight-bold);
+    font-weight: 600;
     border: none;
     cursor: pointer;
-    transition: all var(--duration-fast);
-    font-size: var(--font-size-base);
+    transition: all 150ms;
+    font-size: 14px;
 }
 
 .trip-builder-btn:hover {
@@ -118,66 +118,66 @@
 }
 
 .trip-builder-count {
-    background: var(--myhive-white);
-    color: var(--myhive-orange);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
+    background: var(--white);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
     width: 20px;
     height: 20px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-left: var(--space-8);
+    margin-left: var(--gap-sm);
 }
 
 .trip-builder-dropdown {
     position: absolute;
-    top: calc(100% + var(--space-12));
+    top: calc(100% + 12px);
     right: 0;
     width: 360px;
-    background: var(--color-surface);
+    background: var(--surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     z-index: 100;
-    border: 1px solid var(--color-card-border);
+    border: 1px solid var(--card-border);
 }
 
 .trip-builder-dropdown-header {
-    padding: var(--space-16) var(--space-20);
-    border-bottom: 1px solid var(--color-border);
+    padding: var(--gap) 20px;
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 .trip-builder-dropdown-header h3 {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
     margin: 0;
 }
 
 .trip-builder-dropdown-body {
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
-    padding: var(--space-16);
+    gap: 12px;
+    padding: var(--gap);
     max-height: 400px;
     overflow-y: auto;
 }
 
 .trip-builder-complete-btn {
     width: 100%;
-    padding: var(--space-12);
-    background: var(--myhive-primary);
-    color: var(--myhive-white);
+    padding: 12px;
+    background: var(--brand);
+    color: var(--white);
     border: none;
-    border-radius: var(--radius-base);
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-bold);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all var(--duration-fast);
+    transition: all 150ms;
 }
 
 .trip-builder-complete-btn:hover {
@@ -189,22 +189,22 @@
 .trip-modal-items {
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
+    gap: 12px;
 }
 
 .trip-modal-item {
     display: flex;
     align-items: center;
-    gap: var(--space-12);
-    padding: var(--space-12);
-    background: var(--color-bg-1);
-    border-radius: var(--radius-base);
+    gap: 12px;
+    padding: 12px;
+    background: var(--tint-blue);
+    border-radius: var(--radius);
 }
 
 .trip-modal-item-image {
     width: 60px;
     height: 60px;
-    border-radius: var(--radius-base);
+    border-radius: var(--radius);
     object-fit: cover;
     flex-shrink: 0;
 }
@@ -213,31 +213,31 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: 4px;
     min-width: 0;
 }
 
 .trip-modal-item-name {
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
 }
 
 .trip-modal-item-price {
-    font-size: var(--font-size-sm);
-    color: var(--myhive-orange);
-    font-weight: var(--font-weight-bold);
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
 }
 
 .trip-modal-item-remove {
     background: none;
     border: none;
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-lg);
+    color: var(--text-muted);
+    font-size: 16px;
     cursor: pointer;
-    padding: var(--space-4) var(--space-8);
+    padding: 4px var(--gap-sm);
     flex-shrink: 0;
-    transition: color var(--duration-fast);
+    transition: color 150ms;
 }
 
 .trip-modal-item-remove:hover {
@@ -248,36 +248,36 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-16) var(--space-12);
-    border-top: 1px solid var(--color-card-border);
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    padding: var(--gap) 12px;
+    border-top: 1px solid var(--card-border);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
 }
 
 .trip-modal-total-price {
-    color: var(--myhive-orange);
-    font-size: var(--font-size-lg);
+    color: var(--accent);
+    font-size: 16px;
 }
 
 .empty-trip-state {
     text-align: center;
-    padding: var(--space-32);
+    padding: var(--gap-xl);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-16);
+    gap: var(--gap);
 }
 
 .empty-trip-state h3 {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
 }
 
 .empty-trip-state p {
-    font-size: var(--font-size-base);
-    color: var(--color-text-secondary);
+    font-size: 14px;
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -288,15 +288,15 @@
 }
 
 .breadcrumbs-content {
-    padding: var(--space-12) var(--space-48);
+    padding: 12px var(--gap-2xl);
     display: flex;
     align-items: center;
-    gap: var(--space-8);
-    font-size: var(--font-size-sm);
+    gap: var(--gap-sm);
+    font-size: 12px;
 }
 
 .breadcrumb-item {
-    color: var(--myhive-white);
+    color: var(--white);
     text-decoration: none;
     opacity: 0.8;
     cursor: pointer;
@@ -308,11 +308,11 @@
 
 .breadcrumb-item.current {
     opacity: 1;
-    font-weight: var(--font-weight-medium);
+    font-weight: 500;
 }
 
 .breadcrumb-separator {
-    color: var(--myhive-white);
+    color: var(--white);
     opacity: 0.6;
 }
 
@@ -327,10 +327,10 @@
         top: 100%;
         left: 0;
         right: 0;
-        background: var(--myhive-primary);
+        background: var(--brand);
         flex-direction: column;
         gap: 0;
-        padding: var(--space-8) 0;
+        padding: var(--gap-sm) 0;
         box-shadow: var(--shadow-md);
     }
 
@@ -339,7 +339,7 @@
     }
 
     .nav-links a {
-        padding: var(--space-12) var(--space-24);
+        padding: 12px var(--gap-lg);
         border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
