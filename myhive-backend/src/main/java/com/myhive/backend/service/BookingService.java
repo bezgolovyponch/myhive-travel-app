@@ -1,13 +1,12 @@
 package com.myhive.backend.service;
 
-import com.myhive.backend.dto.BookingDTO;
-import com.myhive.backend.dto.BookingItemDTO;
-import com.myhive.backend.dto.CreateBookingRequest;
-import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.dto.*;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,8 +40,8 @@ public class BookingService {
     public BookingDTO createBooking(CreateBookingRequest request) {
         Booking booking = new Booking();
         booking.setUserEmail(request.getUserEmail());
-        booking.setStatus("PENDING");
-        
+        booking.setStatus(BookingStatus.PENDING);
+
         List<BookingItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
@@ -85,7 +84,7 @@ public class BookingService {
     public BookingDTO createBookingFromExport(TripExportRequest request) {
         Booking booking = new Booking();
         booking.setUserEmail(request.getUserEmail());
-        booking.setStatus("PENDING");
+        booking.setStatus(BookingStatus.PENDING);
         booking.setCustomerName(request.getCustomerName());
         booking.setPhone(request.getPhone());
         booking.setNumberOfTravelers(request.getNumberOfTravelers());
@@ -142,6 +141,14 @@ public class BookingService {
         return convertToDTO(saved);
     }
 
+    public BookingStatsDTO getBookingStats() {
+        long total = bookingRepository.count();
+        long pending = bookingRepository.countByStatus(BookingStatus.PENDING);
+        long confirmed = bookingRepository.countByStatus(BookingStatus.CONFIRMED);
+        long paid = bookingRepository.countByStatus(BookingStatus.PAID);
+        return new BookingStatsDTO(total, pending, confirmed, paid);
+    }
+
     public List<BookingDTO> getAllBookings() {
         return bookingRepository.findAll().stream()
                 .map(this::convertToDTO)
@@ -150,14 +157,21 @@ public class BookingService {
 
     @Transactional
     public BookingDTO updateBookingStatus(UUID id, String status, String stripeSessionId) {
+        BookingStatus bookingStatus;
+        try {
+            bookingStatus = BookingStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid booking status: " + status);
+        }
+
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", id));
-        
-        booking.setStatus(status);
+
+        booking.setStatus(bookingStatus);
         if (stripeSessionId != null) {
             booking.setStripeSessionId(stripeSessionId);
         }
-        if ("PAID".equals(status)) {
+        if (BookingStatus.PAID == bookingStatus) {
             booking.setPaidAt(LocalDateTime.now());
         }
 
@@ -171,7 +185,7 @@ public class BookingService {
         dto.setUserEmail(booking.getUserEmail());
         dto.setStripeSessionId(booking.getStripeSessionId());
         dto.setTotalAmount(booking.getTotalAmount());
-        dto.setStatus(booking.getStatus());
+        dto.setStatus(booking.getStatus() != null ? booking.getStatus().name() : null);
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setPaidAt(booking.getPaidAt());
         dto.setCustomerName(booking.getCustomerName());

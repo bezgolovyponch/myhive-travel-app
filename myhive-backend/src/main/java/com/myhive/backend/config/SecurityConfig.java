@@ -46,7 +46,7 @@ public class SecurityConfig {
                         // H2 console (dev only, disabled in prod)
                         .requestMatchers("/h2-console/**").permitAll()
                         // Admin endpoints (JWT required + ADMIN role)
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Everything else requires authentication
                         .anyRequest().authenticated()
                 )

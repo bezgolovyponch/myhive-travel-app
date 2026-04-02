@@ -22,10 +22,10 @@ public class HomeController {
         response.put("status", "running");
         response.put("version", "1.0.0");
         response.put("endpoints", Map.of(
-                "health", "/api/actuator/health",
-                "destinations", "/api/destinations",
-                "activities", "/api/activities",
-                "detailed-health", "/api/health/detailed"
+                "health", "/actuator/health",
+                "destinations", "/destinations",
+                "activities", "/activities",
+                "detailed-health", "/health/detailed"
         ));
         return response;
     }

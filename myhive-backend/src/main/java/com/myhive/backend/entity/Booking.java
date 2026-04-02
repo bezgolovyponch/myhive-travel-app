@@ -1,10 +1,13 @@
 package com.myhive.backend.entity;
 
+import com.myhive.backend.model.BookingStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,8 +35,10 @@ public class Booking {
     @Column(name = "total_amount", precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(length = 50)
-    private String status;
+    private BookingStatus status;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

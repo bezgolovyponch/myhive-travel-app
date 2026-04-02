@@ -4,7 +4,6 @@ import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
-import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.service.ActivityService;
 import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.BookingService;
@@ -24,7 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/admin")
 @Slf4j
 public class AdminController {
 
@@ -57,15 +56,7 @@ public class AdminController {
 
     @GetMapping("/bookings/stats")
     public ResponseEntity<BookingStatsDTO> getBookingStats() {
-        List<BookingDTO> bookings = bookingService.getAllBookings();
-
-        BookingStatsDTO stats = new BookingStatsDTO();
-        stats.setTotal(bookings.size());
-        stats.setPending(bookings.stream().filter(b -> BookingStatus.PENDING.name().equals(b.getStatus())).count());
-        stats.setConfirmed(bookings.stream().filter(b -> BookingStatus.CONFIRMED.name().equals(b.getStatus())).count());
-        stats.setPaid(bookings.stream().filter(b -> BookingStatus.PAID.name().equals(b.getStatus())).count());
-
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(bookingService.getBookingStats());
     }
 
     @GetMapping("/activities")

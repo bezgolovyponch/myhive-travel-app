@@ -51,7 +51,7 @@ const adminApi = {
     },
 
     async getBookings() {
-        const response = await fetch(`${API_BASE_URL}/api/admin/bookings`, {
+        const response = await fetch(`${API_BASE_URL}/admin/bookings`, {
             headers: authHeaders(),
         });
         if (response.status === 401 || response.status === 403) {
@@ -63,7 +63,7 @@ const adminApi = {
     },
 
     async getBookingById(id) {
-        const response = await fetch(`${API_BASE_URL}/api/admin/bookings/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}`, {
             headers: authHeaders(),
         });
         if (response.status === 401 || response.status === 403) {
@@ -75,7 +75,7 @@ const adminApi = {
     },
 
     async getBookingStats() {
-        const response = await fetch(`${API_BASE_URL}/api/admin/bookings/stats`, {
+        const response = await fetch(`${API_BASE_URL}/admin/bookings/stats`, {
             headers: authHeaders(),
         });
         if (response.status === 401 || response.status === 403) {
@@ -87,7 +87,7 @@ const adminApi = {
     },
 
     async getActivities() {
-        const response = await fetch(`${API_BASE_URL}/api/admin/activities`, {
+        const response = await fetch(`${API_BASE_URL}/admin/activities`, {
             headers: authHeaders(),
         });
         if (response.status === 401 || response.status === 403) {
@@ -99,7 +99,7 @@ const adminApi = {
     },
 
     async createActivity(activity) {
-        const response = await fetch(`${API_BASE_URL}/api/admin/activities`, {
+        const response = await fetch(`${API_BASE_URL}/admin/activities`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json', ...authHeaders()},
             body: JSON.stringify(activity),
@@ -113,7 +113,7 @@ const adminApi = {
     },
 
     async updateActivity(id, activity) {
-        const response = await fetch(`${API_BASE_URL}/api/admin/activities/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json', ...authHeaders()},
             body: JSON.stringify(activity),
@@ -127,7 +127,7 @@ const adminApi = {
     },
 
     async deleteActivity(id) {
-        const response = await fetch(`${API_BASE_URL}/api/admin/activities/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${id}`, {
             method: 'DELETE',
             headers: authHeaders(),
         });
@@ -141,7 +141,7 @@ const adminApi = {
     async uploadImage(file) {
         const formData = new FormData();
         formData.append('file', file);
-        const response = await fetch(`${API_BASE_URL}/api/admin/upload`, {
+        const response = await fetch(`${API_BASE_URL}/admin/upload`, {
             method: 'POST',
             headers: authHeaders(),
             body: formData,
@@ -155,7 +155,7 @@ const adminApi = {
     },
 
     async getBlogPosts() {
-        const response = await fetch(`${API_BASE_URL}/api/admin/blog`, {
+        const response = await fetch(`${API_BASE_URL}/admin/blog`, {
             headers: authHeaders(),
         });
         if (response.status === 401 || response.status === 403) {
@@ -167,7 +167,7 @@ const adminApi = {
     },
 
     async createBlogPost(post) {
-        const response = await fetch(`${API_BASE_URL}/api/admin/blog`, {
+        const response = await fetch(`${API_BASE_URL}/admin/blog`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json', ...authHeaders()},
             body: JSON.stringify(post),
@@ -181,7 +181,7 @@ const adminApi = {
     },
 
     async updateBlogPost(id, post) {
-        const response = await fetch(`${API_BASE_URL}/api/admin/blog/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/blog/${id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json', ...authHeaders()},
             body: JSON.stringify(post),
@@ -195,7 +195,7 @@ const adminApi = {
     },
 
     async deleteBlogPost(id) {
-        const response = await fetch(`${API_BASE_URL}/api/admin/blog/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/blog/${id}`, {
             method: 'DELETE',
             headers: authHeaders(),
         });
