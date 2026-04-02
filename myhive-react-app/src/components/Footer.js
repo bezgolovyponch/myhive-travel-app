@@ -10,22 +10,19 @@ function Footer() {
                     <p className="footer-tagline">Turn group travel chaos into epic adventures with zero stress.</p>
                 </div>
 
-                <div className="footer-links">
-                    <h4>Explore</h4>
-                    <ul>
-                        <li><a href="#destinations">Destinations</a></li>
-                        <li><Link to="/about">About</Link></li>
-                        <li><a href="#contact">Contact</a></li>
-                    </ul>
-                </div>
-
-                <div className="footer-links">
-                    <h4>Connect</h4>
-                    <ul>
-                        <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a></li>
-                        <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter</a></li>
-                        <li><a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a></li>
-                    </ul>
+                <div className="footer-nav-group">
+                    <nav className="footer-nav">
+                        <span className="footer-nav-title">Explore</span>
+                        <a href="#destinations">Destinations</a>
+                        <Link to="/about">About</Link>
+                        <a href="#contact">Contact</a>
+                    </nav>
+                    <nav className="footer-nav">
+                        <span className="footer-nav-title">Connect</span>
+                        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a>
+                        <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter</a>
+                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a>
+                    </nav>
                 </div>
             </div>
 
