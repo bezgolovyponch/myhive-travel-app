@@ -4,6 +4,7 @@ import com.myhive.backend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -39,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/destinations/**").permitAll()
                         .requestMatchers("/activities/**").permitAll()
                         .requestMatchers("/blog/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/bookings/*/status").hasRole("ADMIN")
                         .requestMatchers("/bookings/**").permitAll()
                         // Health & info
                         .requestMatchers("/", "/health/**").permitAll()

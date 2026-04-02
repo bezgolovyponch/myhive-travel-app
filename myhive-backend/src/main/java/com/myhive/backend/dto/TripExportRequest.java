@@ -2,6 +2,7 @@ package com.myhive.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,7 @@ public class TripExportRequest {
 
     private String phone;
 
+    @Positive(message = "Number of travelers must be positive")
     private Integer numberOfTravelers;
 
     @NotEmpty(message = "Destinations cannot be empty")

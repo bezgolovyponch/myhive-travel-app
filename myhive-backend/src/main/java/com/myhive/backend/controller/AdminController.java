@@ -9,8 +9,8 @@ import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.BookingService;
 import com.myhive.backend.service.ImageUploadService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,27 +20,19 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 @Slf4j
 public class AdminController {
 
     private final BookingService bookingService;
     private final ActivityService activityService;
     private final BlogPostService blogPostService;
-    private final ImageUploadService imageUploadService;
-
-    public AdminController(BookingService bookingService,
-                           ActivityService activityService,
-                           BlogPostService blogPostService,
-                           @Nullable ImageUploadService imageUploadService) {
-        this.bookingService = bookingService;
-        this.activityService = activityService;
-        this.blogPostService = blogPostService;
-        this.imageUploadService = imageUploadService;
-    }
+    private final Optional<ImageUploadService> imageUploadService;
 
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
@@ -88,13 +80,13 @@ public class AdminController {
     }
 
     @PostMapping("/blog")
-    public ResponseEntity<BlogPostDTO> createBlogPost(@RequestBody BlogPostDTO blogPostDTO) {
+    public ResponseEntity<BlogPostDTO> createBlogPost(@Valid @RequestBody BlogPostDTO blogPostDTO) {
         BlogPostDTO created = blogPostService.createBlogPost(blogPostDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/blog/{id}")
-    public ResponseEntity<BlogPostDTO> updateBlogPost(@PathVariable UUID id, @RequestBody BlogPostDTO blogPostDTO) {
+    public ResponseEntity<BlogPostDTO> updateBlogPost(@PathVariable UUID id, @Valid @RequestBody BlogPostDTO blogPostDTO) {
         BlogPostDTO updated = blogPostService.updateBlogPost(id, blogPostDTO);
         return ResponseEntity.ok(updated);
     }
@@ -110,7 +102,7 @@ public class AdminController {
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
-        if (imageUploadService == null) {
+        if (imageUploadService.isEmpty()) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Image upload is not configured"));
         }
@@ -127,7 +119,7 @@ public class AdminController {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Only image files are allowed"));
         }
-        String url = imageUploadService.uploadImage(file);
+        String url = imageUploadService.get().uploadImage(file);
         return ResponseEntity.ok(Map.of("url", url));
     }
 }

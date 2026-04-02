@@ -1,5 +1,6 @@
 package com.myhive.backend.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -9,6 +10,9 @@ import org.thymeleaf.templateresolver.ITemplateResolver;
 @Configuration
 public class EmailTemplateConfig {
 
+    @Value("${app.email.template.cache:true}")
+    private boolean templateCacheEnabled;
+
     @Bean
     public ITemplateResolver templateResolver() {
         ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
@@ -16,7 +20,7 @@ public class EmailTemplateConfig {
         templateResolver.setSuffix(".html");
         templateResolver.setTemplateMode("HTML");
         templateResolver.setCharacterEncoding("UTF-8");
-        templateResolver.setCacheable(false); // Set to true in production
+        templateResolver.setCacheable(templateCacheEnabled);
         return templateResolver;
     }
 
