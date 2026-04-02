@@ -1,0 +1,279 @@
+package com.myhive.backend.service;
+
+import com.myhive.backend.TestDataFactory;
+import com.myhive.backend.dto.BookingDTO;
+import com.myhive.backend.dto.BookingStatsDTO;
+import com.myhive.backend.dto.CreateBookingRequest;
+import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Booking;
+import com.myhive.backend.entity.Destination;
+import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.BookingRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class BookingServiceTest {
+
+    @Mock
+    private BookingRepository bookingRepository;
+
+    @Mock
+    private ActivityRepository activityRepository;
+
+    @Mock
+    private EmailService emailService;
+
+    @InjectMocks
+    private BookingService bookingService;
+
+    private Destination destination;
+    private Activity activity;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(bookingService, "emailEnabled", false);
+        destination = TestDataFactory.destination();
+        activity = TestDataFactory.activity(destination);
+    }
+
+    @Test
+    void createBooking_withValidRequest_calculatesTotalAndSaves() {
+        CreateBookingRequest request = TestDataFactory.createBookingRequest(activity.getId());
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        BookingDTO result = bookingService.createBooking(request);
+
+        assertThat(result.getStatus()).isEqualTo("PENDING");
+        // 99.99 * 2 = 199.98
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("199.98"));
+        assertThat(result.getItems()).hasSize(1);
+
+        ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(BookingStatus.PENDING);
+    }
+
+    @Test
+    void createBooking_withNonexistentActivity_throwsResourceNotFound() {
+        UUID fakeId = UUID.randomUUID();
+        CreateBookingRequest request = TestDataFactory.createBookingRequest(fakeId);
+        when(activityRepository.findById(fakeId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookingService.createBooking(request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Activity");
+    }
+
+    @Test
+    void getBookingById_found_returnsDTO() {
+        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+        booking.setBookingItems(List.of());
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+
+        BookingDTO result = bookingService.getBookingById(booking.getId());
+
+        assertThat(result.getId()).isEqualTo(booking.getId());
+        assertThat(result.getUserEmail()).isEqualTo(booking.getUserEmail());
+    }
+
+    @Test
+    void getBookingById_notFound_throwsResourceNotFound() {
+        UUID id = UUID.randomUUID();
+        when(bookingRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookingService.getBookingById(id))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Booking");
+    }
+
+    @Test
+    void getBookingsByEmail_returnsMatchingBookings() {
+        Booking b1 = TestDataFactory.booking(BookingStatus.PENDING);
+        b1.setBookingItems(List.of());
+        when(bookingRepository.findByUserEmail("user@test.com")).thenReturn(List.of(b1));
+
+        List<BookingDTO> result = bookingService.getBookingsByEmail("user@test.com");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getUserEmail()).isEqualTo("user@test.com");
+    }
+
+    @Test
+    void updateBookingStatus_validStatus_updatesAndSaves() {
+        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+        booking.setBookingItems(List.of());
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "CONFIRMED", null);
+
+        assertThat(result.getStatus()).isEqualTo("CONFIRMED");
+    }
+
+    @Test
+    void updateBookingStatus_toPAID_setsPaidAt() {
+        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+        booking.setBookingItems(List.of());
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "PAID", "sess_123");
+
+        assertThat(result.getStatus()).isEqualTo("PAID");
+        assertThat(result.getPaidAt()).isNotNull();
+        assertThat(result.getStripeSessionId()).isEqualTo("sess_123");
+    }
+
+    @Test
+    void updateBookingStatus_withNullStripeSessionId_doesNotOverwrite() {
+        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+        booking.setStripeSessionId("existing_session");
+        booking.setBookingItems(List.of());
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "CONFIRMED", null);
+
+        assertThat(result.getStripeSessionId()).isEqualTo("existing_session");
+    }
+
+    @Test
+    void updateBookingStatus_invalidStatus_throwsBadRequest() {
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(UUID.randomUUID(), "INVALID", null))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Invalid booking status");
+    }
+
+    @Test
+    void updateBookingStatus_bookingNotFound_throwsResourceNotFound() {
+        UUID id = UUID.randomUUID();
+        when(bookingRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(id, "PAID", null))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void getBookingStats_returnsCorrectCounts() {
+        when(bookingRepository.count()).thenReturn(10L);
+        when(bookingRepository.countByStatus(BookingStatus.PENDING)).thenReturn(5L);
+        when(bookingRepository.countByStatus(BookingStatus.CONFIRMED)).thenReturn(3L);
+        when(bookingRepository.countByStatus(BookingStatus.PAID)).thenReturn(2L);
+
+        BookingStatsDTO stats = bookingService.getBookingStats();
+
+        assertThat(stats.getTotal()).isEqualTo(10);
+        assertThat(stats.getPending()).isEqualTo(5);
+        assertThat(stats.getConfirmed()).isEqualTo(3);
+        assertThat(stats.getPaid()).isEqualTo(2);
+    }
+
+    @Test
+    void getAllBookings_returnsAllAsDTOs() {
+        Booking b = TestDataFactory.booking(BookingStatus.PAID);
+        b.setBookingItems(List.of());
+        when(bookingRepository.findAll()).thenReturn(List.of(b));
+
+        List<BookingDTO> result = bookingService.getAllBookings();
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void createBookingFromExport_withValidRequest_savesAllFields() {
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        BookingDTO result = bookingService.createBookingFromExport(request);
+
+        assertThat(result.getCustomerName()).isEqualTo("Test User");
+        assertThat(result.getStatus()).isEqualTo("PENDING");
+        assertThat(result.getItems()).hasSize(1);
+    }
+
+    @Test
+    void createBookingFromExport_withEmailEnabled_sendsEmail() {
+        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        bookingService.createBookingFromExport(request);
+
+        verify(emailService).sendItineraryConfirmation(eq("user@test.com"), eq("Test User"), any());
+    }
+
+    @Test
+    void createBookingFromExport_withEmailDisabled_doesNotSendEmail() {
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        bookingService.createBookingFromExport(request);
+
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void createBookingFromExport_withEmailFailure_stillReturnsBooking() {
+        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+        doThrow(new RuntimeException("SMTP down")).when(emailService)
+                .sendItineraryConfirmation(any(), any(), any());
+
+        BookingDTO result = bookingService.createBookingFromExport(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStatus()).isEqualTo("PENDING");
+    }
+}
