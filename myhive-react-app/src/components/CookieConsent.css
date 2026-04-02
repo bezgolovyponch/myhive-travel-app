@@ -7,7 +7,7 @@
     z-index: 100;
     background: var(--surface);
     border-top: 1px solid var(--card-border);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 -0.25rem 1.25rem rgba(0, 0, 0, 0.3);
     padding: var(--gap-lg) var(--page-padding);
     animation: slideUp 0.4s ease-out;
 }
@@ -32,21 +32,21 @@
 
 .cookie-content p {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.5;
     margin: 0;
 }
 
 .cookie-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--gap-sm);
     flex-shrink: 0;
 }
 
 .cookie-btn {
-    padding: 12px var(--gap-lg);
-    border-radius: 10px;
-    font-size: 12px;
+    padding: 0.75rem var(--gap-lg);
+    border-radius: var(--radius);
+    font-size: 0.75rem;
     font-weight: 550;
     cursor: pointer;
     border: none;
@@ -75,7 +75,7 @@
 
 @media (max-width: 768px) {
     .cookie-banner {
-        padding: 20px var(--gap);
+        padding: 1.25rem var(--gap);
     }
 
     .cookie-content {

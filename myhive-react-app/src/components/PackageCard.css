@@ -1,7 +1,7 @@
 /* Package Card */
 .package-image {
     width: 100%;
-    height: 250px;
+    aspect-ratio: 16 / 10;
     object-fit: cover;
 }
 
@@ -13,13 +13,13 @@
 }
 
 .package-title {
-    font-size: 18px;
+    font-size: clamp(1rem, 1.125rem, 1.25rem);
     font-weight: 600;
     color: var(--text);
 }
 
 .package-description {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-muted);
     line-height: 1.6;
 }
@@ -31,7 +31,7 @@
 }
 
 .package-price {
-    font-size: 20px;
+    font-size: clamp(1.125rem, 1.25rem, 1.5rem);
     font-weight: 600;
     color: var(--accent);
 }
@@ -39,10 +39,10 @@
 .select-package-btn {
     background: var(--brand);
     color: var(--white);
-    padding: 10px 20px;
+    padding: var(--gap-sm) var(--gap-lg);
     border-radius: var(--radius);
     border: none;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 150ms;

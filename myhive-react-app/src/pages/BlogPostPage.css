@@ -7,7 +7,7 @@
 }
 
 .blog-post-hero {
-    height: 400px;
+    aspect-ratio: 21 / 9;
     background-size: cover;
     background-position: center;
     position: relative;
@@ -20,52 +20,52 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: 60px var(--page-padding);
+    padding: 3.75rem var(--page-padding);
 }
 
 .blog-post-category {
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 550;
     color: var(--brand);
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
 }
 
 .blog-post-hero-overlay h1 {
-    font-size: 30px;
+    font-size: clamp(1.25rem, 4vw, 1.875rem);
     font-weight: 600;
     color: var(--white);
-    margin-bottom: 12px;
-    max-width: 800px;
+    margin-bottom: 0.75rem;
+    max-width: min(50rem, 100%);
 }
 
 .blog-post-date {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.7);
 }
 
 .blog-post-container {
-    max-width: 900px;
+    max-width: min(56.25rem, 100%);
     width: 100%;
-    padding: 60px var(--gap-lg);
+    padding: 3.75rem var(--gap-lg);
 }
 
 .blog-post-container p {
-    font-size: 16px;
+    font-size: 1rem;
     color: var(--text-muted);
     line-height: 1.9;
     margin-bottom: var(--gap-lg);
 }
 
 .blog-post-container p:first-child {
-    font-size: 22px;
+    font-size: clamp(1.125rem, 2.5vw, 1.375rem);
     color: var(--text);
     line-height: 1.7;
 }
 
 .blog-post-container h1 {
-    font-size: 30px;
+    font-size: clamp(1.5rem, 4vw, 1.875rem);
     margin-bottom: var(--gap);
 }
 
@@ -81,18 +81,18 @@
 
 @media (max-width: 768px) {
     .blog-post-hero {
-        height: 300px;
+        aspect-ratio: 16 / 9;
     }
 
     .blog-post-hero-overlay {
-        padding: 40px var(--page-padding);
+        padding: 2.5rem var(--page-padding);
     }
 
     .blog-post-hero-overlay h1 {
-        font-size: 20px;
+        font-size: clamp(1.125rem, 4vw, 1.25rem);
     }
 
     .blog-post-container {
-        padding: 40px var(--page-padding);
+        padding: 2.5rem var(--page-padding);
     }
 }

@@ -16,14 +16,14 @@
     --card-border: rgba(119, 124, 124, 0.15);
     --error: rgba(255, 84, 89, 1);
 
-    /* Teal accents (links, focus) */
+    /* Teal accents */
     --primary: #32b8c6;
     --primary-hover: #2da6b2;
     --primary-active: #2996a1;
     --primary-text: #13343b;
     --focus-ring: 0 0 0 3px rgba(50, 184, 198, 0.4);
 
-    /* Subtle backgrounds */
+    /* Subtle tints */
     --tint-blue: rgba(29, 78, 216, 0.15);
     --tint-orange: rgba(194, 65, 12, 0.15);
 
@@ -31,24 +31,24 @@
     --font: "FKGroteskNeue", "Geist", "Inter", -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-    /* Spacing */
-    --gap-xs: 4px;
-    --gap-sm: 8px;
-    --gap: 16px;
-    --gap-lg: 24px;
-    --gap-xl: 32px;
-    --gap-2xl: 48px;
-    --gap-3xl: 80px;
+    /* Spacing (rem-based, scales with root) */
+    --gap-xs: 0.25rem;
+    --gap-sm: 0.5rem;
+    --gap: 1rem;
+    --gap-lg: 1.5rem;
+    --gap-xl: 2rem;
+    --gap-2xl: 3rem;
+    --gap-3xl: 5rem;
 
     /* Misc */
-    --radius: 8px;
-    --radius-lg: 12px;
+    --radius: 0.5rem;
+    --radius-lg: 0.75rem;
     --radius-full: 9999px;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-    --page-padding: 10%;
-    --header-height: 80px;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    --page-padding: clamp(1rem, 5vw, 10%);
+    --header-height: 5rem;
 }
 
 /* Base */
@@ -59,7 +59,7 @@
 }
 
 html {
-    font-size: 14px;
+    font-size: 100%;
     font-family: var(--font);
     color: var(--text);
     background: var(--bg);
@@ -74,7 +74,7 @@ body {
     line-height: 1.6;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1, h2, h3, h4 {
     font-weight: 600;
     line-height: 1.2;
     color: var(--text);
@@ -82,19 +82,19 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-    font-size: 30px;
+    font-size: clamp(1.5rem, 3vw, 1.875rem);
 }
 
 h2 {
-    font-size: 24px;
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
 }
 
 h3 {
-    font-size: 20px;
+    font-size: clamp(1.1rem, 2vw, 1.25rem);
 }
 
 h4 {
-    font-size: 18px;
+    font-size: 1.125rem;
 }
 
 p {
@@ -123,7 +123,7 @@ a:hover {
     justify-content: center;
     padding: var(--gap-sm) var(--gap);
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
     line-height: 1.5;
     cursor: pointer;
@@ -165,9 +165,9 @@ a:hover {
 }
 
 .btn--lg {
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 10px;
+    padding: 0.625rem 1.25rem;
+    font-size: 1rem;
+    border-radius: 0.625rem;
 }
 
 .btn--full-width {
@@ -188,7 +188,6 @@ a:hover {
     box-shadow: var(--shadow);
     transition: transform 250ms, box-shadow 250ms;
 }
-
 .card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
@@ -199,7 +198,7 @@ a:hover {
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
     color: var(--white);
     text-align: center;
-    padding: var(--gap-3xl) var(--page-padding) 60px;
+    padding: var(--gap-3xl) var(--page-padding) var(--gap-2xl);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -207,12 +206,11 @@ a:hover {
 }
 
 .page-hero h1 {
-    font-size: 30px;
-    font-weight: 600;
+    font-size: clamp(1.5rem, 3vw, 1.875rem);
 }
 
 .page-hero p {
-    font-size: 16px;
+    font-size: clamp(0.875rem, 1.5vw, 1rem);
     opacity: 0.9;
 }
 
@@ -245,7 +243,7 @@ a:hover {
     box-shadow: var(--shadow-lg);
 }
 .app-modal-header {
-    padding: 20px;
+    padding: var(--gap-lg);
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
@@ -254,17 +252,17 @@ a:hover {
 }
 
 .app-modal-header h2 {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 600;
     margin: 0;
 }
 .app-modal-close-btn {
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 1.25rem;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 4px;
+    padding: var(--gap-xs);
 }
 
 .app-modal-close-btn:hover {
@@ -274,7 +272,6 @@ a:hover {
 .app-modal-body {
     padding: var(--gap-lg);
 }
-
 .app-modal-footer {
     padding: var(--gap);
     border-top: 1px solid var(--border);
@@ -295,10 +292,4 @@ a:hover {
 @font-face {
     font-family: 'FKGroteskNeue';
     src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2') format('woff2');
-}
-
-@media (max-width: 768px) {
-    :root {
-        --page-padding: var(--gap);
-    }
 }

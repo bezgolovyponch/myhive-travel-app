@@ -1,6 +1,6 @@
 /* Contact Form Modal */
 .contact-form-modal {
-    max-width: 600px;
+    max-width: 37.5rem;
 }
 
 .trip-summary {
@@ -15,25 +15,25 @@
 }
 
 .trip-summary p {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-muted);
-    margin: 4px 0;
+    margin: var(--gap-xs) 0;
 }
 
 .form-error {
     background: rgba(255, 84, 89, 0.1);
     color: var(--error);
-    padding: 12px;
+    padding: 0.75rem;
     border-radius: var(--radius);
     margin-bottom: var(--gap);
-    font-size: 14px;
+    font-size: 0.875rem;
 }
 
 .contact-form label {
     display: block;
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 500;
-    margin-bottom: 6px;
+    margin-bottom: 0.375rem;
     color: var(--text);
 }
 
@@ -41,12 +41,12 @@
 .contact-form select,
 .contact-form textarea {
     width: 100%;
-    padding: var(--gap-sm) 12px;
+    padding: var(--gap-sm) 0.75rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg);
     color: var(--text);
-    font-size: 14px;
+    font-size: 0.875rem;
     font-family: inherit;
 }
 
@@ -63,9 +63,9 @@
 }
 
 .error-message {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--error);
-    margin-top: 4px;
+    margin-top: var(--gap-xs);
     display: block;
 }
 
@@ -85,9 +85,9 @@
 }
 
 .success-message p {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-muted);
-    margin: 4px 0;
+    margin: var(--gap-xs) 0;
 }
 
 .next-steps {
@@ -101,12 +101,12 @@
 }
 
 .next-steps ul {
-    padding-left: 20px;
-    font-size: 14px;
+    padding-left: 1.25rem;
+    font-size: 0.875rem;
     color: var(--text-muted);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.375rem;
 }
 
 @media (max-width: 768px) {

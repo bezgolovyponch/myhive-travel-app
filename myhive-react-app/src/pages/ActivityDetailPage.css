@@ -11,8 +11,8 @@
 
 .activity-detail-loading {
     text-align: center;
-    padding: 64px 0;
-    font-size: 16px;
+    padding: 4rem 0;
+    font-size: 1rem;
     color: var(--text-muted);
 }
 
@@ -21,7 +21,7 @@
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 0.875rem;
     cursor: pointer;
     padding: var(--gap-sm) 0;
     transition: color 150ms;
@@ -61,7 +61,7 @@
 }
 
 .activity-detail-title {
-    font-size: 24px;
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
     font-weight: 600;
     color: var(--text);
     line-height: 1.2;
@@ -75,28 +75,28 @@
 }
 
 .activity-detail-price {
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--accent);
 }
 
 .activity-detail-duration {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-muted);
     background: var(--tint-blue);
-    padding: 4px 12px;
+    padding: var(--gap-xs) 0.75rem;
     border-radius: var(--radius-full);
 }
 
 .activity-detail-description {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--text-muted);
     line-height: 1.7;
 }
 
 .activity-detail-add-btn {
-    padding: 12px var(--gap-xl);
-    font-size: 14px;
+    padding: 0.75rem var(--gap-xl);
+    font-size: 0.875rem;
 }
 
 /* Responsive: stack on mobile */
@@ -107,7 +107,7 @@
     }
 
     .activity-detail-title {
-        font-size: 20px;
+        font-size: clamp(1.125rem, 3vw, 1.25rem);
     }
 
     .activity-detail-page {
