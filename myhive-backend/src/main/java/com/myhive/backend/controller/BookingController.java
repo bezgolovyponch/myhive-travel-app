@@ -3,11 +3,11 @@ package com.myhive.backend.controller;
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.dto.UpdateBookingStatusRequest;
 import com.myhive.backend.service.BookingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +15,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -52,12 +51,8 @@ public class BookingController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<BookingDTO> updateBookingStatus(
             @PathVariable UUID id,
-            @Valid @RequestBody Map<@Size(max = 50) String, @Size(max = 100) String> statusUpdate) {
-        
-        String status = statusUpdate.get("status");
-        String stripeSessionId = statusUpdate.get("stripeSessionId");
-        
-        BookingDTO updatedBooking = bookingService.updateBookingStatus(id, status, stripeSessionId);
+            @Valid @RequestBody UpdateBookingStatusRequest request) {
+        BookingDTO updatedBooking = bookingService.updateBookingStatus(id, request.getStatus(), request.getStripeSessionId());
         return ResponseEntity.ok(updatedBooking);
     }
 }

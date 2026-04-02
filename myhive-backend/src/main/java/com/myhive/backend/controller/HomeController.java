@@ -1,6 +1,6 @@
 package com.myhive.backend.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,10 +10,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@RequiredArgsConstructor
 public class HomeController {
 
-    @Autowired
-    private DataSource dataSource;
+    private final DataSource dataSource;
 
     @GetMapping("/")
     public Map<String, Object> home() {
