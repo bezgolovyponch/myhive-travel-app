@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +21,7 @@ public class BlogPostService {
     public List<BlogPostDTO> getAllBlogPosts() {
         return blogPostRepository.findAllByOrderByDateDesc().stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public BlogPostDTO getBlogPostById(UUID id) {

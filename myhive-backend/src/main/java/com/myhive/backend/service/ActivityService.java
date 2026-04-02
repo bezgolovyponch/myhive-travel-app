@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +24,7 @@ public class ActivityService {
     public List<ActivityDTO> getAllActivities() {
         return activityRepository.findAll().stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ActivityDTO getActivityById(UUID id) {
@@ -37,19 +36,19 @@ public class ActivityService {
     public List<ActivityDTO> getActivitiesByDestination(UUID destinationId) {
         return activityRepository.findByDestinationId(destinationId).stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<ActivityDTO> getActivitiesByCategory(String category) {
         return activityRepository.findByCategory(category).stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<ActivityDTO> getActivitiesByDestinationAndCategory(UUID destinationId, String category) {
         return activityRepository.findByDestinationIdAndCategory(destinationId, category).stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional

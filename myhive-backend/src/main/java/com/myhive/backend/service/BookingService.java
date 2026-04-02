@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -77,7 +77,7 @@ public class BookingService {
     public List<BookingDTO> getBookingsByEmail(String email) {
         return bookingRepository.findByUserEmail(email).stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
@@ -152,7 +152,7 @@ public class BookingService {
     public List<BookingDTO> getAllBookings() {
         return bookingRepository.findAll().stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional
@@ -198,7 +198,7 @@ public class BookingService {
         if (booking.getBookingItems() != null) {
             dto.setItems(booking.getBookingItems().stream()
                     .map(this::convertItemToDTO)
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         
         return dto;

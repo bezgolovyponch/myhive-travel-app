@@ -6,7 +6,6 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -52,35 +51,6 @@ public class EmailService {
         } catch (Exception e) {
             log.error("Failed to send itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
             throw new EmailSendException("Failed to send confirmation email", e);
-        }
-    }
-
-    public void sendBookingNotification(String toEmail, String customerName, TripExportRequest tripData, String googleSheetUrl) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(toEmail);
-            message.setSubject("🆕 New Booking: " + customerName);
-
-            // Prepare template context
-            Context context = new Context();
-            context.setVariable("customerName", customerName);
-            context.setVariable("userEmail", tripData.getUserEmail());
-            context.setVariable("tripName", tripData.getTripName());
-            context.setVariable("activityCount", tripData.getDestinations().get(0).getActivities().size());
-            context.setVariable("bookingDate", java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
-            context.setVariable("googleSheetUrl", googleSheetUrl);
-
-            // Process template
-            String textContent = templateEngine.process("booking-notification", context);
-            message.setText(textContent);
-            
-            mailSender.send(message);
-            
-            log.info("Booking notification sent to admin: {}", toEmail);
-            
-        } catch (Exception e) {
-            log.error("Failed to send booking notification to admin: {}", toEmail, e);
         }
     }
 }
