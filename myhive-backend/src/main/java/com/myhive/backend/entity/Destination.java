@@ -38,7 +38,7 @@ public class Destination {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    @Column(precision = 3, scale = 2)
+    @Column(precision = 4, scale = 2)
     private BigDecimal rating;
 
     @CreationTimestamp

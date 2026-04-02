@@ -34,17 +34,15 @@ public class HomeController {
     public Map<String, Object> detailedHealth() {
         Map<String, Object> health = new HashMap<>();
 
-        // Database health
+        boolean dbUp;
         try (Connection _ = dataSource.getConnection()) {
-            health.put("database", Map.of("status", "UP"));
+            dbUp = true;
         } catch (Exception e) {
-            health.put("database", Map.of("status", "DOWN"));
+            dbUp = false;
         }
 
-        // Overall status
-        Map<String, String> dbStatus = (Map<String, String>) health.get("database");
-        boolean allUp = dbStatus.get("status").equals("UP");
-        health.put("overall", allUp ? "UP" : "DOWN");
+        health.put("database", Map.of("status", dbUp ? "UP" : "DOWN"));
+        health.put("overall", dbUp ? "UP" : "DOWN");
 
         return health;
     }
