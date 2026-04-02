@@ -14,6 +14,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: relative;
 }
 
 .logo {
@@ -23,14 +24,16 @@
     text-decoration: none;
     cursor: pointer;
     flex-shrink: 0;
+    z-index: 1;
 }
 
 .nav-links {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     gap: var(--gap-xl);
     align-items: center;
-    justify-content: center;
-    flex: 1;
 }
 
 .nav-links a {
@@ -115,6 +118,7 @@
 
 .trip-builder-wrapper {
     position: relative;
+    z-index: 1;
 }
 
 .trip-builder-count {
@@ -327,6 +331,7 @@
         top: 100%;
         left: 0;
         right: 0;
+        transform: none;
         background: var(--brand);
         flex-direction: column;
         gap: 0;
