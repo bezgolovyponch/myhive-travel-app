@@ -66,7 +66,7 @@ class JwtUtilTest {
 
     @Test
     void isTokenExpired_withExpiredToken_returnsTrue() {
-        ReflectionTestUtils.setField(jwtUtil, "jwtExpiration", 0L);
+        ReflectionTestUtils.setField(jwtUtil, "jwtExpiration", -1000L);
         String token = jwtUtil.generateToken("user@test.com", "ADMIN");
 
         assertThat(jwtUtil.isTokenExpired(token)).isTrue();

@@ -3,6 +3,7 @@ package com.myhive.backend.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -48,10 +49,12 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleValidationErrors_returns400WithFieldErrors() {
+    void handleValidationErrors_returns400WithFieldErrors() throws NoSuchMethodException {
         var bindingResult = new BeanPropertyBindingResult(new Object(), "request");
         bindingResult.addError(new FieldError("request", "email", "must not be blank"));
-        var ex = new MethodArgumentNotValidException(null, bindingResult);
+        MethodParameter param = new MethodParameter(
+                GlobalExceptionHandlerTest.class.getDeclaredMethod("handleValidationErrors_returns400WithFieldErrors"), -1);
+        var ex = new MethodArgumentNotValidException(param, bindingResult);
 
         ResponseEntity<ErrorResponse> response = handler.handleValidationErrors(ex, request);
 
