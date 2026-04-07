@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -26,7 +27,8 @@ class SecurityConfigIntegrationTest {
 
     @Test
     void publicEndpoints_accessibleWithoutAuth() throws Exception {
-        mockMvc.perform(get("/")).andExpect(status().isOk());
+        mockMvc.perform(get("/")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("running"));
         mockMvc.perform(get("/destinations")).andExpect(status().isOk());
         mockMvc.perform(get("/activities")).andExpect(status().isOk());
         mockMvc.perform(get("/blog")).andExpect(status().isOk());

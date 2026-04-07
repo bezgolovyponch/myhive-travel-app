@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -95,10 +96,18 @@ public class BookingService {
 
         for (TripExportRequest.DestinationExport dest : request.getDestinations()) {
             if (booking.getStartDate() == null && dest.getStartDate() != null) {
-                booking.setStartDate(LocalDate.parse(dest.getStartDate()));
+                try {
+                    booking.setStartDate(LocalDate.parse(dest.getStartDate()));
+                } catch (DateTimeParseException e) {
+                    throw new BadRequestException("Invalid date format for startDate: " + dest.getStartDate() + ". Expected format: yyyy-MM-dd");
+                }
             }
             if (booking.getEndDate() == null && dest.getEndDate() != null) {
-                booking.setEndDate(LocalDate.parse(dest.getEndDate()));
+                try {
+                    booking.setEndDate(LocalDate.parse(dest.getEndDate()));
+                } catch (DateTimeParseException e) {
+                    throw new BadRequestException("Invalid date format for endDate: " + dest.getEndDate() + ". Expected format: yyyy-MM-dd");
+                }
             }
 
             for (TripExportRequest.ActivityExport act : dest.getActivities()) {

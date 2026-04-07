@@ -81,11 +81,19 @@ class RateLimitFilterTest {
     @Test
     void getClientIp_usesXForwardedForIfPresent() throws Exception {
         when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.50, 70.41.3.18");
-        // Should use first IP from X-Forwarded-For, not remoteAddr
+        StringWriter sw = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(sw));
 
+        // Fill up the rate limit using the X-Forwarded-For IP
+        for (int i = 0; i < 100; i++) {
+            filter.doFilter(request, response, chain);
+        }
+
+        // 101st request with same X-Forwarded-For should be blocked with 429
         filter.doFilter(request, response, chain);
 
-        verify(chain).doFilter(request, response);
+        verify(chain, times(100)).doFilter(request, response);
+        verify(response).setStatus(429);
         // Verify remoteAddr was never called (it's not needed when X-Forwarded-For is present)
         verify(request, never()).getRemoteAddr();
     }
