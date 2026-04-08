@@ -7,10 +7,6 @@ function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleLogout = () => {
-        logout();
-    };
-
     return (
         <div className="min-vh-100" style={{background: 'var(--bg)', color: 'var(--text)'}}>
             <Navbar className="border-bottom shadow-sm" sticky="top" style={{background: 'var(--surface)'}}
@@ -62,7 +58,7 @@ function AdminLayout() {
                     </Nav>
                     <Nav className="d-flex align-items-center gap-3">
                         <span className="text-muted small d-none d-md-inline">{user?.email}</span>
-                        <Button variant="outline-secondary" size="sm" onClick={handleLogout}>
+                        <Button variant="outline-secondary" size="sm" onClick={logout}>
                             Logout
                         </Button>
                     </Nav>

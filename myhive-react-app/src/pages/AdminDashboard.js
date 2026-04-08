@@ -1,19 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import {useAdminApi} from '../hooks/useAdminApi';
-import {useAuth} from '../context/AuthContext';
+import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {useNavigate} from 'react-router-dom';
 import {Alert, Badge, Button, Card, Col, Form, Row, Spinner, Table} from 'react-bootstrap';
-
-const STATUS_VARIANTS = {
-    PAID: 'success',
-    CONFIRMED: 'info',
-    PENDING: 'warning',
-    CANCELLED: 'danger',
-};
+import {formatAmount, formatDate, STATUS_VARIANTS} from '../utils/format';
 
 function AdminDashboard() {
     const adminApi = useAdminApi();
-    const {logout} = useAuth();
+    const handleAuthError = useAuthErrorHandler();
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [bookings, setBookings] = useState([]);
@@ -33,31 +27,16 @@ function AdminDashboard() {
             setStats(statsData);
             setBookings(bookingsData);
         } catch (err) {
-            if (err.message === 'Unauthorized') {
-                logout();
-                return;
-            }
+            if (handleAuthError(err)) return;
             setError(err.message || 'Failed to load data');
         } finally {
             setLoading(false);
         }
-    }, [adminApi, logout, navigate]);
+    }, [adminApi, handleAuthError]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
-
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-GB', {
-            day: '2-digit', month: 'short', year: 'numeric',
-        });
-    };
-
-    const formatAmount = (amount) => {
-        if (amount == null) return '—';
-        return `€${Number(amount).toFixed(2)}`;
-    };
 
     const allDestinations = [...new Set(
         bookings.flatMap(b => (b.items || []).map(i => i.destinationName).filter(Boolean))

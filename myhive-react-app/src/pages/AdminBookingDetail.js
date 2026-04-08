@@ -1,20 +1,14 @@
 import {useCallback, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {useAuth} from '../context/AuthContext';
 import {useAdminApi} from '../hooks/useAdminApi';
+import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Row, Spinner, Table} from 'react-bootstrap';
-
-const STATUS_VARIANTS = {
-    PAID: 'success',
-    CONFIRMED: 'info',
-    PENDING: 'warning',
-    CANCELLED: 'danger',
-};
+import {formatAmount, STATUS_VARIANTS} from '../utils/format';
 
 function AdminBookingDetail() {
     const adminApi = useAdminApi();
     const {id} = useParams();
-    const {logout} = useAuth();
+    const handleAuthError = useAuthErrorHandler();
     const navigate = useNavigate();
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -27,23 +21,19 @@ function AdminBookingDetail() {
             const data = await adminApi.getBookingById(id);
             setBooking(data);
         } catch (err) {
-            if (err.message === 'Unauthorized') {
-                logout();
-                navigate('/admin/login', {replace: true});
-                return;
-            }
+            if (handleAuthError(err)) return;
             setError(err.message || 'Failed to load booking');
         } finally {
             setLoading(false);
         }
-    }, [adminApi, id, logout, navigate]);
+    }, [adminApi, id, handleAuthError]);
 
     useEffect(() => {
         fetchBooking();
     }, [fetchBooking]);
 
     const formatDate = (dateStr) => {
-        if (!dateStr) return '—';
+        if (!dateStr) return '\u2014';
         return new Date(dateStr).toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
         });
@@ -54,11 +44,6 @@ function AdminBookingDetail() {
         return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric',
         });
-    };
-
-    const formatAmount = (amount) => {
-        if (amount == null) return '—';
-        return `€${Number(amount).toFixed(2)}`;
     };
 
     if (loading) {

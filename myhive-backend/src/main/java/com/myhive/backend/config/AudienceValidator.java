@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class AudienceValidator implements OAuth2TokenValidator<Jwt> {
 
+    private static final OAuth2Error AUDIENCE_ERROR = new OAuth2Error("invalid_token", "Required audience not found", null);
+
     private final String audience;
 
     public AudienceValidator(@Value("${spring.security.oauth2.resourceserver.jwt.audiences}") String audience) {
@@ -21,7 +23,6 @@ public class AudienceValidator implements OAuth2TokenValidator<Jwt> {
         if (jwt.getAudience().contains(audience)) {
             return OAuth2TokenValidatorResult.success();
         }
-        return OAuth2TokenValidatorResult.failure(
-                new OAuth2Error("invalid_token", "Required audience not found", null));
+        return OAuth2TokenValidatorResult.failure(AUDIENCE_ERROR);
     }
 }

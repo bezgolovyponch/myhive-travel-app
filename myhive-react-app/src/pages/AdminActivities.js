@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {useAuth} from '../context/AuthContext';
 import {useAdminApi} from '../hooks/useAdminApi';
+import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 'react-bootstrap';
+import {formatAmount} from '../utils/format';
 
 const EMPTY_FORM = {
     name: '',
@@ -16,8 +16,7 @@ const EMPTY_FORM = {
 
 function AdminActivities() {
     const adminApi = useAdminApi();
-    const {logout} = useAuth();
-    const navigate = useNavigate();
+    const handleAuthError = useAuthErrorHandler();
     const [activities, setActivities] = useState([]);
     const [destinations, setDestinations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,15 +28,6 @@ function AdminActivities() {
     const [deleteId, setDeleteId] = useState(null);
     const [filterDestination, setFilterDestination] = useState('');
     const [uploading, setUploading] = useState(false);
-
-    const handleAuthError = useCallback((err) => {
-        if (err.message === 'Unauthorized') {
-            logout();
-            navigate('/admin/login', {replace: true});
-            return true;
-        }
-        return false;
-    }, [logout, navigate]);
 
     const fetchData = useCallback(async () => {
         try {
@@ -118,11 +108,6 @@ function AdminActivities() {
         } finally {
             setSaving(false);
         }
-    };
-
-    const formatAmount = (amount) => {
-        if (amount == null) return '—';
-        return `€${Number(amount).toFixed(2)}`;
     };
 
     const filteredActivities = activities.filter(

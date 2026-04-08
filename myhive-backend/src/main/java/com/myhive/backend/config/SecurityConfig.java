@@ -22,7 +22,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -107,8 +106,8 @@ public class SecurityConfig {
                 return Collections.emptyList();
             }
             return roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                    .collect(Collectors.toList());
+                    .<GrantedAuthority>map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                    .toList();
         }
     }
 }

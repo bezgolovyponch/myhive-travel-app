@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {useAuth} from '../context/AuthContext';
 import {useAdminApi} from '../hooks/useAdminApi';
+import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Form, Modal, Spinner, Table} from 'react-bootstrap';
 
 const EMPTY_FORM = {
@@ -10,13 +9,12 @@ const EMPTY_FORM = {
     content: '',
     category: '',
     imageUrl: '',
-    date: new Date().toISOString().split('T')[0],
+    date: '',
 };
 
 function AdminBlog() {
     const adminApi = useAdminApi();
-    const {logout} = useAuth();
-    const navigate = useNavigate();
+    const handleAuthError = useAuthErrorHandler();
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -26,15 +24,6 @@ function AdminBlog() {
     const [saving, setSaving] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [uploading, setUploading] = useState(false);
-
-    const handleAuthError = useCallback((err) => {
-        if (err.message === 'Unauthorized') {
-            logout();
-            navigate('/admin/login', {replace: true});
-            return true;
-        }
-        return false;
-    }, [logout, navigate]);
 
     const fetchData = useCallback(async () => {
         try {
@@ -56,7 +45,7 @@ function AdminBlog() {
 
     const openCreate = () => {
         setEditing(null);
-        setForm(EMPTY_FORM);
+        setForm({...EMPTY_FORM, date: new Date().toISOString().split('T')[0]});
         setShowModal(true);
     };
 

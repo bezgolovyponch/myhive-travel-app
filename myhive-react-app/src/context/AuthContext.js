@@ -1,5 +1,7 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
 import {AuthProvider as OidcAuthProvider, useAuth as useOidcAuth} from 'react-oidc-context';
+
+const ROLES_CLAIM = process.env.REACT_APP_OIDC_ROLES_CLAIM || 'https://trivlu.com/roles';
 
 const AuthContext = createContext();
 
@@ -25,9 +27,11 @@ export function useAuth() {
 function AuthContextBridge({children}) {
     const auth = useOidcAuth();
 
+    const getAccessToken = useCallback(async () => auth.user?.access_token, [auth.user?.access_token]);
+
     const value = useMemo(() => {
         const idTokenClaims = auth.user?.profile;
-        const roles = idTokenClaims?.['https://trivlu.com/roles'] || [];
+        const roles = idTokenClaims?.[ROLES_CLAIM] || [];
         const email = idTokenClaims?.email;
         const isProcessingCallback = !!auth.activeNavigator;
 
@@ -37,9 +41,9 @@ function AuthContextBridge({children}) {
             loading: auth.isLoading || isProcessingCallback,
             login: () => auth.signinRedirect(),
             logout: () => auth.signoutRedirect({post_logout_redirect_uri: window.location.origin}),
-            getAccessToken: async () => auth.user?.access_token,
+            getAccessToken,
         };
-    }, [auth]);
+    }, [auth, getAccessToken]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

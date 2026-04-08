@@ -83,10 +83,9 @@ export function createAdminApi(getAccessToken) {
         },
 
         async deleteActivity(id) {
-            const token = await getAccessToken();
             const response = await fetch(`${API_BASE_URL}/admin/activities/${id}`, {
                 method: 'DELETE',
-                headers: {Authorization: `Bearer ${token}`},
+                headers: await authHeaders(),
             });
             if (response.status === 401 || response.status === 403) {
                 throw new Error('Unauthorized');
@@ -150,10 +149,9 @@ export function createAdminApi(getAccessToken) {
         },
 
         async deleteBlogPost(id) {
-            const token = await getAccessToken();
             const response = await fetch(`${API_BASE_URL}/admin/blog/${id}`, {
                 method: 'DELETE',
-                headers: {Authorization: `Bearer ${token}`},
+                headers: await authHeaders(),
             });
             if (response.status === 401 || response.status === 403) {
                 throw new Error('Unauthorized');
@@ -162,9 +160,8 @@ export function createAdminApi(getAccessToken) {
         },
 
         async getDestinations() {
-            const token = await getAccessToken();
             const response = await fetch(`${API_BASE_URL}/destinations`, {
-                headers: {Authorization: `Bearer ${token}`},
+                headers: await authHeaders(),
             });
             if (!response.ok) throw new Error('Failed to fetch destinations');
             return response.json();
