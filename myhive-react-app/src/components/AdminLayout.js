@@ -1,58 +1,28 @@
-import {Outlet, useLocation, useNavigate} from 'react-router-dom';
+import {NavLink, Outlet} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
 import {Button, Container, Nav, Navbar} from 'react-bootstrap';
 
 function AdminLayout() {
     const {user, logout} = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
 
     return (
         <div className="min-vh-100" style={{background: 'var(--bg)', color: 'var(--text)'}}>
             <Navbar className="border-bottom shadow-sm" sticky="top" style={{background: 'var(--surface)'}}
                     data-bs-theme="dark">
                 <Container>
-                    <Navbar.Brand
-                        href="/admin"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            navigate('/admin');
-                        }}
-                        className="fw-bold text-primary"
-                    >
+                    <Navbar.Brand as={NavLink} to="/admin" className="fw-bold text-primary">
                         MyHive Admin
                     </Navbar.Brand>
                     <Nav className="me-auto">
                         {user?.roles?.includes('ADMIN') && (
-                            <Nav.Link
-                                active={location.pathname === '/admin'}
-                                href="/admin"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    navigate('/admin');
-                                }}
-                            >
+                            <Nav.Link as={NavLink} to="/admin" end>
                                 Bookings
                             </Nav.Link>
                         )}
-                        <Nav.Link
-                            active={location.pathname.startsWith('/admin/activities')}
-                            href="/admin/activities"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                navigate('/admin/activities');
-                            }}
-                        >
+                        <Nav.Link as={NavLink} to="/admin/activities">
                             Activities
                         </Nav.Link>
-                        <Nav.Link
-                            active={location.pathname.startsWith('/admin/blog')}
-                            href="/admin/blog"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                navigate('/admin/blog');
-                            }}
-                        >
+                        <Nav.Link as={NavLink} to="/admin/blog">
                             Blog
                         </Nav.Link>
                     </Nav>

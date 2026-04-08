@@ -36,7 +36,7 @@ function AuthContextBridge({children}) {
         const isProcessingCallback = !!auth.activeNavigator;
 
         return {
-            user: auth.isAuthenticated ? {email, roles, role: roles[0] || null} : null,
+            user: auth.isAuthenticated ? {email, roles} : null,
             isAuthenticated: auth.isAuthenticated,
             loading: auth.isLoading || isProcessingCallback,
             login: () => auth.signinRedirect(),

@@ -7,13 +7,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
 import java.util.UUID;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static com.myhive.backend.util.JwtTestHelper.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,55 +44,35 @@ class SecurityConfigIntegrationTest {
     @Test
     void adminEndpoints_withValidAdminJwt_returns200() throws Exception {
         mockMvc.perform(get("/admin/bookings")
-                        .with(jwt().jwt(j -> j
-                                .subject("admin@test.com")
-                                .claim("email", "admin@test.com")
-                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
-                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                        .with(adminJwt()))
                 .andExpect(status().isOk());
     }
 
     @Test
     void adminEndpoints_withNonAdminRole_returns403() throws Exception {
         mockMvc.perform(get("/admin/bookings")
-                        .with(jwt().jwt(j -> j
-                                .subject("user@test.com")
-                                .claim("email", "user@test.com")
-                                .claim("https://trivlu.com/roles", List.of("USER"))
-                        ).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                        .with(userJwt()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void managerRole_canAccessAdminActivities() throws Exception {
         mockMvc.perform(get("/admin/activities")
-                        .with(jwt().jwt(j -> j
-                                .subject("manager@test.com")
-                                .claim("email", "manager@test.com")
-                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
-                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                        .with(managerJwt()))
                 .andExpect(status().isOk());
     }
 
     @Test
     void managerRole_cannotAccessAdminBookings() throws Exception {
         mockMvc.perform(get("/admin/bookings")
-                        .with(jwt().jwt(j -> j
-                                .subject("manager@test.com")
-                                .claim("email", "manager@test.com")
-                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
-                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                        .with(managerJwt()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void managerRole_canAccessAdminBlog() throws Exception {
         mockMvc.perform(get("/admin/blog")
-                        .with(jwt().jwt(j -> j
-                                .subject("manager@test.com")
-                                .claim("email", "manager@test.com")
-                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
-                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                        .with(managerJwt()))
                 .andExpect(status().isOk());
     }
 
@@ -115,11 +93,7 @@ class SecurityConfigIntegrationTest {
         // Will get 404 (booking not found) but NOT 401/403 — proves security passes
         mockMvc.perform(patch("/bookings/" + fakeId + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .with(jwt().jwt(j -> j
-                                .subject("admin@test.com")
-                                .claim("email", "admin@test.com")
-                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
-                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .with(adminJwt())
                         .content("{\"status\": \"PAID\"}"))
                 .andExpect(status().isNotFound());
     }
