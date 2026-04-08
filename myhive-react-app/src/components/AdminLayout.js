@@ -13,8 +13,9 @@ function AdminLayout() {
     };
 
     return (
-        <div className="min-vh-100 bg-light">
-            <Navbar bg="white" className="border-bottom shadow-sm" sticky="top">
+        <div className="min-vh-100" style={{background: 'var(--bg)', color: 'var(--text)'}}>
+            <Navbar className="border-bottom shadow-sm" sticky="top" style={{background: 'var(--surface)'}}
+                    data-bs-theme="dark">
                 <Container>
                     <Navbar.Brand
                         href="/admin"

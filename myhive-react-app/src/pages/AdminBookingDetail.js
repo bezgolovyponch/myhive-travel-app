@@ -95,10 +95,10 @@ function AdminBookingDetail() {
 
             <Row className="g-3 mb-4">
                 <Col md={8}>
-                    <Card className="shadow-sm bg-white mb-3">
-                        <Card.Header className="bg-white border-bottom">
+                    <Card className="shadow-sm mb-3">
+                        <Card.Header className="border-bottom">
                             <div className="d-flex align-items-center justify-content-between">
-                                <h6 className="fw-semibold mb-0 text-dark">Customer Information</h6>
+                                <h6 className="fw-semibold mb-0">Customer Information</h6>
                                 <Badge bg={STATUS_VARIANTS[booking.status?.toUpperCase()] || 'secondary'}
                                        className="fs-6">
                                     {booking.status}
@@ -109,33 +109,33 @@ function AdminBookingDetail() {
                             <Row className="g-3">
                                 <Col sm={6}>
                                     <div className="text-muted small">Full Name</div>
-                                    <div className="fw-semibold text-dark">{booking.customerName || '—'}</div>
+                                    <div className="fw-semibold">{booking.customerName || '—'}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Email</div>
-                                    <div className="fw-semibold text-dark">{booking.userEmail}</div>
+                                    <div className="fw-semibold">{booking.userEmail}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Phone</div>
-                                    <div className="fw-semibold text-dark">{booking.phone || '—'}</div>
+                                    <div className="fw-semibold">{booking.phone || '—'}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Number of Travelers</div>
-                                    <div className="fw-semibold text-dark">{booking.numberOfTravelers || '—'}</div>
+                                    <div className="fw-semibold">{booking.numberOfTravelers || '—'}</div>
                                 </Col>
                             </Row>
                         </Card.Body>
                     </Card>
 
-                    <Card className="shadow-sm bg-white">
-                        <Card.Header className="bg-white border-bottom">
-                            <h6 className="fw-semibold mb-0 text-dark">Booking Details</h6>
+                    <Card className="shadow-sm">
+                        <Card.Header className="border-bottom">
+                            <h6 className="fw-semibold mb-0">Booking Details</h6>
                         </Card.Header>
                         <Card.Body>
                             <Row className="g-3">
                                 <Col sm={6}>
                                     <div className="text-muted small">Destination</div>
-                                    <div className="fw-semibold text-dark">
+                                    <div className="fw-semibold">
                                         {(() => {
                                             const destinations = [...new Set(
                                                 (booking.items || [])
@@ -148,11 +148,11 @@ function AdminBookingDetail() {
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Total Amount</div>
-                                    <div className="fw-bold text-dark fs-5">{formatAmount(booking.totalAmount)}</div>
+                                    <div className="fw-bold fs-5">{formatAmount(booking.totalAmount)}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Travel Dates</div>
-                                    <div className="fw-semibold text-dark">
+                                    <div className="fw-semibold">
                                         {booking.startDate && booking.endDate
                                             ? `${formatTravelDate(booking.startDate)} — ${formatTravelDate(booking.endDate)}`
                                             : '—'}
@@ -160,21 +160,21 @@ function AdminBookingDetail() {
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Created</div>
-                                    <div className="fw-semibold text-dark">{formatDate(booking.createdAt)}</div>
+                                    <div className="fw-semibold">{formatDate(booking.createdAt)}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Paid At</div>
-                                    <div className="fw-semibold text-dark">{formatDate(booking.paidAt)}</div>
+                                    <div className="fw-semibold">{formatDate(booking.paidAt)}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Booking ID</div>
-                                    <div className="fw-semibold text-dark">
+                                    <div className="fw-semibold">
                                         <code className="small">{booking.id}</code>
                                     </div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Stripe Session</div>
-                                    <div className="fw-semibold text-dark">
+                                    <div className="fw-semibold">
                                         {booking.stripeSessionId ?
                                             <code className="small">{booking.stripeSessionId}</code> : '—'}
                                     </div>
@@ -182,7 +182,7 @@ function AdminBookingDetail() {
                                 {booking.notes && (
                                     <Col sm={12}>
                                         <div className="text-muted small">Notes</div>
-                                        <div className="fw-semibold text-dark">{booking.notes}</div>
+                                        <div className="fw-semibold">{booking.notes}</div>
                                     </Col>
                                 )}
                             </Row>
@@ -191,23 +191,23 @@ function AdminBookingDetail() {
                 </Col>
 
                 <Col md={4}>
-                    <Card className="shadow-sm bg-white h-100">
-                        <Card.Header className="bg-white border-bottom">
-                            <h6 className="fw-semibold mb-0 text-dark">Summary</h6>
+                    <Card className="shadow-sm h-100">
+                        <Card.Header className="border-bottom">
+                            <h6 className="fw-semibold mb-0">Summary</h6>
                         </Card.Header>
                         <Card.Body className="d-flex flex-column justify-content-center">
                             <div className="text-center">
-                                <div className="fs-1 fw-bold text-dark">{booking.items?.length || 0}</div>
+                                <div className="fs-1 fw-bold">{booking.items?.length || 0}</div>
                                 <div className="text-muted">Activities</div>
                             </div>
                             <hr/>
                             <div className="text-center">
-                                <div className="fs-4 fw-bold text-dark">{booking.numberOfTravelers || '—'}</div>
+                                <div className="fs-4 fw-bold">{booking.numberOfTravelers || '—'}</div>
                                 <div className="text-muted">Travelers</div>
                             </div>
                             <hr/>
                             <div className="text-center">
-                                <div className="fs-4 fw-bold text-dark">{formatAmount(booking.totalAmount)}</div>
+                                <div className="fs-4 fw-bold">{formatAmount(booking.totalAmount)}</div>
                                 <div className="text-muted">Total</div>
                             </div>
                         </Card.Body>
@@ -215,16 +215,16 @@ function AdminBookingDetail() {
                 </Col>
             </Row>
 
-            <Card className="shadow-sm bg-white">
-                <Card.Header className="bg-white border-bottom">
-                    <h6 className="fw-semibold mb-0 text-dark">Booking Items</h6>
+            <Card className="shadow-sm">
+                <Card.Header className="border-bottom">
+                    <h6 className="fw-semibold mb-0">Booking Items</h6>
                 </Card.Header>
                 <Card.Body className="p-0">
                     {(!booking.items || booking.items.length === 0) ? (
                         <p className="text-muted text-center py-4">No items in this booking.</p>
                     ) : (
                         <Table responsive hover className="mb-0 align-middle">
-                            <thead className="table-light">
+                            <thead className="">
                             <tr>
                                 <th className="small text-muted text-uppercase">#</th>
                                 <th className="small text-muted text-uppercase">Activity</th>
@@ -248,7 +248,7 @@ function AdminBookingDetail() {
                                 </tr>
                             ))}
                             </tbody>
-                            <tfoot className="table-light">
+                            <tfoot className="">
                             <tr>
                                 <td colSpan={5} className="text-end fw-semibold small">Total</td>
                                 <td className="fw-bold">{formatAmount(booking.totalAmount)}</td>

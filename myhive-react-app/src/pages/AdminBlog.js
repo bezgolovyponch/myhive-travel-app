@@ -128,9 +128,9 @@ function AdminBlog() {
                 <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>
             )}
 
-            <Card className="border-0 shadow-sm bg-white">
-                <Card.Header className="bg-white border-bottom">
-                    <h6 className="fw-semibold mb-0 text-dark">
+            <Card className="border-0 shadow-sm">
+                <Card.Header className="border-bottom">
+                    <h6 className="fw-semibold mb-0">
                         {posts.length} {posts.length === 1 ? 'post' : 'posts'}
                     </h6>
                 </Card.Header>
@@ -139,7 +139,7 @@ function AdminBlog() {
                         <p className="text-muted text-center py-5">No blog posts yet.</p>
                     ) : (
                         <Table responsive hover className="mb-0 align-middle">
-                            <thead className="table-light">
+                            <thead>
                             <tr>
                                 <th className="small text-muted text-uppercase">Title</th>
                                 <th className="small text-muted text-uppercase">Category</th>

@@ -105,7 +105,7 @@ function AdminDashboard() {
                     ].map(({label, value, color, status}) => (
                         <Col xs={6} md={3} key={label}>
                             <Card
-                                className="shadow-sm h-100 bg-white"
+                                className="shadow-sm h-100"
                                 onClick={() => setStatusFilter(statusFilter === status ? null : status)}
                                 style={{
                                     borderLeft: `4px solid ${color}`,
@@ -118,7 +118,7 @@ function AdminDashboard() {
                                 }}
                             >
                                 <Card.Body className="py-3">
-                                    <div className="fs-2 fw-bold text-dark">{value}</div>
+                                    <div className="fs-2 fw-bold">{value}</div>
                                     <div className="text-muted small">{label}</div>
                                 </Card.Body>
                             </Card>
@@ -127,11 +127,11 @@ function AdminDashboard() {
                 </Row>
             )}
 
-            <Card className="border-0 shadow-sm bg-white">
-                <Card.Header className="bg-white border-bottom">
+            <Card className="border-0 shadow-sm">
+                <Card.Header className="border-bottom">
                     <div className="d-flex align-items-center justify-content-between">
                         <div className="d-flex align-items-center gap-3">
-                            <h6 className="fw-semibold mb-0 text-dark">
+                            <h6 className="fw-semibold mb-0">
                                 Bookings{statusFilter ? ` — ${statusFilter}` : ''}
                             </h6>
                             <Form.Select
@@ -161,7 +161,7 @@ function AdminDashboard() {
                         <p className="text-muted text-center py-5">No bookings found.</p>
                     ) : (
                         <Table responsive hover className="mb-0 align-middle">
-                            <thead className="table-light">
+                            <thead>
                             <tr>
                                 <th className="small text-muted text-uppercase">Customer</th>
                                 <th className="small text-muted text-uppercase">Amount</th>

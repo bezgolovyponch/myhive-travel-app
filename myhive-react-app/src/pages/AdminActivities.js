@@ -150,10 +150,10 @@ function AdminActivities() {
                 <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>
             )}
 
-            <Card className="border-0 shadow-sm bg-white">
-                <Card.Header className="bg-white border-bottom">
+            <Card className="border-0 shadow-sm">
+                <Card.Header className="border-bottom">
                     <div className="d-flex align-items-center justify-content-between">
-                        <h6 className="fw-semibold mb-0 text-dark">
+                        <h6 className="fw-semibold mb-0">
                             {filteredActivities.length} {filteredActivities.length === 1 ? 'activity' : 'activities'}
                         </h6>
                         <Form.Select
@@ -174,7 +174,7 @@ function AdminActivities() {
                         <p className="text-muted text-center py-5">No activities found.</p>
                     ) : (
                         <Table responsive hover className="mb-0 align-middle">
-                            <thead className="table-light">
+                            <thead>
                             <tr>
                                 <th className="small text-muted text-uppercase">Name</th>
                                 <th className="small text-muted text-uppercase">Destination</th>

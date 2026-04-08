@@ -13,7 +13,7 @@ function AdminLogin() {
 
     if (loading) {
         return (
-            <div className="d-flex align-items-center justify-content-center vh-100 bg-light">
+            <div className="d-flex align-items-center justify-content-center vh-100">
                 <Spinner animation="border" variant="primary"/>
             </div>
         );
@@ -39,7 +39,7 @@ function AdminLogin() {
     };
 
     return (
-        <div className="d-flex align-items-center justify-content-center vh-100 bg-light">
+        <div className="d-flex align-items-center justify-content-center vh-100">
             <Container style={{maxWidth: 420}}>
                 <Card className="shadow-sm border-0">
                     <Card.Body className="p-4">

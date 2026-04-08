@@ -182,6 +182,7 @@ a:hover {
 /* Shared card base */
 .card {
     background: var(--surface);
+    color: var(--text);
     border-radius: var(--radius-lg);
     overflow: hidden;
     border: 1px solid var(--card-border);
@@ -191,6 +192,11 @@ a:hover {
 .card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background: var(--surface);
+    border-bottom-color: var(--border);
 }
 
 /* Shared page hero */
@@ -232,6 +238,40 @@ a:hover {
 
 .modal-footer {
     border-top-color: var(--border);
+}
+
+/* Bootstrap text/color overrides for dark theme */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Bootstrap Table override for dark theme */
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text);
+    --bs-table-border-color: var(--border);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-hover-color: var(--text);
+}
+
+/* Bootstrap Form overrides for dark theme */
+.form-select,
+.form-control {
+    background-color: var(--bg);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.form-select:focus,
+.form-control:focus {
+    background-color: var(--bg);
+    color: var(--text);
+    border-color: var(--primary);
+}
+
+.form-select option {
+    background-color: var(--surface);
+    color: var(--text);
 }
 
 /* Modal */
