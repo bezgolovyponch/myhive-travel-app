@@ -1,8 +1,8 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/global.css';
-import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
+import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
 import {AppProvider} from './context/AppContext';
-import {AuthProvider} from './context/AuthContext';
+import {AuthProvider, useAuth} from './context/AuthContext';
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import AdminLogin from './pages/AdminLogin';
@@ -11,6 +11,14 @@ import AdminBookingDetail from './pages/AdminBookingDetail';
 import AdminActivities from './pages/AdminActivities';
 import AdminBlog from './pages/AdminBlog';
 import ProtectedRoute from './components/ProtectedRoute';
+
+function AdminIndex() {
+    const {user} = useAuth();
+    if (user?.roles?.includes('ADMIN')) {
+        return <AdminDashboard/>;
+    }
+    return <Navigate to="/admin/activities" replace/>;
+}
 
 function AdminRoutes() {
   return (
@@ -22,8 +30,9 @@ function AdminRoutes() {
                       <AdminLayout/>
                   </ProtectedRoute>
         }>
-          <Route index element={<AdminDashboard/>}/>
-          <Route path="bookings/:id" element={<AdminBookingDetail/>}/>
+                  <Route index element={<AdminIndex/>}/>
+                  <Route path="bookings/:id"
+                         element={<ProtectedRoute requiredRole="ADMIN"><AdminBookingDetail/></ProtectedRoute>}/>
           <Route path="activities" element={<AdminActivities/>}/>
                   <Route path="blog" element={<AdminBlog/>}/>
         </Route>

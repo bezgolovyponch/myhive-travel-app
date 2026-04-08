@@ -27,16 +27,18 @@ function AdminLayout() {
                         MyHive Admin
                     </Navbar.Brand>
                     <Nav className="me-auto">
-                        <Nav.Link
-                            active={location.pathname === '/admin'}
-                            href="/admin"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                navigate('/admin');
-                            }}
-                        >
-                            Bookings
-                        </Nav.Link>
+                        {user?.roles?.includes('ADMIN') && (
+                            <Nav.Link
+                                active={location.pathname === '/admin'}
+                                href="/admin"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate('/admin');
+                                }}
+                            >
+                                Bookings
+                            </Nav.Link>
+                        )}
                         <Nav.Link
                             active={location.pathname.startsWith('/admin/activities')}
                             href="/admin/activities"

@@ -212,6 +212,62 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
+    void createActivity_withManagerAuth_returns201() throws Exception {
+        String json = """
+                {
+                  "destinationId": "%s",
+                  "name": "Seine River Cruise",
+                  "description": "Scenic boat ride",
+                  "price": 20.00
+                }
+                """.formatted(destinationId);
+
+        mockMvc.perform(post("/admin/activities")
+                        .with(jwt().jwt(j -> j
+                                .subject("manager@test.com")
+                                .claim("email", "manager@test.com")
+                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name", is("Seine River Cruise")));
+    }
+
+    @Test
+    void getActivities_withManagerAuth_returns200() throws Exception {
+        mockMvc.perform(get("/admin/activities")
+                        .with(jwt().jwt(j -> j
+                                .subject("manager@test.com")
+                                .claim("email", "manager@test.com")
+                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getBookings_withManagerAuth_returns403() throws Exception {
+        mockMvc.perform(get("/admin/bookings")
+                        .with(jwt().jwt(j -> j
+                                .subject("manager@test.com")
+                                .claim("email", "manager@test.com")
+                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getBlog_withManagerAuth_returns200() throws Exception {
+        mockMvc.perform(get("/admin/blog")
+                        .with(jwt().jwt(j -> j
+                                .subject("manager@test.com")
+                                .claim("email", "manager@test.com")
+                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void deleteActivity_nonexistent_returns404() throws Exception {
         mockMvc.perform(delete("/admin/activities/" + UUID.randomUUID())
                         .with(jwt().jwt(j -> j

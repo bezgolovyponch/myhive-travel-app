@@ -66,6 +66,39 @@ class SecurityConfigIntegrationTest {
     }
 
     @Test
+    void managerRole_canAccessAdminActivities() throws Exception {
+        mockMvc.perform(get("/admin/activities")
+                        .with(jwt().jwt(j -> j
+                                .subject("manager@test.com")
+                                .claim("email", "manager@test.com")
+                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void managerRole_cannotAccessAdminBookings() throws Exception {
+        mockMvc.perform(get("/admin/bookings")
+                        .with(jwt().jwt(j -> j
+                                .subject("manager@test.com")
+                                .claim("email", "manager@test.com")
+                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerRole_canAccessAdminBlog() throws Exception {
+        mockMvc.perform(get("/admin/blog")
+                        .with(jwt().jwt(j -> j
+                                .subject("manager@test.com")
+                                .claim("email", "manager@test.com")
+                                .claim("https://trivlu.com/roles", List.of("MANAGER"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void bookingStatusPatch_withoutAuth_returnsUnauthorized() throws Exception {
         UUID fakeId = UUID.randomUUID();
 

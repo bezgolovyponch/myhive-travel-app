@@ -1,6 +1,7 @@
 package com.myhive.backend.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -61,7 +62,11 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // H2 console (dev only, disabled in prod)
                         .requestMatchers("/h2-console/**").permitAll()
-                        // Admin endpoints (JWT required + ADMIN role)
+                        // Admin endpoints — activities & blog: ADMIN or MANAGER
+                        .requestMatchers("/admin/activities/**").hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers("/admin/blog/**").hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers("/admin/upload").hasAnyRole("ADMIN", "MANAGER")
+                        // Admin endpoints — everything else: ADMIN only
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Everything else requires authentication
                         .anyRequest().authenticated()
@@ -84,6 +89,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "spring.security.oauth2.resourceserver.jwt.issuer-uri")
     public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder decoder = JwtDecoders.fromIssuerLocation(issuerUri);
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
