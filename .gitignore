@@ -39,3 +39,4 @@ out/
 ### Claude ###
 .claude/
 /.mcp.json
+/CLAUDE.md

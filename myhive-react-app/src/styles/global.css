@@ -219,6 +219,21 @@ a:hover {
     margin-bottom: var(--gap);
 }
 
+/* Bootstrap Modal override */
+.modal-content {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+}
+
+.modal-header {
+    border-bottom-color: var(--border);
+}
+
+.modal-footer {
+    border-top-color: var(--border);
+}
+
 /* Modal */
 .app-modal {
     position: fixed;
