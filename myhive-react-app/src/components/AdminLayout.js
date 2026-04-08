@@ -9,7 +9,6 @@ function AdminLayout() {
 
     const handleLogout = () => {
         logout();
-        navigate('/admin/login', {replace: true});
     };
 
     return (

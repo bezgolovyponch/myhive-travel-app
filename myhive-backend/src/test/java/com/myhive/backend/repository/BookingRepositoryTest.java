@@ -1,10 +1,12 @@
 package com.myhive.backend.repository;
 
+import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.model.BookingStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -13,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
+@Import(TestSecurityConfig.class)
 class BookingRepositoryTest {
 
     @Autowired

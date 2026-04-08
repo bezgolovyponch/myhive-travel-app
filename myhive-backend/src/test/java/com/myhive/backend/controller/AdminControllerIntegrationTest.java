@@ -1,24 +1,28 @@
 package com.myhive.backend.controller;
 
+import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
-import com.myhive.backend.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,13 +30,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@Import(TestSecurityConfig.class)
 class AdminControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private JwtUtil jwtUtil;
 
     @Autowired
     private DestinationRepository destinationRepository;
@@ -40,14 +42,11 @@ class AdminControllerIntegrationTest {
     @Autowired
     private ActivityRepository activityRepository;
 
-    private String adminToken;
     private UUID destinationId;
     private UUID activityId;
 
     @BeforeEach
     void setUp() {
-        adminToken = jwtUtil.generateToken("admin@test.com", "ADMIN");
-
         Destination dest = new Destination();
         dest.setName("Paris");
         dest.setCountry("France");
@@ -65,20 +64,28 @@ class AdminControllerIntegrationTest {
     @Test
     void getAllBookings_withAdminAuth_returns200() throws Exception {
         mockMvc.perform(get("/admin/bookings")
-                        .header("Authorization", "Bearer " + adminToken))
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void getAllBookings_withoutAuth_returnsForbidden() throws Exception {
+    void getAllBookings_withoutAuth_returnsUnauthorized() throws Exception {
         mockMvc.perform(get("/admin/bookings"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void getBookingStats_withAdminAuth_returnsStats() throws Exception {
         mockMvc.perform(get("/admin/bookings/stats")
-                        .header("Authorization", "Bearer " + adminToken))
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total", notNullValue()))
                 .andExpect(jsonPath("$.pending", notNullValue()))
@@ -98,7 +105,11 @@ class AdminControllerIntegrationTest {
                 """.formatted(destinationId);
 
         mockMvc.perform(post("/admin/activities")
-                        .header("Authorization", "Bearer " + adminToken)
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated())
@@ -115,7 +126,11 @@ class AdminControllerIntegrationTest {
                 """.formatted(destinationId);
 
         mockMvc.perform(post("/admin/activities")
-                        .header("Authorization", "Bearer " + adminToken)
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest());
@@ -132,7 +147,11 @@ class AdminControllerIntegrationTest {
                 """.formatted(destinationId);
 
         mockMvc.perform(put("/admin/activities/" + activityId)
-                        .header("Authorization", "Bearer " + adminToken)
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk())
@@ -142,7 +161,11 @@ class AdminControllerIntegrationTest {
     @Test
     void deleteActivity_withAdminAuth_returns204() throws Exception {
         mockMvc.perform(delete("/admin/activities/" + activityId)
-                        .header("Authorization", "Bearer " + adminToken))
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isNoContent());
     }
 
@@ -158,7 +181,11 @@ class AdminControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/admin/blog")
-                        .header("Authorization", "Bearer " + adminToken)
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated())
@@ -174,7 +201,11 @@ class AdminControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/admin/blog")
-                        .header("Authorization", "Bearer " + adminToken)
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest());
@@ -183,7 +214,11 @@ class AdminControllerIntegrationTest {
     @Test
     void deleteActivity_nonexistent_returns404() throws Exception {
         mockMvc.perform(delete("/admin/activities/" + UUID.randomUUID())
-                        .header("Authorization", "Bearer " + adminToken))
+                        .with(jwt().jwt(j -> j
+                                .subject("admin@test.com")
+                                .claim("email", "admin@test.com")
+                                .claim("https://trivlu.com/roles", List.of("ADMIN"))
+                        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isNotFound());
     }
 }

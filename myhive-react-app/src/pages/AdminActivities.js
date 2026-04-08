@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
-import adminApi from '../services/adminApi';
+import {useAdminApi} from '../hooks/useAdminApi';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 'react-bootstrap';
 
 const EMPTY_FORM = {
@@ -15,6 +15,7 @@ const EMPTY_FORM = {
 };
 
 function AdminActivities() {
+    const adminApi = useAdminApi();
     const {logout} = useAuth();
     const navigate = useNavigate();
     const [activities, setActivities] = useState([]);
@@ -54,7 +55,7 @@ function AdminActivities() {
         } finally {
             setLoading(false);
         }
-    }, [handleAuthError]);
+    }, [adminApi, handleAuthError]);
 
     useEffect(() => {
         fetchData();

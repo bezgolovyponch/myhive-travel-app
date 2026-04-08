@@ -36,6 +36,10 @@ out/
 ### VS Code ###
 .vscode/
 
+### Environment ###
+.env
+.env.local
+
 ### Claude ###
 .claude/
 /.mcp.json

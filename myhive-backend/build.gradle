@@ -36,11 +36,9 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.31.8')
     implementation 'software.amazon.awssdk:s3'
 
-    // JWT Authentication
+    // Security & OAuth2 Resource Server (Auth0 OIDC)
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
-    implementation 'io.jsonwebtoken:jjwt-impl:0.13.0'
-    implementation 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
     // H2 Database for testing
     runtimeOnly 'com.h2database:h2'

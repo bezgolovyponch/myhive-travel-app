@@ -12,28 +12,32 @@ import AdminActivities from './pages/AdminActivities';
 import AdminBlog from './pages/AdminBlog';
 import ProtectedRoute from './components/ProtectedRoute';
 
-function App() {
+function AdminRoutes() {
   return (
-    <Router>
-      <Routes>
-        {/* Admin routes — separate layout, own auth context */}
-        <Route path="/admin/login" element={
-          <AuthProvider>
-            <AdminLogin/>
-          </AuthProvider>
-        }/>
-        <Route path="/admin" element={
-          <AuthProvider>
-            <ProtectedRoute>
-              <AdminLayout/>
-            </ProtectedRoute>
-          </AuthProvider>
+      <AuthProvider>
+          <Routes>
+              <Route path="login" element={<AdminLogin/>}/>
+              <Route path="*" element={
+                  <ProtectedRoute>
+                      <AdminLayout/>
+                  </ProtectedRoute>
         }>
           <Route index element={<AdminDashboard/>}/>
           <Route path="bookings/:id" element={<AdminBookingDetail/>}/>
           <Route path="activities" element={<AdminActivities/>}/>
-            <Route path="blog" element={<AdminBlog/>}/>
+                  <Route path="blog" element={<AdminBlog/>}/>
         </Route>
+          </Routes>
+      </AuthProvider>
+  );
+}
+
+function App() {
+    return (
+        <Router>
+            <Routes>
+                {/* Admin routes — single AuthProvider instance */}
+                <Route path="/admin/*" element={<AdminRoutes/>}/>
 
         {/* Public routes — existing app */}
         <Route path="/*" element={

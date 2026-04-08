@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import adminApi from '../services/adminApi';
+import {useAdminApi} from '../hooks/useAdminApi';
 import {useAuth} from '../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import {Alert, Badge, Button, Card, Col, Form, Row, Spinner, Table} from 'react-bootstrap';
@@ -12,6 +12,7 @@ const STATUS_VARIANTS = {
 };
 
 function AdminDashboard() {
+    const adminApi = useAdminApi();
     const {logout} = useAuth();
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
@@ -34,14 +35,13 @@ function AdminDashboard() {
         } catch (err) {
             if (err.message === 'Unauthorized') {
                 logout();
-                navigate('/admin/login', {replace: true});
                 return;
             }
             setError(err.message || 'Failed to load data');
         } finally {
             setLoading(false);
         }
-    }, [logout, navigate]);
+    }, [adminApi, logout, navigate]);
 
     useEffect(() => {
         fetchData();

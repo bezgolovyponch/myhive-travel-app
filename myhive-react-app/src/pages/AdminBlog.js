@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
-import adminApi from '../services/adminApi';
+import {useAdminApi} from '../hooks/useAdminApi';
 import {Alert, Badge, Button, Card, Form, Modal, Spinner, Table} from 'react-bootstrap';
 
 const EMPTY_FORM = {
@@ -14,6 +14,7 @@ const EMPTY_FORM = {
 };
 
 function AdminBlog() {
+    const adminApi = useAdminApi();
     const {logout} = useAuth();
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]);
@@ -47,7 +48,7 @@ function AdminBlog() {
         } finally {
             setLoading(false);
         }
-    }, [handleAuthError]);
+    }, [adminApi, handleAuthError]);
 
     useEffect(() => {
         fetchData();

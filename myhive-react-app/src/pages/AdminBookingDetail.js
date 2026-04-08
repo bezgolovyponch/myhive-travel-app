@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
-import adminApi from '../services/adminApi';
+import {useAdminApi} from '../hooks/useAdminApi';
 import {Alert, Badge, Button, Card, Col, Row, Spinner, Table} from 'react-bootstrap';
 
 const STATUS_VARIANTS = {
@@ -12,6 +12,7 @@ const STATUS_VARIANTS = {
 };
 
 function AdminBookingDetail() {
+    const adminApi = useAdminApi();
     const {id} = useParams();
     const {logout} = useAuth();
     const navigate = useNavigate();
@@ -35,7 +36,7 @@ function AdminBookingDetail() {
         } finally {
             setLoading(false);
         }
-    }, [id, logout, navigate]);
+    }, [adminApi, id, logout, navigate]);
 
     useEffect(() => {
         fetchBooking();

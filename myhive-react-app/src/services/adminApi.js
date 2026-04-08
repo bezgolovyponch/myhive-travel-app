@@ -1,227 +1,173 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-const TOKEN_KEY = 'myhive-admin-token';
+export function createAdminApi(getAccessToken) {
+    async function authHeaders() {
+        const token = await getAccessToken();
+        return {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        };
+    }
 
-function getToken() {
-    return localStorage.getItem(TOKEN_KEY);
+    return {
+        async getBookings() {
+            const response = await fetch(`${API_BASE_URL}/admin/bookings`, {
+                headers: await authHeaders(),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to fetch bookings');
+            return response.json();
+        },
+
+        async getBookingById(id) {
+            const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}`, {
+                headers: await authHeaders(),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to fetch booking');
+            return response.json();
+        },
+
+        async getBookingStats() {
+            const response = await fetch(`${API_BASE_URL}/admin/bookings/stats`, {
+                headers: await authHeaders(),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to fetch booking stats');
+            return response.json();
+        },
+
+        async getActivities() {
+            const response = await fetch(`${API_BASE_URL}/admin/activities`, {
+                headers: await authHeaders(),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to fetch activities');
+            return response.json();
+        },
+
+        async createActivity(activity) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/activities`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(activity),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to create activity');
+            return response.json();
+        },
+
+        async updateActivity(id, activity) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/activities/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(activity),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to update activity');
+            return response.json();
+        },
+
+        async deleteActivity(id) {
+            const token = await getAccessToken();
+            const response = await fetch(`${API_BASE_URL}/admin/activities/${id}`, {
+                method: 'DELETE',
+                headers: {Authorization: `Bearer ${token}`},
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to delete activity');
+        },
+
+        async uploadImage(file) {
+            const token = await getAccessToken();
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch(`${API_BASE_URL}/admin/upload`, {
+                method: 'POST',
+                headers: {Authorization: `Bearer ${token}`},
+                body: formData,
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to upload image');
+            return response.json();
+        },
+
+        async getBlogPosts() {
+            const response = await fetch(`${API_BASE_URL}/admin/blog`, {
+                headers: await authHeaders(),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to fetch blog posts');
+            return response.json();
+        },
+
+        async createBlogPost(post) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/blog`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(post),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to create blog post');
+            return response.json();
+        },
+
+        async updateBlogPost(id, post) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/blog/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(post),
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to update blog post');
+            return response.json();
+        },
+
+        async deleteBlogPost(id) {
+            const token = await getAccessToken();
+            const response = await fetch(`${API_BASE_URL}/admin/blog/${id}`, {
+                method: 'DELETE',
+                headers: {Authorization: `Bearer ${token}`},
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) throw new Error('Failed to delete blog post');
+        },
+
+        async getDestinations() {
+            const token = await getAccessToken();
+            const response = await fetch(`${API_BASE_URL}/destinations`, {
+                headers: {Authorization: `Bearer ${token}`},
+            });
+            if (!response.ok) throw new Error('Failed to fetch destinations');
+            return response.json();
+        },
+    };
 }
-
-function setToken(token) {
-    localStorage.setItem(TOKEN_KEY, token);
-}
-
-function removeToken() {
-    localStorage.removeItem(TOKEN_KEY);
-}
-
-function authHeaders() {
-    const token = getToken();
-    return token ? {Authorization: `Bearer ${token}`} : {};
-}
-
-const adminApi = {
-    async login(email, password) {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({email, password}),
-        });
-        if (!response.ok) {
-            const status = response.status;
-            if (status === 401 || status === 403) throw new Error('Invalid credentials');
-            throw new Error('Login failed');
-        }
-        const data = await response.json();
-        setToken(data.token);
-        return data;
-    },
-
-    async validateToken() {
-        const token = getToken();
-        if (!token) return {valid: false};
-
-        const response = await fetch(`${API_BASE_URL}/auth/validate`, {
-            headers: {Authorization: `Bearer ${token}`},
-        });
-        if (!response.ok) {
-            removeToken();
-            return {valid: false};
-        }
-        return response.json();
-    },
-
-    async getBookings() {
-        const response = await fetch(`${API_BASE_URL}/admin/bookings`, {
-            headers: authHeaders(),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to fetch bookings');
-        return response.json();
-    },
-
-    async getBookingById(id) {
-        const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}`, {
-            headers: authHeaders(),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to fetch booking');
-        return response.json();
-    },
-
-    async getBookingStats() {
-        const response = await fetch(`${API_BASE_URL}/admin/bookings/stats`, {
-            headers: authHeaders(),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to fetch booking stats');
-        return response.json();
-    },
-
-    async getActivities() {
-        const response = await fetch(`${API_BASE_URL}/admin/activities`, {
-            headers: authHeaders(),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to fetch activities');
-        return response.json();
-    },
-
-    async createActivity(activity) {
-        const response = await fetch(`${API_BASE_URL}/admin/activities`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', ...authHeaders()},
-            body: JSON.stringify(activity),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to create activity');
-        return response.json();
-    },
-
-    async updateActivity(id, activity) {
-        const response = await fetch(`${API_BASE_URL}/admin/activities/${id}`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json', ...authHeaders()},
-            body: JSON.stringify(activity),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to update activity');
-        return response.json();
-    },
-
-    async deleteActivity(id) {
-        const response = await fetch(`${API_BASE_URL}/admin/activities/${id}`, {
-            method: 'DELETE',
-            headers: authHeaders(),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to delete activity');
-    },
-
-    async uploadImage(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        const response = await fetch(`${API_BASE_URL}/admin/upload`, {
-            method: 'POST',
-            headers: authHeaders(),
-            body: formData,
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to upload image');
-        return response.json();
-    },
-
-    async getBlogPosts() {
-        const response = await fetch(`${API_BASE_URL}/admin/blog`, {
-            headers: authHeaders(),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to fetch blog posts');
-        return response.json();
-    },
-
-    async createBlogPost(post) {
-        const response = await fetch(`${API_BASE_URL}/admin/blog`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', ...authHeaders()},
-            body: JSON.stringify(post),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to create blog post');
-        return response.json();
-    },
-
-    async updateBlogPost(id, post) {
-        const response = await fetch(`${API_BASE_URL}/admin/blog/${id}`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json', ...authHeaders()},
-            body: JSON.stringify(post),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to update blog post');
-        return response.json();
-    },
-
-    async deleteBlogPost(id) {
-        const response = await fetch(`${API_BASE_URL}/admin/blog/${id}`, {
-            method: 'DELETE',
-            headers: authHeaders(),
-        });
-        if (response.status === 401 || response.status === 403) {
-            removeToken();
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) throw new Error('Failed to delete blog post');
-    },
-
-    async getDestinations() {
-        const response = await fetch(`${API_BASE_URL}/destinations`, {
-            headers: authHeaders(),
-        });
-        if (!response.ok) throw new Error('Failed to fetch destinations');
-        return response.json();
-    },
-
-    logout() {
-        removeToken();
-    },
-
-    getToken,
-    isAuthenticated() {
-        return !!getToken();
-    },
-};
-
-export default adminApi;

@@ -1,7 +1,20 @@
-import {createContext, useCallback, useContext, useEffect, useState} from 'react';
-import adminApi from '../services/adminApi';
+import {createContext, useContext, useMemo} from 'react';
+import {AuthProvider as OidcAuthProvider, useAuth as useOidcAuth} from 'react-oidc-context';
 
 const AuthContext = createContext();
+
+const oidcConfig = {
+    authority: process.env.REACT_APP_OIDC_AUTHORITY,
+    client_id: process.env.REACT_APP_OIDC_CLIENT_ID,
+    redirect_uri: process.env.REACT_APP_OIDC_REDIRECT_URI || window.location.origin + '/admin',
+    scope: 'openid profile email',
+    extraQueryParams: {
+        audience: process.env.REACT_APP_OIDC_AUDIENCE,
+    },
+    onSigninCallback: () => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    },
+};
 
 export function useAuth() {
     const context = useContext(AuthContext);
@@ -9,55 +22,32 @@ export function useAuth() {
     return context;
 }
 
-export function AuthProvider({children}) {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+function AuthContextBridge({children}) {
+    const auth = useOidcAuth();
 
-    const validateSession = useCallback(async () => {
-        if (!adminApi.isAuthenticated()) {
-            setUser(null);
-            setLoading(false);
-            return;
-        }
-        try {
-            const result = await adminApi.validateToken();
-            if (result.valid) {
-                setUser({email: result.email, role: result.role});
-            } else {
-                adminApi.logout();
-                setUser(null);
-            }
-        } catch {
-            adminApi.logout();
-            setUser(null);
-        }
-        setLoading(false);
-    }, []);
+    const value = useMemo(() => {
+        const idTokenClaims = auth.user?.profile;
+        const roles = idTokenClaims?.['https://trivlu.com/roles'] || [];
+        const email = idTokenClaims?.email;
+        const isProcessingCallback = !!auth.activeNavigator;
 
-    useEffect(() => {
-        validateSession();
-    }, [validateSession]);
-
-    const login = async (email, password) => {
-        await adminApi.login(email, password);
-        const result = await adminApi.validateToken();
-        if (result.valid) {
-            setUser({email: result.email, role: result.role});
-        }
-    };
-
-    const logout = () => {
-        adminApi.logout();
-        setUser(null);
-    };
-
-    const value = {
-        user,
-        isAuthenticated: !!user,
-        loading,
-        login,
-        logout,
-    };
+        return {
+            user: auth.isAuthenticated ? {email, roles, role: roles[0] || null} : null,
+            isAuthenticated: auth.isAuthenticated,
+            loading: auth.isLoading || isProcessingCallback,
+            login: () => auth.signinRedirect(),
+            logout: () => auth.signoutRedirect({post_logout_redirect_uri: window.location.origin}),
+            getAccessToken: async () => auth.user?.access_token,
+        };
+    }, [auth]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthProvider({children}) {
+    return (
+        <OidcAuthProvider {...oidcConfig}>
+            <AuthContextBridge>{children}</AuthContextBridge>
+        </OidcAuthProvider>
+    );
 }

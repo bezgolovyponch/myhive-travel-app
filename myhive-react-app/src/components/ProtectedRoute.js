@@ -2,8 +2,8 @@ import {Navigate} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
 import {Spinner} from 'react-bootstrap';
 
-function ProtectedRoute({children}) {
-    const {isAuthenticated, loading} = useAuth();
+function ProtectedRoute({children, requiredRole}) {
+    const {isAuthenticated, loading, user} = useAuth();
 
     if (loading) {
         return (
@@ -14,6 +14,10 @@ function ProtectedRoute({children}) {
     }
 
     if (!isAuthenticated) {
+        return <Navigate to="/admin/login" replace/>;
+    }
+
+    if (requiredRole && user?.roles && !user.roles.includes(requiredRole)) {
         return <Navigate to="/admin/login" replace/>;
     }
 
