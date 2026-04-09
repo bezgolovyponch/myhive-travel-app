@@ -9,22 +9,21 @@ function DestinationCard({ destination }) {
 
   // Map backend data to frontend format
   const imageUrl = destination.imageUrl || `https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop`;
-  const isClickable = destination.id === 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22'; // Tenerife UUID
+  const hasActivities = destination.activityCount > 0;
   const badge = destination.rating >= 4.7 ? 'Popular' : 'Hot Deal';
 
   const handleClick = () => {
-    if (isClickable) {
+    if (hasActivities) {
       dispatch({ type: 'NAVIGATE', path: `/destination/${destination.id}` });
       navigate(`/destination/${destination.id}`);
     } else {
-      // Show coming soon modal instead of alert
       dispatch({type: 'OPEN_DESTINATION_MODAL', destination});
     }
   };
 
   return (
     <div
-        className={`card destination-card ${isClickable ? '' : 'disabled'}`}
+        className={`card destination-card ${hasActivities ? '' : 'disabled'}`}
       onClick={handleClick}
     >
       <img 

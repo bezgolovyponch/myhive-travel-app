@@ -39,6 +39,7 @@ public class DestinationService {
         dto.setCity(destination.getCity());
         dto.setImageUrl(destination.getImageUrl());
         dto.setRating(destination.getRating());
+        dto.setActivityCount(destination.getActivities() != null ? destination.getActivities().size() : 0);
         return dto;
     }
 }
