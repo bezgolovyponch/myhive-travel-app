@@ -13,7 +13,7 @@ import java.util.List;
 @Configuration
 public class WebConfig {
 
-    @Value("${CORS_ALLOWED_ORIGINS:https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000}")
+    @Value("${CORS_ALLOWED_ORIGINS:https://trivlu.com,https://www.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000}")
     private String[] allowedOrigins;
 
     @Bean
