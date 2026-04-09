@@ -23,7 +23,7 @@ function AdminLogin() {
                 <Card className="shadow-sm border-0">
                     <Card.Body className="p-4">
                         <div className="text-center mb-4">
-                            <h3 className="fw-bold mb-1">MyHive Admin</h3>
+                            <h3 className="fw-bold mb-1">Trivlu Admin</h3>
                             <p className="text-muted small mb-0">Sign in to manage bookings</p>
                         </div>
                         <Button

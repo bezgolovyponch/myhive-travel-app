@@ -6,7 +6,7 @@ function Footer() {
         <footer className="site-footer">
             <div className="footer-content">
                 <div className="footer-brand">
-                    <Link to="/" className="footer-logo">MyHive</Link>
+                    <Link to="/" className="footer-logo">Trivlu</Link>
                     <p className="footer-tagline">Turn group travel chaos into epic adventures with zero stress.</p>
                 </div>
 
@@ -27,7 +27,7 @@ function Footer() {
             </div>
 
             <div className="footer-bottom">
-                <p>&copy; {new Date().getFullYear()} MyHive. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Trivlu. All rights reserved.</p>
             </div>
         </footer>
     );

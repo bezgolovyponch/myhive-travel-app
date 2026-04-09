@@ -42,7 +42,7 @@ function Header() {
   return (
     <header className="header">
       <div className="header-content">
-        <Link to="/" className="logo">MyHive</Link>
+        <Link to="/" className="logo">Trivlu</Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a href="/" onClick={(e) => {
             handleDestinationsClick(e);

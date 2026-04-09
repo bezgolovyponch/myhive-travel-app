@@ -94,7 +94,7 @@ New York City rounds out our list with its endless entertainment options. Broadw
 Start by establishing a shared budget early. Money is the number one source of group travel conflict. Use a shared document or app where everyone can input their comfort level, then plan activities that fit within the group''s range.
 Designate a trip leader, but distribute responsibilities. One person shouldn''t carry the weight of all decisions. Assign roles: someone handles accommodation research, another looks into activities, and another manages transportation.
 Build in free time. Not every minute needs to be scheduled. Some of the best group travel moments happen spontaneously. Plan key activities together but leave gaps for people to explore on their own or in smaller groups.
-Use technology to your advantage. Tools like MyHive''s Trip Builder let everyone browse and vote on activities, making group decision-making democratic and fun rather than chaotic.
+Use technology to your advantage. Tools like Trivlu''s Trip Builder let everyone browse and vote on activities, making group decision-making democratic and fun rather than chaotic.
 Finally, set expectations early about communication. Create a single group chat, agree on response times for decisions, and establish a deadline for final commitments. Clear communication prevents last-minute surprises.',
         'Tips',
         'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?w=1200&h=500&fit=crop',
@@ -108,7 +108,7 @@ Traditional group travel planning involved endless back-and-forth messages, spre
 Smart recommendation engines can now understand that while half the group wants adventure and the other half wants relaxation, a destination like Bali offers both. These algorithms consider budget constraints, travel dates, and even dietary preferences to create personalized group experiences.
 Real-time pricing optimization is another game-changer. AI monitors flight and accommodation prices across hundreds of platforms, alerting groups to the best time to book and finding deals that fit everyone''s budget.
 Language barriers are dissolving too. AI-powered translation tools mean groups can confidently explore destinations where they don''t speak the local language, opening up a world of off-the-beaten-path experiences.
-At MyHive, we''re building the future of multi-traveler experiences. Our AI-powered trip builder doesn''t just find activities — it creates cohesive itineraries that bring groups closer together while respecting individual preferences.',
+At Trivlu, we''re building the future of multi-traveler experiences. Our AI-powered trip builder doesn''t just find activities — it creates cohesive itineraries that bring groups closer together while respecting individual preferences.',
         'Technology',
         'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=500&fit=crop',
         '2026-02-28', CURRENT_TIMESTAMP),
@@ -134,7 +134,7 @@ Post-pandemic, people are craving connection more than ever. The rise of remote 
 Multi-traveler experiences go beyond traditional group tours. They''re customizable, flexible adventures where the group shapes the itinerary rather than following a rigid schedule. Think shared villa stays with curated activity menus, not bus tours with numbered stickers.
 The economics make sense too. Sharing accommodation, transportation, and group activity rates means everyone gets a better experience for less money. A luxury villa split eight ways often costs less than a mid-range hotel room.
 Social media is evolving to reflect this shift. Shared photo albums, group travel accounts, and collaborative content creation are becoming the new norm. The best travel stories aren''t solo anymore — they''re collective.
-This is exactly why we built MyHive. The tools for solo travel planning are everywhere, but platforms designed specifically for group coordination were virtually nonexistent. We''re changing that.',
+This is exactly why we built Trivlu. The tools for solo travel planning are everywhere, but platforms designed specifically for group coordination were virtually nonexistent. We''re changing that.',
         'Trends',
         'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=1200&h=500&fit=crop',
         '2026-02-12', CURRENT_TIMESTAMP),

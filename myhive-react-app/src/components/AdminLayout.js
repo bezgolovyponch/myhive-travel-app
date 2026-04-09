@@ -11,7 +11,7 @@ function AdminLayout() {
                     data-bs-theme="dark">
                 <Container>
                     <Navbar.Brand as={NavLink} to="/admin" className="fw-bold text-primary">
-                        MyHive Admin
+                        Trivlu Admin
                     </Navbar.Brand>
                     <Nav className="me-auto">
                         {user?.roles?.includes('ADMIN') && (

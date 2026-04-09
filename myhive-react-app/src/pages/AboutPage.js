@@ -4,20 +4,20 @@ function AboutPage() {
     return (
         <div className="about-page">
             <section className="page-hero">
-                <h1>About MyHive</h1>
+                <h1>About Trivlu</h1>
                 <p>Making group travel effortless, one adventure at a time.</p>
             </section>
 
             <section className="about-section">
                 <h2>Our Mission</h2>
                 <p>
-                    MyHive was born from a simple frustration: planning group trips shouldn't be harder
+                    Trivlu was born from a simple frustration: planning group trips shouldn't be harder
                     than the trip itself. We believe that bringing people together for shared adventures
                     should be seamless, exciting, and stress-free.
                 </p>
                 <p>
                     Our AI-powered platform takes the chaos out of coordinating multi-traveler
-                    experiences. From selecting destinations to building custom itineraries, MyHive
+                    experiences. From selecting destinations to building custom itineraries, Trivlu
                     handles the logistics so you can focus on making memories.
                 </p>
             </section>
@@ -50,7 +50,7 @@ function AboutPage() {
                 </p>
                 <p>
                     That experience sparked an idea: what if there was a platform that made planning
-                    group adventures as fun as the adventures themselves? MyHive is the answer — the
+                    group adventures as fun as the adventures themselves? Trivlu is the answer — the
                     first AI-powered trip maker built specifically for multi-traveler experiences.
                 </p>
             </section>

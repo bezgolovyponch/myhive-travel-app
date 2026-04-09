@@ -18,7 +18,7 @@ public class HomeController {
     @GetMapping("/")
     public Map<String, Object> home() {
         Map<String, Object> response = new HashMap<>();
-        response.put("service", "MyHive Travel Backend API");
+        response.put("service", "Trivlu Travel Backend API");
         response.put("status", "running");
         response.put("version", "1.0.0");
         response.put("endpoints", Map.of(
