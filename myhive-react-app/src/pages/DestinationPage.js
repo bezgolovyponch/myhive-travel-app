@@ -14,6 +14,7 @@ function DestinationPage() {
   const navigate = useNavigate();
   const [currentFilter, setCurrentFilter] = useState('all');
   const [destination, setDestination] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +26,7 @@ function DestinationPage() {
           api.getActivities(id)
         ]);
         setDestination(destData);
-        dispatch({ type: 'SET_ACTIVITIES', activities });
+        setActivities(activities);
       } catch (error) {
         console.error('Error fetching destination data:', error);
       } finally {
@@ -50,10 +51,10 @@ function DestinationPage() {
     params.set('tab', tabName);
     navigate({pathname: location.pathname, search: params.toString()});
   };
-  
-  const filteredActivities = currentFilter === 'all' 
-    ? state.activities 
-    : state.activities.filter(a => a.category === currentFilter);
+
+  const filteredActivities = currentFilter === 'all'
+      ? activities
+      : activities.filter(a => a.category === currentFilter);
 
   if (loading) {
     return (
