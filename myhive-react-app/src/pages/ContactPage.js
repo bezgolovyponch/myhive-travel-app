@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {api} from '../services/api';
 import './ContactPage.css';
 
@@ -13,6 +13,33 @@ function ContactPage() {
     const [submitted, setSubmitted] = useState(false);
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState('');
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const turnstileRef = useRef(null);
+    const widgetIdRef = useRef(null);
+
+    const renderTurnstile = useCallback(() => {
+        if (window.turnstile && turnstileRef.current && widgetIdRef.current === null) {
+            widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+                sitekey: process.env.REACT_APP_TURNSTILE_SITE_KEY,
+                callback: (token) => setTurnstileToken(token),
+                'expired-callback': () => setTurnstileToken(''),
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (window.turnstile) {
+            renderTurnstile();
+        } else {
+            const interval = setInterval(() => {
+                if (window.turnstile) {
+                    clearInterval(interval);
+                    renderTurnstile();
+                }
+            }, 100);
+            return () => clearInterval(interval);
+        }
+    }, [renderTurnstile]);
 
     const validateForm = () => {
         const newErrors = {};
@@ -24,6 +51,7 @@ function ContactPage() {
         }
         if (!formData.subject.trim()) newErrors.subject = 'Subject is required';
         if (!formData.message.trim()) newErrors.message = 'Message is required';
+        if (!turnstileToken) newErrors.turnstile = 'Please complete the verification';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -42,8 +70,12 @@ function ContactPage() {
             setSending(true);
             setSendError('');
             try {
-                await api.submitContactForm(formData);
+                await api.submitContactForm({...formData, turnstileToken});
                 setSubmitted(true);
+                if (window.turnstile && widgetIdRef.current !== null) {
+                    window.turnstile.reset(widgetIdRef.current);
+                }
+                setTurnstileToken('');
             } catch {
                 setSendError('Failed to send message. Please try again or email us directly.');
             } finally {
@@ -96,6 +128,10 @@ function ContactPage() {
                             <button className="btn btn--primary" onClick={() => {
                                 setSubmitted(false);
                                 setFormData({name: '', email: '', subject: '', message: ''});
+                                setTurnstileToken('');
+                                if (window.turnstile && widgetIdRef.current !== null) {
+                                    window.turnstile.reset(widgetIdRef.current);
+                                }
                             }}>
                                 Send Another Message
                             </button>
@@ -152,6 +188,11 @@ function ContactPage() {
                                     placeholder="Tell us how we can help..."
                                 />
                                 {errors.message && <span className="error-message">{errors.message}</span>}
+                            </div>
+
+                            <div className="form-group">
+                                <div ref={turnstileRef}></div>
+                                {errors.turnstile && <span className="error-message">{errors.turnstile}</span>}
                             </div>
 
                             {sendError && <div className="contact-error">{sendError}</div>}

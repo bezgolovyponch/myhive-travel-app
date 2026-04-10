@@ -3,6 +3,7 @@ package com.myhive.backend.controller;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.service.EmailService;
+import com.myhive.backend.service.TurnstileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -23,15 +25,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import({TestSecurityConfig.class, ContactControllerTest.MockEmailConfig.class})
+@Import({TestSecurityConfig.class, ContactControllerTest.MockConfig.class})
 class ContactControllerTest {
 
     @TestConfiguration
-    static class MockEmailConfig {
+    static class MockConfig {
         @Bean
         @Primary
         public EmailService emailService() {
             return mock(EmailService.class);
+        }
+
+        @Bean
+        @Primary
+        public TurnstileService turnstileService() {
+            TurnstileService mock = mock(TurnstileService.class);
+            when(mock.verifyToken(anyString())).thenReturn(true);
+            return mock;
         }
     }
 
@@ -41,9 +51,14 @@ class ContactControllerTest {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private TurnstileService turnstileService;
+
     @BeforeEach
     void setUp() {
         reset(emailService);
+        reset(turnstileService);
+        when(turnstileService.verifyToken(anyString())).thenReturn(true);
     }
 
     @Test
@@ -55,13 +70,53 @@ class ContactControllerTest {
                                     "name": "John Doe",
                                     "email": "john@example.com",
                                     "subject": "Group Trip Inquiry",
-                                    "message": "I'd like to plan a trip for 10 people."
+                                    "message": "I'd like to plan a trip for 10 people.",
+                                    "turnstileToken": "test-token"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Message sent successfully"));
 
+        verify(turnstileService).verifyToken("test-token");
         verify(emailService, times(1)).sendContactNotification(any(ContactRequest.class));
+    }
+
+    @Test
+    void submitContactForm_invalidCaptcha_returns400() throws Exception {
+        when(turnstileService.verifyToken(anyString())).thenReturn(false);
+
+        mockMvc.perform(post("/contact")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "name": "John Doe",
+                                    "email": "john@example.com",
+                                    "subject": "Support",
+                                    "message": "Help me",
+                                    "turnstileToken": "bad-token"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Captcha verification failed"));
+
+        verify(emailService, never()).sendContactNotification(any());
+    }
+
+    @Test
+    void submitContactForm_missingToken_returns400() throws Exception {
+        mockMvc.perform(post("/contact")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "name": "John",
+                                    "email": "john@example.com",
+                                    "subject": "Support",
+                                    "message": "Help me"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(emailService, never()).sendContactNotification(any());
     }
 
     @Test
@@ -73,7 +128,8 @@ class ContactControllerTest {
                                     "name": "",
                                     "email": "john@example.com",
                                     "subject": "Support",
-                                    "message": "Help me"
+                                    "message": "Help me",
+                                    "turnstileToken": "test-token"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -90,7 +146,8 @@ class ContactControllerTest {
                                     "name": "John",
                                     "email": "not-an-email",
                                     "subject": "Support",
-                                    "message": "Help me"
+                                    "message": "Help me",
+                                    "turnstileToken": "test-token"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -107,7 +164,8 @@ class ContactControllerTest {
                                     "name": "John",
                                     "email": "john@example.com",
                                     "subject": "Support",
-                                    "message": ""
+                                    "message": "",
+                                    "turnstileToken": "test-token"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -127,7 +185,8 @@ class ContactControllerTest {
                                     "name": "John",
                                     "email": "john@example.com",
                                     "subject": "Support",
-                                    "message": "Help me"
+                                    "message": "Help me",
+                                    "turnstileToken": "test-token"
                                 }
                                 """))
                 .andExpect(status().isInternalServerError());

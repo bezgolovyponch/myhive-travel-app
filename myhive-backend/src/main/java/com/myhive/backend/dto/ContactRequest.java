@@ -23,4 +23,7 @@ public class ContactRequest {
     @NotBlank(message = "Message is required")
     @Size(max = 5000)
     private String message;
+
+    @NotBlank(message = "Captcha verification is required")
+    private String turnstileToken;
 }
