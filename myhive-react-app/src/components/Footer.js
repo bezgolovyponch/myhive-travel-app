@@ -15,7 +15,7 @@ function Footer() {
                         <span className="footer-nav-title">Explore</span>
                         <a href="#destinations">Destinations</a>
                         <Link to="/about">About</Link>
-                        <a href="#contact">Contact</a>
+                        <Link to="/contact">Contact</Link>
                     </nav>
                     <nav className="footer-nav">
                         <span className="footer-nav-title">Connect</span>

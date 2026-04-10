@@ -50,6 +50,7 @@ function Header() {
           }}>Destinations</a>
             <Link to="/about" onClick={() => setMobileNavOpen(false)}>About</Link>
             <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
+            <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
         </nav>
           <div className="trip-builder-wrapper">
               <button className="trip-builder-btn" onClick={handleTripBuilderClick}>

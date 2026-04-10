@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.exception.EmailSendException;
 import jakarta.mail.internet.MimeMessage;
@@ -24,6 +25,9 @@ public class EmailService {
 
     @Value("${app.email.from}")
     private String fromEmail;
+
+    @Value("${app.email.contact-to}")
+    private String contactToEmail;
 
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData) {
         log.info("Preparing itinerary confirmation email: from={}, to={}, customer={}", fromEmail, toEmail, customerName);
@@ -51,6 +55,35 @@ public class EmailService {
         } catch (Exception e) {
             log.error("Failed to send itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
             throw new EmailSendException("Failed to send confirmation email", e);
+        }
+    }
+
+    public void sendContactNotification(ContactRequest request) {
+        log.info("Sending contact form notification: from={}, subject={}", request.getEmail(), request.getSubject());
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(contactToEmail);
+            helper.setReplyTo(request.getEmail());
+            helper.setSubject("Contact Form: " + request.getSubject());
+
+            Context context = new Context();
+            context.setVariable("name", request.getName());
+            context.setVariable("email", request.getEmail());
+            context.setVariable("subject", request.getSubject());
+            context.setVariable("message", request.getMessage());
+
+            String htmlContent = templateEngine.process("contact-notification", context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("Contact form notification sent successfully to: {}", contactToEmail);
+
+        } catch (Exception e) {
+            log.error("Failed to send contact notification. Cause: {}", e.getMessage(), e);
+            throw new EmailSendException("Failed to send contact notification", e);
         }
     }
 }

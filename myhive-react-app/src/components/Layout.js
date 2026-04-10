@@ -9,6 +9,7 @@ import ActivityDetailPage from '../pages/ActivityDetailPage';
 import AboutPage from '../pages/AboutPage';
 import BlogPage from '../pages/BlogPage';
 import BlogPostPage from '../pages/BlogPostPage';
+import ContactPage from '../pages/ContactPage';
 import {AppContext} from '../context/AppContext';
 
 function Layout() {
@@ -25,6 +26,7 @@ function Layout() {
             <Route path="/about" element={<AboutPage/>}/>
             <Route path="/blog" element={<BlogPage/>}/>
             <Route path="/blog/:id" element={<BlogPostPage/>}/>
+            <Route path="/contact" element={<ContactPage/>}/>
         </Routes>
       </main>
         <Footer/>

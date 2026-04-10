@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New Contact Form Message</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .field {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+
+        .field-label {
+            font-weight: bold;
+            color: #555;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .message-body {
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>New Contact Form Message</h1>
+        <p>A visitor has submitted the contact form on Trivlu</p>
+    </div>
+    <div class="content">
+        <div class="field">
+            <div class="field-label">From</div>
+            <div><span th:text="${name}">John Doe</span> (<span th:text="${email}">john@example.com</span>)</div>
+        </div>
+
+        <div class="field">
+            <div class="field-label">Subject</div>
+            <div th:text="${subject}">General Inquiry</div>
+        </div>
+
+        <div class="field">
+            <div class="field-label">Message</div>
+            <div class="message-body" th:text="${message}">Message content here...</div>
+        </div>
+    </div>
+    <div class="footer">
+        <p>You can reply directly to this email to respond to the customer.</p>
+    </div>
+</div>
+</body>
+</html>

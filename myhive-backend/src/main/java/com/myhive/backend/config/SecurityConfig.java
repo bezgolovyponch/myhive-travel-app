@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/blog/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/bookings/*/status").hasRole("ADMIN")
                         .requestMatchers("/bookings/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/contact").permitAll()
                         // Health & info
                         .requestMatchers("/", "/health/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()

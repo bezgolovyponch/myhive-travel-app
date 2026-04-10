@@ -97,6 +97,19 @@ export const api = {
         return response.json();
     },
 
+    // Contact
+    async submitContactForm(contactData) {
+        const response = await fetch(`${API_BASE_URL}/contact`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(contactData),
+        });
+        if (!response.ok) throw new Error('Failed to send message');
+        return response.json();
+    },
+
   // Trip booking
   async createBookingFromTrip(tripData) {
     const response = await fetch(`${API_BASE_URL}/bookings/trip`, {
