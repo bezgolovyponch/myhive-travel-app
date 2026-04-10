@@ -29,6 +29,18 @@ export const api = {
     return response.json();
   },
 
+    async getActivitiesPaged(destinationId, {page = 0, size = 12, category = null} = {}) {
+        const params = new URLSearchParams();
+        params.append('destinationId', destinationId);
+        params.append('page', page);
+        params.append('size', size);
+        if (category) params.append('category', category);
+
+        const response = await fetch(`${API_BASE_URL}/activities/paged?${params.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch activities');
+        return response.json();
+    },
+
   async getActivity(id) {
     const response = await fetch(`${API_BASE_URL}/activities/${id}`);
     if (!response.ok) throw new Error('Failed to fetch activity');

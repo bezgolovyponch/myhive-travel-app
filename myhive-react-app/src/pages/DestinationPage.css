@@ -112,6 +112,33 @@
     gap: var(--gap-lg);
 }
 
+/* Load More */
+.load-more-container {
+    display: flex;
+    justify-content: center;
+}
+
+.load-more-btn {
+    background: var(--brand);
+    color: var(--white);
+    border: none;
+    padding: var(--gap) var(--gap-3xl);
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms;
+}
+
+.load-more-btn:hover {
+    background: var(--brand-dark);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Packages Grid */
 .packages-grid {
     display: grid;

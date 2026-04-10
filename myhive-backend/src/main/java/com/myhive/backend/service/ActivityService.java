@@ -7,6 +7,8 @@ import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +51,16 @@ public class ActivityService {
         return activityRepository.findByDestinationIdAndCategory(destinationId, category).stream()
                 .map(this::convertToDTO)
                 .toList();
+    }
+
+    public Page<ActivityDTO> getActivitiesByDestinationPaged(UUID destinationId, Pageable pageable) {
+        return activityRepository.findByDestinationId(destinationId, pageable)
+                .map(this::convertToDTO);
+    }
+
+    public Page<ActivityDTO> getActivitiesByDestinationAndCategoryPaged(UUID destinationId, String category, Pageable pageable) {
+        return activityRepository.findByDestinationIdAndCategory(destinationId, category, pageable)
+                .map(this::convertToDTO);
     }
 
     @Transactional
