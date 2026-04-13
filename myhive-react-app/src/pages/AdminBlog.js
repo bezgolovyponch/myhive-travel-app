@@ -1,11 +1,9 @@
-import {useCallback, useEffect, useState} from 'react';
-import {useAdminApi} from '../hooks/useAdminApi';
-import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
-import {Alert, Badge, Button, Card, Form, Modal, Spinner, Table} from 'react-bootstrap';
+import {Alert, Badge, Button, Card, Form, Modal, Spinner} from 'react-bootstrap';
 import {truncateText} from '../utils/format';
+import {useAdminCrud} from '../hooks/useAdminCrud';
+import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
-import Pagination from '../components/Pagination';
 
 const EMPTY_FORM = {
     title: '',
@@ -16,93 +14,37 @@ const EMPTY_FORM = {
     date: '',
 };
 
+const COLUMNS = [
+    {key: 'title', label: 'Title'},
+    {key: 'category', label: 'Category'},
+    {key: 'date', label: 'Date'},
+];
+
 function AdminBlog() {
-    const adminApi = useAdminApi();
-    const handleAuthError = useAuthErrorHandler();
-    const [posts, setPosts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState(EMPTY_FORM);
-    const [saving, setSaving] = useState(false);
-    const [deleteId, setDeleteId] = useState(null);
-    const [uploading, setUploading] = useState(false);
-    const [page, setPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
-
-    const fetchData = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError('');
-            const data = await adminApi.getBlogPostsPaged(page, 10);
-            setPosts(data.content);
-            setTotalPages(data.totalPages);
-            setTotalElements(data.totalElements);
-        } catch (err) {
-            if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to load blog posts');
-        } finally {
-            setLoading(false);
-        }
-    }, [adminApi, handleAuthError, page]);
-
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    const openCreate = () => {
-        setEditing(null);
-        setForm({...EMPTY_FORM, date: new Date().toISOString().split('T')[0]});
-        setShowModal(true);
-    };
-
-    const openEdit = (post) => {
-        setEditing(post);
-        setForm({
+    const {
+        items: posts, loading, error, setError, page, setPage,
+        totalPages, totalElements, showModal, setShowModal, editing,
+        form, setForm, saving, uploading, setUploading, deleteId, setDeleteId,
+        fetchData, openCreate: baseOpenCreate, openEdit, handleSave, handleDelete, adminApi,
+    } = useAdminCrud({
+        emptyForm: EMPTY_FORM,
+        fetchFn: (api, page, size) => api.getBlogPostsPaged(page, size),
+        createFn: (api, payload) => api.createBlogPost(payload),
+        updateFn: (api, id, payload) => api.updateBlogPost(id, payload),
+        deleteFn: (api, id) => api.deleteBlogPost(id),
+        mapItemToForm: (post) => ({
             title: post.title || '',
             excerpt: post.excerpt || '',
             content: post.content || '',
             category: post.category || '',
             imageUrl: post.imageUrl || '',
             date: post.date || new Date().toISOString().split('T')[0],
-        });
-        setShowModal(true);
-    };
+        }),
+    });
 
-    const handleSave = async () => {
-        try {
-            setSaving(true);
-            setError('');
-            if (editing) {
-                await adminApi.updateBlogPost(editing.id, form);
-            } else {
-                await adminApi.createBlogPost(form);
-            }
-            setShowModal(false);
-            await fetchData();
-        } catch (err) {
-            if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to save blog post');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        try {
-            setSaving(true);
-            setError('');
-            await adminApi.deleteBlogPost(deleteId);
-            setDeleteId(null);
-            await fetchData();
-        } catch (err) {
-            if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to delete blog post');
-        } finally {
-            setSaving(false);
-        }
+    const openCreate = () => {
+        baseOpenCreate();
+        setForm(prev => ({...prev, date: new Date().toISOString().split('T')[0]}));
     };
 
     if (loading) {
@@ -134,59 +76,47 @@ function AdminBlog() {
                     </h6>
                 </Card.Header>
                 <Card.Body className="p-0">
-                    {posts.length === 0 ? (
-                        <p className="text-muted text-center py-5">No blog posts yet.</p>
-                    ) : (
-                        <>
-                        <Table responsive hover className="mb-0 align-middle">
-                            <thead>
-                            <tr>
-                                <th className="small text-muted text-uppercase">Title</th>
-                                <th className="small text-muted text-uppercase">Category</th>
-                                <th className="small text-muted text-uppercase">Date</th>
-                                <th className="small text-muted text-uppercase text-end">Actions</th>
+                    <AdminTable
+                        columns={COLUMNS}
+                        items={posts}
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        emptyMessage="No blog posts yet."
+                        renderRow={(post) => (
+                            <tr key={post.id}>
+                                <td>
+                                    <div className="small fw-semibold">{post.title}</div>
+                                    {post.excerpt && (
+                                        <div className="text-muted" style={{fontSize: '0.75rem'}}>
+                                            {truncateText(post.excerpt, 80)}
+                                        </div>
+                                    )}
+                                </td>
+                                <td>
+                                    {post.category ? (
+                                        <Badge bg="light" text="dark" className="border">
+                                            {post.category}
+                                        </Badge>
+                                    ) : '—'}
+                                </td>
+                                <td className="small">{post.date || '—'}</td>
+                                <td className="text-end">
+                                    <Button variant="outline-primary" size="sm" className="me-1"
+                                            onClick={() => openEdit(post)}>
+                                        Edit
+                                    </Button>
+                                    <Button variant="outline-danger" size="sm"
+                                            onClick={() => setDeleteId(post.id)}>
+                                        Delete
+                                    </Button>
+                                </td>
                             </tr>
-                            </thead>
-                            <tbody>
-                            {posts.map((post) => (
-                                <tr key={post.id}>
-                                    <td>
-                                        <div className="small fw-semibold">{post.title}</div>
-                                        {post.excerpt && (
-                                            <div className="text-muted" style={{fontSize: '0.75rem'}}>
-                                                {truncateText(post.excerpt, 80)}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {post.category ? (
-                                            <Badge bg="light" text="dark" className="border">
-                                                {post.category}
-                                            </Badge>
-                                        ) : '—'}
-                                    </td>
-                                    <td className="small">{post.date || '—'}</td>
-                                    <td className="text-end">
-                                        <Button variant="outline-primary" size="sm" className="me-1"
-                                                onClick={() => openEdit(post)}>
-                                            Edit
-                                        </Button>
-                                        <Button variant="outline-danger" size="sm"
-                                                onClick={() => setDeleteId(post.id)}>
-                                            Delete
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </Table>
-                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage}/>
-                        </>
-                    )}
+                        )}
+                    />
                 </Card.Body>
             </Card>
 
-            {/* Create / Edit Modal */}
             <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
                 <Modal.Header closeButton className="text-white" data-bs-theme="dark">
                     <Modal.Title className="fs-5">
@@ -253,7 +183,6 @@ function AdminBlog() {
                                 }
                             }}
                             onError={(err) => {
-                                if (handleAuthError(err)) return;
                                 setError(err.message || 'Failed to upload image');
                             }}
                         />

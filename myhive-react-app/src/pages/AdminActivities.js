@@ -1,11 +1,10 @@
-import {useCallback, useEffect, useState} from 'react';
-import {useAdminApi} from '../hooks/useAdminApi';
-import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
-import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 'react-bootstrap';
+import {useEffect, useState} from 'react';
+import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
+import {formatAmount, truncateText} from '../utils/format';
+import {useAdminCrud} from '../hooks/useAdminCrud';
+import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
-import Pagination from '../components/Pagination';
-import {formatAmount, truncateText} from '../utils/format';
 
 const EMPTY_FORM = {
     name: '',
@@ -17,106 +16,49 @@ const EMPTY_FORM = {
     destinationId: '',
 };
 
-function AdminActivities() {
-    const adminApi = useAdminApi();
-    const handleAuthError = useAuthErrorHandler();
-    const [activities, setActivities] = useState([]);
-    const [destinations, setDestinations] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState(EMPTY_FORM);
-    const [saving, setSaving] = useState(false);
-    const [deleteId, setDeleteId] = useState(null);
-    const [filterDestination, setFilterDestination] = useState('');
-    const [uploading, setUploading] = useState(false);
-    const [page, setPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
+const COLUMNS = [
+    {key: 'name', label: 'Name'},
+    {key: 'destination', label: 'Destination'},
+    {key: 'category', label: 'Category'},
+    {key: 'price', label: 'Price'},
+    {key: 'duration', label: 'Duration'},
+];
 
-    const fetchData = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError('');
-            const [activitiesData, destinationsData] = await Promise.all([
-                adminApi.getActivitiesPaged(page, 10),
-                adminApi.getDestinations(),
-            ]);
-            setActivities(activitiesData.content);
-            setTotalPages(activitiesData.totalPages);
-            setTotalElements(activitiesData.totalElements);
-            setDestinations(destinationsData);
-        } catch (err) {
-            if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to load data');
-        } finally {
-            setLoading(false);
-        }
-    }, [adminApi, handleAuthError, page]);
+function AdminActivities() {
+    const [destinations, setDestinations] = useState([]);
+    const [filterDestination, setFilterDestination] = useState('');
+
+    const {
+        items: activities, loading, error, setError, page, setPage,
+        totalPages, totalElements, showModal, setShowModal, editing,
+        form, setForm, saving, uploading, setUploading, deleteId, setDeleteId,
+        fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
+    } = useAdminCrud({
+        emptyForm: EMPTY_FORM,
+        fetchFn: (api, page, size) => api.getActivitiesPaged(page, size),
+        createFn: (api, payload) => api.createActivity(payload),
+        updateFn: (api, id, payload) => api.updateActivity(id, payload),
+        deleteFn: (api, id) => api.deleteActivity(id),
+        mapItemToForm: (a) => ({
+            name: a.name || '',
+            description: a.description || '',
+            price: a.price ?? '',
+            duration: a.duration ?? '',
+            category: a.category || '',
+            imageUrl: a.imageUrl || '',
+            destinationId: a.destinationId || '',
+        }),
+        buildPayload: (form) => ({
+            ...form,
+            price: form.price !== '' ? Number(form.price) : null,
+            duration: form.duration !== '' ? Number(form.duration) : null,
+        }),
+    });
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    const openCreate = () => {
-        setEditing(null);
-        setForm(EMPTY_FORM);
-        setShowModal(true);
-    };
-
-    const openEdit = (activity) => {
-        setEditing(activity);
-        setForm({
-            name: activity.name || '',
-            description: activity.description || '',
-            price: activity.price ?? '',
-            duration: activity.duration ?? '',
-            category: activity.category || '',
-            imageUrl: activity.imageUrl || '',
-            destinationId: activity.destinationId || '',
+        adminApi.getDestinations().then(setDestinations).catch(() => {
         });
-        setShowModal(true);
-    };
-
-    const handleSave = async () => {
-        try {
-            setSaving(true);
-            setError('');
-            const payload = {
-                ...form,
-                price: form.price !== '' ? Number(form.price) : null,
-                duration: form.duration !== '' ? Number(form.duration) : null,
-            };
-            if (editing) {
-                await adminApi.updateActivity(editing.id, payload);
-            } else {
-                await adminApi.createActivity(payload);
-            }
-            setShowModal(false);
-            await fetchData();
-        } catch (err) {
-            if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to save activity');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        try {
-            setSaving(true);
-            setError('');
-            await adminApi.deleteActivity(deleteId);
-            setDeleteId(null);
-            await fetchData();
-        } catch (err) {
-            if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to delete activity');
-        } finally {
-            setSaving(false);
-        }
-    };
+    }, [adminApi]);
 
     const filteredActivities = activities.filter(
         a => !filterDestination || a.destinationId === filterDestination
@@ -164,65 +106,51 @@ function AdminActivities() {
                     </div>
                 </Card.Header>
                 <Card.Body className="p-0">
-                    {filteredActivities.length === 0 ? (
-                        <p className="text-muted text-center py-5">No activities found.</p>
-                    ) : (
-                        <>
-                        <Table responsive hover className="mb-0 align-middle">
-                            <thead>
-                            <tr>
-                                <th className="small text-muted text-uppercase">Name</th>
-                                <th className="small text-muted text-uppercase">Destination</th>
-                                <th className="small text-muted text-uppercase">Category</th>
-                                <th className="small text-muted text-uppercase">Price</th>
-                                <th className="small text-muted text-uppercase">Duration</th>
-                                <th className="small text-muted text-uppercase text-end">Actions</th>
+                    <AdminTable
+                        columns={COLUMNS}
+                        items={filteredActivities}
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                        emptyMessage="No activities found."
+                        renderRow={(activity) => (
+                            <tr key={activity.id}>
+                                <td>
+                                    <div className="small fw-semibold">{activity.name}</div>
+                                    {activity.description && (
+                                        <div className="text-muted" style={{fontSize: '0.75rem'}}>
+                                            {truncateText(activity.description)}
+                                        </div>
+                                    )}
+                                </td>
+                                <td className="small">{activity.destinationName || '—'}</td>
+                                <td>
+                                    {activity.category ? (
+                                        <Badge bg="light" text="dark" className="border">
+                                            {activity.category}
+                                        </Badge>
+                                    ) : '—'}
+                                </td>
+                                <td className="small fw-semibold">{formatAmount(activity.price)}</td>
+                                <td className="small">
+                                    {activity.duration ? `${activity.duration} min` : '—'}
+                                </td>
+                                <td className="text-end">
+                                    <Button variant="outline-primary" size="sm" className="me-1"
+                                            onClick={() => openEdit(activity)}>
+                                        Edit
+                                    </Button>
+                                    <Button variant="outline-danger" size="sm"
+                                            onClick={() => setDeleteId(activity.id)}>
+                                        Delete
+                                    </Button>
+                                </td>
                             </tr>
-                            </thead>
-                            <tbody>
-                            {filteredActivities.map((activity) => (
-                                <tr key={activity.id}>
-                                    <td>
-                                        <div className="small fw-semibold">{activity.name}</div>
-                                        {activity.description && (
-                                            <div className="text-muted" style={{fontSize: '0.75rem'}}>
-                                                {truncateText(activity.description)}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="small">{activity.destinationName || '—'}</td>
-                                    <td>
-                                        {activity.category ? (
-                                            <Badge bg="light" text="dark" className="border">
-                                                {activity.category}
-                                            </Badge>
-                                        ) : '—'}
-                                    </td>
-                                    <td className="small fw-semibold">{formatAmount(activity.price)}</td>
-                                    <td className="small">
-                                        {activity.duration ? `${activity.duration} min` : '—'}
-                                    </td>
-                                    <td className="text-end">
-                                        <Button variant="outline-primary" size="sm" className="me-1"
-                                                onClick={() => openEdit(activity)}>
-                                            Edit
-                                        </Button>
-                                        <Button variant="outline-danger" size="sm"
-                                                onClick={() => setDeleteId(activity.id)}>
-                                            Delete
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </Table>
-                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage}/>
-                        </>
-                    )}
+                        )}
+                    />
                 </Card.Body>
             </Card>
 
-            {/* Create / Edit Modal */}
             <Modal show={showModal} onHide={() => setShowModal(false)} centered>
                 <Modal.Header closeButton className="text-white" data-bs-theme="dark">
                     <Modal.Title className="fs-5">
@@ -306,7 +234,6 @@ function AdminActivities() {
                                 }
                             }}
                             onError={(err) => {
-                                if (handleAuthError(err)) return;
                                 setError(err.message || 'Failed to upload image');
                             }}
                         />
