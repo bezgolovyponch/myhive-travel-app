@@ -4,6 +4,7 @@ import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 'react-bootstrap';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
+import Pagination from '../components/Pagination';
 
 const EMPTY_FORM = {
     name: '',
@@ -14,10 +15,15 @@ const EMPTY_FORM = {
     rating: '',
 };
 
+const PAGE_SIZE = 10;
+
 function AdminDestinations() {
     const adminApi = useAdminApi();
     const handleAuthError = useAuthErrorHandler();
     const [destinations, setDestinations] = useState([]);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -31,15 +37,17 @@ function AdminDestinations() {
         try {
             setLoading(true);
             setError('');
-            const data = await adminApi.getDestinations();
-            setDestinations(data);
+            const data = await adminApi.getDestinationsPaged(page, PAGE_SIZE);
+            setDestinations(data.content);
+            setTotalPages(data.totalPages);
+            setTotalElements(data.totalElements);
         } catch (err) {
             if (handleAuthError(err)) return;
             setError(err.message || 'Failed to load destinations');
         } finally {
             setLoading(false);
         }
-    }, [adminApi, handleAuthError]);
+    }, [adminApi, handleAuthError, page]);
 
     useEffect(() => {
         fetchData();
@@ -127,72 +135,80 @@ function AdminDestinations() {
             <Card className="border-0 shadow-sm">
                 <Card.Header className="border-bottom">
                     <h6 className="fw-semibold mb-0">
-                        {destinations.length} {destinations.length === 1 ? 'destination' : 'destinations'}
+                        {totalElements} {totalElements === 1 ? 'destination' : 'destinations'}
                     </h6>
                 </Card.Header>
                 <Card.Body className="p-0">
                     {destinations.length === 0 ? (
                         <p className="text-muted text-center py-5">No destinations found.</p>
                     ) : (
-                        <Table responsive hover className="mb-0 align-middle">
-                            <thead>
-                            <tr>
-                                <th className="small text-muted text-uppercase">Name</th>
-                                <th className="small text-muted text-uppercase">Country</th>
-                                <th className="small text-muted text-uppercase">City</th>
-                                <th className="small text-muted text-uppercase">Rating</th>
-                                <th className="small text-muted text-uppercase">Activities</th>
-                                <th className="small text-muted text-uppercase text-end">Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {destinations.map((destination) => (
-                                <tr key={destination.id}>
-                                    <td>
-                                        <div className="d-flex align-items-center gap-2">
-                                            {destination.imageUrl && (
-                                                <img
-                                                    src={destination.imageUrl}
-                                                    alt={destination.name}
-                                                    style={{width: 40, height: 40, borderRadius: 6, objectFit: 'cover'}}
-                                                />
-                                            )}
-                                            <div>
-                                                <div className="small fw-semibold">{destination.name}</div>
-                                                {destination.description && (
-                                                    <div className="text-muted" style={{fontSize: '0.75rem'}}>
-                                                        {destination.description.length > 60
-                                                            ? destination.description.substring(0, 60) + '...'
-                                                            : destination.description}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="small">{destination.country || '—'}</td>
-                                    <td className="small">{destination.city || '—'}</td>
-                                    <td>
-                                        {destination.rating ? (
-                                            <Badge bg="light" text="dark" className="border">
-                                                {destination.rating}
-                                            </Badge>
-                                        ) : '—'}
-                                    </td>
-                                    <td className="small">{destination.activityCount}</td>
-                                    <td className="text-end">
-                                        <Button variant="outline-primary" size="sm" className="me-1"
-                                                onClick={() => openEdit(destination)}>
-                                            Edit
-                                        </Button>
-                                        <Button variant="outline-danger" size="sm"
-                                                onClick={() => setDeleteId(destination.id)}>
-                                            Delete
-                                        </Button>
-                                    </td>
+                        <>
+                            <Table responsive hover className="mb-0 align-middle">
+                                <thead>
+                                <tr>
+                                    <th className="small text-muted text-uppercase">Name</th>
+                                    <th className="small text-muted text-uppercase">Country</th>
+                                    <th className="small text-muted text-uppercase">City</th>
+                                    <th className="small text-muted text-uppercase">Rating</th>
+                                    <th className="small text-muted text-uppercase">Activities</th>
+                                    <th className="small text-muted text-uppercase text-end">Actions</th>
                                 </tr>
-                            ))}
-                            </tbody>
-                        </Table>
+                                </thead>
+                                <tbody>
+                                {destinations.map((destination) => (
+                                    <tr key={destination.id}>
+                                        <td>
+                                            <div className="d-flex align-items-center gap-2">
+                                                {destination.imageUrl && (
+                                                    <img
+                                                        src={destination.imageUrl}
+                                                        alt={destination.name}
+                                                        style={{
+                                                            width: 40,
+                                                            height: 40,
+                                                            borderRadius: 6,
+                                                            objectFit: 'cover'
+                                                        }}
+                                                    />
+                                                )}
+                                                <div>
+                                                    <div className="small fw-semibold">{destination.name}</div>
+                                                    {destination.description && (
+                                                        <div className="text-muted" style={{fontSize: '0.75rem'}}>
+                                                            {destination.description.length > 60
+                                                                ? destination.description.substring(0, 60) + '...'
+                                                                : destination.description}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="small">{destination.country || '—'}</td>
+                                        <td className="small">{destination.city || '—'}</td>
+                                        <td>
+                                            {destination.rating ? (
+                                                <Badge bg="light" text="dark" className="border">
+                                                    {destination.rating}
+                                                </Badge>
+                                            ) : '—'}
+                                        </td>
+                                        <td className="small">{destination.activityCount}</td>
+                                        <td className="text-end">
+                                            <Button variant="outline-primary" size="sm" className="me-1"
+                                                    onClick={() => openEdit(destination)}>
+                                                Edit
+                                            </Button>
+                                            <Button variant="outline-danger" size="sm"
+                                                    onClick={() => setDeleteId(destination.id)}>
+                                                Delete
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </Table>
+                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage}/>
+                        </>
                     )}
                 </Card.Body>
             </Card>

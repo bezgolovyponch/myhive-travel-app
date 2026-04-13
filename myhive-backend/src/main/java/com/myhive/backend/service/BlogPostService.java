@@ -5,6 +5,8 @@ import com.myhive.backend.entity.BlogPost;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.BlogPostRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,11 @@ public class BlogPostService {
         return blogPostRepository.findAllByOrderByDateDesc().stream()
                 .map(this::convertToDTO)
                 .toList();
+    }
+
+    public Page<BlogPostDTO> getBlogPostsPaged(Pageable pageable) {
+        return blogPostRepository.findAll(pageable)
+                .map(this::convertToDTO);
     }
 
     public BlogPostDTO getBlogPostById(UUID id) {

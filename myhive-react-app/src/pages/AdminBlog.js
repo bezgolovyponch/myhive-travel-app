@@ -4,6 +4,7 @@ import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Form, Modal, Spinner, Table} from 'react-bootstrap';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
+import Pagination from '../components/Pagination';
 
 const EMPTY_FORM = {
     title: '',
@@ -26,20 +27,25 @@ function AdminBlog() {
     const [saving, setSaving] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
-            const data = await adminApi.getBlogPosts();
-            setPosts(data);
+            const data = await adminApi.getBlogPostsPaged(page, 10);
+            setPosts(data.content);
+            setTotalPages(data.totalPages);
+            setTotalElements(data.totalElements);
         } catch (err) {
             if (handleAuthError(err)) return;
             setError(err.message || 'Failed to load blog posts');
         } finally {
             setLoading(false);
         }
-    }, [adminApi, handleAuthError]);
+    }, [adminApi, handleAuthError, page]);
 
     useEffect(() => {
         fetchData();
@@ -123,13 +129,14 @@ function AdminBlog() {
             <Card className="border-0 shadow-sm">
                 <Card.Header className="border-bottom">
                     <h6 className="fw-semibold mb-0">
-                        {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                        {totalElements} {totalElements === 1 ? 'post' : 'posts'}
                     </h6>
                 </Card.Header>
                 <Card.Body className="p-0">
                     {posts.length === 0 ? (
                         <p className="text-muted text-center py-5">No blog posts yet.</p>
                     ) : (
+                        <>
                         <Table responsive hover className="mb-0 align-middle">
                             <thead>
                             <tr>
@@ -174,6 +181,8 @@ function AdminBlog() {
                             ))}
                             </tbody>
                         </Table>
+                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage}/>
+                        </>
                     )}
                 </Card.Body>
             </Card>

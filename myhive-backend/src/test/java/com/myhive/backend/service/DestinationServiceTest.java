@@ -13,6 +13,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +48,20 @@ class DestinationServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getName()).isEqualTo(dest.getName());
         assertThat(result.getFirst().getCountry()).isEqualTo(dest.getCountry());
+    }
+
+    @Test
+    void getDestinationsPaged_returnsPagedDTOs() {
+        Destination dest = TestDataFactory.destination();
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        Page<Destination> page = new PageImpl<>(List.of(dest), pageRequest, 1);
+        when(destinationRepository.findAll(pageRequest)).thenReturn(page);
+
+        Page<DestinationDTO> result = destinationService.getDestinationsPaged(pageRequest);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().getFirst().getName()).isEqualTo(dest.getName());
     }
 
     @Test

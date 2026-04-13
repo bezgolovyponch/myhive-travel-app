@@ -29,6 +29,11 @@ public class ActivityService {
                 .toList();
     }
 
+    public Page<ActivityDTO> getActivitiesPaged(Pageable pageable) {
+        return activityRepository.findAll(pageable)
+                .map(this::convertToDTO);
+    }
+
     public ActivityDTO getActivityById(UUID id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Activity", id));

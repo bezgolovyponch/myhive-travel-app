@@ -57,6 +57,14 @@ export function createAdminApi(getAccessToken) {
             return response.json();
         },
 
+        async getActivitiesPaged(page = 0, size = 10) {
+            const response = await fetch(`${API_BASE_URL}/admin/activities/paged?page=${page}&size=${size}`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch activities');
+            return response.json();
+        },
+
         async createActivity(activity) {
             const headers = await authHeaders();
             const response = await fetch(`${API_BASE_URL}/admin/activities`, {
@@ -108,6 +116,14 @@ export function createAdminApi(getAccessToken) {
             return response.json();
         },
 
+        async getBlogPostsPaged(page = 0, size = 10) {
+            const response = await fetch(`${API_BASE_URL}/admin/blog/paged?page=${page}&size=${size}`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch blog posts');
+            return response.json();
+        },
+
         async createBlogPost(post) {
             const headers = await authHeaders();
             const response = await fetch(`${API_BASE_URL}/admin/blog`, {
@@ -140,6 +156,14 @@ export function createAdminApi(getAccessToken) {
 
         async getDestinations() {
             const response = await fetch(`${API_BASE_URL}/admin/destinations`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch destinations');
+            return response.json();
+        },
+
+        async getDestinationsPaged(page = 0, size = 10) {
+            const response = await fetch(`${API_BASE_URL}/admin/destinations/paged?page=${page}&size=${size}`, {
                 headers: await authHeaders(),
             });
             await handleError(response, 'Failed to fetch destinations');

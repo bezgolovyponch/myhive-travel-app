@@ -6,6 +6,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,6 +54,14 @@ public class AdminController {
         return ResponseEntity.ok(activityService.getAllActivities());
     }
 
+    @GetMapping("/activities/paged")
+    public ResponseEntity<Page<ActivityDTO>> getActivitiesPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, 50), Sort.by("name").ascending());
+        return ResponseEntity.ok(activityService.getActivitiesPaged(pageRequest));
+    }
+
     @PostMapping("/activities")
     public ResponseEntity<ActivityDTO> createActivity(@Valid @RequestBody ActivityDTO activityDTO) {
         ActivityDTO created = activityService.createActivity(activityDTO);
@@ -74,6 +85,14 @@ public class AdminController {
         return ResponseEntity.ok(destinationService.getAllDestinations());
     }
 
+    @GetMapping("/destinations/paged")
+    public ResponseEntity<Page<DestinationDTO>> getDestinationsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, 50), Sort.by("name").ascending());
+        return ResponseEntity.ok(destinationService.getDestinationsPaged(pageRequest));
+    }
+
     @PostMapping("/destinations")
     public ResponseEntity<DestinationDTO> createDestination(@Valid @RequestBody DestinationDTO destinationDTO) {
         DestinationDTO created = destinationService.createDestination(destinationDTO);
@@ -95,6 +114,14 @@ public class AdminController {
     @GetMapping("/blog")
     public ResponseEntity<List<BlogPostDTO>> getAllBlogPosts() {
         return ResponseEntity.ok(blogPostService.getAllBlogPosts());
+    }
+
+    @GetMapping("/blog/paged")
+    public ResponseEntity<Page<BlogPostDTO>> getBlogPostsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, 50), Sort.by("date").descending());
+        return ResponseEntity.ok(blogPostService.getBlogPostsPaged(pageRequest));
     }
 
     @PostMapping("/blog")

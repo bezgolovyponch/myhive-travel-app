@@ -4,6 +4,7 @@ import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 'react-bootstrap';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
+import Pagination from '../components/Pagination';
 import {formatAmount} from '../utils/format';
 
 const EMPTY_FORM = {
@@ -30,16 +31,21 @@ function AdminActivities() {
     const [deleteId, setDeleteId] = useState(null);
     const [filterDestination, setFilterDestination] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
             const [activitiesData, destinationsData] = await Promise.all([
-                adminApi.getActivities(),
+                adminApi.getActivitiesPaged(page, 10),
                 adminApi.getDestinations(),
             ]);
-            setActivities(activitiesData);
+            setActivities(activitiesData.content);
+            setTotalPages(activitiesData.totalPages);
+            setTotalElements(activitiesData.totalElements);
             setDestinations(destinationsData);
         } catch (err) {
             if (handleAuthError(err)) return;
@@ -47,7 +53,7 @@ function AdminActivities() {
         } finally {
             setLoading(false);
         }
-    }, [adminApi, handleAuthError]);
+    }, [adminApi, handleAuthError, page]);
 
     useEffect(() => {
         fetchData();
@@ -142,7 +148,7 @@ function AdminActivities() {
                 <Card.Header className="border-bottom">
                     <div className="d-flex align-items-center justify-content-between">
                         <h6 className="fw-semibold mb-0">
-                            {filteredActivities.length} {filteredActivities.length === 1 ? 'activity' : 'activities'}
+                            {filterDestination ? filteredActivities.length : totalElements} {(filterDestination ? filteredActivities.length : totalElements) === 1 ? 'activity' : 'activities'}
                         </h6>
                         <Form.Select
                             size="sm"
@@ -161,6 +167,7 @@ function AdminActivities() {
                     {filteredActivities.length === 0 ? (
                         <p className="text-muted text-center py-5">No activities found.</p>
                     ) : (
+                        <>
                         <Table responsive hover className="mb-0 align-middle">
                             <thead>
                             <tr>
@@ -211,6 +218,8 @@ function AdminActivities() {
                             ))}
                             </tbody>
                         </Table>
+                            <Pagination page={page} totalPages={totalPages} onPageChange={setPage}/>
+                        </>
                     )}
                 </Card.Body>
             </Card>
