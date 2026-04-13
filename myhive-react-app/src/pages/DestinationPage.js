@@ -19,6 +19,7 @@ function DestinationPage() {
   const [destination, setDestination] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
@@ -45,8 +46,8 @@ function DestinationPage() {
           const destData = await api.getDestination(id);
         setDestination(destData);
           await fetchActivitiesPage(0, 'all', true);
-      } catch (error) {
-        console.error('Error fetching destination data:', error);
+      } catch {
+          setError(true);
       } finally {
         setLoading(false);
       }
@@ -75,8 +76,8 @@ function DestinationPage() {
         try {
             setLoading(true);
             await fetchActivitiesPage(0, filter, true);
-        } catch (error) {
-            console.error('Error fetching filtered activities:', error);
+        } catch {
+            setError(true);
         } finally {
             setLoading(false);
         }
@@ -86,8 +87,8 @@ function DestinationPage() {
         try {
             setLoadingMore(true);
             await fetchActivitiesPage(page + 1, currentFilter);
-        } catch (error) {
-            console.error('Error loading more activities:', error);
+        } catch {
+            setError(true);
         } finally {
             setLoadingMore(false);
         }
@@ -102,6 +103,17 @@ function DestinationPage() {
       </div>
     );
   }
+
+    if (error || !destination) {
+        return (
+            <div className="destination-page">
+                <div className="page-hero destination-header">
+                    <h1>Destination not found</h1>
+                    <button className="btn btn--primary" onClick={() => navigate('/')}>Back to Home</button>
+                </div>
+            </div>
+        );
+    }
 
   return (
     <div className="destination-page">

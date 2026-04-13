@@ -11,20 +11,14 @@ function ActivityDetailPage() {
     const {state, dispatch} = useContext(AppContext);
     const [activity, setActivity] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
-        const fetchActivity = async () => {
-            try {
-                setLoading(true);
-                const data = await api.getActivity(id);
-                setActivity(data);
-            } catch (error) {
-                console.error('Error fetching activity:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchActivity();
+        setLoading(true);
+        api.getActivity(id)
+            .then(data => setActivity(data))
+            .catch(() => setError(true))
+            .finally(() => setLoading(false));
     }, [id]);
 
     if (loading) {
@@ -35,10 +29,13 @@ function ActivityDetailPage() {
         );
     }
 
-    if (!activity) {
+    if (error || !activity) {
         return (
             <div className="activity-detail-page">
-                <div className="activity-detail-loading">Activity not found.</div>
+                <div className="activity-detail-loading">
+                    <p>Activity not found.</p>
+                    <button className="btn btn--primary" onClick={() => navigate(-1)}>Go Back</button>
+                </div>
             </div>
         );
     }
