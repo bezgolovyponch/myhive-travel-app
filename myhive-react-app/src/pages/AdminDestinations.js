@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import {useAdminApi} from '../hooks/useAdminApi';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 'react-bootstrap';
+import {truncateText} from '../utils/format';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
 import Pagination from '../components/Pagination';
@@ -175,9 +176,7 @@ function AdminDestinations() {
                                                     <div className="small fw-semibold">{destination.name}</div>
                                                     {destination.description && (
                                                         <div className="text-muted" style={{fontSize: '0.75rem'}}>
-                                                            {destination.description.length > 60
-                                                                ? destination.description.substring(0, 60) + '...'
-                                                                : destination.description}
+                                                            {truncateText(destination.description)}
                                                         </div>
                                                     )}
                                                 </div>

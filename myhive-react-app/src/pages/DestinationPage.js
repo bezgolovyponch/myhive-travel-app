@@ -5,6 +5,7 @@ import TripBuilder from '../components/TripBuilder';
 import {useLocation, useNavigate, useParams} from 'react-router-dom';
 import PackageCard from '../components/PackageCard';
 import api from '../services/api';
+import {capitalizeFirst} from '../utils/format';
 import './DestinationPage.css';
 
 const PAGE_SIZE = 12;
@@ -140,7 +141,7 @@ function DestinationPage() {
                 className={`filter-btn ${currentFilter === filter ? 'active' : ''}`}
                 onClick={() => handleFilterChange(filter)}
               >
-                {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    {filter === 'all' ? 'All' : capitalizeFirst(filter)}
               </button>
             ))}
           </div>

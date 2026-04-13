@@ -1,6 +1,7 @@
 import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
+import {capitalizeFirst, formatPrice} from '../utils/format';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import './TripBuilder.css';
@@ -95,7 +96,7 @@ function TripBuilder() {
                 <div className="itinerary-item-content">
                   <div className="itinerary-item-title">{item.name || item.title}</div>
                   <div
-                      className="itinerary-item-price">{typeof item.price === 'number' ? `€${item.price}` : item.price}</div>
+                      className="itinerary-item-price">{formatPrice(item.price)}</div>
                 </div>
                 <button 
                   className="remove-item-btn"
@@ -134,7 +135,7 @@ function TripBuilder() {
                     className={`filter-btn ${browseFilter === filter ? 'active' : ''}`}
                     onClick={() => setBrowseFilter(filter)}
                 >
-                  {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  {filter === 'all' ? 'All' : capitalizeFirst(filter)}
                 </button>
             ))}
           </div>
@@ -149,7 +150,7 @@ function TripBuilder() {
                   <div className="browse-activity-content">
                     <div className="browse-activity-title">{activity.name || activity.title}</div>
                     <div
-                        className="browse-activity-price">{typeof activity.price === 'number' ? `€${activity.price}` : activity.price}</div>
+                        className="browse-activity-price">{formatPrice(activity.price)}</div>
                   </div>
                   <button
                       className="browse-add-btn"

@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
+import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
 
 function TripBuilderDropdown() {
     const {state, dispatch} = useContext(AppContext);
@@ -29,8 +30,8 @@ function TripBuilderDropdown() {
                     <>
                         <div className="trip-modal-items">
                             {state.tripItems.map(item => {
-                                const img = item.imageUrl || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop';
-                                const price = typeof item.price === 'number' ? `€${item.price}` : item.price;
+                                const img = item.imageUrl || DEFAULT_ACTIVITY_IMAGE;
+                                const price = formatPrice(item.price);
                                 return (
                                     <div key={item.id} className="trip-modal-item">
                                         <img src={img} alt={item.name} className="trip-modal-item-image"/>

@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import {useAdminApi} from '../hooks/useAdminApi';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Form, Modal, Spinner, Table} from 'react-bootstrap';
+import {truncateText} from '../utils/format';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
 import Pagination from '../components/Pagination';
@@ -153,9 +154,7 @@ function AdminBlog() {
                                         <div className="small fw-semibold">{post.title}</div>
                                         {post.excerpt && (
                                             <div className="text-muted" style={{fontSize: '0.75rem'}}>
-                                                {post.excerpt.length > 80
-                                                    ? post.excerpt.substring(0, 80) + '...'
-                                                    : post.excerpt}
+                                                {truncateText(post.excerpt, 80)}
                                             </div>
                                         )}
                                     </td>

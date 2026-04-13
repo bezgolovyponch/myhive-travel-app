@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
 import './ActivityCard.css';
 
 function ActivityCard({ activity, isAdded = false }) {
@@ -16,10 +17,9 @@ function ActivityCard({ activity, isAdded = false }) {
         navigate(`/activity/${activity.id}`);
     };
 
-  // Map backend data to frontend format
-  const imageUrl = activity.imageUrl || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop';
+    const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
   const title = activity.name || activity.title;
-  const formattedPrice = typeof activity.price === 'number' ? `€${activity.price}` : activity.price;
+    const formattedPrice = formatPrice(activity.price);
   const duration = activity.duration ? ` (${activity.duration} min)` : '';
 
   return (
@@ -32,7 +32,7 @@ function ActivityCard({ activity, isAdded = false }) {
       />
       <div className="activity-content">
         <span className="activity-category">
-          {activity.category ? activity.category.charAt(0).toUpperCase() + activity.category.slice(1) : 'Activity'}
+          {capitalizeFirst(activity.category) || 'Activity'}
         </span>
         <h3 className="activity-title">{title}{duration}</h3>
         <p className="activity-description">{activity.description}</p>

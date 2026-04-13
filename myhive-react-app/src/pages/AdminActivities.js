@@ -5,7 +5,7 @@ import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
 import Pagination from '../components/Pagination';
-import {formatAmount} from '../utils/format';
+import {formatAmount, truncateText} from '../utils/format';
 
 const EMPTY_FORM = {
     name: '',
@@ -186,9 +186,7 @@ function AdminActivities() {
                                         <div className="small fw-semibold">{activity.name}</div>
                                         {activity.description && (
                                             <div className="text-muted" style={{fontSize: '0.75rem'}}>
-                                                {activity.description.length > 60
-                                                    ? activity.description.substring(0, 60) + '...'
-                                                    : activity.description}
+                                                {truncateText(activity.description)}
                                             </div>
                                         )}
                                     </td>

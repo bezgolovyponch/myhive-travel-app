@@ -2,6 +2,7 @@ import {useContext, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
 import './ActivityDetailPage.css';
 
 function ActivityDetailPage() {
@@ -42,13 +43,11 @@ function ActivityDetailPage() {
         );
     }
 
-    const imageUrl = activity.imageUrl || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop';
+    const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const title = activity.name || activity.title;
-    const formattedPrice = typeof activity.price === 'number' ? `€${activity.price}` : activity.price;
+    const formattedPrice = formatPrice(activity.price);
     const duration = activity.duration ? `${activity.duration} min` : null;
-    const category = activity.category
-        ? activity.category.charAt(0).toUpperCase() + activity.category.slice(1)
-        : 'Activity';
+    const category = capitalizeFirst(activity.category) || 'Activity';
     const isAdded = state.tripItems.some(item => item.id === activity.id);
 
     const handleAddToTrip = () => {
