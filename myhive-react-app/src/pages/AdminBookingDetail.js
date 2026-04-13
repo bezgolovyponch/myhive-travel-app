@@ -3,7 +3,7 @@ import {useNavigate, useParams} from 'react-router-dom';
 import {useAdminApi} from '../hooks/useAdminApi';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Row, Spinner, Table} from 'react-bootstrap';
-import {formatAmount, STATUS_VARIANTS} from '../utils/format';
+import {formatAmount, formatDate, formatDateTime, STATUS_VARIANTS} from '../utils/format';
 
 function AdminBookingDetail() {
     const adminApi = useAdminApi();
@@ -31,20 +31,6 @@ function AdminBookingDetail() {
     useEffect(() => {
         fetchBooking();
     }, [fetchBooking]);
-
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '\u2014';
-        return new Date(dateStr).toLocaleDateString('en-GB', {
-            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-        });
-    };
-
-    const formatTravelDate = (dateStr) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', {
-            day: '2-digit', month: 'short', year: 'numeric',
-        });
-    };
 
     if (loading) {
         return (
@@ -140,17 +126,17 @@ function AdminBookingDetail() {
                                     <div className="text-muted small">Travel Dates</div>
                                     <div className="fw-semibold">
                                         {booking.startDate && booking.endDate
-                                            ? `${formatTravelDate(booking.startDate)} — ${formatTravelDate(booking.endDate)}`
+                                            ? `${formatDate(booking.startDate)} — ${formatDate(booking.endDate)}`
                                             : '—'}
                                     </div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Created</div>
-                                    <div className="fw-semibold">{formatDate(booking.createdAt)}</div>
+                                    <div className="fw-semibold">{formatDateTime(booking.createdAt)}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Paid At</div>
-                                    <div className="fw-semibold">{formatDate(booking.paidAt)}</div>
+                                    <div className="fw-semibold">{formatDateTime(booking.paidAt)}</div>
                                 </Col>
                                 <Col sm={6}>
                                     <div className="text-muted small">Booking ID</div>

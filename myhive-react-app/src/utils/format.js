@@ -5,8 +5,15 @@ export function formatAmount(amount) {
 
 export function formatDate(dateStr) {
     if (!dateStr) return '\u2014';
-    return new Date(dateStr).toLocaleDateString('en-GB', {
+    return new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric',
+    });
+}
+
+export function formatDateTime(dateStr) {
+    if (!dateStr) return '\u2014';
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 }
 
