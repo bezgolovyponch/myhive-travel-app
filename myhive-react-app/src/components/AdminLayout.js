@@ -19,6 +19,9 @@ function AdminLayout() {
                                 Bookings
                             </Nav.Link>
                         )}
+                        <Nav.Link as={NavLink} to="/admin/destinations">
+                            Destinations
+                        </Nav.Link>
                         <Nav.Link as={NavLink} to="/admin/activities">
                             Activities
                         </Nav.Link>

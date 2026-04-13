@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.DestinationRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,41 @@ public class DestinationService {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
         return convertToDTO(destination);
+    }
+
+    @Transactional
+    public DestinationDTO createDestination(DestinationDTO dto) {
+        Destination destination = new Destination();
+        applyDtoToEntity(dto, destination);
+        return convertToDTO(destinationRepository.save(destination));
+    }
+
+    @Transactional
+    public DestinationDTO updateDestination(UUID id, DestinationDTO dto) {
+        Destination destination = destinationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
+        applyDtoToEntity(dto, destination);
+        return convertToDTO(destinationRepository.save(destination));
+    }
+
+    private void applyDtoToEntity(DestinationDTO dto, Destination destination) {
+        destination.setName(dto.getName());
+        destination.setDescription(dto.getDescription());
+        destination.setCountry(dto.getCountry());
+        destination.setCity(dto.getCity());
+        destination.setImageUrl(dto.getImageUrl());
+        destination.setRating(dto.getRating());
+    }
+
+    @Transactional
+    public void deleteDestination(UUID id) {
+        Destination destination = destinationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
+        if (destination.getActivities() != null && !destination.getActivities().isEmpty()) {
+            throw new BadRequestException(
+                    "Cannot delete destination with " + destination.getActivities().size() + " associated activities. Remove them first.");
+        }
+        destinationRepository.deleteById(id);
     }
 
     private DestinationDTO convertToDTO(Destination destination) {

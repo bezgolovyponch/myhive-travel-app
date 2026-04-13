@@ -9,15 +9,27 @@ export function createAdminApi(getAccessToken) {
         };
     }
 
+    async function handleError(response, fallbackMessage) {
+        if (response.status === 401 || response.status === 403) {
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) {
+            try {
+                const body = await response.json();
+                throw new Error(body.message || fallbackMessage);
+            } catch (e) {
+                if (e.message !== fallbackMessage && e.message !== 'Unauthorized') throw e;
+                throw new Error(fallbackMessage);
+            }
+        }
+    }
+
     return {
         async getBookings() {
             const response = await fetch(`${API_BASE_URL}/admin/bookings`, {
                 headers: await authHeaders(),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to fetch bookings');
+            await handleError(response, 'Failed to fetch bookings');
             return response.json();
         },
 
@@ -25,10 +37,7 @@ export function createAdminApi(getAccessToken) {
             const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}`, {
                 headers: await authHeaders(),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to fetch booking');
+            await handleError(response, 'Failed to fetch booking');
             return response.json();
         },
 
@@ -36,10 +45,7 @@ export function createAdminApi(getAccessToken) {
             const response = await fetch(`${API_BASE_URL}/admin/bookings/stats`, {
                 headers: await authHeaders(),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to fetch booking stats');
+            await handleError(response, 'Failed to fetch booking stats');
             return response.json();
         },
 
@@ -47,10 +53,7 @@ export function createAdminApi(getAccessToken) {
             const response = await fetch(`${API_BASE_URL}/admin/activities`, {
                 headers: await authHeaders(),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to fetch activities');
+            await handleError(response, 'Failed to fetch activities');
             return response.json();
         },
 
@@ -61,10 +64,7 @@ export function createAdminApi(getAccessToken) {
                 headers,
                 body: JSON.stringify(activity),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to create activity');
+            await handleError(response, 'Failed to create activity');
             return response.json();
         },
 
@@ -75,10 +75,7 @@ export function createAdminApi(getAccessToken) {
                 headers,
                 body: JSON.stringify(activity),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to update activity');
+            await handleError(response, 'Failed to update activity');
             return response.json();
         },
 
@@ -87,10 +84,7 @@ export function createAdminApi(getAccessToken) {
                 method: 'DELETE',
                 headers: await authHeaders(),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to delete activity');
+            await handleError(response, 'Failed to delete activity');
         },
 
         async uploadImage(file) {
@@ -102,10 +96,7 @@ export function createAdminApi(getAccessToken) {
                 headers: {Authorization: `Bearer ${token}`},
                 body: formData,
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to upload image');
+            await handleError(response, 'Failed to upload image');
             return response.json();
         },
 
@@ -113,10 +104,7 @@ export function createAdminApi(getAccessToken) {
             const response = await fetch(`${API_BASE_URL}/admin/blog`, {
                 headers: await authHeaders(),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to fetch blog posts');
+            await handleError(response, 'Failed to fetch blog posts');
             return response.json();
         },
 
@@ -127,10 +115,7 @@ export function createAdminApi(getAccessToken) {
                 headers,
                 body: JSON.stringify(post),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to create blog post');
+            await handleError(response, 'Failed to create blog post');
             return response.json();
         },
 
@@ -141,10 +126,7 @@ export function createAdminApi(getAccessToken) {
                 headers,
                 body: JSON.stringify(post),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to update blog post');
+            await handleError(response, 'Failed to update blog post');
             return response.json();
         },
 
@@ -153,18 +135,45 @@ export function createAdminApi(getAccessToken) {
                 method: 'DELETE',
                 headers: await authHeaders(),
             });
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Unauthorized');
-            }
-            if (!response.ok) throw new Error('Failed to delete blog post');
+            await handleError(response, 'Failed to delete blog post');
         },
 
         async getDestinations() {
-            const response = await fetch(`${API_BASE_URL}/destinations`, {
+            const response = await fetch(`${API_BASE_URL}/admin/destinations`, {
                 headers: await authHeaders(),
             });
-            if (!response.ok) throw new Error('Failed to fetch destinations');
+            await handleError(response, 'Failed to fetch destinations');
             return response.json();
+        },
+
+        async createDestination(destination) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/destinations`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(destination),
+            });
+            await handleError(response, 'Failed to create destination');
+            return response.json();
+        },
+
+        async updateDestination(id, destination) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/destinations/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(destination),
+            });
+            await handleError(response, 'Failed to update destination');
+            return response.json();
+        },
+
+        async deleteDestination(id) {
+            const response = await fetch(`${API_BASE_URL}/admin/destinations/${id}`, {
+                method: 'DELETE',
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to delete destination');
         },
     };
 }

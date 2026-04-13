@@ -2,7 +2,9 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.DestinationDTO;
+import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.DestinationRepository;
 import org.junit.jupiter.api.Test;
@@ -11,12 +13,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,5 +64,109 @@ class DestinationServiceTest {
         assertThatThrownBy(() -> destinationService.getDestinationById(id))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Destination");
+    }
+
+    @Test
+    void createDestination_validDTO_savesAndReturns() {
+        String expectedName = "Bali";
+        String expectedCountry = "Indonesia";
+        String expectedCity = "Denpasar";
+        BigDecimal expectedRating = new BigDecimal("4.85");
+
+        DestinationDTO dto = new DestinationDTO();
+        dto.setName(expectedName);
+        dto.setCountry(expectedCountry);
+        dto.setCity(expectedCity);
+        dto.setRating(expectedRating);
+
+        when(destinationRepository.save(any(Destination.class))).thenAnswer(inv -> {
+            Destination d = inv.getArgument(0);
+            d.setId(UUID.randomUUID());
+            return d;
+        });
+
+        DestinationDTO result = destinationService.createDestination(dto);
+
+        assertThat(result.getName()).isEqualTo(expectedName);
+        assertThat(result.getCountry()).isEqualTo(expectedCountry);
+        assertThat(result.getCity()).isEqualTo(expectedCity);
+        assertThat(result.getRating()).isEqualByComparingTo(expectedRating);
+        verify(destinationRepository).save(any(Destination.class));
+    }
+
+    @Test
+    void updateDestination_found_updatesAndReturns() {
+        String expectedName = "Updated Name";
+        String expectedCountry = "Updated Country";
+
+        Destination existing = TestDataFactory.destination();
+        DestinationDTO dto = TestDataFactory.destinationDTO();
+        dto.setName(expectedName);
+        dto.setCountry(expectedCountry);
+
+        when(destinationRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(destinationRepository.save(any(Destination.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        DestinationDTO result = destinationService.updateDestination(existing.getId(), dto);
+
+        assertThat(result.getName()).isEqualTo(expectedName);
+        assertThat(result.getCountry()).isEqualTo(expectedCountry);
+        verify(destinationRepository).save(existing);
+    }
+
+    @Test
+    void updateDestination_notFound_throwsResourceNotFound() {
+        UUID id = UUID.randomUUID();
+        DestinationDTO dto = TestDataFactory.destinationDTO();
+        when(destinationRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> destinationService.updateDestination(id, dto))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Destination");
+    }
+
+    @Test
+    void deleteDestination_noActivities_deletes() {
+        Destination dest = TestDataFactory.destination();
+        dest.setActivities(new ArrayList<>());
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+
+        destinationService.deleteDestination(dest.getId());
+
+        verify(destinationRepository).deleteById(dest.getId());
+    }
+
+    @Test
+    void deleteDestination_withActivities_throwsBadRequest() {
+        Destination dest = TestDataFactory.destination();
+        Activity activity = TestDataFactory.activity(dest);
+        dest.setActivities(List.of(activity));
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+
+        assertThatThrownBy(() -> destinationService.deleteDestination(dest.getId()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Cannot delete destination")
+                .hasMessageContaining("1 associated activities");
+    }
+
+    @Test
+    void deleteDestination_notFound_throwsResourceNotFound() {
+        UUID id = UUID.randomUUID();
+        when(destinationRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> destinationService.deleteDestination(id))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Destination");
+    }
+
+    @Test
+    void deleteDestination_nullActivitiesList_deletes() {
+        Destination dest = TestDataFactory.destination();
+        dest.setActivities(null);
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+
+        destinationService.deleteDestination(dest.getId());
+
+        verify(destinationRepository).deleteById(dest.getId());
     }
 }

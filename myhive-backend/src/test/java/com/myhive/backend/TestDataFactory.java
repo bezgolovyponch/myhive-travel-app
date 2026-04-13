@@ -1,9 +1,6 @@
 package com.myhive.backend;
 
-import com.myhive.backend.dto.ActivityDTO;
-import com.myhive.backend.dto.BlogPostDTO;
-import com.myhive.backend.dto.CreateBookingRequest;
-import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.dto.*;
 import com.myhive.backend.entity.*;
 import com.myhive.backend.model.BookingStatus;
 
@@ -131,6 +128,17 @@ public final class TestDataFactory {
         dto.setDuration(60);
         dto.setCategory("Culture");
         dto.setImageUrl("https://example.com/new.jpg");
+        return dto;
+    }
+
+    public static DestinationDTO destinationDTO() {
+        DestinationDTO dto = new DestinationDTO();
+        dto.setName("New Destination");
+        dto.setDescription("New destination description");
+        dto.setCountry("Testland");
+        dto.setCity("Testville");
+        dto.setImageUrl("https://example.com/new-dest.jpg");
+        dto.setRating(new BigDecimal("4.75"));
         return dto;
     }
 

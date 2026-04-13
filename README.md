@@ -45,7 +45,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 
 **Admin** (Auth0 JWT, ADMIN/MANAGER role):
 
-- `/admin/bookings/**`, `/admin/activities/**`, `/admin/blog/**`, `/admin/upload`
+- `/admin/bookings/**`, `/admin/destinations/**`, `/admin/activities/**`, `/admin/blog/**`, `/admin/upload`
 
 ## Services
 

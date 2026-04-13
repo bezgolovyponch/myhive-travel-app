@@ -60,6 +60,9 @@ class BookingServiceTest {
 
     @Test
     void createBooking_withValidRequest_calculatesTotalAndSaves() {
+        String expectedStatus = "PENDING";
+        BigDecimal expectedTotal = new BigDecimal("199.98"); // 99.99 * quantity 2
+
         CreateBookingRequest request = TestDataFactory.createBookingRequest(activity.getId());
         when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
@@ -70,9 +73,8 @@ class BookingServiceTest {
 
         BookingDTO result = bookingService.createBooking(request);
 
-        assertThat(result.getStatus()).isEqualTo("PENDING");
-        // 99.99 * 2 = 199.98
-        assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("199.98"));
+        assertThat(result.getStatus()).isEqualTo(expectedStatus);
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(expectedTotal);
         assertThat(result.getItems()).hasSize(1);
 
         ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
@@ -182,17 +184,22 @@ class BookingServiceTest {
 
     @Test
     void getBookingStats_returnsCorrectCounts() {
-        when(bookingRepository.count()).thenReturn(10L);
-        when(bookingRepository.countByStatus(BookingStatus.PENDING)).thenReturn(5L);
-        when(bookingRepository.countByStatus(BookingStatus.CONFIRMED)).thenReturn(3L);
-        when(bookingRepository.countByStatus(BookingStatus.PAID)).thenReturn(2L);
+        long expectedTotal = 10L;
+        long expectedPending = 5L;
+        long expectedConfirmed = 3L;
+        long expectedPaid = 2L;
+
+        when(bookingRepository.count()).thenReturn(expectedTotal);
+        when(bookingRepository.countByStatus(BookingStatus.PENDING)).thenReturn(expectedPending);
+        when(bookingRepository.countByStatus(BookingStatus.CONFIRMED)).thenReturn(expectedConfirmed);
+        when(bookingRepository.countByStatus(BookingStatus.PAID)).thenReturn(expectedPaid);
 
         BookingStatsDTO stats = bookingService.getBookingStats();
 
-        assertThat(stats.getTotal()).isEqualTo(10);
-        assertThat(stats.getPending()).isEqualTo(5);
-        assertThat(stats.getConfirmed()).isEqualTo(3);
-        assertThat(stats.getPaid()).isEqualTo(2);
+        assertThat(stats.getTotal()).isEqualTo(expectedTotal);
+        assertThat(stats.getPending()).isEqualTo(expectedPending);
+        assertThat(stats.getConfirmed()).isEqualTo(expectedConfirmed);
+        assertThat(stats.getPaid()).isEqualTo(expectedPaid);
     }
 
     @Test
@@ -208,6 +215,9 @@ class BookingServiceTest {
 
     @Test
     void createBookingFromExport_withValidRequest_savesAllFields() {
+        String expectedCustomerName = "Test User";
+        String expectedStatus = "PENDING";
+
         TripExportRequest request = TestDataFactory.tripExportRequest();
         UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
@@ -219,8 +229,8 @@ class BookingServiceTest {
 
         BookingDTO result = bookingService.createBookingFromExport(request);
 
-        assertThat(result.getCustomerName()).isEqualTo("Test User");
-        assertThat(result.getStatus()).isEqualTo("PENDING");
+        assertThat(result.getCustomerName()).isEqualTo(expectedCustomerName);
+        assertThat(result.getStatus()).isEqualTo(expectedStatus);
         assertThat(result.getItems()).hasSize(1);
     }
 

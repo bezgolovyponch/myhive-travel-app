@@ -94,7 +94,12 @@ class ActivityServiceTest {
 
     @Test
     void createActivity_validDTO_savesAndReturns() {
+        String expectedName = "New Activity";
+        String expectedDestinationName = destination.getName();
+
         ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setName(expectedName);
+
         when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
         when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> {
             Activity a = inv.getArgument(0);
@@ -104,8 +109,8 @@ class ActivityServiceTest {
 
         ActivityDTO result = activityService.createActivity(dto);
 
-        assertThat(result.getName()).isEqualTo("New Activity");
-        assertThat(result.getDestinationName()).isEqualTo(destination.getName());
+        assertThat(result.getName()).isEqualTo(expectedName);
+        assertThat(result.getDestinationName()).isEqualTo(expectedDestinationName);
     }
 
     @Test

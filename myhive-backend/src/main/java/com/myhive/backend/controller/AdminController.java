@@ -1,13 +1,7 @@
 package com.myhive.backend.controller;
 
-import com.myhive.backend.dto.ActivityDTO;
-import com.myhive.backend.dto.BlogPostDTO;
-import com.myhive.backend.dto.BookingDTO;
-import com.myhive.backend.dto.BookingStatsDTO;
-import com.myhive.backend.service.ActivityService;
-import com.myhive.backend.service.BlogPostService;
-import com.myhive.backend.service.BookingService;
-import com.myhive.backend.service.ImageUploadService;
+import com.myhive.backend.dto.*;
+import com.myhive.backend.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +26,7 @@ public class AdminController {
     private final BookingService bookingService;
     private final ActivityService activityService;
     private final BlogPostService blogPostService;
+    private final DestinationService destinationService;
     private final Optional<ImageUploadService> imageUploadService;
 
     @GetMapping("/bookings")
@@ -71,6 +66,29 @@ public class AdminController {
     @DeleteMapping("/activities/{id}")
     public ResponseEntity<Void> deleteActivity(@PathVariable UUID id) {
         activityService.deleteActivity(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/destinations")
+    public ResponseEntity<List<DestinationDTO>> getAllDestinations() {
+        return ResponseEntity.ok(destinationService.getAllDestinations());
+    }
+
+    @PostMapping("/destinations")
+    public ResponseEntity<DestinationDTO> createDestination(@Valid @RequestBody DestinationDTO destinationDTO) {
+        DestinationDTO created = destinationService.createDestination(destinationDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/destinations/{id}")
+    public ResponseEntity<DestinationDTO> updateDestination(@PathVariable UUID id, @Valid @RequestBody DestinationDTO destinationDTO) {
+        DestinationDTO updated = destinationService.updateDestination(id, destinationDTO);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/destinations/{id}")
+    public ResponseEntity<Void> deleteDestination(@PathVariable UUID id) {
+        destinationService.deleteDestination(id);
         return ResponseEntity.noContent().build();
     }
 

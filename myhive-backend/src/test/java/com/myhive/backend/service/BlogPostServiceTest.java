@@ -64,7 +64,11 @@ class BlogPostServiceTest {
 
     @Test
     void createBlogPost_savesAndReturns() {
+        String expectedTitle = "New Blog Post";
+
         BlogPostDTO dto = TestDataFactory.blogPostDTO();
+        dto.setTitle(expectedTitle);
+
         when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> {
             BlogPost bp = inv.getArgument(0);
             bp.setId(UUID.randomUUID());
@@ -73,20 +77,24 @@ class BlogPostServiceTest {
 
         BlogPostDTO result = blogPostService.createBlogPost(dto);
 
-        assertThat(result.getTitle()).isEqualTo("New Blog Post");
+        assertThat(result.getTitle()).isEqualTo(expectedTitle);
         verify(blogPostRepository).save(any(BlogPost.class));
     }
 
     @Test
     void updateBlogPost_found_updatesAndReturns() {
+        String expectedTitle = "Updated Blog Post";
+
         BlogPost existing = TestDataFactory.blogPost();
         BlogPostDTO dto = TestDataFactory.blogPostDTO();
+        dto.setTitle(expectedTitle);
+
         when(blogPostRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
         when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BlogPostDTO result = blogPostService.updateBlogPost(existing.getId(), dto);
 
-        assertThat(result.getTitle()).isEqualTo("New Blog Post");
+        assertThat(result.getTitle()).isEqualTo(expectedTitle);
     }
 
     @Test
