@@ -2,6 +2,8 @@ import {useCallback, useEffect, useState} from 'react';
 import {useAdminApi} from '../hooks/useAdminApi';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table} from 'react-bootstrap';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import ImageUploadField from '../components/ImageUploadField';
 
 const EMPTY_FORM = {
     name: '',
@@ -252,47 +254,24 @@ function AdminDestinations() {
                                 placeholder="e.g. 4.75"
                             />
                         </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label className="small fw-semibold text-white">Image</Form.Label>
-                            <Form.Control
-                                type="file"
-                                accept="image/*"
-                                disabled={uploading}
-                                onChange={async (e) => {
-                                    const file = e.target.files[0];
-                                    if (!file) return;
-                                    try {
-                                        setUploading(true);
-                                        setError('');
-                                        const {url} = await adminApi.uploadImage(file);
-                                        setForm(prev => ({...prev, imageUrl: url}));
-                                    } catch (err) {
-                                        if (handleAuthError(err)) return;
-                                        setError(err.message || 'Failed to upload image');
-                                    } finally {
-                                        setUploading(false);
-                                    }
-                                }}
-                            />
-                            {uploading && (
-                                <div className="mt-2">
-                                    <Spinner animation="border" size="sm"/> <span
-                                    className="small text-muted">Uploading...</span>
-                                </div>
-                            )}
-                            {form.imageUrl && !uploading && (
-                                <div className="mt-2">
-                                    <img
-                                        src={form.imageUrl}
-                                        alt="Preview"
-                                        style={{maxHeight: 120, borderRadius: 6, objectFit: 'cover'}}
-                                    />
-                                    <div className="small text-muted mt-1 text-truncate" style={{maxWidth: 300}}>
-                                        {form.imageUrl}
-                                    </div>
-                                </div>
-                            )}
-                        </Form.Group>
+                        <ImageUploadField
+                            imageUrl={form.imageUrl}
+                            uploading={uploading}
+                            onUpload={async (file) => {
+                                setUploading(true);
+                                setError('');
+                                try {
+                                    const {url} = await adminApi.uploadImage(file);
+                                    setForm(prev => ({...prev, imageUrl: url}));
+                                } finally {
+                                    setUploading(false);
+                                }
+                            }}
+                            onError={(err) => {
+                                if (handleAuthError(err)) return;
+                                setError(err.message || 'Failed to upload image');
+                            }}
+                        />
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
@@ -306,21 +285,12 @@ function AdminDestinations() {
                 </Modal.Footer>
             </Modal>
 
-            {/* Delete Confirmation Modal */}
-            <Modal show={!!deleteId} onHide={() => setDeleteId(null)} centered size="sm">
-                <Modal.Body className="text-center py-4">
-                    <div className="fw-semibold mb-2">Delete this destination?</div>
-                    <div className="text-muted small mb-3">This action cannot be undone.</div>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="outline-secondary" size="sm" onClick={() => setDeleteId(null)}>
-                            Cancel
-                        </Button>
-                        <Button variant="danger" size="sm" onClick={handleDelete} disabled={saving}>
-                            {saving ? <Spinner animation="border" size="sm"/> : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+            <DeleteConfirmModal
+                show={!!deleteId}
+                onHide={() => setDeleteId(null)}
+                onConfirm={handleDelete}
+                saving={saving}
+            />
         </>
     );
 }
