@@ -1,8 +1,16 @@
+import {Helmet} from 'react-helmet-async';
+import {SITE_URL} from '../services/config';
 import './AboutPage.css';
 
 function AboutPage() {
     return (
         <div className="about-page">
+            <Helmet>
+                <title>About — Trivlu</title>
+                <meta name="description"
+                      content="Making group travel effortless, one adventure at a time. Learn about Trivlu's mission, values, and story."/>
+                <link rel="canonical" href={`${SITE_URL}/about`}/>
+            </Helmet>
             <section className="page-hero">
                 <h1>About Trivlu</h1>
                 <p>Making group travel effortless, one adventure at a time.</p>

@@ -5,7 +5,9 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -38,18 +40,37 @@ public class DestinationService {
         return convertToDTO(destination);
     }
 
+    public DestinationDTO getDestinationBySlug(String slug) {
+        Destination destination = destinationRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Destination not found"));
+        return convertToDTO(destination);
+    }
+
     @Transactional
     public DestinationDTO createDestination(DestinationDTO dto) {
         Destination destination = new Destination();
         applyDtoToEntity(dto, destination);
-        return convertToDTO(destinationRepository.save(destination));
+        destination.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), destinationRepository::existsBySlug));
+        try {
+            return convertToDTO(destinationRepository.save(destination));
+        } catch (DataIntegrityViolationException e) {
+            destination.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), destinationRepository::existsBySlug));
+            return convertToDTO(destinationRepository.save(destination));
+        }
     }
 
     @Transactional
     public DestinationDTO updateDestination(UUID id, DestinationDTO dto) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
+        boolean nameChanged = !dto.getName().equals(destination.getName());
         applyDtoToEntity(dto, destination);
+        if (nameChanged) {
+            destination.setSlug(SlugUtils.generateUniqueSlug(dto.getName(),
+                    slug -> destinationRepository.findBySlug(slug)
+                            .filter(d -> !d.getId().equals(id))
+                            .isPresent()));
+        }
         return convertToDTO(destinationRepository.save(destination));
     }
 
@@ -76,6 +97,7 @@ public class DestinationService {
     private DestinationDTO convertToDTO(Destination destination) {
         DestinationDTO dto = new DestinationDTO();
         dto.setId(destination.getId());
+        dto.setSlug(destination.getSlug());
         dto.setName(destination.getName());
         dto.setDescription(destination.getDescription());
         dto.setCountry(destination.getCountry());

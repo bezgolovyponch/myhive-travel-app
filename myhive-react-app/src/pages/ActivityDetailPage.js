@@ -1,25 +1,37 @@
 import {useContext, useEffect, useState} from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
+import {Helmet} from 'react-helmet-async';
+import {Link, useNavigate, useParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
+import {SITE_URL} from '../services/config';
 import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
 import './ActivityDetailPage.css';
 
 function ActivityDetailPage() {
-    const {id} = useParams();
+    const {destinationSlug, slug, id} = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useContext(AppContext);
     const [activity, setActivity] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const isLegacy = !destinationSlug && id;
 
     useEffect(() => {
         setLoading(true);
-        api.getActivity(id)
-            .then(data => setActivity(data))
+        const fetchPromise = isLegacy
+            ? api.getActivity(id)
+            : api.getActivityBySlug(slug);
+        fetchPromise
+            .then(data => {
+                if (isLegacy && data.slug && data.destinationSlug) {
+                    navigate(`/destination/${data.destinationSlug}/activity/${data.slug}`, {replace: true});
+                } else {
+                    setActivity(data);
+                }
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    }, [id]);
+    }, [slug, id, isLegacy, navigate]);
 
     if (loading) {
         return (
@@ -53,9 +65,21 @@ function ActivityDetailPage() {
 
     return (
         <div className="activity-detail-page">
-            <button className="activity-detail-back" onClick={() => navigate(-1)}>
-                &larr; Back
-            </button>
+            <Helmet>
+                <title>{title} — Trivlu</title>
+                <meta name="description" content={activity.description || `${title} in ${activity.destinationName}`}/>
+                <link rel="canonical"
+                      href={`${SITE_URL}/destination/${destinationSlug || activity.destinationSlug}/activity/${activity.slug}`}/>
+            </Helmet>
+            <nav className="activity-detail-breadcrumbs">
+                <Link to="/">Home</Link>
+                <span>&rsaquo;</span>
+                <Link to={`/destination/${destinationSlug || activity.destinationSlug}?tab=activities`}>
+                    {activity.destinationName}
+                </Link>
+                <span>&rsaquo;</span>
+                <span>{title}</span>
+            </nav>
 
             <div className="activity-detail-container">
                 <div className="activity-detail-image-section">

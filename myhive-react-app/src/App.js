@@ -1,6 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/global.css';
 import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
+import {HelmetProvider} from 'react-helmet-async';
 import {AppProvider} from './context/AppContext';
 import {AuthProvider, useAuth} from './context/AuthContext';
 import Layout from './components/Layout';
@@ -45,20 +46,22 @@ function AdminRoutes() {
 
 function App() {
     return (
-        <Router>
-            <Routes>
-                {/* Admin routes — single AuthProvider instance */}
-                <Route path="/admin/*" element={<AdminRoutes/>}/>
+        <HelmetProvider>
+            <Router>
+                <Routes>
+                    {/* Admin routes — single AuthProvider instance */}
+                    <Route path="/admin/*" element={<AdminRoutes/>}/>
 
-        {/* Public routes — existing app */}
-        <Route path="/*" element={
-          <AppProvider>
-            <Layout/>
-          </AppProvider>
-        }/>
-      </Routes>
-    </Router>
-  );
+                    {/* Public routes — existing app */}
+                    <Route path="/*" element={
+                        <AppProvider>
+                            <Layout/>
+                        </AppProvider>
+                    }/>
+                </Routes>
+            </Router>
+        </HelmetProvider>
+    );
 }
 
 export default App;

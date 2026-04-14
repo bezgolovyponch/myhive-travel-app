@@ -16,11 +16,13 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ActivityDTO {
     private UUID id;
+    private String slug;
 
     @NotNull(message = "Destination ID is required")
     private UUID destinationId;
 
     private String destinationName;
+    private String destinationSlug;
 
     @NotBlank(message = "Activity name is required")
     @Size(max = 255, message = "Name must be at most 255 characters")

@@ -15,6 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class BlogPostDTO {
     private UUID id;
+    private String slug;
 
     @NotBlank(message = "Title is required")
     @Size(max = 300, message = "Title must be at most 300 characters")

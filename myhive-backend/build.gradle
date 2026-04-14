@@ -36,6 +36,10 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.31.8')
     implementation 'software.amazon.awssdk:s3'
 
+    // Slug generation (with ICU4J for full transliteration: Cyrillic, CJK, ß, etc.)
+    implementation 'com.github.slugify:slugify:3.0.7'
+    implementation 'com.ibm.icu:icu4j:76.1'
+
     // Security & OAuth2 Resource Server (Auth0 OIDC)
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'

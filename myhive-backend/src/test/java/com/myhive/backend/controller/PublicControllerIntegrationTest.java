@@ -20,11 +20,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -51,12 +49,14 @@ class PublicControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         Destination dest = new Destination();
+        dest.setSlug("tokyo");
         dest.setName("Tokyo");
         dest.setCountry("Japan");
         dest = destinationRepository.save(dest);
         destinationId = dest.getId();
 
         Activity activity = new Activity();
+        activity.setSlug("temple-visit");
         activity.setDestination(dest);
         activity.setName("Temple Visit");
         activity.setPrice(new BigDecimal("30.00"));
@@ -65,6 +65,7 @@ class PublicControllerIntegrationTest {
         activityId = activity.getId();
 
         BlogPost bp = new BlogPost();
+        bp.setSlug("tokyo-guide");
         bp.setTitle("Tokyo Guide");
         bp.setContent("Full guide");
         bp.setCategory("Travel");
@@ -165,5 +166,63 @@ class PublicControllerIntegrationTest {
     void getBlogPostById_nonexistent_returns404() throws Exception {
         mockMvc.perform(get("/blog/" + UUID.randomUUID()))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- Slug Endpoints ---
+
+    @Test
+    void getDestinationBySlug_existing_returns200() throws Exception {
+        mockMvc.perform(get("/destinations/slug/tokyo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("Tokyo")))
+                .andExpect(jsonPath("$.slug", is("tokyo")));
+    }
+
+    @Test
+    void getDestinationBySlug_nonexistent_returns404() throws Exception {
+        mockMvc.perform(get("/destinations/slug/nonexistent"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getActivityBySlug_existing_returns200() throws Exception {
+        mockMvc.perform(get("/activities/slug/temple-visit"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("Temple Visit")))
+                .andExpect(jsonPath("$.slug", is("temple-visit")))
+                .andExpect(jsonPath("$.destinationSlug", is("tokyo")));
+    }
+
+    @Test
+    void getActivityBySlug_nonexistent_returns404() throws Exception {
+        mockMvc.perform(get("/activities/slug/nonexistent"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getBlogPostBySlug_existing_returns200() throws Exception {
+        mockMvc.perform(get("/blog/slug/tokyo-guide"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title", is("Tokyo Guide")))
+                .andExpect(jsonPath("$.slug", is("tokyo-guide")));
+    }
+
+    @Test
+    void getBlogPostBySlug_nonexistent_returns404() throws Exception {
+        mockMvc.perform(get("/blog/slug/nonexistent"))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- Sitemap ---
+
+    @Test
+    void sitemap_returnsValidXml() throws Exception {
+        mockMvc.perform(get("/sitemap.xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/xml"))
+                .andExpect(content().string(containsString("<urlset")))
+                .andExpect(content().string(containsString("/destination/tokyo")))
+                .andExpect(content().string(containsString("/destination/tokyo/activity/temple-visit")))
+                .andExpect(content().string(containsString("/blog/tokyo-guide")));
     }
 }

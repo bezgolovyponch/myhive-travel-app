@@ -1,17 +1,19 @@
 import {useCallback, useContext, useEffect, useState} from 'react';
+import {Helmet} from 'react-helmet-async';
 import {AppContext} from '../context/AppContext';
 import ActivityCard from '../components/ActivityCard';
 import TripBuilder from '../components/TripBuilder';
 import {useLocation, useNavigate, useParams} from 'react-router-dom';
 import PackageCard from '../components/PackageCard';
 import api from '../services/api';
+import {SITE_URL} from '../services/config';
 import {capitalizeFirst} from '../utils/format';
 import './DestinationPage.css';
 
 const PAGE_SIZE = 12;
 
 function DestinationPage() {
-  const { id } = useParams();
+    const {slug} = useParams();
   const { state, dispatch } = useContext(AppContext);
   const location = useLocation();
   const navigate = useNavigate();
@@ -25,9 +27,13 @@ function DestinationPage() {
     const [hasMore, setHasMore] = useState(true);
     const [totalElements, setTotalElements] = useState(0);
 
-    const fetchActivitiesPage = useCallback(async (pageNum, category, reset = false) => {
+    const fetchActivitiesPage = useCallback(async (destinationId, pageNum, category, reset = false) => {
         const categoryParam = category === 'all' ? null : category;
-        const data = await api.getActivitiesPaged(id, {page: pageNum, size: PAGE_SIZE, category: categoryParam});
+        const data = await api.getActivitiesPaged(destinationId, {
+            page: pageNum,
+            size: PAGE_SIZE,
+            category: categoryParam
+        });
         setTotalElements(data.totalElements);
         setHasMore(!data.last);
         setPage(pageNum);
@@ -36,16 +42,24 @@ function DestinationPage() {
         } else {
             setActivities(prev => [...prev, ...data.content]);
         }
-    }, [id]);
+    }, []);
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
 
   useEffect(() => {
     const fetchDestinationData = async () => {
       try {
         setLoading(true);
           setCurrentFilter('all');
-          const destData = await api.getDestination(id);
+          const destData = isUuid
+              ? await api.getDestination(slug)
+              : await api.getDestinationBySlug(slug);
+          if (isUuid && destData.slug) {
+              navigate(`/destination/${destData.slug}`, {replace: true});
+              return;
+          }
         setDestination(destData);
-          await fetchActivitiesPage(0, 'all', true);
+          await fetchActivitiesPage(destData.id, 0, 'all', true);
       } catch {
           setError(true);
       } finally {
@@ -54,7 +68,7 @@ function DestinationPage() {
     };
 
     fetchDestinationData();
-  }, [id, fetchActivitiesPage]);
+  }, [slug, isUuid, navigate, fetchActivitiesPage]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -75,7 +89,7 @@ function DestinationPage() {
         setCurrentFilter(filter);
         try {
             setLoading(true);
-            await fetchActivitiesPage(0, filter, true);
+            await fetchActivitiesPage(destination.id, 0, filter, true);
         } catch {
             setError(true);
         } finally {
@@ -86,7 +100,7 @@ function DestinationPage() {
     const handleLoadMore = async () => {
         try {
             setLoadingMore(true);
-            await fetchActivitiesPage(page + 1, currentFilter);
+            await fetchActivitiesPage(destination.id, page + 1, currentFilter);
         } catch {
             setError(true);
         } finally {
@@ -117,6 +131,12 @@ function DestinationPage() {
 
   return (
     <div className="destination-page">
+        <Helmet>
+            <title>{destination.name} — Trivlu</title>
+            <meta name="description"
+                  content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
+            <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
+        </Helmet>
         <div className="page-hero destination-header">
         <h1>{destination?.name || 'Destination'}</h1>
         <p>{destination?.description || ''}</p>

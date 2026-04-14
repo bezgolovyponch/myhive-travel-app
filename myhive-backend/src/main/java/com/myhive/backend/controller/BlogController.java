@@ -28,4 +28,9 @@ public class BlogController {
     public ResponseEntity<BlogPostDTO> getBlogPostById(@PathVariable UUID id) {
         return ResponseEntity.ok(blogPostService.getBlogPostById(id));
     }
+
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<BlogPostDTO> getBlogPostBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(blogPostService.getBlogPostBySlug(slug));
+    }
 }

@@ -23,6 +23,9 @@ public class Destination {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @Column(unique = true, length = 300)
+    private String slug;
+
     @Column(nullable = false)
     private String name;
 

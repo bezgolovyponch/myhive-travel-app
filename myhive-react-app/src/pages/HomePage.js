@@ -1,6 +1,8 @@
 import {useContext} from 'react';
+import {Helmet} from 'react-helmet-async';
 import {AppContext} from '../context/AppContext';
 import DestinationCard from '../components/DestinationCard';
+import {SITE_URL} from '../services/config';
 import './HomePage.css';
 
 function HomePage() {
@@ -8,6 +10,12 @@ function HomePage() {
 
   return (
     <div className="homepage">
+        <Helmet>
+            <title>Trivlu — Group Travel Made Easy</title>
+            <meta name="description"
+                  content="Turn group travel chaos into epic adventures with zero stress. Trivlu is the first AI trip maker for multi-traveler experiences."/>
+            <link rel="canonical" href={`${SITE_URL}/`}/>
+        </Helmet>
       <section className="hero">
         <video autoPlay muted loop playsInline className="hero-video">
           <source src="https://res.cloudinary.com/dfhvltbjz/video/upload/v1758716526/panorama_sqshpf.mp4" type="video/mp4" />

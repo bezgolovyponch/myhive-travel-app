@@ -28,4 +28,9 @@ public class DestinationController {
     public ResponseEntity<DestinationDTO> getDestinationById(@PathVariable UUID id) {
         return ResponseEntity.ok(destinationService.getDestinationById(id));
     }
+
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<DestinationDTO> getDestinationBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(destinationService.getDestinationBySlug(slug));
+    }
 }

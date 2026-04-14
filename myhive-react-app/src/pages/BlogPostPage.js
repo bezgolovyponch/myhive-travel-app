@@ -1,20 +1,33 @@
 import {useEffect, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import {Helmet} from 'react-helmet-async';
+import {Link, useNavigate, useParams} from 'react-router-dom';
 import api from '../services/api';
+import {SITE_URL} from '../services/config';
 import './BlogPostPage.css';
 
 function BlogPostPage() {
-    const {id} = useParams();
+    const {slug} = useParams();
+    const navigate = useNavigate();
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
 
     useEffect(() => {
-        api.getBlogPost(id)
-            .then(data => setPost(data))
+        const fetchPost = isUuid
+            ? api.getBlogPost(slug)
+            : api.getBlogPostBySlug(slug);
+        fetchPost
+            .then(data => {
+                if (isUuid && data.slug) {
+                    navigate(`/blog/${data.slug}`, {replace: true});
+                } else {
+                    setPost(data);
+                }
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    }, [id]);
+    }, [slug, isUuid, navigate]);
 
     if (loading) {
         return (
@@ -41,6 +54,11 @@ function BlogPostPage() {
 
     return (
         <div className="blog-post-page">
+            <Helmet>
+                <title>{post.title} — Trivlu Blog</title>
+                <meta name="description" content={post.excerpt || post.title}/>
+                <link rel="canonical" href={`${SITE_URL}/blog/${post.slug}`}/>
+            </Helmet>
             {post.imageUrl && (
                 <div className="blog-post-hero" style={{backgroundImage: `url(${post.imageUrl})`}}>
                     <div className="blog-post-hero-overlay">

@@ -6,7 +6,9 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,12 @@ public class ActivityService {
     public ActivityDTO getActivityById(UUID id) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Activity", id));
+        return convertToDTO(activity);
+    }
+
+    public ActivityDTO getActivityBySlug(String slug) {
+        Activity activity = activityRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Activity not found"));
         return convertToDTO(activity);
     }
 
@@ -81,8 +89,14 @@ public class ActivityService {
         activity.setDuration(dto.getDuration());
         activity.setCategory(dto.getCategory());
         activity.setImageUrl(dto.getImageUrl());
+        activity.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), activityRepository::existsBySlug));
 
-        return convertToDTO(activityRepository.save(activity));
+        try {
+            return convertToDTO(activityRepository.save(activity));
+        } catch (DataIntegrityViolationException e) {
+            activity.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), activityRepository::existsBySlug));
+            return convertToDTO(activityRepository.save(activity));
+        }
     }
 
     @Transactional
@@ -96,12 +110,19 @@ public class ActivityService {
             activity.setDestination(destination);
         }
 
+        boolean nameChanged = !dto.getName().equals(activity.getName());
         activity.setName(dto.getName());
         activity.setDescription(dto.getDescription());
         activity.setPrice(dto.getPrice());
         activity.setDuration(dto.getDuration());
         activity.setCategory(dto.getCategory());
         activity.setImageUrl(dto.getImageUrl());
+        if (nameChanged) {
+            activity.setSlug(SlugUtils.generateUniqueSlug(dto.getName(),
+                    slug -> activityRepository.findBySlug(slug)
+                            .filter(a -> !a.getId().equals(id))
+                            .isPresent()));
+        }
 
         return convertToDTO(activityRepository.save(activity));
     }
@@ -117,8 +138,10 @@ public class ActivityService {
     private ActivityDTO convertToDTO(Activity activity) {
         ActivityDTO dto = new ActivityDTO();
         dto.setId(activity.getId());
+        dto.setSlug(activity.getSlug());
         dto.setDestinationId(activity.getDestination().getId());
         dto.setDestinationName(activity.getDestination().getName());
+        dto.setDestinationSlug(activity.getDestination().getSlug());
         dto.setName(activity.getName());
         dto.setDescription(activity.getDescription());
         dto.setPrice(activity.getPrice());

@@ -13,6 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class DestinationDTO {
     private UUID id;
+    private String slug;
     @NotBlank(message = "Name is required")
     private String name;
     private String description;

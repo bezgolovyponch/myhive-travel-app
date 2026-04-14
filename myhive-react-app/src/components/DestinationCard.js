@@ -14,8 +14,9 @@ function DestinationCard({ destination }) {
 
   const handleClick = () => {
     if (hasActivities) {
-      dispatch({ type: 'NAVIGATE', path: `/destination/${destination.id}` });
-      navigate(`/destination/${destination.id}`);
+      const path = `/destination/${destination.slug || destination.id}`;
+      dispatch({type: 'NAVIGATE', path});
+      navigate(path);
     } else {
       dispatch({type: 'OPEN_DESTINATION_MODAL', destination});
     }

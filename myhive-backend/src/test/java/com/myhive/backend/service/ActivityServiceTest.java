@@ -93,6 +93,25 @@ class ActivityServiceTest {
     }
 
     @Test
+    void getActivityBySlug_found_returnsDTO() {
+        when(activityRepository.findBySlug("test-activity")).thenReturn(Optional.of(activity));
+
+        ActivityDTO result = activityService.getActivityBySlug("test-activity");
+
+        assertThat(result.getId()).isEqualTo(activity.getId());
+        assertThat(result.getSlug()).isEqualTo("test-activity");
+        assertThat(result.getDestinationSlug()).isEqualTo(destination.getSlug());
+    }
+
+    @Test
+    void getActivityBySlug_notFound_throwsResourceNotFound() {
+        when(activityRepository.findBySlug("nonexistent")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> activityService.getActivityBySlug("nonexistent"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
     void createActivity_validDTO_savesAndReturns() {
         String expectedName = "New Activity";
         String expectedDestinationName = destination.getName();
@@ -101,6 +120,7 @@ class ActivityServiceTest {
         dto.setName(expectedName);
 
         when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(activityRepository.existsBySlug("new-activity")).thenReturn(false);
         when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> {
             Activity a = inv.getArgument(0);
             a.setId(UUID.randomUUID());
@@ -111,6 +131,37 @@ class ActivityServiceTest {
 
         assertThat(result.getName()).isEqualTo(expectedName);
         assertThat(result.getDestinationName()).isEqualTo(expectedDestinationName);
+        assertThat(result.getSlug()).isEqualTo("new-activity");
+    }
+
+    @Test
+    void createActivity_slugCollision_appendsSuffix() {
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(activityRepository.existsBySlug("new-activity")).thenReturn(true);
+        when(activityRepository.existsBySlug("new-activity-2")).thenReturn(false);
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> {
+            Activity a = inv.getArgument(0);
+            a.setId(UUID.randomUUID());
+            return a;
+        });
+
+        ActivityDTO result = activityService.createActivity(dto);
+
+        assertThat(result.getSlug()).isEqualTo("new-activity-2");
+    }
+
+    @Test
+    void updateActivity_sameNameKeepsSlug() {
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setName(activity.getName());
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityDTO result = activityService.updateActivity(activity.getId(), dto);
+
+        assertThat(result.getSlug()).isEqualTo("test-activity");
     }
 
     @Test
@@ -128,6 +179,7 @@ class ActivityServiceTest {
     void updateActivity_sameDestination_doesNotRelookup() {
         ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
         when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(activityRepository.findBySlug("new-activity")).thenReturn(Optional.empty());
         when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         activityService.updateActivity(activity.getId(), dto);
@@ -141,6 +193,7 @@ class ActivityServiceTest {
         ActivityDTO dto = TestDataFactory.activityDTO(newDest.getId());
         when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
         when(destinationRepository.findById(newDest.getId())).thenReturn(Optional.of(newDest));
+        when(activityRepository.findBySlug("new-activity")).thenReturn(Optional.empty());
         when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ActivityDTO result = activityService.updateActivity(activity.getId(), dto);

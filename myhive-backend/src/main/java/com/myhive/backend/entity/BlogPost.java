@@ -21,6 +21,9 @@ public class BlogPost {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @Column(unique = true, length = 300)
+    private String slug;
+
     @Column(nullable = false, length = 300)
     private String title;
 

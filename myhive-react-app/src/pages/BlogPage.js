@@ -1,6 +1,8 @@
 import {useEffect, useState} from 'react';
+import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
 import api from '../services/api';
+import {SITE_URL} from '../services/config';
 import './BlogPage.css';
 
 function BlogPage() {
@@ -16,6 +18,11 @@ function BlogPage() {
 
     return (
         <div className="blog-page">
+            <Helmet>
+                <title>Blog — Trivlu</title>
+                <meta name="description" content="Stories, tips, and inspiration for your next group adventure."/>
+                <link rel="canonical" href={`${SITE_URL}/blog`}/>
+            </Helmet>
             <section className="page-hero">
                 <h1>Blog</h1>
                 <p>Stories, tips, and inspiration for your next group adventure.</p>
@@ -30,7 +37,7 @@ function BlogPage() {
                 ) : (
                     <div className="blog-grid">
                         {posts.map(post => (
-                            <Link key={post.id} to={`/blog/${post.id}`} className="card blog-card">
+                            <Link key={post.id} to={`/blog/${post.slug || post.id}`} className="card blog-card">
                                 {post.imageUrl && (
                                     <img src={post.imageUrl} alt={post.title} className="blog-card-image"/>
                                 )}

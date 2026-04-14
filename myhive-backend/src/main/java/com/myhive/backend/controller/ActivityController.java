@@ -55,4 +55,9 @@ public class ActivityController {
     public ResponseEntity<ActivityDTO> getActivityById(@PathVariable UUID id) {
         return ResponseEntity.ok(activityService.getActivityById(id));
     }
+
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<ActivityDTO> getActivityBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(activityService.getActivityBySlug(slug));
+    }
 }

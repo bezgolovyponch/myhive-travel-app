@@ -14,6 +14,12 @@ export const api = {
     return response.json();
   },
 
+    async getDestinationBySlug(slug) {
+        const response = await fetch(`${API_BASE_URL}/destinations/slug/${slug}`);
+        if (!response.ok) throw new Error('Failed to fetch destination');
+        return response.json();
+    },
+
   // Activities
   async getActivities(destinationId = null, category = null) {
     let url = `${API_BASE_URL}/activities`;
@@ -46,6 +52,12 @@ export const api = {
     if (!response.ok) throw new Error('Failed to fetch activity');
     return response.json();
   },
+
+    async getActivityBySlug(slug) {
+        const response = await fetch(`${API_BASE_URL}/activities/slug/${slug}`);
+        if (!response.ok) throw new Error('Failed to fetch activity');
+        return response.json();
+    },
 
   // Bookings
   async createBooking(bookingData) {
@@ -93,6 +105,12 @@ export const api = {
 
     async getBlogPost(id) {
         const response = await fetch(`${API_BASE_URL}/blog/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch blog post');
+        return response.json();
+    },
+
+    async getBlogPostBySlug(slug) {
+        const response = await fetch(`${API_BASE_URL}/blog/slug/${slug}`);
         if (!response.ok) throw new Error('Failed to fetch blog post');
         return response.json();
     },

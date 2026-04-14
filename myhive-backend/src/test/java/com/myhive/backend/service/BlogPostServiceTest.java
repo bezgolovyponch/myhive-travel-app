@@ -63,12 +63,32 @@ class BlogPostServiceTest {
     }
 
     @Test
+    void getBlogPostBySlug_found_returnsDTO() {
+        BlogPost bp = TestDataFactory.blogPost();
+        when(blogPostRepository.findBySlug("test-blog-post")).thenReturn(Optional.of(bp));
+
+        BlogPostDTO result = blogPostService.getBlogPostBySlug("test-blog-post");
+
+        assertThat(result.getId()).isEqualTo(bp.getId());
+        assertThat(result.getSlug()).isEqualTo("test-blog-post");
+    }
+
+    @Test
+    void getBlogPostBySlug_notFound_throwsResourceNotFound() {
+        when(blogPostRepository.findBySlug("nonexistent")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> blogPostService.getBlogPostBySlug("nonexistent"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
     void createBlogPost_savesAndReturns() {
         String expectedTitle = "New Blog Post";
 
         BlogPostDTO dto = TestDataFactory.blogPostDTO();
         dto.setTitle(expectedTitle);
 
+        when(blogPostRepository.existsBySlug("new-blog-post")).thenReturn(false);
         when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> {
             BlogPost bp = inv.getArgument(0);
             bp.setId(UUID.randomUUID());
@@ -78,6 +98,7 @@ class BlogPostServiceTest {
         BlogPostDTO result = blogPostService.createBlogPost(dto);
 
         assertThat(result.getTitle()).isEqualTo(expectedTitle);
+        assertThat(result.getSlug()).isEqualTo("new-blog-post");
         verify(blogPostRepository).save(any(BlogPost.class));
     }
 
@@ -90,11 +111,44 @@ class BlogPostServiceTest {
         dto.setTitle(expectedTitle);
 
         when(blogPostRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(blogPostRepository.findBySlug("updated-blog-post")).thenReturn(Optional.empty());
         when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BlogPostDTO result = blogPostService.updateBlogPost(existing.getId(), dto);
 
         assertThat(result.getTitle()).isEqualTo(expectedTitle);
+        assertThat(result.getSlug()).isEqualTo("updated-blog-post");
+    }
+
+    @Test
+    void createBlogPost_slugCollision_appendsSuffix() {
+        BlogPostDTO dto = TestDataFactory.blogPostDTO();
+
+        when(blogPostRepository.existsBySlug("new-blog-post")).thenReturn(true);
+        when(blogPostRepository.existsBySlug("new-blog-post-2")).thenReturn(false);
+        when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> {
+            BlogPost bp = inv.getArgument(0);
+            bp.setId(UUID.randomUUID());
+            return bp;
+        });
+
+        BlogPostDTO result = blogPostService.createBlogPost(dto);
+
+        assertThat(result.getSlug()).isEqualTo("new-blog-post-2");
+    }
+
+    @Test
+    void updateBlogPost_sameTitleKeepsSlug() {
+        BlogPost existing = TestDataFactory.blogPost();
+        BlogPostDTO dto = TestDataFactory.blogPostDTO();
+        dto.setTitle(existing.getTitle());
+
+        when(blogPostRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BlogPostDTO result = blogPostService.updateBlogPost(existing.getId(), dto);
+
+        assertThat(result.getSlug()).isEqualTo("test-blog-post");
     }
 
     @Test

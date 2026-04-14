@@ -14,7 +14,8 @@ function ActivityCard({ activity, isAdded = false }) {
   };
 
     const handleCardClick = () => {
-        navigate(`/activity/${activity.id}`);
+        const destSlug = activity.destinationSlug || activity.destinationId;
+        navigate(`/destination/${destSlug}/activity/${activity.slug || activity.id}`);
     };
 
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;

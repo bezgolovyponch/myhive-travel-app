@@ -18,12 +18,12 @@ function Header() {
     }
   };
 
-  const destinationMatch = location.pathname.match(/^\/destination\/(.+)$/);
-  const destinationId = destinationMatch ? destinationMatch[1] : null;
-  const destination = destinationId
-      ? state.destinations.find((item) => item.id === destinationId)
+  const destinationMatch = location.pathname.match(/^\/destination\/([^?]+)/);
+  const destinationSlug = destinationMatch ? destinationMatch[1] : null;
+  const destination = destinationSlug
+      ? state.destinations.find((item) => item.slug === destinationSlug)
       : null;
-  const showBreadcrumbs = Boolean(destinationId);
+  const showBreadcrumbs = Boolean(destinationSlug);
   const currentTabLabel = state.currentTab
       ? state.currentTab.replace('-', ' ').replace(/\b\w/g, (char) => char.toUpperCase())
       : 'Activities';
@@ -70,7 +70,7 @@ function Header() {
             <div className="breadcrumbs-content">
               <Link className="breadcrumb-item" to="/">Home</Link>
               <span className="breadcrumb-separator">&gt;</span>
-              <Link className="breadcrumb-item" to={`/destination/${destinationId}?tab=activities`}>
+              <Link className="breadcrumb-item" to={`/destination/${destinationSlug}?tab=activities`}>
                 {destination?.name || 'Destination'}
               </Link>
               <span className="breadcrumb-separator">&gt;</span>

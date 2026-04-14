@@ -18,6 +18,7 @@ public final class TestDataFactory {
     public static Destination destination() {
         Destination d = new Destination();
         d.setId(UUID.randomUUID());
+        d.setSlug("test-destination");
         d.setName("Test Destination");
         d.setDescription("A beautiful test destination");
         d.setCountry("Testland");
@@ -31,6 +32,7 @@ public final class TestDataFactory {
     public static Activity activity(Destination destination) {
         Activity a = new Activity();
         a.setId(UUID.randomUUID());
+        a.setSlug("test-activity");
         a.setDestination(destination);
         a.setName("Test Activity");
         a.setDescription("A fun test activity");
@@ -72,6 +74,7 @@ public final class TestDataFactory {
     public static BlogPost blogPost() {
         BlogPost bp = new BlogPost();
         bp.setId(UUID.randomUUID());
+        bp.setSlug("test-blog-post");
         bp.setTitle("Test Blog Post");
         bp.setExcerpt("Test excerpt");
         bp.setContent("Full test content here");

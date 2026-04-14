@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {Helmet} from 'react-helmet-async';
 import {api} from '../services/api';
+import {SITE_URL} from '../services/config';
 import './ContactPage.css';
 
 function ContactPage() {
@@ -86,6 +88,12 @@ function ContactPage() {
 
     return (
         <div className="contact-page">
+            <Helmet>
+                <title>Contact — Trivlu</title>
+                <meta name="description"
+                      content="Have a question or want to plan a group trip? Get in touch with the Trivlu team."/>
+                <link rel="canonical" href={`${SITE_URL}/contact`}/>
+            </Helmet>
             <section className="page-hero">
                 <h1>Contact Us</h1>
                 <p>Have a question or want to plan a group trip? We'd love to hear from you.</p>

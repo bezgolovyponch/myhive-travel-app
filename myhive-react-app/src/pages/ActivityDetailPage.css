@@ -16,19 +16,28 @@
     color: var(--text-muted);
 }
 
-.activity-detail-back {
+.activity-detail-breadcrumbs {
     align-self: flex-start;
-    background: none;
-    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
     color: var(--text-muted);
-    font-size: 0.875rem;
-    cursor: pointer;
-    padding: var(--gap-sm) 0;
+}
+
+.activity-detail-breadcrumbs a {
+    color: var(--text-muted);
+    text-decoration: none;
     transition: color 150ms;
 }
 
-.activity-detail-back:hover {
+.activity-detail-breadcrumbs a:hover {
     color: var(--text);
+}
+
+.activity-detail-breadcrumbs span:last-child {
+    color: var(--text);
+    font-weight: 500;
 }
 
 .activity-detail-container {

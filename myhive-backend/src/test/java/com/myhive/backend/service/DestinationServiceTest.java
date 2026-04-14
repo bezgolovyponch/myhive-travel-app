@@ -85,6 +85,25 @@ class DestinationServiceTest {
     }
 
     @Test
+    void getDestinationBySlug_found_returnsDTO() {
+        Destination dest = TestDataFactory.destination();
+        when(destinationRepository.findBySlug("test-destination")).thenReturn(Optional.of(dest));
+
+        DestinationDTO result = destinationService.getDestinationBySlug("test-destination");
+
+        assertThat(result.getId()).isEqualTo(dest.getId());
+        assertThat(result.getSlug()).isEqualTo("test-destination");
+    }
+
+    @Test
+    void getDestinationBySlug_notFound_throwsResourceNotFound() {
+        when(destinationRepository.findBySlug("nonexistent")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> destinationService.getDestinationBySlug("nonexistent"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
     void createDestination_validDTO_savesAndReturns() {
         String expectedName = "Bali";
         String expectedCountry = "Indonesia";
@@ -97,6 +116,7 @@ class DestinationServiceTest {
         dto.setCity(expectedCity);
         dto.setRating(expectedRating);
 
+        when(destinationRepository.existsBySlug("bali")).thenReturn(false);
         when(destinationRepository.save(any(Destination.class))).thenAnswer(inv -> {
             Destination d = inv.getArgument(0);
             d.setId(UUID.randomUUID());
@@ -109,7 +129,27 @@ class DestinationServiceTest {
         assertThat(result.getCountry()).isEqualTo(expectedCountry);
         assertThat(result.getCity()).isEqualTo(expectedCity);
         assertThat(result.getRating()).isEqualByComparingTo(expectedRating);
+        assertThat(result.getSlug()).isEqualTo("bali");
         verify(destinationRepository).save(any(Destination.class));
+    }
+
+    @Test
+    void createDestination_slugCollision_appendsSuffix() {
+        DestinationDTO dto = new DestinationDTO();
+        dto.setName("Bali");
+        dto.setCountry("Indonesia");
+
+        when(destinationRepository.existsBySlug("bali")).thenReturn(true);
+        when(destinationRepository.existsBySlug("bali-2")).thenReturn(false);
+        when(destinationRepository.save(any(Destination.class))).thenAnswer(inv -> {
+            Destination d = inv.getArgument(0);
+            d.setId(UUID.randomUUID());
+            return d;
+        });
+
+        DestinationDTO result = destinationService.createDestination(dto);
+
+        assertThat(result.getSlug()).isEqualTo("bali-2");
     }
 
     @Test
@@ -123,13 +163,29 @@ class DestinationServiceTest {
         dto.setCountry(expectedCountry);
 
         when(destinationRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(destinationRepository.findBySlug("updated-name")).thenReturn(Optional.empty());
         when(destinationRepository.save(any(Destination.class))).thenAnswer(inv -> inv.getArgument(0));
 
         DestinationDTO result = destinationService.updateDestination(existing.getId(), dto);
 
         assertThat(result.getName()).isEqualTo(expectedName);
         assertThat(result.getCountry()).isEqualTo(expectedCountry);
+        assertThat(result.getSlug()).isEqualTo("updated-name");
         verify(destinationRepository).save(existing);
+    }
+
+    @Test
+    void updateDestination_sameNameKeepsSlug() {
+        Destination existing = TestDataFactory.destination();
+        DestinationDTO dto = TestDataFactory.destinationDTO();
+        dto.setName(existing.getName());
+
+        when(destinationRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(destinationRepository.save(any(Destination.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        DestinationDTO result = destinationService.updateDestination(existing.getId(), dto);
+
+        assertThat(result.getSlug()).isEqualTo("test-destination");
     }
 
     @Test

@@ -7,6 +7,7 @@ import ImageUploadField from '../components/ImageUploadField';
 
 const EMPTY_FORM = {
     name: '',
+    slug: '',
     description: '',
     country: '',
     city: '',
@@ -16,6 +17,7 @@ const EMPTY_FORM = {
 
 const COLUMNS = [
     {key: 'name', label: 'Name'},
+    {key: 'slug', label: 'Slug'},
     {key: 'country', label: 'Country'},
     {key: 'city', label: 'City'},
     {key: 'rating', label: 'Rating'},
@@ -36,6 +38,7 @@ function AdminDestinations() {
         deleteFn: (api, id) => api.deleteDestination(id),
         mapItemToForm: (d) => ({
             name: d.name || '',
+            slug: d.slug || '',
             description: d.description || '',
             country: d.country || '',
             city: d.city || '',
@@ -105,6 +108,7 @@ function AdminDestinations() {
                                         </div>
                                     </div>
                                 </td>
+                                <td className="small text-muted">{destination.slug || '—'}</td>
                                 <td className="small">{destination.country || '—'}</td>
                                 <td className="small">{destination.city || '—'}</td>
                                 <td>
@@ -147,6 +151,12 @@ function AdminDestinations() {
                                 placeholder="Destination name"
                             />
                         </Form.Group>
+                        {editing && form.slug && (
+                            <Form.Group className="mb-3">
+                                <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
+                                <Form.Control value={form.slug} readOnly plaintext className="text-muted small"/>
+                            </Form.Group>
+                        )}
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Description</Form.Label>
                             <Form.Control

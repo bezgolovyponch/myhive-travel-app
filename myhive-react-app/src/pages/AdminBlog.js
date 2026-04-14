@@ -7,6 +7,7 @@ import ImageUploadField from '../components/ImageUploadField';
 
 const EMPTY_FORM = {
     title: '',
+    slug: '',
     excerpt: '',
     content: '',
     category: '',
@@ -16,6 +17,7 @@ const EMPTY_FORM = {
 
 const COLUMNS = [
     {key: 'title', label: 'Title'},
+    {key: 'slug', label: 'Slug'},
     {key: 'category', label: 'Category'},
     {key: 'date', label: 'Date'},
 ];
@@ -34,6 +36,7 @@ function AdminBlog() {
         deleteFn: (api, id) => api.deleteBlogPost(id),
         mapItemToForm: (post) => ({
             title: post.title || '',
+            slug: post.slug || '',
             excerpt: post.excerpt || '',
             content: post.content || '',
             category: post.category || '',
@@ -93,6 +96,7 @@ function AdminBlog() {
                                         </div>
                                     )}
                                 </td>
+                                <td className="small text-muted">{post.slug || '—'}</td>
                                 <td>
                                     {post.category ? (
                                         <Badge bg="light" text="dark" className="border">
@@ -133,6 +137,12 @@ function AdminBlog() {
                                 placeholder="Blog post title"
                             />
                         </Form.Group>
+                        {editing && form.slug && (
+                            <Form.Group className="mb-3">
+                                <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
+                                <Form.Control value={form.slug} readOnly plaintext className="text-muted small"/>
+                            </Form.Group>
+                        )}
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Excerpt</Form.Label>
                             <Form.Control

@@ -21,11 +21,13 @@ function Layout() {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/destination/:id" element={<DestinationPage />} />
-            <Route path="/activity/:id" element={<ActivityDetailPage/>}/>
+            <Route path="/destination/:slug" element={<DestinationPage/>}/>
+            <Route path="/destination/:destinationSlug/activity/:slug" element={<ActivityDetailPage/>}/>
+            {/* Legacy UUID routes — redirect to slug-based URLs */}
+            <Route path="/activity/:id" element={<ActivityDetailPage legacy/>}/>
             <Route path="/about" element={<AboutPage/>}/>
             <Route path="/blog" element={<BlogPage/>}/>
-            <Route path="/blog/:id" element={<BlogPostPage/>}/>
+            <Route path="/blog/:slug" element={<BlogPostPage/>}/>
             <Route path="/contact" element={<ContactPage/>}/>
         </Routes>
       </main>

@@ -4,7 +4,9 @@ import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.entity.BlogPost;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.BlogPostRepository;
+import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,12 @@ public class BlogPostService {
         return convertToDTO(blogPost);
     }
 
+    public BlogPostDTO getBlogPostBySlug(String slug) {
+        BlogPost blogPost = blogPostRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Blog post not found"));
+        return convertToDTO(blogPost);
+    }
+
     @Transactional
     public BlogPostDTO createBlogPost(BlogPostDTO dto) {
         BlogPost blogPost = new BlogPost();
@@ -46,8 +54,14 @@ public class BlogPostService {
         blogPost.setCategory(dto.getCategory());
         blogPost.setImageUrl(dto.getImageUrl());
         blogPost.setDate(dto.getDate());
+        blogPost.setSlug(SlugUtils.generateUniqueSlug(dto.getTitle(), blogPostRepository::existsBySlug));
 
-        return convertToDTO(blogPostRepository.save(blogPost));
+        try {
+            return convertToDTO(blogPostRepository.save(blogPost));
+        } catch (DataIntegrityViolationException e) {
+            blogPost.setSlug(SlugUtils.generateUniqueSlug(dto.getTitle(), blogPostRepository::existsBySlug));
+            return convertToDTO(blogPostRepository.save(blogPost));
+        }
     }
 
     @Transactional
@@ -55,12 +69,19 @@ public class BlogPostService {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BlogPost", id));
 
+        boolean titleChanged = !dto.getTitle().equals(blogPost.getTitle());
         blogPost.setTitle(dto.getTitle());
         blogPost.setExcerpt(dto.getExcerpt());
         blogPost.setContent(dto.getContent());
         blogPost.setCategory(dto.getCategory());
         blogPost.setImageUrl(dto.getImageUrl());
         blogPost.setDate(dto.getDate());
+        if (titleChanged) {
+            blogPost.setSlug(SlugUtils.generateUniqueSlug(dto.getTitle(),
+                    slug -> blogPostRepository.findBySlug(slug)
+                            .filter(b -> !b.getId().equals(id))
+                            .isPresent()));
+        }
 
         return convertToDTO(blogPostRepository.save(blogPost));
     }
@@ -76,6 +97,7 @@ public class BlogPostService {
     private BlogPostDTO convertToDTO(BlogPost blogPost) {
         BlogPostDTO dto = new BlogPostDTO();
         dto.setId(blogPost.getId());
+        dto.setSlug(blogPost.getSlug());
         dto.setTitle(blogPost.getTitle());
         dto.setExcerpt(blogPost.getExcerpt());
         dto.setContent(blogPost.getContent());

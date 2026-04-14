@@ -26,6 +26,9 @@ public class Activity {
     @JoinColumn(name = "destination_id", nullable = false)
     private Destination destination;
 
+    @Column(unique = true, length = 300)
+    private String slug;
+
     @Column(nullable = false)
     private String name;
 
