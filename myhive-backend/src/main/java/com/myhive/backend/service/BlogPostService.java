@@ -48,18 +48,13 @@ public class BlogPostService {
     @Transactional
     public BlogPostDTO createBlogPost(BlogPostDTO dto) {
         BlogPost blogPost = new BlogPost();
-        blogPost.setTitle(dto.getTitle());
-        blogPost.setExcerpt(dto.getExcerpt());
-        blogPost.setContent(dto.getContent());
-        blogPost.setCategory(dto.getCategory());
-        blogPost.setImageUrl(dto.getImageUrl());
-        blogPost.setDate(dto.getDate());
-        blogPost.setSlug(SlugUtils.generateUniqueSlug(dto.getTitle(), blogPostRepository::existsBySlug));
+        applyDtoToEntity(dto, blogPost);
+        blogPost.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getTitle(), blogPostRepository::existsBySlug));
 
         try {
             return convertToDTO(blogPostRepository.save(blogPost));
         } catch (DataIntegrityViolationException e) {
-            blogPost.setSlug(SlugUtils.generateUniqueSlug(dto.getTitle(), blogPostRepository::existsBySlug));
+            blogPost.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getTitle(), blogPostRepository::existsBySlug));
             return convertToDTO(blogPostRepository.save(blogPost));
         }
     }
@@ -69,15 +64,10 @@ public class BlogPostService {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BlogPost", id));
 
-        boolean titleChanged = !dto.getTitle().equals(blogPost.getTitle());
-        blogPost.setTitle(dto.getTitle());
-        blogPost.setExcerpt(dto.getExcerpt());
-        blogPost.setContent(dto.getContent());
-        blogPost.setCategory(dto.getCategory());
-        blogPost.setImageUrl(dto.getImageUrl());
-        blogPost.setDate(dto.getDate());
-        if (titleChanged) {
-            blogPost.setSlug(SlugUtils.generateUniqueSlug(dto.getTitle(),
+        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), blogPost.getSlug(), dto.getTitle(), blogPost.getTitle());
+        applyDtoToEntity(dto, blogPost);
+        if (updateSlug) {
+            blogPost.setSlug(SlugUtils.resolveForUpdate(dto.getSlug(), dto.getTitle(), blogPost.getSlug(),
                     slug -> blogPostRepository.findBySlug(slug)
                             .filter(b -> !b.getId().equals(id))
                             .isPresent()));
@@ -92,6 +82,15 @@ public class BlogPostService {
             throw new ResourceNotFoundException("BlogPost", id);
         }
         blogPostRepository.deleteById(id);
+    }
+
+    private void applyDtoToEntity(BlogPostDTO dto, BlogPost blogPost) {
+        blogPost.setTitle(dto.getTitle());
+        blogPost.setExcerpt(dto.getExcerpt());
+        blogPost.setContent(dto.getContent());
+        blogPost.setCategory(dto.getCategory());
+        blogPost.setImageUrl(dto.getImageUrl());
+        blogPost.setDate(dto.getDate());
     }
 
     private BlogPostDTO convertToDTO(BlogPost blogPost) {

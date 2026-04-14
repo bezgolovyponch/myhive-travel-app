@@ -1,6 +1,7 @@
 package com.myhive.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class DestinationDTO {
     private UUID id;
+    @Size(max = 280, message = "Slug must be at most 280 characters")
     private String slug;
     @NotBlank(message = "Name is required")
     private String name;

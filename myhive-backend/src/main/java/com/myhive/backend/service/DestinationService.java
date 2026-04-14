@@ -50,11 +50,11 @@ public class DestinationService {
     public DestinationDTO createDestination(DestinationDTO dto) {
         Destination destination = new Destination();
         applyDtoToEntity(dto, destination);
-        destination.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), destinationRepository::existsBySlug));
+        destination.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), destinationRepository::existsBySlug));
         try {
             return convertToDTO(destinationRepository.save(destination));
         } catch (DataIntegrityViolationException e) {
-            destination.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), destinationRepository::existsBySlug));
+            destination.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), destinationRepository::existsBySlug));
             return convertToDTO(destinationRepository.save(destination));
         }
     }
@@ -63,10 +63,10 @@ public class DestinationService {
     public DestinationDTO updateDestination(UUID id, DestinationDTO dto) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
-        boolean nameChanged = !dto.getName().equals(destination.getName());
+        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), destination.getSlug(), dto.getName(), destination.getName());
         applyDtoToEntity(dto, destination);
-        if (nameChanged) {
-            destination.setSlug(SlugUtils.generateUniqueSlug(dto.getName(),
+        if (updateSlug) {
+            destination.setSlug(SlugUtils.resolveForUpdate(dto.getSlug(), dto.getName(), destination.getSlug(),
                     slug -> destinationRepository.findBySlug(slug)
                             .filter(d -> !d.getId().equals(id))
                             .isPresent()));

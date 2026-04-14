@@ -151,12 +151,14 @@ function AdminDestinations() {
                                 placeholder="Destination name"
                             />
                         </Form.Group>
-                        {editing && form.slug && (
-                            <Form.Group className="mb-3">
-                                <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
-                                <Form.Control value={form.slug} readOnly plaintext className="text-muted small"/>
-                            </Form.Group>
-                        )}
+                        <Form.Group className="mb-3">
+                            <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
+                            <Form.Control
+                                value={form.slug}
+                                onChange={e => setForm({...form, slug: e.target.value})}
+                                placeholder="Leave blank to auto-generate from name"
+                            />
+                        </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Description</Form.Label>
                             <Form.Control

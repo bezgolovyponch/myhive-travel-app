@@ -45,4 +45,26 @@ public final class SlugUtils {
     public static String generateUniqueSlug(String input, Predicate<String> existsCheck) {
         return ensureUnique(generateSlug(input), existsCheck);
     }
+
+    public static String resolveSlug(String customSlug, String fallbackInput, Predicate<String> existsCheck) {
+        if (customSlug != null && !customSlug.isBlank()) {
+            String sanitized = generateSlug(customSlug);
+            return ensureUnique(sanitized, existsCheck);
+        }
+        return generateUniqueSlug(fallbackInput, existsCheck);
+    }
+
+    public static boolean needsUpdate(String dtoSlug, String currentSlug, String dtoName, String currentName) {
+        boolean slugProvided = dtoSlug != null && !dtoSlug.isBlank();
+        boolean slugCleared = !slugProvided && dtoSlug != null;
+        boolean slugChanged = slugProvided && !dtoSlug.equals(currentSlug);
+        boolean nameChanged = !dtoName.equals(currentName);
+        return slugChanged || slugCleared || nameChanged;
+    }
+
+    public static String resolveForUpdate(String dtoSlug, String dtoName, String currentSlug,
+                                          Predicate<String> existsCheck) {
+        boolean slugCleared = dtoSlug != null && dtoSlug.isBlank();
+        return resolveSlug(slugCleared ? null : dtoSlug, dtoName, existsCheck);
+    }
 }

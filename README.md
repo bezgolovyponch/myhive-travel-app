@@ -25,23 +25,25 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 
 ### Backend Packages
 
-| Package       | Purpose                                                                        |
-|---------------|--------------------------------------------------------------------------------|
-| `controller/` | REST endpoints (Destination, Activity, Booking, Blog, Contact, Admin)          |
-| `service/`    | Business logic + EmailService                                                  |
-| `entity/`     | JPA entities (UUID PKs): Destination, Activity, Booking, BookingItem, BlogPost |
-| `dto/`        | Request/response objects                                                       |
-| `config/`     | Security (Auth0 OIDC), CORS, rate limiting, R2, email templates                |
+| Package       | Purpose                                                                               |
+|---------------|---------------------------------------------------------------------------------------|
+| `controller/` | REST endpoints (Destination, Activity, Booking, Blog, Contact, Admin, Sitemap)        |
+| `service/`    | Business logic + EmailService                                                         |
+| `entity/`     | JPA entities (UUID PKs, slugs): Destination, Activity, Booking, BookingItem, BlogPost |
+| `dto/`        | Request/response objects                                                              |
+| `config/`     | Security (Auth0 OIDC), CORS, rate limiting, R2, email templates                       |
+| `util/`       | SlugUtils (slug generation via Slugify + ICU4J transliteration)                       |
 
 ### API Endpoints
 
 **Public** (no auth):
 
-- `GET /destinations`, `GET /destinations/{id}`
-- `GET /activities`, `GET /activities/{id}`, `GET /activities/paged`
-- `GET /blog`, `GET /blog/{id}`
+- `GET /destinations`, `GET /destinations/{id}`, `GET /destinations/slug/{slug}`
+- `GET /activities`, `GET /activities/{id}`, `GET /activities/slug/{slug}`, `GET /activities/paged`
+- `GET /blog`, `GET /blog/{id}`, `GET /blog/slug/{slug}`
 - `POST /bookings`, `POST /bookings/trip`, `GET /bookings/{id}`, `GET /bookings?email=`
 - `POST /contact`
+- `GET /sitemap.xml` — XML sitemap (1h cache)
 
 **Admin** (Auth0 JWT, ADMIN/MANAGER role):
 
@@ -52,7 +54,8 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 
 | Service | Provider      | Purpose                              |
 |---------|---------------|--------------------------------------|
-| Hosting | Render.com    | Backend + frontend + PostgreSQL 16   |
+| Hosting | Render.com    | Backend + frontend static site       |
+| DB      | Neon          | PostgreSQL 17                        |
 | CDN/DNS | Cloudflare    | Proxy, DDoS protection, caching, SSL |
 | Email   | SendGrid      | SMTP relay (noreply@trivlu.com)      |
 | Images  | Cloudflare R2 | S3-compatible object storage         |
@@ -77,7 +80,9 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `R2_PUBLIC_URL`          | for uploads | -                        |
 | `AUTH0_ISSUER_URI`       | yes         | -                        |
 | `AUTH0_AUDIENCE`         | yes         | `https://api.trivlu.com` |
+| `FRONTEND_URL`           | for sitemap | `https://trivlu.com`     |
 | `REACT_APP_API_URL`      | frontend    | `http://localhost:8080`  |
+| `REACT_APP_SITE_URL`     | frontend    | `https://trivlu.com`     |
 
 ## Testing
 
@@ -103,6 +108,17 @@ docker run -d -p 8080:8080 --env-file .env myhive-backend:prod
 ```
 
 Dev docker-compose available: `docker-compose -f docker-compose.dev.yml up`
+
+## SEO
+
+- **Slug-based URLs**: `/destination/prague`, `/destination/tenerife/activity/sunset-boat-party`,
+  `/blog/top-5-group-travel-destinations-for-2026`
+- **Slug generation**: Slugify library + ICU4J for full unicode transliteration (Cyrillic, CJK, accents, German ß)
+- **Custom slugs**: Admins can set custom slugs via the admin panel; leave blank to auto-generate from name/title
+- **Meta tags**: react-helmet-async for per-page `<title>`, `<meta description>`, `<link canonical>`
+- **Sitemap**: `GET /sitemap.xml` — auto-generated, 1h HTTP cache, Cloudflare CDN cache
+- **Open Graph**: Default OG tags in index.html
+- **robots.txt**: Disallow `/admin/`, Sitemap directive
 
 ## Security
 

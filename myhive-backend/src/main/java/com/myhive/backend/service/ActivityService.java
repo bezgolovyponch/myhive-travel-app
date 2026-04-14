@@ -83,18 +83,13 @@ public class ActivityService {
 
         Activity activity = new Activity();
         activity.setDestination(destination);
-        activity.setName(dto.getName());
-        activity.setDescription(dto.getDescription());
-        activity.setPrice(dto.getPrice());
-        activity.setDuration(dto.getDuration());
-        activity.setCategory(dto.getCategory());
-        activity.setImageUrl(dto.getImageUrl());
-        activity.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), activityRepository::existsBySlug));
+        applyDtoToEntity(dto, activity);
+        activity.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), activityRepository::existsBySlug));
 
         try {
             return convertToDTO(activityRepository.save(activity));
         } catch (DataIntegrityViolationException e) {
-            activity.setSlug(SlugUtils.generateUniqueSlug(dto.getName(), activityRepository::existsBySlug));
+            activity.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), activityRepository::existsBySlug));
             return convertToDTO(activityRepository.save(activity));
         }
     }
@@ -110,15 +105,10 @@ public class ActivityService {
             activity.setDestination(destination);
         }
 
-        boolean nameChanged = !dto.getName().equals(activity.getName());
-        activity.setName(dto.getName());
-        activity.setDescription(dto.getDescription());
-        activity.setPrice(dto.getPrice());
-        activity.setDuration(dto.getDuration());
-        activity.setCategory(dto.getCategory());
-        activity.setImageUrl(dto.getImageUrl());
-        if (nameChanged) {
-            activity.setSlug(SlugUtils.generateUniqueSlug(dto.getName(),
+        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), activity.getSlug(), dto.getName(), activity.getName());
+        applyDtoToEntity(dto, activity);
+        if (updateSlug) {
+            activity.setSlug(SlugUtils.resolveForUpdate(dto.getSlug(), dto.getName(), activity.getSlug(),
                     slug -> activityRepository.findBySlug(slug)
                             .filter(a -> !a.getId().equals(id))
                             .isPresent()));
@@ -133,6 +123,15 @@ public class ActivityService {
             throw new ResourceNotFoundException("Activity", id);
         }
         activityRepository.deleteById(id);
+    }
+
+    private void applyDtoToEntity(ActivityDTO dto, Activity activity) {
+        activity.setName(dto.getName());
+        activity.setDescription(dto.getDescription());
+        activity.setPrice(dto.getPrice());
+        activity.setDuration(dto.getDuration());
+        activity.setCategory(dto.getCategory());
+        activity.setImageUrl(dto.getImageUrl());
     }
 
     private ActivityDTO convertToDTO(Activity activity) {

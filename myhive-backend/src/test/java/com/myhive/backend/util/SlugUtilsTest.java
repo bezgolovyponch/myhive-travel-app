@@ -116,4 +116,29 @@ class SlugUtilsTest {
         String result = SlugUtils.ensureUnique("prague", existing::contains);
         assertEquals("prague-4", result);
     }
+
+    @Test
+    void resolveSlug_customSlugProvided_sanitizesAndUses() {
+        String result = SlugUtils.resolveSlug("My Custom Slug!", "Fallback Name", slug -> false);
+        assertEquals("my-custom-slug", result);
+    }
+
+    @Test
+    void resolveSlug_customSlugBlank_fallsBackToName() {
+        String result = SlugUtils.resolveSlug("", "Prague Castle", slug -> false);
+        assertEquals("prague-castle", result);
+    }
+
+    @Test
+    void resolveSlug_customSlugNull_fallsBackToName() {
+        String result = SlugUtils.resolveSlug(null, "Prague Castle", slug -> false);
+        assertEquals("prague-castle", result);
+    }
+
+    @Test
+    void resolveSlug_customSlugWithCollision_appendsSuffix() {
+        Set<String> existing = Set.of("custom-slug");
+        String result = SlugUtils.resolveSlug("Custom Slug", "Fallback", existing::contains);
+        assertEquals("custom-slug-2", result);
+    }
 }

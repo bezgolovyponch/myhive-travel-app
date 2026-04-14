@@ -16,6 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ActivityDTO {
     private UUID id;
+    @Size(max = 280, message = "Slug must be at most 280 characters")
     private String slug;
 
     @NotNull(message = "Destination ID is required")
