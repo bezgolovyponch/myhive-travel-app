@@ -8,30 +8,20 @@ import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/for
 import './ActivityDetailPage.css';
 
 function ActivityDetailPage() {
-    const {destinationSlug, slug, id} = useParams();
+    const {destinationSlug, slug} = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useContext(AppContext);
     const [activity, setActivity] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
-    const isLegacy = !destinationSlug && id;
 
     useEffect(() => {
         setLoading(true);
-        const fetchPromise = isLegacy
-            ? api.getActivity(id)
-            : api.getActivityBySlug(slug);
-        fetchPromise
-            .then(data => {
-                if (isLegacy && data.slug && data.destinationSlug) {
-                    navigate(`/destination/${data.destinationSlug}/activity/${data.slug}`, {replace: true});
-                } else {
-                    setActivity(data);
-                }
-            })
+        api.getActivityBySlug(slug)
+            .then(data => setActivity(data))
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    }, [slug, id, isLegacy, navigate]);
+    }, [slug]);
 
     if (loading) {
         return (

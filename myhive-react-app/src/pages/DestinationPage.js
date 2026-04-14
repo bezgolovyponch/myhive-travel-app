@@ -44,20 +44,12 @@ function DestinationPage() {
         }
     }, []);
 
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-
   useEffect(() => {
     const fetchDestinationData = async () => {
       try {
         setLoading(true);
           setCurrentFilter('all');
-          const destData = isUuid
-              ? await api.getDestination(slug)
-              : await api.getDestinationBySlug(slug);
-          if (isUuid && destData.slug) {
-              navigate(`/destination/${destData.slug}`, {replace: true});
-              return;
-          }
+          const destData = await api.getDestinationBySlug(slug);
         setDestination(destData);
           await fetchActivitiesPage(destData.id, 0, 'all', true);
       } catch {
@@ -68,7 +60,7 @@ function DestinationPage() {
     };
 
     fetchDestinationData();
-  }, [slug, isUuid, navigate, fetchActivitiesPage]);
+  }, [slug, fetchActivitiesPage]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
