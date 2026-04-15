@@ -10,10 +10,10 @@ function TripBuilderDropdown() {
     if (!state.tripBuilderModalOpen) return null;
 
     const handleComplete = () => {
-        const destId = state.tripItems[0]?.destinationId;
+        const destSlug = state.tripItems[0]?.destinationSlug;
         dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
-        if (destId) {
-            navigate(`/destination/${destId}?tab=trip-builder`);
+        if (destSlug) {
+            navigate(`/destination/${destSlug}?tab=trip-builder`);
         }
     };
 
