@@ -132,6 +132,7 @@ public class ActivityService {
         activity.setDuration(dto.getDuration());
         activity.setCategory(dto.getCategory());
         activity.setImageUrl(dto.getImageUrl());
+        activity.setIncludes(dto.getIncludes());
     }
 
     private ActivityDTO convertToDTO(Activity activity) {
@@ -147,6 +148,7 @@ public class ActivityService {
         dto.setDuration(activity.getDuration());
         dto.setCategory(activity.getCategory());
         dto.setImageUrl(activity.getImageUrl());
+        dto.setIncludes(activity.getIncludes());
         return dto;
     }
 }

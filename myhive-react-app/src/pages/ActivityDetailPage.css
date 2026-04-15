@@ -103,6 +103,16 @@
     line-height: 1.7;
 }
 
+.activity-detail-includes {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.activity-detail-includes strong {
+    color: var(--text);
+}
+
 .activity-detail-add-btn {
     padding: 0.75rem var(--gap-xl);
     font-size: 0.875rem;

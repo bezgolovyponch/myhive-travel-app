@@ -40,6 +40,7 @@ public final class TestDataFactory {
         a.setDuration(120);
         a.setCategory("Adventure");
         a.setImageUrl("https://example.com/activity.jpg");
+        a.setIncludes("Guide, transport, lunch");
         a.setCreatedAt(LocalDateTime.now());
         return a;
     }
@@ -131,6 +132,7 @@ public final class TestDataFactory {
         dto.setDuration(60);
         dto.setCategory("Culture");
         dto.setImageUrl("https://example.com/new.jpg");
+        dto.setIncludes("Tickets, guide");
         return dto;
     }
 

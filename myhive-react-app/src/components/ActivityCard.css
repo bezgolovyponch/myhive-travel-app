@@ -41,6 +41,14 @@
     line-height: 1.5;
 }
 
+.activity-includes {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .activity-footer {
     display: flex;
     justify-content: space-between;

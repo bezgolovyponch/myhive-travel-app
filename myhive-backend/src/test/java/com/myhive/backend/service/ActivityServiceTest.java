@@ -62,6 +62,7 @@ class ActivityServiceTest {
 
         assertThat(result.getId()).isEqualTo(activity.getId());
         assertThat(result.getDestinationName()).isEqualTo(destination.getName());
+        assertThat(result.getIncludes()).isEqualTo("Guide, transport, lunch");
     }
 
     @Test
@@ -114,6 +115,7 @@ class ActivityServiceTest {
     @Test
     void createActivity_validDTO_savesAndReturns() {
         String expectedName = "New Activity";
+        String expectedIncludes = "Tickets, guide";
         String expectedDestinationName = destination.getName();
 
         ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
@@ -130,6 +132,7 @@ class ActivityServiceTest {
         ActivityDTO result = activityService.createActivity(dto);
 
         assertThat(result.getName()).isEqualTo(expectedName);
+        assertThat(result.getIncludes()).isEqualTo(expectedIncludes);
         assertThat(result.getDestinationName()).isEqualTo(expectedDestinationName);
         assertThat(result.getSlug()).isEqualTo("new-activity");
     }

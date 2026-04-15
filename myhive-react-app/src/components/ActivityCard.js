@@ -37,6 +37,9 @@ function ActivityCard({ activity, isAdded = false }) {
         </span>
         <h3 className="activity-title">{title}{duration}</h3>
         <p className="activity-description">{activity.description}</p>
+          {activity.includes && (
+              <p className="activity-includes">Includes: {activity.includes}</p>
+          )}
         <div className="activity-footer">
           <span className="activity-price">{formattedPrice}</span>
             <button

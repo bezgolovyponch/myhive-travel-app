@@ -42,4 +42,6 @@ public class ActivityDTO {
 
     @Size(max = 500, message = "Image URL must be at most 500 characters")
     private String imageUrl;
+
+    private String includes;
 }

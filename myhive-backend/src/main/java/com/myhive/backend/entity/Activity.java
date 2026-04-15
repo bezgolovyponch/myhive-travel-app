@@ -46,6 +46,9 @@ public class Activity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String includes;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

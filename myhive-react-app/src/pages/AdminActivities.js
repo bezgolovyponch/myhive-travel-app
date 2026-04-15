@@ -14,6 +14,7 @@ const EMPTY_FORM = {
     duration: '',
     category: '',
     imageUrl: '',
+    includes: '',
     destinationId: '',
 };
 
@@ -49,6 +50,7 @@ function AdminActivities() {
             duration: a.duration ?? '',
             category: a.category || '',
             imageUrl: a.imageUrl || '',
+            includes: a.includes || '',
             destinationId: a.destinationId || '',
         }),
         buildPayload: (form) => ({
@@ -230,6 +232,16 @@ function AdminActivities() {
                                 value={form.category}
                                 onChange={e => setForm({...form, category: e.target.value})}
                                 placeholder="e.g. Adventure, Culture, Food"
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="small fw-semibold text-white">Includes</Form.Label>
+                            <Form.Control
+                                as="textarea"
+                                rows={2}
+                                value={form.includes}
+                                onChange={e => setForm({...form, includes: e.target.value})}
+                                placeholder="e.g. Transport, guide, lunch, tickets"
                             />
                         </Form.Group>
                         <ImageUploadField

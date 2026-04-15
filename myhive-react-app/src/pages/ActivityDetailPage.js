@@ -87,6 +87,12 @@ function ActivityDetailPage() {
 
                     <p className="activity-detail-description">{activity.description}</p>
 
+                    {activity.includes && (
+                        <div className="activity-detail-includes">
+                            <strong>Includes:</strong> {activity.includes}
+                        </div>
+                    )}
+
                     <button
                         className="add-to-trip-btn activity-detail-add-btn"
                         onClick={handleAddToTrip}
