@@ -45,7 +45,6 @@ function ActivityDetailPage() {
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const title = activity.name || activity.title;
     const formattedPrice = formatPrice(activity.price);
-    const duration = activity.duration ? `${activity.duration} min` : null;
     const category = capitalizeFirst(activity.category) || 'Activity';
     const isAdded = state.tripItems.some(item => item.id === activity.id);
 
@@ -82,7 +81,6 @@ function ActivityDetailPage() {
 
                     <div className="activity-detail-meta">
                         <span className="activity-detail-price">{formattedPrice}</span>
-                        {duration && <span className="activity-detail-duration">{duration}</span>}
                     </div>
 
                     <p className="activity-detail-description">{activity.description}</p>

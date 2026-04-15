@@ -21,8 +21,6 @@ function ActivityCard({ activity, isAdded = false }) {
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
   const title = activity.name || activity.title;
     const formattedPrice = formatPrice(activity.price);
-  const duration = activity.duration ? ` (${activity.duration} min)` : '';
-
   return (
       <div className="card activity-card" onClick={handleCardClick}>
           <img
@@ -35,7 +33,7 @@ function ActivityCard({ activity, isAdded = false }) {
         <span className="activity-category">
           {capitalizeFirst(activity.category) || 'Activity'}
         </span>
-        <h3 className="activity-title">{title}{duration}</h3>
+          <h3 className="activity-title">{title}</h3>
         <p className="activity-description">{activity.description}</p>
           {activity.includes && (
               <p className="activity-includes">Includes: {activity.includes}</p>

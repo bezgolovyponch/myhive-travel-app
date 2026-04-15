@@ -89,14 +89,6 @@
     color: var(--accent);
 }
 
-.activity-detail-duration {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    background: var(--tint-blue);
-    padding: var(--gap-xs) 0.75rem;
-    border-radius: var(--radius-full);
-}
-
 .activity-detail-description {
     font-size: 0.875rem;
     color: var(--text-muted);
