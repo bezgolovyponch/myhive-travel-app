@@ -45,7 +45,10 @@ function ActivityDetailPage() {
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const title = activity.name || activity.title;
     const formattedPrice = formatPricePerPerson(activity.price);
-    const category = capitalizeFirst(activity.category) || 'Activity';
+    const primaryCategory = activity.categories && activity.categories.length > 0
+        ? activity.categories[0].name
+        : null;
+    const category = primaryCategory ? capitalizeFirst(primaryCategory) : 'Activity';
     const isAdded = state.tripItems.some(item => item.id === activity.id);
 
     const handleAddToTrip = () => {

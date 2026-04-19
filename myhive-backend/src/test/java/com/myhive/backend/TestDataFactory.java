@@ -15,6 +15,25 @@ public final class TestDataFactory {
     private TestDataFactory() {
     }
 
+    public static Category category() {
+        return category("Adventure");
+    }
+
+    public static Category category(String name) {
+        Category c = new Category();
+        c.setId(UUID.randomUUID());
+        c.setName(name);
+        c.setSlug(name.toLowerCase().replace(' ', '-'));
+        c.setCreatedAt(LocalDateTime.now());
+        return c;
+    }
+
+    public static CategoryDTO categoryDTO() {
+        CategoryDTO dto = new CategoryDTO();
+        dto.setName("New Category");
+        return dto;
+    }
+
     public static Destination destination() {
         Destination d = new Destination();
         d.setId(UUID.randomUUID());
@@ -38,10 +57,15 @@ public final class TestDataFactory {
         a.setDescription("A fun test activity");
         a.setPrice(new BigDecimal("99.99"));
         a.setDuration(120);
-        a.setCategory("Adventure");
         a.setImageUrl("https://example.com/activity.jpg");
         a.setIncludes("Guide, transport, lunch");
         a.setCreatedAt(LocalDateTime.now());
+        return a;
+    }
+
+    public static Activity activity(Destination destination, Category... categories) {
+        Activity a = activity(destination);
+        a.setCategories(new java.util.HashSet<>(java.util.Arrays.asList(categories)));
         return a;
     }
 
@@ -130,7 +154,6 @@ public final class TestDataFactory {
         dto.setDescription("Activity description");
         dto.setPrice(new BigDecimal("49.99"));
         dto.setDuration(60);
-        dto.setCategory("Culture");
         dto.setImageUrl("https://example.com/new.jpg");
         dto.setIncludes("Tickets, guide");
         return dto;

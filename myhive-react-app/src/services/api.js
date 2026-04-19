@@ -21,29 +21,36 @@ export const api = {
     },
 
   // Activities
-  async getActivities(destinationId = null, category = null) {
+    async getActivities(destinationId = null, categorySlug = null) {
     let url = `${API_BASE_URL}/activities`;
     const params = new URLSearchParams();
-    
+
     if (destinationId) params.append('destinationId', destinationId);
-    if (category) params.append('category', category);
-    
+        if (categorySlug) params.append('categorySlug', categorySlug);
+
     if (params.toString()) url += `?${params.toString()}`;
-    
+
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch activities');
     return response.json();
   },
 
-    async getActivitiesPaged(destinationId, {page = 0, size = 12, category = null} = {}) {
+    async getActivitiesPaged(destinationId, {page = 0, size = 12, categorySlug = null} = {}) {
         const params = new URLSearchParams();
         params.append('destinationId', destinationId);
         params.append('page', page);
         params.append('size', size);
-        if (category) params.append('category', category);
+        if (categorySlug) params.append('categorySlug', categorySlug);
 
         const response = await fetch(`${API_BASE_URL}/activities/paged?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch activities');
+        return response.json();
+    },
+
+    // Categories
+    async getCategories() {
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        if (!response.ok) throw new Error('Failed to fetch categories');
         return response.json();
     },
 

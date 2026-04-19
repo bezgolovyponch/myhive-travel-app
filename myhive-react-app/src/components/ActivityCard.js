@@ -21,6 +21,9 @@ function ActivityCard({ activity, isAdded = false }) {
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
   const title = activity.name || activity.title;
     const formattedPrice = formatPricePerPerson(activity.price);
+    const primaryCategory = activity.categories && activity.categories.length > 0
+        ? activity.categories[0].name
+        : null;
   return (
       <div className="card activity-card" onClick={handleCardClick}>
           <img
@@ -31,7 +34,7 @@ function ActivityCard({ activity, isAdded = false }) {
       />
       <div className="activity-content">
         <span className="activity-category">
-          {capitalizeFirst(activity.category) || 'Activity'}
+          {primaryCategory ? capitalizeFirst(primaryCategory) : 'Activity'}
         </span>
           <h3 className="activity-title">{title}</h3>
         <p className="activity-description">{activity.description}</p>

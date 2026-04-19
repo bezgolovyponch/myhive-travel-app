@@ -25,6 +25,9 @@ function AdminLayout() {
                         <Nav.Link as={NavLink} to="/admin/activities">
                             Activities
                         </Nav.Link>
+                        <Nav.Link as={NavLink} to="/admin/categories">
+                            Categories
+                        </Nav.Link>
                         <Nav.Link as={NavLink} to="/admin/blog">
                             Blog
                         </Nav.Link>

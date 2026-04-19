@@ -25,29 +25,32 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 
 ### Backend Packages
 
-| Package       | Purpose                                                                               |
-|---------------|---------------------------------------------------------------------------------------|
-| `controller/` | REST endpoints (Destination, Activity, Booking, Blog, Contact, Admin, Sitemap)        |
-| `service/`    | Business logic + EmailService                                                         |
-| `entity/`     | JPA entities (UUID PKs, slugs): Destination, Activity, Booking, BookingItem, BlogPost |
-| `dto/`        | Request/response objects                                                              |
-| `config/`     | Security (Auth0 OIDC), CORS, rate limiting, R2, email templates                       |
-| `util/`       | SlugUtils (slug generation via Slugify + ICU4J transliteration)                       |
+| Package       | Purpose                                                                                         |
+|---------------|-------------------------------------------------------------------------------------------------|
+| `controller/` | REST endpoints (Destination, Activity, Booking, Blog, Contact, Admin, Sitemap)                  |
+| `service/`    | Business logic + EmailService                                                                   |
+| `entity/`     | JPA entities (UUID PKs, slugs): Destination, Activity, Category, Booking, BookingItem, BlogPost |
+| `dto/`        | Request/response objects                                                                        |
+| `config/`     | Security (Auth0 OIDC), CORS, rate limiting, R2, email templates                                 |
+| `util/`       | SlugUtils (slug generation via Slugify + ICU4J transliteration)                                 |
 
 ### API Endpoints
 
 **Public** (no auth):
 
 - `GET /destinations`, `GET /destinations/{id}`, `GET /destinations/slug/{slug}`
-- `GET /activities`, `GET /activities/{id}`, `GET /activities/slug/{slug}`, `GET /activities/paged`
+- `GET /activities`, `GET /activities/{id}`, `GET /activities/slug/{slug}`, `GET /activities/paged` (filter:
+  `?categorySlug=<slug>`)
+- `GET /categories`, `GET /categories/{id}`, `GET /categories/slug/{slug}`
 - `GET /blog`, `GET /blog/{id}`, `GET /blog/slug/{slug}`
 - `POST /bookings`, `POST /bookings/trip`, `GET /bookings/{id}`, `GET /bookings?email=`
 - `POST /contact`
 - `GET /sitemap.xml` — XML sitemap (1h cache)
 
-**Admin** (Auth0 JWT, ADMIN/MANAGER role):
+**Admin** (Auth0 JWT, ADMIN/MANAGER role; categories require ADMIN):
 
-- `/admin/bookings/**`, `/admin/destinations/**`, `/admin/activities/**`, `/admin/blog/**`, `/admin/upload`
+- `/admin/bookings/**`, `/admin/destinations/**`, `/admin/activities/**`, `/admin/categories/**`, `/admin/blog/**`,
+  `/admin/upload`
 - Paged list endpoints: `/admin/*/paged?page=0&size=10`
 
 ## Services
@@ -55,7 +58,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | Service | Provider      | Purpose                              |
 |---------|---------------|--------------------------------------|
 | Hosting | Render.com    | Backend + frontend static site       |
-| DB      | Neon          | PostgreSQL 17                        |
+| DB      | Render        | PostgreSQL 18 (Basic-256mb)          |
 | CDN/DNS | Cloudflare    | Proxy, DDoS protection, caching, SSL |
 | Email   | SendGrid      | SMTP relay (noreply@trivlu.com)      |
 | Images  | Cloudflare R2 | S3-compatible object storage         |

@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {useContext, useEffect, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
 import {capitalizeFirst, formatDate, formatPricePerPerson} from '../utils/format';
@@ -9,6 +9,12 @@ import './TripBuilder.css';
 function TripBuilder() {
   const { state, dispatch } = useContext(AppContext);
   const [browseFilter, setBrowseFilter] = useState('all');
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    api.getCategories().then(setCategories).catch(() => {
+    });
+  }, []);
   const [showContactForm, setShowContactForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -53,7 +59,9 @@ function TripBuilder() {
           activities: state.tripItems.map(item => ({
             activityId: item.id,
             activityName: item.name || item.title,
-            category: item.category || 'General',
+            category: (item.categories && item.categories.length > 0)
+                ? item.categories.map(c => c.name).join(', ')
+                : 'General',
             description: item.description || '',
             price: item.price || 0,
             duration: item.duration || 0,
@@ -85,7 +93,7 @@ function TripBuilder() {
 
   const filteredBrowseActivities = browseFilter === 'all'
       ? state.activities
-      : state.activities.filter(a => a.category === browseFilter);
+      : state.activities.filter(a => (a.categories || []).some(c => c.slug === browseFilter));
 
   return (
     <div className="trip-builder-layout">
@@ -167,13 +175,20 @@ function TripBuilder() {
         <div className="browse-header">
           <h3>Browse More Activities</h3>
           <div className="browse-filters">
-            {['all', 'nightlife', 'adventure', 'daytime'].map(filter => (
+            <button
+                key="all"
+                className={`filter-btn ${browseFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setBrowseFilter('all')}
+            >
+              All
+            </button>
+            {categories.map(category => (
                 <button
-                    key={filter}
-                    className={`filter-btn ${browseFilter === filter ? 'active' : ''}`}
-                    onClick={() => setBrowseFilter(filter)}
+                    key={category.slug}
+                    className={`filter-btn ${browseFilter === category.slug ? 'active' : ''}`}
+                    onClick={() => setBrowseFilter(category.slug)}
                 >
-                  {filter === 'all' ? 'All' : capitalizeFirst(filter)}
+                  {capitalizeFirst(category.name)}
                 </button>
             ))}
           </div>

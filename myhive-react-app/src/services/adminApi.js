@@ -154,6 +154,52 @@ export function createAdminApi(getAccessToken) {
             await handleError(response, 'Failed to delete blog post');
         },
 
+        async getCategories() {
+            const response = await fetch(`${API_BASE_URL}/admin/categories`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch categories');
+            return response.json();
+        },
+
+        async getCategoriesPaged(page = 0, size = 10) {
+            const response = await fetch(`${API_BASE_URL}/admin/categories/paged?page=${page}&size=${size}`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch categories');
+            return response.json();
+        },
+
+        async createCategory(category) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/categories`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(category),
+            });
+            await handleError(response, 'Failed to create category');
+            return response.json();
+        },
+
+        async updateCategory(id, category) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/categories/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(category),
+            });
+            await handleError(response, 'Failed to update category');
+            return response.json();
+        },
+
+        async deleteCategory(id) {
+            const response = await fetch(`${API_BASE_URL}/admin/categories/${id}`, {
+                method: 'DELETE',
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to delete category');
+        },
+
         async getDestinations() {
             const response = await fetch(`${API_BASE_URL}/admin/destinations`, {
                 headers: await authHeaders(),

@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -15,7 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = "destination")
+@ToString(exclude = {"destination", "categories"})
 public class Activity {
 
     @Id
@@ -40,8 +42,13 @@ public class Activity {
 
     private Integer duration;
 
-    @Column(length = 100)
-    private String category;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "activity_categories",
+            joinColumns = @JoinColumn(name = "activity_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;

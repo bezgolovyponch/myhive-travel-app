@@ -53,6 +53,7 @@ public class SecurityConfig {
                         // Public API endpoints
                         .requestMatchers("/destinations/**").permitAll()
                         .requestMatchers("/activities/**").permitAll()
+                        .requestMatchers("/categories/**").permitAll()
                         .requestMatchers("/blog/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/bookings/*/status").hasRole("ADMIN")
                         .requestMatchers("/bookings/**").permitAll()

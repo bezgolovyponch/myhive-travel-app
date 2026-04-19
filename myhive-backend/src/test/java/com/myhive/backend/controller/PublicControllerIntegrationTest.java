@@ -3,9 +3,11 @@ package com.myhive.backend.controller;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.BlogPost;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BlogPostRepository;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -42,6 +46,9 @@ class PublicControllerIntegrationTest {
     @Autowired
     private BlogPostRepository blogPostRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
     private UUID destinationId;
     private UUID activityId;
     private UUID blogPostId;
@@ -55,12 +62,19 @@ class PublicControllerIntegrationTest {
         dest = destinationRepository.save(dest);
         destinationId = dest.getId();
 
+        Category culture = new Category();
+        culture.setName("Culture");
+        culture.setSlug("culture");
+        culture = categoryRepository.save(culture);
+
         Activity activity = new Activity();
         activity.setSlug("temple-visit");
         activity.setDestination(dest);
         activity.setName("Temple Visit");
         activity.setPrice(new BigDecimal("30.00"));
-        activity.setCategory("Culture");
+        Set<Category> activityCategories = new HashSet<>();
+        activityCategories.add(culture);
+        activity.setCategories(activityCategories);
         activity = activityRepository.save(activity);
         activityId = activity.getId();
 
@@ -116,18 +130,18 @@ class PublicControllerIntegrationTest {
     }
 
     @Test
-    void getActivities_byCategory_filtersCorrectly() throws Exception {
+    void getActivities_byCategorySlug_filtersCorrectly() throws Exception {
         mockMvc.perform(get("/activities")
-                        .param("category", "Culture"))
+                        .param("categorySlug", "culture"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
     }
 
     @Test
-    void getActivities_byDestinationAndCategory_filtersCorrectly() throws Exception {
+    void getActivities_byDestinationAndCategorySlug_filtersCorrectly() throws Exception {
         mockMvc.perform(get("/activities")
                         .param("destinationId", destinationId.toString())
-                        .param("category", "Culture"))
+                        .param("categorySlug", "culture"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
     }

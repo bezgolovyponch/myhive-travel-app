@@ -1,10 +1,13 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ActivityDTO;
+import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class ActivityService {
 
     private final ActivityRepository activityRepository;
     private final DestinationRepository destinationRepository;
+    private final CategoryRepository categoryRepository;
 
     public List<ActivityDTO> getAllActivities() {
         return activityRepository.findAll().stream()
@@ -54,14 +58,14 @@ public class ActivityService {
                 .toList();
     }
 
-    public List<ActivityDTO> getActivitiesByCategory(String category) {
-        return activityRepository.findByCategory(category).stream()
+    public List<ActivityDTO> getActivitiesByCategorySlug(String categorySlug) {
+        return activityRepository.findByCategoriesSlug(categorySlug).stream()
                 .map(this::convertToDTO)
                 .toList();
     }
 
-    public List<ActivityDTO> getActivitiesByDestinationAndCategory(UUID destinationId, String category) {
-        return activityRepository.findByDestinationIdAndCategory(destinationId, category).stream()
+    public List<ActivityDTO> getActivitiesByDestinationAndCategorySlug(UUID destinationId, String categorySlug) {
+        return activityRepository.findByDestinationIdAndCategoriesSlug(destinationId, categorySlug).stream()
                 .map(this::convertToDTO)
                 .toList();
     }
@@ -71,8 +75,8 @@ public class ActivityService {
                 .map(this::convertToDTO);
     }
 
-    public Page<ActivityDTO> getActivitiesByDestinationAndCategoryPaged(UUID destinationId, String category, Pageable pageable) {
-        return activityRepository.findByDestinationIdAndCategory(destinationId, category, pageable)
+    public Page<ActivityDTO> getActivitiesByDestinationAndCategorySlugPaged(UUID destinationId, String categorySlug, Pageable pageable) {
+        return activityRepository.findByDestinationIdAndCategoriesSlug(destinationId, categorySlug, pageable)
                 .map(this::convertToDTO);
     }
 
@@ -130,9 +134,22 @@ public class ActivityService {
         activity.setDescription(dto.getDescription());
         activity.setPrice(dto.getPrice());
         activity.setDuration(dto.getDuration());
-        activity.setCategory(dto.getCategory());
         activity.setImageUrl(dto.getImageUrl());
         activity.setIncludes(dto.getIncludes());
+        activity.setCategories(resolveCategories(dto.getCategoryIds()));
+    }
+
+    private Set<Category> resolveCategories(List<UUID> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        List<Category> found = categoryRepository.findAllById(categoryIds);
+        if (found.size() != categoryIds.size()) {
+            Set<UUID> foundIds = found.stream().map(Category::getId).collect(Collectors.toSet());
+            UUID missing = categoryIds.stream().filter(i -> !foundIds.contains(i)).findFirst().orElseThrow();
+            throw new ResourceNotFoundException("Category", missing);
+        }
+        return new HashSet<>(found);
     }
 
     private ActivityDTO convertToDTO(Activity activity) {
@@ -146,9 +163,16 @@ public class ActivityService {
         dto.setDescription(activity.getDescription());
         dto.setPrice(activity.getPrice());
         dto.setDuration(activity.getDuration());
-        dto.setCategory(activity.getCategory());
         dto.setImageUrl(activity.getImageUrl());
         dto.setIncludes(activity.getIncludes());
+
+        List<CategoryDTO> categoryDtos = activity.getCategories() == null ? new ArrayList<>()
+                : activity.getCategories().stream()
+                  .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
+                  .map(c -> new CategoryDTO(c.getId(), c.getName(), c.getSlug()))
+                  .toList();
+        dto.setCategories(categoryDtos);
+        dto.setCategoryIds(categoryDtos.stream().map(CategoryDTO::getId).toList());
         return dto;
     }
 }

@@ -22,14 +22,14 @@ public class ActivityController {
     @GetMapping
     public ResponseEntity<List<ActivityDTO>> getAllActivities(
             @RequestParam(required = false) UUID destinationId,
-            @RequestParam(required = false) String category) {
+            @RequestParam(required = false) String categorySlug) {
 
-        if (destinationId != null && category != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategory(destinationId, category));
+        if (destinationId != null && categorySlug != null) {
+            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlug(destinationId, categorySlug));
         } else if (destinationId != null) {
             return ResponseEntity.ok(activityService.getActivitiesByDestination(destinationId));
-        } else if (category != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByCategory(category));
+        } else if (categorySlug != null) {
+            return ResponseEntity.ok(activityService.getActivitiesByCategorySlug(categorySlug));
         } else {
             return ResponseEntity.ok(activityService.getAllActivities());
         }
@@ -38,15 +38,15 @@ public class ActivityController {
     @GetMapping("/paged")
     public ResponseEntity<Page<ActivityDTO>> getActivitiesPaged(
             @RequestParam UUID destinationId,
-            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String categorySlug,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size) {
 
         int safeSize = Math.min(size, 50);
         PageRequest pageRequest = PageRequest.of(page, safeSize, Sort.by("name").ascending());
 
-        if (category != null && !category.isEmpty()) {
-            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategoryPaged(destinationId, category, pageRequest));
+        if (categorySlug != null && !categorySlug.isEmpty()) {
+            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlugPaged(destinationId, categorySlug, pageRequest));
         }
         return ResponseEntity.ok(activityService.getActivitiesByDestinationPaged(destinationId, pageRequest));
     }

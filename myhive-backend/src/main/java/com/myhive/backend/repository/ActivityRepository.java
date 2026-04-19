@@ -14,11 +14,14 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
     Optional<Activity> findBySlug(String slug);
 
     boolean existsBySlug(String slug);
+
     List<Activity> findByDestinationId(UUID destinationId);
-    List<Activity> findByCategory(String category);
-    List<Activity> findByDestinationIdAndCategory(UUID destinationId, String category);
+
+    List<Activity> findByCategoriesSlug(String categorySlug);
+
+    List<Activity> findByDestinationIdAndCategoriesSlug(UUID destinationId, String categorySlug);
 
     Page<Activity> findByDestinationId(UUID destinationId, Pageable pageable);
 
-    Page<Activity> findByDestinationIdAndCategory(UUID destinationId, String category, Pageable pageable);
+    Page<Activity> findByDestinationIdAndCategoriesSlug(UUID destinationId, String categorySlug, Pageable pageable);
 }

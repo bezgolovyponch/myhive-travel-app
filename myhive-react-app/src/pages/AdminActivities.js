@@ -12,7 +12,7 @@ const EMPTY_FORM = {
     description: '',
     price: '',
     duration: '',
-    category: '',
+    categoryIds: [],
     imageUrl: '',
     includes: '',
     destinationId: '',
@@ -22,13 +22,14 @@ const COLUMNS = [
     {key: 'name', label: 'Name'},
     {key: 'slug', label: 'Slug'},
     {key: 'destination', label: 'Destination'},
-    {key: 'category', label: 'Category'},
+    {key: 'categories', label: 'Categories'},
     {key: 'price', label: 'Price'},
     {key: 'duration', label: 'Duration'},
 ];
 
 function AdminActivities() {
     const [destinations, setDestinations] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [filterDestination, setFilterDestination] = useState('');
 
     const {
@@ -48,7 +49,7 @@ function AdminActivities() {
             description: a.description || '',
             price: a.price ?? '',
             duration: a.duration ?? '',
-            category: a.category || '',
+            categoryIds: a.categoryIds || (a.categories || []).map(c => c.id),
             imageUrl: a.imageUrl || '',
             includes: a.includes || '',
             destinationId: a.destinationId || '',
@@ -63,11 +64,21 @@ function AdminActivities() {
     useEffect(() => {
         adminApi.getDestinations().then(setDestinations).catch(() => {
         });
+        adminApi.getCategories().then(setCategories).catch(() => {
+        });
     }, [adminApi]);
 
     const filteredActivities = activities.filter(
         a => !filterDestination || a.destinationId === filterDestination
     );
+
+    const toggleCategory = (categoryId) => {
+        const current = form.categoryIds || [];
+        const next = current.includes(categoryId)
+            ? current.filter(id => id !== categoryId)
+            : [...current, categoryId];
+        setForm({...form, categoryIds: next});
+    };
 
     if (loading) {
         return (
@@ -131,10 +142,14 @@ function AdminActivities() {
                                 <td className="small text-muted">{activity.slug || '—'}</td>
                                 <td className="small">{activity.destinationName || '—'}</td>
                                 <td>
-                                    {activity.category ? (
-                                        <Badge bg="light" text="dark" className="border">
-                                            {activity.category}
-                                        </Badge>
+                                    {activity.categories && activity.categories.length > 0 ? (
+                                        <div className="d-flex flex-wrap gap-1">
+                                            {activity.categories.map(c => (
+                                                <Badge key={c.id} bg="light" text="dark" className="border">
+                                                    {c.name}
+                                                </Badge>
+                                            ))}
+                                        </div>
                                     ) : '—'}
                                 </td>
                                 <td className="small fw-semibold">{formatAmount(activity.price)}</td>
@@ -227,12 +242,23 @@ function AdminActivities() {
                             </Col>
                         </Row>
                         <Form.Group className="mb-3">
-                            <Form.Label className="small fw-semibold text-white">Category</Form.Label>
-                            <Form.Control
-                                value={form.category}
-                                onChange={e => setForm({...form, category: e.target.value})}
-                                placeholder="e.g. Adventure, Culture, Food"
-                            />
+                            <Form.Label className="small fw-semibold text-white">Categories</Form.Label>
+                            <div className="border rounded p-2 d-flex flex-column gap-1"
+                                 style={{maxHeight: 200, overflowY: 'auto'}}>
+                                {categories.length === 0 ? (
+                                    <div className="text-muted small">No categories available. Create one in the
+                                        Categories tab.</div>
+                                ) : categories.map(c => (
+                                    <Form.Check
+                                        key={c.id}
+                                        type="checkbox"
+                                        id={`category-${c.id}`}
+                                        label={c.name}
+                                        checked={(form.categoryIds || []).includes(c.id)}
+                                        onChange={() => toggleCategory(c.id)}
+                                    />
+                                ))}
+                            </div>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Includes</Form.Label>

@@ -9,6 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -37,8 +39,9 @@ public class ActivityDTO {
 
     private Integer duration;
 
-    @Size(max = 100, message = "Category must be at most 100 characters")
-    private String category;
+    private List<CategoryDTO> categories = new ArrayList<>();
+
+    private List<UUID> categoryIds = new ArrayList<>();
 
     @Size(max = 500, message = "Image URL must be at most 500 characters")
     private String imageUrl;

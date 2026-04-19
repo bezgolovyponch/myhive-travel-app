@@ -21,6 +21,7 @@ function DestinationPage() {
   const [currentFilter, setCurrentFilter] = useState('all');
   const [destination, setDestination] = useState(null);
   const [activities, setActivities] = useState([]);
+    const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -28,12 +29,12 @@ function DestinationPage() {
     const [hasMore, setHasMore] = useState(true);
     const [totalElements, setTotalElements] = useState(0);
 
-    const fetchActivitiesPage = useCallback(async (destinationId, pageNum, category, reset = false) => {
-        const categoryParam = category === 'all' ? null : category;
+    const fetchActivitiesPage = useCallback(async (destinationId, pageNum, categorySlug, reset = false) => {
+        const categoryParam = categorySlug === 'all' ? null : categorySlug;
         const data = await api.getActivitiesPaged(destinationId, {
             page: pageNum,
             size: PAGE_SIZE,
-            category: categoryParam
+            categorySlug: categoryParam
         });
         setTotalElements(data.totalElements);
         setHasMore(!data.last);
@@ -50,8 +51,12 @@ function DestinationPage() {
       try {
         setLoading(true);
           setCurrentFilter('all');
-          const destData = await api.getDestinationBySlug(slug);
+          const [destData, categoriesData] = await Promise.all([
+              api.getDestinationBySlug(slug),
+              api.getCategories(),
+          ]);
         setDestination(destData);
+          setCategories(categoriesData);
           await fetchActivitiesPage(destData.id, 0, 'all', true);
       } catch {
           setError(true);
@@ -151,14 +156,21 @@ function DestinationPage() {
         <div className="tab-header">
           <h2>Activities</h2>
           <div className="category-filters">
-            {['all', 'nightlife', 'adventure', 'daytime'].map(filter => (
-                <button
-                key={filter}
-                className={`filter-btn ${currentFilter === filter ? 'active' : ''}`}
-                onClick={() => handleFilterChange(filter)}
+              <button
+                  key="all"
+                  className={`filter-btn ${currentFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => handleFilterChange('all')}
               >
-                    {filter === 'all' ? 'All' : capitalizeFirst(filter)}
+                  All
               </button>
+              {categories.map(category => (
+                <button
+                    key={category.slug}
+                    className={`filter-btn ${currentFilter === category.slug ? 'active' : ''}`}
+                    onClick={() => handleFilterChange(category.slug)}
+                >
+                    {capitalizeFirst(category.name)}
+                </button>
             ))}
           </div>
         </div>

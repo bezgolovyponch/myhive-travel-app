@@ -30,6 +30,7 @@ public class AdminController {
     private final ActivityService activityService;
     private final BlogPostService blogPostService;
     private final DestinationService destinationService;
+    private final CategoryService categoryService;
     private final Optional<ImageUploadService> imageUploadService;
 
     @GetMapping("/bookings")
@@ -108,6 +109,37 @@ public class AdminController {
     @DeleteMapping("/destinations/{id}")
     public ResponseEntity<Void> deleteDestination(@PathVariable UUID id) {
         destinationService.deleteDestination(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryDTO>> getAllCategories() {
+        return ResponseEntity.ok(categoryService.getAllCategories());
+    }
+
+    @GetMapping("/categories/paged")
+    public ResponseEntity<Page<CategoryDTO>> getCategoriesPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, 50), Sort.by("name").ascending());
+        return ResponseEntity.ok(categoryService.getCategoriesPaged(pageRequest));
+    }
+
+    @PostMapping("/categories")
+    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
+        CategoryDTO created = categoryService.createCategory(categoryDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable UUID id, @Valid @RequestBody CategoryDTO categoryDTO) {
+        CategoryDTO updated = categoryService.updateCategory(id, categoryDTO);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/categories/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
+        categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }
 

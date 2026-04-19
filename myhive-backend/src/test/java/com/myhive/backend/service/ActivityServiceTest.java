@@ -3,9 +3,11 @@ package com.myhive.backend.service;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,9 @@ class ActivityServiceTest {
 
     @Mock
     private DestinationRepository destinationRepository;
+
+    @Mock
+    private CategoryRepository categoryRepository;
 
     @InjectMocks
     private ActivityService activityService;
@@ -85,10 +90,10 @@ class ActivityServiceTest {
     }
 
     @Test
-    void getActivitiesByCategory_returnsList() {
-        when(activityRepository.findByCategory("Adventure")).thenReturn(List.of(activity));
+    void getActivitiesByCategorySlug_returnsList() {
+        when(activityRepository.findByCategoriesSlug("adventure")).thenReturn(List.of(activity));
 
-        List<ActivityDTO> result = activityService.getActivitiesByCategory("Adventure");
+        List<ActivityDTO> result = activityService.getActivitiesByCategorySlug("adventure");
 
         assertThat(result).hasSize(1);
     }
@@ -231,5 +236,42 @@ class ActivityServiceTest {
 
         assertThatThrownBy(() -> activityService.deleteActivity(id))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void createActivity_withCategoryIds_attachesCategories() {
+        Category cat1 = TestDataFactory.category("Adventure");
+        Category cat2 = TestDataFactory.category("Nightlife");
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setCategoryIds(List.of(cat1.getId(), cat2.getId()));
+
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(categoryRepository.findAllById(dto.getCategoryIds())).thenReturn(List.of(cat1, cat2));
+        when(activityRepository.existsBySlug("new-activity")).thenReturn(false);
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> {
+            Activity a = inv.getArgument(0);
+            a.setId(UUID.randomUUID());
+            return a;
+        });
+
+        ActivityDTO result = activityService.createActivity(dto);
+
+        assertThat(result.getCategories()).extracting("name")
+                .containsExactlyInAnyOrder("Adventure", "Nightlife");
+        assertThat(result.getCategoryIds()).containsExactlyInAnyOrder(cat1.getId(), cat2.getId());
+    }
+
+    @Test
+    void createActivity_unknownCategoryId_throwsResourceNotFound() {
+        UUID unknownCategoryId = UUID.randomUUID();
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setCategoryIds(List.of(unknownCategoryId));
+
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(categoryRepository.findAllById(dto.getCategoryIds())).thenReturn(List.of());
+
+        assertThatThrownBy(() -> activityService.createActivity(dto))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Category");
     }
 }

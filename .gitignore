@@ -44,3 +44,7 @@ out/
 .claude/
 /.mcp.json
 /CLAUDE.md
+
+### Database dumps ###
+*.sql.backup
+neon_backup*.sql
