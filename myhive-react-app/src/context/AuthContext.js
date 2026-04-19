@@ -1,5 +1,6 @@
 import {createContext, useCallback, useContext, useMemo} from 'react';
 import {AuthProvider as OidcAuthProvider, useAuth as useOidcAuth} from 'react-oidc-context';
+import {WebStorageStateStore} from 'oidc-client-ts';
 
 const ROLES_CLAIM = process.env.REACT_APP_OIDC_ROLES_CLAIM || 'https://trivlu.com/roles';
 
@@ -13,6 +14,8 @@ const oidcConfig = {
     extraQueryParams: {
         audience: process.env.REACT_APP_OIDC_AUDIENCE,
     },
+    userStore: new WebStorageStateStore({store: window.localStorage}),
+    automaticSilentRenew: true,
     onSigninCallback: () => {
         window.history.replaceState({}, document.title, window.location.pathname);
     },
