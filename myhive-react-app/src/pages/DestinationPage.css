@@ -73,10 +73,33 @@
 }
 
 /* Category Filters */
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-sm);
+}
+
 .category-filters, .browse-filters {
     display: flex;
     justify-content: center;
-    gap: var(--gap);
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+}
+
+.filter-toggle {
+    background: transparent;
+    color: var(--brand);
+    border: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: var(--gap-sm) var(--gap);
+    border-radius: var(--radius-full);
+}
+
+.filter-toggle:hover {
+    background: rgba(119, 124, 124, 0.15);
 }
 
 .filter-btn {
@@ -153,11 +176,6 @@
 
     .packages-grid {
         grid-template-columns: 1fr;
-    }
-
-    .category-filters, .browse-filters {
-        flex-wrap: wrap;
-        gap: var(--gap-sm);
     }
 
     .tab-nav {

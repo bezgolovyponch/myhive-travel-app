@@ -6,10 +6,13 @@ import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import './TripBuilder.css';
 
+const VISIBLE_CATEGORY_COUNT = 12;
+
 function TripBuilder() {
   const { state, dispatch } = useContext(AppContext);
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   useEffect(() => {
     api.getCategories().then(setCategories).catch(() => {
@@ -174,23 +177,34 @@ function TripBuilder() {
       <div className="trip-builder-right">
         <div className="browse-header">
           <h3>Browse More Activities</h3>
-          <div className="browse-filters">
-            <button
-                key="all"
-                className={`filter-btn ${browseFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setBrowseFilter('all')}
-            >
-              All
-            </button>
-            {categories.map(category => (
+          <div className="filter-group">
+            <div className="browse-filters">
+              <button
+                  key="all"
+                  className={`filter-btn ${browseFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setBrowseFilter('all')}
+              >
+                All
+              </button>
+              {(showAllCategories ? categories : categories.slice(0, VISIBLE_CATEGORY_COUNT)).map(category => (
+                  <button
+                      key={category.slug}
+                      className={`filter-btn ${browseFilter === category.slug ? 'active' : ''}`}
+                      onClick={() => setBrowseFilter(category.slug)}
+                  >
+                    {capitalizeFirst(category.name)}
+                  </button>
+              ))}
+            </div>
+            {categories.length > VISIBLE_CATEGORY_COUNT && (
                 <button
-                    key={category.slug}
-                    className={`filter-btn ${browseFilter === category.slug ? 'active' : ''}`}
-                    onClick={() => setBrowseFilter(category.slug)}
+                    type="button"
+                    className="filter-toggle"
+                    onClick={() => setShowAllCategories(!showAllCategories)}
                 >
-                  {capitalizeFirst(category.name)}
+                  {showAllCategories ? 'Show less' : `Show all (${categories.length})`}
                 </button>
-            ))}
+            )}
           </div>
         </div>
         <div className="browse-activities">

@@ -17,12 +17,35 @@ VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'prague', 'Prague', 'The City of
        ('e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55', 'new-york', 'New York', 'The Concrete Jungle', 'USA', 'New York',
         'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop', 4.80, CURRENT_TIMESTAMP);
 
--- Insert sample categories
+-- Insert sample categories (mirrors the 27 canonical categories on prod after migration)
 INSERT INTO categories (id, name, slug, created_at)
 VALUES ('91111111-0000-0000-0000-000000000001', 'Nightlife', 'nightlife', CURRENT_TIMESTAMP),
        ('91111111-0000-0000-0000-000000000002', 'Adventure', 'adventure', CURRENT_TIMESTAMP),
        ('91111111-0000-0000-0000-000000000003', 'Daytime', 'daytime', CURRENT_TIMESTAMP),
-       ('91111111-0000-0000-0000-000000000004', 'Culture', 'culture', CURRENT_TIMESTAMP);
+       ('91111111-0000-0000-0000-000000000004', 'Culture', 'culture', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000005', 'Action', 'action', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000006', 'Adult', 'adult', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000007', 'Dining', 'dining', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000008', 'Driving', 'driving', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000009', 'Food', 'food', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000000a', 'Gaming', 'gaming', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000000b', 'Luxury', 'luxury', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000000c', 'Outdoor', 'outdoor', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000000d', 'Party', 'party', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000000e', 'Prank', 'prank', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000000f', 'Rage', 'rage', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000010', 'Shooting', 'shooting', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000011', 'Show', 'show', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000012', 'Sightseeing', 'sightseeing', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000013', 'Social', 'social', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000014', 'Spa', 'spa', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000015', 'Sport', 'sport', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000016', 'Stag', 'stag', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000017', 'Strip', 'strip', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000018', 'Themed', 'themed', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-000000000019', 'Transfer', 'transfer', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000001a', 'Water', 'water', CURRENT_TIMESTAMP),
+       ('91111111-0000-0000-0000-00000000001b', 'Wellness', 'wellness', CURRENT_TIMESTAMP);
 
 -- Insert sample activities for Tenerife
 INSERT INTO activities (id, slug, destination_id, name, description, price, duration, image_url, includes,

@@ -11,6 +11,7 @@ import {capitalizeFirst} from '../utils/format';
 import './DestinationPage.css';
 
 const PAGE_SIZE = 12;
+const VISIBLE_CATEGORY_COUNT = 12;
 
 function DestinationPage() {
     const {slug} = useParams();
@@ -19,6 +20,7 @@ function DestinationPage() {
   const navigate = useNavigate();
     const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
   const [currentFilter, setCurrentFilter] = useState('all');
+    const [showAllCategories, setShowAllCategories] = useState(false);
   const [destination, setDestination] = useState(null);
   const [activities, setActivities] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -155,7 +157,8 @@ function DestinationPage() {
         <div className="tab-content" style={{display: currentTab === 'activities' ? 'flex' : 'none'}}>
         <div className="tab-header">
           <h2>Activities</h2>
-          <div className="category-filters">
+            <div className="filter-group">
+                <div className="category-filters">
               <button
                   key="all"
                   className={`filter-btn ${currentFilter === 'all' ? 'active' : ''}`}
@@ -163,7 +166,7 @@ function DestinationPage() {
               >
                   All
               </button>
-              {categories.map(category => (
+                    {(showAllCategories ? categories : categories.slice(0, VISIBLE_CATEGORY_COUNT)).map(category => (
                 <button
                     key={category.slug}
                     className={`filter-btn ${currentFilter === category.slug ? 'active' : ''}`}
@@ -171,7 +174,17 @@ function DestinationPage() {
                 >
                     {capitalizeFirst(category.name)}
                 </button>
-            ))}
+                    ))}
+                </div>
+                {categories.length > VISIBLE_CATEGORY_COUNT && (
+                    <button
+                        type="button"
+                        className="filter-toggle"
+                        onClick={() => setShowAllCategories(!showAllCategories)}
+                    >
+                        {showAllCategories ? 'Show less' : `Show all (${categories.length})`}
+                    </button>
+                )}
           </div>
         </div>
 
