@@ -1,13 +1,18 @@
 import {useContext} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import './PackageCard.css';
 
 function PackageCard({ pkg }) {
   const { dispatch } = useContext(AppContext);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const handleSelectPackage = () => {
     dispatch({ type: 'SELECT_PACKAGE', pkg });
-    dispatch({ type: 'SWITCH_TAB', tab: 'trip-builder' });
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'trip-builder');
+    navigate({pathname: location.pathname, search: params.toString()});
   };
 
   return (

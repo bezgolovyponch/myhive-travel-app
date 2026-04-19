@@ -1,9 +1,12 @@
 import {useContext, useEffect, useRef, useState} from 'react';
+import {useLocation} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import './ChatPanel.css';
 
 function ChatPanel() {
   const { state, dispatch } = useContext(AppContext);
+  const location = useLocation();
+  const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
 
@@ -43,9 +46,9 @@ function ChatPanel() {
       setTimeout(() => {
         dispatch({
           type: 'ADD_CHAT_MESSAGE',
-          message: { 
-            sender: 'ai', 
-            text: getAIResponse(inputValue, state.currentTab) 
+          message: {
+            sender: 'ai',
+            text: getAIResponse(inputValue, currentTab)
           }
         });
       }, 1000);

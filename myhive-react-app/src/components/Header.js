@@ -25,9 +25,10 @@ function Header() {
       ? state.destinations.find((item) => item.slug === destinationSlug)
       : null;
   const showBreadcrumbs = Boolean(destinationSlug);
-  const currentTabLabel = state.currentTab
-      ? state.currentTab.replace('-', ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-      : 'Activities';
+  const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
+  const currentTabLabel = currentTab
+      .replace('-', ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
   const handleDestinationsClick = (event) => {
     event.preventDefault();

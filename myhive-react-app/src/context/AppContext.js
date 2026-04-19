@@ -8,7 +8,6 @@ export const initialState = {
     activities: [],
     packages: [],
     currentPath: '/',
-    currentTab: 'activities',
     tripItems: [],
     tripTravelers: 1,
     tripStartDate: '',
@@ -65,8 +64,6 @@ export const reducer = (state, action) => {
                 }
             });
             return {...state, tripItems: newItems};
-        case 'SWITCH_TAB':
-            return {...state, currentTab: action.tab};
         case 'OPEN_TRIP_BUILDER_MODAL':
             return {...state, tripBuilderModalOpen: true};
         case 'CLOSE_TRIP_BUILDER_MODAL':
