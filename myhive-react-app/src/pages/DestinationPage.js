@@ -64,8 +64,8 @@ function DestinationPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const tab = params.get('tab');
-    if (tab && tab !== state.currentTab) {
+      const tab = params.get('tab') || 'activities';
+      if (tab !== state.currentTab) {
       dispatch({type: 'SWITCH_TAB', tab});
     }
   }, [location.search, state.currentTab, dispatch]);
