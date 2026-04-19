@@ -1,7 +1,7 @@
 import {useContext} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson} from '../utils/format';
 import './ActivityCard.css';
 
 function ActivityCard({ activity, isAdded = false }) {
@@ -20,7 +20,7 @@ function ActivityCard({ activity, isAdded = false }) {
 
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
   const title = activity.name || activity.title;
-    const formattedPrice = formatPrice(activity.price);
+    const formattedPrice = formatPricePerPerson(activity.price);
   return (
       <div className="card activity-card" onClick={handleCardClick}>
           <img

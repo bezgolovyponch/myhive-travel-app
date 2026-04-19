@@ -121,9 +121,11 @@ public class BookingService {
                 item.setActivityName(act.getActivityName());
                 item.setDestinationName(dest.getDestinationName());
                 item.setPrice(act.getPrice() != null ? BigDecimal.valueOf(act.getPrice()) : BigDecimal.ZERO);
-                item.setQuantity(1);
+
+                int travelers = request.getNumberOfTravelers() != null ? request.getNumberOfTravelers() : 1;
+                item.setQuantity(travelers);
+                totalAmount = totalAmount.add(item.getPrice().multiply(BigDecimal.valueOf(travelers)));
                 items.add(item);
-                totalAmount = totalAmount.add(item.getPrice());
             }
         }
 

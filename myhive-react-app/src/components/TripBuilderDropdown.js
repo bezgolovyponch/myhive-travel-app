@@ -49,9 +49,9 @@ function TripBuilderDropdown() {
                             })}
                         </div>
                         <div className="trip-modal-total">
-                            <span>Total</span>
+                            <span>Total ({state.tripTravelers || 1} {(state.tripTravelers || 1) === 1 ? 'person' : 'people'})</span>
                             <span className="trip-modal-total-price">
-                                €{state.tripItems.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0)}
+                                €{state.tripItems.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0) * (state.tripTravelers || 1)}
                             </span>
                         </div>
                         <button className="trip-builder-complete-btn" onClick={handleComplete}>

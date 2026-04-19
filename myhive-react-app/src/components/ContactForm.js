@@ -1,18 +1,30 @@
-import React, {useState} from 'react';
+import {useEffect, useState} from 'react';
 import './ContactForm.css';
 
-function ContactForm({isOpen, onClose, onSubmit, tripData, isSubmitting, submitError}) {
+function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
         phone: '',
-        numberOfTravelers: 1,
-        startDate: '',
-        endDate: '',
+        numberOfTravelers: initialValues?.numberOfTravelers || 1,
+        startDate: initialValues?.startDate || '',
+        endDate: initialValues?.endDate || '',
         contactMethod: 'email',
         specialRequirements: '',
         hearAboutUs: ''
     });
+
+    useEffect(() => {
+        if (isOpen && initialValues) {
+            setFormData(prev => ({
+                ...prev,
+                numberOfTravelers: initialValues.numberOfTravelers || prev.numberOfTravelers,
+                startDate: initialValues.startDate || prev.startDate,
+                endDate: initialValues.endDate || prev.endDate
+            }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     const [errors, setErrors] = useState({});
 

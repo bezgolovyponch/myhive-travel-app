@@ -3,108 +3,156 @@ import api from '../services/api';
 
 export const AppContext = createContext();
 
-export function AppProvider({ children }) {
-  const initialState = {
+export const initialState = {
     destinations: [],
     activities: [],
     packages: [],
     currentPath: '/',
     currentTab: 'activities',
     tripItems: [],
+    tripTravelers: 1,
+    tripStartDate: '',
+    tripEndDate: '',
+    tripSetupModalOpen: false,
     tripBuilderModalOpen: false,
     destinationModalOpen: false,
     selectedDestination: null,
     chatOpen: false,
     chatMessages: [
-      { sender: 'ai', text: 'Hi! I\'m your AI travel assistant. What type of trip are you looking for?' }
+        {sender: 'ai', text: 'Hi! I\'m your AI travel assistant. What type of trip are you looking for?'}
     ],
     autoEngaged: false,
     loading: true,
     error: null
-  };
+};
 
-  const reducer = (state, action) => {
+export const reducer = (state, action) => {
     switch (action.type) {
-      case 'SET_DESTINATIONS':
-        return { ...state, destinations: action.destinations, loading: false };
-      case 'SET_ACTIVITIES':
-        return { ...state, activities: action.activities };
-      case 'SET_PACKAGES':
-        return { ...state, packages: action.packages };
-      case 'SET_ERROR':
-        return { ...state, error: action.error, loading: false };
-      case 'SET_LOADING':
-        return { ...state, loading: action.loading };
-      case 'NAVIGATE':
-        return { ...state, currentPath: action.path };
-      case 'ADD_TO_TRIP':
-        if (!state.tripItems.some(item => item.id === action.activity.id)) {
+        case 'SET_DESTINATIONS':
+            return {...state, destinations: action.destinations, loading: false};
+        case 'SET_ACTIVITIES':
+            return {...state, activities: action.activities};
+        case 'SET_PACKAGES':
+            return {...state, packages: action.packages};
+        case 'SET_ERROR':
+            return {...state, error: action.error, loading: false};
+        case 'SET_LOADING':
+            return {...state, loading: action.loading};
+        case 'NAVIGATE':
+            return {...state, currentPath: action.path};
+        case 'ADD_TO_TRIP':
+            if (!state.tripItems.some(item => item.id === action.activity.id)) {
+                const isFirstItem = state.tripItems.length === 0;
+                return {
+                    ...state,
+                    tripItems: [...state.tripItems, action.activity],
+                    tripSetupModalOpen: isFirstItem && !action.silent,
+                    tripBuilderModalOpen: action.silent ? state.tripBuilderModalOpen : (!isFirstItem)
+                };
+            }
+            return state;
+        case 'REMOVE_FROM_TRIP':
             return {
                 ...state,
-                tripItems: [...state.tripItems, action.activity],
-                tripBuilderModalOpen: action.silent ? state.tripBuilderModalOpen : true
-          };
+                tripItems: state.tripItems.filter(item => item.id !== action.activityId)
+            };
+        case 'SELECT_PACKAGE':
+            const newItems = [...state.tripItems];
+            action.pkg.activities.forEach(actId => {
+                const activity = state.activities.find(a => a.id === actId);
+                if (activity && !newItems.some(item => item.id === actId)) {
+                    newItems.push(activity);
+                }
+            });
+            return {...state, tripItems: newItems};
+        case 'SWITCH_TAB':
+            return {...state, currentTab: action.tab};
+        case 'OPEN_TRIP_BUILDER_MODAL':
+            return {...state, tripBuilderModalOpen: true};
+        case 'CLOSE_TRIP_BUILDER_MODAL':
+            return {...state, tripBuilderModalOpen: false};
+        case 'OPEN_DESTINATION_MODAL':
+            return {...state, destinationModalOpen: true, selectedDestination: action.destination};
+        case 'CLOSE_DESTINATION_MODAL':
+            return {...state, destinationModalOpen: false, selectedDestination: null};
+        case 'TOGGLE_CHAT':
+            return {...state, chatOpen: !state.chatOpen};
+        case 'SET_AUTO_ENGAGED':
+            return {...state, autoEngaged: action.value};
+        case 'SET_TRIP_ITEMS':
+            return {...state, tripItems: action.tripItems};
+        case 'SET_TRIP_SETUP':
+            return {
+                ...state,
+                tripTravelers: action.travelers,
+                tripStartDate: action.startDate,
+                tripEndDate: action.endDate,
+                tripSetupModalOpen: false,
+                tripBuilderModalOpen: true
+            };
+        case 'UPDATE_TRIP_TRAVELERS':
+            return {...state, tripTravelers: action.travelers};
+        case 'UPDATE_TRIP_DATES':
+            return {...state, tripStartDate: action.startDate, tripEndDate: action.endDate};
+        case 'CLOSE_TRIP_SETUP_MODAL':
+            return {...state, tripSetupModalOpen: false};
+        case 'CANCEL_TRIP_SETUP':
+            return {
+                ...state,
+                tripItems: [],
+                tripSetupModalOpen: false
+            };
+        case 'ADD_CHAT_MESSAGE':
+            return {
+                ...state,
+                chatMessages: [...state.chatMessages, action.message]
+            };
+        default:
+            return state;
+    }
+};
+
+export function AppProvider({children}) {
+
+    const [state, dispatch] = useReducer(reducer, initialState, (init) => {
+        let tripItems = init.tripItems;
+        let tripTravelers = init.tripTravelers;
+        let tripStartDate = init.tripStartDate;
+        let tripEndDate = init.tripEndDate;
+
+        try {
+            const saved = localStorage.getItem('myhive-trip-items');
+            if (saved) tripItems = JSON.parse(saved);
+        } catch (e) { /* ignore */
         }
-        return state;
-      case 'REMOVE_FROM_TRIP':
-        return { 
-          ...state, 
-          tripItems: state.tripItems.filter(item => item.id !== action.activityId)
-        };
-      case 'SELECT_PACKAGE':
-        const newItems = [...state.tripItems];
-        action.pkg.activities.forEach(actId => {
-          const activity = state.activities.find(a => a.id === actId);
-          if (activity && !newItems.some(item => item.id === actId)) {
-            newItems.push(activity);
-          }
-        });
-        return { ...state, tripItems: newItems };
-      case 'SWITCH_TAB':
-        return { ...state, currentTab: action.tab };
-      case 'OPEN_TRIP_BUILDER_MODAL':
-        return {...state, tripBuilderModalOpen: true};
-      case 'CLOSE_TRIP_BUILDER_MODAL':
-        return {...state, tripBuilderModalOpen: false};
-      case 'OPEN_DESTINATION_MODAL':
-        return {...state, destinationModalOpen: true, selectedDestination: action.destination};
-      case 'CLOSE_DESTINATION_MODAL':
-        return {...state, destinationModalOpen: false, selectedDestination: null};
-      case 'TOGGLE_CHAT':
-        return { ...state, chatOpen: !state.chatOpen };
-      case 'SET_AUTO_ENGAGED':
-        return {...state, autoEngaged: action.value};
-      case 'SET_TRIP_ITEMS':
-        return {...state, tripItems: action.tripItems};
-      case 'ADD_CHAT_MESSAGE':
-        return { 
-          ...state, 
-          chatMessages: [...state.chatMessages, action.message] 
-        };
-      default:
-        return state;
-    }
-  };
 
-  const [state, dispatch] = useReducer(reducer, initialState);
-
-  // Load tripItems from localStorage on mount
-  useEffect(() => {
-    const savedTripItems = localStorage.getItem('myhive-trip-items');
-    if (savedTripItems) {
-      try {
-        const parsed = JSON.parse(savedTripItems);
-        dispatch({type: 'SET_TRIP_ITEMS', tripItems: parsed});
-      } catch (e) {
-        console.error('Failed to load trip items from localStorage', e);
+        try {
+            const saved = localStorage.getItem('myhive-trip-setup');
+            if (saved) {
+                const setup = JSON.parse(saved);
+                tripTravelers = setup.travelers || 1;
+                tripStartDate = setup.startDate || '';
+                tripEndDate = setup.endDate || '';
       }
-    }
-  }, []);
+        } catch (e) { /* ignore */
+        }
+
+        return {...init, tripItems, tripTravelers, tripStartDate, tripEndDate};
+    });
 
   // Save tripItems to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('myhive-trip-items', JSON.stringify(state.tripItems));
   }, [state.tripItems]);
+
+    // Save trip setup to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('myhive-trip-setup', JSON.stringify({
+            travelers: state.tripTravelers,
+            startDate: state.tripStartDate,
+            endDate: state.tripEndDate
+        }));
+    }, [state.tripTravelers, state.tripStartDate, state.tripEndDate]);
 
   useEffect(() => {
     const fetchData = async () => {

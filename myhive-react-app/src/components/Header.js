@@ -2,6 +2,7 @@ import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import TripBuilderDropdown from './TripBuilderDropdown';
+import TripSetupModal from './TripSetupModal';
 import './Header.css';
 
 function Header() {
@@ -61,6 +62,7 @@ function Header() {
               </button>
               <TripBuilderDropdown/>
           </div>
+        <TripSetupModal/>
           <button className="hamburger-btn" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
               <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
           </button>

@@ -1,7 +1,7 @@
 import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
-import {capitalizeFirst, formatPrice} from '../utils/format';
+import {capitalizeFirst, formatDate, formatPricePerPerson} from '../utils/format';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import './TripBuilder.css';
@@ -76,6 +76,13 @@ function TripBuilder() {
     }
   };
 
+  const travelers = state.tripTravelers || 1;
+
+  const totalPrice = state.tripItems.reduce((sum, item) => {
+    const price = typeof item.price === 'number' ? item.price : 0;
+    return sum + (price * travelers);
+  }, 0);
+
   const filteredBrowseActivities = browseFilter === 'all'
       ? state.activities
       : state.activities.filter(a => a.category === browseFilter);
@@ -86,6 +93,30 @@ function TripBuilder() {
         <div className="itinerary-header">
           <h2>Your Itinerary</h2>
           <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
+          {state.tripItems.length > 0 && (
+              <div className="itinerary-trip-info">
+                <div className="trip-info-row">
+                  <label>Travelers:</label>
+                  <input
+                      type="number"
+                      className="trip-info-input"
+                      value={travelers}
+                      onChange={e => dispatch({
+                        type: 'UPDATE_TRIP_TRAVELERS',
+                        travelers: Math.max(1, parseInt(e.target.value, 10) || 1)
+                      })}
+                      min="1"
+                      max="20"
+                  />
+                </div>
+                {(state.tripStartDate || state.tripEndDate) && (
+                    <div className="trip-info-row">
+                      <label>Dates:</label>
+                      <span>{formatDate(state.tripStartDate)} — {formatDate(state.tripEndDate)}</span>
+                    </div>
+                )}
+              </div>
+          )}
         </div>
         <div className="itinerary-list">
           {state.tripItems.length > 0 ? (
@@ -95,8 +126,11 @@ function TripBuilder() {
                      loading="lazy"/>
                 <div className="itinerary-item-content">
                   <div className="itinerary-item-title">{item.name || item.title}</div>
-                  <div
-                      className="itinerary-item-price">{formatPrice(item.price)}</div>
+                  <div className="itinerary-item-price">
+                    {travelers > 1
+                        ? `€${item.price} × ${travelers} = €${item.price * travelers}`
+                        : formatPricePerPerson(item.price)}
+                  </div>
                 </div>
                 <button 
                   className="remove-item-btn"
@@ -114,6 +148,10 @@ function TripBuilder() {
         </div>
         {state.tripItems.length > 0 && (
             <div className="trip-actions">
+              <div className="itinerary-total">
+                <span>Total</span>
+                <span className="itinerary-total-price">€{totalPrice}</span>
+              </div>
             <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>
               Complete Booking
             </button>
@@ -149,8 +187,7 @@ function TripBuilder() {
                        className="browse-activity-image" loading="lazy"/>
                   <div className="browse-activity-content">
                     <div className="browse-activity-title">{activity.name || activity.title}</div>
-                    <div
-                        className="browse-activity-price">{formatPrice(activity.price)}</div>
+                    <div className="browse-activity-price">{formatPricePerPerson(activity.price)}</div>
                   </div>
                   <button
                       className="browse-add-btn"
@@ -169,7 +206,12 @@ function TripBuilder() {
           isOpen={showContactForm}
           onClose={() => setShowContactForm(false)}
           onSubmit={handleContactSubmit}
-          tripData={{tripItems: state.tripItems}}
+          tripData={{tripItems: state.tripItems, travelers}}
+          initialValues={{
+            numberOfTravelers: travelers,
+            startDate: state.tripStartDate,
+            endDate: state.tripEndDate
+          }}
           isSubmitting={isSubmitting}
           submitError={submitError}
       />

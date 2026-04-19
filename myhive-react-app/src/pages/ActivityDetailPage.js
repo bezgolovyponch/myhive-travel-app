@@ -4,7 +4,7 @@ import {Link, useNavigate, useParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
 import {SITE_URL} from '../services/config';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson} from '../utils/format';
 import './ActivityDetailPage.css';
 
 function ActivityDetailPage() {
@@ -44,7 +44,7 @@ function ActivityDetailPage() {
 
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const title = activity.name || activity.title;
-    const formattedPrice = formatPrice(activity.price);
+    const formattedPrice = formatPricePerPerson(activity.price);
     const category = capitalizeFirst(activity.category) || 'Activity';
     const isAdded = state.tripItems.some(item => item.id === activity.id);
 

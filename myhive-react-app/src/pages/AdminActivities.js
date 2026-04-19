@@ -205,7 +205,7 @@ function AdminActivities() {
                         </Form.Group>
                         <Row className="g-3 mb-3">
                             <Col sm={6}>
-                                <Form.Label className="small fw-semibold text-white">Price (€)</Form.Label>
+                                <Form.Label className="small fw-semibold text-white">Price per person (€)</Form.Label>
                                 <Form.Control
                                     type="number"
                                     step="0.01"
