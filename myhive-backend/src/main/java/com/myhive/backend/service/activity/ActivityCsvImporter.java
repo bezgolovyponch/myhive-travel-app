@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,8 +140,52 @@ public class ActivityCsvImporter {
 
     @Transactional
     public ActivityImportResultDTO apply(ActivityImportApplyRequest request) {
-        throw new CsvImportException(CsvImportException.Code.TOKEN_NOT_FOUND,
-                "Apply not yet implemented");
+        UUID token;
+        try {
+            token = UUID.fromString(request.token());
+        } catch (IllegalArgumentException e) {
+            throw new CsvImportException(CsvImportException.Code.TOKEN_NOT_FOUND,
+                    "Invalid token format");
+        }
+
+        CachedPreview cached = tokenCache.remove(token);
+        if (cached == null) {
+            throw new CsvImportException(CsvImportException.Code.TOKEN_NOT_FOUND,
+                    "Preview token not found or already used");
+        }
+        if (Instant.now().isAfter(cached.expiresAt())) {
+            throw new CsvImportException(CsvImportException.Code.TOKEN_EXPIRED,
+                    "Preview token has expired");
+        }
+
+        int updated = 0;
+        for (ValidatedRow v : cached.rows()) {
+            Activity activity = activityRepository.findById(v.activityId())
+                    .orElseThrow(() -> new CsvImportException(
+                            CsvImportException.Code.STATE_CHANGED,
+                            "Activity " + v.activityId() + " no longer exists (row "
+                                    + v.csvRowNumber() + ")"));
+
+            Set<Category> categories = new HashSet<>();
+            for (String slug : v.categorySlugs()) {
+                Category cat = categoryRepository.findBySlug(slug)
+                        .orElseThrow(() -> new CsvImportException(
+                                CsvImportException.Code.STATE_CHANGED,
+                                "Category '" + slug + "' no longer exists (row "
+                                        + v.csvRowNumber() + ")"));
+                categories.add(cat);
+            }
+
+            activity.setName(v.name());
+            activity.setDescription(v.description().isEmpty() ? null : v.description());
+            activity.setPrice(v.price());
+            activity.setDuration(v.duration());
+            activity.setIncludes(v.includes().isEmpty() ? null : v.includes());
+            activity.setCategories(categories);
+            activityRepository.save(activity);
+            updated++;
+        }
+        return new ActivityImportResultDTO(updated, Instant.now());
     }
 
     /* ------------------------- parsing ------------------------- */
@@ -483,5 +528,13 @@ public class ActivityCsvImporter {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    /** Visible for testing: force a token's expiry into the past. */
+    void expireTokenForTest(UUID token) {
+        CachedPreview c = tokenCache.get(token);
+        if (c != null) {
+            tokenCache.put(token, new CachedPreview(c.rows(), Instant.now().minusSeconds(1)));
+        }
     }
 }

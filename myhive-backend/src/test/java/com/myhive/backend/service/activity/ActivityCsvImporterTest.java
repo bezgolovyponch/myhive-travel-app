@@ -1,9 +1,12 @@
 package com.myhive.backend.service.activity;
 
 import com.myhive.backend.TestDataFactory;
+import com.myhive.backend.dto.ActivityImportApplyRequest;
 import com.myhive.backend.dto.ActivityImportPreviewDTO;
+import com.myhive.backend.dto.ActivityImportResultDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.exception.CsvImportException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -340,5 +345,91 @@ class ActivityCsvImporterTest {
         ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
 
         assertThat(preview.token()).isNull();
+    }
+
+    @Test
+    void apply_unknownToken_throwsTokenNotFound() {
+        ActivityImportApplyRequest req = new ActivityImportApplyRequest(UUID.randomUUID().toString());
+
+        assertThatThrownBy(() -> importer.apply(req))
+                .isInstanceOf(CsvImportException.class)
+                .satisfies(e -> assertThat(((CsvImportException) e).getCode())
+                        .isEqualTo(CsvImportException.Code.TOKEN_NOT_FOUND));
+    }
+
+    @Test
+    void apply_validToken_persistsChangesAndInvalidatesToken() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        when(activityRepository.findAllById(List.of(existing.getId()))).thenReturn(List.of(existing));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                "Renamed", existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+        assertThat(preview.token()).isNotNull();
+
+        ActivityImportResultDTO result = importer.apply(new ActivityImportApplyRequest(preview.token()));
+
+        assertThat(result.rowsUpdated()).isEqualTo(1);
+        assertThat(existing.getName()).isEqualTo("Renamed");
+
+        // second apply with the same token is rejected
+        assertThatThrownBy(() ->
+                importer.apply(new ActivityImportApplyRequest(preview.token())))
+                .isInstanceOf(CsvImportException.class);
+    }
+
+    @Test
+    void apply_activityDeletedBetweenPreviewAndApply_throwsStateChanged() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        when(activityRepository.findAllById(List.of(existing.getId()))).thenReturn(List.of(existing));
+
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                "Renamed", existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        // simulate deletion
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                importer.apply(new ActivityImportApplyRequest(preview.token())))
+                .isInstanceOf(CsvImportException.class)
+                .satisfies(e -> assertThat(((CsvImportException) e).getCode())
+                        .isEqualTo(CsvImportException.Code.STATE_CHANGED));
+    }
+
+    @Test
+    void apply_expiredToken_throwsTokenExpired() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        when(activityRepository.findAllById(List.of(existing.getId()))).thenReturn(List.of(existing));
+
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                "Renamed", existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        // backdate via package-private helper
+        importer.expireTokenForTest(UUID.fromString(preview.token()));
+
+        assertThatThrownBy(() ->
+                importer.apply(new ActivityImportApplyRequest(preview.token())))
+                .isInstanceOf(CsvImportException.class)
+                .satisfies(e -> assertThat(((CsvImportException) e).getCode())
+                        .isEqualTo(CsvImportException.Code.TOKEN_EXPIRED));
     }
 }
