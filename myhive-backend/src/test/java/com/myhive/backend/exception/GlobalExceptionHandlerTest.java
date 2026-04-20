@@ -93,4 +93,17 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getMessage()).isEqualTo("An unexpected error occurred");
         assertThat(response.getBody().getMessage()).doesNotContain("secret");
     }
+
+    @Test
+    void handleCsvImportException_returnsBadRequestWithCode() {
+        CsvImportException ex = new CsvImportException(CsvImportException.Code.TOKEN_EXPIRED,
+                "Preview token has expired");
+
+        ResponseEntity<ErrorResponse> response = handler.handleCsvImport(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Preview token has expired");
+        assertThat(response.getBody().getError()).isEqualTo("TOKEN_EXPIRED");
+    }
 }

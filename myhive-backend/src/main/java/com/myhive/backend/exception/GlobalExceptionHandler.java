@@ -83,6 +83,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
     }
 
+    @ExceptionHandler(CsvImportException.class)
+    public ResponseEntity<ErrorResponse> handleCsvImport(CsvImportException ex, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(ex.getCode().name())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
         log.error("Unexpected error on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
