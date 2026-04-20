@@ -65,6 +65,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // H2 console (dev only, disabled in prod)
                         .requestMatchers("/h2-console/**").permitAll()
+                        // Admin endpoints — CSV import/export: ADMIN only (must come before /admin/activities/**)
+                        .requestMatchers("/admin/activities/export").hasRole("ADMIN")
+                        .requestMatchers("/admin/activities/import/**").hasRole("ADMIN")
                         // Admin endpoints — activities & blog: ADMIN or MANAGER
                         .requestMatchers("/admin/activities/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/admin/blog/**").hasAnyRole("ADMIN", "MANAGER")

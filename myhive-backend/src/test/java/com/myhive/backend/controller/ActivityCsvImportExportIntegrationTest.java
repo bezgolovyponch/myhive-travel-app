@@ -1,0 +1,155 @@
+package com.myhive.backend.controller;
+
+import com.myhive.backend.config.TestSecurityConfig;
+import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Category;
+import com.myhive.backend.entity.Destination;
+import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.repository.DestinationRepository;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+import static com.myhive.backend.util.JwtTestHelper.adminJwt;
+import static com.myhive.backend.util.JwtTestHelper.managerJwt;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
+@Import(TestSecurityConfig.class)
+class ActivityCsvImportExportIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private DestinationRepository destinationRepository;
+    @Autowired
+    private ActivityRepository activityRepository;
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private Destination destination;
+    private Activity activity;
+
+    @BeforeEach
+    void setUp() {
+        destination = new Destination();
+        destination.setName("Bali");
+        destination.setSlug("bali");
+        destination.setCountry("Indonesia");
+        destination = destinationRepository.save(destination);
+
+        Category beach = new Category();
+        beach.setName("Beach");
+        beach.setSlug("beach");
+        beach = categoryRepository.save(beach);
+
+        activity = new Activity();
+        activity.setDestination(destination);
+        activity.setSlug("surf");
+        activity.setName("Surf lesson");
+        activity.setDescription("Old desc");
+        activity.setPrice(new BigDecimal("50.00"));
+        activity.setDuration(90);
+        activity.setIncludes("Board");
+        activity.setCategories(new HashSet<>(Set.of(beach)));
+        activity = activityRepository.save(activity);
+    }
+
+    @Test
+    void export_asAdmin_returnsCsv() throws Exception {
+        mockMvc.perform(get("/admin/activities/export").with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "text/csv;charset=UTF-8"))
+                .andExpect(content().string(containsString("Surf lesson")));
+    }
+
+    @Test
+    void export_asManager_returnsForbidden() throws Exception {
+        mockMvc.perform(get("/admin/activities/export").with(managerJwt()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void export_anonymous_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/admin/activities/export"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void importRoundTrip_descriptionChange_persists() throws Exception {
+        MvcResult exportResult = mockMvc.perform(get("/admin/activities/export").with(adminJwt()))
+                .andExpect(status().isOk()).andReturn();
+        String csv = exportResult.getResponse().getContentAsString();
+
+        String edited = csv.replace("Old desc", "New desc");
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", edited.getBytes());
+
+        MvcResult previewResult = mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.rowsToUpdate").value(1))
+                .andReturn();
+
+        JsonNode node = objectMapper.readTree(previewResult.getResponse().getContentAsString());
+        String token = node.get("token").asText();
+
+        mockMvc.perform(post("/admin/activities/import/apply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + token + "\"}")
+                        .with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rowsUpdated").value(1));
+
+        Activity reloaded = activityRepository.findById(activity.getId()).orElseThrow();
+        assertThat(reloaded.getDescription()).isEqualTo("New desc");
+    }
+
+    @Test
+    void importPreview_asManager_returnsForbidden() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", "id\n".getBytes());
+        mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(managerJwt()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void importApply_unknownToken_returnsBadRequestWithCode() throws Exception {
+        mockMvc.perform(post("/admin/activities/import/apply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + UUID.randomUUID() + "\"}")
+                        .with(adminJwt()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("TOKEN_NOT_FOUND"));
+    }
+}

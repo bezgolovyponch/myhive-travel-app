@@ -1,7 +1,12 @@
 package com.myhive.backend.controller;
 
 import com.myhive.backend.dto.*;
+import com.myhive.backend.dto.ActivityImportApplyRequest;
+import com.myhive.backend.dto.ActivityImportPreviewDTO;
+import com.myhive.backend.dto.ActivityImportResultDTO;
 import com.myhive.backend.service.*;
+import com.myhive.backend.service.activity.ActivityCsvExporter;
+import com.myhive.backend.service.activity.ActivityCsvImporter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,12 +14,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +40,8 @@ public class AdminController {
     private final DestinationService destinationService;
     private final CategoryService categoryService;
     private final Optional<ImageUploadService> imageUploadService;
+    private final ActivityCsvExporter activityCsvExporter;
+    private final ActivityCsvImporter activityCsvImporter;
 
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
@@ -79,6 +89,30 @@ public class AdminController {
     public ResponseEntity<Void> deleteActivity(@PathVariable UUID id) {
         activityService.deleteActivity(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(value = "/activities/export", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> exportActivities() {
+        String csv = activityCsvExporter.exportAll();
+        byte[] body = csv.getBytes(StandardCharsets.UTF_8);
+        String filename = "activities-" + LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, "text/csv;charset=UTF-8")
+                .body(body);
+    }
+
+    @PostMapping("/activities/import/preview")
+    public ResponseEntity<ActivityImportPreviewDTO> previewActivityImport(
+            @RequestParam("file") MultipartFile file) throws IOException {
+        byte[] bytes = file == null ? new byte[0] : file.getBytes();
+        return ResponseEntity.ok(activityCsvImporter.preview(bytes));
+    }
+
+    @PostMapping("/activities/import/apply")
+    public ResponseEntity<ActivityImportResultDTO> applyActivityImport(
+            @Valid @RequestBody ActivityImportApplyRequest request) {
+        return ResponseEntity.ok(activityCsvImporter.apply(request));
     }
 
     @GetMapping("/destinations")
