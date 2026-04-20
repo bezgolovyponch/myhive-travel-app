@@ -5,6 +5,7 @@ import {useAdminCrud} from '../hooks/useAdminCrud';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
+import ImportActivitiesModal from '../components/admin/ImportActivitiesModal';
 
 const EMPTY_FORM = {
     name: '',
@@ -31,6 +32,7 @@ function AdminActivities() {
     const [destinations, setDestinations] = useState([]);
     const [categories, setCategories] = useState([]);
     const [filterDestination, setFilterDestination] = useState('');
+    const [showImportModal, setShowImportModal] = useState(false);
 
     const {
         items: activities, loading, error, setError, page, setPage,
@@ -60,6 +62,15 @@ function AdminActivities() {
             duration: form.duration !== '' ? Number(form.duration) : null,
         }),
     });
+
+    const handleExport = async () => {
+        setError('');
+        try {
+            await adminApi.exportActivitiesCsv();
+        } catch (e) {
+            setError(e.message || 'Failed to export activities');
+        }
+    };
 
     useEffect(() => {
         adminApi.getDestinations().then(setDestinations).catch(() => {
@@ -94,6 +105,10 @@ function AdminActivities() {
                 <h4 className="fw-bold mb-0">Activities</h4>
                 <div className="d-flex gap-2">
                     <Button variant="outline-secondary" size="sm" onClick={fetchData}>Refresh</Button>
+                    <Button variant="outline-secondary" size="sm" onClick={handleExport}>Export CSV</Button>
+                    <Button variant="outline-secondary" size="sm" onClick={() => setShowImportModal(true)}>
+                        Import CSV
+                    </Button>
                     <Button variant="primary" size="sm" onClick={openCreate}>+ Add Activity</Button>
                 </div>
             </div>
@@ -305,6 +320,13 @@ function AdminActivities() {
                 onHide={() => setDeleteId(null)}
                 onConfirm={handleDelete}
                 saving={saving}
+            />
+
+            <ImportActivitiesModal
+                show={showImportModal}
+                onHide={() => setShowImportModal(false)}
+                adminApi={adminApi}
+                onImported={fetchData}
             />
         </>
     );
