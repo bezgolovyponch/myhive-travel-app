@@ -537,4 +537,9 @@ public class ActivityCsvImporter {
             tokenCache.put(token, new CachedPreview(c.rows(), Instant.now().minusSeconds(1)));
         }
     }
+
+    /** Visible for testing: clear the entire preview token cache. */
+    public void clearCacheForTest() {
+        tokenCache.clear();
+    }
 }

@@ -98,7 +98,6 @@ public class AdminController {
         String filename = "activities-" + LocalDate.now() + ".csv";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .header(HttpHeaders.CONTENT_TYPE, "text/csv;charset=UTF-8")
                 .body(body);
     }
 

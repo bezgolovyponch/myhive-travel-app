@@ -7,6 +7,7 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.service.activity.ActivityCsvImporter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ import static com.myhive.backend.util.JwtTestHelper.adminJwt;
 import static com.myhive.backend.util.JwtTestHelper.managerJwt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -54,12 +56,15 @@ class ActivityCsvImportExportIntegrationTest {
     private CategoryRepository categoryRepository;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private ActivityCsvImporter activityCsvImporter;
 
     private Destination destination;
     private Activity activity;
 
     @BeforeEach
     void setUp() {
+        activityCsvImporter.clearCacheForTest();
         destination = new Destination();
         destination.setName("Bali");
         destination.setSlug("bali");
@@ -151,5 +156,25 @@ class ActivityCsvImportExportIntegrationTest {
                         .with(adminJwt()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("TOKEN_NOT_FOUND"));
+    }
+
+    @Test
+    void importPreview_rowWithUnknownId_returnsJsonWithRowError() throws Exception {
+        // Start from a valid exported CSV and replace the id with a random UUID that doesn't exist
+        MvcResult exportResult = mockMvc.perform(get("/admin/activities/export").with(adminJwt()))
+                .andExpect(status().isOk()).andReturn();
+        String csv = exportResult.getResponse().getContentAsString();
+
+        UUID fakeId = UUID.randomUUID();
+        String edited = csv.replace(activity.getId().toString(), fakeId.toString());
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", edited.getBytes());
+
+        mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value(nullValue()))
+                .andExpect(jsonPath("$.errors[0].code").value("ROW_NOT_FOUND"))
+                .andExpect(jsonPath("$.errors[0].csvRowNumber").value(2));
     }
 }
