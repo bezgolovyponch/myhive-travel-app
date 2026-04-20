@@ -17,10 +17,13 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,9 +78,11 @@ public class ActivityCsvImporter {
             return emptyPreview(errors, warnings);
         }
 
-        // TODO Task 5+6: per-row validation and diff computation go here.
+        List<ValidatedRow> validated = validateRows(parsed.rows(), errors);
+        // TODO Task 6: diff computation and token issuance.
         return new ActivityImportPreviewDTO(
-                null, parsed.rows().size(), 0, 0, errors.size(), warnings.size(),
+                null, parsed.rows().size(), 0, 0,
+                errors.size(), warnings.size(),
                 List.of(), errors, warnings
         );
     }
@@ -184,6 +189,189 @@ public class ActivityCsvImporter {
     private record ParseOutcome(List<RawRow> rows, Map<String, Integer> headerIndex) {
     }
 
+    private record ValidatedRow(
+            int csvRowNumber,
+            UUID activityId,
+            String name,
+            String description,
+            BigDecimal price,
+            Integer duration,
+            List<UUID> categoryIds,
+            List<String> categorySlugs,
+            String includes,
+            // read-only fields captured for warning comparison in Task 6:
+            String csvSlug,
+            String csvDestinationSlug,
+            String csvImageUrl
+    ) {
+    }
+
     private record CachedPreview(List<RawRow> rows, Instant expiresAt) {
+    }
+
+    private List<ValidatedRow> validateRows(
+            List<RawRow> rawRows,
+            List<ActivityImportPreviewDTO.RowError> errors) {
+
+        List<ValidatedRow> validated = new ArrayList<>();
+        Map<UUID, Integer> seenIds = new HashMap<>();
+
+        for (RawRow raw : rawRows) {
+            boolean rowHasError = false;
+
+            // id
+            String rawId = raw.get("id");
+            UUID id = null;
+            if (rawId.isEmpty()) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.MISSING_ID,
+                        "id is required", "id"));
+                rowHasError = true;
+            } else {
+                try {
+                    id = UUID.fromString(rawId);
+                } catch (IllegalArgumentException e) {
+                    errors.add(new ActivityImportPreviewDTO.RowError(
+                            raw.csvRowNumber(), ImportErrorCode.INVALID_UUID,
+                            "id is not a valid UUID: " + rawId, "id"));
+                    rowHasError = true;
+                }
+            }
+            if (id != null && seenIds.containsKey(id)) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.DUPLICATE_ID,
+                        "duplicate id (also on row " + seenIds.get(id) + "): " + id, "id"));
+                rowHasError = true;
+            }
+
+            // name
+            String name = raw.get("name");
+            if (name.isEmpty()) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.NAME_REQUIRED,
+                        "name is required", "name"));
+                rowHasError = true;
+            } else if (name.length() > MAX_NAME_LEN) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.FIELD_TOO_LONG,
+                        "name exceeds max length " + MAX_NAME_LEN, "name"));
+                rowHasError = true;
+            }
+
+            // description / includes length
+            String description = raw.get("description");
+            if (description.length() > MAX_DESCRIPTION_LEN) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.FIELD_TOO_LONG,
+                        "description exceeds max length " + MAX_DESCRIPTION_LEN, "description"));
+                rowHasError = true;
+            }
+            String includes = raw.get("includes");
+            if (includes.length() > MAX_INCLUDES_LEN) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.FIELD_TOO_LONG,
+                        "includes exceeds max length " + MAX_INCLUDES_LEN, "includes"));
+                rowHasError = true;
+            }
+
+            // price
+            String rawPrice = raw.get("price");
+            BigDecimal price = null;
+            if (rawPrice.isEmpty()) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.PRICE_REQUIRED,
+                        "price is required", "price"));
+                rowHasError = true;
+            } else if (rawPrice.contains(",")) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                        "price must use '.' as decimal separator: " + rawPrice, "price"));
+                rowHasError = true;
+            } else {
+                try {
+                    price = new BigDecimal(rawPrice);
+                    if (price.scale() > 2) {
+                        errors.add(new ActivityImportPreviewDTO.RowError(
+                                raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                                "price has more than 2 decimal places: " + rawPrice, "price"));
+                        rowHasError = true;
+                    }
+                    if (price.signum() < 0) {
+                        errors.add(new ActivityImportPreviewDTO.RowError(
+                                raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                                "price must be non-negative: " + rawPrice, "price"));
+                        rowHasError = true;
+                    }
+                } catch (NumberFormatException e) {
+                    errors.add(new ActivityImportPreviewDTO.RowError(
+                            raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                            "price is not a valid decimal: " + rawPrice, "price"));
+                    rowHasError = true;
+                }
+            }
+
+            // duration
+            String rawDuration = raw.get("duration");
+            Integer duration = null;
+            if (!rawDuration.isEmpty()) {
+                try {
+                    duration = Integer.parseInt(rawDuration);
+                    if (duration < 0) {
+                        errors.add(new ActivityImportPreviewDTO.RowError(
+                                raw.csvRowNumber(), ImportErrorCode.INVALID_INTEGER,
+                                "duration must be non-negative: " + rawDuration, "duration"));
+                        rowHasError = true;
+                        duration = null;
+                    }
+                } catch (NumberFormatException e) {
+                    errors.add(new ActivityImportPreviewDTO.RowError(
+                            raw.csvRowNumber(), ImportErrorCode.INVALID_INTEGER,
+                            "duration is not an integer: " + rawDuration, "duration"));
+                    rowHasError = true;
+                }
+            }
+
+            // categories
+            String rawCategories = raw.get("category_slugs");
+            List<String> slugs = rawCategories.isEmpty() ? List.of()
+                    : Arrays.stream(rawCategories.split(";"))
+                      .map(String::trim).filter(s -> !s.isEmpty()).toList();
+            List<UUID> categoryIds = new ArrayList<>();
+            List<String> unknownSlugs = new ArrayList<>();
+            for (String s : slugs) {
+                categoryRepository.findBySlug(s).ifPresentOrElse(
+                        c -> categoryIds.add(c.getId()),
+                        () -> unknownSlugs.add(s));
+            }
+            if (!unknownSlugs.isEmpty()) {
+                errors.add(new ActivityImportPreviewDTO.RowError(
+                        raw.csvRowNumber(), ImportErrorCode.UNKNOWN_CATEGORY,
+                        "Unknown category slugs: " + String.join(", ", unknownSlugs),
+                        "category_slugs"));
+                rowHasError = true;
+            }
+
+            if (id != null) {
+                seenIds.putIfAbsent(id, raw.csvRowNumber());
+            }
+
+            if (!rowHasError) {
+                validated.add(new ValidatedRow(
+                        raw.csvRowNumber(),
+                        id,
+                        name,
+                        description,
+                        price,
+                        duration,
+                        categoryIds,
+                        slugs,
+                        includes,
+                        raw.get("slug"),
+                        raw.get("destination_slug"),
+                        raw.get("image_url")
+                ));
+            }
+        }
+        return validated;
     }
 }

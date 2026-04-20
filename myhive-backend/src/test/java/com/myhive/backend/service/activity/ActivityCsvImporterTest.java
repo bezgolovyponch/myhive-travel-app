@@ -10,9 +10,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ActivityCsvImporterTest {
@@ -100,5 +102,136 @@ class ActivityCsvImporterTest {
         assertThat(preview.errors())
                 .extracting(ActivityImportPreviewDTO.RowError::code)
                 .contains(ImportErrorCode.TOO_MANY_ROWS);
+    }
+
+    private String row(String id, String slug, String destSlug, String name, String desc,
+                       String price, String duration, String categorySlugs,
+                       String imageUrl, String includes) {
+        return id + "," + slug + "," + destSlug + ",\"" + name + "\",\"" + desc + "\",\""
+                + price + "\"," + duration + "," + categorySlugs + ","
+                + imageUrl + ",\"" + includes + "\"\n";
+    }
+
+    @Test
+    void preview_rowWithBlankId_producesMissingIdError() {
+        String csv = header() + row("", "s", "d", "n", "", "1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.token()).isNull();
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.MISSING_ID);
+    }
+
+    @Test
+    void preview_rowWithBadUuid_producesInvalidUuidError() {
+        String csv = header() + row("not-a-uuid", "s", "d", "n", "", "1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.INVALID_UUID);
+    }
+
+    @Test
+    void preview_duplicateIds_producesDuplicateIdError() {
+        UUID id = UUID.randomUUID();
+        String csv = header()
+                + row(id.toString(), "", "", "A", "", "1.00", "", "", "", "")
+                + row(id.toString(), "", "", "B", "", "1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.DUPLICATE_ID);
+    }
+
+    @Test
+    void preview_blankName_producesNameRequiredError() {
+        UUID id = UUID.randomUUID();
+        String csv = header() + row(id.toString(), "", "", "", "", "1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.NAME_REQUIRED);
+    }
+
+    @Test
+    void preview_priceWithComma_producesInvalidDecimalError() {
+        UUID id = UUID.randomUUID();
+        String csv = header() + row(id.toString(), "", "", "N", "", "1,50", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.INVALID_DECIMAL);
+    }
+
+    @Test
+    void preview_negativePrice_producesInvalidDecimalError() {
+        UUID id = UUID.randomUUID();
+        String csv = header() + row(id.toString(), "", "", "N", "", "-1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.INVALID_DECIMAL);
+    }
+
+    @Test
+    void preview_blankPrice_producesPriceRequiredError() {
+        UUID id = UUID.randomUUID();
+        String csv = header() + row(id.toString(), "", "", "N", "", "", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.PRICE_REQUIRED);
+    }
+
+    @Test
+    void preview_nonIntDuration_producesInvalidIntegerError() {
+        UUID id = UUID.randomUUID();
+        String csv = header() + row(id.toString(), "", "", "N", "", "1.00", "abc", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.INVALID_INTEGER);
+    }
+
+    @Test
+    void preview_unknownCategorySlug_producesUnknownCategoryError() {
+        when(categoryRepository.findBySlug("ghost")).thenReturn(Optional.empty());
+        UUID id = UUID.randomUUID();
+        String csv = header() + row(id.toString(), "", "", "N", "", "1.00", "", "ghost", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.UNKNOWN_CATEGORY);
+    }
+
+    @Test
+    void preview_nameTooLong_producesFieldTooLongError() {
+        UUID id = UUID.randomUUID();
+        String longName = "X".repeat(256);
+        String csv = header() + row(id.toString(), "", "", longName, "", "1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.FIELD_TOO_LONG);
     }
 }
