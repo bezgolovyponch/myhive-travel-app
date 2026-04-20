@@ -5,6 +5,7 @@ import com.myhive.backend.dto.ActivityImportApplyRequest;
 import com.myhive.backend.dto.ActivityImportPreviewDTO;
 import com.myhive.backend.dto.ActivityImportResultDTO;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.CsvImportException;
 import com.myhive.backend.repository.ActivityRepository;
@@ -24,6 +25,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -431,5 +435,77 @@ class ActivityCsvImporterTest {
                 .isInstanceOf(CsvImportException.class)
                 .satisfies(e -> assertThat(((CsvImportException) e).getCode())
                         .isEqualTo(CsvImportException.Code.TOKEN_EXPIRED));
+    }
+
+    @Test
+    void apply_categoryDeletedBetweenPreviewAndApply_throwsStateChanged() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        Category adventure = TestDataFactory.category("Adventure");
+        // slug for "Adventure" is "adventure" (TestDataFactory lowercases + hyphenates)
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+        when(categoryRepository.findBySlug("adventure"))
+                .thenReturn(Optional.of(adventure))
+                .thenReturn(Optional.empty());
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                existing.getName(), existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "adventure",
+                existing.getImageUrl(), existing.getIncludes());
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+        assertThat(preview.token()).isNotNull();
+
+        assertThatThrownBy(() ->
+                importer.apply(new ActivityImportApplyRequest(preview.token())))
+                .isInstanceOf(CsvImportException.class)
+                .satisfies(e -> assertThat(((CsvImportException) e).getCode())
+                        .isEqualTo(CsvImportException.Code.STATE_CHANGED))
+                .hasMessageContaining("adventure");
+    }
+
+    @Test
+    void apply_stateChangeMidLoop_stopsImmediatelyWithoutSavingLaterRows() {
+        Destination dest = TestDataFactory.destination();
+        Activity first = TestDataFactory.activity(dest);
+        Activity second = TestDataFactory.activity(dest);
+        // Ensure distinct IDs
+        UUID firstId = first.getId();
+        UUID secondId = second.getId();
+        assertThat(firstId).isNotEqualTo(secondId);
+
+        when(activityRepository.findAllById(anyList()))
+                .thenReturn(List.of(first, second));
+        when(activityRepository.findById(firstId)).thenReturn(Optional.of(first));
+        when(activityRepository.findById(secondId)).thenReturn(Optional.empty()); // deleted
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String csv = header()
+                + row(firstId.toString(), first.getSlug(), dest.getSlug(),
+                      "Renamed1", first.getDescription(),
+                      first.getPrice().toPlainString(),
+                      first.getDuration().toString(),
+                      "", first.getImageUrl(), first.getIncludes())
+                + row(secondId.toString(), second.getSlug(), dest.getSlug(),
+                      "Renamed2", second.getDescription(),
+                      second.getPrice().toPlainString(),
+                      second.getDuration().toString(),
+                      "", second.getImageUrl(), second.getIncludes());
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+        assertThat(preview.token()).isNotNull();
+
+        assertThatThrownBy(() ->
+                importer.apply(new ActivityImportApplyRequest(preview.token())))
+                .isInstanceOf(CsvImportException.class)
+                .satisfies(e -> assertThat(((CsvImportException) e).getCode())
+                        .isEqualTo(CsvImportException.Code.STATE_CHANGED));
+
+        // The first row WAS saved (in memory, transaction rollback is Spring's job)
+        // but the second row's save MUST NEVER have been attempted.
+        verify(activityRepository, times(1)).save(any());
     }
 }
