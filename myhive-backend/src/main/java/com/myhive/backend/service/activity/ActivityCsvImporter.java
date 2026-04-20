@@ -8,18 +8,20 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
+import com.opencsv.exceptions.CsvValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,7 +66,7 @@ public class ActivityCsvImporter {
         ParseOutcome parsed;
         try {
             parsed = parse(fileContent, errors, warnings);
-        } catch (Exception e) {
+        } catch (IOException | CsvValidationException e) {
             errors.add(new ActivityImportPreviewDTO.RowError(
                     0, ImportErrorCode.INVALID_ENCODING, e.getMessage(), null));
             return emptyPreview(errors, warnings);
@@ -90,7 +92,7 @@ public class ActivityCsvImporter {
 
     private ParseOutcome parse(byte[] bytes,
                                List<ActivityImportPreviewDTO.RowError> errors,
-                               List<ActivityImportPreviewDTO.RowWarning> warnings) throws Exception {
+                               List<ActivityImportPreviewDTO.RowWarning> warnings) throws IOException, CsvValidationException {
         byte[] stripped = stripBom(bytes);
         try (Reader reader = new InputStreamReader(new ByteArrayInputStream(stripped), StandardCharsets.UTF_8);
              CSVReader csv = new CSVReaderBuilder(reader).build()) {
@@ -101,7 +103,7 @@ public class ActivityCsvImporter {
                         0, ImportErrorCode.EMPTY_FILE, "File contains no header row", null));
                 return null;
             }
-            Map<String, Integer> headerIndex = new HashMap<>();
+            Map<String, Integer> headerIndex = new LinkedHashMap<>();
             for (int i = 0; i < header.length; i++) {
                 headerIndex.put(header[i].trim(), i);
             }
@@ -134,6 +136,9 @@ public class ActivityCsvImporter {
             int lineNumber = 1;
             while ((line = csv.readNext()) != null) {
                 lineNumber++;
+                if (line.length == 0 || (line.length == 1 && (line[0] == null || line[0].isBlank()))) {
+                    continue;
+                }
                 if (rows.size() >= MAX_ROWS) {
                     errors.add(new ActivityImportPreviewDTO.RowError(
                             lineNumber, ImportErrorCode.TOO_MANY_ROWS,

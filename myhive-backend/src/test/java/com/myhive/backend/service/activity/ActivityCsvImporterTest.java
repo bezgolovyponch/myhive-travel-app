@@ -9,6 +9,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,7 +78,7 @@ class ActivityCsvImporterTest {
 
     @Test
     void preview_bomStripped_headerStillRecognized() {
-        byte[] withBom = ("\uFEFF" + header()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] withBom = ("\uFEFF" + header()).getBytes(StandardCharsets.UTF_8);
 
         ActivityImportPreviewDTO preview = importer.preview(withBom);
 
@@ -86,7 +89,7 @@ class ActivityCsvImporterTest {
     @Test
     void preview_rowsOverLimit_returnsTooManyRowsError() {
         StringBuilder csv = new StringBuilder(header());
-        java.util.UUID id = java.util.UUID.randomUUID();
+        UUID id = UUID.randomUUID();
         for (int i = 0; i <= 10_000; i++) {
             csv.append(id).append(",,,,,1.0,,,,\n");
         }
