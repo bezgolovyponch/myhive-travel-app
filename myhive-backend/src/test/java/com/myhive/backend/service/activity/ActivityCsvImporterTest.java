@@ -1,6 +1,9 @@
 package com.myhive.backend.service.activity;
 
+import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.ActivityImportPreviewDTO;
+import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import org.junit.jupiter.api.Test;
@@ -9,7 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -233,5 +238,107 @@ class ActivityCsvImporterTest {
         assertThat(preview.errors())
                 .extracting(ActivityImportPreviewDTO.RowError::code)
                 .contains(ImportErrorCode.FIELD_TOO_LONG);
+    }
+
+    @Test
+    void preview_unknownId_producesRowNotFoundError() {
+        UUID missingId = UUID.randomUUID();
+        when(activityRepository.findAllById(List.of(missingId))).thenReturn(List.of());
+        String csv = header() + row(missingId.toString(), "", "", "N", "", "1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.token()).isNull();
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.ROW_NOT_FOUND);
+    }
+
+    @Test
+    void preview_allFieldsUnchanged_producesNoDiffButIncrementsUnchanged() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        existing.setPrice(new BigDecimal("99.99"));
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+
+        String csv = header() + row(
+                existing.getId().toString(),
+                existing.getSlug(),
+                dest.getSlug(),
+                existing.getName(),
+                existing.getDescription(),
+                "99.99",
+                existing.getDuration().toString(),
+                "",
+                existing.getImageUrl(),
+                existing.getIncludes());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.rowsUnchanged()).isEqualTo(1);
+        assertThat(preview.rowsToUpdate()).isZero();
+        assertThat(preview.changes()).isEmpty();
+        assertThat(preview.token()).isNotNull();
+    }
+
+    @Test
+    void preview_nameChanged_producesSingleFieldDiff() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                "New Name", existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.rowsToUpdate()).isEqualTo(1);
+        assertThat(preview.changes()).hasSize(1);
+        ActivityImportPreviewDTO.RowDiff diff = preview.changes().getFirst();
+        assertThat(diff.fieldChanges()).containsKey("name");
+        assertThat(diff.fieldChanges().get("name").newValue()).isEqualTo("New Name");
+        assertThat(preview.token()).isNotNull();
+    }
+
+    @Test
+    void preview_readOnlyFieldChanged_producesWarningNotError() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+
+        String csv = header() + row(
+                existing.getId().toString(),
+                "different-slug", // read-only, changed
+                dest.getSlug(),
+                existing.getName(), existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.warnings())
+                .extracting(ActivityImportPreviewDTO.RowWarning::code)
+                .contains(ImportErrorCode.READ_ONLY_FIELD_CHANGED);
+        assertThat(preview.token()).isNotNull();
+    }
+
+    @Test
+    void preview_errorsPresent_tokenIsNull() {
+        String csv = header() + row("", "", "", "N", "", "1.00", "", "", "", "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.token()).isNull();
     }
 }
