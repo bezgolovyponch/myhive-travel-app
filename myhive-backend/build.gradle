@@ -36,6 +36,9 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.31.8')
     implementation 'software.amazon.awssdk:s3'
 
+    // CSV parsing for activities import/export
+    implementation 'com.opencsv:opencsv:5.11'
+
     // Slug generation (with ICU4J for full transliteration: Cyrillic, CJK, ß, etc.)
     implementation 'com.github.slugify:slugify:3.0.7'
     implementation 'com.ibm.icu:icu4j:76.1'
