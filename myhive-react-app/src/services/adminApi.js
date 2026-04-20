@@ -95,6 +95,48 @@ export function createAdminApi(getAccessToken) {
             await handleError(response, 'Failed to delete activity');
         },
 
+        async exportActivitiesCsv() {
+            const token = await getAccessToken();
+            const response = await fetch(`${API_BASE_URL}/admin/activities/export`, {
+                headers: {Authorization: `Bearer ${token}`},
+            });
+            await handleError(response, 'Failed to export activities');
+            const blob = await response.blob();
+            const filename = `activities-${new Date().toISOString().slice(0, 10)}.csv`;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        },
+
+        async previewActivityImport(file) {
+            const token = await getAccessToken();
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch(`${API_BASE_URL}/admin/activities/import/preview`, {
+                method: 'POST',
+                headers: {Authorization: `Bearer ${token}`},
+                body: formData,
+            });
+            await handleError(response, 'Failed to preview import');
+            return response.json();
+        },
+
+        async applyActivityImport(importToken) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/activities/import/apply`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({token: importToken}),
+            });
+            await handleError(response, 'Failed to apply import');
+            return response.json();
+        },
+
         async uploadImage(file) {
             const token = await getAccessToken();
             const formData = new FormData();
