@@ -8,8 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,8 +44,8 @@ public class ActivityCsvExporter {
             for (Activity a : activities) {
                 writer.writeNext(toRow(a), false);
             }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to write CSV", e);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to write CSV", e);
         }
         return out.toString();
     }
@@ -76,7 +79,7 @@ public class ActivityCsvExporter {
         if (price == null) {
             return "";
         }
-        return price.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+        return price.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
     private String nullSafe(String s) {
