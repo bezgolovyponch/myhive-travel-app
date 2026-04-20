@@ -57,6 +57,7 @@ public class ActivityCsvImporter {
     private final Map<UUID, CachedPreview> tokenCache = new ConcurrentHashMap<>();
 
     public ActivityImportPreviewDTO preview(byte[] fileContent) {
+        tokenCache.entrySet().removeIf(e -> e.getValue().expiresAt().isBefore(Instant.now()));
         List<ActivityImportPreviewDTO.RowError> errors = new ArrayList<>();
         List<ActivityImportPreviewDTO.RowWarning> warnings = new ArrayList<>();
 
@@ -450,10 +451,10 @@ public class ActivityCsvImporter {
             ValidatedRow v, Activity db) {
         Map<String, ActivityImportPreviewDTO.FieldChange> changes = new LinkedHashMap<>();
         if (!Objects.equals(nullToEmpty(db.getName()), v.name())) {
-            changes.put("name", new ActivityImportPreviewDTO.FieldChange(db.getName(), v.name()));
+            changes.put("name", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getName()), v.name()));
         }
         if (!Objects.equals(nullToEmpty(db.getDescription()), v.description())) {
-            changes.put("description", new ActivityImportPreviewDTO.FieldChange(db.getDescription(), v.description()));
+            changes.put("description", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getDescription()), v.description()));
         }
         BigDecimal dbPrice = db.getPrice() == null ? null
                 : db.getPrice().setScale(2, RoundingMode.HALF_UP);
@@ -466,7 +467,7 @@ public class ActivityCsvImporter {
             changes.put("duration", new ActivityImportPreviewDTO.FieldChange(db.getDuration(), v.duration()));
         }
         if (!Objects.equals(nullToEmpty(db.getIncludes()), v.includes())) {
-            changes.put("includes", new ActivityImportPreviewDTO.FieldChange(db.getIncludes(), v.includes()));
+            changes.put("includes", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getIncludes()), v.includes()));
         }
         Set<String> dbSlugs = db.getCategories() == null ? Set.of()
                 : db.getCategories().stream()
