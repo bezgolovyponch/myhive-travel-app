@@ -1,5 +1,22 @@
 import {API_BASE_URL} from './config';
 
+function parseContentDispositionFilename(header) {
+    if (!header) {
+        return null;
+    }
+    // RFC 6266: prefer filename*=UTF-8''... if present, else filename="..."
+    const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match) {
+        try {
+            return decodeURIComponent(utf8Match[1]);
+        } catch (e) {
+            // fall through to plain filename
+        }
+    }
+    const plainMatch = header.match(/filename="?([^";]+)"?/i);
+    return plainMatch ? plainMatch[1] : null;
+}
+
 export function createAdminApi(getAccessToken) {
     async function authHeaders() {
         const token = await getAccessToken();
@@ -110,10 +127,10 @@ export function createAdminApi(getAccessToken) {
             });
             await handleError(response, 'Failed to export activities');
             const blob = await response.blob();
-            // Browser will pick up filename from Content-Disposition; this is the fallback
-            const filename = `activities-${new Date().toISOString().slice(0, 10)}.csv`;
-            const link = document.createElement('a');
+            const filename = parseContentDispositionFilename(response.headers.get('content-disposition'))
+                || `activities-${new Date().toISOString().slice(0, 10)}.csv`;
             const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
             link.href = objectUrl;
             link.download = filename;
             document.body.appendChild(link);
