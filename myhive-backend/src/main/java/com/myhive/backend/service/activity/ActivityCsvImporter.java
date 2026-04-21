@@ -310,7 +310,6 @@ public class ActivityCsvImporter {
             String description,
             BigDecimal price,
             Integer duration,
-            List<UUID> categoryIds,
             List<String> categorySlugs,
             String includes,
             // read-only fields captured for warning comparison in Task 6:
@@ -339,13 +338,13 @@ public class ActivityCsvImporter {
             String includes = parseTextField(raw, "includes", MAX_INCLUDES_LEN, errors);
             BigDecimal price = parsePrice(raw, errors);
             Integer duration = parseDuration(raw, errors);
-            CategoriesParsed categories = parseCategories(raw, errors);
+            List<String> categorySlugs = parseCategories(raw, errors);
 
             if (errors.size() == errorsAtStart) {
                 validated.add(new ValidatedRow(
                         raw.csvRowNumber(),
                         id, name, description, price, duration,
-                        categories.ids(), categories.slugs(), includes,
+                        categorySlugs, includes,
                         raw.get("slug"),
                         raw.get("destination_slug"),
                         raw.get("image_url")
@@ -353,9 +352,6 @@ public class ActivityCsvImporter {
             }
         }
         return validated;
-    }
-
-    private record CategoriesParsed(List<UUID> ids, List<String> slugs) {
     }
 
     private UUID parseId(RawRow raw, Map<UUID, Integer> seenIds,
@@ -472,18 +468,17 @@ public class ActivityCsvImporter {
         return duration;
     }
 
-    private CategoriesParsed parseCategories(RawRow raw,
-                                             List<ActivityImportPreviewDTO.RowError> errors) {
+    private List<String> parseCategories(RawRow raw,
+                                         List<ActivityImportPreviewDTO.RowError> errors) {
         String rawCategories = raw.get("category_slugs");
         List<String> slugs = rawCategories.isEmpty() ? List.of()
                 : Arrays.stream(rawCategories.split(";"))
                   .map(String::trim).filter(s -> !s.isEmpty()).toList();
-        List<UUID> categoryIds = new ArrayList<>();
         List<String> unknownSlugs = new ArrayList<>();
         for (String s : slugs) {
-            categoryRepository.findBySlug(s).ifPresentOrElse(
-                    c -> categoryIds.add(c.getId()),
-                    () -> unknownSlugs.add(s));
+            if (categoryRepository.findBySlug(s).isEmpty()) {
+                unknownSlugs.add(s);
+            }
         }
         if (!unknownSlugs.isEmpty()) {
             errors.add(new ActivityImportPreviewDTO.RowError(
@@ -491,7 +486,7 @@ public class ActivityCsvImporter {
                     "Unknown category slugs: " + String.join(", ", unknownSlugs),
                     "category_slugs"));
         }
-        return new CategoriesParsed(categoryIds, slugs);
+        return slugs;
     }
 
     private void addReadOnlyWarnings(
