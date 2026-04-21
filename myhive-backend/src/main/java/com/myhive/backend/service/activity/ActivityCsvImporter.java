@@ -14,17 +14,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -44,6 +39,7 @@ public class ActivityCsvImporter {
     private final CategoryRepository categoryRepository;
     private final ActivityCsvParser parser;
     private final ActivityCsvRowValidator validator;
+    private final ActivityCsvDiffer differ;
     private final PreviewTokenCache tokenCache;
 
     public ActivityCsvImporter(ActivityRepository activityRepository,
@@ -52,6 +48,7 @@ public class ActivityCsvImporter {
         this.categoryRepository = categoryRepository;
         this.parser = new ActivityCsvParser();
         this.validator = new ActivityCsvRowValidator(categoryRepository);
+        this.differ = new ActivityCsvDiffer();
         this.tokenCache = new PreviewTokenCache();
     }
 
@@ -87,43 +84,20 @@ public class ActivityCsvImporter {
         Map<UUID, Activity> fromDb = activityRepository.findAllById(idsToFetch).stream()
                 .collect(Collectors.toMap(Activity::getId, a -> a));
 
-        List<ValidatedRow> matched = new ArrayList<>();
-        for (ValidatedRow v : validated.rows()) {
-            if (!fromDb.containsKey(v.activityId())) {
-                errors.add(new ActivityImportPreviewDTO.RowError(
-                        v.csvRowNumber(), ImportErrorCode.ROW_NOT_FOUND,
-                        "No activity with id " + v.activityId(), "id"));
-            } else {
-                matched.add(v);
-            }
-        }
+        ActivityCsvDiffer.Result diffResult = differ.diff(validated.rows(), fromDb);
+        errors.addAll(diffResult.errors());
+        warnings.addAll(diffResult.warnings());
 
-        List<ActivityImportPreviewDTO.RowDiff> diffs = new ArrayList<>();
-        List<ValidatedRow> changedRows = new ArrayList<>();
-        int unchanged = 0;
-        for (ValidatedRow v : matched) {
-            Activity db = fromDb.get(v.activityId());
-            addReadOnlyWarnings(v, db, warnings);
-            Map<String, ActivityImportPreviewDTO.FieldChange> fieldChanges = computeFieldChanges(v, db);
-            if (fieldChanges.isEmpty()) {
-                unchanged++;
-            } else {
-                diffs.add(new ActivityImportPreviewDTO.RowDiff(
-                        v.csvRowNumber(), v.activityId(), db.getName(), fieldChanges));
-                changedRows.add(v);
-            }
-        }
-
-        String token = errors.isEmpty() ? tokenCache.store(changedRows) : null;
+        String token = errors.isEmpty() ? tokenCache.store(diffResult.changedRows()) : null;
 
         return new ActivityImportPreviewDTO(
                 token,
                 parsed.rows().size(),
-                diffs.size(),
-                unchanged,
+                diffResult.diffs().size(),
+                diffResult.unchangedCount(),
                 errors.size(),
                 warnings.size(),
-                diffs,
+                diffResult.diffs(),
                 errors,
                 warnings);
     }
@@ -189,66 +163,6 @@ public class ActivityCsvImporter {
         return new ActivityImportPreviewDTO(
                 null, 0, 0, 0, errors.size(), warnings.size(),
                 List.of(), errors, warnings);
-    }
-
-    private void addReadOnlyWarnings(
-            ValidatedRow v,
-            Activity db,
-            List<ActivityImportPreviewDTO.RowWarning> warnings) {
-        if (!v.csvSlug().isEmpty() && !v.csvSlug().equals(nullToEmpty(db.getSlug()))) {
-            warnings.add(new ActivityImportPreviewDTO.RowWarning(
-                    v.csvRowNumber(), ImportErrorCode.READ_ONLY_FIELD_CHANGED,
-                    "slug is read-only; imported value will be ignored", "slug"));
-        }
-        String dbDestSlug = db.getDestination() == null ? "" : nullToEmpty(db.getDestination().getSlug());
-        if (!v.csvDestinationSlug().isEmpty() && !v.csvDestinationSlug().equals(dbDestSlug)) {
-            warnings.add(new ActivityImportPreviewDTO.RowWarning(
-                    v.csvRowNumber(), ImportErrorCode.READ_ONLY_FIELD_CHANGED,
-                    "destination_slug is read-only; imported value will be ignored", "destination_slug"));
-        }
-        if (!v.csvImageUrl().isEmpty() && !v.csvImageUrl().equals(nullToEmpty(db.getImageUrl()))) {
-            warnings.add(new ActivityImportPreviewDTO.RowWarning(
-                    v.csvRowNumber(), ImportErrorCode.READ_ONLY_FIELD_CHANGED,
-                    "image_url is read-only; imported value will be ignored", "image_url"));
-        }
-    }
-
-    private Map<String, ActivityImportPreviewDTO.FieldChange> computeFieldChanges(
-            ValidatedRow v, Activity db) {
-        Map<String, ActivityImportPreviewDTO.FieldChange> changes = new LinkedHashMap<>();
-        if (!Objects.equals(nullToEmpty(db.getName()), v.name())) {
-            changes.put("name", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getName()), v.name()));
-        }
-        if (!Objects.equals(nullToEmpty(db.getDescription()), v.description())) {
-            changes.put("description", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getDescription()), v.description()));
-        }
-        BigDecimal dbPrice = db.getPrice() == null ? null
-                : db.getPrice().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal csvPrice = v.price() == null ? null
-                : v.price().setScale(2, RoundingMode.HALF_UP);
-        if (!Objects.equals(dbPrice, csvPrice)) {
-            changes.put("price", new ActivityImportPreviewDTO.FieldChange(dbPrice, csvPrice));
-        }
-        if (!Objects.equals(db.getDuration(), v.duration())) {
-            changes.put("duration", new ActivityImportPreviewDTO.FieldChange(db.getDuration(), v.duration()));
-        }
-        if (!Objects.equals(nullToEmpty(db.getIncludes()), v.includes())) {
-            changes.put("includes", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getIncludes()), v.includes()));
-        }
-        Set<String> dbSlugs = db.getCategories() == null ? Set.of()
-                : db.getCategories().stream()
-                    .map(Category::getSlug)
-                    .collect(Collectors.toCollection(TreeSet::new));
-        Set<String> csvSlugs = new TreeSet<>(v.categorySlugs());
-        if (!dbSlugs.equals(csvSlugs)) {
-            changes.put("category_slugs", new ActivityImportPreviewDTO.FieldChange(
-                    String.join(";", dbSlugs), String.join(";", csvSlugs)));
-        }
-        return changes;
-    }
-
-    private String nullToEmpty(String s) {
-        return s == null ? "" : s;
     }
 
     /** Visible for testing: force a token's expiry into the past. */
