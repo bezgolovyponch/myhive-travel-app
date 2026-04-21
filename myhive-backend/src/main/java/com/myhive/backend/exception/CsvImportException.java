@@ -8,8 +8,7 @@ public class CsvImportException extends RuntimeException {
     public enum Code {
         TOKEN_NOT_FOUND,
         TOKEN_EXPIRED,
-        STATE_CHANGED,
-        HAS_ERRORS
+        STATE_CHANGED
     }
 
     private final Code code;
