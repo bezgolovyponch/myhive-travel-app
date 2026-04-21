@@ -46,6 +46,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ActivityCsvImporter {
 
+    // The file-size cap and the row cap protect different things:
+    // MAX_FILE_BYTES bounds peak network/parser memory; MAX_ROWS bounds
+    // worst-case cached preview size (each ValidatedRow holds up to
+    // ~20KB of strings, so the effective per-token memory ceiling is
+    // MAX_FILE_BYTES * ~2 for String/object overhead, NOT MAX_ROWS *
+    // 20KB — the file cap binds first in practice).
     static final long MAX_FILE_BYTES = 5L * 1024 * 1024;
     static final int MAX_ROWS = 10_000;
     static final String[] REQUIRED_COLUMNS = {
