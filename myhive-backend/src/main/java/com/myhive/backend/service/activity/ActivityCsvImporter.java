@@ -157,7 +157,7 @@ public class ActivityCsvImporter {
             token = UUID.fromString(request.token());
         } catch (IllegalArgumentException e) {
             throw new CsvImportException(CsvImportException.Code.TOKEN_NOT_FOUND,
-                    "Invalid token format");
+                    "Preview token not found or already used");
         }
 
         CachedPreview cached = tokenCache.remove(token);
