@@ -290,33 +290,7 @@ public class ActivityCsvImporter {
 
     /* ------------------------- inner types ------------------------- */
 
-    private record RawRow(int csvRowNumber, String[] values, Map<String, Integer> headerIndex) {
-        String get(String column) {
-            Integer idx = headerIndex.get(column);
-            if (idx == null || idx >= values.length) {
-                return "";
-            }
-            return values[idx] == null ? "" : values[idx].trim();
-        }
-    }
-
     private record ParseOutcome(List<RawRow> rows, Map<String, Integer> headerIndex) {
-    }
-
-    private record ValidatedRow(
-            int csvRowNumber,
-            UUID activityId,
-            String name,
-            String description,
-            BigDecimal price,
-            Integer duration,
-            List<String> categorySlugs,
-            String includes,
-            // read-only fields captured for warning comparison in Task 6:
-            String csvSlug,
-            String csvDestinationSlug,
-            String csvImageUrl
-    ) {
     }
 
     private record CachedPreview(List<ValidatedRow> rows, Instant expiresAt) {
