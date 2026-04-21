@@ -11,7 +11,6 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvValidationException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,7 +24,6 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,11 +36,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ActivityCsvImporter {
 
@@ -61,14 +57,20 @@ public class ActivityCsvImporter {
     static final int MAX_DESCRIPTION_LEN = 10_000;
     static final int MAX_INCLUDES_LEN = 10_000;
     static final int MAX_NAME_LEN = 255;
-    static final Duration TOKEN_TTL = Duration.ofMinutes(10);
 
     private final ActivityRepository activityRepository;
     private final CategoryRepository categoryRepository;
-    private final Map<UUID, CachedPreview> tokenCache = new ConcurrentHashMap<>();
+    private final PreviewTokenCache tokenCache;
+
+    public ActivityCsvImporter(ActivityRepository activityRepository,
+                                CategoryRepository categoryRepository) {
+        this.activityRepository = activityRepository;
+        this.categoryRepository = categoryRepository;
+        this.tokenCache = new PreviewTokenCache();
+    }
 
     public ActivityImportPreviewDTO preview(byte[] fileContent) {
-        tokenCache.entrySet().removeIf(e -> e.getValue().expiresAt().isBefore(Instant.now()));
+        tokenCache.evictExpired();
         List<ActivityImportPreviewDTO.RowError> errors = new ArrayList<>();
         List<ActivityImportPreviewDTO.RowWarning> warnings = new ArrayList<>();
 
@@ -130,13 +132,7 @@ public class ActivityCsvImporter {
             }
         }
 
-        String token = null;
-        if (errors.isEmpty()) {
-            UUID tokenUuid = UUID.randomUUID();
-            tokenCache.put(tokenUuid,
-                    new CachedPreview(changedRows, Instant.now().plus(TOKEN_TTL)));
-            token = tokenUuid.toString();
-        }
+        String token = errors.isEmpty() ? tokenCache.store(changedRows) : null;
 
         return new ActivityImportPreviewDTO(
                 token,
@@ -160,11 +156,9 @@ public class ActivityCsvImporter {
                     "Preview token not found or already used");
         }
 
-        CachedPreview cached = tokenCache.remove(token);
-        if (cached == null) {
-            throw new CsvImportException(CsvImportException.Code.TOKEN_NOT_FOUND,
-                    "Preview token not found or already used");
-        }
+        PreviewTokenCache.Entry cached = tokenCache.consume(token)
+                .orElseThrow(() -> new CsvImportException(CsvImportException.Code.TOKEN_NOT_FOUND,
+                        "Preview token not found or already used"));
         if (Instant.now().isAfter(cached.expiresAt())) {
             throw new CsvImportException(CsvImportException.Code.TOKEN_EXPIRED,
                     "Preview token has expired");
@@ -291,9 +285,6 @@ public class ActivityCsvImporter {
     /* ------------------------- inner types ------------------------- */
 
     private record ParseOutcome(List<RawRow> rows, Map<String, Integer> headerIndex) {
-    }
-
-    private record CachedPreview(List<ValidatedRow> rows, Instant expiresAt) {
     }
 
     private List<ValidatedRow> validateRows(
@@ -525,15 +516,12 @@ public class ActivityCsvImporter {
 
     /** Visible for testing: force a token's expiry into the past. */
     void expireTokenForTest(UUID token) {
-        CachedPreview c = tokenCache.get(token);
-        if (c != null) {
-            tokenCache.put(token, new CachedPreview(c.rows(), Instant.now().minusSeconds(1)));
-        }
+        tokenCache.expireTokenForTest(token);
     }
 
     /** Visible for testing: clear the entire preview token cache. */
     public void clearCacheForTest() {
-        tokenCache.clear();
+        tokenCache.clearForTest();
     }
 
     private String principalName() {
