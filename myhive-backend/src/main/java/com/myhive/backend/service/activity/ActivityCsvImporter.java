@@ -12,6 +12,9 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +43,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ActivityCsvImporter {
 
     static final long MAX_FILE_BYTES = 5L * 1024 * 1024;
@@ -160,6 +164,10 @@ public class ActivityCsvImporter {
                     "Preview token has expired");
         }
 
+        String principal = principalName();
+        log.info("Activity CSV import apply requested: principal={} rowCount={}",
+                principal, cached.rows().size());
+
         int updated = 0;
         for (ValidatedRow v : cached.rows()) {
             Activity activity = activityRepository.findById(v.activityId())
@@ -187,6 +195,9 @@ public class ActivityCsvImporter {
             activityRepository.save(activity);
             updated++;
         }
+        log.info("Activity CSV import applied: principal={} rowsUpdated={} activityIds={}",
+                principal, updated,
+                cached.rows().stream().map(ValidatedRow::activityId).toList());
         return new ActivityImportResultDTO(updated, Instant.now());
     }
 
@@ -548,5 +559,10 @@ public class ActivityCsvImporter {
     /** Visible for testing: clear the entire preview token cache. */
     public void clearCacheForTest() {
         tokenCache.clear();
+    }
+
+    private String principalName() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth == null ? "<unknown>" : auth.getName();
     }
 }
