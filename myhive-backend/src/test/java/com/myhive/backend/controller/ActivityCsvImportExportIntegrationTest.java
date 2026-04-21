@@ -161,6 +161,23 @@ class ActivityCsvImportExportIntegrationTest {
     }
 
     @Test
+    void importApply_asManager_returnsForbidden() throws Exception {
+        mockMvc.perform(post("/admin/activities/import/apply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + UUID.randomUUID() + "\"}")
+                        .with(managerJwt()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void importApply_anonymous_returnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/admin/activities/import/apply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void importPreview_rowWithUnknownId_returnsJsonWithRowError() throws Exception {
         // Start from a valid exported CSV and replace the id with a random UUID that doesn't exist
         MvcResult exportResult = mockMvc.perform(get("/admin/activities/export").with(adminJwt()))
