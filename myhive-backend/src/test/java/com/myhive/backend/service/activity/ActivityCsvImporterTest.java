@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -506,6 +507,44 @@ class ActivityCsvImporterTest {
 
         // The first row WAS saved (in memory, transaction rollback is Spring's job)
         // but the second row's save MUST NEVER have been attempted.
+        verify(activityRepository, times(1)).save(any());
+    }
+
+    @Test
+    void apply_onlyChangedRowsAreWritten_unchangedRowsAreSkipped() {
+        Destination dest = TestDataFactory.destination();
+        Activity changing = TestDataFactory.activity(dest);
+        Activity unchanging = TestDataFactory.activity(dest);
+        UUID changingId = changing.getId();
+        UUID unchangingId = unchanging.getId();
+
+        when(activityRepository.findAllById(anyList()))
+                .thenReturn(List.of(changing, unchanging));
+        when(activityRepository.findById(changingId)).thenReturn(Optional.of(changing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Build CSV: changing row has new name, unchanging row keeps everything
+        String csv = header()
+                + row(changingId.toString(), changing.getSlug(), dest.getSlug(),
+                      "Renamed", changing.getDescription(),
+                      changing.getPrice().toPlainString(),
+                      changing.getDuration().toString(),
+                      "", changing.getImageUrl(), changing.getIncludes())
+                + row(unchangingId.toString(), unchanging.getSlug(), dest.getSlug(),
+                      unchanging.getName(), unchanging.getDescription(),
+                      unchanging.getPrice().toPlainString(),
+                      unchanging.getDuration().toString(),
+                      "", unchanging.getImageUrl(), unchanging.getIncludes());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+        assertThat(preview.rowsToUpdate()).isEqualTo(1);
+        assertThat(preview.rowsUnchanged()).isEqualTo(1);
+
+        ActivityImportResultDTO result = importer.apply(new ActivityImportApplyRequest(preview.token()));
+
+        assertThat(result.rowsUpdated()).isEqualTo(1);
+        // The unchanging row's findById was never called and its save was never invoked
+        verify(activityRepository, never()).findById(unchangingId);
         verify(activityRepository, times(1)).save(any());
     }
 }

@@ -105,6 +105,7 @@ public class ActivityCsvImporter {
         }
 
         List<ActivityImportPreviewDTO.RowDiff> diffs = new ArrayList<>();
+        List<ValidatedRow> changedRows = new ArrayList<>();
         int unchanged = 0;
         for (ValidatedRow v : matched) {
             Activity db = fromDb.get(v.activityId());
@@ -115,6 +116,7 @@ public class ActivityCsvImporter {
             } else {
                 diffs.add(new ActivityImportPreviewDTO.RowDiff(
                         v.csvRowNumber(), v.activityId(), db.getName(), fieldChanges));
+                changedRows.add(v);
             }
         }
 
@@ -122,7 +124,7 @@ public class ActivityCsvImporter {
         if (errors.isEmpty()) {
             UUID tokenUuid = UUID.randomUUID();
             tokenCache.put(tokenUuid,
-                    new CachedPreview(matched, Instant.now().plus(TOKEN_TTL)));
+                    new CachedPreview(changedRows, Instant.now().plus(TOKEN_TTL)));
             token = tokenUuid.toString();
         }
 
