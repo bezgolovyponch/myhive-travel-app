@@ -178,6 +178,36 @@ class ActivityCsvImportExportIntegrationTest {
     }
 
     @Test
+    void export_withDestinationFilter_returnsOnlyMatchingActivities() throws Exception {
+        Destination otherDest = new Destination();
+        otherDest.setName("Tokyo");
+        otherDest.setSlug("tokyo");
+        otherDest.setCountry("Japan");
+        otherDest = destinationRepository.save(otherDest);
+
+        Activity sushi = new Activity();
+        sushi.setDestination(otherDest);
+        sushi.setSlug("sushi-class");
+        sushi.setName("Sushi class");
+        sushi.setPrice(new BigDecimal("60.00"));
+        sushi.setDuration(120);
+        activityRepository.save(sushi);
+
+        // Filter by Bali (the destination from setUp) — should NOT include Sushi
+        MvcResult result = mockMvc.perform(get("/admin/activities/export")
+                        .param("destinationId", destination.getId().toString())
+                        .with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition",
+                        containsString("activities-bali-")))
+                .andReturn();
+
+        String csv = result.getResponse().getContentAsString();
+        assertThat(csv).contains("Surf lesson");
+        assertThat(csv).doesNotContain("Sushi class");
+    }
+
+    @Test
     void importPreview_rowWithUnknownId_returnsJsonWithRowError() throws Exception {
         // Start from a valid exported CSV and replace the id with a random UUID that doesn't exist
         MvcResult exportResult = mockMvc.perform(get("/admin/activities/export").with(adminJwt()))

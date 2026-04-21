@@ -110,13 +110,25 @@ public class AdminController {
     }
 
     @GetMapping(value = "/activities/export", produces = "text/csv;charset=UTF-8")
-    public ResponseEntity<byte[]> exportActivities() {
-        String csv = activityCsvExporter.exportAll();
+    public ResponseEntity<byte[]> exportActivities(
+            @RequestParam(required = false) UUID destinationId) {
+        String csv = destinationId == null
+                ? activityCsvExporter.exportAll()
+                : activityCsvExporter.exportByDestination(destinationId);
         byte[] body = csv.getBytes(StandardCharsets.UTF_8);
-        String filename = "activities-" + LocalDate.now() + ".csv";
+        String filename = buildExportFilename(destinationId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .body(body);
+    }
+
+    private String buildExportFilename(UUID destinationId) {
+        String date = LocalDate.now().toString();
+        if (destinationId == null) {
+            return "activities-" + date + ".csv";
+        }
+        DestinationDTO dest = destinationService.getDestinationById(destinationId);
+        return "activities-" + dest.getSlug() + "-" + date + ".csv";
     }
 
     @PostMapping("/activities/import/preview")

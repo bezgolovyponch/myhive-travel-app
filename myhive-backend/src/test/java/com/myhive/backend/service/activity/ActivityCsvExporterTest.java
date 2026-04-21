@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -101,5 +102,23 @@ class ActivityCsvExporterTest {
         String dataLine = csv.split("\r?\n")[1];
         String[] columns = dataLine.split(",", -1);
         assertThat(columns[6]).isEmpty();
+    }
+
+    @Test
+    void exportByDestination_returnsOnlyMatchingActivities() {
+        Destination otherDest = TestDataFactory.destination();
+        otherDest.setId(UUID.randomUUID());
+        Activity matching = TestDataFactory.activity(destination);
+        matching.setName("MATCHING");
+        Activity nonMatching = TestDataFactory.activity(otherDest);
+        nonMatching.setName("OTHER");
+
+        when(activityRepository.findByDestinationId(destination.getId()))
+                .thenReturn(List.of(matching));
+
+        String csv = exporter.exportByDestination(destination.getId());
+
+        assertThat(csv).contains("MATCHING");
+        assertThat(csv).doesNotContain("OTHER");
     }
 }

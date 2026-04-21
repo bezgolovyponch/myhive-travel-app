@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,7 +33,15 @@ public class ActivityCsvExporter {
 
     @Transactional(readOnly = true)
     public String exportAll() {
-        List<Activity> activities = activityRepository.findAll();
+        return export(activityRepository.findAll());
+    }
+
+    @Transactional(readOnly = true)
+    public String exportByDestination(UUID destinationId) {
+        return export(activityRepository.findByDestinationId(destinationId));
+    }
+
+    private String export(List<Activity> activities) {
         StringWriter out = new StringWriter();
         out.write(BOM);
         try (CSVWriter writer = new CSVWriter(out,
