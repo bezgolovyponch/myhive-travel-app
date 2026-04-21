@@ -100,22 +100,26 @@ export function createAdminApi(getAccessToken) {
             await handleError(response, 'Failed to delete activity');
         },
 
-        async exportActivitiesCsv() {
+        async exportActivitiesCsv(destinationId) {
             const token = await getAccessToken();
-            const response = await fetch(`${API_BASE_URL}/admin/activities/export`, {
+            const url = destinationId
+                ? `${API_BASE_URL}/admin/activities/export?destinationId=${encodeURIComponent(destinationId)}`
+                : `${API_BASE_URL}/admin/activities/export`;
+            const response = await fetch(url, {
                 headers: {Authorization: `Bearer ${token}`},
             });
             await handleError(response, 'Failed to export activities');
             const blob = await response.blob();
+            // Browser will pick up filename from Content-Disposition; this is the fallback
             const filename = `activities-${new Date().toISOString().slice(0, 10)}.csv`;
-            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
+            const objectUrl = URL.createObjectURL(blob);
+            link.href = objectUrl;
             link.download = filename;
             document.body.appendChild(link);
             link.click();
             link.remove();
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(objectUrl);
         },
 
         async previewActivityImport(file) {

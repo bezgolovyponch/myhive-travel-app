@@ -66,7 +66,7 @@ function AdminActivities() {
     const handleExport = async () => {
         setError('');
         try {
-            await adminApi.exportActivitiesCsv();
+            await adminApi.exportActivitiesCsv(filterDestination || null);
         } catch (e) {
             setError(e.message || 'Failed to export activities');
         }
@@ -105,7 +105,9 @@ function AdminActivities() {
                 <h4 className="fw-bold mb-0">Activities</h4>
                 <div className="d-flex gap-2">
                     <Button variant="outline-secondary" size="sm" onClick={fetchData}>Refresh</Button>
-                    <Button variant="outline-secondary" size="sm" onClick={handleExport}>Export CSV</Button>
+                    <Button variant="outline-secondary" size="sm" onClick={handleExport}>
+                        {filterDestination ? 'Export CSV (filtered)' : 'Export CSV'}
+                    </Button>
                     <Button variant="outline-secondary" size="sm" onClick={() => setShowImportModal(true)}>
                         Import CSV
                     </Button>
