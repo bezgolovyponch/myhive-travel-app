@@ -14,13 +14,18 @@ export function createAdminApi(getAccessToken) {
             throw new Error('Unauthorized');
         }
         if (!response.ok) {
-            try {
-                const body = await response.json();
-                throw new Error(body.message || fallbackMessage);
-            } catch (e) {
-                if (e.message !== fallbackMessage && e.message !== 'Unauthorized') throw e;
-                throw new Error(fallbackMessage);
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                try {
+                    const body = await response.json();
+                    throw new Error(body.message || fallbackMessage);
+                } catch (e) {
+                    if (e.message !== fallbackMessage && e.message !== 'Unauthorized') {
+                        throw e;
+                    }
+                }
             }
+            throw new Error(fallbackMessage);
         }
     }
 
