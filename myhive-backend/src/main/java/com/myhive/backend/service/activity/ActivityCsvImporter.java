@@ -8,22 +8,14 @@ import com.myhive.backend.entity.Category;
 import com.myhive.backend.exception.CsvImportException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
-import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,23 +41,20 @@ public class ActivityCsvImporter {
     // MAX_FILE_BYTES * ~2 for String/object overhead, NOT MAX_ROWS *
     // 20KB — the file cap binds first in practice).
     static final long MAX_FILE_BYTES = 5L * 1024 * 1024;
-    static final int MAX_ROWS = 10_000;
-    static final String[] REQUIRED_COLUMNS = {
-            "id", "slug", "destination_slug", "name", "description",
-            "price", "duration", "category_slugs", "image_url", "includes"
-    };
     static final int MAX_DESCRIPTION_LEN = 10_000;
     static final int MAX_INCLUDES_LEN = 10_000;
     static final int MAX_NAME_LEN = 255;
 
     private final ActivityRepository activityRepository;
     private final CategoryRepository categoryRepository;
+    private final ActivityCsvParser parser;
     private final PreviewTokenCache tokenCache;
 
     public ActivityCsvImporter(ActivityRepository activityRepository,
                                 CategoryRepository categoryRepository) {
         this.activityRepository = activityRepository;
         this.categoryRepository = categoryRepository;
+        this.parser = new ActivityCsvParser();
         this.tokenCache = new PreviewTokenCache();
     }
 
@@ -86,15 +75,10 @@ public class ActivityCsvImporter {
             return emptyPreview(errors, warnings);
         }
 
-        ParseOutcome parsed;
-        try {
-            parsed = parse(fileContent, errors, warnings);
-        } catch (IOException | CsvValidationException e) {
-            errors.add(new ActivityImportPreviewDTO.RowError(
-                    0, ImportErrorCode.INVALID_ENCODING, e.getMessage(), null));
-            return emptyPreview(errors, warnings);
-        }
-        if (parsed == null) {
+        ActivityCsvParser.Result parsed = parser.parse(fileContent);
+        errors.addAll(parsed.errors());
+        warnings.addAll(parsed.warnings());
+        if (parsed.isFatal()) {
             return emptyPreview(errors, warnings);
         }
 
@@ -201,90 +185,12 @@ public class ActivityCsvImporter {
         return new ActivityImportResultDTO(updated, Instant.now());
     }
 
-    /* ------------------------- parsing ------------------------- */
-
-    private ParseOutcome parse(byte[] bytes,
-                               List<ActivityImportPreviewDTO.RowError> errors,
-                               List<ActivityImportPreviewDTO.RowWarning> warnings) throws IOException, CsvValidationException {
-        byte[] stripped = stripBom(bytes);
-        try (Reader reader = new InputStreamReader(new ByteArrayInputStream(stripped), StandardCharsets.UTF_8);
-             CSVReader csv = new CSVReaderBuilder(reader).build()) {
-
-            String[] header = csv.readNext();
-            if (header == null) {
-                errors.add(new ActivityImportPreviewDTO.RowError(
-                        0, ImportErrorCode.EMPTY_FILE, "File contains no header row", null));
-                return null;
-            }
-            Map<String, Integer> headerIndex = new LinkedHashMap<>();
-            for (int i = 0; i < header.length; i++) {
-                headerIndex.put(header[i].trim(), i);
-            }
-
-            List<String> missing = new ArrayList<>();
-            for (String required : REQUIRED_COLUMNS) {
-                if (!headerIndex.containsKey(required)) {
-                    missing.add(required);
-                }
-            }
-            if (!missing.isEmpty()) {
-                errors.add(new ActivityImportPreviewDTO.RowError(
-                        1, ImportErrorCode.MISSING_COLUMNS,
-                        "Missing required columns: " + String.join(", ", missing), null));
-                return null;
-            }
-
-            Set<String> requiredSet = Set.of(REQUIRED_COLUMNS);
-            List<String> unknown = headerIndex.keySet().stream()
-                    .filter(c -> !requiredSet.contains(c))
-                    .toList();
-            if (!unknown.isEmpty()) {
-                warnings.add(new ActivityImportPreviewDTO.RowWarning(
-                        1, ImportErrorCode.UNKNOWN_COLUMNS,
-                        "Unknown columns ignored: " + String.join(", ", unknown), null));
-            }
-
-            List<RawRow> rows = new ArrayList<>();
-            String[] line;
-            int lineNumber = 1;
-            while ((line = csv.readNext()) != null) {
-                lineNumber++;
-                if (line.length == 0 || (line.length == 1 && (line[0] == null || line[0].isBlank()))) {
-                    continue;
-                }
-                if (rows.size() >= MAX_ROWS) {
-                    errors.add(new ActivityImportPreviewDTO.RowError(
-                            lineNumber, ImportErrorCode.TOO_MANY_ROWS,
-                            "File exceeds maximum of " + MAX_ROWS + " rows", null));
-                    return null;
-                }
-                rows.add(new RawRow(lineNumber, line, headerIndex));
-            }
-            return new ParseOutcome(rows, headerIndex);
-        }
-    }
-
-    private byte[] stripBom(byte[] bytes) {
-        if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF
-                && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF) {
-            byte[] out = new byte[bytes.length - 3];
-            System.arraycopy(bytes, 3, out, 0, out.length);
-            return out;
-        }
-        return bytes;
-    }
-
     private ActivityImportPreviewDTO emptyPreview(
             List<ActivityImportPreviewDTO.RowError> errors,
             List<ActivityImportPreviewDTO.RowWarning> warnings) {
         return new ActivityImportPreviewDTO(
                 null, 0, 0, 0, errors.size(), warnings.size(),
                 List.of(), errors, warnings);
-    }
-
-    /* ------------------------- inner types ------------------------- */
-
-    private record ParseOutcome(List<RawRow> rows, Map<String, Integer> headerIndex) {
     }
 
     private List<ValidatedRow> validateRows(
