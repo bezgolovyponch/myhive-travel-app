@@ -1,6 +1,10 @@
 package com.myhive.backend.service;
 
-import com.myhive.backend.dto.*;
+import com.myhive.backend.dto.BookingDTO;
+import com.myhive.backend.dto.BookingItemDTO;
+import com.myhive.backend.dto.BookingStatsDTO;
+import com.myhive.backend.dto.CreateBookingRequest;
+import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
@@ -9,6 +13,7 @@ import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingRepository;
+import com.myhive.backend.repository.PackageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,11 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -32,6 +40,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final ActivityRepository activityRepository;
+    private final PackageRepository packageRepository;
     private final EmailService emailService;
 
     @Value("${app.email.enabled:false}")
@@ -44,7 +53,6 @@ public class BookingService {
         booking.setStatus(BookingStatus.PENDING);
 
         List<BookingItem> items = new ArrayList<>();
-        BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (CreateBookingRequest.BookingActivityItem item : request.getActivities()) {
             Activity activity = activityRepository.findById(item.getActivityId())
@@ -59,11 +67,10 @@ public class BookingService {
             bookingItem.setQuantity(item.getQuantity());
 
             items.add(bookingItem);
-            totalAmount = totalAmount.add(activity.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
 
         booking.setBookingItems(items);
-        booking.setTotalAmount(totalAmount);
+        booking.setTotalAmount(calculateTotal(items));
 
         Booking savedBooking = bookingRepository.save(booking);
         return convertToDTO(savedBooking);
@@ -92,7 +99,6 @@ public class BookingService {
         booking.setNotes(request.getNotes());
 
         List<BookingItem> items = new ArrayList<>();
-        BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (TripExportRequest.DestinationExport dest : request.getDestinations()) {
             if (booking.getStartDate() == null && dest.getStartDate() != null) {
@@ -124,13 +130,19 @@ public class BookingService {
 
                 int travelers = request.getNumberOfTravelers() != null ? request.getNumberOfTravelers() : 1;
                 item.setQuantity(travelers);
-                totalAmount = totalAmount.add(item.getPrice().multiply(BigDecimal.valueOf(travelers)));
+
+                if (act.getPackageId() != null) {
+                    item.setPkg(packageRepository.findById(act.getPackageId()).orElse(null));
+                    item.setPackageName(act.getPackageName());
+                    item.setPackageDiscountPct(act.getPackageDiscountPct());
+                }
+
                 items.add(item);
             }
         }
 
         booking.setBookingItems(items);
-        booking.setTotalAmount(totalAmount);
+        booking.setTotalAmount(calculateTotal(items));
 
         Booking saved = bookingRepository.save(booking);
         log.info("Booking created successfully: id={}, customer={}, email={}, items={}, total={}",
@@ -227,5 +239,31 @@ public class BookingService {
         dto.setPackageName(item.getPackageName());
         dto.setPackageDiscountPct(item.getPackageDiscountPct());
         return dto;
+    }
+
+    private BigDecimal calculateTotal(List<BookingItem> items) {
+        BigDecimal total = BigDecimal.ZERO;
+        Map<UUID, List<BookingItem>> grouped = new LinkedHashMap<>();
+        for (BookingItem it : items) {
+            UUID key = it.getPkg() != null ? it.getPkg().getId() : null;
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(it);
+        }
+        for (var e : grouped.entrySet()) {
+            BigDecimal groupTotal = BigDecimal.ZERO;
+            for (BookingItem it : e.getValue()) {
+                BigDecimal qty = BigDecimal.valueOf(it.getQuantity() == null ? 1 : it.getQuantity());
+                groupTotal = groupTotal.add(it.getPrice().multiply(qty));
+            }
+            if (e.getKey() != null) {
+                BigDecimal pct = e.getValue().getFirst().getPackageDiscountPct();
+                if (pct == null) {
+                    pct = BigDecimal.ZERO;
+                }
+                groupTotal = groupTotal.multiply(new BigDecimal("100").subtract(pct))
+                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+            }
+            total = total.add(groupTotal);
+        }
+        return total;
     }
 }

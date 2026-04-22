@@ -13,6 +13,7 @@ import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingRepository;
+import com.myhive.backend.repository.PackageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +45,9 @@ class BookingServiceTest {
 
     @Mock
     private EmailService emailService;
+
+    @Mock
+    private PackageRepository packageRepository;
 
     @InjectMocks
     private BookingService bookingService;
@@ -285,5 +289,40 @@ class BookingServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo("PENDING");
+    }
+
+    @Test
+    void packageBookingAppliesDiscountToTotal() {
+        Activity a1 = TestDataFactory.activity(destination); a1.setPrice(new BigDecimal("100.00"));
+        Activity a2 = TestDataFactory.activity(destination); a2.setPrice(new BigDecimal("200.00"));
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        pkg.setDiscountPct(new BigDecimal("10.00"));
+
+        when(activityRepository.findById(a1.getId())).thenReturn(Optional.of(a1));
+        when(activityRepository.findById(a2.getId())).thenReturn(Optional.of(a2));
+        when(packageRepository.findById(pkg.getId())).thenReturn(Optional.of(pkg));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TripExportRequest req = new TripExportRequest();
+        req.setUserEmail("a@b.com");
+        req.setNumberOfTravelers(1);
+        TripExportRequest.DestinationExport de = new TripExportRequest.DestinationExport();
+        de.setDestinationName(destination.getName());
+        TripExportRequest.ActivityExport ae1 = new TripExportRequest.ActivityExport();
+        ae1.setActivityId(a1.getId()); ae1.setActivityName(a1.getName()); ae1.setPrice(100.0);
+        ae1.setPackageId(pkg.getId()); ae1.setPackageName(pkg.getName());
+        ae1.setPackageDiscountPct(new BigDecimal("10.00"));
+        TripExportRequest.ActivityExport ae2 = new TripExportRequest.ActivityExport();
+        ae2.setActivityId(a2.getId()); ae2.setActivityName(a2.getName()); ae2.setPrice(200.0);
+        ae2.setPackageId(pkg.getId()); ae2.setPackageName(pkg.getName());
+        ae2.setPackageDiscountPct(new BigDecimal("10.00"));
+        de.setActivities(List.of(ae1, ae2));
+        req.setDestinations(List.of(de));
+
+        BookingDTO dto = bookingService.createBookingFromExport(req);
+
+        BigDecimal expectedTotal = new BigDecimal("270.00");
+        assertThat(dto.getTotalAmount()).isEqualByComparingTo(expectedTotal);
+        assertThat(dto.getItems()).allMatch(i -> pkg.getId().equals(i.getPackageId()));
     }
 }
