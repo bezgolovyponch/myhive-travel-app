@@ -9,12 +9,14 @@ import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.DestinationDTO;
+import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.service.ActivityService;
 import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.BookingService;
 import com.myhive.backend.service.CategoryService;
 import com.myhive.backend.service.DestinationService;
 import com.myhive.backend.service.ImageUploadService;
+import com.myhive.backend.service.PackageService;
 import com.myhive.backend.service.activity.ActivityCsvExporter;
 import com.myhive.backend.service.activity.ActivityCsvImporter;
 import jakarta.validation.Valid;
@@ -57,6 +59,7 @@ public class AdminController {
     private final BlogPostService blogPostService;
     private final DestinationService destinationService;
     private final CategoryService categoryService;
+    private final PackageService packageService;
     private final Optional<ImageUploadService> imageUploadService;
     private final ActivityCsvExporter activityCsvExporter;
     private final ActivityCsvImporter activityCsvImporter;
@@ -234,6 +237,35 @@ public class AdminController {
     @DeleteMapping("/blog/{id}")
     public ResponseEntity<Void> deleteBlogPost(@PathVariable UUID id) {
         blogPostService.deleteBlogPost(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/packages")
+    public ResponseEntity<List<PackageDTO>> getAllPackages() {
+        return ResponseEntity.ok(packageService.getAllPackages());
+    }
+
+    @GetMapping("/packages/paged")
+    public ResponseEntity<Page<PackageDTO>> getPackagesPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, 50), Sort.by("name").ascending());
+        return ResponseEntity.ok(packageService.getPackagesPaged(pageRequest));
+    }
+
+    @PostMapping("/packages")
+    public ResponseEntity<PackageDTO> createPackage(@Valid @RequestBody PackageDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(packageService.createPackage(dto));
+    }
+
+    @PutMapping("/packages/{id}")
+    public ResponseEntity<PackageDTO> updatePackage(@PathVariable UUID id, @Valid @RequestBody PackageDTO dto) {
+        return ResponseEntity.ok(packageService.updatePackage(id, dto));
+    }
+
+    @DeleteMapping("/packages/{id}")
+    public ResponseEntity<Void> deletePackage(@PathVariable UUID id) {
+        packageService.deletePackage(id);
         return ResponseEntity.noContent().build();
     }
 

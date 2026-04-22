@@ -224,4 +224,25 @@ class AdminControllerIntegrationTest {
                         .with(adminJwt()))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void adminCreatePackage_withAdminAuth_returns201() throws Exception {
+        String body = String.format("""
+                {"destinationId":"%s","name":"New Pkg","discountPct":15.00,
+                 "activities":[{"activityId":"%s","position":0}]}""",
+                destinationId, activityId);
+
+        mockMvc.perform(post("/admin/packages")
+                        .with(adminJwt())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.slug").value("new-pkg"));
+    }
+
+    @Test
+    void adminListPackagesPaged_withAdminAuth_returns200() throws Exception {
+        mockMvc.perform(get("/admin/packages/paged")
+                        .with(adminJwt()))
+                .andExpect(status().isOk());
+    }
 }
