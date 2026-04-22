@@ -5,10 +5,13 @@ import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.BlogPost;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.Package;
+import com.myhive.backend.entity.PackageActivity;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BlogPostRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.PackageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +51,9 @@ class PublicControllerIntegrationTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private PackageRepository packageRepository;
 
     private UUID destinationId;
     private UUID activityId;
@@ -238,5 +244,26 @@ class PublicControllerIntegrationTest {
                 .andExpect(content().string(containsString("/destination/tokyo")))
                 .andExpect(content().string(containsString("/destination/tokyo/activity/temple-visit")))
                 .andExpect(content().string(containsString("/blog/tokyo-guide")));
+    }
+
+    // --- Packages ---
+
+    @Test
+    void getPackageBySlugReturnsPackage() throws Exception {
+        Destination dest = destinationRepository.findById(destinationId).orElseThrow();
+        Activity act = activityRepository.findById(activityId).orElseThrow();
+
+        Package pkg = new Package();
+        pkg.setSlug("public-pkg");
+        pkg.setName("Public Package");
+        pkg.setDestination(dest);
+        pkg.setDiscountPct(new BigDecimal("10.00"));
+        pkg.getPackageActivities().add(new PackageActivity(pkg, act, 0));
+        packageRepository.save(pkg);
+
+        mockMvc.perform(get("/packages/slug/public-pkg"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slug").value("public-pkg"))
+                .andExpect(jsonPath("$.activities", hasSize(1)));
     }
 }
