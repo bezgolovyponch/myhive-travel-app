@@ -41,6 +41,8 @@ public class PackageActivity {
     @Column(nullable = false)
     private Integer position;
 
+    @Getter
+    @Setter
     @EqualsAndHashCode
     @NoArgsConstructor
     @AllArgsConstructor
