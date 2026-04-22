@@ -88,7 +88,23 @@ class PackageRepositoryTest {
     }
 
     @Test
-    void findActivityIdsUsedInPackagesReturnsUsedIds() {
+    void findByDestinationIdAndCategoriesSlugReturnsCombinedFilter() {
+        Package matching = buildPackage("matching");
+        matching.getCategories().add(category);
+        packageRepository.save(matching);
+
+        Package wrongCategory = buildPackage("no-cat");
+        packageRepository.save(wrongCategory);
+
+        List<Package> result = packageRepository.findByDestinationIdAndCategoriesSlug(
+                destination.getId(), "beach");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSlug()).isEqualTo("matching");
+    }
+
+    @Test
+    void findPackageNamesByActivityIdReturnsMatchingNames() {
         Package pkg = buildPackage("with-act");
         PackageActivity pa = new PackageActivity(pkg, activity, 0);
         pkg.getPackageActivities().add(pa);
