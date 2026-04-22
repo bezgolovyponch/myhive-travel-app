@@ -9,6 +9,7 @@ import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.PackageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,9 @@ class ActivityServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private PackageRepository packageRepository;
 
     @InjectMocks
     private ActivityService activityService;
@@ -223,6 +227,7 @@ class ActivityServiceTest {
     @Test
     void deleteActivity_exists_deletes() {
         when(activityRepository.existsById(activity.getId())).thenReturn(true);
+        when(packageRepository.findPackageNamesByActivityId(activity.getId())).thenReturn(List.of());
 
         activityService.deleteActivity(activity.getId());
 
@@ -273,5 +278,16 @@ class ActivityServiceTest {
         assertThatThrownBy(() -> activityService.createActivity(dto))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Category");
+    }
+
+    @Test
+    void deleteActivityThrowsWhenUsedInPackages() {
+        UUID id = UUID.randomUUID();
+        when(activityRepository.existsById(id)).thenReturn(true);
+        when(packageRepository.findPackageNamesByActivityId(id))
+                .thenReturn(List.of("Honeymoon Bali", "Adventure Java"));
+
+        assertThatThrownBy(() -> activityService.deleteActivity(id))
+                .isInstanceOf(com.myhive.backend.exception.ActivityInUseException.class);
     }
 }

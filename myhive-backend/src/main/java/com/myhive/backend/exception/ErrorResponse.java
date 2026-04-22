@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -18,4 +19,5 @@ public class ErrorResponse {
     private final String message;
     private final String path;
     private final Map<String, String> fieldErrors;
+    private final List<String> packageNames;
 }

@@ -5,10 +5,12 @@ import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.exception.ActivityInUseException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,6 +30,7 @@ public class ActivityService {
     private final ActivityRepository activityRepository;
     private final DestinationRepository destinationRepository;
     private final CategoryRepository categoryRepository;
+    private final PackageRepository packageRepository;
 
     public List<ActivityDTO> getAllActivities() {
         return activityRepository.findAll().stream()
@@ -125,6 +128,10 @@ public class ActivityService {
     public void deleteActivity(UUID id) {
         if (!activityRepository.existsById(id)) {
             throw new ResourceNotFoundException("Activity", id);
+        }
+        List<String> usedIn = packageRepository.findPackageNamesByActivityId(id);
+        if (!usedIn.isEmpty()) {
+            throw new ActivityInUseException(usedIn);
         }
         activityRepository.deleteById(id);
     }
