@@ -13,13 +13,39 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EmailService {
-    
+
+    public static class DestinationView {
+        public String destinationName;
+        public String country;
+        public Integer duration;
+        public String startDate;
+        public String endDate;
+        public List<PackageGroup> packageGroups = new ArrayList<>();
+        public List<TripExportRequest.ActivityExport> standaloneActivities = new ArrayList<>();
+    }
+
+    public static class PackageGroup {
+        public String packageName;
+        public BigDecimal discountPct;
+        public BigDecimal subtotal;
+        public BigDecimal discounted;
+        public List<TripExportRequest.ActivityExport> activities = new ArrayList<>();
+    }
+
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
 
@@ -42,7 +68,8 @@ public class EmailService {
             Context context = new Context();
             context.setVariable("customerName", customerName);
             context.setVariable("tripData", tripData);
-            context.setVariable("bookingDate", java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
+            context.setVariable("destinationViews", buildDestinationViews(tripData));
+            context.setVariable("bookingDate", LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
 
             log.debug("Processing email template: email/itinerary-confirmation");
             String htmlContent = templateEngine.process("itinerary-confirmation", context);
@@ -85,5 +112,55 @@ public class EmailService {
             log.error("Failed to send contact notification. Cause: {}", e.getMessage(), e);
             throw new EmailSendException("Failed to send contact notification", e);
         }
+    }
+
+    List<DestinationView> buildDestinationViews(TripExportRequest tripData) {
+        List<DestinationView> views = new ArrayList<>();
+        if (tripData.getDestinations() == null) {
+            return views;
+        }
+        for (TripExportRequest.DestinationExport dest : tripData.getDestinations()) {
+            DestinationView view = new DestinationView();
+            view.destinationName = dest.getDestinationName();
+            view.country = dest.getCountry();
+            view.duration = dest.getDuration();
+            view.startDate = dest.getStartDate();
+            view.endDate = dest.getEndDate();
+
+            if (dest.getActivities() != null) {
+                Map<UUID, PackageGroup> groupMap = new LinkedHashMap<>();
+                for (TripExportRequest.ActivityExport activity : dest.getActivities()) {
+                    UUID packageId = activity.getPackageId();
+                    if (packageId == null) {
+                        view.standaloneActivities.add(activity);
+                    } else {
+                        PackageGroup group = groupMap.computeIfAbsent(packageId, id -> {
+                            PackageGroup g = new PackageGroup();
+                            g.packageName = activity.getPackageName();
+                            g.discountPct = activity.getPackageDiscountPct();
+                            return g;
+                        });
+                        group.activities.add(activity);
+                    }
+                }
+                for (PackageGroup group : groupMap.values()) {
+                    BigDecimal subtotal = BigDecimal.ZERO;
+                    for (TripExportRequest.ActivityExport activity : group.activities) {
+                        BigDecimal activityPrice = activity.getPrice() != null
+                                ? BigDecimal.valueOf(activity.getPrice())
+                                : BigDecimal.ZERO;
+                        subtotal = subtotal.add(activityPrice);
+                    }
+                    group.subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal discountPct = group.discountPct != null ? group.discountPct : BigDecimal.ZERO;
+                    BigDecimal multiplier = BigDecimal.valueOf(100).subtract(discountPct)
+                            .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+                    group.discounted = subtotal.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
+                    view.packageGroups.add(group);
+                }
+            }
+            views.add(view);
+        }
+        return views;
     }
 }
