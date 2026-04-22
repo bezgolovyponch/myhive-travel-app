@@ -246,6 +246,23 @@ class PublicControllerIntegrationTest {
                 .andExpect(content().string(containsString("/blog/tokyo-guide")));
     }
 
+    @Test
+    void sitemapIncludesPackageUrls() throws Exception {
+        Destination dest = destinationRepository.findById(destinationId).orElseThrow();
+        Activity act = activityRepository.findById(activityId).orElseThrow();
+        Package pkg = new Package();
+        pkg.setSlug("sitemap-pkg");
+        pkg.setName("Sitemap Package");
+        pkg.setDestination(dest);
+        pkg.setDiscountPct(new BigDecimal("5.00"));
+        pkg.getPackageActivities().add(new PackageActivity(pkg, act, 0));
+        packageRepository.save(pkg);
+
+        mockMvc.perform(get("/sitemap.xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/destination/" + dest.getSlug() + "/package/sitemap-pkg")));
+    }
+
     // --- Packages ---
 
     @Test
