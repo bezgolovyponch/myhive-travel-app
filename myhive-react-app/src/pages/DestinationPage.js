@@ -24,6 +24,7 @@ function DestinationPage() {
   const [destination, setDestination] = useState(null);
   const [activities, setActivities] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -60,6 +61,12 @@ function DestinationPage() {
         setDestination(destData);
           setCategories(categoriesData);
           await fetchActivitiesPage(destData.id, 0, 'all', true);
+          try {
+              const pkgData = await api.getPackagesByDestination(destData.id);
+              setPackages(pkgData);
+          } catch {
+              setPackages([]);
+          }
       } catch {
           setError(true);
       } finally {
@@ -140,12 +147,14 @@ function DestinationPage() {
         >
           Activities
         </button>
-          <button
-              className={`tab-btn ${currentTab === 'packages' ? 'active' : ''}`}
-          onClick={() => handleTabChange('packages')}
-        >
-          Packages
-        </button>
+          {packages.length > 0 && (
+              <button
+                  className={`tab-btn ${currentTab === 'packages' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('packages')}
+              >
+                  Packages
+              </button>
+          )}
           <button
               className={`tab-btn ${currentTab === 'trip-builder' ? 'active' : ''}`}
           onClick={() => handleTabChange('trip-builder')}
@@ -215,7 +224,7 @@ function DestinationPage() {
         <div id="packages-tab" className="tab-content"
              style={{display: currentTab === 'packages' ? 'flex' : 'none'}}>
         <div className="packages-grid">
-          {state.packages.map(pkg => (
+          {packages.map(pkg => (
             <PackageCard key={pkg.id} pkg={pkg} />
           ))}
         </div>
