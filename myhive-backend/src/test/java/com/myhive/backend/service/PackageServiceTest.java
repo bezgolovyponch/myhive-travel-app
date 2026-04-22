@@ -1,11 +1,13 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
+import com.myhive.backend.dto.PackageActivityRefDTO;
 import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.entity.PackageActivity;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
@@ -19,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -83,6 +86,36 @@ class PackageServiceTest {
         when(packageRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> packageService.getPackageById(id))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void createRejectsActivitiesFromOtherDestination() {
+        Destination other = TestDataFactory.destination();
+        other.setId(UUID.randomUUID());
+        Activity foreign = TestDataFactory.activity(other);
+
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(activityRepository.findAllById(List.of(foreign.getId()))).thenReturn(List.of(foreign));
+
+        PackageDTO dto = new PackageDTO();
+        dto.setDestinationId(destination.getId());
+        dto.setName("New");
+        dto.setDiscountPct(new BigDecimal("10.00"));
+        dto.setActivities(List.of(new PackageActivityRefDTO(
+                foreign.getId(), 0, null, null, null, null, null)));
+
+        assertThatThrownBy(() -> packageService.createPackage(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("destination");
+    }
+
+    @Test
+    void deleteThrowsWhenMissing() {
+        UUID id = UUID.randomUUID();
+        when(packageRepository.existsById(id)).thenReturn(false);
+
+        assertThatThrownBy(() -> packageService.deletePackage(id))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }
