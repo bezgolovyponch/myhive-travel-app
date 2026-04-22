@@ -63,6 +63,22 @@ function AdminActivities() {
         }),
     });
 
+    const customHandleDelete = async () => {
+        try {
+            setError('');
+            await adminApi.deleteActivity(deleteId);
+            await fetchData();
+        } catch (e) {
+            if (e?.status === 409 && Array.isArray(e?.body?.packageNames)) {
+                setError(`Cannot delete: used in packages: ${e.body.packageNames.join(', ')}`);
+            } else {
+                setError(e.message || 'Failed to delete activity');
+            }
+        } finally {
+            setDeleteId(null);
+        }
+    };
+
     const handleExport = async () => {
         setError('');
         try {
@@ -320,7 +336,7 @@ function AdminActivities() {
             <DeleteConfirmModal
                 show={!!deleteId}
                 onHide={() => setDeleteId(null)}
-                onConfirm={handleDelete}
+                onConfirm={customHandleDelete}
                 saving={saving}
             />
 

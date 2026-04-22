@@ -27,23 +27,27 @@ export function createAdminApi(getAccessToken) {
     }
 
     async function handleError(response, fallbackMessage) {
+        if (response.ok) {
+            return;
+        }
         if (response.status === 401 || response.status === 403) {
-            throw new Error('Unauthorized');
+            const err = new Error('Unauthorized');
+            err.status = response.status;
+            throw err;
         }
-        if (!response.ok) {
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                try {
-                    const body = await response.json();
-                    throw new Error(body.message || fallbackMessage);
-                } catch (e) {
-                    if (e.message !== fallbackMessage && e.message !== 'Unauthorized') {
-                        throw e;
-                    }
-                }
+        let body = null;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            try {
+                body = await response.json();
+            } catch (e) {
+                body = null;
             }
-            throw new Error(fallbackMessage);
         }
+        const err = new Error((body && body.message) || fallbackMessage);
+        err.status = response.status;
+        err.body = body;
+        throw err;
     }
 
     return {
