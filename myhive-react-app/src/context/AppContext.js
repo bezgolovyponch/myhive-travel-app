@@ -87,6 +87,26 @@ export const reducer = (state, action) => {
                 tripItems: [],
                 tripSetupModalOpen: false
             };
+        case 'ADD_PACKAGE_TO_TRIP': {
+            const pkg = action.pkg;
+            const newItems = pkg.activities.map(a => ({
+                id: a.activityId,
+                name: a.name,
+                price: a.price,
+                imageUrl: a.imageUrl,
+                duration: a.duration,
+                packageId: pkg.id,
+                packageName: pkg.name,
+                packageDiscountPct: pkg.discountPct,
+            }));
+            const without = state.tripItems.filter(i => !newItems.some(n => n.id === i.id));
+            return {...state, tripItems: [...without, ...newItems]};
+        }
+        case 'REMOVE_PACKAGE_FROM_TRIP':
+            return {
+                ...state,
+                tripItems: state.tripItems.filter(i => i.packageId !== action.packageId),
+            };
         case 'ADD_CHAT_MESSAGE':
             return {
                 ...state,

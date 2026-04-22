@@ -68,7 +68,10 @@ function TripBuilder() {
             description: item.description || '',
             price: item.price || 0,
             duration: item.duration || 0,
-            timeOfDay: item.timeOfDay || 'Any'
+            timeOfDay: item.timeOfDay || 'Any',
+            packageId: item.packageId || null,
+            packageName: item.packageName || null,
+            packageDiscountPct: item.packageDiscountPct || null,
           }))
         }],
         notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`
@@ -89,10 +92,35 @@ function TripBuilder() {
 
   const travelers = state.tripTravelers || 1;
 
-  const totalPrice = state.tripItems.reduce((sum, item) => {
-    const price = typeof item.price === 'number' ? item.price : 0;
-    return sum + (price * travelers);
-  }, 0);
+  const standalone = state.tripItems.filter(i => !i.packageId);
+  const packageGroups = state.tripItems.reduce((acc, item) => {
+      if (!item.packageId) {
+          return acc;
+      }
+      if (!acc[item.packageId]) {
+          acc[item.packageId] = {
+              packageId: item.packageId,
+              packageName: item.packageName,
+              packageDiscountPct: Number(item.packageDiscountPct) || 0,
+              items: [],
+          };
+      }
+      acc[item.packageId].items.push(item);
+      return acc;
+  }, {});
+  const groupsArray = Object.values(packageGroups);
+
+  const totalPrice = (() => {
+      let total = 0;
+      standalone.forEach(it => {
+          total += (Number(it.price) || 0) * travelers;
+      });
+      groupsArray.forEach(g => {
+          const sub = g.items.reduce((s, it) => s + (Number(it.price) || 0) * travelers, 0);
+          total += sub * (100 - g.packageDiscountPct) / 100;
+      });
+      return Math.round(total * 100) / 100;
+  })();
 
   const filteredBrowseActivities = browseFilter === 'all'
       ? state.activities
@@ -131,26 +159,60 @@ function TripBuilder() {
         </div>
         <div className="itinerary-list">
           {state.tripItems.length > 0 ? (
-            state.tripItems.map(item => (
-              <div key={item.id} className="itinerary-item">
-                <img src={item.imageUrl || item.image} alt={item.name || item.title} className="itinerary-item-image"
-                     loading="lazy"/>
-                <div className="itinerary-item-content">
-                  <div className="itinerary-item-title">{item.name || item.title}</div>
-                  <div className="itinerary-item-price">
-                    {travelers > 1
-                        ? `€${item.price} × ${travelers} = €${item.price * travelers}`
-                        : formatPricePerPerson(item.price)}
+            <>
+              {groupsArray.map(group => (
+                <div key={group.packageId} className="package-group">
+                  <div className="package-group-header">
+                    <span className="package-group-name">{group.packageName}</span>
+                    {group.packageDiscountPct > 0 && (
+                      <span className="package-group-discount">{group.packageDiscountPct}% off</span>
+                    )}
+                    <button
+                      className="remove-item-btn"
+                      onClick={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="package-group-items">
+                    {group.items.map(item => (
+                      <div key={item.id} className="itinerary-item package-group-activity">
+                        <img src={item.imageUrl || item.image} alt={item.name || item.title}
+                             className="itinerary-item-image" loading="lazy"/>
+                        <div className="itinerary-item-content">
+                          <div className="itinerary-item-title">{item.name || item.title}</div>
+                          <div className="itinerary-item-price">
+                            {travelers > 1
+                                ? `€${item.price} × ${travelers} = €${item.price * travelers}`
+                                : formatPricePerPerson(item.price)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <button 
-                  className="remove-item-btn"
-                  onClick={() => handleRemoveActivity(item.id)}
-                >
-                  ×
-                </button>
-              </div>
-            ))
+              ))}
+              {standalone.map(item => (
+                <div key={item.id} className="itinerary-item">
+                  <img src={item.imageUrl || item.image} alt={item.name || item.title} className="itinerary-item-image"
+                       loading="lazy"/>
+                  <div className="itinerary-item-content">
+                    <div className="itinerary-item-title">{item.name || item.title}</div>
+                    <div className="itinerary-item-price">
+                      {travelers > 1
+                          ? `€${item.price} × ${travelers} = €${item.price * travelers}`
+                          : formatPricePerPerson(item.price)}
+                    </div>
+                  </div>
+                  <button
+                    className="remove-item-btn"
+                    onClick={() => handleRemoveActivity(item.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </>
           ) : (
             <div className="empty-state">
               <p>Start building your trip by adding activities!</p>
