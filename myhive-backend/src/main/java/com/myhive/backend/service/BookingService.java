@@ -223,6 +223,9 @@ public class BookingService {
         dto.setDestinationName(item.getDestinationName());
         dto.setPrice(item.getPrice());
         dto.setQuantity(item.getQuantity());
+        dto.setPackageId(item.getPkg() != null ? item.getPkg().getId() : null);
+        dto.setPackageName(item.getPackageName());
+        dto.setPackageDiscountPct(item.getPackageDiscountPct());
         return dto;
     }
 }

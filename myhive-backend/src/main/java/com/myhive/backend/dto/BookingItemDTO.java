@@ -17,4 +17,7 @@ public class BookingItemDTO {
     private String destinationName;
     private BigDecimal price;
     private Integer quantity;
+    private UUID packageId;
+    private String packageName;
+    private BigDecimal packageDiscountPct;
 }
