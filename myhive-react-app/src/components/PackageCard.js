@@ -1,43 +1,29 @@
-import {useContext} from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
-import {AppContext} from '../context/AppContext';
+import {Link} from 'react-router-dom';
+import {formatAmount} from '../utils/format';
 import './PackageCard.css';
 
-function PackageCard({ pkg }) {
-  const { dispatch } = useContext(AppContext);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleSelectPackage = () => {
-    dispatch({ type: 'SELECT_PACKAGE', pkg });
-    const params = new URLSearchParams(location.search);
-    params.set('tab', 'trip-builder');
-    navigate({pathname: location.pathname, search: params.toString()});
-  };
-
-  return (
-      <div className="card package-card">
-      <img 
-        src={pkg.image} 
-        alt={pkg.title} 
-        className="package-image" 
-        loading="lazy" 
-      />
-      <div className="package-content">
-        <h3 className="package-title">{pkg.title}</h3>
-        <p className="package-description">{pkg.description}</p>
-        <div className="package-footer">
-          <span className="package-price">{pkg.price}</span>
-          <button 
-            className="select-package-btn"
-            onClick={handleSelectPackage}
-          >
-            Select Package
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+function PackageCard({pkg}) {
+    const savings = Number(pkg.savings) || 0;
+    return (
+        <Link to={`/destination/${pkg.destinationSlug}/package/${pkg.slug}`} className="card package-card">
+            {pkg.imageUrl && (
+                <img src={pkg.imageUrl} alt={pkg.name} className="package-image" loading="lazy"/>
+            )}
+            <div className="package-content">
+                <h3 className="package-title">{pkg.name}</h3>
+                {pkg.description && (
+                    <p className="package-description">{pkg.description}</p>
+                )}
+                <div className="package-pricing">
+                    <span className="package-original">{formatAmount(pkg.originalPrice)}</span>
+                    <span className="package-discounted">{formatAmount(pkg.discountedPrice)}</span>
+                    {savings > 0 && (
+                        <span className="package-savings">Save {formatAmount(savings)}</span>
+                    )}
+                </div>
+            </div>
+        </Link>
+    );
 }
 
 export default PackageCard;
