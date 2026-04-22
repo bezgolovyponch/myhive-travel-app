@@ -100,7 +100,7 @@ class PackageRepositoryTest {
                 destination.getId(), "beach");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getSlug()).isEqualTo("matching");
+        assertThat(result.getFirst().getSlug()).isEqualTo("matching");
     }
 
     @Test
