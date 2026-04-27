@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,5 +58,8 @@ public class TripExportRequest {
         private Double price;
         private Integer duration;
         private String timeOfDay;
+        private UUID packageId;
+        private String packageName;
+        private BigDecimal packageDiscountPct;
     }
 }

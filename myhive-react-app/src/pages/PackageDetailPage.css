@@ -1,0 +1,252 @@
+/* Breadcrumbs */
+.package-detail-breadcrumbs {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+.package-detail-breadcrumbs a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 150ms;
+}
+
+.package-detail-breadcrumbs a:hover {
+    color: var(--text);
+}
+
+.package-detail-breadcrumbs span:last-child {
+    color: var(--text);
+    font-weight: 500;
+}
+
+/* Package Detail Page */
+.package-detail-page {
+    padding: var(--gap-lg) var(--page-padding) var(--gap-xl);
+    min-height: calc(100vh - var(--header-height));
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-lg);
+}
+
+.package-detail-loading {
+    text-align: center;
+    padding: 4rem 0;
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+/* Hero */
+.package-detail-hero {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    height: 400px;
+    margin-top: var(--gap);
+}
+
+.package-detail-hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    display: block;
+}
+
+.package-detail-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, transparent 60%);
+    display: flex;
+    align-items: flex-end;
+    padding: var(--gap-lg);
+}
+
+.package-detail-hero-title {
+    font-size: clamp(1.375rem, 4vw, 2rem);
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Two-column layout: content left, price card right */
+.package-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--gap-2xl);
+    align-items: start;
+}
+
+.package-detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-lg);
+    min-width: 0;
+}
+
+.package-detail-description {
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+    line-height: 1.75;
+}
+
+/* Activities section */
+.package-detail-section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--gap);
+}
+
+.package-detail-activities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap);
+}
+
+.package-detail-activity {
+    display: flex;
+    flex-direction: column;
+    width: 180px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 150ms, transform 150ms;
+    background: var(--surface);
+}
+
+.package-detail-activity:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.package-detail-activity-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.package-detail-activity-info {
+    padding: 0.5rem 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.package-detail-activity-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.package-detail-activity-duration {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.package-detail-activity-price {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* Includes text */
+.package-detail-includes {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.package-detail-includes strong {
+    color: var(--text);
+}
+
+/* Sticky price card */
+.package-detail-price-card {
+    position: sticky;
+    top: 80px;
+}
+
+.package-detail-price-card-inner {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--gap-lg);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+}
+
+.package-detail-original {
+    font-size: 1rem;
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.package-detail-discounted {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.package-detail-savings {
+    display: inline-flex;
+    align-self: flex-start;
+    background: #d1fae5;
+    color: #065f46;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+}
+
+.package-detail-add-btn {
+    width: 100%;
+    padding: 0.75rem var(--gap-xl);
+    font-size: 0.9375rem;
+    margin-top: 0.25rem;
+}
+
+/* Responsive: single column on mobile */
+@media (max-width: 900px) {
+    .package-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .package-detail-price-card {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .package-detail-page {
+        padding: var(--gap);
+    }
+
+    .package-detail-hero {
+        height: 260px;
+    }
+
+    .package-detail-activities {
+        flex-direction: column;
+    }
+
+    .package-detail-activity {
+        width: 100%;
+        flex-direction: row;
+    }
+
+    .package-detail-activity-image {
+        width: 100px;
+        aspect-ratio: 1 / 1;
+        flex-shrink: 0;
+    }
+}

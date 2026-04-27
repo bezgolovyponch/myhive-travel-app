@@ -3,9 +3,11 @@ package com.myhive.backend.controller;
 import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.dto.DestinationDTO;
+import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.service.ActivityService;
 import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.DestinationService;
+import com.myhive.backend.service.PackageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
@@ -24,6 +26,7 @@ public class SitemapController {
     private final DestinationService destinationService;
     private final ActivityService activityService;
     private final BlogPostService blogPostService;
+    private final PackageService packageService;
 
     @Value("${app.frontend.url:https://trivlu.com}")
     private String frontendUrl;
@@ -51,6 +54,14 @@ public class SitemapController {
             if (activity.getSlug() != null && !activity.getSlug().isEmpty()
                     && activity.getDestinationSlug() != null && !activity.getDestinationSlug().isEmpty()) {
                 appendUrl(xml, frontendUrl + "/destination/" + activity.getDestinationSlug() + "/activity/" + activity.getSlug());
+            }
+        }
+
+        List<PackageDTO> packages = packageService.getAllPackages();
+        for (PackageDTO pkg : packages) {
+            if (pkg.getSlug() != null && !pkg.getSlug().isEmpty()
+                    && pkg.getDestinationSlug() != null && !pkg.getDestinationSlug().isEmpty()) {
+                appendUrl(xml, frontendUrl + "/destination/" + pkg.getDestinationSlug() + "/package/" + pkg.getSlug());
             }
         }
 

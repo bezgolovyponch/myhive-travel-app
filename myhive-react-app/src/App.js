@@ -10,6 +10,7 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminBookingDetail from './pages/AdminBookingDetail';
 import AdminActivities from './pages/AdminActivities';
+import AdminPackages from './pages/AdminPackages';
 import AdminCategories from './pages/AdminCategories';
 import AdminDestinations from './pages/AdminDestinations';
 import AdminBlog from './pages/AdminBlog';
@@ -37,6 +38,7 @@ function AdminRoutes() {
                   <Route path="bookings/:id"
                          element={<ProtectedRoute requiredRole="ADMIN"><AdminBookingDetail/></ProtectedRoute>}/>
           <Route path="activities" element={<AdminActivities/>}/>
+                  <Route path="packages" element={<AdminPackages/>}/>
                   <Route path="categories" element={<AdminCategories/>}/>
                   <Route path="destinations" element={<AdminDestinations/>}/>
                   <Route path="blog" element={<AdminBlog/>}/>

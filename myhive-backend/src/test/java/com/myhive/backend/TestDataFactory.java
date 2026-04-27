@@ -1,7 +1,18 @@
 package com.myhive.backend;
 
-import com.myhive.backend.dto.*;
-import com.myhive.backend.entity.*;
+import com.myhive.backend.dto.ActivityDTO;
+import com.myhive.backend.dto.BlogPostDTO;
+import com.myhive.backend.dto.CategoryDTO;
+import com.myhive.backend.dto.CreateBookingRequest;
+import com.myhive.backend.dto.DestinationDTO;
+import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.BlogPost;
+import com.myhive.backend.entity.Booking;
+import com.myhive.backend.entity.BookingItem;
+import com.myhive.backend.entity.Category;
+import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.Package;
 import com.myhive.backend.model.BookingStatus;
 
 import java.math.BigDecimal;
@@ -67,6 +78,21 @@ public final class TestDataFactory {
         Activity a = activity(destination);
         a.setCategories(new java.util.HashSet<>(java.util.Arrays.asList(categories)));
         return a;
+    }
+
+    public static Package pkg(Destination destination) {
+        Package p = new Package();
+        p.setId(UUID.randomUUID());
+        p.setSlug("test-package");
+        p.setDestination(destination);
+        p.setName("Test Package");
+        p.setDescription("Test package description");
+        p.setImageUrl("https://example.com/pkg.jpg");
+        p.setIncludes("Hotel, transfers");
+        p.setDuration(72);
+        p.setDiscountPct(new BigDecimal("15.00"));
+        p.setCreatedAt(LocalDateTime.now());
+        return p;
     }
 
     public static Booking booking(BookingStatus status) {

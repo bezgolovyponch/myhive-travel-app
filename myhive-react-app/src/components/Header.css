@@ -264,6 +264,42 @@
     font-size: 1rem;
 }
 
+.trip-modal-package-group {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.trip-modal-package-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.trip-modal-package-name {
+    flex: 1;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.trip-modal-package-discount {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #2ecc71;
+    background: rgba(46, 204, 113, 0.12);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+.trip-modal-item--indented {
+    padding-left: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .empty-trip-state {
     text-align: center;
     padding: var(--gap-xl);

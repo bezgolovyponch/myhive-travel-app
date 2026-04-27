@@ -66,6 +66,19 @@ export const api = {
         return response.json();
     },
 
+    // Packages
+    async getPackagesByDestination(destinationId) {
+        const response = await fetch(`${API_BASE_URL}/packages?destinationId=${encodeURIComponent(destinationId)}`);
+        if (!response.ok) throw new Error('Failed to fetch packages');
+        return response.json();
+    },
+
+    async getPackageBySlug(slug) {
+        const response = await fetch(`${API_BASE_URL}/packages/slug/${slug}`);
+        if (!response.ok) throw new Error('Failed to fetch package');
+        return response.json();
+    },
+
   // Bookings
   async createBooking(bookingData) {
     const response = await fetch(`${API_BASE_URL}/bookings`, {

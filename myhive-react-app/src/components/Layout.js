@@ -6,6 +6,7 @@ import CookieConsent from './CookieConsent';
 import HomePage from '../pages/HomePage';
 import DestinationPage from '../pages/DestinationPage';
 import ActivityDetailPage from '../pages/ActivityDetailPage';
+import PackageDetailPage from '../pages/PackageDetailPage';
 import AboutPage from '../pages/AboutPage';
 import BlogPage from '../pages/BlogPage';
 import BlogPostPage from '../pages/BlogPostPage';
@@ -23,6 +24,7 @@ function Layout() {
           <Route path="/" element={<HomePage />} />
             <Route path="/destination/:slug" element={<DestinationPage/>}/>
             <Route path="/destination/:destinationSlug/activity/:slug" element={<ActivityDetailPage/>}/>
+            <Route path="/destination/:destSlug/package/:slug" element={<PackageDetailPage/>}/>
             <Route path="/about" element={<AboutPage/>}/>
             <Route path="/blog" element={<BlogPage/>}/>
             <Route path="/blog/:slug" element={<BlogPostPage/>}/>

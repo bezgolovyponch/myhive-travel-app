@@ -6,7 +6,6 @@ export const AppContext = createContext();
 export const initialState = {
     destinations: [],
     activities: [],
-    packages: [],
     currentPath: '/',
     tripItems: [],
     tripTravelers: 1,
@@ -31,8 +30,6 @@ export const reducer = (state, action) => {
             return {...state, destinations: action.destinations, loading: false};
         case 'SET_ACTIVITIES':
             return {...state, activities: action.activities};
-        case 'SET_PACKAGES':
-            return {...state, packages: action.packages};
         case 'SET_ERROR':
             return {...state, error: action.error, loading: false};
         case 'SET_LOADING':
@@ -55,15 +52,6 @@ export const reducer = (state, action) => {
                 ...state,
                 tripItems: state.tripItems.filter(item => item.id !== action.activityId)
             };
-        case 'SELECT_PACKAGE':
-            const newItems = [...state.tripItems];
-            action.pkg.activities.forEach(actId => {
-                const activity = state.activities.find(a => a.id === actId);
-                if (activity && !newItems.some(item => item.id === actId)) {
-                    newItems.push(activity);
-                }
-            });
-            return {...state, tripItems: newItems};
         case 'OPEN_TRIP_BUILDER_MODAL':
             return {...state, tripBuilderModalOpen: true};
         case 'CLOSE_TRIP_BUILDER_MODAL':
@@ -98,6 +86,34 @@ export const reducer = (state, action) => {
                 ...state,
                 tripItems: [],
                 tripSetupModalOpen: false
+            };
+        case 'ADD_PACKAGE_TO_TRIP': {
+            const pkg = action.pkg;
+            const newItems = pkg.activities.map(a => ({
+                id: a.activityId,
+                name: a.name,
+                price: a.price,
+                imageUrl: a.imageUrl,
+                duration: a.duration,
+                destinationSlug: pkg.destinationSlug,
+                packageId: pkg.id,
+                packageName: pkg.name,
+                packageDiscountPct: pkg.discountPct,
+            }));
+            // Remove any standalone copies of activities that are now part of this package
+            const without = state.tripItems.filter(i => !newItems.some(n => n.id === i.id));
+            const isFirstAdd = state.tripItems.length === 0;
+            return {
+                ...state,
+                tripItems: [...without, ...newItems],
+                tripSetupModalOpen: isFirstAdd,
+                tripBuilderModalOpen: !isFirstAdd || state.tripBuilderModalOpen,
+            };
+        }
+        case 'REMOVE_PACKAGE_FROM_TRIP':
+            return {
+                ...state,
+                tripItems: state.tripItems.filter(i => i.packageId !== action.packageId),
             };
         case 'ADD_CHAT_MESSAGE':
             return {

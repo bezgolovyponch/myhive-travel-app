@@ -303,9 +303,92 @@ Social media is evolving to reflect this shift. Shared photo albums, group trave
 This is exactly why we built Trivlu. The tools for solo travel planning are everywhere, but platforms designed specifically for group coordination were virtually nonexistent. We''re changing that.',
         'Trends',
         'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=1200&h=500&fit=crop',
-        '2026-02-12', CURRENT_TIMESTAMP),
+        '2026-02-12', CURRENT_TIMESTAMP);
 
-       ('30000000-0000-0000-0000-000000000006', 'weekend-getaway-ideas-for-large-groups',
+-- Insert sample packages
+INSERT INTO packages (id, slug, name, description, image_url, includes, duration, discount_pct, destination_id, created_at)
+VALUES
+    ('bb000000-0000-0000-0000-000000000001',
+     'prague-city-highlights',
+     'Prague City Highlights',
+     'The perfect introduction to Prague: explore the legendary castle complex, stroll across the iconic 14th-century bridge, and wander the labyrinthine Old Town Square. Three of the city''s most iconic sights, all in one day.',
+     'https://images.unsplash.com/photo-1500078974918-738828bc0422?w=800&h=600&fit=crop',
+     'Skip-the-line tickets, licensed guides, audio headsets, city map',
+     390,
+     10.00,
+     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+     CURRENT_TIMESTAMP),
+
+    ('bb000000-0000-0000-0000-000000000002',
+     'prague-pub-nights',
+     'Prague Pub Nights',
+     'Prague''s nightlife is legendary — and this package makes sure you don''t miss a drop. Kick off with a guided craft beer tasting, hit five bars on the epic pub crawl, and finish underground with a proper absinth ceremony. One night, three experiences, zero regrets.',
+     'https://images.unsplash.com/photo-1575037614876-c38a4c44f5b8?w=800&h=600&fit=crop',
+     '5 beer samples, 1 free drink per bar on pub crawl, VIP club entry, 3 absinth tastings, party guides',
+     450,
+     15.00,
+     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+     CURRENT_TIMESTAMP),
+
+    ('bb000000-0000-0000-0000-000000000003',
+     'tenerife-sea-and-adrenaline',
+     'Tenerife Sea & Adrenaline',
+     'The Atlantic at full throttle. Start with a high-speed jet ski session along the coast, then wind down on a sunset catamaran cruise with a DJ and welcome drinks. Sea, sun, and serious fun.',
+     'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop',
+     'Safety briefing, life jacket, jet ski instructor, catamaran welcome drink, DJ, snacks, hotel pickup',
+     240,
+     10.00,
+     'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+     CURRENT_TIMESTAMP),
+
+    ('bb000000-0000-0000-0000-000000000004',
+     'tenerife-complete-experience',
+     'Tenerife Complete Experience',
+     'The full Tenerife package. Hike the otherworldly volcanic landscapes of Teide National Park in the morning, then get the adrenaline pumping on a jet ski in the afternoon. Round it all off with a full-body massage and sauna — you''ve earned it.',
+     'https://images.unsplash.com/photo-1594401708939-49f49fdf596a?w=800&h=600&fit=crop',
+     'Licensed guide, national park permit, water bottle, safety briefing, life jacket, full-body massage, sauna access, herbal tea',
+     420,
+     20.00,
+     'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+     CURRENT_TIMESTAMP);
+
+-- Link packages to activities (package_id, activity_id, position)
+INSERT INTO package_activities (package_id, activity_id, position)
+VALUES
+    -- Prague City Highlights: Castle → Charles Bridge → Old Town Square
+    ('bb000000-0000-0000-0000-000000000001', 'f9eebc99-9c0b-4ef8-bb6d-6bb9bd380aaa', 0),
+    ('bb000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 1),
+    ('bb000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000003', 2),
+
+    -- Prague Pub Nights: Beer Tasting → Pub Crawl → Absinth Bar
+    ('bb000000-0000-0000-0000-000000000002', 'faeebc99-9c0b-4ef8-bb6d-6bb9bd380abb', 0),
+    ('bb000000-0000-0000-0000-000000000002', 'aa000000-0000-0000-0000-000000000004', 1),
+    ('bb000000-0000-0000-0000-000000000002', 'aa000000-0000-0000-0000-000000000008', 2),
+
+    -- Tenerife Sea & Adrenaline: Jet Ski → Sunset Boat Party
+    ('bb000000-0000-0000-0000-000000000003', 'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a88', 0),
+    ('bb000000-0000-0000-0000-000000000003', 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66', 1),
+
+    -- Tenerife Complete Experience: Teide Tour → Jet Ski → Luxury Spa
+    ('bb000000-0000-0000-0000-000000000004', 'f6eebc99-9c0b-4ef8-bb6d-6bb9bd380a77', 0),
+    ('bb000000-0000-0000-0000-000000000004', 'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a88', 1),
+    ('bb000000-0000-0000-0000-000000000004', 'f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a99', 2);
+
+-- Link packages to categories
+INSERT INTO package_categories (package_id, category_id)
+VALUES
+    ('bb000000-0000-0000-0000-000000000001', '91111111-0000-0000-0000-000000000004'), -- Prague Highlights → Culture
+    ('bb000000-0000-0000-0000-000000000001', '91111111-0000-0000-0000-000000000003'), -- Prague Highlights → Daytime
+    ('bb000000-0000-0000-0000-000000000002', '91111111-0000-0000-0000-000000000001'), -- Prague Nights → Nightlife
+    ('bb000000-0000-0000-0000-000000000002', '91111111-0000-0000-0000-000000000013'), -- Prague Nights → Social
+    ('bb000000-0000-0000-0000-000000000003', '91111111-0000-0000-0000-000000000002'), -- Tenerife Sea → Adventure
+    ('bb000000-0000-0000-0000-000000000003', '91111111-0000-0000-0000-000000000001'), -- Tenerife Sea → Nightlife
+    ('bb000000-0000-0000-0000-000000000004', '91111111-0000-0000-0000-000000000002'), -- Tenerife Complete → Adventure
+    ('bb000000-0000-0000-0000-000000000004', '91111111-0000-0000-0000-000000000014'); -- Tenerife Complete → Spa
+
+-- Insert sample blog posts
+INSERT INTO blog_posts (id, slug, title, excerpt, content, category, image_url, date, created_at)
+VALUES ('30000000-0000-0000-0000-000000000006', 'weekend-getaway-ideas-for-large-groups',
         'Weekend Getaway Ideas for Large Groups',
         'Planning a weekend escape for 10+ people? These destinations and activities are perfect for big groups looking for adventure.',
         'Planning a weekend escape for 10 or more people presents unique challenges, but the payoff is worth it. Here are our favorite destinations and formats for large group getaways.

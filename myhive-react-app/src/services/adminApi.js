@@ -27,23 +27,27 @@ export function createAdminApi(getAccessToken) {
     }
 
     async function handleError(response, fallbackMessage) {
+        if (response.ok) {
+            return;
+        }
         if (response.status === 401 || response.status === 403) {
-            throw new Error('Unauthorized');
+            const err = new Error('Unauthorized');
+            err.status = response.status;
+            throw err;
         }
-        if (!response.ok) {
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                try {
-                    const body = await response.json();
-                    throw new Error(body.message || fallbackMessage);
-                } catch (e) {
-                    if (e.message !== fallbackMessage && e.message !== 'Unauthorized') {
-                        throw e;
-                    }
-                }
+        let body = null;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            try {
+                body = await response.json();
+            } catch (e) {
+                body = null;
             }
-            throw new Error(fallbackMessage);
         }
+        const err = new Error((body && body.message) || fallbackMessage);
+        err.status = response.status;
+        err.body = body;
+        throw err;
     }
 
     return {
@@ -312,6 +316,52 @@ export function createAdminApi(getAccessToken) {
                 headers: await authHeaders(),
             });
             await handleError(response, 'Failed to delete destination');
+        },
+
+        async getPackages() {
+            const response = await fetch(`${API_BASE_URL}/admin/packages`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch packages');
+            return response.json();
+        },
+
+        async getPackagesPaged(page = 0, size = 10) {
+            const response = await fetch(`${API_BASE_URL}/admin/packages/paged?page=${page}&size=${size}`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch packages');
+            return response.json();
+        },
+
+        async createPackage(pkg) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/packages`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(pkg),
+            });
+            await handleError(response, 'Failed to create package');
+            return response.json();
+        },
+
+        async updatePackage(id, pkg) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/packages/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(pkg),
+            });
+            await handleError(response, 'Failed to update package');
+            return response.json();
+        },
+
+        async deletePackage(id) {
+            const response = await fetch(`${API_BASE_URL}/admin/packages/${id}`, {
+                method: 'DELETE',
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to delete package');
         },
     };
 }

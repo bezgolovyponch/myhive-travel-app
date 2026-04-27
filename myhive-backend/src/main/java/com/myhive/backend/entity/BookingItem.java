@@ -13,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = {"booking", "activity"})
+@ToString(exclude = {"booking", "activity", "pkg"})
 public class BookingItem {
 
     @Id
@@ -38,4 +38,14 @@ public class BookingItem {
     private BigDecimal price;
 
     private Integer quantity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "package_id")
+    private Package pkg;
+
+    @Column(name = "package_name")
+    private String packageName;
+
+    @Column(name = "package_discount_pct", precision = 5, scale = 2)
+    private BigDecimal packageDiscountPct;
 }
