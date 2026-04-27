@@ -3,7 +3,6 @@ package com.myhive.backend.service;
 import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.entity.Activity;
-import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ActivityInUseException;
 import com.myhive.backend.exception.ResourceNotFoundException;
@@ -19,8 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -51,7 +50,7 @@ public class ActivityService {
 
     public ActivityDTO getActivityBySlug(String slug) {
         Activity activity = activityRepository.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Activity not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Activity", slug));
         return convertToDTO(activity);
     }
 
@@ -143,20 +142,7 @@ public class ActivityService {
         activity.setDuration(dto.getDuration());
         activity.setImageUrl(dto.getImageUrl());
         activity.setIncludes(dto.getIncludes());
-        activity.setCategories(resolveCategories(dto.getCategoryIds()));
-    }
-
-    private Set<Category> resolveCategories(List<UUID> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return new HashSet<>();
-        }
-        List<Category> found = categoryRepository.findAllById(categoryIds);
-        if (found.size() != categoryIds.size()) {
-            Set<UUID> foundIds = found.stream().map(Category::getId).collect(Collectors.toSet());
-            UUID missing = categoryIds.stream().filter(i -> !foundIds.contains(i)).findFirst().orElseThrow();
-            throw new ResourceNotFoundException("Category", missing);
-        }
-        return new HashSet<>(found);
+        activity.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
     }
 
     private ActivityDTO convertToDTO(Activity activity) {
@@ -173,11 +159,7 @@ public class ActivityService {
         dto.setImageUrl(activity.getImageUrl());
         dto.setIncludes(activity.getIncludes());
 
-        List<CategoryDTO> categoryDtos = activity.getCategories() == null ? new ArrayList<>()
-                : activity.getCategories().stream()
-                  .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
-                  .map(c -> new CategoryDTO(c.getId(), c.getName(), c.getSlug()))
-                  .toList();
+        List<CategoryDTO> categoryDtos = CategoryResolver.toDTOs(activity.getCategories());
         dto.setCategories(categoryDtos);
         dto.setCategoryIds(categoryDtos.stream().map(CategoryDTO::getId).toList());
         return dto;

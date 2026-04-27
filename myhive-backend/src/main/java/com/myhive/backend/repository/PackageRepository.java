@@ -23,8 +23,6 @@ public interface PackageRepository extends JpaRepository<Package, UUID> {
 
     List<Package> findByDestinationIdAndCategoriesSlug(UUID destinationId, String categorySlug);
 
-    Page<Package> findAll(Pageable pageable);
-
     @Query("SELECT p.name FROM Package p JOIN p.packageActivities pa WHERE pa.activity.id = :activityId")
     List<String> findPackageNamesByActivityId(@Param("activityId") UUID activityId);
 }

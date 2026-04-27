@@ -63,7 +63,7 @@ function PackageDetailPage() {
                 <link rel="canonical" href={`${SITE_URL}/destination/${resolvedDestSlug}/package/${pkg.slug}`}/>
             </Helmet>
 
-            <nav className="activity-detail-breadcrumbs">
+            <nav className="package-detail-breadcrumbs">
                 <Link to="/">Home</Link>
                 <span>&rsaquo;</span>
                 <Link to={`/destination/${resolvedDestSlug}`}>{pkg.destinationName}</Link>
@@ -101,9 +101,6 @@ function PackageDetailPage() {
                                         />
                                         <div className="package-detail-activity-info">
                                             <span className="package-detail-activity-name">{activity.name}</span>
-                                            {activity.duration && (
-                                                <span className="package-detail-activity-duration">{activity.duration}</span>
-                                            )}
                                             <span className="package-detail-activity-price">{formatAmount(activity.price)}</span>
                                         </div>
                                     </Link>

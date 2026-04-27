@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {formatAmount, truncateText} from '../utils/format';
+import {toggleArrayItem} from '../utils/toggleArrayItem';
 import {useAdminCrud} from '../hooks/useAdminCrud';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -99,13 +100,8 @@ function AdminActivities() {
         a => !filterDestination || a.destinationId === filterDestination
     );
 
-    const toggleCategory = (categoryId) => {
-        const current = form.categoryIds || [];
-        const next = current.includes(categoryId)
-            ? current.filter(id => id !== categoryId)
-            : [...current, categoryId];
-        setForm({...form, categoryIds: next});
-    };
+    const toggleCategory = (categoryId) =>
+        setForm({...form, categoryIds: toggleArrayItem(form.categoryIds || [], categoryId)});
 
     if (loading) {
         return (

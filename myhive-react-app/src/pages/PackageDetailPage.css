@@ -1,6 +1,31 @@
+/* Breadcrumbs */
+.package-detail-breadcrumbs {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+.package-detail-breadcrumbs a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 150ms;
+}
+
+.package-detail-breadcrumbs a:hover {
+    color: var(--text);
+}
+
+.package-detail-breadcrumbs span:last-child {
+    color: var(--text);
+    font-weight: 500;
+}
+
 /* Package Detail Page */
 .package-detail-page {
-    padding: var(--gap-xl) var(--page-padding);
+    padding: var(--gap-lg) var(--page-padding) var(--gap-xl);
     min-height: calc(100vh - var(--header-height));
     display: flex;
     flex-direction: column;
@@ -19,14 +44,15 @@
     position: relative;
     border-radius: var(--radius-lg);
     overflow: hidden;
-    aspect-ratio: 21 / 9;
-    max-height: 420px;
+    height: 400px;
+    margin-top: var(--gap);
 }
 
 .package-detail-hero-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center top;
     display: block;
 }
 
@@ -206,7 +232,7 @@
     }
 
     .package-detail-hero {
-        aspect-ratio: 16 / 9;
+        height: 260px;
     }
 
     .package-detail-activities {

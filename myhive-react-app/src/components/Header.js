@@ -19,16 +19,21 @@ function Header() {
     }
   };
 
-  const destinationMatch = location.pathname.match(/^\/destination\/([^?]+)/);
+  const destinationMatch = location.pathname.match(/^\/destination\/([^/?]+)/);
   const destinationSlug = destinationMatch ? destinationMatch[1] : null;
   const destination = destinationSlug
       ? state.destinations.find((item) => item.slug === destinationSlug)
       : null;
   const showBreadcrumbs = Boolean(destinationSlug);
-  const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
-  const currentTabLabel = currentTab
-      .replace('-', ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+  const isPackagePage = /^\/destination\/[^/?]+\/package\//.test(location.pathname);
+  const isActivityPage = /^\/destination\/[^/?]+\/activity\//.test(location.pathname);
+  const currentTabLabel = isPackagePage
+      ? 'Package'
+      : isActivityPage
+          ? 'Activity'
+          : (new URLSearchParams(location.search).get('tab') || 'activities')
+              .replace('-', ' ')
+              .replace(/\b\w/g, (char) => char.toUpperCase());
 
   const handleDestinationsClick = (event) => {
     event.preventDefault();

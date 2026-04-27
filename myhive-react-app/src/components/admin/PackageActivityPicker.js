@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {Button, Form, Modal} from 'react-bootstrap';
+import {DEFAULT_ACTIVITY_IMAGE, formatAmount} from '../../utils/format';
 import {
   DndContext,
   closestCenter,
@@ -47,20 +48,15 @@ function SortableRow({item, onRemove}) {
       >
         ☰
       </span>
-      {item.imageUrl && (
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          className="package-activity-picker__thumb"
-        />
-      )}
-      {!item.imageUrl && (
-        <div className="package-activity-picker__thumb package-activity-picker__thumb--placeholder" />
-      )}
+      <img
+        src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE}
+        alt={item.name}
+        className="package-activity-picker__thumb"
+      />
       <div className="package-activity-picker__info">
         <span className="fw-bold">{item.name}</span>
         {item.price != null && (
-          <span className="text-muted small d-block">${item.price}</span>
+          <span className="text-muted small d-block">{formatAmount(item.price)}</span>
         )}
       </div>
       {item.duration != null && (
@@ -120,20 +116,15 @@ function AddActivityModal({show, onHide, availableActivities, selectedIds, onAdd
         )}
         {filtered.map((activity) => (
           <div key={activity.id} className="package-activity-picker__modal-row">
-            {activity.imageUrl && (
-              <img
-                src={activity.imageUrl}
-                alt={activity.name}
-                className="package-activity-picker__thumb"
-              />
-            )}
-            {!activity.imageUrl && (
-              <div className="package-activity-picker__thumb package-activity-picker__thumb--placeholder" />
-            )}
+            <img
+              src={activity.imageUrl || DEFAULT_ACTIVITY_IMAGE}
+              alt={activity.name}
+              className="package-activity-picker__thumb"
+            />
             <div className="package-activity-picker__info">
               <span className="fw-bold">{activity.name}</span>
               {activity.price != null && (
-                <span className="text-muted small d-block">${activity.price}</span>
+                <span className="text-muted small d-block">{formatAmount(activity.price)}</span>
               )}
             </div>
             <Button

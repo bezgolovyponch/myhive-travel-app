@@ -95,12 +95,20 @@ export const reducer = (state, action) => {
                 price: a.price,
                 imageUrl: a.imageUrl,
                 duration: a.duration,
+                destinationSlug: pkg.destinationSlug,
                 packageId: pkg.id,
                 packageName: pkg.name,
                 packageDiscountPct: pkg.discountPct,
             }));
+            // Remove any standalone copies of activities that are now part of this package
             const without = state.tripItems.filter(i => !newItems.some(n => n.id === i.id));
-            return {...state, tripItems: [...without, ...newItems]};
+            const isFirstAdd = state.tripItems.length === 0;
+            return {
+                ...state,
+                tripItems: [...without, ...newItems],
+                tripSetupModalOpen: isFirstAdd,
+                tripBuilderModalOpen: !isFirstAdd || state.tripBuilderModalOpen,
+            };
         }
         case 'REMOVE_PACKAGE_FROM_TRIP':
             return {

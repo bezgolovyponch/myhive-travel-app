@@ -13,7 +13,7 @@
 }
 
 .package-title {
-    font-size: clamp(1rem, 1.125rem, 1.25rem);
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--text);
 }
@@ -52,7 +52,7 @@
 }
 
 .package-discounted {
-    font-size: clamp(1.125rem, 1.25rem, 1.5rem);
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--accent);
 }

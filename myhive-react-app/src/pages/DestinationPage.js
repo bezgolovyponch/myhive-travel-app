@@ -136,8 +136,8 @@ function DestinationPage() {
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
         <div className="page-hero destination-header">
-        <h1>{destination?.name || 'Destination'}</h1>
-        <p>{destination?.description || ''}</p>
+        <h1>{destination.name}</h1>
+        <p>{destination.description || ''}</p>
       </div>
       
       <nav className="tab-nav">

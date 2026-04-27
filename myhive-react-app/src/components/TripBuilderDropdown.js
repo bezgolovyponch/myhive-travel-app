@@ -9,8 +9,41 @@ function TripBuilderDropdown() {
 
     if (!state.tripBuilderModalOpen) return null;
 
+    const travelers = state.tripTravelers || 1;
+
+    const standalone = state.tripItems.filter(i => !i.packageId);
+    const packageGroups = state.tripItems.reduce((acc, item) => {
+        if (!item.packageId) {
+            return acc;
+        }
+        if (!acc[item.packageId]) {
+            acc[item.packageId] = {
+                packageId: item.packageId,
+                packageName: item.packageName,
+                packageDiscountPct: Number(item.packageDiscountPct) || 0,
+                destinationSlug: item.destinationSlug,
+                items: [],
+            };
+        }
+        acc[item.packageId].items.push(item);
+        return acc;
+    }, {});
+    const groupsArray = Object.values(packageGroups);
+
+    const totalPrice = (() => {
+        let total = 0;
+        standalone.forEach(it => {
+            total += (Number(it.price) || 0) * travelers;
+        });
+        groupsArray.forEach(g => {
+            const sub = g.items.reduce((s, it) => s + (Number(it.price) || 0) * travelers, 0);
+            total += sub * (100 - g.packageDiscountPct) / 100;
+        });
+        return Math.round(total * 100) / 100;
+    })();
+
     const handleComplete = () => {
-        const destSlug = state.tripItems[0]?.destinationSlug;
+        const destSlug = state.tripItems.find(i => i.destinationSlug)?.destinationSlug;
         dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
         if (destSlug) {
             navigate(`/destination/${destSlug}?tab=trip-builder`);
@@ -29,30 +62,50 @@ function TripBuilderDropdown() {
                 {state.tripItems.length > 0 ? (
                     <>
                         <div className="trip-modal-items">
-                            {state.tripItems.map(item => {
-                                const img = item.imageUrl || DEFAULT_ACTIVITY_IMAGE;
-                                const price = formatPrice(item.price);
-                                return (
-                                    <div key={item.id} className="trip-modal-item">
-                                        <img src={img} alt={item.name} className="trip-modal-item-image"/>
-                                        <div className="trip-modal-item-info">
-                                            <span className="trip-modal-item-name">{item.name || item.title}</span>
-                                            <span className="trip-modal-item-price">{price}</span>
-                                        </div>
+                            {groupsArray.map(group => (
+                                <div key={group.packageId} className="trip-modal-package-group">
+                                    <div className="trip-modal-package-header">
+                                        <span className="trip-modal-package-name">{group.packageName}</span>
+                                        {group.packageDiscountPct > 0 && (
+                                            <span className="trip-modal-package-discount">{group.packageDiscountPct}% off</span>
+                                        )}
                                         <button
                                             className="trip-modal-item-remove"
-                                            onClick={() => dispatch({type: 'REMOVE_FROM_TRIP', activityId: item.id})}
+                                            onClick={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
                                         >×
                                         </button>
                                     </div>
-                                );
-                            })}
+                                    {group.items.map(item => (
+                                        <div key={item.id} className="trip-modal-item trip-modal-item--indented">
+                                            <img src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE} alt={item.name}
+                                                 className="trip-modal-item-image"/>
+                                            <div className="trip-modal-item-info">
+                                                <span className="trip-modal-item-name">{item.name}</span>
+                                                <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                            {standalone.map(item => (
+                                <div key={item.id} className="trip-modal-item">
+                                    <img src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE} alt={item.name}
+                                         className="trip-modal-item-image"/>
+                                    <div className="trip-modal-item-info">
+                                        <span className="trip-modal-item-name">{item.name || item.title}</span>
+                                        <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
+                                    </div>
+                                    <button
+                                        className="trip-modal-item-remove"
+                                        onClick={() => dispatch({type: 'REMOVE_FROM_TRIP', activityId: item.id})}
+                                    >×
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                         <div className="trip-modal-total">
-                            <span>Total ({state.tripTravelers || 1} {(state.tripTravelers || 1) === 1 ? 'person' : 'people'})</span>
-                            <span className="trip-modal-total-price">
-                                €{state.tripItems.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0) * (state.tripTravelers || 1)}
-                            </span>
+                            <span>Total ({travelers} {travelers === 1 ? 'person' : 'people'})</span>
+                            <span className="trip-modal-total-price">€{totalPrice}</span>
                         </div>
                         <button className="trip-builder-complete-btn" onClick={handleComplete}>
                             Complete Booking

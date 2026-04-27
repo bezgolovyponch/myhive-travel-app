@@ -13,16 +13,16 @@ function TripBuilder() {
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
   const [showAllCategories, setShowAllCategories] = useState(false);
-
-  useEffect(() => {
-    api.getCategories().then(setCategories).catch(() => {
-    });
-  }, []);
   const [showContactForm, setShowContactForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successContactData, setSuccessContactData] = useState(null);
+
+  useEffect(() => {
+    api.getCategories().then(setCategories).catch(() => {
+    });
+  }, []);
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
@@ -61,7 +61,7 @@ function TripBuilder() {
           endDate: contactData.endDate,
           activities: state.tripItems.map(item => ({
             activityId: item.id,
-            activityName: item.name || item.title,
+            activityName: item.name,
             category: (item.categories && item.categories.length > 0)
                 ? item.categories.map(c => c.name).join(', ')
                 : 'General',
@@ -177,10 +177,10 @@ function TripBuilder() {
                   <div className="package-group-items">
                     {group.items.map(item => (
                       <div key={item.id} className="itinerary-item package-group-activity">
-                        <img src={item.imageUrl || item.image} alt={item.name || item.title}
+                        <img src={item.imageUrl} alt={item.name}
                              className="itinerary-item-image" loading="lazy"/>
                         <div className="itinerary-item-content">
-                          <div className="itinerary-item-title">{item.name || item.title}</div>
+                          <div className="itinerary-item-title">{item.name}</div>
                           <div className="itinerary-item-price">
                             {travelers > 1
                                 ? `€${item.price} × ${travelers} = €${item.price * travelers}`
@@ -194,10 +194,10 @@ function TripBuilder() {
               ))}
               {standalone.map(item => (
                 <div key={item.id} className="itinerary-item">
-                  <img src={item.imageUrl || item.image} alt={item.name || item.title} className="itinerary-item-image"
+                  <img src={item.imageUrl} alt={item.name} className="itinerary-item-image"
                        loading="lazy"/>
                   <div className="itinerary-item-content">
-                    <div className="itinerary-item-title">{item.name || item.title}</div>
+                    <div className="itinerary-item-title">{item.name}</div>
                     <div className="itinerary-item-price">
                       {travelers > 1
                           ? `€${item.price} × ${travelers} = €${item.price * travelers}`
@@ -274,10 +274,10 @@ function TripBuilder() {
             const isAdded = state.tripItems.some(item => item.id === activity.id);
             return (
                 <div key={activity.id} className="browse-activity-item">
-                  <img src={activity.imageUrl || activity.image} alt={activity.name || activity.title}
+                  <img src={activity.imageUrl} alt={activity.name}
                        className="browse-activity-image" loading="lazy"/>
                   <div className="browse-activity-content">
-                    <div className="browse-activity-title">{activity.name || activity.title}</div>
+                    <div className="browse-activity-title">{activity.name}</div>
                     <div className="browse-activity-price">{formatPricePerPerson(activity.price)}</div>
                   </div>
                   <button

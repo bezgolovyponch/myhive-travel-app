@@ -28,6 +28,8 @@ import java.util.UUID;
 @Slf4j
 public class EmailService {
 
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
+
     public static class DestinationView {
         public String destinationName;
         public String country;
@@ -153,8 +155,8 @@ public class EmailService {
                     }
                     group.subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
                     BigDecimal discountPct = group.discountPct != null ? group.discountPct : BigDecimal.ZERO;
-                    BigDecimal multiplier = BigDecimal.valueOf(100).subtract(discountPct)
-                            .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+                    BigDecimal multiplier = HUNDRED.subtract(discountPct)
+                            .divide(HUNDRED, 10, RoundingMode.HALF_UP);
                     group.discounted = subtotal.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
                     view.packageGroups.add(group);
                 }

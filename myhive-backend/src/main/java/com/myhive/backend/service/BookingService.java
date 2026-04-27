@@ -16,6 +16,7 @@ import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.PackageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,8 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 @Slf4j
 public class BookingService {
+
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     private final BookingRepository bookingRepository;
     private final ActivityRepository activityRepository;
@@ -248,22 +251,27 @@ public class BookingService {
             UUID key = it.getPkg() != null ? it.getPkg().getId() : null;
             grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(it);
         }
-        for (var e : grouped.entrySet()) {
-            BigDecimal groupTotal = BigDecimal.ZERO;
-            for (BookingItem it : e.getValue()) {
-                BigDecimal qty = BigDecimal.valueOf(it.getQuantity() == null ? 1 : it.getQuantity());
-                groupTotal = groupTotal.add(it.getPrice().multiply(qty));
-            }
-            if (e.getKey() != null) {
-                BigDecimal pct = e.getValue().getFirst().getPackageDiscountPct();
-                if (pct == null) {
-                    pct = BigDecimal.ZERO;
-                }
-                groupTotal = groupTotal.multiply(new BigDecimal("100").subtract(pct))
-                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-            }
+        for (Map.Entry<UUID, List<BookingItem>> entry : grouped.entrySet()) {
+            BigDecimal groupTotal = getGroupTotal(entry);
             total = total.add(groupTotal);
         }
         return total;
+    }
+
+    private static @NonNull BigDecimal getGroupTotal(Map.Entry<UUID, List<BookingItem>> entry) {
+        BigDecimal groupTotal = BigDecimal.ZERO;
+        for (BookingItem it : entry.getValue()) {
+            BigDecimal qty = BigDecimal.valueOf(it.getQuantity() == null ? 1 : it.getQuantity());
+            groupTotal = groupTotal.add(it.getPrice().multiply(qty));
+        }
+        if (entry.getKey() != null) {
+            BigDecimal pct = entry.getValue().getFirst().getPackageDiscountPct();
+            if (pct == null) {
+                pct = BigDecimal.ZERO;
+            }
+            groupTotal = groupTotal.multiply(HUNDRED.subtract(pct))
+                    .divide(HUNDRED, 2, RoundingMode.HALF_UP);
+        }
+        return groupTotal;
     }
 }

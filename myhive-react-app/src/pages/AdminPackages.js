@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {Alert, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {formatAmount} from '../utils/format';
+import {toggleArrayItem} from '../utils/toggleArrayItem';
 import {useAdminCrud} from '../hooks/useAdminCrud';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
@@ -100,13 +101,8 @@ function AdminPackages() {
         }
     };
 
-    const toggleCategory = (categoryId) => {
-        const current = form.categoryIds || [];
-        const next = current.includes(categoryId)
-            ? current.filter(id => id !== categoryId)
-            : [...current, categoryId];
-        setForm({...form, categoryIds: next});
-    };
+    const toggleCategory = (categoryId) =>
+        setForm({...form, categoryIds: toggleArrayItem(form.categoryIds || [], categoryId)});
 
     const activitiesTotal = form.activities.reduce((s, a) => s + Number(a.price || 0), 0);
     const discountPct = Number(form.discountPct) || 0;
@@ -147,13 +143,7 @@ function AdminPackages() {
                         totalPages={totalPages}
                         onPageChange={setPage}
                         emptyMessage="No packages found."
-                        renderRow={(pkg) => {
-                            const originalPrice = (pkg.activities || []).reduce(
-                                (s, a) => s + Number(a.price || 0), 0
-                            );
-                            const pkgDiscount = Number(pkg.discountPct) || 0;
-                            const discountedPrice = originalPrice * (100 - pkgDiscount) / 100;
-                            return (
+                        renderRow={(pkg) => (
                                 <tr key={pkg.id}>
                                     <td>
                                         <div className="small fw-semibold">{pkg.name}</div>
@@ -161,8 +151,8 @@ function AdminPackages() {
                                     <td className="small text-muted">{pkg.slug || '—'}</td>
                                     <td className="small">{pkg.destinationName || '—'}</td>
                                     <td className="small">{(pkg.activities || []).length}</td>
-                                    <td className="small">{formatAmount(originalPrice)}</td>
-                                    <td className="small fw-semibold">{formatAmount(discountedPrice)}</td>
+                                    <td className="small">{formatAmount(pkg.originalPrice)}</td>
+                                    <td className="small fw-semibold">{formatAmount(pkg.discountedPrice)}</td>
                                     <td className="small">{pkg.discountPct != null ? `${pkg.discountPct}%` : '—'}</td>
                                     <td className="text-end">
                                         <Button variant="outline-primary" size="sm" className="me-1"
@@ -175,8 +165,7 @@ function AdminPackages() {
                                         </Button>
                                     </td>
                                 </tr>
-                            );
-                        }}
+                        )}
                     />
                 </Card.Body>
             </Card>
@@ -280,9 +269,9 @@ function AdminPackages() {
                             />
                             {form.activities.length > 0 && (
                                 <div className="text-muted small mt-2">
-                                    Activities total: ${activitiesTotal.toFixed(2)}<br/>
-                                    Discount ({discountPct}%): −${(activitiesTotal * discountPct / 100).toFixed(2)}<br/>
-                                    <strong>Final price: ${(activitiesTotal * (100 - discountPct) / 100).toFixed(2)}</strong>
+                                    Activities total: {formatAmount(activitiesTotal)}<br/>
+                                    Discount ({discountPct}%): −{formatAmount(activitiesTotal * discountPct / 100)}<br/>
+                                    <strong>Final price: {formatAmount(activitiesTotal * (100 - discountPct) / 100)}</strong>
                                 </div>
                             )}
                         </Form.Group>

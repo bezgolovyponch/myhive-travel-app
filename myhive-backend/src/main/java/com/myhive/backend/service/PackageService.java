@@ -4,7 +4,6 @@ import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.PackageActivityRefDTO;
 import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.entity.Activity;
-import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.entity.PackageActivity;
@@ -25,13 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -62,7 +58,7 @@ public class PackageService {
 
     public PackageDTO getPackageBySlug(String slug) {
         Package p = packageRepository.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException("Package not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Package", slug));
         return toDTO(p);
     }
 
@@ -115,11 +111,7 @@ public class PackageService {
         dto.setDiscountedPrice(discounted);
         dto.setSavings(savings);
 
-        List<CategoryDTO> cats = p.getCategories() == null ? new ArrayList<>()
-                : p.getCategories().stream()
-                .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(c -> new CategoryDTO(c.getId(), c.getName(), c.getSlug()))
-                .toList();
+        List<CategoryDTO> cats = CategoryResolver.toDTOs(p.getCategories());
         dto.setCategories(cats);
         dto.setCategoryIds(cats.stream().map(CategoryDTO::getId).toList());
         return dto;
@@ -153,11 +145,10 @@ public class PackageService {
         boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), p.getSlug(), dto.getName(), p.getName());
         applyDtoToEntity(dto, p);
         if (updateSlug) {
-            UUID currentId = id;
             p.setSlug(SlugUtils.resolveForUpdate(
                     dto.getSlug(), dto.getName(), p.getSlug(),
                     slug -> packageRepository.findBySlug(slug)
-                            .filter(x -> !x.getId().equals(currentId))
+                            .filter(x -> !x.getId().equals(id))
                             .isPresent()));
         }
         return toDTO(packageRepository.save(p));
@@ -178,7 +169,7 @@ public class PackageService {
         p.setIncludes(dto.getIncludes());
         p.setDuration(dto.getDuration());
         p.setDiscountPct(dto.getDiscountPct());
-        p.setCategories(resolveCategories(dto.getCategoryIds()));
+        p.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
         applyActivities(dto.getActivities(), p);
     }
 
@@ -207,19 +198,4 @@ public class PackageService {
         }
     }
 
-    private Set<Category> resolveCategories(List<UUID> categoryIds) {
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return new HashSet<>();
-        }
-        List<Category> found = categoryRepository.findAllById(categoryIds);
-        if (found.size() != categoryIds.size()) {
-            Set<UUID> foundIds = new HashSet<>();
-            for (Category c : found) {
-                foundIds.add(c.getId());
-            }
-            UUID missing = categoryIds.stream().filter(i -> !foundIds.contains(i)).findFirst().orElseThrow();
-            throw new ResourceNotFoundException("Category", missing);
-        }
-        return new HashSet<>(found);
-    }
 }
