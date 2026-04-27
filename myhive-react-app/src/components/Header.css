@@ -10,7 +10,8 @@
 }
 
 .header-content {
-    padding: var(--gap-lg) var(--page-padding);
+    height: var(--header-height);
+    padding: 0 var(--page-padding);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -18,13 +19,18 @@
 }
 
 .logo {
-    font-size: clamp(1.25rem, 2vw, 1.5rem);
-    font-weight: 600;
-    color: var(--white);
     text-decoration: none;
     cursor: pointer;
     flex-shrink: 0;
     z-index: 1;
+    display: flex;
+    align-items: center;
+}
+
+.logo-img {
+    height: 36px;
+    width: auto;
+    display: block;
 }
 
 .nav-links {

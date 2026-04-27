@@ -49,7 +49,9 @@ function Header() {
   return (
     <header className="header">
       <div className="header-content">
-        <Link to="/" className="logo">Trivlu</Link>
+        <Link to="/" className="logo">
+          <img src="/logo-white.png" alt="Trivlu" className="logo-img"/>
+        </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a href="/" onClick={(e) => {
             handleDestinationsClick(e);
