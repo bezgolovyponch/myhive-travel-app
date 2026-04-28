@@ -268,6 +268,14 @@ export function createAdminApi(getAccessToken) {
             return response.json();
         },
 
+        async getCategoryUsage(id) {
+            const response = await fetch(`${API_BASE_URL}/admin/categories/${id}/usage`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch category usage');
+            return response.json();
+        },
+
         async deleteCategory(id) {
             const response = await fetch(`${API_BASE_URL}/admin/categories/${id}`, {
                 method: 'DELETE',
