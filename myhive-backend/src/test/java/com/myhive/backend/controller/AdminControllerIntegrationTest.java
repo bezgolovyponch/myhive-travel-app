@@ -4,7 +4,9 @@ import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.PackageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +43,15 @@ class AdminControllerIntegrationTest {
     @Autowired
     private ActivityRepository activityRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private PackageRepository packageRepository;
+
     private UUID destinationId;
     private UUID activityId;
+    private UUID categoryId;
 
     @BeforeEach
     void setUp() {
@@ -58,6 +67,15 @@ class AdminControllerIntegrationTest {
         activity.setPrice(new BigDecimal("25.00"));
         activity = activityRepository.save(activity);
         activityId = activity.getId();
+
+        com.myhive.backend.entity.Category category = new com.myhive.backend.entity.Category();
+        category.setName("Test Category");
+        category.setSlug("test-category");
+        category = categoryRepository.save(category);
+        categoryId = category.getId();
+
+        activity.getCategories().add(category);
+        activityRepository.save(activity);
     }
 
     @Test
@@ -286,5 +304,34 @@ class AdminControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements", is(1)))
                 .andExpect(jsonPath("$.content[0].name", is(expectedName)));
+    }
+
+    @Test
+    void getCategoryUsage_withActivity_returnsActivityName() throws Exception {
+        String expectedActivityName = "Eiffel Tour";
+
+        mockMvc.perform(get("/admin/categories/" + categoryId + "/usage")
+                        .with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activityNames[0]", is(expectedActivityName)))
+                .andExpect(jsonPath("$.packageNames").isEmpty());
+    }
+
+    @Test
+    void getCategoryUsage_nonexistent_returns404() throws Exception {
+        mockMvc.perform(get("/admin/categories/" + UUID.randomUUID() + "/usage")
+                        .with(adminJwt()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteCategory_withActivity_removesFromActivityAndDeletes() throws Exception {
+        mockMvc.perform(delete("/admin/categories/" + categoryId)
+                        .with(adminJwt()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/admin/categories/" + categoryId + "/usage")
+                        .with(adminJwt()))
+                .andExpect(status().isNotFound());
     }
 }

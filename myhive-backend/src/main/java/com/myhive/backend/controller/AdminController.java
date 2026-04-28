@@ -8,6 +8,7 @@ import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.dto.CategoryDTO;
+import com.myhive.backend.dto.CategoryUsageDTO;
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.service.ActivityService;
@@ -211,6 +212,11 @@ public class AdminController {
     public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/categories/{id}/usage")
+    public ResponseEntity<CategoryUsageDTO> getCategoryUsage(@PathVariable UUID id) {
+        return ResponseEntity.ok(categoryService.getCategoryUsage(id));
     }
 
     @GetMapping("/blog")
