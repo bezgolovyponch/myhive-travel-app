@@ -19,6 +19,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
 
     List<Activity> findByCategoriesSlug(String categorySlug);
 
+    List<Activity> findByCategoriesId(UUID categoryId);
+
     List<Activity> findByDestinationIdAndCategoriesSlug(UUID destinationId, String categorySlug);
 
     Page<Activity> findByDestinationId(UUID destinationId, Pageable pageable);

@@ -21,6 +21,8 @@ public interface PackageRepository extends JpaRepository<Package, UUID> {
 
     List<Package> findByCategoriesSlug(String categorySlug);
 
+    List<Package> findByCategoriesId(UUID categoryId);
+
     List<Package> findByDestinationIdAndCategoriesSlug(UUID destinationId, String categorySlug);
 
     @Query("SELECT p.name FROM Package p JOIN p.packageActivities pa WHERE pa.activity.id = :activityId")
