@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import {Alert, Badge, Button, Card, Form, Modal, Spinner} from 'react-bootstrap';
 import {truncateText} from '../utils/format';
 import {useAdminCrud} from '../hooks/useAdminCrud';
@@ -30,7 +31,7 @@ function AdminBlog() {
         fetchData, openCreate: baseOpenCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
-        fetchFn: (api, page, size) => api.getBlogPostsPaged(page, size),
+        fetchFn: useCallback((api, page, size) => api.getBlogPostsPaged(page, size), []),
         createFn: (api, payload) => api.createBlogPost(payload),
         updateFn: (api, id, payload) => api.updateBlogPost(id, payload),
         deleteFn: (api, id) => api.deleteBlogPost(id),

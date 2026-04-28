@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {Alert, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {formatAmount} from '../utils/format';
 import {toggleArrayItem} from '../utils/toggleArrayItem';
@@ -43,7 +43,7 @@ function AdminPackages() {
         fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
-        fetchFn: (api, page, size) => api.getPackagesPaged(page, size),
+        fetchFn: useCallback((api, page, size) => api.getPackagesPaged(page, size), []),
         createFn: (api, payload) => api.createPackage(payload),
         updateFn: (api, id, payload) => api.updatePackage(id, payload),
         deleteFn: (api, id) => api.deletePackage(id),

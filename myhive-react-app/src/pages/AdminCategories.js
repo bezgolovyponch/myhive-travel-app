@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import {Alert, Button, Card, Form, Modal, Spinner} from 'react-bootstrap';
 import {useAdminCrud} from '../hooks/useAdminCrud';
 import AdminTable from '../components/AdminTable';
@@ -26,7 +26,7 @@ function AdminCategories() {
         form, setForm, saving, fetchData, openCreate, openEdit, handleSave, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
-        fetchFn: (api, page, size) => api.getCategoriesPaged(page, size),
+        fetchFn: useCallback((api, page, size) => api.getCategoriesPaged(page, size), []),
         createFn: (api, payload) => api.createCategory(payload),
         updateFn: (api, id, payload) => api.updateCategory(id, payload),
         deleteFn: (api, id) => api.deleteCategory(id),

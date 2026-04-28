@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {truncateText} from '../utils/format';
 import {useAdminCrud} from '../hooks/useAdminCrud';
@@ -32,7 +33,7 @@ function AdminDestinations() {
         fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
-        fetchFn: (api, page, size) => api.getDestinationsPaged(page, size),
+        fetchFn: useCallback((api, page, size) => api.getDestinationsPaged(page, size), []),
         createFn: (api, payload) => api.createDestination(payload),
         updateFn: (api, id, payload) => api.updateDestination(id, payload),
         deleteFn: (api, id) => api.deleteDestination(id),
