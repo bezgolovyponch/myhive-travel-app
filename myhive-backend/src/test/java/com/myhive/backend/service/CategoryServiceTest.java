@@ -6,6 +6,7 @@ import com.myhive.backend.dto.CategoryUsageDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
@@ -17,13 +18,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceTest {
@@ -235,7 +241,7 @@ class CategoryServiceTest {
         Destination dest = TestDataFactory.destination();
         Activity activity = TestDataFactory.activity(dest);
         activity.setName("Hiking Tour");
-        com.myhive.backend.entity.Package pkg = new com.myhive.backend.entity.Package();
+        Package pkg = new Package();
         pkg.setName("Explorer Pack");
 
         when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
@@ -282,7 +288,7 @@ class CategoryServiceTest {
     @Test
     void deleteCategory_withPackages_removesFromPackagesAndDeletes() {
         Category category = TestDataFactory.category();
-        com.myhive.backend.entity.Package pkg = new com.myhive.backend.entity.Package();
+        Package pkg = new Package();
         pkg.setCategories(new HashSet<>(Set.of(category)));
 
         when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
