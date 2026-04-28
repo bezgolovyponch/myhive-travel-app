@@ -1,7 +1,8 @@
+import {useState} from 'react';
 import {Alert, Button, Card, Form, Modal, Spinner} from 'react-bootstrap';
 import {useAdminCrud} from '../hooks/useAdminCrud';
 import AdminTable from '../components/AdminTable';
-import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import CategoryDeleteModal from '../components/admin/CategoryDeleteModal';
 
 const EMPTY_FORM = {
     name: '',
@@ -14,11 +15,15 @@ const COLUMNS = [
 ];
 
 function AdminCategories() {
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [usage, setUsage] = useState(null);
+    const [loadingUsage, setLoadingUsage] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
     const {
         items: categories, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, deleteId, setDeleteId,
-        fetchData, openCreate, openEdit, handleSave, handleDelete,
+        form, setForm, saving, fetchData, openCreate, openEdit, handleSave, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
         fetchFn: (api, page, size) => api.getCategoriesPaged(page, size),
@@ -30,6 +35,40 @@ function AdminCategories() {
             slug: c.slug || '',
         }),
     });
+
+    const handleDeleteClick = async (category) => {
+        setLoadingUsage(true);
+        setError('');
+        try {
+            const result = await adminApi.getCategoryUsage(category.id);
+            setUsage(result);
+            setDeleteTarget(category);
+        } catch (e) {
+            setError(e.message || 'Failed to load category usage');
+        } finally {
+            setLoadingUsage(false);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        setDeleting(true);
+        setError('');
+        try {
+            await adminApi.deleteCategory(deleteTarget.id);
+            setDeleteTarget(null);
+            setUsage(null);
+            await fetchData();
+        } catch (e) {
+            setError(e.message || 'Failed to delete category');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const handleDeleteHide = () => {
+        setDeleteTarget(null);
+        setUsage(null);
+    };
 
     if (loading) {
         return (
@@ -76,9 +115,13 @@ function AdminCategories() {
                                             onClick={() => openEdit(category)}>
                                         Edit
                                     </Button>
-                                    <Button variant="outline-danger" size="sm"
-                                            onClick={() => setDeleteId(category.id)}>
-                                        Delete
+                                    <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        disabled={loadingUsage}
+                                        onClick={() => handleDeleteClick(category)}
+                                    >
+                                        {loadingUsage ? <Spinner animation="border" size="sm"/> : 'Delete'}
                                     </Button>
                                 </td>
                             </tr>
@@ -124,11 +167,13 @@ function AdminCategories() {
                 </Modal.Footer>
             </Modal>
 
-            <DeleteConfirmModal
-                show={!!deleteId}
-                onHide={() => setDeleteId(null)}
-                onConfirm={handleDelete}
-                saving={saving}
+            <CategoryDeleteModal
+                show={!!deleteTarget}
+                onHide={handleDeleteHide}
+                onConfirm={handleDeleteConfirm}
+                saving={deleting}
+                categoryName={deleteTarget?.name || ''}
+                usage={usage}
             />
         </>
     );
