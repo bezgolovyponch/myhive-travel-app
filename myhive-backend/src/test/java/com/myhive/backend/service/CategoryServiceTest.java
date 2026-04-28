@@ -2,12 +2,15 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.CategoryDTO;
+import com.myhive.backend.dto.CategoryUsageDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.repository.PackageRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,6 +30,12 @@ class CategoryServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private ActivityRepository activityRepository;
+
+    @Mock
+    private PackageRepository packageRepository;
 
     @InjectMocks
     private CategoryService categoryService;
@@ -201,28 +211,13 @@ class CategoryServiceTest {
     @Test
     void deleteCategory_noActivities_deletes() {
         Category category = TestDataFactory.category();
-        category.setActivities(new HashSet<>());
         when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
 
         categoryService.deleteCategory(category.getId());
 
         verify(categoryRepository).deleteById(category.getId());
-    }
-
-    @Test
-    void deleteCategory_withActivities_throwsBadRequest() {
-        Category category = TestDataFactory.category();
-        Destination destination = TestDataFactory.destination();
-        Activity activity = TestDataFactory.activity(destination);
-        Set<Activity> activities = new HashSet<>();
-        activities.add(activity);
-        category.setActivities(activities);
-        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-
-        assertThatThrownBy(() -> categoryService.deleteCategory(category.getId()))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("Cannot delete category")
-                .hasMessageContaining("1 associated activities");
     }
 
     @Test
@@ -232,5 +227,72 @@ class CategoryServiceTest {
 
         assertThatThrownBy(() -> categoryService.deleteCategory(id))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void getCategoryUsage_withActivityAndPackage_returnsNames() {
+        Category category = TestDataFactory.category();
+        Destination dest = TestDataFactory.destination();
+        Activity activity = TestDataFactory.activity(dest);
+        activity.setName("Hiking Tour");
+        com.myhive.backend.entity.Package pkg = new com.myhive.backend.entity.Package();
+        pkg.setName("Explorer Pack");
+
+        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of(activity));
+        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of(pkg));
+
+        CategoryUsageDTO result = categoryService.getCategoryUsage(category.getId());
+
+        assertThat(result.getActivityNames()).containsExactly("Hiking Tour");
+        assertThat(result.getPackageNames()).containsExactly("Explorer Pack");
+    }
+
+    @Test
+    void getCategoryUsage_noAssociations_returnsEmptyLists() {
+        Category category = TestDataFactory.category();
+        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+
+        CategoryUsageDTO result = categoryService.getCategoryUsage(category.getId());
+
+        assertThat(result.getActivityNames()).isEmpty();
+        assertThat(result.getPackageNames()).isEmpty();
+    }
+
+    @Test
+    void deleteCategory_withActivities_removesFromActivitiesAndDeletes() {
+        Category category = TestDataFactory.category();
+        Destination dest = TestDataFactory.destination();
+        Activity activity = TestDataFactory.activity(dest);
+        activity.setCategories(new HashSet<>(Set.of(category)));
+
+        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of(activity));
+        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+
+        categoryService.deleteCategory(category.getId());
+
+        assertThat(activity.getCategories()).doesNotContain(category);
+        verify(activityRepository).save(activity);
+        verify(categoryRepository).deleteById(category.getId());
+    }
+
+    @Test
+    void deleteCategory_withPackages_removesFromPackagesAndDeletes() {
+        Category category = TestDataFactory.category();
+        com.myhive.backend.entity.Package pkg = new com.myhive.backend.entity.Package();
+        pkg.setCategories(new HashSet<>(Set.of(category)));
+
+        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of(pkg));
+
+        categoryService.deleteCategory(category.getId());
+
+        assertThat(pkg.getCategories()).doesNotContain(category);
+        verify(packageRepository).save(pkg);
+        verify(categoryRepository).deleteById(category.getId());
     }
 }

@@ -1,10 +1,15 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.dto.CategoryDTO;
+import com.myhive.backend.dto.CategoryUsageDTO;
+import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
+import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,6 +28,8 @@ import java.util.UUID;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ActivityRepository activityRepository;
+    private final PackageRepository packageRepository;
 
     public List<CategoryDTO> getAllCategories() {
         return categoryRepository.findAll().stream()
@@ -46,6 +53,18 @@ public class CategoryService {
         Category category = categoryRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
         return convertToDTO(category);
+    }
+
+    public CategoryUsageDTO getCategoryUsage(UUID id) {
+        categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category", id));
+        List<String> activityNames = activityRepository.findByCategoriesId(id).stream()
+                .map(Activity::getName)
+                .toList();
+        List<String> packageNames = packageRepository.findByCategoriesId(id).stream()
+                .map(Package::getName)
+                .toList();
+        return new CategoryUsageDTO(activityNames, packageNames);
     }
 
     @Transactional
@@ -89,9 +108,13 @@ public class CategoryService {
     public void deleteCategory(UUID id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
-        if (category.getActivities() != null && !category.getActivities().isEmpty()) {
-            throw new BadRequestException(
-                    "Cannot delete category with " + category.getActivities().size() + " associated activities. Remove them first.");
+        for (Activity activity : activityRepository.findByCategoriesId(id)) {
+            activity.getCategories().remove(category);
+            activityRepository.save(activity);
+        }
+        for (Package pkg : packageRepository.findByCategoriesId(id)) {
+            pkg.getCategories().remove(category);
+            packageRepository.save(pkg);
         }
         categoryRepository.deleteById(id);
     }
