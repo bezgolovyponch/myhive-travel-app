@@ -245,4 +245,46 @@ class AdminControllerIntegrationTest {
                         .with(adminJwt()))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void getActivitiesPaged_withoutDestinationFilter_returnsAll() throws Exception {
+        Destination other = new Destination();
+        other.setName("Madrid");
+        other.setCountry("Spain");
+        other = destinationRepository.save(other);
+
+        Activity madridActivity = new Activity();
+        madridActivity.setDestination(other);
+        madridActivity.setName("Prado Museum");
+        madridActivity.setPrice(new BigDecimal("12.00"));
+        activityRepository.save(madridActivity);
+
+        mockMvc.perform(get("/admin/activities/paged")
+                        .with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements", is(2)));
+    }
+
+    @Test
+    void getActivitiesPaged_withDestinationFilter_returnsOnlyMatchingActivities() throws Exception {
+        Destination other = new Destination();
+        other.setName("Madrid");
+        other.setCountry("Spain");
+        other = destinationRepository.save(other);
+
+        Activity madridActivity = new Activity();
+        madridActivity.setDestination(other);
+        madridActivity.setName("Prado Museum");
+        madridActivity.setPrice(new BigDecimal("12.00"));
+        activityRepository.save(madridActivity);
+
+        String expectedName = "Eiffel Tour";
+
+        mockMvc.perform(get("/admin/activities/paged")
+                        .with(adminJwt())
+                        .param("destinationId", destinationId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements", is(1)))
+                .andExpect(jsonPath("$.content[0].name", is(expectedName)));
+    }
 }

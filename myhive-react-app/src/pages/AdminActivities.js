@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {formatAmount, truncateText} from '../utils/format';
 import {toggleArrayItem} from '../utils/toggleArrayItem';
@@ -35,6 +35,11 @@ function AdminActivities() {
     const [filterDestination, setFilterDestination] = useState('');
     const [showImportModal, setShowImportModal] = useState(false);
 
+    const fetchFn = useCallback(
+        (api, page, size) => api.getActivitiesPaged(page, size, filterDestination || null),
+        [filterDestination]
+    );
+
     const {
         items: activities, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
@@ -42,7 +47,7 @@ function AdminActivities() {
         fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
-        fetchFn: (api, page, size) => api.getActivitiesPaged(page, size),
+        fetchFn,
         createFn: (api, payload) => api.createActivity(payload),
         updateFn: (api, id, payload) => api.updateActivity(id, payload),
         deleteFn: (api, id) => api.deleteActivity(id),
@@ -96,10 +101,6 @@ function AdminActivities() {
         });
     }, [adminApi]);
 
-    const filteredActivities = activities.filter(
-        a => !filterDestination || a.destinationId === filterDestination
-    );
-
     const toggleCategory = (categoryId) =>
         setForm({...form, categoryIds: toggleArrayItem(form.categoryIds || [], categoryId)});
 
@@ -135,13 +136,16 @@ function AdminActivities() {
                 <Card.Header className="border-bottom">
                     <div className="d-flex align-items-center justify-content-between">
                         <h6 className="fw-semibold mb-0">
-                            {filterDestination ? filteredActivities.length : totalElements} {(filterDestination ? filteredActivities.length : totalElements) === 1 ? 'activity' : 'activities'}
+                            {totalElements} {totalElements === 1 ? 'activity' : 'activities'}
                         </h6>
                         <Form.Select
                             size="sm"
                             style={{width: 'auto'}}
                             value={filterDestination}
-                            onChange={e => setFilterDestination(e.target.value)}
+                            onChange={e => {
+                                setFilterDestination(e.target.value);
+                                setPage(0);
+                            }}
                         >
                             <option value="">All Destinations</option>
                             {destinations.map(d => (
@@ -153,7 +157,7 @@ function AdminActivities() {
                 <Card.Body className="p-0">
                     <AdminTable
                         columns={COLUMNS}
-                        items={filteredActivities}
+                        items={activities}
                         page={page}
                         totalPages={totalPages}
                         onPageChange={setPage}

@@ -89,8 +89,12 @@ public class AdminController {
     @GetMapping("/activities/paged")
     public ResponseEntity<Page<ActivityDTO>> getActivitiesPaged(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) UUID destinationId) {
         PageRequest pageRequest = PageRequest.of(page, Math.min(size, 50), Sort.by("name").ascending());
+        if (destinationId != null) {
+            return ResponseEntity.ok(activityService.getActivitiesByDestinationPaged(destinationId, pageRequest));
+        }
         return ResponseEntity.ok(activityService.getActivitiesPaged(pageRequest));
     }
 

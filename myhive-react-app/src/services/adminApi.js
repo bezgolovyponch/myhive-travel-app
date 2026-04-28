@@ -83,8 +83,12 @@ export function createAdminApi(getAccessToken) {
             return response.json();
         },
 
-        async getActivitiesPaged(page = 0, size = 10) {
-            const response = await fetch(`${API_BASE_URL}/admin/activities/paged?page=${page}&size=${size}`, {
+        async getActivitiesPaged(page = 0, size = 10, destinationId = null) {
+            const params = new URLSearchParams({page, size});
+            if (destinationId) {
+                params.append('destinationId', destinationId);
+            }
+            const response = await fetch(`${API_BASE_URL}/admin/activities/paged?${params}`, {
                 headers: await authHeaders(),
             });
             await handleError(response, 'Failed to fetch activities');
