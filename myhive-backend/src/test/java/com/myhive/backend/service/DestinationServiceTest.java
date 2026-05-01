@@ -408,4 +408,18 @@ class DestinationServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Destination");
     }
+
+    @Test
+    void getDestinationById_populatesAssignedCategories() {
+        String expectedCategoryName = "Adventure";
+        Destination dest = TestDataFactory.destination();
+        Category cat = TestDataFactory.category(expectedCategoryName);
+        dest.setCategories(new HashSet<>(List.of(cat)));
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+
+        DestinationDTO result = destinationService.getDestinationById(dest.getId());
+
+        assertThat(result.getAssignedCategories()).hasSize(1);
+        assertThat(result.getAssignedCategories().getFirst().getName()).isEqualTo(expectedCategoryName);
+    }
 }

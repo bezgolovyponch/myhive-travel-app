@@ -45,7 +45,13 @@ public class DestinationService {
     public DestinationDTO getDestinationById(UUID id) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
-        return convertToDTO(destination);
+        DestinationDTO dto = convertToDTO(destination);
+        dto.setAssignedCategories(
+                destination.getCategories().stream()
+                        .map(this::categoryToDTO)
+                        .toList()
+        );
+        return dto;
     }
 
     public DestinationDTO getDestinationBySlug(String slug) {
