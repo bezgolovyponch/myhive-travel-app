@@ -45,6 +45,9 @@ out/
 /.mcp.json
 /CLAUDE.md
 
+### Git worktrees ###
+.worktrees/
+
 ### Database dumps ###
 *.sql.backup
 neon_backup*.sql
