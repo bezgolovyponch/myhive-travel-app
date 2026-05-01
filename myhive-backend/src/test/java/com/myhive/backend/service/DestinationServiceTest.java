@@ -368,4 +368,44 @@ class DestinationServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Destination");
     }
+
+    @Test
+    void updateDestinationCategories_setsAndSavesCategories() {
+        Destination dest = TestDataFactory.destination();
+        dest.setCategories(new HashSet<>());
+        Category cat = TestDataFactory.category("Spa");
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+        when(categoryRepository.findAllById(List.of(cat.getId()))).thenReturn(List.of(cat));
+        when(destinationRepository.save(dest)).thenReturn(dest);
+
+        destinationService.updateDestinationCategories(dest.getId(), List.of(cat.getId()));
+
+        assertThat(dest.getCategories()).containsExactly(cat);
+        verify(destinationRepository).save(dest);
+    }
+
+    @Test
+    void updateDestinationCategories_emptyList_clearsCategories() {
+        Destination dest = TestDataFactory.destination();
+        Category existing = TestDataFactory.category("Sport");
+        dest.setCategories(new HashSet<>(List.of(existing)));
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+        when(categoryRepository.findAllById(List.of())).thenReturn(List.of());
+        when(destinationRepository.save(dest)).thenReturn(dest);
+
+        destinationService.updateDestinationCategories(dest.getId(), List.of());
+
+        assertThat(dest.getCategories()).isEmpty();
+        verify(destinationRepository).save(dest);
+    }
+
+    @Test
+    void updateDestinationCategories_notFound_throwsResourceNotFound() {
+        UUID id = UUID.randomUUID();
+        when(destinationRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> destinationService.updateDestinationCategories(id, List.of()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Destination");
+    }
 }

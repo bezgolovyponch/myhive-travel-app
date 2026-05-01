@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -99,6 +100,15 @@ public class DestinationService {
                     "Cannot delete destination with " + destination.getActivities().size() + " associated activities. Remove them first.");
         }
         destinationRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void updateDestinationCategories(UUID id, List<UUID> categoryIds) {
+        Destination destination = destinationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
+        List<Category> categories = categoryRepository.findAllById(categoryIds);
+        destination.setCategories(new HashSet<>(categories));
+        destinationRepository.save(destination);
     }
 
     public List<CategoryDTO> getCategoriesForDestination(UUID id) {
