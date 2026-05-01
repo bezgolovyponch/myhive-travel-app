@@ -422,4 +422,16 @@ class DestinationServiceTest {
         assertThat(result.getAssignedCategories()).hasSize(1);
         assertThat(result.getAssignedCategories().getFirst().getName()).isEqualTo(expectedCategoryName);
     }
+
+    @Test
+    void updateDestinationCategories_unknownId_throwsBadRequest() {
+        Destination dest = TestDataFactory.destination();
+        UUID knownId = UUID.randomUUID();
+        UUID unknownId = UUID.randomUUID();
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+        when(categoryRepository.findAllById(List.of(knownId, unknownId))).thenReturn(List.of(TestDataFactory.category("Sport")));
+
+        assertThatThrownBy(() -> destinationService.updateDestinationCategories(dest.getId(), List.of(knownId, unknownId)))
+                .isInstanceOf(BadRequestException.class);
+    }
 }

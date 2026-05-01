@@ -91,6 +91,17 @@ class DestinationCategoryControllerTest {
     }
 
     @Test
+    void updateDestinationCategories_asManager_returnsForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(put("/admin/destinations/{id}/categories", id)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_MANAGER")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[]"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void updateDestinationCategories_asAdmin_returnsNoContent() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(destinationService).updateDestinationCategories(eq(id), any());

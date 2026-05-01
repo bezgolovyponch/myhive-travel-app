@@ -48,6 +48,7 @@ public class DestinationService {
         DestinationDTO dto = convertToDTO(destination);
         dto.setAssignedCategories(
                 destination.getCategories().stream()
+                        .sorted(Comparator.comparing(c -> c.getName().toLowerCase()))
                         .map(this::categoryToDTO)
                         .toList()
         );
@@ -112,7 +113,11 @@ public class DestinationService {
     public void updateDestinationCategories(UUID id, List<UUID> categoryIds) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
-        List<Category> categories = categoryRepository.findAllById(categoryIds);
+        List<UUID> uniqueIds = categoryIds.stream().distinct().toList();
+        List<Category> categories = categoryRepository.findAllById(uniqueIds);
+        if (categories.size() != uniqueIds.size()) {
+            throw new BadRequestException("One or more category IDs are invalid.");
+        }
         destination.setCategories(new HashSet<>(categories));
         destinationRepository.save(destination);
     }

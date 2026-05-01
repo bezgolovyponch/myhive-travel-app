@@ -6,6 +6,7 @@ import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
 import api from '../services/api';
+import {useAdminApi} from '../hooks/useAdminApi';
 
 const EMPTY_FORM = {
     name: '',
@@ -30,10 +31,7 @@ function AdminDestinations() {
     const [allCategories, setAllCategories] = useState([]);
     const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
     const selectedCategoryIdsRef = useRef([]);
-
-    useEffect(() => {
-        api.getCategories().then(setAllCategories).catch(() => {});
-    }, []);
+    const categoriesAdminApi = useAdminApi();
 
     const updateCategorySelection = (ids) => {
         selectedCategoryIdsRef.current = ids;
@@ -75,6 +73,10 @@ function AdminDestinations() {
             rating: form.rating !== '' ? Number(form.rating) : null,
         }),
     });
+
+    useEffect(() => {
+        categoriesAdminApi.getCategories().then(setAllCategories).catch(() => {});
+    }, [categoriesAdminApi]);
 
     const openCreate = () => {
         updateCategorySelection([]);
