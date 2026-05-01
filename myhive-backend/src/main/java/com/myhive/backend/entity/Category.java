@@ -1,7 +1,18 @@
 package com.myhive.backend.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -16,7 +27,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = "activities")
+@ToString(exclude = {"activities", "destinations"})
 public class Category {
 
     @Id
@@ -35,4 +46,7 @@ public class Category {
 
     @ManyToMany(mappedBy = "categories")
     private Set<Activity> activities = new HashSet<>();
+
+    @ManyToMany(mappedBy = "categories")
+    private Set<Destination> destinations = new HashSet<>();
 }
