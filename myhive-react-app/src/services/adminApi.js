@@ -330,6 +330,16 @@ export function createAdminApi(getAccessToken) {
             await handleError(response, 'Failed to delete destination');
         },
 
+        async updateDestinationCategories(id, categoryIds) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/destinations/${id}/categories`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(categoryIds),
+            });
+            await handleError(response, 'Failed to update destination categories');
+        },
+
         async getPackages() {
             const response = await fetch(`${API_BASE_URL}/admin/packages`, {
                 headers: await authHeaders(),
