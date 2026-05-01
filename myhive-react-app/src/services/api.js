@@ -54,6 +54,12 @@ export const api = {
         return response.json();
     },
 
+    async getCategoriesForDestination(destinationId) {
+        const response = await fetch(`${API_BASE_URL}/destinations/${destinationId}/categories`);
+        if (!response.ok) throw new Error('Failed to fetch categories for destination');
+        return response.json();
+    },
+
   async getActivity(id) {
     const response = await fetch(`${API_BASE_URL}/activities/${id}`);
     if (!response.ok) throw new Error('Failed to fetch activity');

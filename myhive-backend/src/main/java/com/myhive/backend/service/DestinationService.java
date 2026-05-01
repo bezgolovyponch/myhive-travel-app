@@ -1,9 +1,13 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.DestinationDTO;
+import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -22,6 +29,7 @@ import java.util.UUID;
 public class DestinationService {
 
     private final DestinationRepository destinationRepository;
+    private final CategoryRepository categoryRepository;
 
     public List<DestinationDTO> getAllDestinations() {
         return destinationRepository.findAll().stream()
@@ -37,7 +45,14 @@ public class DestinationService {
     public DestinationDTO getDestinationById(UUID id) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
-        return convertToDTO(destination);
+        DestinationDTO dto = convertToDTO(destination);
+        dto.setAssignedCategories(
+                destination.getCategories().stream()
+                        .sorted(Comparator.comparing(c -> c.getName().toLowerCase()))
+                        .map(this::categoryToDTO)
+                        .toList()
+        );
+        return dto;
     }
 
     public DestinationDTO getDestinationBySlug(String slug) {
@@ -92,6 +107,52 @@ public class DestinationService {
                     "Cannot delete destination with " + destination.getActivities().size() + " associated activities. Remove them first.");
         }
         destinationRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void updateDestinationCategories(UUID id, List<UUID> categoryIds) {
+        Destination destination = destinationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
+        List<UUID> uniqueIds = categoryIds.stream().distinct().toList();
+        List<Category> categories = categoryRepository.findAllById(uniqueIds);
+        if (categories.size() != uniqueIds.size()) {
+            throw new BadRequestException("One or more category IDs are invalid.");
+        }
+        destination.setCategories(new HashSet<>(categories));
+        destinationRepository.save(destination);
+    }
+
+    public List<CategoryDTO> getCategoriesForDestination(UUID id) {
+        Destination destination = destinationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
+
+        Set<Category> explicit = destination.getCategories();
+        if (!explicit.isEmpty()) {
+            return explicit.stream()
+                    .sorted(Comparator.comparing(c -> c.getName().toLowerCase()))
+                    .map(this::categoryToDTO)
+                    .toList();
+        }
+
+        List<Activity> activities = destination.getActivities();
+        if (activities == null || activities.isEmpty()) {
+            return List.of();
+        }
+
+        return activities.stream()
+                .flatMap(a -> a.getCategories().stream())
+                .distinct()
+                .sorted(Comparator.comparing(c -> c.getName().toLowerCase()))
+                .map(this::categoryToDTO)
+                .toList();
+    }
+
+    private CategoryDTO categoryToDTO(Category category) {
+        CategoryDTO dto = new CategoryDTO();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+        dto.setSlug(category.getSlug());
+        return dto;
     }
 
     private DestinationDTO convertToDTO(Destination destination) {

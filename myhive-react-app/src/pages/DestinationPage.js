@@ -54,10 +54,8 @@ function DestinationPage() {
       try {
         setLoading(true);
           setCurrentFilter('all');
-          const [destData, categoriesData] = await Promise.all([
-              api.getDestinationBySlug(slug),
-              api.getCategories(),
-          ]);
+          const destData = await api.getDestinationBySlug(slug);
+          const categoriesData = await api.getCategoriesForDestination(destData.id);
         setDestination(destData);
           setCategories(categoriesData);
           await fetchActivitiesPage(destData.id, 0, 'all', true);
@@ -233,7 +231,7 @@ function DestinationPage() {
       {/* Trip Builder Tab */}
         <div id="trip-builder-tab" className="tab-content"
              style={{display: currentTab === 'trip-builder' ? 'flex' : 'none'}}>
-        <TripBuilder />
+        <TripBuilder destinationId={destination?.id} />
       </div>
     </div>
   );

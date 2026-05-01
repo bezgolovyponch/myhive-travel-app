@@ -183,6 +183,14 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/destinations/{id}/categories")
+    public ResponseEntity<Void> updateDestinationCategories(
+            @PathVariable UUID id,
+            @RequestBody List<UUID> categoryIds) {
+        destinationService.updateDestinationCategories(id, categoryIds);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryDTO>> getAllCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());

@@ -1,10 +1,12 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {truncateText} from '../utils/format';
 import {useAdminCrud} from '../hooks/useAdminCrud';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
+import api from '../services/api';
+import {useAdminApi} from '../hooks/useAdminApi';
 
 const EMPTY_FORM = {
     name: '',
@@ -26,17 +28,37 @@ const COLUMNS = [
 ];
 
 function AdminDestinations() {
+    const [allCategories, setAllCategories] = useState([]);
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+    const selectedCategoryIdsRef = useRef([]);
+    const categoriesAdminApi = useAdminApi();
+
+    const updateCategorySelection = (ids) => {
+        selectedCategoryIdsRef.current = ids;
+        setSelectedCategoryIds(ids);
+    };
+
+    const toggleCategory = (id) => {
+        const next = selectedCategoryIds.includes(id)
+            ? selectedCategoryIds.filter(cid => cid !== id)
+            : [...selectedCategoryIds, id];
+        updateCategorySelection(next);
+    };
+
     const {
         items: destinations, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
         form, setForm, saving, uploading, setUploading, deleteId, setDeleteId,
-        fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
+        fetchData, openCreate: baseOpenCreate, openEdit: baseOpenEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
-        fetchFn: useCallback((api, page, size) => api.getDestinationsPaged(page, size), []),
-        createFn: (api, payload) => api.createDestination(payload),
-        updateFn: (api, id, payload) => api.updateDestination(id, payload),
-        deleteFn: (api, id) => api.deleteDestination(id),
+        fetchFn: useCallback((adminApiInstance, page, size) => adminApiInstance.getDestinationsPaged(page, size), []),
+        createFn: (adminApiInstance, payload) => adminApiInstance.createDestination(payload),
+        updateFn: (adminApiInstance, id, payload) => Promise.all([
+            adminApiInstance.updateDestination(id, payload),
+            adminApiInstance.updateDestinationCategories(id, selectedCategoryIdsRef.current),
+        ]),
+        deleteFn: (adminApiInstance, id) => adminApiInstance.deleteDestination(id),
         mapItemToForm: (d) => ({
             name: d.name || '',
             slug: d.slug || '',
@@ -51,6 +73,26 @@ function AdminDestinations() {
             rating: form.rating !== '' ? Number(form.rating) : null,
         }),
     });
+
+    useEffect(() => {
+        categoriesAdminApi.getCategories().then(setAllCategories).catch(() => {});
+    }, [categoriesAdminApi]);
+
+    const openCreate = () => {
+        updateCategorySelection([]);
+        baseOpenCreate();
+    };
+
+    const openEdit = async (destination) => {
+        updateCategorySelection([]);
+        baseOpenEdit(destination);
+        try {
+            const dest = await api.getDestination(destination.id);
+            updateCategorySelection((dest.assignedCategories || []).map(c => c.id));
+        } catch {
+            // leave empty on fetch failure
+        }
+    };
 
     if (loading) {
         return (
@@ -200,6 +242,35 @@ function AdminDestinations() {
                                 placeholder="e.g. 4.75"
                             />
                         </Form.Group>
+                        {editing && allCategories.length > 0 && (
+                            <Form.Group className="mb-3">
+                                <Form.Label className="small fw-semibold text-white">Categories</Form.Label>
+                                <div
+                                    style={{
+                                        maxHeight: 180,
+                                        overflowY: 'auto',
+                                        border: '1px solid #444',
+                                        borderRadius: 4,
+                                        padding: '8px 12px',
+                                    }}
+                                >
+                                    {allCategories.map(cat => (
+                                        <Form.Check
+                                            key={cat.id}
+                                            type="checkbox"
+                                            id={`cat-${cat.id}`}
+                                            label={cat.name}
+                                            checked={selectedCategoryIds.includes(cat.id)}
+                                            onChange={() => toggleCategory(cat.id)}
+                                            className="mb-1"
+                                        />
+                                    ))}
+                                </div>
+                                <Form.Text className="text-muted" style={{fontSize: '0.75rem'}}>
+                                    If none selected, categories are derived automatically from activities.
+                                </Form.Text>
+                            </Form.Group>
+                        )}
                         <ImageUploadField
                             imageUrl={form.imageUrl}
                             uploading={uploading}

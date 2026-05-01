@@ -8,7 +8,7 @@ import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
 
-function TripBuilder() {
+function TripBuilder({ destinationId }) {
   const { state, dispatch } = useContext(AppContext);
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
@@ -20,9 +20,9 @@ function TripBuilder() {
   const [successContactData, setSuccessContactData] = useState(null);
 
   useEffect(() => {
-    api.getCategories().then(setCategories).catch(() => {
-    });
-  }, []);
+    if (!destinationId) return;
+    api.getCategoriesForDestination(destinationId).then(setCategories).catch(() => {});
+  }, [destinationId]);
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
