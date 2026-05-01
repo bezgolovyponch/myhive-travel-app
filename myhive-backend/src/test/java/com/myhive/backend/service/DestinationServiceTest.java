@@ -1,11 +1,14 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
+import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +37,9 @@ class DestinationServiceTest {
 
     @Mock
     private DestinationRepository destinationRepository;
+
+    @Mock
+    private CategoryRepository categoryRepository;
 
     @InjectMocks
     private DestinationService destinationService;
@@ -307,5 +315,57 @@ class DestinationServiceTest {
         destinationService.deleteDestination(dest.getId());
 
         verify(destinationRepository).deleteById(dest.getId());
+    }
+
+    @Test
+    void getCategoriesForDestination_withExplicitCategories_returnsSortedByName() {
+        Destination dest = TestDataFactory.destination();
+        Category catB = TestDataFactory.category("Wellness");
+        Category catA = TestDataFactory.category("Adventure");
+        dest.setCategories(new HashSet<>(Arrays.asList(catB, catA)));
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+
+        List<CategoryDTO> result = destinationService.getCategoriesForDestination(dest.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getName()).isEqualTo("Adventure");
+        assertThat(result.get(1).getName()).isEqualTo("Wellness");
+    }
+
+    @Test
+    void getCategoriesForDestination_noExplicitCategories_fallsBackToActivityCategories() {
+        Destination dest = TestDataFactory.destination();
+        Category cat = TestDataFactory.category("Water");
+        Activity activity = TestDataFactory.activity(dest, cat);
+        dest.setCategories(new HashSet<>());
+        dest.setActivities(List.of(activity));
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+
+        List<CategoryDTO> result = destinationService.getCategoriesForDestination(dest.getId());
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getName()).isEqualTo("Water");
+    }
+
+    @Test
+    void getCategoriesForDestination_noCategories_returnsEmpty() {
+        Destination dest = TestDataFactory.destination();
+        dest.setCategories(new HashSet<>());
+        dest.setActivities(new ArrayList<>());
+        when(destinationRepository.findById(dest.getId())).thenReturn(Optional.of(dest));
+
+        List<CategoryDTO> result = destinationService.getCategoriesForDestination(dest.getId());
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getCategoriesForDestination_notFound_throwsResourceNotFound() {
+        UUID id = UUID.randomUUID();
+        when(destinationRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> destinationService.getCategoriesForDestination(id))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Destination");
     }
 }
