@@ -1,5 +1,6 @@
 package com.myhive.backend.controller;
 
+import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.service.DestinationService;
 import lombok.RequiredArgsConstructor;
@@ -32,5 +33,10 @@ public class DestinationController {
     @GetMapping("/slug/{slug}")
     public ResponseEntity<DestinationDTO> getDestinationBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(destinationService.getDestinationBySlug(slug));
+    }
+
+    @GetMapping("/{id}/categories")
+    public ResponseEntity<List<CategoryDTO>> getCategoriesForDestination(@PathVariable UUID id) {
+        return ResponseEntity.ok(destinationService.getCategoriesForDestination(id));
     }
 }
