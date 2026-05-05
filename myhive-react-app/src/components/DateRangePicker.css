@@ -227,26 +227,28 @@
 
 /* ── Range highlight ── */
 .drp-day.drp-range-middle {
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .drp-day.drp-range-start {
-  background: linear-gradient(to right, transparent 50%, rgba(255, 255, 255, 0.09) 50%);
+  background: linear-gradient(to right, transparent 50%, rgba(255, 255, 255, 0.25) 50%);
 }
 
 .drp-day.drp-range-end {
-  background: linear-gradient(to left, transparent 50%, rgba(255, 255, 255, 0.09) 50%);
+  background: linear-gradient(to left, transparent 50%, rgba(255, 255, 255, 0.25) 50%);
 }
 
 .drp-day.drp-range-start .drp-day-btn,
-.drp-day.drp-range-end .drp-day-btn {
+.drp-day.drp-range-end .drp-day-btn,
+.drp-day.drp-selected .drp-day-btn {
   background: var(--text);
   color: var(--bg);
   font-weight: 600;
 }
 
 .drp-day.drp-range-start .drp-day-btn:hover,
-.drp-day.drp-range-end .drp-day-btn:hover {
+.drp-day.drp-range-end .drp-day-btn:hover,
+.drp-day.drp-selected .drp-day-btn:hover {
   outline: none;
 }
 
@@ -293,6 +295,29 @@
   .drp-field:last-child {
     border-radius: 8px;
   }
+}
+
+/* ── Hover range preview ── */
+.drp-day.drp-hover-middle {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.drp-day.drp-hover-start {
+  background: linear-gradient(to right, transparent 50%, rgba(255, 255, 255, 0.25) 50%);
+}
+
+.drp-day.drp-hover-end {
+  background: linear-gradient(to left, transparent 50%, rgba(255, 255, 255, 0.25) 50%);
+}
+
+.drp-day.drp-hover-end .drp-day-btn {
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.drp-day.drp-hover-end .drp-day-btn:hover {
+  outline: none;
 }
 
 /* ── Footer ── */

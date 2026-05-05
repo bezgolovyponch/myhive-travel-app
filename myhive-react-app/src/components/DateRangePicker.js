@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DayPicker } from 'react-day-picker';
 import './DateRangePicker.css';
 
@@ -62,6 +62,7 @@ const CAL_CLASSES = {
 
 function DateRangePicker({ from, to, onChange }) {
   const [numMonths, setNumMonths] = useState(() => window.innerWidth >= 640 ? 2 : 1);
+  const [hoveredDay, setHoveredDay] = useState(null);
 
   useEffect(() => {
     const handler = () => setNumMonths(window.innerWidth >= 640 ? 2 : 1);
@@ -87,6 +88,26 @@ function DateRangePicker({ from, to, onChange }) {
     }
     onChange(newFrom, newTo);
   };
+
+  const showPreview = from && !to && hoveredDay && fromDate && hoveredDay > fromDate;
+  const hoverModifiers = showPreview ? {
+    hoverStart: fromDate,
+    hoverMiddle: { after: fromDate, before: hoveredDay },
+    hoverEnd: hoveredDay,
+  } : {};
+  const hoverModifierClassNames = showPreview ? {
+    hoverStart: 'drp-hover-start',
+    hoverMiddle: 'drp-hover-middle',
+    hoverEnd: 'drp-hover-end',
+  } : {};
+
+  const handleDayMouseEnter = useCallback((day) => {
+    if (from && !to) setHoveredDay(day);
+  }, [from, to]);
+
+  const handleDayMouseLeave = useCallback(() => {
+    setHoveredDay(null);
+  }, []);
 
   return (
     <div className="drp">
@@ -131,6 +152,10 @@ function DateRangePicker({ from, to, onChange }) {
           numberOfMonths={numMonths}
           selected={{ from: fromDate, to: toDateObj }}
           onSelect={handleSelect}
+          onDayMouseEnter={handleDayMouseEnter}
+          onDayMouseLeave={handleDayMouseLeave}
+          modifiers={hoverModifiers}
+          modifiersClassNames={hoverModifierClassNames}
           disabled={{ before: TODAY }}
           classNames={CAL_CLASSES}
         />
