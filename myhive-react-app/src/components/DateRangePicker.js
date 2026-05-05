@@ -29,6 +29,12 @@ function nightsLabel(n) {
   return `${n} ночей`;
 }
 
+function getTodayMidnight() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 const CAL_CLASSES = {
   root: 'drp-cal',
   months: 'drp-months',
@@ -56,9 +62,6 @@ const CAL_CLASSES = {
 };
 
 function DateRangePicker({ from, to, onChange }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const fromDate = parseDate(from);
   const toDateObj = parseDate(to);
 
@@ -69,7 +72,13 @@ function DateRangePicker({ from, to, onChange }) {
     : 0;
 
   const handleSelect = (range) => {
-    onChange(toISO(range?.from), toISO(range?.to));
+    const newFrom = toISO(range?.from);
+    const newTo = toISO(range?.to);
+    if (newFrom && newTo && newFrom === newTo) {
+      onChange(newFrom, '');
+      return;
+    }
+    onChange(newFrom, newTo);
   };
 
   return (
@@ -115,7 +124,7 @@ function DateRangePicker({ from, to, onChange }) {
           numberOfMonths={2}
           selected={{ from: fromDate, to: toDateObj }}
           onSelect={handleSelect}
-          disabled={{ before: today }}
+          disabled={{ before: getTodayMidnight() }}
           classNames={CAL_CLASSES}
         />
       </div>
