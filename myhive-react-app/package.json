@@ -38,6 +38,11 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(react-day-picker|date-fns)/)"
+    ]
+  },
   "browserslist": {
     "production": [
       ">0.2%",
