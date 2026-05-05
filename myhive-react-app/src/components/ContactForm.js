@@ -54,8 +54,8 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
 
         if (!formData.endDate) {
             newErrors.endDate = 'End date is required';
-        } else if (formData.startDate && formData.endDate && new Date(formData.endDate) < new Date(formData.startDate)) {
-            newErrors.endDate = 'End date must be after start date';
+        } else if (formData.startDate && formData.endDate && new Date(formData.endDate) <= new Date(formData.startDate)) {
+            newErrors.endDate = 'End date must be after start date (minimum 1 night)';
         }
 
         if (formData.numberOfTravelers < 1) {

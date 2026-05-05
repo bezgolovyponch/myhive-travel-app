@@ -35,6 +35,8 @@ function getTodayMidnight() {
   return d;
 }
 
+const TODAY = getTodayMidnight();
+
 const CAL_CLASSES = {
   root: 'drp-cal',
   months: 'drp-months',
@@ -124,7 +126,7 @@ function DateRangePicker({ from, to, onChange }) {
           numberOfMonths={2}
           selected={{ from: fromDate, to: toDateObj }}
           onSelect={handleSelect}
-          disabled={{ before: getTodayMidnight() }}
+          disabled={{ before: TODAY }}
           classNames={CAL_CLASSES}
         />
       </div>
