@@ -1,3 +1,10 @@
+/* ── Outer wrapper — always light theme regardless of parent ── */
+.drp {
+  background: #fff;
+  color: #222;
+  border-radius: 12px;
+}
+
 /* ── Date field boxes ── */
 .drp-fields {
   display: flex;
@@ -93,11 +100,28 @@
   padding: 20px 24px 16px;
 }
 
+/* ── Nav: absolute, spans full width of calendar wrap ── */
+.drp-cal {
+  position: relative;
+}
+
+.drp-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+  z-index: 2;
+}
+
 /* ── Months layout ── */
 .drp-months {
   display: flex;
   gap: 32px;
-  position: relative;
+  padding-top: 48px;
 }
 
 .drp-month {
@@ -109,7 +133,7 @@
 .drp-month-caption {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-bottom: 16px;
 }
 

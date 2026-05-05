@@ -291,9 +291,9 @@ a:hover {
 .app-modal-content {
     background: var(--surface);
     border-radius: var(--radius-lg);
-    max-width: 500px;
-    width: 90%;
-    max-height: 80%;
+    max-width: 720px;
+    width: 95%;
+    max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
 }
