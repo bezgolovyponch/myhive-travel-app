@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { DayPicker } from 'react-day-picker';
 import './DateRangePicker.css';
 
@@ -14,19 +15,15 @@ function toISO(date) {
 }
 
 function formatField(date) {
-  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function formatShort(date) {
-  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }
 
 function nightsLabel(n) {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} ночь`;
-  if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return `${n} ночи`;
-  return `${n} ночей`;
+  return n === 1 ? '1 night' : `${n} nights`;
 }
 
 function getTodayMidnight() {
@@ -64,6 +61,14 @@ const CAL_CLASSES = {
 };
 
 function DateRangePicker({ from, to, onChange }) {
+  const [numMonths, setNumMonths] = useState(() => window.innerWidth >= 640 ? 2 : 1);
+
+  useEffect(() => {
+    const handler = () => setNumMonths(window.innerWidth >= 640 ? 2 : 1);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   const fromDate = parseDate(from);
   const toDateObj = parseDate(to);
 
@@ -87,33 +92,33 @@ function DateRangePicker({ from, to, onChange }) {
     <div className="drp">
       <div className="drp-fields">
         <div className={`drp-field${activeField === 'from' ? ' drp-field--active' : ''}`}>
-          <div className="drp-field-label">Начало</div>
+          <div className="drp-field-label">Start</div>
           <div className="drp-field-row">
             <span className={`drp-field-value${!from ? ' drp-field-value--empty' : ''}`}>
-              {from ? formatField(fromDate) : 'Добавить дату'}
+              {from ? formatField(fromDate) : 'Add date'}
             </span>
             {from && (
               <button
                 className="drp-field-clear"
                 onClick={() => onChange('', '')}
                 type="button"
-                aria-label="Очистить начало"
+                aria-label="Clear start date"
               >×</button>
             )}
           </div>
         </div>
         <div className={`drp-field${activeField === 'to' ? ' drp-field--active' : ''}`}>
-          <div className="drp-field-label">Конец</div>
+          <div className="drp-field-label">End</div>
           <div className="drp-field-row">
             <span className={`drp-field-value${!to ? ' drp-field-value--empty' : ''}`}>
-              {to ? formatField(toDateObj) : 'Добавить дату'}
+              {to ? formatField(toDateObj) : 'Add date'}
             </span>
             {to && (
               <button
                 className="drp-field-clear"
                 onClick={() => onChange(from, '')}
                 type="button"
-                aria-label="Очистить конец"
+                aria-label="Clear end date"
               >×</button>
             )}
           </div>
@@ -123,7 +128,7 @@ function DateRangePicker({ from, to, onChange }) {
       <div className="drp-cal-wrap">
         <DayPicker
           mode="range"
-          numberOfMonths={2}
+          numberOfMonths={numMonths}
           selected={{ from: fromDate, to: toDateObj }}
           onSelect={handleSelect}
           disabled={{ before: TODAY }}
@@ -142,7 +147,7 @@ function DateRangePicker({ from, to, onChange }) {
             onClick={() => onChange('', '')}
             type="button"
           >
-            Очистить даты
+            Clear dates
           </button>
         </div>
       )}

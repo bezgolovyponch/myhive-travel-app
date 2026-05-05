@@ -5,22 +5,22 @@ describe('DateRangePicker', () => {
   describe('date fields display', () => {
     it('shows placeholder in both fields when no dates selected', () => {
       render(<DateRangePicker from="" to="" onChange={() => {}} />);
-      expect(screen.getAllByText('Добавить дату')).toHaveLength(2);
+      expect(screen.getAllByText('Add date')).toHaveLength(2);
     });
 
     it('hides from placeholder when from is set', () => {
       render(<DateRangePicker from="2026-06-12" to="" onChange={() => {}} />);
-      expect(screen.queryAllByText('Добавить дату')).toHaveLength(1);
+      expect(screen.queryAllByText('Add date')).toHaveLength(1);
     });
 
     it('shows night count footer when both dates are set', () => {
       render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
-      expect(screen.getByText(/3 ноч/)).toBeInTheDocument();
+      expect(screen.getByText(/3 night/)).toBeInTheDocument();
     });
 
     it('hides footer when only from is set', () => {
       render(<DateRangePicker from="2026-06-12" to="" onChange={() => {}} />);
-      expect(screen.queryByText(/ноч/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/night/)).not.toBeInTheDocument();
     });
   });
 
@@ -51,21 +51,21 @@ describe('DateRangePicker', () => {
     it('calls onChange("","") when from clear button clicked', () => {
       const onChange = jest.fn();
       render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={onChange} />);
-      fireEvent.click(screen.getByRole('button', { name: 'Очистить начало' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear start date' }));
       expect(onChange).toHaveBeenCalledWith('', '');
     });
 
     it('calls onChange(from,"") when to clear button clicked', () => {
       const onChange = jest.fn();
       render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={onChange} />);
-      fireEvent.click(screen.getByRole('button', { name: 'Очистить конец' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clear end date' }));
       expect(onChange).toHaveBeenCalledWith('2026-06-12', '');
     });
 
     it('calls onChange("","") when footer clear button clicked', () => {
       const onChange = jest.fn();
       render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={onChange} />);
-      fireEvent.click(screen.getByRole('button', { name: /Очистить даты/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Clear dates/i }));
       expect(onChange).toHaveBeenCalledWith('', '');
     });
   });

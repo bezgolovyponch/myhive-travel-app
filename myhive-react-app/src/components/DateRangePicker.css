@@ -250,6 +250,51 @@
   outline: none;
 }
 
+/* ── Responsive ── */
+@media (max-width: 639px) {
+  .drp-cal-wrap {
+    padding: 16px 12px 12px;
+  }
+
+  .drp-nav {
+    left: 0;
+    right: 0;
+  }
+
+  .drp-months {
+    gap: 0;
+    padding-top: 44px;
+  }
+
+  .drp-day {
+    height: 38px;
+  }
+
+  .drp-day-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .drp-fields {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .drp-field:first-child {
+    border-radius: 8px;
+    border-right: 1px solid var(--border);
+  }
+
+  .drp-field:first-child::after {
+    display: none;
+  }
+
+  .drp-field:last-child {
+    border-radius: 8px;
+  }
+}
+
 /* ── Footer ── */
 .drp-footer {
   display: flex;
