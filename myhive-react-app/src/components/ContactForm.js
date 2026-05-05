@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import './ContactForm.css';
+import DateRangePicker from './DateRangePicker';
 
 function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
     const [formData, setFormData] = useState({
@@ -157,28 +158,17 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
                             </div>
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label htmlFor="startDate">Start Date *</label>
-                                <input
-                                    type="date" id="startDate" name="startDate"
-                                    value={formData.startDate} onChange={handleInputChange}
-                                    className={errors.startDate ? 'error' : ''}
-                                    min={new Date().toISOString().split('T')[0]}
-                                />
-                                {errors.startDate && <span className="error-message">{errors.startDate}</span>}
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="endDate">End Date *</label>
-                                <input
-                                    type="date" id="endDate" name="endDate"
-                                    value={formData.endDate} onChange={handleInputChange}
-                                    className={errors.endDate ? 'error' : ''}
-                                    min={formData.startDate || new Date().toISOString().split('T')[0]}
-                                />
-                                {errors.endDate && <span className="error-message">{errors.endDate}</span>}
-                            </div>
-                        </div>
+                        <DateRangePicker
+                            from={formData.startDate}
+                            to={formData.endDate}
+                            onChange={(from, to) => {
+                                setFormData(prev => ({ ...prev, startDate: from, endDate: to }));
+                                setErrors(prev => ({ ...prev, startDate: '', endDate: '' }));
+                            }}
+                        />
+                        {(errors.startDate || errors.endDate) && (
+                            <span className="error-message">{errors.startDate || errors.endDate}</span>
+                        )}
 
                         <div className="form-group">
                             <label htmlFor="contactMethod">Preferred Contact Method *</label>
