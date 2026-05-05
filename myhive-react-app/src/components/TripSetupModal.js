@@ -1,6 +1,7 @@
 import {useContext, useEffect, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import './ContactForm.css';
+import DateRangePicker from './DateRangePicker';
 
 function TripSetupModal() {
     const {state, dispatch} = useContext(AppContext);
@@ -31,8 +32,6 @@ function TripSetupModal() {
         dispatch({type: 'CANCEL_TRIP_SETUP'});
     };
 
-    const today = new Date().toISOString().split('T')[0];
-
     return (
         <div className="app-modal">
             <div className="app-modal-content">
@@ -56,28 +55,14 @@ function TripSetupModal() {
                                 max="20"
                             />
                         </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label htmlFor="tripStartDate">Start Date</label>
-                                <input
-                                    type="date"
-                                    id="tripStartDate"
-                                    value={startDate}
-                                    onChange={e => setStartDate(e.target.value)}
-                                    min={today}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="tripEndDate">End Date</label>
-                                <input
-                                    type="date"
-                                    id="tripEndDate"
-                                    value={endDate}
-                                    onChange={e => setEndDate(e.target.value)}
-                                    min={startDate || today}
-                                />
-                            </div>
-                        </div>
+                        <DateRangePicker
+                            from={startDate}
+                            to={endDate}
+                            onChange={(from, to) => {
+                                setStartDate(from);
+                                setEndDate(to);
+                            }}
+                        />
                     </form>
                 </div>
                 <div className="app-modal-footer">
