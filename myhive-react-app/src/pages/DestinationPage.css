@@ -87,6 +87,13 @@
     gap: var(--gap-sm);
 }
 
+@media (max-width: 640px) {
+    .category-filters {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 .filter-toggle {
     background: transparent;
     color: var(--brand);
