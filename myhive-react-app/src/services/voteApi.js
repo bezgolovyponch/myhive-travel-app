@@ -1,0 +1,68 @@
+import { API_BASE_URL } from './config';
+
+const voteApi = {
+  async createSession({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, likedCategoryIds }) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, likedCategoryIds }),
+    });
+    if (!response.ok) throw new Error('Failed to create vote session');
+    return response.json();
+  },
+
+  async getSession(shareToken) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}`);
+    if (!response.ok) throw new Error('Failed to fetch vote session');
+    return response.json();
+  },
+
+  async getActivities(shareToken) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/activities`);
+    if (!response.ok) throw new Error('Failed to fetch vote activities');
+    return response.json();
+  },
+
+  async castVote(shareToken, { voterToken, activityId, liked }) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/votes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterToken, activityId, liked }),
+    });
+    if (response.status === 409) throw new Error('Session is full');
+    if (!response.ok) throw new Error('Failed to cast vote');
+  },
+
+  async castVotes(shareToken, { voterToken, votes }) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/votes/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterToken, votes }),
+    });
+    if (response.status === 409) throw new Error('Session is full');
+    if (!response.ok) throw new Error('Failed to cast votes');
+  },
+
+  async getParticipantCount(shareToken) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/participant-count`);
+    if (!response.ok) throw new Error('Failed to fetch participant count');
+    return response.json();
+  },
+
+  async closeSession(shareToken, managerToken) {
+    const url = managerToken
+        ? `${API_BASE_URL}/vote/sessions/${shareToken}/close?managerToken=${managerToken}`
+        : `${API_BASE_URL}/vote/sessions/${shareToken}/close`;
+    const response = await fetch(url, { method: 'POST' });
+    if (!response.ok && response.status !== 400) throw new Error('Failed to close session');
+  },
+
+  async getResult(shareToken) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/result`);
+    if (response.status === 409) throw new Error('Result not available yet');
+    if (!response.ok) throw new Error('Failed to fetch vote result');
+    return response.json();
+  },
+};
+
+export default voteApi;

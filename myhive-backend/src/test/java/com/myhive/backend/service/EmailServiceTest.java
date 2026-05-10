@@ -1,17 +1,47 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.VoteSession;
+import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.thymeleaf.TemplateEngine;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
 
-    private final EmailService emailService = new EmailService(null, null);
+    @Mock
+    private JavaMailSender mailSender;
+
+    @Mock
+    private TemplateEngine templateEngine;
+
+    @InjectMocks
+    private EmailService emailService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@trivlu.com");
+    }
 
     @Test
     void buildDestinationViewsGroupsByPackageAndComputesDiscount() {
@@ -54,5 +84,24 @@ class EmailServiceTest {
         assertThat(group.activities).hasSize(2);
         assertThat(view.standaloneActivities).hasSize(1);
         assertThat(view.standaloneActivities.getFirst().getActivityName()).isEqualTo("Standalone");
+    }
+
+    @Test
+    void sendVoteResult_doesNotThrowWhenMailSucceeds() throws Exception {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+
+        Destination destination = new Destination();
+        destination.setName("Bali");
+        session.setDestination(destination);
+        session.setInitiatorEmail("alice@example.com");
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(templateEngine.process(eq("vote-result"), any())).thenReturn("<html>test</html>");
+        doNothing().when(mailSender).send(any(MimeMessage.class));
+
+        assertThatCode(() -> emailService.sendVoteResult(session, List.of(), "https://trivlu.com"))
+                .doesNotThrowAnyException();
     }
 }

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Group Trip is Ready</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f0f0f0; margin: 0; padding: 20px 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
+        .header { background: #6A1B9A; color: white; padding: 32px 30px; text-align: center; border-bottom: 3px solid #4A148C; }
+        .header h1 { margin: 12px 0 8px; font-size: 22px; font-weight: 700; }
+        .header p { margin: 0; color: rgba(245,245,245,0.75); font-size: 14px; }
+        .content { padding: 30px; }
+        .activity-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .activity-info { flex: 1; }
+        .activity-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+        .activity-meta { color: #666; font-size: 13px; }
+        .cta-button { display: block; width: fit-content; margin: 30px auto; padding: 14px 32px; background: #6A1B9A; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; text-align: center; }
+        .footer { background: #4A148C; padding: 24px 20px; text-align: center; border-top: 3px solid #6A1B9A; }
+        .footer p { color: rgba(245,245,245,0.6); font-size: 12px; margin: 4px 0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 56px;">
+        <h1>Your Group Trip is Ready!</h1>
+        <p th:text="'Trip to ' + ${session.destination.name}"></p>
+    </div>
+    <div class="content">
+        <p>The 24-hour voting window has closed. Here are the activities your group chose for <strong th:text="${session.destination.name}"></strong>:</p>
+
+        <div th:if="${resultActivities.empty}">
+            <p style="color: #666; font-style: italic;">No activities matched the group's votes. You can still build your trip manually.</p>
+        </div>
+
+        <div th:each="result : ${resultActivities}">
+            <div class="activity-item">
+                <div class="activity-info">
+                    <div class="activity-name" th:text="${result.activity.name}"></div>
+                    <div class="activity-meta">
+                        <span th:if="${result.activity.duration != null}" th:text="${result.activity.duration / 60} + 'h · '"></span>
+                        <span th:text="'€' + ${result.activity.price} + '/person'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p style="margin-top: 20px; color: #666; font-size: 14px;">
+            Open in Trip Builder to review, make changes if needed, and complete your booking.
+        </p>
+
+        <a th:href="${resultUrl}" class="cta-button" style="color: #ffffff !important;">Open in Trip Builder</a>
+    </div>
+    <div class="footer">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 36px; margin-bottom: 10px;">
+        <p>Creating unforgettable travel experiences</p>
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>For support, contact us at support@trivlu.com</p>
+    </div>
+</div>
+</body>
+</html>

@@ -2,6 +2,8 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.EmailSendException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -114,6 +116,47 @@ public class EmailService {
             log.error("Failed to send contact notification. Cause: {}", e.getMessage(), e);
             throw new EmailSendException("Failed to send contact notification", e);
         }
+    }
+
+    public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String siteUrl) {
+        log.info("Preparing vote result email: from={}, to={}, destination={}", fromEmail, maskEmail(session.getInitiatorEmail()), session.getDestination().getName());
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(session.getInitiatorEmail());
+            helper.setSubject("Your group trip to " + session.getDestination().getName() + " is ready!");
+
+            String resultUrl = siteUrl + "/vote/" + session.getShareToken() + "/result";
+
+            Context context = new Context();
+            context.setVariable("session", session);
+            context.setVariable("resultActivities", resultActivities);
+            context.setVariable("resultUrl", resultUrl);
+
+            log.debug("Processing email template: vote-result");
+            String htmlContent = templateEngine.process("vote-result", context);
+            helper.setText(htmlContent, true);
+
+            log.info("Sending vote result email via SMTP to: {}", maskEmail(session.getInitiatorEmail()));
+            mailSender.send(message);
+            log.info("Vote result email sent successfully to: {}", maskEmail(session.getInitiatorEmail()));
+
+        } catch (Exception e) {
+            log.error("Failed to send vote result email to: {}. Cause: {}", maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
+            throw new EmailSendException("Failed to send vote result email", e);
+        }
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        int atIdx = email.indexOf('@');
+        String local = email.substring(0, atIdx);
+        String masked = local.charAt(0) + "*".repeat(Math.max(1, local.length() - 1));
+        return masked + email.substring(atIdx);
     }
 
     List<DestinationView> buildDestinationViews(TripExportRequest tripData) {

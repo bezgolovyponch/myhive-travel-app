@@ -12,6 +12,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+// IP resolution order (Cloudflare deployment):
+// 1. CF-Connecting-IP — set by Cloudflare, cannot be forged by clients
+// 2. Last entry of X-Forwarded-For — closest real proxy when CF-Connecting-IP is absent
+// 3. request.getRemoteAddr() — direct connection (dev/testing)
+
 @Component
 public class RateLimitFilter implements Filter {
 
@@ -53,10 +58,17 @@ public class RateLimitFilter implements Filter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
+        String cfConnectingIp = request.getHeader("CF-Connecting-IP");
+        if (cfConnectingIp != null && !cfConnectingIp.isBlank()) {
+            return cfConnectingIp.trim();
         }
+
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            String[] parts = xForwardedFor.split(",");
+            return parts[parts.length - 1].trim();
+        }
+
         return request.getRemoteAddr();
     }
 }
