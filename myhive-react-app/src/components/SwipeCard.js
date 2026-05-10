@@ -1,13 +1,36 @@
-import { useRef } from 'react';
-import TinderCard from 'react-tinder-card';
+import { useCallback, useState } from 'react';
 import './SwipeCard.css';
 
-function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
-    const refs = useRef(cards.map(() => null));
+const SWIPE_THRESHOLD = 80;
 
-    const handleButtonSwipe = async (direction, index) => {
-        if (refs.current[index]) {
-            await refs.current[index].swipe(direction);
+function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
+    const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
+
+    const handlePointerDown = useCallback((e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        setDrag({ active: true, startX: e.clientX, offsetX: 0 });
+    }, []);
+
+    const handlePointerMove = useCallback((e) => {
+        setDrag(prev => {
+            if (!prev.active) return prev;
+            return { ...prev, offsetX: e.clientX - prev.startX };
+        });
+    }, []);
+
+    const handlePointerUp = useCallback((cardId) => {
+        setDrag(prev => {
+            if (!prev.active) return prev;
+            if (Math.abs(prev.offsetX) > SWIPE_THRESHOLD) {
+                onSwipe(prev.offsetX > 0 ? 'right' : 'left', cardId);
+            }
+            return { active: false, startX: 0, offsetX: 0 };
+        });
+    }, [onSwipe]);
+
+    const handleButtonSwipe = (direction) => {
+        if (currentIndex < cards.length) {
+            onSwipe(direction, cards[currentIndex].id);
         }
     };
 
@@ -22,6 +45,9 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
     }
 
     const card = cards[currentIndex];
+    const nextCard = cards[currentIndex + 1];
+    const rotate = drag.offsetX * 0.08;
+    const overlayOpacity = Math.min(Math.abs(drag.offsetX) / SWIPE_THRESHOLD, 1);
 
     return (
         <div className="swipe-card-page">
@@ -32,46 +58,66 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
             </div>
 
             <div className="swipe-card-stack">
-                {cards.slice(currentIndex, currentIndex + 3).reverse().map((c, stackIdx) => {
-                    const absoluteIndex = currentIndex + (2 - stackIdx);
-                    return (
-                        <TinderCard
-                            key={c.id}
-                            ref={el => { refs.current[absoluteIndex] = el; }}
-                            onSwipe={dir => absoluteIndex === currentIndex && onSwipe(dir, c.id)}
-                            preventSwipe={['up', 'down']}
-                            className="swipe-tinder-card"
-                        >
-                            <div className="swipe-card">
-                                {c.imageUrl
-                                    ? <img src={c.imageUrl} alt={c.name} className="swipe-card-image" />
-                                    : <div className="swipe-card-image-placeholder">🌍</div>
-                                }
-                                <div className="swipe-card-info">
-                                    <div className="swipe-card-name">{c.name}</div>
-                                    <div className="swipe-card-meta">
-                                        {c.duration && <span>{Math.round(c.duration / 60)}h</span>}
-                                        {c.duration && c.price && <span> · </span>}
-                                        {c.price && <span>€{c.price}/person</span>}
-                                    </div>
-                                </div>
-                                <div className="swipe-overlay swipe-overlay-like">LIKE ♥</div>
-                                <div className="swipe-overlay swipe-overlay-dislike">NOPE ✕</div>
+                {nextCard && (
+                    <div className="swipe-tinder-card" style={{ transform: 'scale(0.95)', zIndex: 0 }}>
+                        <div className="swipe-card">
+                            {nextCard.imageUrl
+                                ? <img src={nextCard.imageUrl} alt={nextCard.name} className="swipe-card-image" />
+                                : <div className="swipe-card-image-placeholder">🌍</div>
+                            }
+                            <div className="swipe-card-info">
+                                <div className="swipe-card-name">{nextCard.name}</div>
                             </div>
-                        </TinderCard>
-                    );
-                })}
+                        </div>
+                    </div>
+                )}
+
+                <div
+                    className="swipe-tinder-card"
+                    style={{
+                        transform: `translateX(${drag.offsetX}px) rotate(${rotate}deg)`,
+                        transition: drag.active ? 'none' : 'transform 0.3s ease',
+                        zIndex: 1,
+                    }}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={() => handlePointerUp(card.id)}
+                    onPointerCancel={() => handlePointerUp(card.id)}
+                >
+                    <div className="swipe-card">
+                        {card.imageUrl
+                            ? <img src={card.imageUrl} alt={card.name} className="swipe-card-image" />
+                            : <div className="swipe-card-image-placeholder">🌍</div>
+                        }
+                        <div className="swipe-card-info">
+                            <div className="swipe-card-name">{card.name}</div>
+                            <div className="swipe-card-meta">
+                                {card.duration && <span>{Math.round(card.duration / 60)}h</span>}
+                                {card.duration && card.price && <span> · </span>}
+                                {card.price && <span>€{card.price}/person</span>}
+                            </div>
+                        </div>
+                        <div
+                            className="swipe-overlay swipe-overlay-like"
+                            style={{ opacity: drag.offsetX > 20 ? overlayOpacity : 0 }}
+                        >LIKE ♥</div>
+                        <div
+                            className="swipe-overlay swipe-overlay-dislike"
+                            style={{ opacity: drag.offsetX < -20 ? overlayOpacity : 0 }}
+                        >NOPE ✕</div>
+                    </div>
+                </div>
             </div>
 
             <div className="swipe-buttons">
                 <button
                     className="swipe-btn swipe-btn-dislike"
-                    onClick={() => handleButtonSwipe('left', currentIndex)}
+                    onClick={() => handleButtonSwipe('left')}
                     aria-label="Dislike"
                 >✕</button>
                 <button
                     className="swipe-btn swipe-btn-like"
-                    onClick={() => handleButtonSwipe('right', currentIndex)}
+                    onClick={() => handleButtonSwipe('right')}
                     aria-label="Like"
                 >♥</button>
             </div>
