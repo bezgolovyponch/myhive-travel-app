@@ -1,6 +1,8 @@
 import {useContext, useEffect, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
+import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPricePerPerson} from '../utils/format';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
@@ -23,6 +25,20 @@ function TripBuilder({ destinationId }) {
     if (!destinationId) return;
     api.getCategoriesForDestination(destinationId).then(setCategories).catch(() => {});
   }, [destinationId]);
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const voteSession = searchParams.get('voteSession');
+    if (!voteSession) return;
+    voteApi.getResult(voteSession)
+        .then(result => {
+            result.activities.forEach(activity => {
+                dispatch({ type: 'ADD_TO_TRIP', activity });
+            });
+        })
+        .catch(() => {});
+  }, []);
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });

@@ -3,33 +3,46 @@ import {AppContext} from '../context/AppContext';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 
-function TripSetupModal() {
+function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel }) {
     const {state, dispatch} = useContext(AppContext);
     const [travelers, setTravelers] = useState(1);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [email, setEmail] = useState('');
+
+    const isOpen = isVoteMode ? voteOpen : state.tripSetupModalOpen;
 
     useEffect(() => {
-        if (state.tripSetupModalOpen) {
+        if (isOpen) {
             setTravelers(1);
             setStartDate('');
             setEndDate('');
+            setEmail('');
         }
-    }, [state.tripSetupModalOpen]);
+    }, [isOpen]);
 
-    if (!state.tripSetupModalOpen) return null;
+    if (!isOpen) return null;
 
     const handleConfirm = () => {
-        dispatch({
-            type: 'SET_TRIP_SETUP',
-            travelers: travelers,
-            startDate: startDate,
-            endDate: endDate
-        });
+        if (isVoteMode) {
+            if (!startDate || !endDate || !email) return;
+            onVoteConfirm({ travelers, startDate, endDate, email });
+        } else {
+            dispatch({
+                type: 'SET_TRIP_SETUP',
+                travelers: travelers,
+                startDate: startDate,
+                endDate: endDate
+            });
+        }
     };
 
     const handleCancel = () => {
-        dispatch({type: 'CANCEL_TRIP_SETUP'});
+        if (isVoteMode) {
+            onVoteCancel();
+        } else {
+            dispatch({type: 'CANCEL_TRIP_SETUP'});
+        }
     };
 
     return (
@@ -63,11 +76,30 @@ function TripSetupModal() {
                                 setEndDate(to);
                             }}
                         />
+                        {isVoteMode && (
+                            <div className="form-group">
+                                <label htmlFor="voteEmail">Your Email * <span style={{ fontWeight: 400, color: '#6c757d' }}>(results sent here)</span></label>
+                                <input
+                                    type="email"
+                                    id="voteEmail"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    required
+                                    placeholder="you@example.com"
+                                />
+                            </div>
+                        )}
                     </form>
                 </div>
                 <div className="app-modal-footer">
                     <button className="btn btn--secondary" onClick={handleCancel}>Cancel</button>
-                    <button className="btn btn--primary" onClick={handleConfirm}>Confirm</button>
+                    <button
+                        className="btn btn--primary"
+                        onClick={handleConfirm}
+                        disabled={isVoteMode && (!startDate || !endDate || !email)}
+                    >
+                        {isVoteMode ? 'Continue to Categories' : 'Confirm'}
+                    </button>
                 </div>
             </div>
         </div>

@@ -1,13 +1,33 @@
-import {useContext} from 'react';
+import {useContext, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
+import TripSetupModal from './TripSetupModal';
 
 function TripBuilderDropdown() {
     const {state, dispatch} = useContext(AppContext);
     const navigate = useNavigate();
+    const [voteSetupOpen, setVoteSetupOpen] = useState(false);
 
     if (!state.tripBuilderModalOpen) return null;
+
+    const handleVoteClick = () => setVoteSetupOpen(true);
+
+    const handleVoteConfirm = ({ travelers, startDate, endDate, email }) => {
+        setVoteSetupOpen(false);
+        const destSlug = state.tripItems.find(i => i.destinationSlug)?.destinationSlug;
+        const destination = state.destinations.find(d => d.slug === destSlug);
+        if (!destination) return;
+        dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
+        navigate('/vote/new/categories', {
+            state: {
+                destinationId: destination.id,
+                destinationSlug: destination.slug,
+                destinationName: destination.name,
+                voteSetup: { travelers, startDate, endDate, email },
+            },
+        });
+    };
 
     const travelers = state.tripTravelers || 1;
 
@@ -110,6 +130,16 @@ function TripBuilderDropdown() {
                         <button className="trip-builder-complete-btn" onClick={handleComplete}>
                             Complete Booking
                         </button>
+                        <button className="trip-builder-vote-btn" onClick={handleVoteClick}>
+                            Vote together &amp; build a trip
+                        </button>
+
+                        <TripSetupModal
+                            isVoteMode={true}
+                            voteOpen={voteSetupOpen}
+                            onVoteConfirm={handleVoteConfirm}
+                            onVoteCancel={() => setVoteSetupOpen(false)}
+                        />
                     </>
                 ) : (
                     <div className="empty-trip-state">

@@ -11,6 +11,10 @@ import AboutPage from '../pages/AboutPage';
 import BlogPage from '../pages/BlogPage';
 import BlogPostPage from '../pages/BlogPostPage';
 import ContactPage from '../pages/ContactPage';
+import CategoryVotePage from '../pages/vote/CategoryVotePage';
+import ActivityVotePage from '../pages/vote/ActivityVotePage';
+import VoteWaitingPage from '../pages/vote/VoteWaitingPage';
+import VoteResultPage from '../pages/vote/VoteResultPage';
 import {AppContext} from '../context/AppContext';
 
 function Layout() {
@@ -29,6 +33,10 @@ function Layout() {
             <Route path="/blog" element={<BlogPage/>}/>
             <Route path="/blog/:slug" element={<BlogPostPage/>}/>
             <Route path="/contact" element={<ContactPage/>}/>
+            <Route path="/vote/new/categories" element={<CategoryVotePage />} />
+            <Route path="/vote/:shareToken/activities" element={<ActivityVotePage />} />
+            <Route path="/vote/:shareToken/waiting" element={<VoteWaitingPage />} />
+            <Route path="/vote/:shareToken/result" element={<VoteResultPage />} />
         </Routes>
       </main>
         <Footer/>
