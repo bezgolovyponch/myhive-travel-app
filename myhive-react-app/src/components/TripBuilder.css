@@ -3,6 +3,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--gap-xl);
+    align-items: start;
 }
 
 .trip-builder-left {
@@ -10,7 +11,6 @@
     border-radius: var(--radius-lg);
     padding: var(--gap-lg);
     border: 1px solid var(--card-border);
-    height: fit-content;
     display: flex;
     flex-direction: column;
     gap: var(--gap-lg);
@@ -160,7 +160,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--gap-lg);
-    min-height: calc(100vh - var(--header-height) - 2 * var(--gap-xl));
     overflow: hidden;
 }
 

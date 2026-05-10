@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
@@ -20,6 +20,20 @@ function TripBuilder({ destinationId }) {
   const [submitError, setSubmitError] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successContactData, setSuccessContactData] = useState(null);
+
+  const leftRef = useRef(null);
+  const rightRef = useRef(null);
+
+  useEffect(() => {
+    const left = leftRef.current;
+    const right = rightRef.current;
+    if (!left || !right) return;
+    const obs = new ResizeObserver(() => {
+      right.style.height = `${left.offsetHeight}px`;
+    });
+    obs.observe(left);
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!destinationId) return;
@@ -148,7 +162,7 @@ function TripBuilder({ destinationId }) {
 
   return (
     <div className="trip-builder-layout">
-      <div className="trip-builder-left">
+      <div className="trip-builder-left" ref={leftRef}>
         <div className="itinerary-header">
           <h2>Your Itinerary</h2>
           <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
@@ -256,7 +270,7 @@ function TripBuilder({ destinationId }) {
             </div>
         )}
       </div>
-      <div className="trip-builder-right">
+      <div className="trip-builder-right" ref={rightRef}>
         <div className="browse-header">
           <h3>Browse More Activities</h3>
           <div className="filter-group">
