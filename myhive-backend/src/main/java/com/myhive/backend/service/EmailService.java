@@ -2,6 +2,8 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.EmailSendException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -114,6 +116,10 @@ public class EmailService {
             log.error("Failed to send contact notification. Cause: {}", e.getMessage(), e);
             throw new EmailSendException("Failed to send contact notification", e);
         }
+    }
+
+    public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String siteUrl) {
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     List<DestinationView> buildDestinationViews(TripExportRequest tripData) {
