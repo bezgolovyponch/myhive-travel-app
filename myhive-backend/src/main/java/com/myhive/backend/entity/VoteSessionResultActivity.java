@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -18,7 +19,8 @@ import lombok.Setter;
 import java.util.UUID;
 
 @Entity
-@Table(name = "vote_session_result_activities")
+@Table(name = "vote_session_result_activities",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"session_id", "activity_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,6 +34,7 @@ public class VoteSessionResultActivity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private VoteSession session;
 
     @ManyToOne(fetch = FetchType.LAZY)
