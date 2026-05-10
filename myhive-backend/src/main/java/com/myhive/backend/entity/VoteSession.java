@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -69,7 +70,14 @@ public class VoteSession {
     private VoteSessionStatus status;
 
     @Column(name = "max_participants", nullable = false)
-    private Integer maxParticipants = 50;
+    private Integer maxParticipants;
+
+    @PrePersist
+    private void prePersist() {
+        if (maxParticipants == null) {
+            maxParticipants = 50;
+        }
+    }
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
