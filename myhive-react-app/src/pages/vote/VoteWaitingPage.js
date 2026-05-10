@@ -100,9 +100,9 @@ function VoteWaitingPage() {
             </div>
 
             <div style={{ background: 'var(--surface, #262828)', border: '1px solid var(--card-border, rgba(119,124,124,0.15))', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{participantCount}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{session ? participantCount : '...'}</div>
                 <div style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))', fontSize: 14, marginTop: 4 }}>
-                    {participantCount === 1 ? 'person voted' : 'people voted'}
+                    {session && (participantCount === 1 ? 'person voted' : 'people voted')}
                     {session?.numberOfTravelers > 0 && ` of ${session.numberOfTravelers}`}
                 </div>
             </div>

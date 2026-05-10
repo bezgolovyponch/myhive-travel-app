@@ -36,6 +36,7 @@ function ActivityVotePage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const votesRef = useRef([]);
+    const submittingRef = useRef(false);
     const voterToken = getOrCreateVoterToken(shareToken);
 
     useEffect(() => {
@@ -50,6 +51,7 @@ function ActivityVotePage() {
     }, [shareToken]);
 
     const handleSwipe = (direction, activityId) => {
+        if (submittingRef.current) return;
         votesRef.current.push({ activityId, liked: direction === 'right' });
         const nextIndex = currentIndex + 1;
         setCurrentIndex(nextIndex);
@@ -60,17 +62,34 @@ function ActivityVotePage() {
     };
 
     const submitVotes = async (votes) => {
+        if (submittingRef.current) return;
+        submittingRef.current = true;
         setSubmitting(true);
+        setError(null);
+
+        const seen = new Set();
+        const deduped = votes.filter(v => {
+            if (seen.has(v.activityId)) return false;
+            seen.add(v.activityId);
+            return true;
+        });
+
         try {
             await voteApi.castVotes(shareToken, {
                 voterToken,
-                votes: votes.map(v => ({ activityId: v.activityId, liked: v.liked })),
+                votes: deduped.map(v => ({ activityId: v.activityId, liked: v.liked })),
             });
             localStorage.setItem(VOTED_KEY(shareToken), 'true');
-        } catch {
-            // сессия может быть уже закрыта — всё равно идём на waiting
+            navigate(`/vote/${shareToken}/waiting`);
+        } catch (e) {
+            if (e.message === 'Session is full') {
+                navigate(`/vote/${shareToken}/waiting`);
+            } else {
+                submittingRef.current = false;
+                setSubmitting(false);
+                setError('Failed to submit votes. Please try again.');
+            }
         }
-        navigate(`/vote/${shareToken}/waiting`);
     };
 
     const stateStyle = { paddingTop: 'calc(var(--header-height) + 40px)', textAlign: 'center' };

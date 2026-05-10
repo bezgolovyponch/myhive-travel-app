@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -162,14 +163,17 @@ public class VoteSessionService {
 
         assertVoterAllowed(session, request.getVoterToken());
 
-        Set<UUID> activityIds = request.getVotes().stream()
-                .map(VoteBatchRequest.VoteItem::getActivityId)
-                .collect(Collectors.toSet());
-        Map<UUID, Activity> activitiesById = activityRepository.findAllById(activityIds).stream()
+        Map<UUID, VoteBatchRequest.VoteItem> deduplicatedVotes = new LinkedHashMap<>();
+        for (VoteBatchRequest.VoteItem item : request.getVotes()) {
+            deduplicatedVotes.put(item.getActivityId(), item);
+        }
+
+        Map<UUID, Activity> activitiesById = activityRepository
+                .findAllById(deduplicatedVotes.keySet()).stream()
                 .collect(Collectors.toMap(Activity::getId, a -> a));
 
         List<VoteActivityLike> likes = new ArrayList<>();
-        for (VoteBatchRequest.VoteItem item : request.getVotes()) {
+        for (VoteBatchRequest.VoteItem item : deduplicatedVotes.values()) {
             Activity activity = activitiesById.get(item.getActivityId());
             if (activity == null) {
                 throw new ResourceNotFoundException("Activity not found: " + item.getActivityId());
