@@ -19,6 +19,7 @@ function VoteWaitingPage() {
         voteApi.getSession(shareToken)
             .then(s => {
                 setSession(s);
+                setParticipantCount(s.participantCount);
                 if (s.status === 'COMPLETED') {
                     navigate(`/vote/${shareToken}/result`, { replace: true });
                 }
