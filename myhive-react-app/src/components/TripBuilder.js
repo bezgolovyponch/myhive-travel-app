@@ -38,7 +38,7 @@ function TripBuilder({ destinationId }) {
             });
         })
         .catch(() => {});
-  }, []);
+  }, [searchParams, dispatch]);
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
