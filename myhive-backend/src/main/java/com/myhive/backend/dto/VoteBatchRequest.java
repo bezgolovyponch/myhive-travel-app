@@ -3,6 +3,7 @@ package com.myhive.backend.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,7 +15,7 @@ import java.util.UUID;
 public class VoteBatchRequest {
 
     @NotNull private UUID voterToken;
-    @NotNull @NotEmpty @Valid private List<VoteItem> votes;
+    @NotNull @NotEmpty @Valid @Size(max = 100) private List<VoteItem> votes;
 
     @Getter
     @Setter

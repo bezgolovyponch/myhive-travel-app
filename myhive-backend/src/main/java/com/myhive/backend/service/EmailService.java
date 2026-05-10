@@ -119,7 +119,7 @@ public class EmailService {
     }
 
     public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String siteUrl) {
-        log.info("Preparing vote result email: from={}, to={}, destination={}", fromEmail, session.getInitiatorEmail(), session.getDestination().getName());
+        log.info("Preparing vote result email: from={}, to={}, destination={}", fromEmail, maskEmail(session.getInitiatorEmail()), session.getDestination().getName());
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -139,14 +139,24 @@ public class EmailService {
             String htmlContent = templateEngine.process("vote-result", context);
             helper.setText(htmlContent, true);
 
-            log.info("Sending vote result email via SMTP to: {}", session.getInitiatorEmail());
+            log.info("Sending vote result email via SMTP to: {}", maskEmail(session.getInitiatorEmail()));
             mailSender.send(message);
-            log.info("Vote result email sent successfully to: {}", session.getInitiatorEmail());
+            log.info("Vote result email sent successfully to: {}", maskEmail(session.getInitiatorEmail()));
 
         } catch (Exception e) {
-            log.error("Failed to send vote result email to: {}. Cause: {}", session.getInitiatorEmail(), e.getMessage(), e);
+            log.error("Failed to send vote result email to: {}. Cause: {}", maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
             throw new EmailSendException("Failed to send vote result email", e);
         }
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        int atIdx = email.indexOf('@');
+        String local = email.substring(0, atIdx);
+        String masked = local.charAt(0) + "*".repeat(Math.max(1, local.length() - 1));
+        return masked + email.substring(atIdx);
     }
 
     List<DestinationView> buildDestinationViews(TripExportRequest tripData) {

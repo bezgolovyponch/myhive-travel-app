@@ -36,6 +36,13 @@ function CategoryVotePage() {
         setLikedCategoryIds(updatedLikedIds);
         setCurrentIndex(nextIndex);
 
+        if (nextIndex >= categories.length && updatedLikedIds.length === 0) {
+            setCurrentIndex(0);
+            setLikedCategoryIds([]);
+            setError('You need to like at least one category. Starting over!');
+            return;
+        }
+
         if (nextIndex >= categories.length) {
             await finishAndCreateSession(updatedLikedIds);
         }
@@ -55,6 +62,7 @@ function CategoryVotePage() {
                 likedCategoryIds: finalLikedIds,
             });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
+            localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
             navigate(`/vote/${session.shareToken}/activities`);
         } catch (e) {
             setError(e.message || 'Failed to create session. Please try again.');
@@ -63,7 +71,19 @@ function CategoryVotePage() {
     };
 
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading categories...</div>;
-    if (error) return <div style={{ padding: 40, textAlign: 'center', color: 'red' }}>{error}</div>;
+    if (error) return (
+        <div style={{ padding: 40, textAlign: 'center', color: 'red' }}>
+            <p>{error}</p>
+            {error.includes('category') && (
+                <button
+                    onClick={() => { setError(null); setCurrentIndex(0); setLikedCategoryIds([]); }}
+                    style={{ marginTop: 16, padding: '10px 24px', background: 'var(--brand, #6A1B9A)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+                >
+                    Try again
+                </button>
+            )}
+        </div>
+    );
 
     return (
         <SwipeCard

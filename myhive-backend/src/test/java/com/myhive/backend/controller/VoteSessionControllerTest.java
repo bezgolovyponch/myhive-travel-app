@@ -58,9 +58,11 @@ class VoteSessionControllerTest {
     @Test
     void createSession_returns201WithShareToken() throws Exception {
         UUID expectedToken = UUID.randomUUID();
+        UUID expectedManagerToken = UUID.randomUUID();
         VoteSessionResponse response = new VoteSessionResponse(
                 expectedToken, "Bali", "bali", "ACTIVE",
-                java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 2);
+                java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 2,
+                expectedManagerToken);
 
         when(voteSessionService.createSession(any())).thenReturn(response);
 
@@ -93,7 +95,7 @@ class VoteSessionControllerTest {
     }
 
     @Test
-    void castVote_returns403WhenSessionFull() throws Exception {
+    void castVote_returns409WhenSessionFull() throws Exception {
         UUID shareToken = UUID.randomUUID();
         doThrow(new SessionFullException("Session is full"))
                 .when(voteSessionService).castVote(any(), any());
@@ -101,7 +103,7 @@ class VoteSessionControllerTest {
         mockMvc.perform(post("/vote/sessions/{shareToken}/votes", shareToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"voterToken\":\"" + UUID.randomUUID() + "\",\"activityId\":\"" + UUID.randomUUID() + "\",\"liked\":true}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -109,7 +111,8 @@ class VoteSessionControllerTest {
         UUID shareToken = UUID.randomUUID();
         VoteSessionResponse response = new VoteSessionResponse(
                 shareToken, "Bali", "bali", "ACTIVE",
-                java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 5L, 3);
+                java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 5L, 3,
+                null);
 
         when(voteSessionService.getSession(shareToken)).thenReturn(response);
 
@@ -127,5 +130,13 @@ class VoteSessionControllerTest {
         mockMvc.perform(get("/vote/sessions/{shareToken}/participant-count", shareToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.count").value(3));
+    }
+
+    @Test
+    void closeSession_returns400WhenManagerTokenMissing() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+
+        mockMvc.perform(post("/vote/sessions/{shareToken}/close", shareToken))
+                .andExpect(status().isBadRequest());
     }
 }

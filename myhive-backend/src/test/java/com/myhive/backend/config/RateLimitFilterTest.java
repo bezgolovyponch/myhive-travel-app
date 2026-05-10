@@ -35,6 +35,7 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_underLimit_passesThrough() throws Exception {
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
         when(request.getHeader("X-Forwarded-For")).thenReturn(null);
         when(request.getRemoteAddr()).thenReturn("192.168.1.1");
 
@@ -45,6 +46,7 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_overLimit_returns429() throws Exception {
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
         when(request.getHeader("X-Forwarded-For")).thenReturn(null);
         when(request.getRemoteAddr()).thenReturn("10.0.0.1");
         StringWriter sw = new StringWriter();
@@ -61,6 +63,7 @@ class RateLimitFilterTest {
 
     @Test
     void doFilter_differentIPs_trackedSeparately() throws Exception {
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
         when(request.getHeader("X-Forwarded-For")).thenReturn(null);
 
         // Fill up IP A to 100
@@ -79,22 +82,67 @@ class RateLimitFilterTest {
     }
 
     @Test
-    void getClientIp_usesXForwardedForIfPresent() throws Exception {
-        when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.50, 70.41.3.18");
+    void getClientIp_prefersCfConnectingIpOverXForwardedFor() throws Exception {
+        String expectedIp = "203.0.113.50";
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(expectedIp);
+        // X-Forwarded-For is NOT stubbed — the method must not reach it
         StringWriter sw = new StringWriter();
         when(response.getWriter()).thenReturn(new PrintWriter(sw));
 
-        // Fill up the rate limit using the X-Forwarded-For IP
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 101; i++) {
             filter.doFilter(request, response, chain);
         }
 
-        // 101st request with same X-Forwarded-For should be blocked with 429
-        filter.doFilter(request, response, chain);
+        verify(chain, times(100)).doFilter(request, response);
+        verify(response).setStatus(429);
+        verify(request, never()).getHeader("X-Forwarded-For");
+        verify(request, never()).getRemoteAddr();
+    }
+
+    @Test
+    void getClientIp_usesLastXForwardedForEntryWhenCfHeaderAbsent() throws Exception {
+        String expectedIp = "70.41.3.18";
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
+        // Last entry is the closest real proxy; first entry may be client-supplied
+        when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.50, " + expectedIp);
+        StringWriter sw = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(sw));
+
+        for (int i = 0; i < 101; i++) {
+            filter.doFilter(request, response, chain);
+        }
 
         verify(chain, times(100)).doFilter(request, response);
         verify(response).setStatus(429);
-        // Verify remoteAddr was never called (it's not needed when X-Forwarded-For is present)
         verify(request, never()).getRemoteAddr();
+    }
+
+    @Test
+    void getClientIp_fallsBackToRemoteAddrWhenNoHeaders() throws Exception {
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("192.0.2.1");
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        verify(request).getRemoteAddr();
+    }
+
+    @Test
+    void getClientIp_ignoresBlankCfConnectingIp() throws Exception {
+        String expectedIp = "70.41.3.18";
+        when(request.getHeader("CF-Connecting-IP")).thenReturn("   ");
+        when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.50, " + expectedIp);
+        StringWriter sw = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(sw));
+
+        for (int i = 0; i < 101; i++) {
+            filter.doFilter(request, response, chain);
+        }
+
+        // Should have rate-limited based on the last XFF entry, not the blank CF header
+        verify(chain, times(100)).doFilter(request, response);
+        verify(response).setStatus(429);
     }
 }

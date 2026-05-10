@@ -48,6 +48,9 @@ public class VoteSession {
     @Column(name = "share_token", unique = true, nullable = false, updatable = false)
     private UUID shareToken;
 
+    @Column(name = "manager_token", nullable = false, updatable = false)
+    private UUID managerToken;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_id", nullable = false)
     private Destination destination;

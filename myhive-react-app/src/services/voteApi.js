@@ -29,7 +29,7 @@ const voteApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ voterToken, activityId, liked }),
     });
-    if (response.status === 403) throw new Error('Session is full');
+    if (response.status === 409) throw new Error('Session is full');
     if (!response.ok) throw new Error('Failed to cast vote');
   },
 
@@ -39,7 +39,7 @@ const voteApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ voterToken, votes }),
     });
-    if (response.status === 403) throw new Error('Session is full');
+    if (response.status === 409) throw new Error('Session is full');
     if (!response.ok) throw new Error('Failed to cast votes');
   },
 
@@ -49,16 +49,17 @@ const voteApi = {
     return response.json();
   },
 
-  async closeSession(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/close`, {
-      method: 'POST',
-    });
+  async closeSession(shareToken, managerToken) {
+    const url = managerToken
+        ? `${API_BASE_URL}/vote/sessions/${shareToken}/close?managerToken=${managerToken}`
+        : `${API_BASE_URL}/vote/sessions/${shareToken}/close`;
+    const response = await fetch(url, { method: 'POST' });
     if (!response.ok && response.status !== 400) throw new Error('Failed to close session');
   },
 
   async getResult(shareToken) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/result`);
-    if (response.status === 404) throw new Error('Result not available yet');
+    if (response.status === 409) throw new Error('Result not available yet');
     if (!response.ok) throw new Error('Failed to fetch vote result');
     return response.json();
   },

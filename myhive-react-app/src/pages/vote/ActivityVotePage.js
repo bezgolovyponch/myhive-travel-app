@@ -6,11 +6,21 @@ import SwipeCard from '../../components/SwipeCard';
 const VOTER_TOKEN_KEY = (shareToken) => `myhive-voter-${shareToken}`;
 const VOTED_KEY = (shareToken) => `myhive-voted-${shareToken}`;
 
+function generateUUID() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
+    });
+}
+
 function getOrCreateVoterToken(shareToken) {
     const key = VOTER_TOKEN_KEY(shareToken);
     let token = localStorage.getItem(key);
     if (!token) {
-        token = crypto.randomUUID();
+        token = generateUUID();
         localStorage.setItem(key, token);
     }
     return token;

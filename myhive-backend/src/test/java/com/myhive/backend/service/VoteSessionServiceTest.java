@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
@@ -11,6 +12,7 @@ import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
@@ -26,8 +28,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.myhive.backend.dto.VoteBatchRequest;
-import com.myhive.backend.service.VoteSessionScheduler;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -51,7 +51,7 @@ class VoteSessionServiceTest {
     @Mock private DestinationRepository destinationRepository;
     @Mock private CategoryRepository categoryRepository;
     @Mock private ActivityRepository activityRepository;
-    @Mock private VoteSessionScheduler voteSessionScheduler;
+    @Mock private EmailService emailService;
 
     @InjectMocks
     private VoteSessionService voteSessionService;
@@ -72,7 +72,13 @@ class VoteSessionServiceTest {
 
         when(destinationRepository.findById(destId)).thenReturn(Optional.of(destination));
         when(categoryRepository.findById(catId)).thenReturn(Optional.of(category));
-        when(voteSessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(voteSessionRepository.save(any())).thenAnswer(i -> {
+            VoteSession s = i.getArgument(0);
+            if (s.getManagerToken() == null) {
+                s.setManagerToken(UUID.randomUUID());
+            }
+            return s;
+        });
         when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(any())).thenReturn(0L);
 
         VoteSessionCreateRequest request = new VoteSessionCreateRequest();
@@ -93,6 +99,7 @@ class VoteSessionServiceTest {
         assertThat(saved.getStatus()).isEqualTo(VoteSessionStatus.ACTIVE);
         assertThat(saved.getShareToken()).isNotNull();
         assertThat(response.getShareToken()).isEqualTo(saved.getShareToken());
+        assertThat(response.getManagerToken()).isNotNull();
     }
 
     @Test
@@ -116,6 +123,33 @@ class VoteSessionServiceTest {
 
         assertThatThrownBy(() -> voteSessionService.createSession(request))
                 .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void createSession_rejectsEndDateBeforeStartDate() {
+        UUID destId = UUID.randomUUID();
+        UUID catId = UUID.randomUUID();
+
+        Category category = new Category();
+        category.setId(catId);
+
+        Destination destination = new Destination();
+        destination.setId(destId);
+        destination.setCategories(Set.of(category));
+
+        when(destinationRepository.findById(destId)).thenReturn(Optional.of(destination));
+
+        VoteSessionCreateRequest request = new VoteSessionCreateRequest();
+        request.setDestinationId(destId);
+        request.setInitiatorEmail("alice@example.com");
+        request.setNumberOfTravelers(1);
+        request.setStartDate(LocalDate.of(2026, 7, 7));
+        request.setEndDate(LocalDate.of(2026, 7, 1));
+        request.setLikedCategoryIds(List.of(catId));
+
+        assertThatThrownBy(() -> voteSessionService.createSession(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("endDate must be on or after startDate");
     }
 
     @Test
@@ -198,17 +232,20 @@ class VoteSessionServiceTest {
         session.setMaxParticipants(50);
         session.setDestination(destination);
 
-        Activity activity1 = new Activity(); activity1.setId(activityId1); activity1.setDestination(destination);
-        Activity activity2 = new Activity(); activity2.setId(activityId2); activity2.setDestination(destination);
+        Activity activity1 = new Activity();
+        activity1.setId(activityId1);
+        activity1.setDestination(destination);
+        Activity activity2 = new Activity();
+        activity2.setId(activityId2);
+        activity2.setDestination(destination);
 
         when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
         when(voteActivityLikeRepository.existsBySessionIdAndVoterToken(any(), eq(voterToken))).thenReturn(false);
         when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(any())).thenReturn(0L);
-        when(activityRepository.findById(activityId1)).thenReturn(Optional.of(activity1));
-        when(activityRepository.findById(activityId2)).thenReturn(Optional.of(activity2));
+        when(activityRepository.findAllById(any())).thenReturn(List.of(activity1, activity2));
         when(voteActivityLikeRepository.findBySessionIdAndVoterTokenAndActivityId(any(), any(), any()))
                 .thenReturn(Optional.empty());
-        when(voteActivityLikeRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(voteActivityLikeRepository.saveAll(any())).thenAnswer(i -> i.getArgument(0));
 
         VoteBatchRequest.VoteItem item1 = new VoteBatchRequest.VoteItem();
         item1.setActivityId(activityId1);
@@ -223,11 +260,11 @@ class VoteSessionServiceTest {
 
         voteSessionService.castVotes(shareToken, request);
 
-        verify(voteActivityLikeRepository, org.mockito.Mockito.times(2)).save(any());
+        verify(voteActivityLikeRepository).saveAll(any());
     }
 
     @Test
-    void getResult_throwsNotFoundWhenActive() {
+    void getResult_throwsResultNotReadyWhenActive() {
         UUID shareToken = UUID.randomUUID();
         VoteSession session = new VoteSession();
         session.setStatus(VoteSessionStatus.ACTIVE);
@@ -235,7 +272,7 @@ class VoteSessionServiceTest {
         when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
 
         assertThatThrownBy(() -> voteSessionService.getResult(shareToken))
-                .isInstanceOf(ResourceNotFoundException.class);
+                .isInstanceOf(ResultNotReadyException.class);
     }
 
     @Test
@@ -262,6 +299,7 @@ class VoteSessionServiceTest {
         assertThat(response.getShareToken()).isEqualTo(shareToken);
         assertThat(response.getParticipantCount()).isEqualTo(3L);
         assertThat(response.getDestinationName()).isEqualTo("Bali");
+        assertThat(response.getManagerToken()).isNull();
     }
 
     @Test
@@ -360,5 +398,23 @@ class VoteSessionServiceTest {
         assertThat(result.getActivities().get(0).getName()).isEqualTo("Surfing");
         // totalPrice = 50 * 2 travelers = 100
         assertThat(result.getTotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(100));
+    }
+
+    @Test
+    void closeSession_throwsBadRequestForInvalidManagerToken() {
+        UUID shareToken = UUID.randomUUID();
+        UUID correctManagerToken = UUID.randomUUID();
+        UUID wrongManagerToken = UUID.randomUUID();
+
+        VoteSession session = new VoteSession();
+        session.setId(UUID.randomUUID());
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setManagerToken(correctManagerToken);
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> voteSessionService.closeSession(shareToken, wrongManagerToken))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Invalid manager token");
     }
 }

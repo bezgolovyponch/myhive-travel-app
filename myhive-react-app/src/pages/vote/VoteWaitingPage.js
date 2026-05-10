@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 
@@ -6,6 +6,7 @@ function VoteWaitingPage() {
     const { shareToken } = useParams();
     const navigate = useNavigate();
     const isInitiator = !!localStorage.getItem(`myhive-initiator-${shareToken}`);
+    const managerToken = localStorage.getItem(`myhive-manager-${shareToken}`);
 
     const [session, setSession] = useState(null);
     const [participantCount, setParticipantCount] = useState(0);
@@ -48,20 +49,20 @@ function VoteWaitingPage() {
         return () => clearInterval(id);
     }, [shareToken]);
 
+    const handleClose = useCallback(() => {
+        if (closing || !managerToken) return;
+        setClosing(true);
+        voteApi.closeSession(shareToken, managerToken)
+            .catch(() => {})
+            .finally(() => navigate(`/vote/${shareToken}/result`));
+    }, [closing, managerToken, shareToken, navigate]);
+
     useEffect(() => {
-        if (!session || closing) return;
+        if (!isInitiator || !session || closing) return;
         if (session.numberOfTravelers > 0 && participantCount >= session.numberOfTravelers) {
             handleClose();
         }
-    }, [participantCount, session?.numberOfTravelers, closing]);
-
-    const handleClose = () => {
-        if (closing) return;
-        setClosing(true);
-        voteApi.closeSession(shareToken)
-            .catch(() => {})
-            .finally(() => navigate(`/vote/${shareToken}/result`));
-    };
+    }, [participantCount, session?.numberOfTravelers, closing, isInitiator, handleClose]);
 
     const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
 

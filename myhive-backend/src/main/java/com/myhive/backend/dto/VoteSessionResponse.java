@@ -16,4 +16,5 @@ public class VoteSessionResponse {
     private Instant expiresAt;
     private long participantCount;
     private int numberOfTravelers;
+    private UUID managerToken;
 }
