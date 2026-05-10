@@ -24,6 +24,6 @@ public class DestinationDTO {
     private String city;
     private String imageUrl;
     private BigDecimal rating;
-    private int activityCount;
+    private Integer activityCount;
     private List<CategoryDTO> assignedCategories;
 }
