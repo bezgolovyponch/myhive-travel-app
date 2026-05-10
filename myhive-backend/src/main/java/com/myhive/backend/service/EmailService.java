@@ -119,7 +119,34 @@ public class EmailService {
     }
 
     public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String siteUrl) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        log.info("Preparing vote result email: from={}, to={}, destination={}", fromEmail, session.getInitiatorEmail(), session.getDestination().getName());
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(session.getInitiatorEmail());
+            helper.setSubject("Your group trip to " + session.getDestination().getName() + " is ready!");
+
+            String resultUrl = siteUrl + "/vote/" + session.getShareToken() + "/result";
+
+            Context context = new Context();
+            context.setVariable("session", session);
+            context.setVariable("resultActivities", resultActivities);
+            context.setVariable("resultUrl", resultUrl);
+
+            log.debug("Processing email template: vote-result");
+            String htmlContent = templateEngine.process("vote-result", context);
+            helper.setText(htmlContent, true);
+
+            log.info("Sending vote result email via SMTP to: {}", session.getInitiatorEmail());
+            mailSender.send(message);
+            log.info("Vote result email sent successfully to: {}", session.getInitiatorEmail());
+
+        } catch (Exception e) {
+            log.error("Failed to send vote result email to: {}. Cause: {}", session.getInitiatorEmail(), e.getMessage(), e);
+            throw new EmailSendException("Failed to send vote result email", e);
+        }
     }
 
     List<DestinationView> buildDestinationViews(TripExportRequest tripData) {
