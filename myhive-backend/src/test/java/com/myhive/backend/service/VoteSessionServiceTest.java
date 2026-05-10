@@ -8,6 +8,7 @@ import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.SessionFullException;
@@ -25,6 +26,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -141,14 +143,20 @@ class VoteSessionServiceTest {
         UUID shareToken = UUID.randomUUID();
         UUID voterToken = UUID.randomUUID();
         UUID activityId = UUID.randomUUID();
+        UUID destId = UUID.randomUUID();
+
+        Destination destination = new Destination();
+        destination.setId(destId);
 
         VoteSession session = new VoteSession();
         session.setId(UUID.randomUUID());
         session.setStatus(VoteSessionStatus.ACTIVE);
         session.setMaxParticipants(50);
+        session.setDestination(destination);
 
         Activity activity = new Activity();
         activity.setId(activityId);
+        activity.setDestination(destination);
 
         VoteActivityLike existing = new VoteActivityLike();
         existing.setLiked(false);
@@ -180,5 +188,129 @@ class VoteSessionServiceTest {
 
         assertThatThrownBy(() -> voteSessionService.getResult(shareToken))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void getSession_returnsResponseWithParticipantCount() {
+        UUID shareToken = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+
+        Destination destination = new Destination();
+        destination.setName("Bali");
+        destination.setSlug("bali");
+
+        VoteSession session = new VoteSession();
+        session.setId(sessionId);
+        session.setShareToken(shareToken);
+        session.setDestination(destination);
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setExpiresAt(java.time.LocalDateTime.now().plusHours(24));
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(sessionId)).thenReturn(3L);
+
+        VoteSessionResponse response = voteSessionService.getSession(shareToken);
+
+        assertThat(response.getShareToken()).isEqualTo(shareToken);
+        assertThat(response.getParticipantCount()).isEqualTo(3L);
+        assertThat(response.getDestinationName()).isEqualTo("Bali");
+    }
+
+    @Test
+    void getActivities_returnsActivitiesFilteredByLikedCategories() {
+        UUID shareToken = UUID.randomUUID();
+        UUID destId = UUID.randomUUID();
+        UUID catId = UUID.randomUUID();
+
+        Category category = new Category();
+        category.setId(catId);
+
+        Destination destination = new Destination();
+        destination.setId(destId);
+
+        VoteSession session = new VoteSession();
+        session.setId(UUID.randomUUID());
+        session.setShareToken(shareToken);
+        session.setDestination(destination);
+        session.setLikedCategories(Set.of(category));
+        session.setStatus(VoteSessionStatus.ACTIVE);
+
+        Activity activity = new Activity();
+        activity.setId(UUID.randomUUID());
+        activity.setName("Surfing");
+        activity.setPrice(BigDecimal.valueOf(65));
+        activity.setDuration(180);
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        when(activityRepository.findByDestinationIdAndCategoriesIdIn(eq(destId), any())).thenReturn(List.of(activity));
+
+        var result = voteSessionService.getActivities(shareToken);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("Surfing");
+    }
+
+    @Test
+    void getParticipantCount_returnsDistinctVoterCount() {
+        UUID shareToken = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+
+        Destination destination = new Destination();
+        destination.setName("Bali");
+        destination.setSlug("bali");
+
+        VoteSession session = new VoteSession();
+        session.setId(sessionId);
+        session.setShareToken(shareToken);
+        session.setDestination(destination);
+        session.setStatus(VoteSessionStatus.ACTIVE);
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(sessionId)).thenReturn(7L);
+
+        long count = voteSessionService.getParticipantCount(shareToken);
+
+        assertThat(count).isEqualTo(7L);
+    }
+
+    @Test
+    void getResult_returnsActivitiesWithTotalPrice() {
+        UUID shareToken = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+
+        Destination destination = new Destination();
+        destination.setName("Bali");
+        destination.setSlug("bali");
+
+        VoteSession session = new VoteSession();
+        session.setId(sessionId);
+        session.setShareToken(shareToken);
+        session.setDestination(destination);
+        session.setStatus(VoteSessionStatus.COMPLETED);
+        session.setNumberOfTravelers(2);
+        session.setStartDate(java.time.LocalDate.of(2026, 7, 1));
+        session.setEndDate(java.time.LocalDate.of(2026, 7, 7));
+
+        Activity activity = new Activity();
+        activity.setId(UUID.randomUUID());
+        activity.setName("Surfing");
+        activity.setPrice(BigDecimal.valueOf(50));
+        activity.setDuration(180);
+
+        VoteSessionResultActivity resultActivity = new VoteSessionResultActivity();
+        resultActivity.setSession(session);
+        resultActivity.setActivity(activity);
+        resultActivity.setSortOrder(0);
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        when(resultActivityRepository.findBySessionIdOrderBySortOrder(sessionId))
+                .thenReturn(List.of(resultActivity));
+
+        var result = voteSessionService.getResult(shareToken);
+
+        assertThat(result.getActivities()).hasSize(1);
+        assertThat(result.getActivities().get(0).getName()).isEqualTo("Surfing");
+        // totalPrice = 50 * 2 travelers = 100
+        assertThat(result.getTotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(100));
     }
 }

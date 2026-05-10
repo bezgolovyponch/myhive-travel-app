@@ -121,6 +121,10 @@ public class VoteSessionService {
         Activity activity = activityRepository.findById(request.getActivityId())
                 .orElseThrow(() -> new ResourceNotFoundException("Activity not found"));
 
+        if (!activity.getDestination().getId().equals(session.getDestination().getId())) {
+            throw new BadRequestException("Activity does not belong to this session's destination");
+        }
+
         VoteActivityLike like = voteActivityLikeRepository
                 .findBySessionIdAndVoterTokenAndActivityId(
                         session.getId(), request.getVoterToken(), request.getActivityId())
