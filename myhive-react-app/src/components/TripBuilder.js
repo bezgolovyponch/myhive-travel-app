@@ -95,6 +95,10 @@ function TripBuilder({ destinationId }) {
 
       await api.createBookingFromTrip(bookingData);
 
+      dispatch({ type: 'CANCEL_TRIP_SETUP' });
+      dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
+      dispatch({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
+      dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
       setShowContactForm(false);
       setSuccessContactData(contactData);
       setShowSuccessModal(true);
