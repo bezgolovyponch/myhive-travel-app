@@ -60,7 +60,7 @@ class VoteSessionControllerTest {
         UUID expectedToken = UUID.randomUUID();
         VoteSessionResponse response = new VoteSessionResponse(
                 expectedToken, "Bali", "bali", "ACTIVE",
-                LocalDateTime.now().plusHours(24), 0L);
+                java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 2);
 
         when(voteSessionService.createSession(any())).thenReturn(response);
 
@@ -109,7 +109,7 @@ class VoteSessionControllerTest {
         UUID shareToken = UUID.randomUUID();
         VoteSessionResponse response = new VoteSessionResponse(
                 shareToken, "Bali", "bali", "ACTIVE",
-                LocalDateTime.now().plusHours(24), 5L);
+                java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 5L, 3);
 
         when(voteSessionService.getSession(shareToken)).thenReturn(response);
 

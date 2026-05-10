@@ -1,6 +1,7 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.dto.VoteActivityResponse;
+import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
 import com.myhive.backend.dto.VoteResultResponse;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
@@ -26,7 +27,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -42,15 +45,14 @@ public class VoteSessionService {
     private final DestinationRepository destinationRepository;
     private final CategoryRepository categoryRepository;
     private final ActivityRepository activityRepository;
+    private final VoteSessionScheduler voteSessionScheduler;
 
     @Transactional
     public VoteSessionResponse createSession(VoteSessionCreateRequest request) {
         Destination destination = destinationRepository.findById(request.getDestinationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Destination not found"));
 
-        Set<UUID> destinationCategoryIds = destination.getCategories().stream()
-                .map(Category::getId)
-                .collect(Collectors.toSet());
+        Set<UUID> destinationCategoryIds = resolveDestinationCategoryIds(destination);
 
         boolean allValid = request.getLikedCategoryIds().stream()
                 .allMatch(destinationCategoryIds::contains);
@@ -71,7 +73,7 @@ public class VoteSessionService {
         session.setStartDate(request.getStartDate());
         session.setEndDate(request.getEndDate());
         session.setStatus(VoteSessionStatus.ACTIVE);
-        session.setExpiresAt(LocalDateTime.now().plusHours(24));
+        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
         session.setLikedCategories(likedCategories);
 
         session = voteSessionRepository.save(session);
@@ -137,6 +139,46 @@ public class VoteSessionService {
         voteActivityLikeRepository.save(like);
     }
 
+    @Transactional
+    public void castVotes(UUID shareToken, VoteBatchRequest request) {
+        VoteSession session = findByShareToken(shareToken);
+
+        if (session.getStatus() != VoteSessionStatus.ACTIVE) {
+            throw new BadRequestException("Session is no longer active");
+        }
+
+        boolean isNewVoter = !voteActivityLikeRepository
+                .existsBySessionIdAndVoterToken(session.getId(), request.getVoterToken());
+
+        if (isNewVoter) {
+            long voterCount = voteActivityLikeRepository
+                    .countDistinctVoterTokensBySessionId(session.getId());
+            if (voterCount >= session.getMaxParticipants()) {
+                throw new SessionFullException("Session has reached the maximum number of participants");
+            }
+        }
+
+        for (VoteBatchRequest.VoteItem item : request.getVotes()) {
+            Activity activity = activityRepository.findById(item.getActivityId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Activity not found"));
+
+            if (!activity.getDestination().getId().equals(session.getDestination().getId())) {
+                throw new BadRequestException("Activity does not belong to this session's destination");
+            }
+
+            VoteActivityLike like = voteActivityLikeRepository
+                    .findBySessionIdAndVoterTokenAndActivityId(
+                            session.getId(), request.getVoterToken(), item.getActivityId())
+                    .orElse(new VoteActivityLike());
+
+            like.setSession(session);
+            like.setVoterToken(request.getVoterToken());
+            like.setActivity(activity);
+            like.setLiked(item.getLiked());
+            voteActivityLikeRepository.save(like);
+        }
+    }
+
     @Transactional(readOnly = true)
     public long getParticipantCount(UUID shareToken) {
         VoteSession session = findByShareToken(shareToken);
@@ -177,14 +219,41 @@ public class VoteSessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Vote session not found"));
     }
 
+    @Transactional
+    public void closeSession(UUID shareToken) {
+        VoteSession session = findByShareToken(shareToken);
+        if (session.getStatus() != VoteSessionStatus.ACTIVE) {
+            throw new BadRequestException("Session is not active");
+        }
+        voteSessionScheduler.processSession(session);
+    }
+
     private VoteSessionResponse toResponse(VoteSession session, long participantCount) {
+        Instant expiresAt = session.getExpiresAt().toInstant(ZoneOffset.UTC);
+        int travelers = session.getNumberOfTravelers() != null ? session.getNumberOfTravelers() : 0;
         return new VoteSessionResponse(
                 session.getShareToken(),
                 session.getDestination().getName(),
                 session.getDestination().getSlug(),
                 session.getStatus().name(),
-                session.getExpiresAt(),
-                participantCount);
+                expiresAt,
+                participantCount,
+                travelers);
+    }
+
+    private Set<UUID> resolveDestinationCategoryIds(Destination destination) {
+        Set<Category> explicit = destination.getCategories();
+        if (!explicit.isEmpty()) {
+            return explicit.stream().map(Category::getId).collect(Collectors.toSet());
+        }
+        List<Activity> activities = destination.getActivities();
+        if (activities == null) {
+            return Set.of();
+        }
+        return activities.stream()
+                .flatMap(a -> a.getCategories().stream())
+                .map(Category::getId)
+                .collect(Collectors.toSet());
     }
 
     private VoteActivityResponse toActivityResponse(Activity activity) {

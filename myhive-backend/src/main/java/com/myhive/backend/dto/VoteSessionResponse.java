@@ -3,7 +3,7 @@ package com.myhive.backend.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -13,6 +13,7 @@ public class VoteSessionResponse {
     private String destinationName;
     private String destinationSlug;
     private String status;
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
     private long participantCount;
+    private int numberOfTravelers;
 }

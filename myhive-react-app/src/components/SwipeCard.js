@@ -3,8 +3,15 @@ import './SwipeCard.css';
 
 const SWIPE_THRESHOLD = 80;
 
-function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
+function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) {
     const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = useCallback(() => {
+        navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }, [shareUrl]);
 
     const handlePointerDown = useCallback((e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -62,12 +69,16 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
                     <div className="swipe-tinder-card" style={{ transform: 'scale(0.95)', zIndex: 0 }}>
                         <div className="swipe-card">
                             {nextCard.imageUrl
-                                ? <img src={nextCard.imageUrl} alt={nextCard.name} className="swipe-card-image" />
-                                : <div className="swipe-card-image-placeholder">🌍</div>
+                                ? <>
+                                    <img src={nextCard.imageUrl} alt={nextCard.name} className="swipe-card-image" />
+                                    <div className="swipe-card-info">
+                                        <div className="swipe-card-name">{nextCard.name}</div>
+                                    </div>
+                                </>
+                                : <div className="swipe-card-text-only">
+                                    <div className="swipe-card-name">{nextCard.name}</div>
+                                </div>
                             }
-                            <div className="swipe-card-info">
-                                <div className="swipe-card-name">{nextCard.name}</div>
-                            </div>
                         </div>
                     </div>
                 )}
@@ -86,17 +97,21 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
                 >
                     <div className="swipe-card">
                         {card.imageUrl
-                            ? <img src={card.imageUrl} alt={card.name} className="swipe-card-image" />
-                            : <div className="swipe-card-image-placeholder">🌍</div>
-                        }
-                        <div className="swipe-card-info">
-                            <div className="swipe-card-name">{card.name}</div>
-                            <div className="swipe-card-meta">
-                                {card.duration && <span>{Math.round(card.duration / 60)}h</span>}
-                                {card.duration && card.price && <span> · </span>}
-                                {card.price && <span>€{card.price}/person</span>}
+                            ? <>
+                                <img src={card.imageUrl} alt={card.name} className="swipe-card-image" />
+                                <div className="swipe-card-info">
+                                    <div className="swipe-card-name">{card.name}</div>
+                                    <div className="swipe-card-meta">
+                                        {card.duration && <span>{Math.round(card.duration / 60)}h</span>}
+                                        {card.duration && card.price && <span> · </span>}
+                                        {card.price && <span>€{card.price}/person</span>}
+                                    </div>
+                                </div>
+                            </>
+                            : <div className="swipe-card-text-only">
+                                <div className="swipe-card-name">{card.name}</div>
                             </div>
-                        </div>
+                        }
                         <div
                             className="swipe-overlay swipe-overlay-like"
                             style={{ opacity: drag.offsetX > 20 ? overlayOpacity : 0 }}
@@ -121,6 +136,18 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle }) {
                     aria-label="Like"
                 >♥</button>
             </div>
+
+            {shareUrl && (
+                <div className="swipe-share">
+                    <span className="swipe-share-label">Share with friends:</span>
+                    <div className="swipe-share-row">
+                        <span className="swipe-share-url">{shareUrl}</span>
+                        <button className="swipe-share-btn" onClick={handleCopy}>
+                            {copied ? 'Copied!' : 'Copy'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

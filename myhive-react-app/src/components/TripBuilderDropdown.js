@@ -13,11 +13,11 @@ function TripBuilderDropdown() {
 
     const handleVoteClick = () => setVoteSetupOpen(true);
 
-    const handleVoteConfirm = ({ travelers, startDate, endDate, email }) => {
+    const destSlug = state.tripItems.find(i => i.destinationSlug)?.destinationSlug;
+    const preselectedDestination = state.destinations.find(d => d.slug === destSlug) || null;
+
+    const handleVoteConfirm = ({ travelers, startDate, endDate, email, destination }) => {
         setVoteSetupOpen(false);
-        const destSlug = state.tripItems.find(i => i.destinationSlug)?.destinationSlug;
-        const destination = state.destinations.find(d => d.slug === destSlug);
-        if (!destination) return;
         dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
         navigate('/vote/new/categories', {
             state: {
@@ -139,11 +139,22 @@ function TripBuilderDropdown() {
                             voteOpen={voteSetupOpen}
                             onVoteConfirm={handleVoteConfirm}
                             onVoteCancel={() => setVoteSetupOpen(false)}
+                            preselectedDestination={preselectedDestination}
                         />
                     </>
                 ) : (
                     <div className="empty-trip-state">
                         <p>No activities added yet. Browse and add activities to build your trip!</p>
+                        <button className="trip-builder-vote-btn" onClick={handleVoteClick}>
+                            Vote together &amp; build a trip
+                        </button>
+                        <TripSetupModal
+                            isVoteMode={true}
+                            voteOpen={voteSetupOpen}
+                            onVoteConfirm={handleVoteConfirm}
+                            onVoteCancel={() => setVoteSetupOpen(false)}
+                            preselectedDestination={preselectedDestination}
+                        />
                     </div>
                 )}
             </div>

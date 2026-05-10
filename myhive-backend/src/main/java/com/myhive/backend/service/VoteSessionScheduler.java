@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +45,7 @@ public class VoteSessionScheduler {
     @Transactional
     public void processExpiredSessions() {
         List<VoteSession> expired = voteSessionRepository
-                .findByStatusAndExpiresAtBefore(VoteSessionStatus.ACTIVE, LocalDateTime.now());
+                .findByStatusAndExpiresAtBefore(VoteSessionStatus.ACTIVE, LocalDateTime.now(ZoneOffset.UTC));
 
         for (VoteSession session : expired) {
             try {
@@ -58,7 +59,7 @@ public class VoteSessionScheduler {
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
     public void cleanupOldSessions() {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
+        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusDays(7);
         int deleted = voteSessionRepository
                 .deleteByStatusAndExpiresAtBefore(VoteSessionStatus.COMPLETED, cutoff);
         log.info("Cleaned up {} completed vote sessions", deleted);

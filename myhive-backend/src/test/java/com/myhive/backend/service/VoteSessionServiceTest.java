@@ -26,6 +26,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.myhive.backend.dto.VoteBatchRequest;
+import com.myhive.backend.service.VoteSessionScheduler;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -49,6 +51,7 @@ class VoteSessionServiceTest {
     @Mock private DestinationRepository destinationRepository;
     @Mock private CategoryRepository categoryRepository;
     @Mock private ActivityRepository activityRepository;
+    @Mock private VoteSessionScheduler voteSessionScheduler;
 
     @InjectMocks
     private VoteSessionService voteSessionService;
@@ -179,6 +182,51 @@ class VoteSessionServiceTest {
     }
 
     @Test
+    void castVotes_savesAllVotesInSingleTransaction() {
+        UUID shareToken = UUID.randomUUID();
+        UUID voterToken = UUID.randomUUID();
+        UUID activityId1 = UUID.randomUUID();
+        UUID activityId2 = UUID.randomUUID();
+        UUID destId = UUID.randomUUID();
+
+        Destination destination = new Destination();
+        destination.setId(destId);
+
+        VoteSession session = new VoteSession();
+        session.setId(UUID.randomUUID());
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setMaxParticipants(50);
+        session.setDestination(destination);
+
+        Activity activity1 = new Activity(); activity1.setId(activityId1); activity1.setDestination(destination);
+        Activity activity2 = new Activity(); activity2.setId(activityId2); activity2.setDestination(destination);
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        when(voteActivityLikeRepository.existsBySessionIdAndVoterToken(any(), eq(voterToken))).thenReturn(false);
+        when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(any())).thenReturn(0L);
+        when(activityRepository.findById(activityId1)).thenReturn(Optional.of(activity1));
+        when(activityRepository.findById(activityId2)).thenReturn(Optional.of(activity2));
+        when(voteActivityLikeRepository.findBySessionIdAndVoterTokenAndActivityId(any(), any(), any()))
+                .thenReturn(Optional.empty());
+        when(voteActivityLikeRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        VoteBatchRequest.VoteItem item1 = new VoteBatchRequest.VoteItem();
+        item1.setActivityId(activityId1);
+        item1.setLiked(true);
+        VoteBatchRequest.VoteItem item2 = new VoteBatchRequest.VoteItem();
+        item2.setActivityId(activityId2);
+        item2.setLiked(false);
+
+        VoteBatchRequest request = new VoteBatchRequest();
+        request.setVoterToken(voterToken);
+        request.setVotes(List.of(item1, item2));
+
+        voteSessionService.castVotes(shareToken, request);
+
+        verify(voteActivityLikeRepository, org.mockito.Mockito.times(2)).save(any());
+    }
+
+    @Test
     void getResult_throwsNotFoundWhenActive() {
         UUID shareToken = UUID.randomUUID();
         VoteSession session = new VoteSession();
@@ -204,7 +252,7 @@ class VoteSessionServiceTest {
         session.setShareToken(shareToken);
         session.setDestination(destination);
         session.setStatus(VoteSessionStatus.ACTIVE);
-        session.setExpiresAt(java.time.LocalDateTime.now().plusHours(24));
+        session.setExpiresAt(java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).plusHours(24));
 
         when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
         when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(sessionId)).thenReturn(3L);

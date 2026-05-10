@@ -33,10 +33,27 @@ const voteApi = {
     if (!response.ok) throw new Error('Failed to cast vote');
   },
 
+  async castVotes(shareToken, { voterToken, votes }) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/votes/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterToken, votes }),
+    });
+    if (response.status === 403) throw new Error('Session is full');
+    if (!response.ok) throw new Error('Failed to cast votes');
+  },
+
   async getParticipantCount(shareToken) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/participant-count`);
     if (!response.ok) throw new Error('Failed to fetch participant count');
     return response.json();
+  },
+
+  async closeSession(shareToken) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/close`, {
+      method: 'POST',
+    });
+    if (!response.ok && response.status !== 400) throw new Error('Failed to close session');
   },
 
   async getResult(shareToken) {

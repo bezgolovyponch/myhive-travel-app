@@ -15,12 +15,14 @@
         .activity-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
         .activity-meta { color: #666; font-size: 13px; }
         .cta-button { display: block; width: fit-content; margin: 30px auto; padding: 14px 32px; background: #6A1B9A; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; text-align: center; }
-        .footer { background: #f8f8f8; padding: 20px 30px; text-align: center; font-size: 12px; color: #999; }
+        .footer { background: #4A148C; padding: 24px 20px; text-align: center; border-top: 3px solid #6A1B9A; }
+        .footer p { color: rgba(245,245,245,0.6); font-size: 12px; margin: 4px 0; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 56px;">
         <h1>Your Group Trip is Ready!</h1>
         <p th:text="'Trip to ' + ${session.destination.name}"></p>
     </div>
@@ -47,10 +49,13 @@
             Open in Trip Builder to review, make changes if needed, and complete your booking.
         </p>
 
-        <a th:href="${resultUrl}" class="cta-button">Open in Trip Builder</a>
+        <a th:href="${resultUrl}" class="cta-button" style="color: #ffffff !important;">Open in Trip Builder</a>
     </div>
     <div class="footer">
-        <p>Trivlu Travel &middot; <a href="https://trivlu.com" style="color: #6A1B9A;">trivlu.com</a></p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 36px; margin-bottom: 10px;">
+        <p>Creating unforgettable travel experiences</p>
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>For support, contact us at support@trivlu.com</p>
     </div>
 </div>
 </body>

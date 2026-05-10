@@ -3,12 +3,13 @@ import {AppContext} from '../context/AppContext';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 
-function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel }) {
+function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null }) {
     const {state, dispatch} = useContext(AppContext);
     const [travelers, setTravelers] = useState(1);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [email, setEmail] = useState('');
+    const [selectedDestinationId, setSelectedDestinationId] = useState('');
 
     const isOpen = isVoteMode ? voteOpen : state.tripSetupModalOpen;
 
@@ -18,15 +19,23 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             setStartDate('');
             setEndDate('');
             setEmail('');
+            setSelectedDestinationId('');
         }
     }, [isOpen]);
 
     if (!isOpen) return null;
 
+    const needsDestinationPicker = isVoteMode && !preselectedDestination;
+    const destination = preselectedDestination
+        || state.destinations.find(d => d.id === selectedDestinationId)
+        || null;
+
+    const voteFormValid = startDate && endDate && email && destination;
+
     const handleConfirm = () => {
         if (isVoteMode) {
-            if (!startDate || !endDate || !email) return;
-            onVoteConfirm({ travelers, startDate, endDate, email });
+            if (!voteFormValid) return;
+            onVoteConfirm({ travelers, startDate, endDate, email, destination });
         } else {
             dispatch({
                 type: 'SET_TRIP_SETUP',
@@ -57,6 +66,28 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                         Tell us about your group so we can calculate the right price.
                     </p>
                     <form className="contact-form" onSubmit={e => e.preventDefault()}>
+                        {needsDestinationPicker && (
+                            <div className="form-group">
+                                <label htmlFor="voteDestination">Destination *</label>
+                                <select
+                                    id="voteDestination"
+                                    value={selectedDestinationId}
+                                    onChange={e => setSelectedDestinationId(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select a destination…</option>
+                                    {state.destinations.map(d => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        {preselectedDestination && (
+                            <div className="form-group">
+                                <label>Destination</label>
+                                <p style={{ margin: '4px 0 0', fontWeight: 600 }}>{preselectedDestination.name}</p>
+                            </div>
+                        )}
                         <div className="form-group">
                             <label htmlFor="tripTravelers">Number of Travelers *</label>
                             <input
@@ -96,7 +127,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                     <button
                         className="btn btn--primary"
                         onClick={handleConfirm}
-                        disabled={isVoteMode && (!startDate || !endDate || !email)}
+                        disabled={isVoteMode && !voteFormValid}
                     >
                         {isVoteMode ? 'Continue to Categories' : 'Confirm'}
                     </button>

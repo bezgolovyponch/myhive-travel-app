@@ -1,6 +1,7 @@
 package com.myhive.backend.controller;
 
 import com.myhive.backend.dto.VoteActivityResponse;
+import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
 import com.myhive.backend.dto.VoteResultResponse;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
@@ -50,9 +51,21 @@ public class VoteSessionController {
         voteSessionService.castVote(shareToken, request);
     }
 
+    @PostMapping("/{shareToken}/votes/batch")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void castVotes(@PathVariable UUID shareToken, @Valid @RequestBody VoteBatchRequest request) {
+        voteSessionService.castVotes(shareToken, request);
+    }
+
     @GetMapping("/{shareToken}/participant-count")
     public Map<String, Long> getParticipantCount(@PathVariable UUID shareToken) {
         return Map.of("count", voteSessionService.getParticipantCount(shareToken));
+    }
+
+    @PostMapping("/{shareToken}/close")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void closeSession(@PathVariable UUID shareToken) {
+        voteSessionService.closeSession(shareToken);
     }
 
     @GetMapping("/{shareToken}/result")

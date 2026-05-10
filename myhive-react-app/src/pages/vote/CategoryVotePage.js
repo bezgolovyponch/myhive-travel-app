@@ -54,9 +54,8 @@ function CategoryVotePage() {
                 endDate: voteSetup.endDate,
                 likedCategoryIds: finalLikedIds,
             });
-            navigate(`/vote/${session.shareToken}/activities`, {
-                state: { isInitiator: true },
-            });
+            localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
+            navigate(`/vote/${session.shareToken}/activities`);
         } catch (e) {
             setError(e.message || 'Failed to create session. Please try again.');
             setSubmitting(false);
