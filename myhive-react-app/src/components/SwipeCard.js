@@ -6,24 +6,37 @@ function DebugOverlay() {
     useEffect(() => {
         const update = () => {
             const header = document.querySelector('.header');
-            const page = document.querySelector('.swipe-card-page');
             const headerRect = header ? header.getBoundingClientRect() : {};
-            const pageRect = page ? page.getBoundingClientRect() : {};
+            const vv = window.visualViewport;
             setInfo({
                 vw: window.innerWidth,
                 docW: document.documentElement.clientWidth,
-                scrollW: document.documentElement.scrollWidth,
                 bodyW: document.body.scrollWidth,
-                headerW: Math.round(headerRect.width || 0),
-                headerR: Math.round(headerRect.right || 0),
-                pageW: Math.round(pageRect.width || 0),
-                pageR: Math.round(pageRect.right || 0),
+                vvW: vv ? Math.round(vv.width) : 'none',
+                vvScale: vv ? vv.scale.toFixed(3) : 'none',
+                vvOffsetL: vv ? Math.round(vv.offsetLeft) : 'none',
+                vvPageL: vv ? Math.round(vv.pageLeft) : 'none',
+                hdrW: Math.round(headerRect.width || 0),
+                hdrL: Math.round(headerRect.left || 0),
+                hdrR: Math.round(headerRect.right || 0),
+                dpr: window.devicePixelRatio,
             });
         };
         update();
         window.addEventListener('resize', update);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', update);
+            window.visualViewport.addEventListener('scroll', update);
+        }
         const t = setInterval(update, 500);
-        return () => { window.removeEventListener('resize', update); clearInterval(t); };
+        return () => {
+            window.removeEventListener('resize', update);
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', update);
+                window.visualViewport.removeEventListener('scroll', update);
+            }
+            clearInterval(t);
+        };
     }, []);
     return (
         <div style={{
@@ -31,10 +44,11 @@ function DebugOverlay() {
             background: 'rgba(0,0,0,0.85)', color: '#0f0', font: '11px monospace',
             padding: '6px 8px', borderRadius: 4, lineHeight: 1.3,
         }}>
-            vw:{info.vw} docW:{info.docW}<br/>
-            scrollW:{info.scrollW} bodyW:{info.bodyW}<br/>
-            hdrW:{info.headerW} hdrR:{info.headerR}<br/>
-            pgW:{info.pageW} pgR:{info.pageR}
+            vw:{info.vw} docW:{info.docW} bodyW:{info.bodyW}<br/>
+            vvW:{info.vvW} scale:{info.vvScale}<br/>
+            vvOffL:{info.vvOffsetL} vvPageL:{info.vvPageL}<br/>
+            hdrW:{info.hdrW} hdrL:{info.hdrL} hdrR:{info.hdrR}<br/>
+            dpr:{info.dpr}
         </div>
     );
 }
