@@ -5,7 +5,7 @@ import DateRangePicker from './DateRangePicker';
 
 function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null }) {
     const {state, dispatch} = useContext(AppContext);
-    const [travelers, setTravelers] = useState(1);
+    const [travelers, setTravelers] = useState('1');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [email, setEmail] = useState('');
@@ -15,7 +15,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
 
     useEffect(() => {
         if (isOpen) {
-            setTravelers(1);
+            setTravelers('1');
             setStartDate('');
             setEndDate('');
             setEmail('');
@@ -33,13 +33,14 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     const voteFormValid = startDate && endDate && email && destination;
 
     const handleConfirm = () => {
+        const travelersNum = Math.max(1, parseInt(travelers, 10) || 1);
         if (isVoteMode) {
             if (!voteFormValid) return;
-            onVoteConfirm({ travelers, startDate, endDate, email, destination });
+            onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination });
         } else {
             dispatch({
                 type: 'SET_TRIP_SETUP',
-                travelers: travelers,
+                travelers: travelersNum,
                 startDate: startDate,
                 endDate: endDate
             });
@@ -94,7 +95,8 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                 type="number"
                                 id="tripTravelers"
                                 value={travelers}
-                                onChange={e => setTravelers(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                onChange={e => setTravelers(e.target.value)}
+                                onBlur={e => setTravelers(String(Math.max(1, parseInt(e.target.value, 10) || 1)))}
                                 min="1"
                                 max="20"
                             />
