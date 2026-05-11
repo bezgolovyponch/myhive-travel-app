@@ -4,6 +4,7 @@
     align-items: center;
     height: 100dvh;
     overflow: hidden;
+    clip-path: inset(0 0 0 0);
     padding: calc(var(--header-height) + 16px) 16px 16px;
     box-sizing: border-box;
     background: var(--bg, #1f2121);
