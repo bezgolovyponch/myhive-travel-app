@@ -2,42 +2,51 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: calc(var(--header-height) + 24px) 16px 24px;
+    height: 100dvh;
+    overflow: hidden;
+    padding: calc(var(--header-height) + 16px) 16px 16px;
+    box-sizing: border-box;
     background: var(--bg, #1f2121);
 }
 
 .swipe-card-title {
     font-size: 1.4rem;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     text-align: center;
     color: var(--text, #f5f5f5);
+    flex-shrink: 0;
 }
 
 .swipe-card-subtitle {
     color: var(--text-muted, rgba(167,169,169,0.7));
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     text-align: center;
     font-size: 0.95rem;
+    flex-shrink: 0;
 }
 
 .swipe-card-progress {
     font-size: 0.85rem;
     color: var(--text-muted, rgba(167,169,169,0.7));
-    margin-bottom: 16px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .swipe-card-stack {
     position: relative;
-    width: 320px;
-    height: 420px;
-    margin-bottom: 32px;
+    width: min(320px, calc(100vw - 32px));
+    flex: 1;
+    min-height: 0;
+    max-height: 420px;
+    margin-bottom: 16px;
 }
 
 .swipe-tinder-card {
     position: absolute;
-    width: 320px;
-    height: 420px;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
 }
 
 .swipe-card {
@@ -51,6 +60,7 @@
     border: 1px solid var(--card-border, rgba(119,124,124,0.15));
     user-select: none;
     cursor: grab;
+    touch-action: none;
 }
 
 .swipe-card:active {
@@ -59,7 +69,7 @@
 
 .swipe-card-image {
     width: 100%;
-    height: 260px;
+    height: 62%;
     object-fit: cover;
 }
 
@@ -124,6 +134,7 @@
     display: flex;
     gap: 32px;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .swipe-btn {
@@ -161,9 +172,10 @@
 }
 
 .swipe-share {
-    margin-top: 24px;
+    margin-top: 12px;
     text-align: center;
-    width: 320px;
+    width: min(320px, calc(100vw - 32px));
+    flex-shrink: 0;
 }
 
 .swipe-share-label {
