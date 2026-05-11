@@ -78,14 +78,6 @@ body {
     touch-action: pan-y;
 }
 
-#root {
-    overflow-x: hidden;
-}
-
-.app-container {
-    overflow-x: hidden;
-}
-
 h1, h2, h3, h4 {
     font-weight: 600;
     line-height: 1.2;
