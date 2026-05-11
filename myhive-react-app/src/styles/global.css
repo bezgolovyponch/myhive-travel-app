@@ -65,6 +65,7 @@ html {
     background: var(--bg);
     -webkit-font-smoothing: antialiased;
     scroll-behavior: smooth;
+    overflow-x: hidden;
 }
 
 body {
