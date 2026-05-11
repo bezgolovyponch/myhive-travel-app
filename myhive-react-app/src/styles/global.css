@@ -266,6 +266,13 @@ a:hover {
     --bs-table-hover-color: var(--text);
 }
 
+/* Prevent iOS auto-zoom: inputs below 16px font cause Safari/Edge to zoom in on focus */
+input,
+select,
+textarea {
+    font-size: max(16px, 1rem);
+}
+
 /* Bootstrap Form overrides for dark theme */
 .form-select,
 .form-control {
