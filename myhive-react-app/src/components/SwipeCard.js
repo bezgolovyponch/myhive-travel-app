@@ -1,5 +1,43 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './SwipeCard.css';
+
+function DebugOverlay() {
+    const [info, setInfo] = useState({});
+    useEffect(() => {
+        const update = () => {
+            const header = document.querySelector('.header');
+            const page = document.querySelector('.swipe-card-page');
+            const headerRect = header ? header.getBoundingClientRect() : {};
+            const pageRect = page ? page.getBoundingClientRect() : {};
+            setInfo({
+                vw: window.innerWidth,
+                docW: document.documentElement.clientWidth,
+                scrollW: document.documentElement.scrollWidth,
+                bodyW: document.body.scrollWidth,
+                headerW: Math.round(headerRect.width || 0),
+                headerR: Math.round(headerRect.right || 0),
+                pageW: Math.round(pageRect.width || 0),
+                pageR: Math.round(pageRect.right || 0),
+            });
+        };
+        update();
+        window.addEventListener('resize', update);
+        const t = setInterval(update, 500);
+        return () => { window.removeEventListener('resize', update); clearInterval(t); };
+    }, []);
+    return (
+        <div style={{
+            position: 'fixed', top: 'calc(var(--header-height) + 4px)', left: 4, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)', color: '#0f0', font: '11px monospace',
+            padding: '6px 8px', borderRadius: 4, lineHeight: 1.3,
+        }}>
+            vw:{info.vw} docW:{info.docW}<br/>
+            scrollW:{info.scrollW} bodyW:{info.bodyW}<br/>
+            hdrW:{info.headerW} hdrR:{info.headerR}<br/>
+            pgW:{info.pageW} pgR:{info.pageR}
+        </div>
+    );
+}
 
 const SWIPE_THRESHOLD = 80;
 
@@ -58,6 +96,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) 
 
     return (
         <div className="swipe-card-page">
+            <DebugOverlay />
             {title && <h2 className="swipe-card-title">{title}</h2>}
             {subtitle && <p className="swipe-card-subtitle">{subtitle}</p>}
             <div className="swipe-card-progress">
