@@ -139,13 +139,9 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) 
 
             {shareUrl && (
                 <div className="swipe-share">
-                    <span className="swipe-share-label">Share with friends:</span>
-                    <div className="swipe-share-row">
-                        <span className="swipe-share-url">{shareUrl}</span>
-                        <button className="swipe-share-btn" onClick={handleCopy}>
-                            {copied ? 'Copied!' : 'Copy'}
-                        </button>
-                    </div>
+                    <button className="swipe-share-btn" onClick={handleCopy}>
+                        {copied ? '✓ Link Copied!' : 'Copy Invite Link'}
+                    </button>
                 </div>
             )}
         </div>

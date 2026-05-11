@@ -173,46 +173,17 @@
 
 .swipe-share {
     margin-top: 12px;
-    text-align: center;
-    width: min(320px, calc(100vw - 32px));
     flex-shrink: 0;
 }
 
-.swipe-share-label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-muted, rgba(167,169,169,0.7));
-    margin-bottom: 8px;
-}
-
-.swipe-share-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.swipe-share-url {
-    flex: 1;
-    font-size: 0.75rem;
-    color: var(--text-muted, rgba(167,169,169,0.7));
-    background: var(--surface, #262828);
-    border: 1px solid var(--border, rgba(119,124,124,0.3));
-    border-radius: 6px;
-    padding: 6px 10px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .swipe-share-btn {
-    padding: 6px 14px;
+    padding: 8px 24px;
     background: var(--brand, #6A1B9A);
     color: #fff;
     border: none;
     border-radius: 6px;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    flex-shrink: 0;
 }
