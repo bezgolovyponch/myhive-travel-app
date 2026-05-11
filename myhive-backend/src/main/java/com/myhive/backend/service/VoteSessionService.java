@@ -119,9 +119,12 @@ public class VoteSessionService {
                 .map(Category::getId)
                 .collect(Collectors.toSet());
 
+        String destinationSlug = session.getDestination().getSlug();
         List<Activity> activities = activityRepository.findByDestinationIdAndCategoriesIdIn(
                 session.getDestination().getId(), categoryIds);
-        return activities.stream().map(this::toActivityResponse).toList();
+        return activities.stream()
+                .map(activity -> toActivityResponse(activity, destinationSlug))
+                .toList();
     }
 
     @Transactional
@@ -208,8 +211,9 @@ public class VoteSessionService {
         List<VoteSessionResultActivity> results = resultActivityRepository
                 .findBySessionIdOrderBySortOrder(session.getId());
 
+        String destinationSlug = session.getDestination().getSlug();
         List<VoteActivityResponse> activities = results.stream()
-                .map(r -> toActivityResponse(r.getActivity()))
+                .map(r -> toActivityResponse(r.getActivity(), destinationSlug))
                 .toList();
 
         BigDecimal totalPrice = activities.stream()
@@ -331,7 +335,7 @@ public class VoteSessionService {
                 .collect(Collectors.toSet());
     }
 
-    private VoteActivityResponse toActivityResponse(Activity activity) {
+    private VoteActivityResponse toActivityResponse(Activity activity, String destinationSlug) {
         return new VoteActivityResponse(
                 activity.getId(),
                 activity.getName(),
@@ -339,6 +343,7 @@ public class VoteSessionService {
                 activity.getPrice(),
                 activity.getDuration(),
                 activity.getImageUrl(),
-                activity.getSlug());
+                activity.getSlug(),
+                destinationSlug);
     }
 }

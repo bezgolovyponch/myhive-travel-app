@@ -110,6 +110,11 @@ function ActivityVotePage() {
 
     const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
 
+    const getCardLink = (activity) => {
+        if (!activity || !activity.slug || !activity.destinationSlug) return null;
+        return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
+    };
+
     return (
         <SwipeCard
             cards={activities}
@@ -118,6 +123,7 @@ function ActivityVotePage() {
             title="Which activities are you up for?"
             subtitle="Swipe right to vote yes, left to skip"
             shareUrl={shareUrl}
+            getCardLink={getCardLink}
         />
     );
 }

@@ -3,7 +3,7 @@ import './SwipeCard.css';
 
 const SWIPE_THRESHOLD = 80;
 
-function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) {
+function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, getCardLink }) {
     const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
     const [copied, setCopied] = useState(false);
 
@@ -55,6 +55,17 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) 
     const nextCard = cards[currentIndex + 1];
     const rotate = drag.offsetX * 0.08;
     const overlayOpacity = Math.min(Math.abs(drag.offsetX) / SWIPE_THRESHOLD, 1);
+    const cardLink = getCardLink ? getCardLink(card) : null;
+
+    const renderName = (name, link) => link
+        ? <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="swipe-card-link"
+            onPointerDown={(e) => e.stopPropagation()}
+        >{name}</a>
+        : name;
 
     return (
         <div className="swipe-card-page">
@@ -100,7 +111,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) 
                             ? <>
                                 <img src={card.imageUrl} alt={card.name} className="swipe-card-image" />
                                 <div className="swipe-card-info">
-                                    <div className="swipe-card-name">{card.name}</div>
+                                    <div className="swipe-card-name">{renderName(card.name, cardLink)}</div>
                                     <div className="swipe-card-meta">
                                         {card.duration && <span>{Math.round(card.duration / 60)}h</span>}
                                         {card.duration && card.price && <span> · </span>}
@@ -109,7 +120,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) 
                                 </div>
                             </>
                             : <div className="swipe-card-text-only">
-                                <div className="swipe-card-name">{card.name}</div>
+                                <div className="swipe-card-name">{renderName(card.name, cardLink)}</div>
                             </div>
                         }
                         <div

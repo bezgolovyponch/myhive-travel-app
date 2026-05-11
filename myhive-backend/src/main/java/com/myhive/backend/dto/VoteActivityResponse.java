@@ -16,4 +16,5 @@ public class VoteActivityResponse {
     private Integer duration;
     private String imageUrl;
     private String slug;
+    private String destinationSlug;
 }

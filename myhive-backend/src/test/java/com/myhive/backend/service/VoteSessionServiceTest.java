@@ -307,12 +307,16 @@ class VoteSessionServiceTest {
         UUID shareToken = UUID.randomUUID();
         UUID destId = UUID.randomUUID();
         UUID catId = UUID.randomUUID();
+        String expectedActivityName = "Surfing";
+        String expectedActivitySlug = "surfing-bali";
+        String expectedDestinationSlug = "bali";
 
         Category category = new Category();
         category.setId(catId);
 
         Destination destination = new Destination();
         destination.setId(destId);
+        destination.setSlug(expectedDestinationSlug);
 
         VoteSession session = new VoteSession();
         session.setId(UUID.randomUUID());
@@ -323,7 +327,8 @@ class VoteSessionServiceTest {
 
         Activity activity = new Activity();
         activity.setId(UUID.randomUUID());
-        activity.setName("Surfing");
+        activity.setName(expectedActivityName);
+        activity.setSlug(expectedActivitySlug);
         activity.setPrice(BigDecimal.valueOf(65));
         activity.setDuration(180);
 
@@ -333,7 +338,9 @@ class VoteSessionServiceTest {
         var result = voteSessionService.getActivities(shareToken);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getName()).isEqualTo("Surfing");
+        assertThat(result.get(0).getName()).isEqualTo(expectedActivityName);
+        assertThat(result.get(0).getSlug()).isEqualTo(expectedActivitySlug);
+        assertThat(result.get(0).getDestinationSlug()).isEqualTo(expectedDestinationSlug);
     }
 
     @Test
