@@ -1,4 +1,4 @@
-import {useContext} from 'react';
+import {useContext, useEffect, useRef} from 'react';
 import {Helmet} from 'react-helmet-async';
 import {AppContext} from '../context/AppContext';
 import DestinationCard from '../components/DestinationCard';
@@ -7,6 +7,13 @@ import './HomePage.css';
 
 function HomePage() {
   const { state } = useContext(AppContext);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.play().catch(() => {});
+  }, []);
 
   return (
     <div className="homepage">
@@ -17,8 +24,8 @@ function HomePage() {
             <link rel="canonical" href={`${SITE_URL}/`}/>
         </Helmet>
       <section className="hero">
-        <video autoPlay muted loop playsInline className="hero-video">
-          <source src="https://res.cloudinary.com/dfhvltbjz/video/upload/v1758716526/panorama_sqshpf.mp4" type="video/mp4" />
+        <video ref={videoRef} autoPlay muted loop playsInline className="hero-video">
+          <source src="https://res.cloudinary.com/dfhvltbjz/video/upload/ac_none,q_auto/v1758716526/panorama_sqshpf.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
         <div className="hero-content">
