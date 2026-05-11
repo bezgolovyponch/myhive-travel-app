@@ -1,57 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import './SwipeCard.css';
-
-function DebugOverlay() {
-    const [info, setInfo] = useState({});
-    useEffect(() => {
-        const update = () => {
-            const header = document.querySelector('.header');
-            const headerRect = header ? header.getBoundingClientRect() : {};
-            const vv = window.visualViewport;
-            setInfo({
-                vw: window.innerWidth,
-                docW: document.documentElement.clientWidth,
-                bodyW: document.body.scrollWidth,
-                vvW: vv ? Math.round(vv.width) : 'none',
-                vvScale: vv ? vv.scale.toFixed(3) : 'none',
-                vvOffsetL: vv ? Math.round(vv.offsetLeft) : 'none',
-                vvPageL: vv ? Math.round(vv.pageLeft) : 'none',
-                hdrW: Math.round(headerRect.width || 0),
-                hdrL: Math.round(headerRect.left || 0),
-                hdrR: Math.round(headerRect.right || 0),
-                dpr: window.devicePixelRatio,
-            });
-        };
-        update();
-        window.addEventListener('resize', update);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', update);
-            window.visualViewport.addEventListener('scroll', update);
-        }
-        const t = setInterval(update, 500);
-        return () => {
-            window.removeEventListener('resize', update);
-            if (window.visualViewport) {
-                window.visualViewport.removeEventListener('resize', update);
-                window.visualViewport.removeEventListener('scroll', update);
-            }
-            clearInterval(t);
-        };
-    }, []);
-    return (
-        <div style={{
-            position: 'fixed', top: 'calc(var(--header-height) + 4px)', left: 4, zIndex: 9999,
-            background: 'rgba(0,0,0,0.85)', color: '#0f0', font: '11px monospace',
-            padding: '6px 8px', borderRadius: 4, lineHeight: 1.3,
-        }}>
-            vw:{info.vw} docW:{info.docW} bodyW:{info.bodyW}<br/>
-            vvW:{info.vvW} scale:{info.vvScale}<br/>
-            vvOffL:{info.vvOffsetL} vvPageL:{info.vvPageL}<br/>
-            hdrW:{info.hdrW} hdrL:{info.hdrL} hdrR:{info.hdrR}<br/>
-            dpr:{info.dpr}
-        </div>
-    );
-}
 
 const SWIPE_THRESHOLD = 80;
 
@@ -110,7 +58,6 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl }) 
 
     return (
         <div className="swipe-card-page">
-            <DebugOverlay />
             {title && <h2 className="swipe-card-title">{title}</h2>}
             {subtitle && <p className="swipe-card-subtitle">{subtitle}</p>}
             <div className="swipe-card-progress">
