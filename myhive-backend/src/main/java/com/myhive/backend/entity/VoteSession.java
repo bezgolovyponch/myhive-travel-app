@@ -22,8 +22,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -69,12 +67,14 @@ public class VoteSession {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) not null")
     private VoteSessionStatus status;
 
     @Column(name = "max_participants", nullable = false)
     private Integer maxParticipants;
+
+    @Column(name = "budget", precision = 10, scale = 2)
+    private BigDecimal budget;
 
     @PrePersist
     private void prePersist() {
@@ -82,9 +82,6 @@ public class VoteSession {
             maxParticipants = 50;
         }
     }
-
-    @Column(name = "budget", precision = 10, scale = 2)
-    private BigDecimal budget;
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
