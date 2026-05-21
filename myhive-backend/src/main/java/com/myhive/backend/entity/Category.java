@@ -40,6 +40,9 @@ public class Category {
     @Column(unique = true, length = 120)
     private String slug;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean votable = true;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
