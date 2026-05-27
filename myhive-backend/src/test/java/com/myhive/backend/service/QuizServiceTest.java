@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.PublicQuizDTO;
 import com.myhive.backend.dto.QuizAnswerDTO;
 import com.myhive.backend.dto.QuizAnswerWeightDTO;
 import com.myhive.backend.dto.QuizDTO;
@@ -259,6 +260,32 @@ class QuizServiceTest {
         List<UUID> result = quizService.snapshot(List.of(answer.getId()));
 
         assertThat(result).containsExactly(votable.getId());
+    }
+
+    @Test
+    void getPublicQuiz_returnsQuestionsWithoutWeights() {
+        String expectedPrompt = "Prompt?";
+        String expectedLabel = "Label";
+
+        Destination destination = destinationRepository.save(destination("Prague"));
+        Category category = categoryRepository.save(category("Nightlife", "nightlife"));
+        QuizQuestion question = saveQuestion(destination, expectedPrompt, 0);
+        QuizAnswer answer = saveAnswer(question, expectedLabel, 0);
+        saveWeight(answer, category, 2);
+
+        PublicQuizDTO publicQuiz = quizService.getPublicQuiz(destination.getId());
+
+        assertThat(publicQuiz.getQuestions()).hasSize(1);
+        assertThat(publicQuiz.getQuestions().get(0).getPrompt()).isEqualTo(expectedPrompt);
+        assertThat(publicQuiz.getQuestions().get(0).getAnswers()).hasSize(1);
+        assertThat(publicQuiz.getQuestions().get(0).getAnswers().get(0).getLabel()).isEqualTo(expectedLabel);
+        // Type system guarantees no `weights` field on PublicQuizAnswerDTO — no runtime check needed.
+    }
+
+    @Test
+    void getPublicQuiz_unknownDestination_throwsNotFound() {
+        assertThatThrownBy(() -> quizService.getPublicQuiz(UUID.randomUUID()))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     private Destination destination(String name) {

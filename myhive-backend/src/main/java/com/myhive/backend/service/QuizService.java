@@ -1,5 +1,8 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.PublicQuizAnswerDTO;
+import com.myhive.backend.dto.PublicQuizDTO;
+import com.myhive.backend.dto.PublicQuizQuestionDTO;
 import com.myhive.backend.dto.QuizAnswerDTO;
 import com.myhive.backend.dto.QuizAnswerWeightDTO;
 import com.myhive.backend.dto.QuizDTO;
@@ -48,6 +51,26 @@ public class QuizService {
                 .map(this::convertToDTO)
                 .toList();
         return new QuizDTO(questions);
+    }
+
+    public PublicQuizDTO getPublicQuiz(UUID destinationId) {
+        if (!destinationRepository.existsById(destinationId)) {
+            throw new ResourceNotFoundException("Destination", destinationId);
+        }
+        List<PublicQuizQuestionDTO> questions = quizQuestionRepository
+                .findByDestinationIdOrderBySortOrder(destinationId)
+                .stream()
+                .map(this::toPublicQuestion)
+                .toList();
+        return new PublicQuizDTO(questions);
+    }
+
+    private PublicQuizQuestionDTO toPublicQuestion(QuizQuestion question) {
+        List<PublicQuizAnswerDTO> answers = question.getAnswers().stream()
+                .sorted(Comparator.comparingInt(QuizAnswer::getSortOrder))
+                .map(a -> new PublicQuizAnswerDTO(a.getId(), a.getLabel()))
+                .toList();
+        return new PublicQuizQuestionDTO(question.getId(), question.getPrompt(), answers);
     }
 
     public List<UUID> snapshot(Collection<UUID> answerIds) {
