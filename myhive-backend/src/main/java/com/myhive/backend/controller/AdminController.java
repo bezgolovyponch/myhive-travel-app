@@ -11,6 +11,7 @@ import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.CategoryUsageDTO;
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.dto.PackageDTO;
+import com.myhive.backend.dto.QuizDTO;
 import com.myhive.backend.service.ActivityService;
 import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.BookingService;
@@ -18,6 +19,7 @@ import com.myhive.backend.service.CategoryService;
 import com.myhive.backend.service.DestinationService;
 import com.myhive.backend.service.ImageUploadService;
 import com.myhive.backend.service.PackageService;
+import com.myhive.backend.service.QuizService;
 import com.myhive.backend.service.activity.ActivityCsvExporter;
 import com.myhive.backend.service.activity.ActivityCsvImporter;
 import jakarta.validation.Valid;
@@ -61,6 +63,7 @@ public class AdminController {
     private final DestinationService destinationService;
     private final CategoryService categoryService;
     private final PackageService packageService;
+    private final QuizService quizService;
     private final Optional<ImageUploadService> imageUploadService;
     private final ActivityCsvExporter activityCsvExporter;
     private final ActivityCsvImporter activityCsvImporter;
@@ -311,5 +314,16 @@ public class AdminController {
         }
         String url = imageUploadService.get().uploadImage(file);
         return ResponseEntity.ok(Map.of("url", url));
+    }
+
+    @GetMapping("/destinations/{destinationId}/quiz")
+    public ResponseEntity<QuizDTO> getQuiz(@PathVariable UUID destinationId) {
+        return ResponseEntity.ok(quizService.getQuiz(destinationId));
+    }
+
+    @PutMapping("/destinations/{destinationId}/quiz")
+    public ResponseEntity<QuizDTO> replaceQuiz(@PathVariable UUID destinationId,
+                                               @Valid @RequestBody QuizDTO quizDTO) {
+        return ResponseEntity.ok(quizService.replaceQuiz(destinationId, quizDTO));
     }
 }
