@@ -107,6 +107,17 @@ class QuizServiceTest {
         destination.setName("Prague");
         destination = destinationRepository.save(destination);
 
+        QuizQuestion old = new QuizQuestion();
+        old.setDestination(destination);
+        old.setPrompt("OLD QUESTION");
+        old.setSortOrder(0);
+        QuizAnswer oldAnswer = new QuizAnswer();
+        oldAnswer.setQuestion(old);
+        oldAnswer.setLabel("old");
+        oldAnswer.setSortOrder(0);
+        old.getAnswers().add(oldAnswer);
+        quizQuestionRepository.saveAndFlush(old);
+
         QuizAnswerWeightDTO weight = new QuizAnswerWeightDTO(UUID.randomUUID(), 2);
         QuizAnswerDTO answer = new QuizAnswerDTO(null, "4am legend", 0, List.of(weight));
         QuizQuestionDTO question = new QuizQuestionDTO(null, "Daytime or 4am?", 0, List.of(answer));
@@ -116,6 +127,10 @@ class QuizServiceTest {
         assertThatThrownBy(() -> quizService.replaceQuiz(destinationId, dto))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Category not found");
+
+        assertThat(quizQuestionRepository.findByDestinationIdOrderBySortOrder(destinationId))
+                .extracting(QuizQuestion::getPrompt)
+                .containsExactly("OLD QUESTION");
     }
 
     @Test
