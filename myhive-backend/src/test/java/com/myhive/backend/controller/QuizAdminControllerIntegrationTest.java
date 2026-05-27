@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static com.myhive.backend.util.JwtTestHelper.adminJwt;
+import static com.myhive.backend.util.JwtTestHelper.managerJwt;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -89,5 +90,12 @@ class QuizAdminControllerIntegrationTest {
     void getQuiz_withoutAuth_isUnauthorized() throws Exception {
         mockMvc.perform(get("/admin/destinations/" + destinationId + "/quiz"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getQuiz_withManagerAuth_isForbidden() throws Exception {
+        mockMvc.perform(get("/admin/destinations/" + destinationId + "/quiz")
+                        .with(managerJwt()))
+                .andExpect(status().isForbidden());
     }
 }
