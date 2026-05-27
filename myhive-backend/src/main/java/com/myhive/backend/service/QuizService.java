@@ -13,13 +13,17 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -27,9 +31,12 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class QuizService {
 
+    private static final int TOP_K = 3;
+
     private final QuizQuestionRepository quizQuestionRepository;
     private final DestinationRepository destinationRepository;
     private final CategoryRepository categoryRepository;
+    private final QuizAnswerWeightRepository quizAnswerWeightRepository;
 
     public QuizDTO getQuiz(UUID destinationId) {
         if (!destinationRepository.existsById(destinationId)) {
@@ -41,6 +48,31 @@ public class QuizService {
                 .map(this::convertToDTO)
                 .toList();
         return new QuizDTO(questions);
+    }
+
+    public List<UUID> snapshot(Collection<UUID> answerIds) {
+        if (answerIds == null || answerIds.isEmpty()) {
+            return List.of();
+        }
+        List<QuizAnswerWeight> weights = quizAnswerWeightRepository.findAllByAnswerIdIn(answerIds);
+
+        Map<UUID, Integer> scores = new HashMap<>();
+        Map<UUID, Boolean> votableByCategory = new HashMap<>();
+        for (QuizAnswerWeight weight : weights) {
+            UUID categoryId = weight.getCategory().getId();
+            scores.merge(categoryId, weight.getWeight(), Integer::sum);
+            votableByCategory.putIfAbsent(categoryId, weight.getCategory().isVotable());
+        }
+
+        return scores.entrySet().stream()
+                .filter(e -> e.getValue() > 0)
+                .filter(e -> Boolean.TRUE.equals(votableByCategory.get(e.getKey())))
+                .sorted(Map.Entry.<UUID, Integer>comparingByValue()
+                        .reversed()
+                        .thenComparing(Map.Entry.comparingByKey()))
+                .limit(TOP_K)
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
     private QuizQuestionDTO convertToDTO(QuizQuestion question) {

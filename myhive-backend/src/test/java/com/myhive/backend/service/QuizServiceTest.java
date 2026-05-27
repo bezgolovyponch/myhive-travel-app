@@ -13,6 +13,7 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,12 +35,15 @@ class QuizServiceTest {
     private DestinationRepository destinationRepository;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private QuizAnswerWeightRepository quizAnswerWeightRepository;
 
     private QuizService quizService;
 
     @BeforeEach
     void setUp() {
-        quizService = new QuizService(quizQuestionRepository, destinationRepository, categoryRepository);
+        quizService = new QuizService(quizQuestionRepository, destinationRepository,
+                categoryRepository, quizAnswerWeightRepository);
     }
 
     @Test
@@ -191,5 +195,109 @@ class QuizServiceTest {
         QuizDTO result = quizService.replaceQuiz(destination.getId(), new QuizDTO(List.of()));
 
         assertThat(result.getQuestions()).isEmpty();
+    }
+
+    @Test
+    void snapshot_emptyResponses_returnsEmpty() {
+        assertThat(quizService.snapshot(List.of())).isEmpty();
+    }
+
+    @Test
+    void snapshot_sumsSignedWeightsAndDropsNonPositive() {
+        Category nightlife = categoryRepository.save(category("Nightlife", "nightlife"));
+        Category chillout = categoryRepository.save(category("Chillout", "chillout"));
+        Destination destination = destinationRepository.save(destination("Prague"));
+
+        QuizQuestion question = saveQuestion(destination, "Q1", 0);
+        QuizAnswer answer = saveAnswer(question, "A", 0);
+        saveWeight(answer, nightlife, 2);
+        saveWeight(answer, chillout, -1);
+
+        List<UUID> result = quizService.snapshot(List.of(answer.getId()));
+
+        assertThat(result).containsExactly(nightlife.getId());
+    }
+
+    @Test
+    void snapshot_topThreeOrderedByScoreThenId() {
+        Destination destination = destinationRepository.save(destination("Prague"));
+        Category cat1 = categoryRepository.save(category("Cat1", "cat1"));
+        Category cat2 = categoryRepository.save(category("Cat2", "cat2"));
+        Category cat3 = categoryRepository.save(category("Cat3", "cat3"));
+        Category cat4 = categoryRepository.save(category("Cat4", "cat4"));
+
+        QuizQuestion question = saveQuestion(destination, "Q1", 0);
+        QuizAnswer answer = saveAnswer(question, "A", 0);
+        saveWeight(answer, cat1, 1);
+        saveWeight(answer, cat2, 3);
+        saveWeight(answer, cat3, 2);
+        saveWeight(answer, cat4, 2);
+
+        List<UUID> result = quizService.snapshot(List.of(answer.getId()));
+
+        assertThat(result).hasSize(3);
+        assertThat(result.get(0)).isEqualTo(cat2.getId());
+        UUID winnerOfTie = cat3.getId().compareTo(cat4.getId()) < 0 ? cat3.getId() : cat4.getId();
+        UUID loserOfTie = cat3.getId().compareTo(cat4.getId()) < 0 ? cat4.getId() : cat3.getId();
+        assertThat(result.get(1)).isEqualTo(winnerOfTie);
+        assertThat(result.get(2)).isEqualTo(loserOfTie);
+    }
+
+    @Test
+    void snapshot_excludesNonVotableCategories() {
+        Destination destination = destinationRepository.save(destination("Prague"));
+        Category votable = categoryRepository.save(category("Nightlife", "nightlife"));
+        Category nonVotable = category("Transfer", "transfer");
+        nonVotable.setVotable(false);
+        nonVotable = categoryRepository.save(nonVotable);
+
+        QuizQuestion question = saveQuestion(destination, "Q1", 0);
+        QuizAnswer answer = saveAnswer(question, "A", 0);
+        saveWeight(answer, votable, 2);
+        saveWeight(answer, nonVotable, 5);
+
+        List<UUID> result = quizService.snapshot(List.of(answer.getId()));
+
+        assertThat(result).containsExactly(votable.getId());
+    }
+
+    private Destination destination(String name) {
+        Destination d = new Destination();
+        d.setName(name);
+        return d;
+    }
+
+    private Category category(String name, String slug) {
+        Category c = new Category();
+        c.setName(name);
+        c.setSlug(slug);
+        return c;
+    }
+
+    private QuizQuestion saveQuestion(Destination destination, String prompt, int sortOrder) {
+        QuizQuestion q = new QuizQuestion();
+        q.setDestination(destination);
+        q.setPrompt(prompt);
+        q.setSortOrder(sortOrder);
+        return quizQuestionRepository.saveAndFlush(q);
+    }
+
+    private QuizAnswer saveAnswer(QuizQuestion question, String label, int sortOrder) {
+        QuizAnswer a = new QuizAnswer();
+        a.setQuestion(question);
+        a.setLabel(label);
+        a.setSortOrder(sortOrder);
+        question.getAnswers().add(a);
+        QuizQuestion saved = quizQuestionRepository.saveAndFlush(question);
+        return saved.getAnswers().get(saved.getAnswers().size() - 1);
+    }
+
+    private void saveWeight(QuizAnswer answer, Category category, int weight) {
+        QuizAnswerWeight w = new QuizAnswerWeight();
+        w.setAnswer(answer);
+        w.setCategory(category);
+        w.setWeight(weight);
+        answer.getWeights().add(w);
+        quizQuestionRepository.saveAndFlush(answer.getQuestion());
     }
 }
