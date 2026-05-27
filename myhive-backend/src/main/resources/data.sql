@@ -400,3 +400,20 @@ Whatever format you choose, the key is balance. Large groups need a mix of toget
         'Destinations',
         'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=1200&h=500&fit=crop',
         '2026-02-05', CURRENT_TIMESTAMP);
+
+-- Quiz: 2 sample questions for Prague (dev only)
+INSERT INTO quiz_questions (id, destination_id, prompt, sort_order, created_at)
+VALUES ('d0000000-0000-0000-0000-000000000001', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Daytime hero or 4am legend?', 0, CURRENT_TIMESTAMP),
+       ('d0000000-0000-0000-0000-000000000002', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Adrenaline rush or zero risk?', 1, CURRENT_TIMESTAMP);
+
+INSERT INTO quiz_answers (id, question_id, label, sort_order)
+VALUES ('d1000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'Daytime', 0),
+       ('d1000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001', '4am legend', 1),
+       ('d1000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000002', 'Adrenaline', 0),
+       ('d1000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002', 'Zero risk', 1);
+
+INSERT INTO quiz_answer_weights (id, answer_id, category_id, weight)
+VALUES ('d2000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001', '91111111-0000-0000-0000-000000000003', 2),
+       ('d2000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000002', '91111111-0000-0000-0000-000000000001', 2),
+       ('d2000000-0000-0000-0000-000000000003', 'd1000000-0000-0000-0000-000000000003', '91111111-0000-0000-0000-000000000002', 2),
+       ('d2000000-0000-0000-0000-000000000004', 'd1000000-0000-0000-0000-000000000004', '91111111-0000-0000-0000-000000000003', 2);
