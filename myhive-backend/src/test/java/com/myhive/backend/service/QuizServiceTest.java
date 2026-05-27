@@ -1,11 +1,15 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.QuizAnswerDTO;
+import com.myhive.backend.dto.QuizAnswerWeightDTO;
 import com.myhive.backend.dto.QuizDTO;
+import com.myhive.backend.dto.QuizQuestionDTO;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.QuizAnswer;
 import com.myhive.backend.entity.QuizAnswerWeight;
 import com.myhive.backend.entity.QuizQuestion;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
@@ -15,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,5 +99,82 @@ class QuizServiceTest {
         QuizDTO quiz = quizService.getQuiz(destination.getId());
 
         assertThat(quiz.getQuestions()).isEmpty();
+    }
+
+    @Test
+    void replaceQuiz_unknownCategoryWeight_throwsBadRequest() {
+        Destination destination = new Destination();
+        destination.setName("Prague");
+        destination = destinationRepository.save(destination);
+
+        QuizAnswerWeightDTO weight = new QuizAnswerWeightDTO(UUID.randomUUID(), 2);
+        QuizAnswerDTO answer = new QuizAnswerDTO(null, "4am legend", 0, List.of(weight));
+        QuizQuestionDTO question = new QuizQuestionDTO(null, "Daytime or 4am?", 0, List.of(answer));
+        QuizDTO dto = new QuizDTO(List.of(question));
+
+        UUID destinationId = destination.getId();
+        assertThatThrownBy(() -> quizService.replaceQuiz(destinationId, dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Category not found");
+    }
+
+    @Test
+    void replaceQuiz_replacesExistingQuiz() {
+        String expectedPrompt = "NEW QUESTION";
+
+        Destination destination = new Destination();
+        destination.setName("Prague");
+        destination = destinationRepository.save(destination);
+
+        Category category = new Category();
+        category.setName("Nightlife");
+        category.setSlug("nightlife");
+        category = categoryRepository.save(category);
+
+        QuizQuestion old = new QuizQuestion();
+        old.setDestination(destination);
+        old.setPrompt("OLD QUESTION");
+        old.setSortOrder(0);
+        QuizAnswer oldAnswer = new QuizAnswer();
+        oldAnswer.setQuestion(old);
+        oldAnswer.setLabel("old");
+        oldAnswer.setSortOrder(0);
+        old.getAnswers().add(oldAnswer);
+        quizQuestionRepository.saveAndFlush(old);
+
+        QuizAnswerWeightDTO weight = new QuizAnswerWeightDTO(category.getId(), 2);
+        QuizAnswerDTO answer = new QuizAnswerDTO(null, "4am legend", 0, List.of(weight));
+        QuizQuestionDTO question = new QuizQuestionDTO(null, expectedPrompt, 0, List.of(answer));
+        QuizDTO dto = new QuizDTO(List.of(question));
+
+        QuizDTO result = quizService.replaceQuiz(destination.getId(), dto);
+
+        assertThat(result.getQuestions()).hasSize(1);
+        assertThat(result.getQuestions().get(0).getPrompt()).isEqualTo(expectedPrompt);
+        assertThat(quizQuestionRepository.findByDestinationIdOrderBySortOrder(destination.getId()))
+                .extracting(QuizQuestion::getPrompt)
+                .containsExactly(expectedPrompt);
+    }
+
+    @Test
+    void replaceQuiz_emptyQuestions_clearsQuiz() {
+        Destination destination = new Destination();
+        destination.setName("Prague");
+        destination = destinationRepository.save(destination);
+
+        QuizQuestion old = new QuizQuestion();
+        old.setDestination(destination);
+        old.setPrompt("OLD");
+        old.setSortOrder(0);
+        QuizAnswer oldAnswer = new QuizAnswer();
+        oldAnswer.setQuestion(old);
+        oldAnswer.setLabel("old");
+        oldAnswer.setSortOrder(0);
+        old.getAnswers().add(oldAnswer);
+        quizQuestionRepository.saveAndFlush(old);
+
+        QuizDTO result = quizService.replaceQuiz(destination.getId(), new QuizDTO(List.of()));
+
+        assertThat(result.getQuestions()).isEmpty();
     }
 }
