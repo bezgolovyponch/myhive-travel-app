@@ -25,6 +25,8 @@ class QuizSchemaTest {
 
     @Test
     void quizTree_persistsAndCascades() {
+        int expectedWeight = 2;
+
         Destination destination = new Destination();
         destination.setName("Prague");
         destination = destinationRepository.save(destination);
@@ -47,7 +49,7 @@ class QuizSchemaTest {
         QuizAnswerWeight weight = new QuizAnswerWeight();
         weight.setAnswer(answer);
         weight.setCategory(category);
-        weight.setWeight(2);
+        weight.setWeight(expectedWeight);
 
         answer.getWeights().add(weight);
         question.getAnswers().add(answer);
@@ -56,7 +58,7 @@ class QuizSchemaTest {
         QuizQuestion reloaded = quizQuestionRepository.findById(saved.getId()).orElseThrow();
         assertThat(reloaded.getAnswers()).hasSize(1);
         assertThat(reloaded.getAnswers().get(0).getWeights()).hasSize(1);
-        assertThat(reloaded.getAnswers().get(0).getWeights().get(0).getWeight()).isEqualTo(2);
+        assertThat(reloaded.getAnswers().get(0).getWeights().get(0).getWeight()).isEqualTo(expectedWeight);
 
         quizQuestionRepository.delete(reloaded);
         quizQuestionRepository.flush();
