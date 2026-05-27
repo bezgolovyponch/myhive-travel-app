@@ -1,6 +1,7 @@
 package com.myhive.backend.entity;
 
 import com.myhive.backend.model.VoteSessionStatus;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -28,7 +30,9 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,7 +43,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = {"destination", "likedCategories"})
+@ToString(exclude = {"destination", "likedCategories", "curatedActivities", "quizResponses"})
 public class VoteSession {
 
     @Id
@@ -100,4 +104,10 @@ public class VoteSession {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> likedCategories = new HashSet<>();
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<VoteSessionActivity> curatedActivities = new ArrayList<>();
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<VoteSessionQuizResponse> quizResponses = new ArrayList<>();
 }
