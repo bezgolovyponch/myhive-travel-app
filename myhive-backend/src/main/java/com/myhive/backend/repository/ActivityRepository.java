@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -34,4 +35,15 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
     List<Activity> findByDestinationIdAndCategoriesIdIn(
             @Param("destinationId") UUID destinationId,
             @Param("categoryIds") Set<UUID> categoryIds);
+
+    @Query("""
+            SELECT DISTINCT a FROM Activity a
+            JOIN a.categories c
+            WHERE a.destination.id = :destinationId
+              AND c.id IN :categoryIds
+            ORDER BY a.featuredWeight DESC, a.id ASC
+            """)
+    List<Activity> findPoolCandidates(@Param("destinationId") UUID destinationId,
+                                      @Param("categoryIds") Collection<UUID> categoryIds,
+                                      Pageable pageable);
 }
