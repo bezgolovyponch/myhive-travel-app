@@ -12,6 +12,7 @@ import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,6 +43,9 @@ class CategoryServiceTest {
 
     @Mock
     private PackageRepository packageRepository;
+
+    @Mock
+    private QuizAnswerWeightRepository quizAnswerWeightRepository;
 
     @InjectMocks
     private CategoryService categoryService;
@@ -299,6 +303,19 @@ class CategoryServiceTest {
 
         assertThat(pkg.getCategories()).doesNotContain(category);
         verify(packageRepository).save(pkg);
+        verify(categoryRepository).deleteById(category.getId());
+    }
+
+    @Test
+    void deleteCategory_removesQuizAnswerWeights() {
+        Category category = TestDataFactory.category();
+        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+
+        categoryService.deleteCategory(category.getId());
+
+        verify(quizAnswerWeightRepository).deleteAllByCategoryId(category.getId());
         verify(categoryRepository).deleteById(category.getId());
     }
 }

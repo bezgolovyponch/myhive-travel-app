@@ -10,6 +10,7 @@ import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,6 +31,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final ActivityRepository activityRepository;
     private final PackageRepository packageRepository;
+    private final QuizAnswerWeightRepository quizAnswerWeightRepository;
 
     public List<CategoryDTO> getAllCategories() {
         return categoryRepository.findAll().stream()
@@ -116,6 +118,7 @@ public class CategoryService {
             pkg.getCategories().remove(category);
             packageRepository.save(pkg);
         }
+        quizAnswerWeightRepository.deleteAllByCategoryId(id);
         categoryRepository.deleteById(id);
     }
 
