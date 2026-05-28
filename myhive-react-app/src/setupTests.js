@@ -9,3 +9,10 @@ import { webcrypto } from 'node:crypto';
 Object.defineProperty(globalThis, 'crypto', {
   value: webcrypto,
 });
+
+// Polyfill TextEncoder/TextDecoder for jsdom (react-router v7 needs them)
+import { TextDecoder, TextEncoder } from 'node:util';
+if (typeof globalThis.TextEncoder === 'undefined') {
+  globalThis.TextEncoder = TextEncoder;
+  globalThis.TextDecoder = TextDecoder;
+}
