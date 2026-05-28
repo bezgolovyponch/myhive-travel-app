@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.QuizResponseDTO;
+import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.entity.Activity;
@@ -189,6 +190,26 @@ class VoteSessionCreateSessionTest {
         VoteSessionResponse response = voteSessionService.createSession(request);
         VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
         assertThat(session.getLikedCategories()).isEmpty();
+    }
+
+    @Test
+    void getActivities_newSession_returnsCuratedListInSortOrder() {
+        Destination destination = newDestination("Prague");
+        Category nightlife = newCategory("Nightlife", "nightlife");
+        attachCategory(destination, nightlife);
+        Activity a1 = newActivity(destination, "First", new BigDecimal("100"), Set.of(nightlife));
+        Activity a2 = newActivity(destination, "Second", new BigDecimal("200"), Set.of(nightlife));
+
+        VoteSessionCreateRequest request = baseRequest(destination.getId());
+        // intentionally put a2 before a1 to verify the order is preserved
+        request.setActivityIds(List.of(a2.getId(), a1.getId()));
+
+        VoteSessionResponse response = voteSessionService.createSession(request);
+
+        List<VoteActivityResponse> activities = voteSessionService.getActivities(response.getShareToken());
+
+        assertThat(activities).extracting(VoteActivityResponse::getId)
+                .containsExactly(a2.getId(), a1.getId());
     }
 
     private VoteSessionCreateRequest baseRequest(UUID destinationId) {

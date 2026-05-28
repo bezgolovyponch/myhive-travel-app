@@ -221,11 +221,21 @@ public class VoteSessionService {
 
     public List<VoteActivityResponse> getActivities(UUID shareToken) {
         VoteSession session = findByShareToken(shareToken);
+        String destinationSlug = session.getDestination().getSlug();
+
+        List<VoteSessionActivity> curated = voteSessionActivityRepository
+                .findBySessionIdOrderBySortOrder(session.getId());
+        if (!curated.isEmpty()) {
+            return curated.stream()
+                    .map(row -> toActivityResponse(row.getActivity(), destinationSlug))
+                    .toList();
+        }
+
+        // Legacy fallback: historical sessions written under the old category-swipe flow,
+        // which only have vote_session_liked_categories. New sessions always have curated rows.
         Set<UUID> categoryIds = session.getLikedCategories().stream()
                 .map(Category::getId)
                 .collect(Collectors.toSet());
-
-        String destinationSlug = session.getDestination().getSlug();
         List<Activity> activities = activityRepository.findByDestinationIdAndCategoriesIdIn(
                 session.getDestination().getId(), categoryIds);
         return activities.stream()
