@@ -10,6 +10,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     const [endDate, setEndDate] = useState('');
     const [email, setEmail] = useState('');
     const [selectedDestinationId, setSelectedDestinationId] = useState('');
+    const [budget, setBudget] = useState('');
 
     const isOpen = isVoteMode ? voteOpen : state.tripSetupModalOpen;
 
@@ -20,6 +21,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             setEndDate('');
             setEmail('');
             setSelectedDestinationId('');
+            setBudget('');
         }
     }, [isOpen]);
 
@@ -36,7 +38,11 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         const travelersNum = Math.max(1, parseInt(travelers, 10) || 1);
         if (isVoteMode) {
             if (!voteFormValid) return;
-            onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination });
+            const budgetValue = budget.trim() === '' ? null : Number(budget);
+            if (budgetValue !== null && (!Number.isFinite(budgetValue) || budgetValue <= 0)) {
+                return;
+            }
+            onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination, budget: budgetValue });
         } else {
             dispatch({
                 type: 'SET_TRIP_SETUP',
@@ -119,6 +125,20 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                     onChange={e => setEmail(e.target.value)}
                                     required
                                     placeholder="you@example.com"
+                                />
+                            </div>
+                        )}
+                        {isVoteMode && (
+                            <div className="form-group">
+                                <label htmlFor="voteBudget">Group budget (optional)</label>
+                                <input
+                                    id="voteBudget"
+                                    type="number"
+                                    min="0"
+                                    step="100"
+                                    value={budget}
+                                    onChange={e => setBudget(e.target.value)}
+                                    placeholder="e.g. 3000"
                                 />
                             </div>
                         )}

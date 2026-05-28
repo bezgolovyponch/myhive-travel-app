@@ -16,15 +16,12 @@ function TripBuilderDropdown() {
     const destSlug = state.tripItems.find(i => i.destinationSlug)?.destinationSlug;
     const preselectedDestination = state.destinations.find(d => d.slug === destSlug) || null;
 
-    const handleVoteConfirm = ({ travelers, startDate, endDate, email, destination }) => {
+    const handleVoteConfirm = ({ travelers, startDate, endDate, email, destination, budget }) => {
         setVoteSetupOpen(false);
         dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
-        navigate('/vote/new/categories', {
+        navigate('/vote/new/quiz', {
             state: {
-                destinationId: destination.id,
-                destinationSlug: destination.slug,
-                destinationName: destination.name,
-                voteSetup: { travelers, startDate, endDate, email },
+                setup: { travelers, startDate, endDate, email, destination, budget },
             },
         });
     };
