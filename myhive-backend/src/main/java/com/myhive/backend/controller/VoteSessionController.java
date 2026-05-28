@@ -1,5 +1,7 @@
 package com.myhive.backend.controller;
 
+import com.myhive.backend.dto.ParticipantQuizSubmissionRequest;
+import com.myhive.backend.dto.PublicQuizDTO;
 import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
@@ -10,6 +12,8 @@ import com.myhive.backend.service.VoteSessionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -72,5 +77,25 @@ public class VoteSessionController {
     @GetMapping("/{shareToken}/result")
     public VoteResultResponse getResult(@PathVariable UUID shareToken) {
         return voteSessionService.getResult(shareToken);
+    }
+
+    @GetMapping("/{shareToken}/quiz")
+    public PublicQuizDTO getParticipantQuiz(@PathVariable UUID shareToken) {
+        return voteSessionService.getParticipantQuiz(shareToken);
+    }
+
+    @PostMapping("/{shareToken}/quiz")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void submitParticipantQuiz(@PathVariable UUID shareToken,
+                                      @Valid @RequestBody ParticipantQuizSubmissionRequest request) {
+        voteSessionService.submitParticipantQuiz(shareToken, request);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(Map.of(
+                        "status", ex.getStatusCode().value(),
+                        "message", ex.getReason() == null ? "" : ex.getReason()));
     }
 }

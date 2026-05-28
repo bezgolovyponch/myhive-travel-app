@@ -18,8 +18,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -139,5 +141,51 @@ class VoteSessionControllerTest {
 
         mockMvc.perform(post("/vote/sessions/{shareToken}/close", shareToken))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getParticipantQuiz_returns200WithQuestions() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        com.myhive.backend.dto.PublicQuizAnswerDTO answer = new com.myhive.backend.dto.PublicQuizAnswerDTO(
+                UUID.randomUUID(), "Daytime");
+        com.myhive.backend.dto.PublicQuizQuestionDTO question = new com.myhive.backend.dto.PublicQuizQuestionDTO(
+                UUID.randomUUID(), "Daytime or night?", List.of(answer));
+        com.myhive.backend.dto.PublicQuizDTO quiz = new com.myhive.backend.dto.PublicQuizDTO(List.of(question));
+        when(voteSessionService.getParticipantQuiz(shareToken)).thenReturn(quiz);
+
+        mockMvc.perform(get("/vote/sessions/" + shareToken + "/quiz"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.questions[0].prompt", is("Daytime or night?")))
+                .andExpect(jsonPath("$.questions[0].answers[0].weights").doesNotExist());
+    }
+
+    @Test
+    void postParticipantQuiz_returns204_onSuccess() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        String body = """
+                { "voterToken": "%s", "responses": [] }
+                """.formatted(UUID.randomUUID());
+
+        mockMvc.perform(post("/vote/sessions/" + shareToken + "/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void postParticipantQuiz_propagatesConflict_returns409() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        doThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.CONFLICT, "Quiz already submitted"))
+                .when(voteSessionService).submitParticipantQuiz(any(), any());
+
+        String body = """
+                { "voterToken": "%s", "responses": [] }
+                """.formatted(UUID.randomUUID());
+
+        mockMvc.perform(post("/vote/sessions/" + shareToken + "/quiz")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict());
     }
 }
