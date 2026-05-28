@@ -11,7 +11,8 @@ import AboutPage from '../pages/AboutPage';
 import BlogPage from '../pages/BlogPage';
 import BlogPostPage from '../pages/BlogPostPage';
 import ContactPage from '../pages/ContactPage';
-import CategoryVotePage from '../pages/vote/CategoryVotePage';
+import QuizPage from '../pages/vote/QuizPage';
+import CuratePage from '../pages/vote/CuratePage';
 import ActivityVotePage from '../pages/vote/ActivityVotePage';
 import VoteWaitingPage from '../pages/vote/VoteWaitingPage';
 import VoteResultPage from '../pages/vote/VoteResultPage';
@@ -33,7 +34,9 @@ function Layout() {
             <Route path="/blog" element={<BlogPage/>}/>
             <Route path="/blog/:slug" element={<BlogPostPage/>}/>
             <Route path="/contact" element={<ContactPage/>}/>
-            <Route path="/vote/new/categories" element={<CategoryVotePage />} />
+            <Route path="/vote/new/quiz" element={<QuizPage />} />
+            <Route path="/vote/new/curate" element={<CuratePage />} />
+            <Route path="/vote/:shareToken/quiz" element={<QuizPage />} />
             <Route path="/vote/:shareToken/activities" element={<ActivityVotePage />} />
             <Route path="/vote/:shareToken/waiting" element={<VoteWaitingPage />} />
             <Route path="/vote/:shareToken/result" element={<VoteResultPage />} />
