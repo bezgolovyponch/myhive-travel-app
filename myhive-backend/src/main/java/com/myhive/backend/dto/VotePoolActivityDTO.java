@@ -17,5 +17,7 @@ public class VotePoolActivityDTO {
     private String name;
     private BigDecimal price;
     private String imageUrl;
+    private String slug;
+    private String destinationSlug;
     private List<String> categories;
 }

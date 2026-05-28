@@ -372,13 +372,18 @@ public class VoteSessionService {
                 .collect(Collectors.toMap(ActivityVoteCount::getActivityId, c -> c));
 
         List<ResultActivityDTO> result = resultRows.stream().map(r -> {
-            UUID activityId = r.getActivity().getId();
+            Activity activity = r.getActivity();
+            UUID activityId = activity.getId();
             VoteSessionActivity curated = curatedByActivity.get(activityId);
             ActivityVoteCount counts = countsByActivity.get(activityId);
             long like = counts == null ? 0 : counts.getLikeCount();
             long skip = counts == null ? 0 : counts.getSkipCount();
+            String destinationSlug = activity.getDestination() == null
+                    ? null : activity.getDestination().getSlug();
             return new ResultActivityDTO(activityId, curated.getActivityName(),
-                    curated.getPrice(), like, skip);
+                    curated.getPrice(), like, skip,
+                    activity.getSlug(), destinationSlug, activity.getImageUrl(),
+                    activity.getDuration(), activity.getDescription(), activity.getIncludes());
         }).toList();
 
         BigDecimal travelers = BigDecimal.valueOf(session.getNumberOfTravelers());
@@ -392,7 +397,9 @@ public class VoteSessionService {
         List<SuggestionDTO> suggestions = voteSuggestionsService.buildSuggestions(session);
 
         return new VoteResultResponse(result, suggestions, session.getNumberOfTravelers(),
-                totalPrice, budget, remaining);
+                totalPrice, budget, remaining,
+                session.getDestination().getName(), session.getDestination().getSlug(),
+                session.getStartDate(), session.getEndDate());
     }
 
     @Transactional

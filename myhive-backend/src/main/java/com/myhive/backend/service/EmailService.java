@@ -128,7 +128,13 @@ public class EmailService {
             helper.setTo(session.getInitiatorEmail());
             helper.setSubject("Your group trip to " + session.getDestination().getName() + " is ready!");
 
-            String resultUrl = siteUrl + "/vote/" + session.getShareToken() + "/result";
+            // Email link goes straight to the destination's Trip Builder tab with
+            // the vote session id — TripBuilder will fetch the result and seed the
+            // itinerary, budget panel, and suggestions.
+            String destinationSlug = session.getDestination().getSlug();
+            String resultUrl = destinationSlug != null
+                    ? siteUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken()
+                    : siteUrl + "/vote/" + session.getShareToken() + "/result";
 
             Context context = new Context();
             context.setVariable("session", session);

@@ -4,13 +4,13 @@ import {AppContext} from '../context/AppContext';
 import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson} from '../utils/format';
 import './ActivityCard.css';
 
-function ActivityCard({ activity, isAdded = false }) {
+function ActivityCard({ activity, isAdded = false, silent = false }) {
   const { dispatch } = useContext(AppContext);
     const navigate = useNavigate();
 
     const handleAddToTrip = (e) => {
         e.stopPropagation();
-    dispatch({ type: 'ADD_TO_TRIP', activity });
+    dispatch({ type: 'ADD_TO_TRIP', activity, silent });
   };
 
     const handleCardClick = () => {

@@ -47,6 +47,13 @@ export default function CuratePage() {
     };
   }, [setup, responses, navigate]);
 
+  const getCardLink = (activity) => {
+    if (!activity || !activity.slug || !activity.destinationSlug) {
+      return null;
+    }
+    return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
+  };
+
   const handleSwipe = (direction, activityId) => {
     if (direction === 'right') {
       pickedRef.current = [...pickedRef.current, activityId];
@@ -78,6 +85,12 @@ export default function CuratePage() {
         quizResponses: responses,
         activityIds: pickedRef.current,
       });
+      // Mark this browser as the organizer so VoteWaitingPage shows the
+      // "End voting early" button and remembers the managerToken.
+      localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
+      if (session.managerToken) {
+        localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
+      }
       navigate(`/vote/${session.shareToken}/waiting`, {
         state: { managerToken: session.managerToken },
       });
@@ -108,13 +121,35 @@ export default function CuratePage() {
             You didn&apos;t pick anything. Start over and swipe right on what the group should vote on.
           </p>
         ) : (
-          <ul className="curate-finalize-list">
+          <div className="curate-finalize-grid">
             {pickedActivities.map(a => (
-              <li key={a.id}>
-                {a.name} — €{a.price}/person
-              </li>
+              <div key={a.id} className="curate-finalize-card">
+                {a.imageUrl && (
+                  <img src={a.imageUrl} alt={a.name} className="curate-finalize-card-image" />
+                )}
+                <div className="curate-finalize-card-body">
+                  <div className="curate-finalize-card-name">
+                    {getCardLink(a) ? (
+                      <a
+                        href={getCardLink(a)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="curate-finalize-card-link"
+                      >
+                        {a.name}
+                      </a>
+                    ) : (
+                      a.name
+                    )}
+                  </div>
+                  <div className="curate-finalize-card-price">€{a.price}/person</div>
+                  {a.categories && a.categories.length > 0 && (
+                    <div className="curate-finalize-card-cats">{a.categories.join(' · ')}</div>
+                  )}
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
         {error && <p className="curate-finalize-error">{error}</p>}
         <div className="curate-finalize-actions">
@@ -141,7 +176,7 @@ export default function CuratePage() {
       onSwipe={handleSwipe}
       title="Pick activities for the group to vote on"
       subtitle="Swipe right to include, left to skip"
-      getCardLink={null}
+      getCardLink={getCardLink}
     />
   );
 }

@@ -26,14 +26,18 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
     }, []);
 
     const handlePointerUp = useCallback((cardId) => {
-        setDrag(prev => {
-            if (!prev.active) return prev;
-            if (Math.abs(prev.offsetX) > SWIPE_THRESHOLD) {
-                onSwipe(prev.offsetX > 0 ? 'right' : 'left', cardId);
-            }
-            return { active: false, startX: 0, offsetX: 0 };
-        });
-    }, [onSwipe]);
+        // Read the current drag state synchronously (no updater) so the side
+        // effect onSwipe(...) fires exactly once. Calling onSwipe inside a
+        // setDrag updater triggers double-invocation under React.StrictMode
+        // in dev and causes counters/picked-lists to jump by 2.
+        if (!drag.active) {
+            return;
+        }
+        if (Math.abs(drag.offsetX) > SWIPE_THRESHOLD) {
+            onSwipe(drag.offsetX > 0 ? 'right' : 'left', cardId);
+        }
+        setDrag({ active: false, startX: 0, offsetX: 0 });
+    }, [drag.active, drag.offsetX, onSwipe]);
 
     const handleButtonSwipe = (direction) => {
         if (currentIndex < cards.length) {
@@ -64,6 +68,8 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
             rel="noopener noreferrer"
             className="swipe-card-link"
             onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
         >{name}</a>
         : name;
 

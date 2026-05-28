@@ -1,14 +1,48 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useContext, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
+import ActivityCard from '../../components/ActivityCard';
+import { AppContext } from '../../context/AppContext';
 import { formatPrice, formatPricePerPerson } from '../../utils/format';
 import './VoteResultPage.css';
 
+function suggestionToActivity(s) {
+    return {
+        id: s.activityId,
+        name: s.name,
+        slug: s.slug,
+        destinationSlug: s.destinationSlug,
+        imageUrl: s.imageUrl,
+        description: s.description,
+        includes: s.includes,
+        price: s.price,
+        categories: (s.categories || []).map(name => ({ name })),
+    };
+}
+
 function VoteResultPage() {
     const { shareToken } = useParams();
+    const navigate = useNavigate();
+    const { state, dispatch } = useContext(AppContext);
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
-    const [added, setAdded] = useState(() => new Set());
+
+    const handleOpenTripBuilder = () => {
+        if (!data) {
+            return;
+        }
+        if (data.numberOfTravelers && data.numberOfTravelers > 0) {
+            dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: data.numberOfTravelers });
+        }
+        if (data.startDate || data.endDate) {
+            dispatch({
+                type: 'UPDATE_TRIP_DATES',
+                startDate: data.startDate ?? '',
+                endDate: data.endDate ?? '',
+            });
+        }
+        navigate(`/destination/${data.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`);
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -28,19 +62,6 @@ function VoteResultPage() {
         };
     }, [shareToken]);
 
-    // TODO: wire Add-to-trip to the booking flow (out of Plan 4 scope)
-    const toggleSuggestion = (activityId) => {
-        setAdded(prev => {
-            const next = new Set(prev);
-            if (next.has(activityId)) {
-                next.delete(activityId);
-            } else {
-                next.add(activityId);
-            }
-            return next;
-        });
-    };
-
     if (error) {
         return <div className="result-page-error">{error}</div>;
     }
@@ -50,71 +71,87 @@ function VoteResultPage() {
 
     return (
         <div className="result-page">
-            <h1>Trip result</h1>
+            <div className="result-page-inner">
+                <h1>Trip result</h1>
 
-            <section className="result-block">
-                <h2>The group&apos;s pick</h2>
-                {data.result.length === 0 ? (
-                    <p className="result-empty">
-                        The group didn&apos;t agree on anything within the budget. See suggestions below.
-                    </p>
-                ) : (
-                    <ul className="result-list">
-                        {data.result.map(row => (
-                            <li key={row.activityId} className="result-row">
-                                <div className="result-row-main">
-                                    <strong>{row.name}</strong>
-                                    <span className="result-row-price">{formatPricePerPerson(row.price)}</span>
-                                </div>
-                                <div className="result-row-counts">
-                                    Likes: {row.likeCount} &middot; Skips: {row.skipCount}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
-
-            <section className="result-block budget-block">
-                <h2>Budget</h2>
-                <p>Spent: {formatPrice(data.totalPrice)}</p>
-                {data.budget != null && (
-                    <>
-                        <p>Budget: {formatPrice(data.budget)}</p>
-                        <p className={data.remaining < 0 ? 'budget-over' : ''}>
-                            Remaining: {formatPrice(data.remaining)}
-                        </p>
-                    </>
-                )}
-            </section>
-
-            {data.suggestions.length > 0 && (
                 <section className="result-block">
-                    <h2>Suggestions</h2>
-                    <div className="suggestions-grid">
-                        {data.suggestions.map(s => (
-                            <div
-                                key={s.activityId}
-                                className={`suggestion-card ${added.has(s.activityId) ? 'added' : ''}`}
-                            >
-                                {s.imageUrl && (
-                                    <img src={s.imageUrl} alt={s.name} className="suggestion-image" />
-                                )}
-                                <div className="suggestion-body">
-                                    <strong>{s.name}</strong>
-                                    <p>{formatPricePerPerson(s.price)}</p>
-                                    {s.categories && s.categories.length > 0 && (
-                                        <p className="suggestion-cats">{s.categories.join(' · ')}</p>
-                                    )}
-                                    <button type="button" onClick={() => toggleSuggestion(s.activityId)}>
-                                        {added.has(s.activityId) ? 'Added' : 'Add to trip'}
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <h2>The group&apos;s pick</h2>
+                    {data.result.length === 0 ? (
+                        <p className="result-empty">
+                            The group didn&apos;t agree on anything within the budget. See suggestions below.
+                        </p>
+                    ) : (
+                        <ul className="result-list">
+                            {data.result.map(row => (
+                                <li key={row.activityId} className="result-row">
+                                    <div className="result-row-main">
+                                        <strong>{row.name}</strong>
+                                        <span className="result-row-price">{formatPricePerPerson(row.price)}</span>
+                                    </div>
+                                    <div className="result-row-counts">
+                                        Likes: {row.likeCount} &middot; Skips: {row.skipCount}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </section>
-            )}
+
+                {(() => {
+                    const travelers = Number(data.numberOfTravelers) || 1;
+                    const addedSuggestionsTotal = (data.suggestions || [])
+                        .filter(s => state.tripItems.some(i => i.id === s.activityId))
+                        .reduce((sum, s) => sum + Number(s.price) * travelers, 0);
+                    const displayedTotal = Number(data.totalPrice) + addedSuggestionsTotal;
+                    const displayedRemaining = data.budget != null
+                        ? Number(data.budget) - displayedTotal
+                        : null;
+                    return (
+                        <section className="result-block budget-block">
+                            <h2>Budget</h2>
+                            <p>Spent: {formatPrice(displayedTotal)}</p>
+                            {data.budget != null && (
+                                <>
+                                    <p>Budget: {formatPrice(data.budget)}</p>
+                                    <p className={displayedRemaining < 0 ? 'budget-over' : ''}>
+                                        Remaining: {formatPrice(displayedRemaining)}
+                                    </p>
+                                </>
+                            )}
+                        </section>
+                    );
+                })()}
+
+                {data.destinationSlug && (
+                    <button
+                        type="button"
+                        className="result-open-trip-btn"
+                        onClick={handleOpenTripBuilder}
+                    >
+                        Open in Trip Builder
+                    </button>
+                )}
+
+                {data.suggestions.length > 0 && (
+                    <section className="result-block">
+                        <h2>Suggestions</h2>
+                        <div className="suggestions-grid">
+                            {data.suggestions.map(s => {
+                                const activity = suggestionToActivity(s);
+                                const isAdded = state.tripItems.some(i => i.id === activity.id);
+                                return (
+                                    <ActivityCard
+                                        key={activity.id}
+                                        activity={activity}
+                                        isAdded={isAdded}
+                                        silent
+                                    />
+                                );
+                            })}
+                        </div>
+                    </section>
+                )}
+            </div>
         </div>
     );
 }

@@ -1,36 +1,126 @@
 .quiz-admin {
     padding: 1rem 1.25rem;
-    background: #f8f9fa;
+    background: var(--bg);
     border-radius: 8px;
+    color: var(--text);
+}
+
+.quiz-admin h6 {
+    color: var(--text);
 }
 
 .quiz-admin-loading {
     padding: 1rem 1.25rem;
-    color: #6c757d;
+    color: var(--text-muted);
     font-size: 0.875rem;
 }
 
-.quiz-question-card {
-    border: 1px solid #dee2e6;
-    background: #ffffff;
+/* Bootstrap Card override — scoped to .quiz-admin */
+.quiz-admin .quiz-question-card,
+.quiz-admin .quiz-question-card .card-body {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--card-border);
 }
 
-.quiz-answers {
-    border-left: 3px solid #e9ecef;
+.quiz-admin .quiz-answers {
+    border-left: 3px solid var(--card-border);
     padding-left: 1rem;
     margin-top: 0.75rem;
 }
 
-.quiz-answer-block {
-    border: 1px dashed #dee2e6;
-    background: #fafbfc;
+.quiz-admin .quiz-answer-block {
+    border: 1px dashed var(--card-border);
+    background: var(--bg);
     padding: 0.75rem;
     border-radius: 6px;
     margin-bottom: 0.75rem;
 }
 
-.quiz-weights {
-    border-left: 2px solid #e9ecef;
+.quiz-admin .quiz-weights {
+    border-left: 2px solid var(--card-border);
     padding-left: 0.75rem;
     margin-top: 0.5rem;
+}
+
+/* Bootstrap Form labels + helper text */
+.quiz-admin .form-label {
+    color: var(--text);
+}
+
+.quiz-admin .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Bootstrap inputs + selects */
+.quiz-admin .form-control,
+.quiz-admin .form-select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+}
+
+.quiz-admin .form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.quiz-admin .form-control:focus,
+.quiz-admin .form-select:focus {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(50, 184, 198, 0.25);
+}
+
+/* Bootstrap outline buttons need dark-theme treatment */
+.quiz-admin .btn-outline-secondary {
+    color: var(--text);
+    border-color: var(--card-border);
+    background: transparent;
+}
+
+.quiz-admin .btn-outline-secondary:hover,
+.quiz-admin .btn-outline-secondary:focus {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--text-muted);
+}
+
+.quiz-admin .btn-outline-danger {
+    color: #ff6b6b;
+    border-color: rgba(220, 53, 69, 0.5);
+    background: transparent;
+}
+
+.quiz-admin .btn-outline-danger:hover,
+.quiz-admin .btn-outline-danger:focus {
+    background: rgba(220, 53, 69, 0.15);
+    color: #ff8a8a;
+    border-color: #dc3545;
+}
+
+.quiz-admin .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-text, #13343b);
+    font-weight: 600;
+}
+
+.quiz-admin .btn-primary:hover,
+.quiz-admin .btn-primary:focus {
+    background: var(--primary-hover, #2da6b2);
+    border-color: var(--primary-hover, #2da6b2);
+}
+
+/* Bootstrap Alert overrides — keep contrast on dark bg */
+.quiz-admin .alert-danger {
+    background: rgba(220, 53, 69, 0.15);
+    color: #ff8a8a;
+    border-color: rgba(220, 53, 69, 0.4);
+}
+
+.quiz-admin .alert-success {
+    background: rgba(40, 167, 69, 0.15);
+    color: #5cd576;
+    border-color: rgba(40, 167, 69, 0.4);
 }

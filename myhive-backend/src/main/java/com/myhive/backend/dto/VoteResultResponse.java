@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -18,4 +19,8 @@ public class VoteResultResponse {
     private BigDecimal totalPrice;     // group total of result, snapshot prices
     private BigDecimal budget;         // nullable
     private BigDecimal remaining;      // budget - totalPrice; null when budget is null
+    private String destinationName;
+    private String destinationSlug;
+    private LocalDate startDate;
+    private LocalDate endDate;
 }

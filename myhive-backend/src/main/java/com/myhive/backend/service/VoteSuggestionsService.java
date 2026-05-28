@@ -63,7 +63,12 @@ public class VoteSuggestionsService {
                 .map(Category::getName)
                 .sorted()
                 .toList();
+        String destinationSlug = activity.getDestination() == null
+                ? null : activity.getDestination().getSlug();
         return new SuggestionDTO(activity.getId(), activity.getName(),
-                activity.getPrice(), activity.getImageUrl(), categories);
+                activity.getPrice(), activity.getImageUrl(),
+                activity.getSlug(), destinationSlug,
+                activity.getDescription(), activity.getIncludes(),
+                categories);
     }
 }

@@ -17,5 +17,9 @@ public class SuggestionDTO {
     private String name;          // live
     private BigDecimal price;     // live, per-person
     private String imageUrl;
+    private String slug;
+    private String destinationSlug;
+    private String description;
+    private String includes;
     private List<String> categories;
 }

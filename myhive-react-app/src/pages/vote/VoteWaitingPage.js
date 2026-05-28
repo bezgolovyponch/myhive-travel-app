@@ -20,8 +20,9 @@ function VoteWaitingPage() {
             .then(s => {
                 setSession(s);
                 setParticipantCount(s.participantCount);
-                if (s.status === 'COMPLETED') {
-                    navigate(`/vote/${shareToken}/result`, { replace: true });
+                if (s.status === 'COMPLETED' && s.destinationSlug) {
+                    navigate(`/destination/${s.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`,
+                        { replace: true });
                 }
             })
             .catch(e => setSessionError(e.message));
@@ -55,15 +56,20 @@ function VoteWaitingPage() {
         setClosing(true);
         voteApi.closeSession(shareToken, managerToken)
             .catch(() => {})
-            .finally(() => navigate(`/vote/${shareToken}/result`));
-    }, [closing, managerToken, shareToken, navigate]);
+            .finally(() => {
+                const destinationSlug = session?.destinationSlug;
+                if (destinationSlug) {
+                    navigate(`/destination/${destinationSlug}?tab=trip-builder&voteSession=${shareToken}`);
+                } else {
+                    navigate(`/vote/${shareToken}/result`);
+                }
+            });
+    }, [closing, managerToken, shareToken, navigate, session?.destinationSlug]);
 
-    useEffect(() => {
-        if (!isInitiator || !session || closing) return;
-        if (session.numberOfTravelers > 0 && participantCount >= session.numberOfTravelers) {
-            handleClose();
-        }
-    }, [participantCount, session?.numberOfTravelers, closing, isInitiator, handleClose]);
+    // Session closes manually (organizer's "End voting early" button) or
+    // automatically when expiresAt hits (24h scheduler). No auto-close on
+    // participant-count threshold — `numberOfTravelers` is a pricing input,
+    // not an expected-voter count.
 
     const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
 

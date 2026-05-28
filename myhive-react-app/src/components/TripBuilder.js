@@ -3,7 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
-import {capitalizeFirst, formatDate, formatPricePerPerson} from '../utils/format';
+import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import './TripBuilder.css';
@@ -20,6 +20,7 @@ function TripBuilder({ destinationId }) {
   const [submitError, setSubmitError] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successContactData, setSuccessContactData] = useState(null);
+  const [voteResult, setVoteResult] = useState(null);
 
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -28,11 +29,22 @@ function TripBuilder({ destinationId }) {
     const left = leftRef.current;
     const right = rightRef.current;
     if (!left || !right) return;
-    const obs = new ResizeObserver(() => {
-      right.style.height = `${left.offsetHeight}px`;
-    });
+    const mql = window.matchMedia('(min-width: 769px)');
+    const sync = () => {
+      if (mql.matches) {
+        right.style.height = `${left.offsetHeight}px`;
+      } else {
+        right.style.height = '';
+      }
+    };
+    const obs = new ResizeObserver(sync);
     obs.observe(left);
-    return () => obs.disconnect();
+    mql.addEventListener('change', sync);
+    sync();
+    return () => {
+      obs.disconnect();
+      mql.removeEventListener('change', sync);
+    };
   }, []);
 
   useEffect(() => {
@@ -47,8 +59,38 @@ function TripBuilder({ destinationId }) {
     if (!voteSession) return;
     voteApi.getResult(voteSession)
         .then(result => {
-            result.activities.forEach(activity => {
-                dispatch({ type: 'ADD_TO_TRIP', activity });
+            setVoteResult(result);
+            // Seed trip travelers + dates from the result so callers (email link,
+            // End-voting button, etc.) don't need to dispatch these separately.
+            if (result.numberOfTravelers && result.numberOfTravelers > 0) {
+                dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: result.numberOfTravelers });
+            }
+            if (result.startDate || result.endDate) {
+                dispatch({
+                    type: 'UPDATE_TRIP_DATES',
+                    startDate: result.startDate ?? '',
+                    endDate: result.endDate ?? '',
+                });
+            }
+            // New shape: result.result[] is ResultActivityDTO with snapshot name+price
+            // plus live slug/destinationSlug/imageUrl/duration/description/includes.
+            // Map activityId → id so AppContext keys it the same as live activities.
+            (result.result || []).forEach(row => {
+                dispatch({
+                    type: 'ADD_TO_TRIP',
+                    silent: true,
+                    activity: {
+                        id: row.activityId,
+                        name: row.name,
+                        price: row.price,
+                        slug: row.slug,
+                        destinationSlug: row.destinationSlug,
+                        imageUrl: row.imageUrl,
+                        duration: row.duration,
+                        description: row.description,
+                        includes: row.includes,
+                    },
+                });
             });
         })
         .catch(() => {});
@@ -253,6 +295,22 @@ function TripBuilder({ destinationId }) {
             </div>
           )}
         </div>
+        {voteResult && voteResult.budget != null && (
+            <div className="trip-vote-budget">
+              <div className="trip-vote-budget-row">
+                <span>Spent</span>
+                <span>{formatPrice(totalPrice)}</span>
+              </div>
+              <div className="trip-vote-budget-row">
+                <span>Budget</span>
+                <span>{formatPrice(voteResult.budget)}</span>
+              </div>
+              <div className={`trip-vote-budget-row ${voteResult.budget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
+                <span>Remaining</span>
+                <span>{formatPrice(voteResult.budget - totalPrice)}</span>
+              </div>
+            </div>
+        )}
         {state.tripItems.length > 0 && (
             <div className="trip-actions">
               <div className="itinerary-total">
@@ -271,6 +329,46 @@ function TripBuilder({ destinationId }) {
         )}
       </div>
       <div className="trip-builder-right" ref={rightRef}>
+        {voteResult && voteResult.suggestions && voteResult.suggestions.length > 0 && (
+            <div className="trip-vote-suggestions">
+              <h3>Group suggestions</h3>
+              <p className="trip-vote-suggestions-sub">From your group&apos;s quiz answers</p>
+              <div className="browse-activities">
+                {voteResult.suggestions.map(s => {
+                    const isAdded = state.tripItems.some(item => item.id === s.activityId);
+                    return (
+                        <div key={s.activityId} className="browse-activity-item">
+                          {s.imageUrl && (
+                              <img src={s.imageUrl} alt={s.name}
+                                   className="browse-activity-image" loading="lazy"/>
+                          )}
+                          <div className="browse-activity-content">
+                            <div className="browse-activity-title">{s.name}</div>
+                            <div className="browse-activity-price">{formatPricePerPerson(s.price)}</div>
+                          </div>
+                          <button
+                              className="browse-add-btn"
+                              onClick={() => handleAddActivity({
+                                  id: s.activityId,
+                                  name: s.name,
+                                  price: s.price,
+                                  slug: s.slug,
+                                  destinationSlug: s.destinationSlug,
+                                  imageUrl: s.imageUrl,
+                                  description: s.description,
+                                  includes: s.includes,
+                                  categories: (s.categories || []).map(name => ({ name })),
+                              })}
+                              disabled={isAdded}
+                          >
+                            {isAdded ? 'Added' : 'Add'}
+                          </button>
+                        </div>
+                    );
+                })}
+              </div>
+            </div>
+        )}
         <div className="browse-header">
           <h3>Browse More Activities</h3>
           <div className="filter-group">
