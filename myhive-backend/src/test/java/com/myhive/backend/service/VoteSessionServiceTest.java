@@ -9,10 +9,7 @@ import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
-import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
-import com.myhive.backend.exception.ResourceNotFoundException;
-import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
@@ -20,7 +17,6 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.VoteActivityLikeRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
-import com.myhive.backend.repository.VoteSessionResultActivityRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -47,7 +43,6 @@ class VoteSessionServiceTest {
 
     @Mock private VoteSessionRepository voteSessionRepository;
     @Mock private VoteActivityLikeRepository voteActivityLikeRepository;
-    @Mock private VoteSessionResultActivityRepository resultActivityRepository;
     @Mock private DestinationRepository destinationRepository;
     @Mock private CategoryRepository categoryRepository;
     @Mock private ActivityRepository activityRepository;
@@ -203,17 +198,9 @@ class VoteSessionServiceTest {
         verify(voteActivityLikeRepository).saveAll(any());
     }
 
-    @Test
-    void getResult_throwsResultNotReadyWhenActive() {
-        UUID shareToken = UUID.randomUUID();
-        VoteSession session = new VoteSession();
-        session.setStatus(VoteSessionStatus.ACTIVE);
-
-        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
-
-        assertThatThrownBy(() -> voteSessionService.getResult(shareToken))
-                .isInstanceOf(ResultNotReadyException.class);
-    }
+    // getResult_throwsResultNotReadyWhenActive and getResult_returnsActivitiesWithTotalPrice
+    // were obsoleted by the Plan 3 getResult rewrite to the two-tier result+suggestions+budget
+    // shape. The new flow is covered end-to-end in VoteSessionGetResultTest.
 
     @Test
     void getSession_returnsResponseWithParticipantCount() {
@@ -306,47 +293,6 @@ class VoteSessionServiceTest {
         long count = voteSessionService.getParticipantCount(shareToken);
 
         assertThat(count).isEqualTo(7L);
-    }
-
-    @Test
-    void getResult_returnsActivitiesWithTotalPrice() {
-        UUID shareToken = UUID.randomUUID();
-        UUID sessionId = UUID.randomUUID();
-
-        Destination destination = new Destination();
-        destination.setName("Bali");
-        destination.setSlug("bali");
-
-        VoteSession session = new VoteSession();
-        session.setId(sessionId);
-        session.setShareToken(shareToken);
-        session.setDestination(destination);
-        session.setStatus(VoteSessionStatus.COMPLETED);
-        session.setNumberOfTravelers(2);
-        session.setStartDate(java.time.LocalDate.of(2026, 7, 1));
-        session.setEndDate(java.time.LocalDate.of(2026, 7, 7));
-
-        Activity activity = new Activity();
-        activity.setId(UUID.randomUUID());
-        activity.setName("Surfing");
-        activity.setPrice(BigDecimal.valueOf(50));
-        activity.setDuration(180);
-
-        VoteSessionResultActivity resultActivity = new VoteSessionResultActivity();
-        resultActivity.setSession(session);
-        resultActivity.setActivity(activity);
-        resultActivity.setSortOrder(0);
-
-        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
-        when(resultActivityRepository.findBySessionIdOrderBySortOrder(sessionId))
-                .thenReturn(List.of(resultActivity));
-
-        var result = voteSessionService.getResult(shareToken);
-
-        assertThat(result.getActivities()).hasSize(1);
-        assertThat(result.getActivities().get(0).getName()).isEqualTo("Surfing");
-        // totalPrice = 50 * 2 travelers = 100
-        assertThat(result.getTotalPrice()).isEqualByComparingTo(BigDecimal.valueOf(100));
     }
 
     @Test

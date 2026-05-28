@@ -3,6 +3,8 @@ package com.myhive.backend.service;
 import com.myhive.backend.dto.ParticipantQuizSubmissionRequest;
 import com.myhive.backend.dto.PublicQuizDTO;
 import com.myhive.backend.dto.QuizResponseDTO;
+import com.myhive.backend.dto.ResultActivityDTO;
+import com.myhive.backend.dto.SuggestionDTO;
 import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
@@ -77,6 +79,7 @@ public class VoteSessionService {
     private final QuizAnswerRepository quizAnswerRepository;
     private final VoteSessionActivityRepository voteSessionActivityRepository;
     private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
+    private final VoteSuggestionsService voteSuggestionsService;
 
     @Value("${app.email.enabled:false}")
     private boolean emailEnabled;
@@ -359,27 +362,37 @@ public class VoteSessionService {
             throw new ResultNotReadyException("Result not available yet");
         }
 
-        List<VoteSessionResultActivity> results = resultActivityRepository
+        List<VoteSessionResultActivity> resultRows = resultActivityRepository
                 .findBySessionIdOrderBySortOrder(session.getId());
+        Map<UUID, VoteSessionActivity> curatedByActivity = voteSessionActivityRepository
+                .findBySessionIdOrderBySortOrder(session.getId()).stream()
+                .collect(Collectors.toMap(row -> row.getActivity().getId(), row -> row));
+        Map<UUID, ActivityVoteCount> countsByActivity = voteActivityLikeRepository
+                .findVoteCountsBySessionId(session.getId()).stream()
+                .collect(Collectors.toMap(ActivityVoteCount::getActivityId, c -> c));
 
-        String destinationSlug = session.getDestination().getSlug();
-        List<VoteActivityResponse> activities = results.stream()
-                .map(r -> toActivityResponse(r.getActivity(), destinationSlug))
-                .toList();
+        List<ResultActivityDTO> result = resultRows.stream().map(r -> {
+            UUID activityId = r.getActivity().getId();
+            VoteSessionActivity curated = curatedByActivity.get(activityId);
+            ActivityVoteCount counts = countsByActivity.get(activityId);
+            long like = counts == null ? 0 : counts.getLikeCount();
+            long skip = counts == null ? 0 : counts.getSkipCount();
+            return new ResultActivityDTO(activityId, curated.getActivityName(),
+                    curated.getPrice(), like, skip);
+        }).toList();
 
-        BigDecimal totalPrice = activities.stream()
-                .map(VoteActivityResponse::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .multiply(BigDecimal.valueOf(session.getNumberOfTravelers()));
+        BigDecimal travelers = BigDecimal.valueOf(session.getNumberOfTravelers());
+        BigDecimal totalPrice = result.stream()
+                .map(r -> r.getPrice().multiply(travelers))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new VoteResultResponse(
-                session.getDestination().getName(),
-                session.getDestination().getSlug(),
-                activities,
-                totalPrice,
-                session.getNumberOfTravelers(),
-                session.getStartDate(),
-                session.getEndDate());
+        BigDecimal budget = session.getBudget();
+        BigDecimal remaining = budget == null ? null : budget.subtract(totalPrice);
+
+        List<SuggestionDTO> suggestions = voteSuggestionsService.buildSuggestions(session);
+
+        return new VoteResultResponse(result, suggestions, session.getNumberOfTravelers(),
+                totalPrice, budget, remaining);
     }
 
     @Transactional
