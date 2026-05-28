@@ -24,8 +24,8 @@ import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
 import com.myhive.backend.model.VoteSessionStatus;
-import com.myhive.backend.repository.ActivityLikeCount;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.ActivityVoteCount;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.QuizAnswerRepository;
@@ -48,14 +48,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -65,8 +64,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional(readOnly = true)
 public class VoteSessionService {
-
-    private static final int ACTIVITY_BUDGET_MINUTES_PER_DAY = 480;
 
     private final VoteSessionRepository voteSessionRepository;
     private final VoteActivityLikeRepository voteActivityLikeRepository;
@@ -402,30 +399,50 @@ public class VoteSessionService {
         session = voteSessionRepository.findById(session.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vote session not found"));
 
-        long tripDays = ChronoUnit.DAYS.between(session.getStartDate(), session.getEndDate()) + 1;
-        int budgetMinutes = (int) (tripDays * ACTIVITY_BUDGET_MINUTES_PER_DAY);
+        List<VoteSessionActivity> curated =
+                voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
+        if (curated.isEmpty()) {
+            // Legacy session pre-Plan-2: no curated list to resolve against.
+            session.setStatus(VoteSessionStatus.COMPLETED);
+            voteSessionRepository.save(session);
+            return;
+        }
 
-        List<ActivityLikeCount> likedRows =
-                voteActivityLikeRepository.findLikedActivitiesWithCounts(session.getId());
+        Map<UUID, ActivityVoteCount> counts =
+                voteActivityLikeRepository.findVoteCountsBySessionId(session.getId()).stream()
+                        .collect(Collectors.toMap(ActivityVoteCount::getActivityId, c -> c));
 
-        int remaining = budgetMinutes;
+        record Ranked(VoteSessionActivity row, long score, int featuredWeight) {}
+
+        List<Ranked> ranked = curated.stream()
+                .map(row -> {
+                    ActivityVoteCount c = counts.get(row.getActivity().getId());
+                    long like = c == null ? 0 : c.getLikeCount();
+                    long skip = c == null ? 0 : c.getSkipCount();
+                    return new Ranked(row, like - skip, row.getActivity().getFeaturedWeight());
+                })
+                .filter(r -> r.score() > 0)
+                .sorted(Comparator
+                        .comparingLong(Ranked::score).reversed()
+                        .thenComparing(Comparator.comparingInt(Ranked::featuredWeight).reversed())
+                        .thenComparing(r -> r.row().getActivity().getId()))
+                .toList();
+
+        BigDecimal travelers = BigDecimal.valueOf(session.getNumberOfTravelers());
+        BigDecimal budget = session.getBudget();
+        BigDecimal running = BigDecimal.ZERO;
         int sortOrder = 0;
-
-        for (ActivityLikeCount row : likedRows) {
-            Integer duration = row.getDuration();
-            if (duration == null || duration > remaining) {
-                continue;
+        for (Ranked r : ranked) {
+            BigDecimal groupCost = r.row().getPrice().multiply(travelers);
+            if (budget != null && running.add(groupCost).compareTo(budget) > 0) {
+                continue;   // skip-and-continue
             }
-            Optional<Activity> activityOpt = activityRepository.findById(row.getActivityId());
-            if (activityOpt.isEmpty()) {
-                continue;
-            }
-            VoteSessionResultActivity result = new VoteSessionResultActivity();
-            result.setSession(session);
-            result.setActivity(activityOpt.get());
-            result.setSortOrder(sortOrder++);
-            resultActivityRepository.save(result);
-            remaining -= duration;
+            VoteSessionResultActivity resultRow = new VoteSessionResultActivity();
+            resultRow.setSession(session);
+            resultRow.setActivity(r.row().getActivity());
+            resultRow.setSortOrder(sortOrder++);
+            resultActivityRepository.save(resultRow);
+            running = running.add(groupCost);
         }
 
         session.setStatus(VoteSessionStatus.COMPLETED);
