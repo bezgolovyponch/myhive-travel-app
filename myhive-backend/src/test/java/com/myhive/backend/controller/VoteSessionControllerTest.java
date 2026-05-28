@@ -73,9 +73,10 @@ class VoteSessionControllerTest {
                     "numberOfTravelers": 2,
                     "startDate": "2026-07-01",
                     "endDate": "2026-07-07",
-                    "likedCategoryIds": ["%s"]
+                    "voterToken": "%s",
+                    "activityIds": ["%s"]
                 }
-                """.formatted(UUID.randomUUID(), UUID.randomUUID());
+                """.formatted(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
         mockMvc.perform(post("/vote/sessions")
                         .contentType(MediaType.APPLICATION_JSON)

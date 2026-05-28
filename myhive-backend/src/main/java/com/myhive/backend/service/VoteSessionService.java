@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.QuizResponseDTO;
 import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
@@ -9,8 +10,12 @@ import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.QuizAnswer;
+import com.myhive.backend.entity.QuizQuestion;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.entity.VoteSessionActivity;
+import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
@@ -21,7 +26,11 @@ import com.myhive.backend.repository.ActivityLikeCount;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.QuizAnswerRepository;
+import com.myhive.backend.repository.QuizQuestionRepository;
 import com.myhive.backend.repository.VoteActivityLikeRepository;
+import com.myhive.backend.repository.VoteSessionActivityRepository;
+import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import com.myhive.backend.repository.VoteSessionResultActivityRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +46,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +71,11 @@ public class VoteSessionService {
     private final CategoryRepository categoryRepository;
     private final ActivityRepository activityRepository;
     private final EmailService emailService;
+    private final QuizService quizService;
+    private final QuizQuestionRepository quizQuestionRepository;
+    private final QuizAnswerRepository quizAnswerRepository;
+    private final VoteSessionActivityRepository voteSessionActivityRepository;
+    private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
 
     @Value("${app.email.enabled:false}")
     private boolean emailEnabled;
@@ -76,18 +92,14 @@ public class VoteSessionService {
             throw new BadRequestException("endDate must be on or after startDate");
         }
 
-        Set<UUID> destinationCategoryIds = resolveDestinationCategoryIds(destination);
+        List<QuizResponseDTO> quizResponses = request.getQuizResponses() == null
+                ? List.of() : request.getQuizResponses();
+        validateQuizResponses(destination, quizResponses);
 
-        boolean allValid = request.getLikedCategoryIds().stream()
-                .allMatch(destinationCategoryIds::contains);
-        if (!allValid) {
-            throw new BadRequestException("Some categories do not belong to this destination");
-        }
+        List<UUID> organizerCats = computeOrganizerCategories(destination, quizResponses);
 
-        Set<Category> likedCategories = request.getLikedCategoryIds().stream()
-                .map(id -> categoryRepository.findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id)))
-                .collect(Collectors.toSet());
+        Map<UUID, Activity> activitiesById = loadAndValidateCuratedActivities(
+                destination, organizerCats, request.getActivityIds());
 
         VoteSession session = new VoteSession();
         session.setShareToken(UUID.randomUUID());
@@ -99,12 +111,106 @@ public class VoteSessionService {
         session.setEndDate(request.getEndDate());
         session.setStatus(VoteSessionStatus.ACTIVE);
         session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
-        session.setLikedCategories(likedCategories);
-
+        session.setBudget(request.getBudget());
         session = voteSessionRepository.save(session);
+
+        int sortOrder = 0;
+        for (UUID activityId : request.getActivityIds()) {
+            Activity activity = activitiesById.get(activityId);
+            VoteSessionActivity row = new VoteSessionActivity();
+            row.setSession(session);
+            row.setActivity(activity);
+            row.setActivityName(activity.getName());
+            row.setPrice(activity.getPrice());
+            row.setSortOrder(sortOrder++);
+            voteSessionActivityRepository.save(row);
+        }
+
+        for (QuizResponseDTO response : quizResponses) {
+            QuizQuestion question = quizQuestionRepository.findById(response.getQuestionId()).orElseThrow();
+            QuizAnswer answer = quizAnswerRepository.findById(response.getAnswerId()).orElseThrow();
+            VoteSessionQuizResponse row = new VoteSessionQuizResponse();
+            row.setSession(session);
+            row.setVoterToken(request.getVoterToken());
+            row.setQuestion(question);
+            row.setAnswer(answer);
+            voteSessionQuizResponseRepository.save(row);
+        }
+
         long participantCount = voteActivityLikeRepository
                 .countDistinctVoterTokensBySessionId(session.getId());
         return toResponse(session, participantCount, session.getManagerToken());
+    }
+
+    private void validateQuizResponses(Destination destination, List<QuizResponseDTO> responses) {
+        if (responses.isEmpty()) {
+            return;
+        }
+        List<QuizQuestion> destinationQuiz =
+                quizQuestionRepository.findByDestinationIdOrderBySortOrder(destination.getId());
+        Set<UUID> destinationQuestionIds = destinationQuiz.stream()
+                .map(QuizQuestion::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        Set<UUID> seenQuestions = new HashSet<>();
+        for (QuizResponseDTO response : responses) {
+            if (!destinationQuestionIds.contains(response.getQuestionId())) {
+                throw new BadRequestException(
+                        "questionId " + response.getQuestionId() + " is not part of this destination's quiz");
+            }
+            if (!seenQuestions.add(response.getQuestionId())) {
+                throw new BadRequestException(
+                        "two responses provided for questionId " + response.getQuestionId());
+            }
+            QuizAnswer answer = quizAnswerRepository.findById(response.getAnswerId())
+                    .orElseThrow(() -> new BadRequestException(
+                            "answerId " + response.getAnswerId() + " does not exist"));
+            if (!answer.getQuestion().getId().equals(response.getQuestionId())) {
+                throw new BadRequestException(
+                        "answerId " + response.getAnswerId() + " does not belong to questionId " + response.getQuestionId());
+            }
+        }
+        if (!destinationQuiz.isEmpty() && seenQuestions.size() != destinationQuestionIds.size()) {
+            throw new BadRequestException("quizResponses is incomplete — every destination question must be answered");
+        }
+    }
+
+    private List<UUID> computeOrganizerCategories(Destination destination, List<QuizResponseDTO> responses) {
+        List<UUID> answerIds = responses.stream().map(QuizResponseDTO::getAnswerId).toList();
+        List<UUID> snapshot = quizService.snapshot(answerIds);
+        if (!snapshot.isEmpty()) {
+            return snapshot;
+        }
+        return destination.getCategories().stream()
+                .filter(Category::isVotable)
+                .map(Category::getId)
+                .toList();
+    }
+
+    private Map<UUID, Activity> loadAndValidateCuratedActivities(Destination destination,
+                                                                 List<UUID> organizerCats,
+                                                                 List<UUID> activityIds) {
+        Set<UUID> organizerCatSet = new HashSet<>(organizerCats);
+        Map<UUID, Activity> byId = activityRepository.findAllById(activityIds).stream()
+                .collect(Collectors.toMap(Activity::getId, a -> a));
+        for (UUID id : activityIds) {
+            Activity activity = byId.get(id);
+            if (activity == null) {
+                throw new BadRequestException("activityId " + id + " does not exist");
+            }
+            if (!activity.getDestination().getId().equals(destination.getId())) {
+                throw new BadRequestException(
+                        "activityId " + id + " does not belong to destination " + destination.getId());
+            }
+            boolean hasEligibleCategory = activity.getCategories().stream()
+                    .map(Category::getId)
+                    .anyMatch(organizerCatSet::contains);
+            if (!hasEligibleCategory) {
+                throw new BadRequestException(
+                        "activityId " + id + " is not in any of the organizer's quiz categories");
+            }
+        }
+        return byId;
     }
 
     public VoteSessionResponse getSession(UUID shareToken) {
