@@ -1,89 +1,3 @@
-.curate-page {
-  max-width: 1100px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-}
-
-.curate-subtitle {
-  color: #666;
-  margin-bottom: 1.5rem;
-}
-
-.curate-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.curate-card {
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fff;
-  transition: border-color 0.15s;
-}
-
-.curate-card.picked {
-  border-color: #f39c12;
-  background: #fff8e1;
-}
-
-.curate-card-image {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-}
-
-.curate-card-body {
-  padding: 1rem;
-}
-
-.curate-card-price {
-  color: #444;
-  font-weight: 600;
-}
-
-.curate-card-cats {
-  font-size: 0.85rem;
-  color: #888;
-}
-
-.curate-card-btn {
-  width: 100%;
-  padding: 0.5rem;
-  margin-top: 0.75rem;
-  border: 1px solid #ccc;
-  background: #fafafa;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.curate-card.picked .curate-card-btn {
-  background: #f39c12;
-  color: #fff;
-  border-color: #f39c12;
-}
-
-.curate-create-btn {
-  display: block;
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 1rem;
-  font-size: 1.1rem;
-  background: #2ecc71;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.curate-create-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
 .curate-page-loading,
 .curate-page-empty,
 .curate-page-error {
@@ -94,4 +8,71 @@
 
 .curate-page-error {
   color: #c0392b;
+}
+
+.curate-finalize {
+  max-width: 640px;
+  margin: 3rem auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.curate-finalize h2 {
+  margin-bottom: 1rem;
+}
+
+.curate-finalize-empty {
+  color: #888;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.curate-finalize-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+  text-align: left;
+}
+
+.curate-finalize-list li {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.curate-finalize-list li:last-child {
+  border-bottom: none;
+}
+
+.curate-finalize-error {
+  color: #c0392b;
+  margin-bottom: 1rem;
+}
+
+.curate-finalize-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.curate-finalize-reset {
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.curate-finalize-create {
+  padding: 0.75rem 1.5rem;
+  background: #2ecc71;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.curate-finalize-create:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }

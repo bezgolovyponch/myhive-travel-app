@@ -27,7 +27,7 @@ function renderWith(state) {
   );
 }
 
-test('picks an activity and creates a session', async () => {
+test('swipe-right one card, swipe-left one card, then create session', async () => {
   voteApi.buildPool.mockResolvedValue({
     pool: [
       { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, categories: ['Extreme'] },
@@ -38,13 +38,16 @@ test('picks an activity and creates a session', async () => {
 
   renderWith({ setup, responses: [] });
 
-  expect(await screen.findByText('Tank Driving')).toBeInTheDocument();
+  // SwipeCard renders Like (heart) and Dislike (cross) buttons via aria-label.
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
 
-  // Click 'Add' on the first card
-  await userEvent.click(screen.getAllByRole('button', { name: 'Add' })[0]);
-  expect(screen.getByText('Selected: 1')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));      // include act1
+  await userEvent.click(screen.getByLabelText('Dislike'));   // skip act2
 
-  await userEvent.click(screen.getByRole('button', { name: 'Create & get link' }));
+  expect(await screen.findByText(/Your voting list/i)).toBeInTheDocument();
+  expect(screen.getByText(/Tank Driving/)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: /Create & get link/i }));
 
   await waitFor(() => expect(voteApi.createSession).toHaveBeenCalled());
   const arg = voteApi.createSession.mock.calls[0][0];
@@ -53,7 +56,27 @@ test('picks an activity and creates a session', async () => {
   expect(await screen.findByText('waiting page')).toBeInTheDocument();
 });
 
-test('no setup state → redirects home', async () => {
+test('start over resets the picked list', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, categories: [] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));
+
+  expect(await screen.findByText(/Your voting list \(1\)/i)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: /Start over/i }));
+
+  // Back to the swipe UI
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+});
+
+test('no setup state redirects home', async () => {
   render(
     <MemoryRouter initialEntries={['/vote/new/curate']}>
       <Routes>

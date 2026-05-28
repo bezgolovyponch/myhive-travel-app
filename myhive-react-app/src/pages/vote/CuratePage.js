@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
+import SwipeCard from '../../components/SwipeCard';
 import './CuratePage.css';
 
 export default function CuratePage() {
@@ -11,9 +12,10 @@ export default function CuratePage() {
   const responses = location.state?.responses ?? [];
 
   const [pool, setPool] = useState(null);
-  const [picked, setPicked] = useState(new Set());
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const pickedRef = useRef([]);
 
   useEffect(() => {
     if (!setup) {
@@ -27,9 +29,12 @@ export default function CuratePage() {
           destinationId: setup.destination.id,
           responses,
         });
-        if (!cancelled) {
-          setPool(data.pool || []);
+        if (cancelled) {
+          return;
         }
+        // SwipeCard expects card.id; the pool DTO ships activityId. Remap.
+        const mapped = (data.pool || []).map(a => ({ ...a, id: a.activityId }));
+        setPool(mapped);
       } catch (e) {
         if (!cancelled) {
           setError(e.message);
@@ -42,18 +47,21 @@ export default function CuratePage() {
     };
   }, [setup, responses, navigate]);
 
-  const togglePick = (id) => {
-    const next = new Set(picked);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
+  const handleSwipe = (direction, activityId) => {
+    if (direction === 'right') {
+      pickedRef.current = [...pickedRef.current, activityId];
     }
-    setPicked(next);
+    setCurrentIndex(prev => prev + 1);
+  };
+
+  const handleStartOver = () => {
+    pickedRef.current = [];
+    setCurrentIndex(0);
+    setError(null);
   };
 
   const handleCreate = async () => {
-    if (picked.size === 0 || submitting) {
+    if (pickedRef.current.length === 0 || submitting) {
       return;
     }
     setSubmitting(true);
@@ -68,7 +76,7 @@ export default function CuratePage() {
         budget: setup.budget,
         voterToken: getOrCreateVoterToken(),
         quizResponses: responses,
-        activityIds: Array.from(picked),
+        activityIds: pickedRef.current,
       });
       navigate(`/vote/${session.shareToken}/waiting`, {
         state: { managerToken: session.managerToken },
@@ -79,7 +87,7 @@ export default function CuratePage() {
     }
   };
 
-  if (error) {
+  if (error && !pool) {
     return <div className="curate-page-error">{error}</div>;
   }
   if (!pool) {
@@ -89,39 +97,51 @@ export default function CuratePage() {
     return <div className="curate-page-empty">No activities match your quiz. Try a different destination.</div>;
   }
 
-  return (
-    <div className="curate-page">
-      <h1>Pick activities for the vote</h1>
-      <p className="curate-subtitle">Selected: {picked.size}</p>
-      <div className="curate-grid">
-        {pool.map(a => (
-          <div key={a.activityId} className={`curate-card ${picked.has(a.activityId) ? 'picked' : ''}`}>
-            {a.imageUrl && <img src={a.imageUrl} alt={a.name} className="curate-card-image" />}
-            <div className="curate-card-body">
-              <h3>{a.name}</h3>
-              <p className="curate-card-price">{a.price} per person</p>
-              {a.categories && a.categories.length > 0 && (
-                <p className="curate-card-cats">{a.categories.join(' · ')}</p>
-              )}
-              <button
-                type="button"
-                className="curate-card-btn"
-                onClick={() => togglePick(a.activityId)}
-              >
-                {picked.has(a.activityId) ? 'Remove' : 'Add'}
-              </button>
-            </div>
-          </div>
-        ))}
+  // Finalize step — all cards have been swiped.
+  if (currentIndex >= pool.length) {
+    const pickedActivities = pool.filter(a => pickedRef.current.includes(a.id));
+    return (
+      <div className="curate-finalize">
+        <h2>Your voting list ({pickedActivities.length})</h2>
+        {pickedActivities.length === 0 ? (
+          <p className="curate-finalize-empty">
+            You didn&apos;t pick anything. Start over and swipe right on what the group should vote on.
+          </p>
+        ) : (
+          <ul className="curate-finalize-list">
+            {pickedActivities.map(a => (
+              <li key={a.id}>
+                {a.name} — €{a.price}/person
+              </li>
+            ))}
+          </ul>
+        )}
+        {error && <p className="curate-finalize-error">{error}</p>}
+        <div className="curate-finalize-actions">
+          <button type="button" className="curate-finalize-reset" onClick={handleStartOver}>
+            Start over
+          </button>
+          <button
+            type="button"
+            className="curate-finalize-create"
+            disabled={pickedActivities.length === 0 || submitting}
+            onClick={handleCreate}
+          >
+            {submitting ? 'Creating…' : 'Create & get link'}
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        className="curate-create-btn"
-        disabled={picked.size === 0 || submitting}
-        onClick={handleCreate}
-      >
-        {submitting ? 'Creating…' : 'Create & get link'}
-      </button>
-    </div>
+    );
+  }
+
+  return (
+    <SwipeCard
+      cards={pool}
+      currentIndex={currentIndex}
+      onSwipe={handleSwipe}
+      title="Pick activities for the group to vote on"
+      subtitle="Swipe right to include, left to skip"
+      getCardLink={null}
+    />
   );
 }
