@@ -39,6 +39,8 @@ public class ActivityDTO {
 
     private Integer duration;
 
+    private Integer featuredWeight;
+
     private List<CategoryDTO> categories = new ArrayList<>();
 
     private List<UUID> categoryIds = new ArrayList<>();

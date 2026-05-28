@@ -153,6 +153,7 @@ public class ActivityService {
         activity.setDuration(dto.getDuration());
         activity.setImageUrl(dto.getImageUrl());
         activity.setIncludes(dto.getIncludes());
+        activity.setFeaturedWeight(dto.getFeaturedWeight() == null ? 0 : dto.getFeaturedWeight());
         activity.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
     }
 
@@ -169,6 +170,7 @@ public class ActivityService {
         dto.setDuration(activity.getDuration());
         dto.setImageUrl(activity.getImageUrl());
         dto.setIncludes(activity.getIncludes());
+        dto.setFeaturedWeight(activity.getFeaturedWeight());
 
         List<CategoryDTO> categoryDtos = CategoryResolver.toDTOs(activity.getCategories());
         dto.setCategories(categoryDtos);

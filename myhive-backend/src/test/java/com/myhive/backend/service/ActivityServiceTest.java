@@ -14,10 +14,12 @@ import com.myhive.backend.repository.VoteSessionActivityRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -282,6 +284,61 @@ class ActivityServiceTest {
         assertThatThrownBy(() -> activityService.createActivity(dto))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Category");
+    }
+
+    @Test
+    void getActivityById_includesFeaturedWeight() {
+        UUID activityId = UUID.randomUUID();
+        int expectedWeight = 7;
+
+        Destination dest = new Destination();
+        dest.setId(UUID.randomUUID());
+
+        Activity act = new Activity();
+        act.setId(activityId);
+        act.setName("Tank Driving");
+        act.setPrice(new BigDecimal("150"));
+        act.setDestination(dest);
+        act.setFeaturedWeight(expectedWeight);
+        act.setCategories(new java.util.HashSet<>());
+
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(act));
+
+        ActivityDTO dto = activityService.getActivityById(activityId);
+
+        assertThat(dto.getFeaturedWeight()).isEqualTo(expectedWeight);
+    }
+
+    @Test
+    void updateActivity_persistsFeaturedWeight() {
+        UUID activityId = UUID.randomUUID();
+        int expectedWeight = 5;
+
+        Destination dest = new Destination();
+        dest.setId(UUID.randomUUID());
+
+        Activity existing = new Activity();
+        existing.setId(activityId);
+        existing.setDestination(dest);
+        existing.setName("Old");
+        existing.setPrice(new BigDecimal("100"));
+        existing.setFeaturedWeight(0);
+        existing.setCategories(new java.util.HashSet<>());
+
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(i -> i.getArgument(0));
+
+        ActivityDTO input = new ActivityDTO();
+        input.setName("Old");
+        input.setPrice(new BigDecimal("100"));
+        input.setDestinationId(dest.getId());
+        input.setFeaturedWeight(expectedWeight);
+
+        activityService.updateActivity(activityId, input);
+
+        ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
+        verify(activityRepository).save(captor.capture());
+        assertThat(captor.getValue().getFeaturedWeight()).isEqualTo(expectedWeight);
     }
 
     @Test
