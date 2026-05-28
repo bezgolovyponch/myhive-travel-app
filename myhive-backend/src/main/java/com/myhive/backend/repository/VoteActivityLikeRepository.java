@@ -27,4 +27,14 @@ public interface VoteActivityLikeRepository extends JpaRepository<VoteActivityLi
             ORDER BY likeCount DESC
             """)
     List<ActivityLikeCount> findLikedActivitiesWithCounts(@Param("sessionId") UUID sessionId);
+
+    @Query("""
+            SELECT l.activity.id AS activityId,
+                   SUM(CASE WHEN l.liked = true THEN 1 ELSE 0 END) AS likeCount,
+                   SUM(CASE WHEN l.liked = false THEN 1 ELSE 0 END) AS skipCount
+            FROM VoteActivityLike l
+            WHERE l.session.id = :sessionId
+            GROUP BY l.activity.id
+            """)
+    List<ActivityVoteCount> findVoteCountsBySessionId(@Param("sessionId") UUID sessionId);
 }
