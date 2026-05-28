@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {truncateText} from '../utils/format';
 import {useAdminCrud} from '../hooks/useAdminCrud';
@@ -7,6 +7,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
 import api from '../services/api';
 import {useAdminApi} from '../hooks/useAdminApi';
+import AdminDestinationQuiz from './admin/AdminDestinationQuiz';
 
 const EMPTY_FORM = {
     name: '',
@@ -30,6 +31,7 @@ const COLUMNS = [
 function AdminDestinations() {
     const [allCategories, setAllCategories] = useState([]);
     const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+    const [quizDestinationId, setQuizDestinationId] = useState(null);
     const selectedCategoryIdsRef = useRef([]);
     const categoriesAdminApi = useAdminApi();
 
@@ -131,48 +133,63 @@ function AdminDestinations() {
                         onPageChange={setPage}
                         emptyMessage="No destinations found."
                         renderRow={(destination) => (
-                            <tr key={destination.id}>
-                                <td>
-                                    <div className="d-flex align-items-center gap-2">
-                                        {destination.imageUrl && (
-                                            <img
-                                                src={destination.imageUrl}
-                                                alt={destination.name}
-                                                style={{width: 40, height: 40, borderRadius: 6, objectFit: 'cover'}}
-                                            />
-                                        )}
-                                        <div>
-                                            <div className="small fw-semibold">{destination.name}</div>
-                                            {destination.description && (
-                                                <div className="text-muted" style={{fontSize: '0.75rem'}}>
-                                                    {truncateText(destination.description)}
-                                                </div>
+                            <Fragment key={destination.id}>
+                                <tr>
+                                    <td>
+                                        <div className="d-flex align-items-center gap-2">
+                                            {destination.imageUrl && (
+                                                <img
+                                                    src={destination.imageUrl}
+                                                    alt={destination.name}
+                                                    style={{width: 40, height: 40, borderRadius: 6, objectFit: 'cover'}}
+                                                />
                                             )}
+                                            <div>
+                                                <div className="small fw-semibold">{destination.name}</div>
+                                                {destination.description && (
+                                                    <div className="text-muted" style={{fontSize: '0.75rem'}}>
+                                                        {truncateText(destination.description)}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td className="small text-muted">{destination.slug || '—'}</td>
-                                <td className="small">{destination.country || '—'}</td>
-                                <td className="small">{destination.city || '—'}</td>
-                                <td>
-                                    {destination.rating ? (
-                                        <Badge bg="light" text="dark" className="border">
-                                            {destination.rating}
-                                        </Badge>
-                                    ) : '—'}
-                                </td>
-                                <td className="small">{destination.activityCount}</td>
-                                <td className="text-end">
-                                    <Button variant="outline-primary" size="sm" className="me-1"
-                                            onClick={() => openEdit(destination)}>
-                                        Edit
-                                    </Button>
-                                    <Button variant="outline-danger" size="sm"
-                                            onClick={() => setDeleteId(destination.id)}>
-                                        Delete
-                                    </Button>
-                                </td>
-                            </tr>
+                                    </td>
+                                    <td className="small text-muted">{destination.slug || '—'}</td>
+                                    <td className="small">{destination.country || '—'}</td>
+                                    <td className="small">{destination.city || '—'}</td>
+                                    <td>
+                                        {destination.rating ? (
+                                            <Badge bg="light" text="dark" className="border">
+                                                {destination.rating}
+                                            </Badge>
+                                        ) : '—'}
+                                    </td>
+                                    <td className="small">{destination.activityCount}</td>
+                                    <td className="text-end">
+                                        <Button variant="outline-primary" size="sm" className="me-1"
+                                                onClick={() => openEdit(destination)}>
+                                            Edit
+                                        </Button>
+                                        <Button variant="outline-secondary" size="sm" className="me-1"
+                                                onClick={() => setQuizDestinationId(
+                                                    quizDestinationId === destination.id ? null : destination.id
+                                                )}>
+                                            {quizDestinationId === destination.id ? 'Hide quiz' : 'Edit quiz'}
+                                        </Button>
+                                        <Button variant="outline-danger" size="sm"
+                                                onClick={() => setDeleteId(destination.id)}>
+                                            Delete
+                                        </Button>
+                                    </td>
+                                </tr>
+                                {quizDestinationId === destination.id && (
+                                    <tr>
+                                        <td colSpan={COLUMNS.length + 1} style={{padding: 0, background: '#f8f9fa'}}>
+                                            <AdminDestinationQuiz destinationId={destination.id}/>
+                                        </td>
+                                    </tr>
+                                )}
+                            </Fragment>
                         )}
                     />
                 </Card.Body>

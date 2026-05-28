@@ -340,6 +340,25 @@ export function createAdminApi(getAccessToken) {
             await handleError(response, 'Failed to update destination categories');
         },
 
+        async getDestinationQuiz(destinationId) {
+            const response = await fetch(`${API_BASE_URL}/admin/destinations/${destinationId}/quiz`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch quiz');
+            return response.json();
+        },
+
+        async putDestinationQuiz(destinationId, quizDto) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/destinations/${destinationId}/quiz`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(quizDto),
+            });
+            await handleError(response, 'Failed to save quiz');
+            return response.json();
+        },
+
         async getPackages() {
             const response = await fetch(`${API_BASE_URL}/admin/packages`, {
                 headers: await authHeaders(),
