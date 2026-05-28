@@ -1,13 +1,40 @@
 import { API_BASE_URL } from './config';
 
 const voteApi = {
-  async createSession({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, likedCategoryIds }) {
+  // Public quiz fetch (organizer pre-session, by destinationId)
+  async getPublicQuizForDestination(destinationId) {
+    const response = await fetch(`${API_BASE_URL}/vote/destinations/${destinationId}/quiz`);
+    if (response.status === 404) return { questions: [] };
+    if (!response.ok) throw new Error('Failed to fetch quiz');
+    return response.json();
+  },
+
+  // Build the pool (stateless, pre-session)
+  async buildPool({ destinationId, responses }) {
+    const response = await fetch(`${API_BASE_URL}/vote/pool`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinationId, responses }),
+    });
+    if (!response.ok) throw new Error('Failed to build pool');
+    return response.json();
+  },
+
+  // Atomic session creation
+  async createSession({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
+                        budget, voterToken, quizResponses, activityIds }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, likedCategoryIds }),
+      body: JSON.stringify({
+        destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
+        budget, voterToken, quizResponses, activityIds,
+      }),
     });
-    if (!response.ok) throw new Error('Failed to create vote session');
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.message || 'Failed to create vote session');
+    }
     return response.json();
   },
 
@@ -17,10 +44,28 @@ const voteApi = {
     return response.json();
   },
 
+  // Curated voting list (same URL as before — backend now serves curated for new sessions)
   async getActivities(shareToken) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/activities`);
     if (!response.ok) throw new Error('Failed to fetch vote activities');
     return response.json();
+  },
+
+  // Participant quiz
+  async getParticipantQuiz(shareToken) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/quiz`);
+    if (!response.ok) throw new Error('Failed to fetch participant quiz');
+    return response.json();
+  },
+
+  async submitParticipantQuiz(shareToken, { voterToken, responses }) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/quiz`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterToken, responses }),
+    });
+    if (response.status === 409) throw new Error('Quiz already submitted');
+    if (!response.ok) throw new Error('Failed to submit quiz');
   },
 
   async castVote(shareToken, { voterToken, activityId, liked }) {
