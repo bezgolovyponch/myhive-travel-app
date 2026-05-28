@@ -1,5 +1,7 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.ParticipantQuizSubmissionRequest;
+import com.myhive.backend.dto.PublicQuizDTO;
 import com.myhive.backend.dto.QuizResponseDTO;
 import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
@@ -36,9 +38,11 @@ import com.myhive.backend.repository.VoteSessionResultActivityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -241,6 +245,40 @@ public class VoteSessionService {
         return activities.stream()
                 .map(activity -> toActivityResponse(activity, destinationSlug))
                 .toList();
+    }
+
+    public PublicQuizDTO getParticipantQuiz(UUID shareToken) {
+        VoteSession session = findByShareToken(shareToken);
+        return quizService.getPublicQuiz(session.getDestination().getId());
+    }
+
+    @Transactional
+    public void submitParticipantQuiz(UUID shareToken, ParticipantQuizSubmissionRequest request) {
+        VoteSession session = findByShareToken(shareToken);
+        if (session.getStatus() != VoteSessionStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Session is no longer active");
+        }
+
+        List<QuizResponseDTO> responses = request.getResponses() == null ? List.of() : request.getResponses();
+        validateQuizResponses(session.getDestination(), responses);
+
+        boolean alreadySubmitted = voteSessionQuizResponseRepository
+                .findBySessionId(session.getId()).stream()
+                .anyMatch(r -> r.getVoterToken().equals(request.getVoterToken()));
+        if (alreadySubmitted) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Quiz already submitted for this voter");
+        }
+
+        for (QuizResponseDTO response : responses) {
+            QuizQuestion question = quizQuestionRepository.findById(response.getQuestionId()).orElseThrow();
+            QuizAnswer answer = quizAnswerRepository.findById(response.getAnswerId()).orElseThrow();
+            VoteSessionQuizResponse row = new VoteSessionQuizResponse();
+            row.setSession(session);
+            row.setVoterToken(request.getVoterToken());
+            row.setQuestion(question);
+            row.setAnswer(answer);
+            voteSessionQuizResponseRepository.save(row);
+        }
     }
 
     @Transactional
