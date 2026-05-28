@@ -14,6 +14,7 @@ const EMPTY_FORM = {
     description: '',
     price: '',
     duration: '',
+    featuredWeight: 0,
     categoryIds: [],
     imageUrl: '',
     includes: '',
@@ -27,6 +28,7 @@ const COLUMNS = [
     {key: 'categories', label: 'Categories'},
     {key: 'price', label: 'Price'},
     {key: 'duration', label: 'Duration'},
+    {key: 'featuredWeight', label: 'Weight'},
 ];
 
 function AdminActivities() {
@@ -57,6 +59,7 @@ function AdminActivities() {
             description: a.description || '',
             price: a.price ?? '',
             duration: a.duration ?? '',
+            featuredWeight: a.featuredWeight ?? 0,
             categoryIds: a.categoryIds || (a.categories || []).map(c => c.id),
             imageUrl: a.imageUrl || '',
             includes: a.includes || '',
@@ -66,6 +69,8 @@ function AdminActivities() {
             ...form,
             price: form.price !== '' ? Number(form.price) : null,
             duration: form.duration !== '' ? Number(form.duration) : null,
+            featuredWeight: form.featuredWeight !== '' && form.featuredWeight !== null
+                ? Number(form.featuredWeight) : 0,
         }),
     });
 
@@ -189,6 +194,7 @@ function AdminActivities() {
                                 <td className="small">
                                     {activity.duration ? `${activity.duration} min` : '—'}
                                 </td>
+                                <td className="small">{activity.featuredWeight ?? 0}</td>
                                 <td className="text-end">
                                     <Button variant="outline-primary" size="sm" className="me-1"
                                             onClick={() => openEdit(activity)}>
@@ -274,6 +280,16 @@ function AdminActivities() {
                                 />
                             </Col>
                         </Row>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="small fw-semibold text-white">Featured weight</Form.Label>
+                            <Form.Control
+                                type="number"
+                                min="0"
+                                value={form.featuredWeight}
+                                onChange={e => setForm({...form, featuredWeight: e.target.value})}
+                                placeholder="0"
+                            />
+                        </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Categories</Form.Label>
                             <div className="border rounded p-2 d-flex flex-column gap-1"
