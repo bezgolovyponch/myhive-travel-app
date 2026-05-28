@@ -46,4 +46,18 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
     List<Activity> findPoolCandidates(@Param("destinationId") UUID destinationId,
                                       @Param("categoryIds") Collection<UUID> categoryIds,
                                       Pageable pageable);
+
+    @Query("""
+            SELECT DISTINCT a FROM Activity a
+            JOIN a.categories c
+            WHERE a.destination.id = :destinationId
+              AND c.votable = true
+              AND (:categoryIds IS NULL OR c.id IN :categoryIds)
+              AND a.id NOT IN :excludedActivityIds
+            ORDER BY a.featuredWeight DESC, a.id ASC
+            """)
+    List<Activity> findSuggestionCandidates(@Param("destinationId") UUID destinationId,
+                                            @Param("categoryIds") Collection<UUID> categoryIds,
+                                            @Param("excludedActivityIds") Collection<UUID> excludedActivityIds,
+                                            Pageable pageable);
 }
