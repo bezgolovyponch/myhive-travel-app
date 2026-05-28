@@ -52,78 +52,18 @@ class VoteSessionServiceTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private ActivityRepository activityRepository;
     @Mock private EmailService emailService;
+    @Mock private com.myhive.backend.service.QuizService quizService;
+    @Mock private com.myhive.backend.repository.QuizQuestionRepository quizQuestionRepository;
+    @Mock private com.myhive.backend.repository.QuizAnswerRepository quizAnswerRepository;
+    @Mock private com.myhive.backend.repository.VoteSessionActivityRepository voteSessionActivityRepository;
+    @Mock private com.myhive.backend.repository.VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
 
     @InjectMocks
     private VoteSessionService voteSessionService;
 
-    @Test
-    void createSession_savesSessionAndReturnsShareToken() {
-        UUID destId = UUID.randomUUID();
-        UUID catId = UUID.randomUUID();
-
-        Category category = new Category();
-        category.setId(catId);
-
-        Destination destination = new Destination();
-        destination.setId(destId);
-        destination.setName("Bali");
-        destination.setSlug("bali");
-        destination.setCategories(Set.of(category));
-
-        when(destinationRepository.findById(destId)).thenReturn(Optional.of(destination));
-        when(categoryRepository.findById(catId)).thenReturn(Optional.of(category));
-        when(voteSessionRepository.save(any())).thenAnswer(i -> {
-            VoteSession s = i.getArgument(0);
-            if (s.getManagerToken() == null) {
-                s.setManagerToken(UUID.randomUUID());
-            }
-            return s;
-        });
-        when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(any())).thenReturn(0L);
-
-        VoteSessionCreateRequest request = new VoteSessionCreateRequest();
-        request.setDestinationId(destId);
-        request.setInitiatorEmail("alice@example.com");
-        request.setNumberOfTravelers(3);
-        request.setStartDate(LocalDate.of(2026, 7, 1));
-        request.setEndDate(LocalDate.of(2026, 7, 7));
-        request.setLikedCategoryIds(List.of(catId));
-
-        VoteSessionResponse response = voteSessionService.createSession(request);
-
-        ArgumentCaptor<VoteSession> captor = ArgumentCaptor.forClass(VoteSession.class);
-        verify(voteSessionRepository).save(captor.capture());
-        VoteSession saved = captor.getValue();
-
-        assertThat(saved.getInitiatorEmail()).isEqualTo("alice@example.com");
-        assertThat(saved.getStatus()).isEqualTo(VoteSessionStatus.ACTIVE);
-        assertThat(saved.getShareToken()).isNotNull();
-        assertThat(response.getShareToken()).isEqualTo(saved.getShareToken());
-        assertThat(response.getManagerToken()).isNotNull();
-    }
-
-    @Test
-    void createSession_rejectsCategoryNotBelongingToDestination() {
-        UUID destId = UUID.randomUUID();
-        UUID foreignCatId = UUID.randomUUID();
-
-        Destination destination = new Destination();
-        destination.setId(destId);
-        destination.setCategories(Set.of());
-
-        when(destinationRepository.findById(destId)).thenReturn(Optional.of(destination));
-
-        VoteSessionCreateRequest request = new VoteSessionCreateRequest();
-        request.setDestinationId(destId);
-        request.setInitiatorEmail("alice@example.com");
-        request.setNumberOfTravelers(1);
-        request.setStartDate(LocalDate.of(2026, 7, 1));
-        request.setEndDate(LocalDate.of(2026, 7, 3));
-        request.setLikedCategoryIds(List.of(foreignCatId));
-
-        assertThatThrownBy(() -> voteSessionService.createSession(request))
-                .isInstanceOf(BadRequestException.class);
-    }
+    // createSession_savesSessionAndReturnsShareToken and createSession_rejectsCategoryNotBelongingToDestination
+    // were obsoleted by the Plan 2 createSession rewrite. The new flow (curated activityIds + organizer
+    // quizResponses + name/price snapshots) is covered end-to-end in VoteSessionCreateSessionTest.
 
     @Test
     void createSession_rejectsEndDateBeforeStartDate() {
@@ -333,6 +273,8 @@ class VoteSessionServiceTest {
         activity.setDuration(180);
 
         when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        // No curated list → falls back to legacy category-based read.
+        when(voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId())).thenReturn(List.of());
         when(activityRepository.findByDestinationIdAndCategoriesIdIn(eq(destId), any())).thenReturn(List.of(activity));
 
         var result = voteSessionService.getActivities(shareToken);
