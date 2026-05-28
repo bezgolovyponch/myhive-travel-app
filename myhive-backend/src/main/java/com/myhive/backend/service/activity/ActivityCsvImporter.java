@@ -148,6 +148,10 @@ public class ActivityCsvImporter {
             activity.setDuration(v.duration());
             activity.setIncludes(v.includes().isEmpty() ? null : v.includes());
             activity.setCategories(categories);
+            // Optional column: null means "column absent from CSV — do not touch".
+            if (v.featuredWeight() != null) {
+                activity.setFeaturedWeight(v.featuredWeight());
+            }
             activityRepository.save(activity);
             updated++;
         }

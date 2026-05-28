@@ -102,6 +102,12 @@ final class ActivityCsvDiffer {
         if (!Objects.equals(db.getDuration(), v.duration())) {
             changes.put("duration", new ActivityImportPreviewDTO.FieldChange(db.getDuration(), v.duration()));
         }
+        // Optional column: only diff when the CSV provided a value (column present).
+        // Null means the column was absent — leave the DB value alone.
+        if (v.featuredWeight() != null && db.getFeaturedWeight() != v.featuredWeight()) {
+            changes.put("featured_weight", new ActivityImportPreviewDTO.FieldChange(
+                    db.getFeaturedWeight(), v.featuredWeight()));
+        }
         if (!Objects.equals(nullToEmpty(db.getIncludes()), v.includes())) {
             changes.put("includes", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getIncludes()), v.includes()));
         }

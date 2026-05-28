@@ -23,6 +23,10 @@ record RawRow(int csvRowNumber, String[] values, Map<String, Integer> headerInde
         }
         return values[idx] == null ? "" : values[idx].trim();
     }
+
+    boolean hasColumn(String column) {
+        return headerIndex.containsKey(column);
+    }
 }
 
 record ValidatedRow(
@@ -34,6 +38,9 @@ record ValidatedRow(
         Integer duration,
         List<String> categorySlugs,
         String includes,
+        // Optional mutable field: null means "column absent from CSV; do not update".
+        // Non-null means "update featured_weight to this value" (0 when cell is blank).
+        Integer featuredWeight,
         // read-only fields captured for warning comparison:
         String csvSlug,
         String csvDestinationSlug,

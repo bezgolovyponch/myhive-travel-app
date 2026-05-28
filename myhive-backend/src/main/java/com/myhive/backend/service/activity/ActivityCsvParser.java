@@ -31,6 +31,7 @@ final class ActivityCsvParser {
             "id", "slug", "destination_slug", "name", "description",
             "price", "duration", "category_slugs", "image_url", "includes"
     };
+    static final Set<String> OPTIONAL_COLUMNS = Set.of("featured_weight");
 
     record Result(
             List<RawRow> rows,
@@ -77,7 +78,7 @@ final class ActivityCsvParser {
 
             Set<String> requiredSet = Set.of(REQUIRED_COLUMNS);
             List<String> unknown = headerIndex.keySet().stream()
-                    .filter(c -> !requiredSet.contains(c))
+                    .filter(c -> !requiredSet.contains(c) && !OPTIONAL_COLUMNS.contains(c))
                     .toList();
             if (!unknown.isEmpty()) {
                 warnings.add(new ActivityImportPreviewDTO.RowWarning(

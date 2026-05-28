@@ -510,6 +510,108 @@ class ActivityCsvImporterTest {
         verify(activityRepository, times(1)).save(any());
     }
 
+    private String headerWithFeaturedWeight() {
+        return "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes,featured_weight\n";
+    }
+
+    private String rowWithFeaturedWeight(String id, String slug, String destSlug, String name,
+                                         String desc, String price, String duration,
+                                         String categorySlugs, String imageUrl, String includes,
+                                         String featuredWeight) {
+        return id + "," + slug + "," + destSlug + ",\"" + name + "\",\"" + desc + "\",\""
+                + price + "\"," + duration + "," + categorySlugs + ","
+                + imageUrl + ",\"" + includes + "\"," + featuredWeight + "\n";
+    }
+
+    @Test
+    void preview_featuredWeightColumnPresent_producesDiffAndApplySetsValue() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        existing.setFeaturedWeight(0);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String csv = headerWithFeaturedWeight() + rowWithFeaturedWeight(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                existing.getName(), existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes(),
+                "7");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.rowsToUpdate()).isEqualTo(1);
+        ActivityImportPreviewDTO.RowDiff diff = preview.changes().getFirst();
+        assertThat(diff.fieldChanges()).containsKey("featured_weight");
+        assertThat(diff.fieldChanges().get("featured_weight").newValue()).isEqualTo(7);
+
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getFeaturedWeight()).isEqualTo(7);
+    }
+
+    @Test
+    void preview_featuredWeightColumnMissing_leavesFieldUnchanged() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        int originalWeight = 5;
+        existing.setFeaturedWeight(originalWeight);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Legacy CSV: header omits featured_weight entirely. Use a row change (name)
+        // so apply() runs and we can verify featuredWeight is preserved.
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                "Renamed", existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.changes().getFirst().fieldChanges()).doesNotContainKey("featured_weight");
+
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getFeaturedWeight()).isEqualTo(originalWeight);
+    }
+
+    @Test
+    void preview_featuredWeightColumnPresentBlank_setsToZero() {
+        // Mirror the duration convention: when the column is present but blank,
+        // the field is overwritten with the empty-equivalent value. For the
+        // primitive int featuredWeight (default 0), blank → 0.
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        existing.setFeaturedWeight(5);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String csv = headerWithFeaturedWeight() + rowWithFeaturedWeight(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                existing.getName(), existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes(),
+                "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.rowsToUpdate()).isEqualTo(1);
+        assertThat(preview.changes().getFirst().fieldChanges()).containsKey("featured_weight");
+        assertThat(preview.changes().getFirst().fieldChanges().get("featured_weight").newValue()).isEqualTo(0);
+
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getFeaturedWeight()).isZero();
+    }
+
     @Test
     void apply_onlyChangedRowsAreWritten_unchangedRowsAreSkipped() {
         Destination dest = TestDataFactory.destination();

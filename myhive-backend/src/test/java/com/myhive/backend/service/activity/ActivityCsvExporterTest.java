@@ -48,7 +48,22 @@ class ActivityCsvExporterTest {
         assertThat(csv).startsWith("\uFEFF");
         String firstLine = csv.substring(1).split("\r?\n", 2)[0];
         assertThat(firstLine).isEqualTo(
-                "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes");
+                "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes,featured_weight");
+    }
+
+    @Test
+    void export_includesFeaturedWeightColumn() {
+        int expectedWeight = 7;
+        Activity activity = TestDataFactory.activity(destination);
+        activity.setFeaturedWeight(expectedWeight);
+        when(activityRepository.findAll()).thenReturn(List.of(activity));
+
+        String csv = exporter.exportAll();
+
+        assertThat(csv).contains("featured_weight");
+        String dataLine = csv.split("\r?\n")[1];
+        String[] columns = dataLine.split(",", -1);
+        assertThat(columns[columns.length - 1]).isEqualTo(String.valueOf(expectedWeight));
     }
 
     @Test

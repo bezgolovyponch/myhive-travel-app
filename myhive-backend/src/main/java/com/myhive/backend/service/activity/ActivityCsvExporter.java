@@ -24,7 +24,8 @@ public class ActivityCsvExporter {
 
     static final String[] HEADER = {
             "id", "slug", "destination_slug", "name", "description",
-            "price", "duration", "category_slugs", "image_url", "includes"
+            "price", "duration", "category_slugs", "image_url", "includes",
+            "featured_weight"
     };
 
     private static final String BOM = "\uFEFF";
@@ -70,7 +71,8 @@ public class ActivityCsvExporter {
                 a.getDuration() == null ? "" : a.getDuration().toString(),
                 joinCategorySlugs(a),
                 nullSafe(a.getImageUrl()),
-                sanitize(nullSafe(a.getIncludes()))
+                sanitize(nullSafe(a.getIncludes())),
+                String.valueOf(a.getFeaturedWeight())
         };
     }
 

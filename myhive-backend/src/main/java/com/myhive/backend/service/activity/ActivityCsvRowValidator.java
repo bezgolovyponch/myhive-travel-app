@@ -49,12 +49,14 @@ final class ActivityCsvRowValidator {
             BigDecimal price = parsePrice(raw, errors);
             Integer duration = parseDuration(raw, errors);
             List<String> categorySlugs = parseCategories(raw, errors);
+            Integer featuredWeight = parseFeaturedWeight(raw, errors);
 
             if (errors.size() == errorsAtStart) {
                 validated.add(new ValidatedRow(
                         raw.csvRowNumber(),
                         id, name, description, price, duration,
                         categorySlugs, includes,
+                        featuredWeight,
                         raw.get("slug"),
                         raw.get("destination_slug"),
                         raw.get("image_url")
@@ -176,6 +178,41 @@ final class ActivityCsvRowValidator {
             return null;
         }
         return duration;
+    }
+
+    /**
+     * Optional column. Returns:
+     *   - {@code null} if the column is absent from the CSV header → field is NOT updated.
+     *   - {@code 0} if the column is present but the cell is blank → mirrors the duration
+     *     convention of "blank cell = empty/default value"; for the primitive {@code int}
+     *     {@code featuredWeight} (default 0) that is 0.
+     *   - the parsed non-negative integer otherwise.
+     */
+    private Integer parseFeaturedWeight(RawRow raw,
+                                        List<ActivityImportPreviewDTO.RowError> errors) {
+        if (!raw.hasColumn("featured_weight")) {
+            return null;
+        }
+        String rawValue = raw.get("featured_weight");
+        if (rawValue.isEmpty()) {
+            return 0;
+        }
+        int featuredWeight;
+        try {
+            featuredWeight = Integer.parseInt(rawValue);
+        } catch (NumberFormatException e) {
+            errors.add(new ActivityImportPreviewDTO.RowError(
+                    raw.csvRowNumber(), ImportErrorCode.INVALID_INTEGER,
+                    "featured_weight is not an integer: " + rawValue, "featured_weight"));
+            return null;
+        }
+        if (featuredWeight < 0) {
+            errors.add(new ActivityImportPreviewDTO.RowError(
+                    raw.csvRowNumber(), ImportErrorCode.INVALID_INTEGER,
+                    "featured_weight must be non-negative: " + rawValue, "featured_weight"));
+            return null;
+        }
+        return featuredWeight;
     }
 
     private List<String> parseCategories(RawRow raw,
