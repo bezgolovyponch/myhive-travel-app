@@ -1,0 +1,97 @@
+.curate-page {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+}
+
+.curate-subtitle {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.curate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.curate-card {
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.curate-card.picked {
+  border-color: #f39c12;
+  background: #fff8e1;
+}
+
+.curate-card-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.curate-card-body {
+  padding: 1rem;
+}
+
+.curate-card-price {
+  color: #444;
+  font-weight: 600;
+}
+
+.curate-card-cats {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.curate-card-btn {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.75rem;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.curate-card.picked .curate-card-btn {
+  background: #f39c12;
+  color: #fff;
+  border-color: #f39c12;
+}
+
+.curate-create-btn {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 1rem;
+  font-size: 1.1rem;
+  background: #2ecc71;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.curate-create-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.curate-page-loading,
+.curate-page-empty,
+.curate-page-error {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.curate-page-error {
+  color: #c0392b;
+}
