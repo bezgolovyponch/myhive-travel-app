@@ -10,6 +10,7 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.repository.VoteSessionActivityRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,9 @@ class ActivityServiceTest {
 
     @Mock
     private PackageRepository packageRepository;
+
+    @Mock
+    private VoteSessionActivityRepository voteSessionActivityRepository;
 
     @InjectMocks
     private ActivityService activityService;

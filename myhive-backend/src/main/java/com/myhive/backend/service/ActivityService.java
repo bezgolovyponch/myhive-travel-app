@@ -5,11 +5,14 @@ import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ActivityInUseException;
+import com.myhive.backend.exception.ActivityInUseInSessionException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.repository.VoteSessionActivityRepository;
 import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +34,7 @@ public class ActivityService {
     private final DestinationRepository destinationRepository;
     private final CategoryRepository categoryRepository;
     private final PackageRepository packageRepository;
+    private final VoteSessionActivityRepository voteSessionActivityRepository;
 
     public List<ActivityDTO> getAllActivities() {
         return activityRepository.findAll().stream()
@@ -127,6 +132,12 @@ public class ActivityService {
     public void deleteActivity(UUID id) {
         if (!activityRepository.existsById(id)) {
             throw new ResourceNotFoundException("Activity", id);
+        }
+        if (voteSessionActivityRepository.existsByActivityIdAndSession_StatusIn(
+                id, EnumSet.of(VoteSessionStatus.ACTIVE))) {
+            throw new ActivityInUseInSessionException(
+                    "Activity is in a non-completed vote session's curated list and cannot be deleted",
+                    List.of());
         }
         List<String> usedIn = packageRepository.findPackageNamesByActivityId(id);
         if (!usedIn.isEmpty()) {
