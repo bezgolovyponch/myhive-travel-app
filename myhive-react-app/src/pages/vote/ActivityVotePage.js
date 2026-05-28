@@ -1,35 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
+import { getOrCreateVoterToken } from '../../utils/voterToken';
 
-const VOTER_TOKEN_KEY = (shareToken) => `myhive-voter-${shareToken}`;
 const VOTED_KEY = (shareToken) => `myhive-voted-${shareToken}`;
-
-function generateUUID() {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
-    });
-}
-
-function getOrCreateVoterToken(shareToken) {
-    const key = VOTER_TOKEN_KEY(shareToken);
-    let token = localStorage.getItem(key);
-    if (!token) {
-        token = generateUUID();
-        localStorage.setItem(key, token);
-    }
-    return token;
-}
 
 function ActivityVotePage() {
     const { shareToken } = useParams();
     const navigate = useNavigate();
 
+    const voterToken = useMemo(() => getOrCreateVoterToken(), []);
     const [activities, setActivities] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -37,7 +18,6 @@ function ActivityVotePage() {
     const [error, setError] = useState(null);
     const votesRef = useRef([]);
     const submittingRef = useRef(false);
-    const voterToken = getOrCreateVoterToken(shareToken);
 
     useEffect(() => {
         if (localStorage.getItem(VOTED_KEY(shareToken))) {
