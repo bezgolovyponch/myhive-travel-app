@@ -20,15 +20,6 @@ public interface VoteActivityLikeRepository extends JpaRepository<VoteActivityLi
     long countDistinctVoterTokensBySessionId(@Param("sessionId") UUID sessionId);
 
     @Query("""
-            SELECT l.activity.id AS activityId, l.activity.duration AS duration, COUNT(l) AS likeCount
-            FROM VoteActivityLike l
-            WHERE l.session.id = :sessionId AND l.liked = true
-            GROUP BY l.activity.id, l.activity.duration
-            ORDER BY likeCount DESC
-            """)
-    List<ActivityLikeCount> findLikedActivitiesWithCounts(@Param("sessionId") UUID sessionId);
-
-    @Query("""
             SELECT l.activity.id AS activityId,
                    SUM(CASE WHEN l.liked = true THEN 1 ELSE 0 END) AS likeCount,
                    SUM(CASE WHEN l.liked = false THEN 1 ELSE 0 END) AS skipCount
