@@ -25,6 +25,8 @@ import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
@@ -103,6 +105,7 @@ public class VoteSession {
             joinColumns = @JoinColumn(name = "session_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Set<Category> likedCategories = new HashSet<>();
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

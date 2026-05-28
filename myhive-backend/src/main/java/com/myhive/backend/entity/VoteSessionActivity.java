@@ -16,6 +16,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -37,6 +39,7 @@ public class VoteSessionActivity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private VoteSession session;
 
     @ManyToOne(fetch = FetchType.LAZY)

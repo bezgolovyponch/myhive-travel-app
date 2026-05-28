@@ -17,6 +17,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -38,6 +40,7 @@ public class VoteSessionQuizResponse {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private VoteSession session;
 
     @Column(name = "voter_token", nullable = false)
