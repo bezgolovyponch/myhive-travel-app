@@ -72,6 +72,7 @@ function TripBuilder({ destinationId }) {
                     endDate: result.endDate ?? '',
                 });
             }
+            dispatch({ type: 'UPDATE_TRIP_BUDGET', budget: result.budget ?? null });
             // New shape: result.result[] is ResultActivityDTO with snapshot name+price
             // plus live slug/destinationSlug/imageUrl/duration/description/includes.
             // Map activityId → id so AppContext keys it the same as live activities.
@@ -295,7 +296,7 @@ function TripBuilder({ destinationId }) {
             </div>
           )}
         </div>
-        {voteResult && voteResult.budget != null && (
+        {state.tripBudget != null && (
             <div className="trip-vote-budget">
               <div className="trip-vote-budget-row">
                 <span>Spent</span>
@@ -303,11 +304,11 @@ function TripBuilder({ destinationId }) {
               </div>
               <div className="trip-vote-budget-row">
                 <span>Budget</span>
-                <span>{formatPrice(voteResult.budget)}</span>
+                <span>{formatPrice(state.tripBudget)}</span>
               </div>
-              <div className={`trip-vote-budget-row ${voteResult.budget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
+              <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
                 <span>Remaining</span>
-                <span>{formatPrice(voteResult.budget - totalPrice)}</span>
+                <span>{formatPrice(state.tripBudget - totalPrice)}</span>
               </div>
             </div>
         )}
