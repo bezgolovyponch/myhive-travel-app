@@ -20,4 +20,6 @@ public class VotePoolActivityDTO {
     private String slug;
     private String destinationSlug;
     private List<String> categories;
+    private String description;
+    private Integer duration;
 }

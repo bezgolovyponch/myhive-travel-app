@@ -67,6 +67,7 @@ public class VotePoolService {
                 ? null : activity.getDestination().getSlug();
         return new VotePoolActivityDTO(activity.getId(), activity.getName(),
                 activity.getPrice(), activity.getImageUrl(),
-                activity.getSlug(), destinationSlug, categories);
+                activity.getSlug(), destinationSlug, categories,
+                activity.getDescription(), activity.getDuration());
     }
 }

@@ -117,6 +117,29 @@ class VotePoolServiceTest {
         assertThat(response.getPool()).hasSize(20);
     }
 
+    @Test
+    void buildPool_mapsDescriptionAndDuration() {
+        Destination destination = saveDestination("Prague");
+        Category nightlife = saveCategory("Nightlife", "nightlife", true);
+        attachCategoryToDestination(destination, nightlife);
+
+        String expectedDescription = "All-night guided club crawl.";
+        Integer expectedDuration = 240;
+        Activity activity = saveActivity(destination, "Club Crawl", new BigDecimal("100"), 5, Set.of(nightlife));
+        activity.setDescription(expectedDescription);
+        activity.setDuration(expectedDuration);
+        activityRepository.saveAndFlush(activity);
+
+        VotePoolResponse response = votePoolService.buildPool(
+                new VotePoolRequest(destination.getId(), List.of()));
+
+        assertThat(response.getPool()).singleElement()
+                .satisfies(dto -> {
+                    assertThat(dto.getDescription()).isEqualTo(expectedDescription);
+                    assertThat(dto.getDuration()).isEqualTo(expectedDuration);
+                });
+    }
+
     // ---- helpers ----
     private Destination saveDestination(String name) {
         Destination d = new Destination();
