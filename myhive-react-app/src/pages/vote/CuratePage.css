@@ -137,12 +137,16 @@
 
 .curate-finalize-create {
   padding: 12px 24px;
-  background: #28a745;
+  background: var(--brand, #6A1B9A);
   color: #fff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
+}
+
+.curate-finalize-create:hover {
+  background: var(--brand-dark, #4A148C);
 }
 
 .curate-finalize-create:disabled {
