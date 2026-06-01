@@ -152,7 +152,7 @@
 
 .curate-finalize-build {
   padding: 12px 24px;
-  background: var(--primary, #32b8c6);
+  background: var(--accent, #FF5722);
   color: #fff;
   border: none;
   border-radius: 8px;
