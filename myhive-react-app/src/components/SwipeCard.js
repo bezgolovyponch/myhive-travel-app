@@ -61,12 +61,10 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
     const nextCard = cards[currentIndex + 1];
     const rotate = drag.offsetX * 0.08;
     const overlayOpacity = Math.min(Math.abs(drag.offsetX) / SWIPE_THRESHOLD, 1);
-    const cardLink = getCardLink ? getCardLink(card) : null;
-
     const renderName = (name) => (
         <button
             type="button"
-            className="swipe-card-link swipe-card-name-btn"
+            className="swipe-card-link"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
             onClick={(e) => {
