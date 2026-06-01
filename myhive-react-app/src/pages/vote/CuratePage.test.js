@@ -92,6 +92,28 @@ test('start over resets the picked list', async () => {
   expect(await screen.findByLabelText('Like')).toBeInTheDocument();
 });
 
+test('clicking an activity name on the finalize list opens the info modal', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, slug: 'tank', destinationSlug: 'bali', description: 'Drive a real tank.', duration: 120, categories: ['Extreme'] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));
+
+  expect(await screen.findByText(/Your voting list \(1\)/i)).toBeInTheDocument();
+
+  // The name is now a button that opens the info modal instead of navigating away.
+  await userEvent.click(screen.getByRole('button', { name: 'Tank Driving' }));
+
+  expect(screen.getByText('Drive a real tank.')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /View full page/i }))
+    .toHaveAttribute('href', '/destination/bali/activity/tank');
+});
+
 test('no setup state redirects home', async () => {
   render(
     <AppContext.Provider value={{ state: { tripItems: [] }, dispatch: jest.fn() }}>

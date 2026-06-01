@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
 import SwipeCard from '../../components/SwipeCard';
+import ActivityPreviewModal from '../../components/ActivityPreviewModal';
 import { AppContext } from '../../context/AppContext';
 import './CuratePage.css';
 
@@ -17,6 +18,7 @@ export default function CuratePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [selected, setSelected] = useState(null);
   const pickedRef = useRef([]);
 
   // Set when returning here via the browser back button (see handleBuildMyTrip):
@@ -187,18 +189,13 @@ export default function CuratePage() {
                 )}
                 <div className="curate-finalize-card-body">
                   <div className="curate-finalize-card-name">
-                    {getCardLink(a) ? (
-                      <a
-                        href={getCardLink(a)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="curate-finalize-card-link"
-                      >
-                        {a.name}
-                      </a>
-                    ) : (
-                      a.name
-                    )}
+                    <button
+                      type="button"
+                      className="curate-finalize-card-link"
+                      onClick={() => setSelected(a)}
+                    >
+                      {a.name}
+                    </button>
                   </div>
                   <div className="curate-finalize-card-price">€{a.price}/person</div>
                   {a.categories && a.categories.length > 0 && (
@@ -231,6 +228,11 @@ export default function CuratePage() {
             {submitting ? 'Creating…' : 'Create & get link'}
           </button>
         </div>
+        <ActivityPreviewModal
+          activity={selected}
+          link={selected ? getCardLink(selected) : null}
+          onClose={() => setSelected(null)}
+        />
       </div>
     );
   }
