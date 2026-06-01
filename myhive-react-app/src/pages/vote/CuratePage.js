@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
 import SwipeCard from '../../components/SwipeCard';
+import { AppContext } from '../../context/AppContext';
 import './CuratePage.css';
 
 export default function CuratePage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { dispatch } = useContext(AppContext);
   const setup = location.state?.setup;
   const responses = location.state?.responses ?? [];
 
@@ -65,6 +67,38 @@ export default function CuratePage() {
     pickedRef.current = [];
     setCurrentIndex(0);
     setError(null);
+  };
+
+  const handleBuildMyTrip = () => {
+    const picked = pool.filter(a => pickedRef.current.includes(a.id));
+    if (picked.length === 0) {
+      return;
+    }
+    if (setup.travelers && setup.travelers > 0) {
+      dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: setup.travelers });
+    }
+    dispatch({
+      type: 'UPDATE_TRIP_DATES',
+      startDate: setup.startDate ?? '',
+      endDate: setup.endDate ?? '',
+    });
+    dispatch({ type: 'UPDATE_TRIP_BUDGET', budget: setup.budget ?? null });
+    picked.forEach(a => {
+      dispatch({
+        type: 'ADD_TO_TRIP',
+        silent: true,
+        activity: {
+          id: a.id,
+          name: a.name,
+          price: a.price,
+          slug: a.slug,
+          destinationSlug: a.destinationSlug,
+          imageUrl: a.imageUrl,
+          categories: (a.categories || []).map(name => ({ name })),
+        },
+      });
+    });
+    navigate(`/destination/${setup.destination.slug}?tab=trip-builder`);
   };
 
   const handleCreate = async () => {
@@ -155,6 +189,14 @@ export default function CuratePage() {
         <div className="curate-finalize-actions">
           <button type="button" className="curate-finalize-reset" onClick={handleStartOver}>
             Start over
+          </button>
+          <button
+            type="button"
+            className="curate-finalize-build"
+            disabled={pickedActivities.length === 0}
+            onClick={handleBuildMyTrip}
+          >
+            Build my own trip
           </button>
           <button
             type="button"

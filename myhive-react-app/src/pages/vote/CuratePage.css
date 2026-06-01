@@ -149,3 +149,18 @@
   background: #555;
   cursor: not-allowed;
 }
+
+.curate-finalize-build {
+  padding: 12px 24px;
+  background: var(--primary, #32b8c6);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.curate-finalize-build:disabled {
+  background: #555;
+  cursor: not-allowed;
+}

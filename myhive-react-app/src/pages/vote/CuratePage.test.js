@@ -3,11 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CuratePage from './CuratePage';
 import voteApi from '../../services/voteApi';
+import { AppContext } from '../../context/AppContext';
 
 jest.mock('../../services/voteApi');
 
 const setup = {
-  destination: { id: 'dest1' },
+  destination: { id: 'dest1', slug: 'bali' },
   travelers: 2,
   startDate: '2026-08-01',
   endDate: '2026-08-10',
@@ -15,15 +16,18 @@ const setup = {
   budget: 3000,
 };
 
-function renderWith(state) {
+function renderWith(state, dispatch = jest.fn()) {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/vote/new/curate', state }]}>
-      <Routes>
-        <Route path="/vote/new/curate" element={<CuratePage />} />
-        <Route path="/vote/:shareToken/waiting" element={<div>waiting page</div>} />
-        <Route path="/" element={<div>home</div>} />
-      </Routes>
-    </MemoryRouter>
+    <AppContext.Provider value={{ state: { tripItems: [] }, dispatch }}>
+      <MemoryRouter initialEntries={[{ pathname: '/vote/new/curate', state }]}>
+        <Routes>
+          <Route path="/vote/new/curate" element={<CuratePage />} />
+          <Route path="/vote/:shareToken/waiting" element={<div>waiting page</div>} />
+          <Route path="/destination/:slug" element={<div>destination page</div>} />
+          <Route path="/" element={<div>home</div>} />
+        </Routes>
+      </MemoryRouter>
+    </AppContext.Provider>
   );
 }
 
@@ -78,12 +82,14 @@ test('start over resets the picked list', async () => {
 
 test('no setup state redirects home', async () => {
   render(
-    <MemoryRouter initialEntries={['/vote/new/curate']}>
-      <Routes>
-        <Route path="/vote/new/curate" element={<CuratePage />} />
-        <Route path="/" element={<div>home</div>} />
-      </Routes>
-    </MemoryRouter>
+    <AppContext.Provider value={{ state: { tripItems: [] }, dispatch: jest.fn() }}>
+      <MemoryRouter initialEntries={['/vote/new/curate']}>
+        <Routes>
+          <Route path="/vote/new/curate" element={<CuratePage />} />
+          <Route path="/" element={<div>home</div>} />
+        </Routes>
+      </MemoryRouter>
+    </AppContext.Provider>
   );
   expect(await screen.findByText('home')).toBeInTheDocument();
 });
@@ -92,4 +98,50 @@ test('empty pool shows empty-state message', async () => {
   voteApi.buildPool.mockResolvedValue({ pool: [] });
   renderWith({ setup, responses: [] });
   expect(await screen.findByText(/no activities match/i)).toBeInTheDocument();
+});
+
+test('build my own trip seeds setup, adds picks, and navigates to trip builder', async () => {
+  const dispatch = jest.fn();
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: ['Extreme'] },
+      { activityId: 'act2', name: 'Spa Day', price: 80, imageUrl: null, slug: 'spa', destinationSlug: 'bali', categories: ['Chillout'] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] }, dispatch);
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));      // include act1
+  await userEvent.click(screen.getByLabelText('Dislike'));   // skip act2
+
+  expect(await screen.findByText(/Your voting list/i)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /Build my own trip/i }));
+
+  expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 2 });
+  expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_DATES', startDate: '2026-08-01', endDate: '2026-08-10' });
+  expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_BUDGET', budget: 3000 });
+
+  const addCalls = dispatch.mock.calls.filter(c => c[0].type === 'ADD_TO_TRIP');
+  expect(addCalls).toHaveLength(1);
+  expect(addCalls[0][0].silent).toBe(true);
+  expect(addCalls[0][0].activity).toMatchObject({ id: 'act1', name: 'Tank Driving', categories: [{ name: 'Extreme' }] });
+
+  expect(await screen.findByText('destination page')).toBeInTheDocument();
+});
+
+test('build my own trip is disabled when nothing was picked', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: [] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Dislike')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Dislike'));   // skip everything
+
+  expect(await screen.findByText(/Your voting list \(0\)/i)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Build my own trip/i })).toBeDisabled();
 });
