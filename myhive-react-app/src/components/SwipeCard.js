@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import './SwipeCard.css';
+import ActivityPreviewModal from './ActivityPreviewModal';
 
 const SWIPE_THRESHOLD = 80;
 
 function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, getCardLink }) {
     const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
     const [copied, setCopied] = useState(false);
+    const [infoCard, setInfoCard] = useState(null);
 
     const handleCopy = useCallback(() => {
         navigator.clipboard.writeText(shareUrl);
@@ -61,17 +63,18 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
     const overlayOpacity = Math.min(Math.abs(drag.offsetX) / SWIPE_THRESHOLD, 1);
     const cardLink = getCardLink ? getCardLink(card) : null;
 
-    const renderName = (name, link) => link
-        ? <a
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="swipe-card-link"
+    const renderName = (name) => (
+        <button
+            type="button"
+            className="swipe-card-link swipe-card-name-btn"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-        >{name}</a>
-        : name;
+            onClick={(e) => {
+                e.stopPropagation();
+                setInfoCard(card);
+            }}
+        >{name}</button>
+    );
 
     return (
         <div className="swipe-card-page">
@@ -117,7 +120,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                             ? <>
                                 <img src={card.imageUrl} alt={card.name} className="swipe-card-image" />
                                 <div className="swipe-card-info">
-                                    <div className="swipe-card-name">{renderName(card.name, cardLink)}</div>
+                                    <div className="swipe-card-name">{renderName(card.name)}</div>
                                     <div className="swipe-card-meta">
                                         {card.duration && <span>{Math.round(card.duration / 60)}h</span>}
                                         {card.duration && card.price && <span> · </span>}
@@ -126,7 +129,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                                 </div>
                             </>
                             : <div className="swipe-card-text-only">
-                                <div className="swipe-card-name">{renderName(card.name, cardLink)}</div>
+                                <div className="swipe-card-name">{renderName(card.name)}</div>
                             </div>
                         }
                         <div
@@ -161,6 +164,12 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                     </button>
                 </div>
             )}
+
+            <ActivityPreviewModal
+                activity={infoCard}
+                link={infoCard && getCardLink ? getCardLink(infoCard) : null}
+                onClose={() => setInfoCard(null)}
+            />
         </div>
     );
 }
