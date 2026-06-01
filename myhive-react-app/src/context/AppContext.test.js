@@ -99,16 +99,18 @@ describe('reducer — trip setup actions', () => {
     });
 
     describe('CANCEL_TRIP_SETUP', () => {
-        it('clears trip items and closes setup modal', () => {
+        it('clears trip items, closes setup modal, and clears budget', () => {
             const prev = {
                 ...initialState,
                 tripItems: [activity1, activity2],
-                tripSetupModalOpen: true
+                tripSetupModalOpen: true,
+                tripBudget: 3000
             };
             const state = reducer(prev, {type: 'CANCEL_TRIP_SETUP'});
 
             expect(state.tripItems).toEqual([]);
             expect(state.tripSetupModalOpen).toBe(false);
+            expect(state.tripBudget).toBeNull();
         });
     });
 

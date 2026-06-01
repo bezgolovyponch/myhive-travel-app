@@ -88,6 +88,7 @@ export const reducer = (state, action) => {
             return {
                 ...state,
                 tripItems: [],
+                tripBudget: null,
                 tripSetupModalOpen: false
             };
         case 'ADD_PACKAGE_TO_TRIP': {
