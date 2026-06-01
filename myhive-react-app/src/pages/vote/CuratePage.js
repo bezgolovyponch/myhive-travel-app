@@ -74,9 +74,7 @@ export default function CuratePage() {
     if (picked.length === 0) {
       return;
     }
-    if (setup.travelers && setup.travelers > 0) {
-      dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: setup.travelers });
-    }
+    dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: setup.travelers });
     dispatch({
       type: 'UPDATE_TRIP_DATES',
       startDate: setup.startDate ?? '',
