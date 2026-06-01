@@ -11,6 +11,7 @@ export const initialState = {
     tripTravelers: 1,
     tripStartDate: '',
     tripEndDate: '',
+    tripBudget: null,
     tripSetupModalOpen: false,
     tripBuilderModalOpen: false,
     destinationModalOpen: false,
@@ -79,6 +80,8 @@ export const reducer = (state, action) => {
             return {...state, tripTravelers: action.travelers};
         case 'UPDATE_TRIP_DATES':
             return {...state, tripStartDate: action.startDate, tripEndDate: action.endDate};
+        case 'UPDATE_TRIP_BUDGET':
+            return {...state, tripBudget: action.budget};
         case 'CLOSE_TRIP_SETUP_MODAL':
             return {...state, tripSetupModalOpen: false};
         case 'CANCEL_TRIP_SETUP':
@@ -132,6 +135,7 @@ export function AppProvider({children}) {
         let tripTravelers = init.tripTravelers;
         let tripStartDate = init.tripStartDate;
         let tripEndDate = init.tripEndDate;
+        let tripBudget = init.tripBudget;
 
         try {
             const saved = localStorage.getItem('myhive-trip-items');
@@ -146,11 +150,12 @@ export function AppProvider({children}) {
                 tripTravelers = setup.travelers || 1;
                 tripStartDate = setup.startDate || '';
                 tripEndDate = setup.endDate || '';
-      }
+                tripBudget = setup.budget ?? null;
+            }
         } catch (e) { /* ignore */
         }
 
-        return {...init, tripItems, tripTravelers, tripStartDate, tripEndDate};
+        return {...init, tripItems, tripTravelers, tripStartDate, tripEndDate, tripBudget};
     });
 
   // Save tripItems to localStorage whenever they change
@@ -163,9 +168,10 @@ export function AppProvider({children}) {
         localStorage.setItem('myhive-trip-setup', JSON.stringify({
             travelers: state.tripTravelers,
             startDate: state.tripStartDate,
-            endDate: state.tripEndDate
+            endDate: state.tripEndDate,
+            budget: state.tripBudget
         }));
-    }, [state.tripTravelers, state.tripStartDate, state.tripEndDate]);
+    }, [state.tripTravelers, state.tripStartDate, state.tripEndDate, state.tripBudget]);
 
   useEffect(() => {
     const fetchData = async () => {

@@ -80,6 +80,24 @@ describe('reducer — trip setup actions', () => {
         });
     });
 
+    describe('UPDATE_TRIP_BUDGET', () => {
+        it('updates only the budget', () => {
+            const prev = {...initialState, tripTravelers: 3, tripStartDate: '2026-06-01'};
+            const state = reducer(prev, {type: 'UPDATE_TRIP_BUDGET', budget: 3000});
+
+            expect(state.tripBudget).toBe(3000);
+            expect(state.tripTravelers).toBe(3);
+            expect(state.tripStartDate).toBe('2026-06-01');
+        });
+
+        it('accepts null to clear the budget', () => {
+            const prev = {...initialState, tripBudget: 3000};
+            const state = reducer(prev, {type: 'UPDATE_TRIP_BUDGET', budget: null});
+
+            expect(state.tripBudget).toBeNull();
+        });
+    });
+
     describe('CANCEL_TRIP_SETUP', () => {
         it('clears trip items and closes setup modal', () => {
             const prev = {
@@ -111,5 +129,6 @@ describe('initialState defaults', () => {
         expect(initialState.tripEndDate).toBe('');
         expect(initialState.tripSetupModalOpen).toBe(false);
         expect(initialState.tripItems).toEqual([]);
+        expect(initialState.tripBudget).toBeNull();
     });
 });
