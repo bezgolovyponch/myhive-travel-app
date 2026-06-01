@@ -4,7 +4,7 @@ import './ActivityPreviewModal.css';
 function ActivityPreviewModal({ activity, link, onClose }) {
     useEffect(() => {
         if (!activity) {
-            return undefined;
+            return;
         }
         const handleKey = (e) => {
             if (e.key === 'Escape') {
@@ -23,7 +23,7 @@ function ActivityPreviewModal({ activity, link, onClose }) {
     if (activity.price != null) {
         meta.push(`€${activity.price}/person`);
     }
-    if (activity.duration) {
+    if (activity.duration != null) {
         meta.push(`${Math.round(activity.duration / 60)}h`);
     }
     if (activity.categories && activity.categories.length > 0) {
@@ -35,13 +35,13 @@ function ActivityPreviewModal({ activity, link, onClose }) {
             className="app-modal activity-preview-modal"
             role="dialog"
             aria-modal="true"
-            aria-label={activity.name}
+            aria-labelledby="activity-preview-title"
             onClick={onClose}
         >
             <div className="app-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="app-modal-header">
-                    <h2>{activity.name}</h2>
-                    <button className="app-modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+                    <h2 id="activity-preview-title">{activity.name}</h2>
+                    <button type="button" className="app-modal-close-btn" onClick={onClose} aria-label="Close">×</button>
                 </div>
                 <div className="app-modal-body">
                     {activity.imageUrl && (
