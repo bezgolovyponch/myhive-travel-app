@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import CuratePage from './CuratePage';
 import voteApi from '../../services/voteApi';
 import { AppContext } from '../../context/AppContext';
@@ -16,6 +16,18 @@ const setup = {
   budget: 3000,
 };
 
+// Destination stub with a back button so tests can simulate the browser back
+// button and assert the curate page restores its finalized state.
+function DestinationStub() {
+  const navigate = useNavigate();
+  return (
+    <div>
+      destination page
+      <button type="button" onClick={() => navigate(-1)}>go back</button>
+    </div>
+  );
+}
+
 function renderWith(state, dispatch = jest.fn()) {
   return render(
     <AppContext.Provider value={{ state: { tripItems: [] }, dispatch }}>
@@ -23,7 +35,7 @@ function renderWith(state, dispatch = jest.fn()) {
         <Routes>
           <Route path="/vote/new/curate" element={<CuratePage />} />
           <Route path="/vote/:shareToken/waiting" element={<div>waiting page</div>} />
-          <Route path="/destination/:slug" element={<div>destination page</div>} />
+          <Route path="/destination/:slug" element={<DestinationStub />} />
           <Route path="/" element={<div>home</div>} />
         </Routes>
       </MemoryRouter>
@@ -144,4 +156,61 @@ test('build my own trip is disabled when nothing was picked', async () => {
 
   expect(await screen.findByText(/Your voting list \(0\)/i)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Build my own trip/i })).toBeDisabled();
+});
+
+test('back from trip builder restores the finalize page with picks', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: ['Extreme'] },
+      { activityId: 'act2', name: 'Spa Day', price: 80, imageUrl: null, slug: 'spa', destinationSlug: 'bali', categories: ['Chillout'] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));      // include act1
+  await userEvent.click(screen.getByLabelText('Dislike'));   // skip act2
+
+  expect(await screen.findByText(/Your voting list \(1\)/i)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /Build my own trip/i }));
+
+  expect(await screen.findByText('destination page')).toBeInTheDocument();
+
+  // Simulate the browser back button.
+  await userEvent.click(screen.getByRole('button', { name: /go back/i }));
+
+  // The finalize page is restored with the same picks — not the swipe deck.
+  expect(await screen.findByText(/Your voting list \(1\)/i)).toBeInTheDocument();
+  expect(screen.getByText(/Tank Driving/)).toBeInTheDocument();
+  expect(screen.queryByLabelText('Like')).not.toBeInTheDocument();
+
+  // The pool was restored from the snapshot, not rebuilt over the network.
+  expect(voteApi.buildPool).toHaveBeenCalledTimes(1);
+});
+
+test('start over after returning via back clears the snapshot and rebuilds the deck', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: ['Extreme'] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));   // include act1 → finalize
+
+  expect(await screen.findByText(/Your voting list \(1\)/i)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /Build my own trip/i }));
+  expect(await screen.findByText('destination page')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: /go back/i }));
+  expect(await screen.findByText(/Your voting list \(1\)/i)).toBeInTheDocument();
+
+  // Start over from the restored finalize page: deck returns and the snapshot is
+  // dropped, so the pool is rebuilt (a later remount won't jump back to the list).
+  await userEvent.click(screen.getByRole('button', { name: /Start over/i }));
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await waitFor(() => expect(voteApi.buildPool).toHaveBeenCalledTimes(2));
 });

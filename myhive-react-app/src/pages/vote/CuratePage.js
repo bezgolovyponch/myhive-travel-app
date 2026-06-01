@@ -19,9 +19,21 @@ export default function CuratePage() {
   const [error, setError] = useState(null);
   const pickedRef = useRef([]);
 
+  // Set when returning here via the browser back button (see handleBuildMyTrip):
+  // the finalized state is stashed in the history entry so we can restore it.
+  const restoreSnapshot = location.state?.snapshot;
+
   useEffect(() => {
     if (!setup) {
       navigate('/');
+      return;
+    }
+    if (restoreSnapshot) {
+      // Snapshot pool items already carry `.id` (remapped on the initial load
+      // below before being stashed), so no remap is needed here.
+      pickedRef.current = restoreSnapshot.picked;
+      setPool(restoreSnapshot.pool);
+      setCurrentIndex(restoreSnapshot.currentIndex);
       return;
     }
     let cancelled = false;
@@ -47,7 +59,7 @@ export default function CuratePage() {
     return () => {
       cancelled = true;
     };
-  }, [setup, responses, navigate]);
+  }, [setup, responses, navigate, restoreSnapshot]);
 
   const getCardLink = (activity) => {
     if (!activity || !activity.slug || !activity.destinationSlug) {
@@ -67,6 +79,14 @@ export default function CuratePage() {
     pickedRef.current = [];
     setCurrentIndex(0);
     setError(null);
+    if (restoreSnapshot) {
+      // Drop the stashed snapshot so a later remount (e.g. a refresh) shows the
+      // fresh deck instead of jumping back to the finalized list.
+      navigate(location.pathname + location.search, {
+        replace: true,
+        state: { setup, responses },
+      });
+    }
   };
 
   const handleBuildMyTrip = () => {
@@ -95,6 +115,12 @@ export default function CuratePage() {
           categories: (a.categories || []).map(name => ({ name })),
         },
       });
+    });
+    // Stash the finalized state in this history entry so the browser back
+    // button returns the organizer to their list instead of the swipe deck.
+    navigate(location.pathname + location.search, {
+      replace: true,
+      state: { setup, responses, snapshot: { pool, currentIndex, picked: pickedRef.current } },
     });
     navigate(`/destination/${setup.destination.slug}?tab=trip-builder`);
   };
