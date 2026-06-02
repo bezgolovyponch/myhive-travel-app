@@ -67,3 +67,60 @@ test('clicking inside the content does not close', async () => {
   await userEvent.click(screen.getByRole('heading', { name: 'Snorkeling Tour' }));
   expect(onClose).not.toHaveBeenCalled();
 });
+
+test('moves focus to the close button when opened', () => {
+  render(<ActivityPreviewModal activity={activity} link={null} onClose={jest.fn()} />);
+  expect(screen.getByRole('button', { name: /close/i })).toHaveFocus();
+});
+
+test('restores focus to the previously focused element when closed', () => {
+  const onClose = jest.fn();
+  const { rerender } = render(
+    <>
+      <button>opener</button>
+      <ActivityPreviewModal activity={null} link={null} onClose={onClose} />
+    </>
+  );
+  const opener = screen.getByRole('button', { name: 'opener' });
+  opener.focus();
+  expect(opener).toHaveFocus();
+
+  rerender(
+    <>
+      <button>opener</button>
+      <ActivityPreviewModal activity={activity} link={null} onClose={onClose} />
+    </>
+  );
+  expect(screen.getByRole('button', { name: /close/i })).toHaveFocus();
+
+  rerender(
+    <>
+      <button>opener</button>
+      <ActivityPreviewModal activity={null} link={null} onClose={onClose} />
+    </>
+  );
+  expect(opener).toHaveFocus();
+});
+
+test('traps Tab focus within the dialog', async () => {
+  render(
+    <ActivityPreviewModal
+      activity={activity}
+      link="/destination/bali/activity/snorkel"
+      onClose={jest.fn()}
+    />
+  );
+  const closeBtn = screen.getByRole('button', { name: /close/i });
+  const fullPageLink = screen.getByRole('link', { name: /View full page/i });
+
+  expect(closeBtn).toHaveFocus();           // autofocus on open
+
+  await userEvent.tab();                     // close -> link
+  expect(fullPageLink).toHaveFocus();
+
+  await userEvent.tab();                     // link -> wraps back to close
+  expect(closeBtn).toHaveFocus();
+
+  await userEvent.tab({ shift: true });      // close -> wraps back to link
+  expect(fullPageLink).toHaveFocus();
+});
