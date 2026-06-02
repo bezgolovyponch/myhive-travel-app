@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 
 function VoteWaitingPage() {
     const { shareToken } = useParams();
     const navigate = useNavigate();
-    const isInitiator = !!localStorage.getItem(`myhive-initiator-${shareToken}`);
-    const managerToken = localStorage.getItem(`myhive-manager-${shareToken}`);
+    const [searchParams] = useSearchParams();
+    const [isInitiator, setIsInitiator] = useState(
+        () => !!localStorage.getItem(`myhive-initiator-${shareToken}`));
+    const [managerToken, setManagerToken] = useState(
+        () => localStorage.getItem(`myhive-manager-${shareToken}`));
 
     const [session, setSession] = useState(null);
     const [participantCount, setParticipantCount] = useState(0);
@@ -14,6 +17,20 @@ function VoteWaitingPage() {
     const [copied, setCopied] = useState(false);
     const [sessionError, setSessionError] = useState(null);
     const [closing, setClosing] = useState(false);
+
+    // Adopt a managerToken arriving via the email dashboard link (?manager=...),
+    // persist it, then strip it from the URL so the secret isn't left in history.
+    useEffect(() => {
+        const urlManager = searchParams.get('manager');
+        if (!urlManager) {
+            return;
+        }
+        localStorage.setItem(`myhive-manager-${shareToken}`, urlManager);
+        localStorage.setItem(`myhive-initiator-${shareToken}`, 'true');
+        setManagerToken(urlManager);
+        setIsInitiator(true);
+        navigate(`/vote/${shareToken}/waiting`, { replace: true });
+    }, [searchParams, shareToken, navigate]);
 
     useEffect(() => {
         voteApi.getSession(shareToken)
