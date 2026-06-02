@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -34,8 +35,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
@@ -342,7 +341,13 @@ class VoteSessionServiceTest {
 
         when(destinationRepository.findById(destId)).thenReturn(Optional.of(destination));
         when(activityRepository.findAllById(any())).thenReturn(List.of(activity));
-        when(voteSessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(voteSessionRepository.save(any())).thenAnswer(i -> {
+            VoteSession saved = i.getArgument(0);
+            if (saved.getId() == null) {
+                saved.setId(UUID.randomUUID());
+            }
+            return saved;
+        });
         when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(any())).thenReturn(0L);
 
         VoteSessionCreateRequest request = new VoteSessionCreateRequest();
