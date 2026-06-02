@@ -155,6 +155,48 @@ public class EmailService {
         }
     }
 
+    public void sendVoteCreatedConfirmation(VoteSession session, String siteUrl) {
+        log.info("Preparing vote-created confirmation email: from={}, to={}, destination={}",
+                fromEmail, maskEmail(session.getInitiatorEmail()), session.getDestination().getName());
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(session.getInitiatorEmail());
+            helper.setSubject("Your group vote for " + session.getDestination().getName() + " is live");
+
+            String shareToken = session.getShareToken().toString();
+            String inviteUrl = siteUrl + "/vote/" + shareToken + "/activities";
+            String dashboardUrl = siteUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken();
+
+            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+            DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm 'UTC'");
+
+            Context context = new Context();
+            context.setVariable("session", session);
+            context.setVariable("inviteUrl", inviteUrl);
+            context.setVariable("dashboardUrl", dashboardUrl);
+            context.setVariable("supportEmail", "support@trivlu.com");
+            context.setVariable("startDate", session.getStartDate().format(dateFormat));
+            context.setVariable("endDate", session.getEndDate().format(dateFormat));
+            context.setVariable("expiresAt", session.getExpiresAt().format(dateTimeFormat));
+
+            log.debug("Processing email template: vote-created");
+            String htmlContent = templateEngine.process("vote-created", context);
+            helper.setText(htmlContent, true);
+
+            log.info("Sending vote-created confirmation email via SMTP to: {}", maskEmail(session.getInitiatorEmail()));
+            mailSender.send(message);
+            log.info("Vote-created confirmation email sent successfully to: {}", maskEmail(session.getInitiatorEmail()));
+
+        } catch (Exception e) {
+            log.error("Failed to send vote-created confirmation email to: {}. Cause: {}",
+                    maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
+            throw new EmailSendException("Failed to send vote-created confirmation email", e);
+        }
+    }
+
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) {
             return "***";

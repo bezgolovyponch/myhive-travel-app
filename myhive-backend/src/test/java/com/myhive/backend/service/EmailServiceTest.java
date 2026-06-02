@@ -7,14 +7,19 @@ import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +29,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,5 +110,45 @@ class EmailServiceTest {
 
         assertThatCode(() -> emailService.sendVoteResult(session, List.of(), "https://trivlu.com"))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void sendVoteCreatedConfirmation_buildsLinksWithManagerTokenAndSends() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        UUID managerToken = UUID.randomUUID();
+
+        Destination destination = new Destination();
+        destination.setName("Bali");
+        destination.setSlug("bali");
+
+        VoteSession session = new VoteSession();
+        session.setShareToken(shareToken);
+        session.setManagerToken(managerToken);
+        session.setInitiatorEmail("alice@example.com");
+        session.setNumberOfTravelers(2);
+        session.setStartDate(LocalDate.of(2026, 8, 1));
+        session.setEndDate(LocalDate.of(2026, 8, 10));
+        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
+        session.setDestination(destination);
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-created"), contextCaptor.capture()))
+                .thenReturn("<html>ok</html>");
+        doNothing().when(mailSender).send(any(MimeMessage.class));
+
+        emailService.sendVoteCreatedConfirmation(session, "https://trivlu.com");
+
+        Context context = contextCaptor.getValue();
+        String dashboardUrl = (String) context.getVariable("dashboardUrl");
+        String inviteUrl = (String) context.getVariable("inviteUrl");
+        assertThat(dashboardUrl)
+                .contains("/vote/" + shareToken + "/waiting")
+                .contains("manager=" + managerToken);
+        assertThat(inviteUrl)
+                .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities");
+        assertThat(context.getVariable("supportEmail")).isEqualTo("support@trivlu.com");
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
     }
 }
