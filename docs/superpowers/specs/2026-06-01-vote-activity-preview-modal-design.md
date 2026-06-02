@@ -117,13 +117,18 @@ nothing to show and the swipe meta line shows no duration. The participant flow
 
 ## Data Mapping
 
-| Flow | Source DTO | description | duration | Notes |
-|------|------------|-------------|----------|-------|
-| Participant voting (`ActivityVotePage`) | `VoteActivityResponse` | already present | already present | no backend change needed |
-| Organizer curate (`CuratePage` swipe + finalize) | `VotePoolActivityDTO` | **added** | **added** | spread to `card` via existing `{...a}` map |
+| Flow | Source DTO | description | duration | categories | Notes |
+|------|------------|-------------|----------|------------|-------|
+| Participant voting (`ActivityVotePage`) | `VoteActivityResponse` | already present | already present | **absent** | modal omits the category-chips line for participants (graceful) |
+| Organizer curate (`CuratePage` swipe + finalize) | `VotePoolActivityDTO` | **added** | **added** | present | spread to `card` via existing `{...a}` map |
 
-The modal reads `imageUrl`, `name`, `price`, `duration`, `categories` (string array),
-`description`. All are present on both shapes after the DTO enrichment.
+The modal reads `imageUrl`, `name`, `price`, `duration`, `categories` (string array), and
+`description`. All are present on `VotePoolActivityDTO` (curate flow). On `VoteActivityResponse`
+(participant flow), `categories` is **not** present, so the participant-flow modal renders
+without the category-chips line — the modal guards this
+(`activity.categories && activity.categories.length > 0`) and degrades gracefully. Adding
+`categories` to `VoteActivityResponse` is left as a future enhancement (decided out of scope on
+2026-06-02).
 
 ---
 
