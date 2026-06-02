@@ -31,6 +31,9 @@ import java.util.UUID;
 public class EmailService {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm 'UTC'");
+    private static final String SUPPORT_EMAIL = "support@trivlu.com";
 
     public static class DestinationView {
         public String destinationName;
@@ -170,17 +173,14 @@ public class EmailService {
             String inviteUrl = siteUrl + "/vote/" + shareToken + "/activities";
             String dashboardUrl = siteUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken();
 
-            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MMMM d, yyyy");
-            DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm 'UTC'");
-
             Context context = new Context();
             context.setVariable("session", session);
             context.setVariable("inviteUrl", inviteUrl);
             context.setVariable("dashboardUrl", dashboardUrl);
-            context.setVariable("supportEmail", "support@trivlu.com");
-            context.setVariable("startDate", session.getStartDate().format(dateFormat));
-            context.setVariable("endDate", session.getEndDate().format(dateFormat));
-            context.setVariable("expiresAt", session.getExpiresAt().format(dateTimeFormat));
+            context.setVariable("supportEmail", SUPPORT_EMAIL);
+            context.setVariable("startDate", session.getStartDate().format(DATE_FORMAT));
+            context.setVariable("endDate", session.getEndDate().format(DATE_FORMAT));
+            context.setVariable("expiresAt", session.getExpiresAt().format(DATE_TIME_FORMAT));
 
             log.debug("Processing email template: vote-created");
             String htmlContent = templateEngine.process("vote-created", context);

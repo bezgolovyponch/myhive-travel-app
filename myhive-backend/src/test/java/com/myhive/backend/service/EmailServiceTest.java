@@ -29,7 +29,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -136,7 +135,6 @@ class EmailServiceTest {
         ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
         when(templateEngine.process(eq("vote-created"), contextCaptor.capture()))
                 .thenReturn("<html>ok</html>");
-        doNothing().when(mailSender).send(any(MimeMessage.class));
 
         emailService.sendVoteCreatedConfirmation(session, "https://trivlu.com");
 
@@ -149,6 +147,6 @@ class EmailServiceTest {
         assertThat(inviteUrl)
                 .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities");
         assertThat(context.getVariable("supportEmail")).isEqualTo("support@trivlu.com");
-        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        verify(mailSender).send(any(MimeMessage.class));
     }
 }
