@@ -130,16 +130,25 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                         )}
                         {isVoteMode && (
                             <div className="form-group">
-                                <label htmlFor="voteBudget">Group budget (optional)</label>
-                                <input
-                                    id="voteBudget"
-                                    type="number"
-                                    min="0"
-                                    step="100"
-                                    value={budget}
-                                    onChange={e => setBudget(e.target.value)}
-                                    placeholder="e.g. 3000"
-                                />
+                                <label htmlFor="voteBudget">Group budget (€, optional)</label>
+                                <div style={{ position: 'relative' }}>
+                                    <span
+                                        aria-hidden="true"
+                                        style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted, #6c757d)', pointerEvents: 'none', fontSize: '1rem' }}
+                                    >
+                                        €
+                                    </span>
+                                    <input
+                                        id="voteBudget"
+                                        type="number"
+                                        min="0"
+                                        step="100"
+                                        value={budget}
+                                        onChange={e => setBudget(e.target.value)}
+                                        placeholder="3000"
+                                        style={{ paddingLeft: '1.6rem' }}
+                                    />
+                                </div>
                             </div>
                         )}
                     </form>
