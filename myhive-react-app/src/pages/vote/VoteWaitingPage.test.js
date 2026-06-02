@@ -51,3 +51,13 @@ test('without manager param or localStorage, End voting early is absent', async 
   expect(await screen.findByText(/Share with friends/i)).toBeInTheDocument();
   expect(screen.queryByText(/End voting early/i)).not.toBeInTheDocument();
 });
+
+test('with managerToken already in localStorage and no param, shows End voting early and leaves URL clean', async () => {
+  localStorage.setItem('myhive-manager-tok-3', 'mgr-pre');
+  localStorage.setItem('myhive-initiator-tok-3', 'true');
+
+  renderAt('/vote/tok-3/waiting');
+
+  expect(await screen.findByText(/End voting early/i)).toBeInTheDocument();
+  expect(screen.getByTestId('search').textContent).toBe('');
+});

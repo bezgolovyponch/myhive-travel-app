@@ -3,6 +3,7 @@ package com.myhive.backend.service;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
+import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -148,5 +149,33 @@ class EmailServiceTest {
                 .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities");
         assertThat(context.getVariable("supportEmail")).isEqualTo("support@trivlu.com");
         verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void sendVoteCreatedConfirmation_setsRecipientAndSubjectNamingDestination() throws Exception {
+        Destination destination = new Destination();
+        destination.setName("Bali");
+
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setManagerToken(UUID.randomUUID());
+        session.setInitiatorEmail("alice@example.com");
+        session.setNumberOfTravelers(2);
+        session.setStartDate(LocalDate.of(2026, 8, 1));
+        session.setEndDate(LocalDate.of(2026, 8, 10));
+        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
+        session.setDestination(destination);
+
+        // Use a real MimeMessage so the to-address and subject set via MimeMessageHelper
+        // are actually retrievable (a mock would not record them).
+        MimeMessage realMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        when(templateEngine.process(eq("vote-created"), any())).thenReturn("<html>ok</html>");
+
+        emailService.sendVoteCreatedConfirmation(session, "https://trivlu.com");
+
+        assertThat(realMessage.getAllRecipients()).hasSize(1);
+        assertThat(realMessage.getAllRecipients()[0].toString()).isEqualTo("alice@example.com");
+        assertThat(realMessage.getSubject()).contains("Bali");
     }
 }
