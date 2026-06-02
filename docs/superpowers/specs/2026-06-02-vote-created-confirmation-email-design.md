@@ -88,8 +88,16 @@ New public method, modeled on `sendVoteResult` (`EmailService.java:121-156`):
 
 ### 2. Backend — new template `templates/email/vote-created.html`
 
-Visually consistent with `vote-result.html` (purple `#6A1B9A` header with white logo,
-white content card, `#4A148C` footer, `.cta-button` style). Sections:
+Visually identical to the two **customer-facing** templates (`vote-result.html` and
+`itinerary-confirmation.html`), which share one house style. Reuse their CSS **verbatim**:
+`body` (Arial, `#f0f0f0` page bg, `line-height: 1.6`), `.container` (600px white, rounded),
+`.header` (`#6A1B9A`, white logo 56px, `h1` 22px/700 + muted sub-line), `.content` (30px),
+`.footer` (`#4A148C`, white logo 36px, muted 12px lines incl. the existing
+"For support, contact us at support@trivlu.com"), plus `.cta-button` (from `vote-result`)
+for the dashboard button and `.section` (from `itinerary-confirmation`: left border
+`#6A1B9A`, `#f8f9fa` bg) for the "How it works" block. The internal
+`contact-notification.html` is **not** a style reference — it is an admin notification with
+a lighter, off-palette variant (stray `#667eea`). Sections:
 
 - **Header:** logo, `"Your group vote is live!"`, sub-line `"Trip to {destination}"`.
 - **Confirmation line:** destination, `{startDate} – {endDate}`, `{numberOfTravelers}`
