@@ -121,7 +121,7 @@ public class EmailService {
         }
     }
 
-    public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String siteUrl) {
+    public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String frontendUrl) {
         log.info("Preparing vote result email: from={}, to={}, destination={}", fromEmail, maskEmail(session.getInitiatorEmail()), session.getDestination().getName());
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -136,8 +136,8 @@ public class EmailService {
             // itinerary, budget panel, and suggestions.
             String destinationSlug = session.getDestination().getSlug();
             String resultUrl = destinationSlug != null
-                    ? siteUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken()
-                    : siteUrl + "/vote/" + session.getShareToken() + "/result";
+                    ? frontendUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken()
+                    : frontendUrl + "/vote/" + session.getShareToken() + "/result";
 
             Context context = new Context();
             context.setVariable("session", session);
@@ -158,7 +158,7 @@ public class EmailService {
         }
     }
 
-    public void sendVoteCreatedConfirmation(VoteSession session, String siteUrl) {
+    public void sendVoteCreatedConfirmation(VoteSession session, String frontendUrl) {
         log.info("Preparing vote-created confirmation email: from={}, to={}, destination={}",
                 fromEmail, maskEmail(session.getInitiatorEmail()), session.getDestination().getName());
         try {
@@ -170,8 +170,8 @@ public class EmailService {
             helper.setSubject("Your group vote for " + session.getDestination().getName() + " is live");
 
             String shareToken = session.getShareToken().toString();
-            String inviteUrl = siteUrl + "/vote/" + shareToken + "/activities";
-            String dashboardUrl = siteUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken();
+            String inviteUrl = frontendUrl + "/vote/" + shareToken + "/activities";
+            String dashboardUrl = frontendUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken();
 
             Context context = new Context();
             context.setVariable("session", session);

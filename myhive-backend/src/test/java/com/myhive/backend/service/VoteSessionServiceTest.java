@@ -365,7 +365,7 @@ class VoteSessionServiceTest {
     @Test
     void createSession_sendsConfirmationEmailWhenEnabled() {
         ReflectionTestUtils.setField(voteSessionService, "emailEnabled", true);
-        ReflectionTestUtils.setField(voteSessionService, "siteUrl", "https://trivlu.com");
+        ReflectionTestUtils.setField(voteSessionService, "frontendUrl", "https://trivlu.com");
         VoteSessionCreateRequest request = happyPathCreateSetup();
 
         VoteSessionResponse response = voteSessionService.createSession(request);
@@ -387,7 +387,7 @@ class VoteSessionServiceTest {
     @Test
     void createSession_succeedsEvenWhenConfirmationEmailFails() {
         ReflectionTestUtils.setField(voteSessionService, "emailEnabled", true);
-        ReflectionTestUtils.setField(voteSessionService, "siteUrl", "https://trivlu.com");
+        ReflectionTestUtils.setField(voteSessionService, "frontendUrl", "https://trivlu.com");
         VoteSessionCreateRequest request = happyPathCreateSetup();
         doThrow(new EmailSendException("smtp down", null))
                 .when(emailService).sendVoteCreatedConfirmation(any(), any());

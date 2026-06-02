@@ -85,8 +85,8 @@ public class VoteSessionService {
     @Value("${app.email.enabled:false}")
     private boolean emailEnabled;
 
-    @Value("${app.site.url:https://trivlu.com}")
-    private String siteUrl;
+    @Value("${app.frontend.url:https://trivlu.com}")
+    private String frontendUrl;
 
     @Transactional
     public VoteSessionResponse createSession(VoteSessionCreateRequest request) {
@@ -144,7 +144,7 @@ public class VoteSessionService {
 
         if (emailEnabled) {
             try {
-                emailService.sendVoteCreatedConfirmation(session, siteUrl);
+                emailService.sendVoteCreatedConfirmation(session, frontendUrl);
             } catch (EmailSendException e) {
                 // A failed confirmation email must never fail session creation — log and move on.
                 log.error("Failed to send vote-created confirmation for session {}: {}",
@@ -483,7 +483,7 @@ public class VoteSessionService {
         if (emailEnabled) {
             List<VoteSessionResultActivity> results =
                     resultActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
-            emailService.sendVoteResult(session, results, siteUrl);
+            emailService.sendVoteResult(session, results, frontendUrl);
         }
     }
 
