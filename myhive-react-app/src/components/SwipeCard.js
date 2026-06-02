@@ -65,6 +65,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
         <button
             type="button"
             className="swipe-card-link"
+            aria-haspopup="dialog"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
             onClick={(e) => {

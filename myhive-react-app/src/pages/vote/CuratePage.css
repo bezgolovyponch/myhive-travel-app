@@ -97,6 +97,7 @@
   padding: 0;
   font: inherit;
   cursor: pointer;
+  text-align: left;
 }
 
 .curate-finalize-card-link:hover {

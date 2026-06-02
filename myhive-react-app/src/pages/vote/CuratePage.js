@@ -192,6 +192,7 @@ export default function CuratePage() {
                     <button
                       type="button"
                       className="curate-finalize-card-link"
+                      aria-haspopup="dialog"
                       onClick={() => setSelected(a)}
                     >
                       {a.name}
