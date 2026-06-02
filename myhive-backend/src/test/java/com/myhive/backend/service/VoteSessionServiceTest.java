@@ -10,6 +10,7 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.exception.SessionFullException;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
@@ -33,8 +34,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -311,5 +316,79 @@ class VoteSessionServiceTest {
         assertThatThrownBy(() -> voteSessionService.closeSession(shareToken, wrongManagerToken))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Invalid manager token");
+    }
+
+    private VoteSessionCreateRequest happyPathCreateSetup() {
+        UUID destId = UUID.randomUUID();
+        UUID catId = UUID.randomUUID();
+        UUID activityId = UUID.randomUUID();
+
+        Category category = new Category();
+        category.setId(catId);
+        category.setVotable(true);
+
+        Destination destination = new Destination();
+        destination.setId(destId);
+        destination.setName("Bali");
+        destination.setSlug("bali");
+        destination.setCategories(Set.of(category));
+
+        Activity activity = new Activity();
+        activity.setId(activityId);
+        activity.setDestination(destination);
+        activity.setName("Surfing");
+        activity.setPrice(new BigDecimal("65"));
+        activity.setCategories(Set.of(category));
+
+        when(destinationRepository.findById(destId)).thenReturn(Optional.of(destination));
+        when(activityRepository.findAllById(any())).thenReturn(List.of(activity));
+        when(voteSessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(any())).thenReturn(0L);
+
+        VoteSessionCreateRequest request = new VoteSessionCreateRequest();
+        request.setDestinationId(destId);
+        request.setInitiatorEmail("alice@example.com");
+        request.setNumberOfTravelers(2);
+        request.setStartDate(LocalDate.of(2026, 8, 1));
+        request.setEndDate(LocalDate.of(2026, 8, 10));
+        request.setVoterToken(UUID.randomUUID());
+        request.setQuizResponses(List.of());
+        request.setActivityIds(List.of(activityId));
+        return request;
+    }
+
+    @Test
+    void createSession_sendsConfirmationEmailWhenEnabled() {
+        ReflectionTestUtils.setField(voteSessionService, "emailEnabled", true);
+        ReflectionTestUtils.setField(voteSessionService, "siteUrl", "https://trivlu.com");
+        VoteSessionCreateRequest request = happyPathCreateSetup();
+
+        VoteSessionResponse response = voteSessionService.createSession(request);
+
+        assertThat(response.getShareToken()).isNotNull();
+        verify(emailService).sendVoteCreatedConfirmation(any(VoteSession.class), eq("https://trivlu.com"));
+    }
+
+    @Test
+    void createSession_doesNotSendEmailWhenDisabled() {
+        ReflectionTestUtils.setField(voteSessionService, "emailEnabled", false);
+        VoteSessionCreateRequest request = happyPathCreateSetup();
+
+        voteSessionService.createSession(request);
+
+        verify(emailService, never()).sendVoteCreatedConfirmation(any(), any());
+    }
+
+    @Test
+    void createSession_succeedsEvenWhenConfirmationEmailFails() {
+        ReflectionTestUtils.setField(voteSessionService, "emailEnabled", true);
+        ReflectionTestUtils.setField(voteSessionService, "siteUrl", "https://trivlu.com");
+        VoteSessionCreateRequest request = happyPathCreateSetup();
+        doThrow(new EmailSendException("smtp down", null))
+                .when(emailService).sendVoteCreatedConfirmation(any(), any());
+
+        VoteSessionResponse response = voteSessionService.createSession(request);
+
+        assertThat(response.getShareToken()).isNotNull();
     }
 }

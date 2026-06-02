@@ -22,6 +22,7 @@ import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
@@ -139,6 +140,16 @@ public class VoteSessionService {
             row.setQuestion(question);
             row.setAnswer(answer);
             voteSessionQuizResponseRepository.save(row);
+        }
+
+        if (emailEnabled) {
+            try {
+                emailService.sendVoteCreatedConfirmation(session, siteUrl);
+            } catch (EmailSendException e) {
+                // A failed confirmation email must never fail session creation — log and move on.
+                log.error("Failed to send vote-created confirmation for session {}: {}",
+                        session.getId(), e.getMessage(), e);
+            }
         }
 
         long participantCount = voteActivityLikeRepository
