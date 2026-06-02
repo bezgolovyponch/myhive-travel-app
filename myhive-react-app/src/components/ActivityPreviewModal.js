@@ -6,6 +6,9 @@ function ActivityPreviewModal({ activity, link, onClose }) {
     const previouslyFocusedRef = useRef(null);
     const onCloseRef = useRef(onClose);
 
+    // Keep the ref current so the focus effect can call the latest onClose without
+    // depending on it — listing onClose would re-run the effect (and yank focus) on
+    // every parent re-render, since the call sites pass an inline-arrow onClose.
     useEffect(() => {
         onCloseRef.current = onClose;
     });
@@ -46,10 +49,15 @@ function ActivityPreviewModal({ activity, link, onClose }) {
                 }
                 const first = items[0];
                 const last = items[items.length - 1];
-                if (e.shiftKey && document.activeElement === first) {
+                const active = document.activeElement;
+                if (!node.contains(active)) {
+                    // Focus drifted outside the dialog (e.g. onto <body>) — pull it back.
+                    e.preventDefault();
+                    first.focus();
+                } else if (e.shiftKey && active === first) {
                     e.preventDefault();
                     last.focus();
-                } else if (!e.shiftKey && document.activeElement === last) {
+                } else if (!e.shiftKey && active === last) {
                     e.preventDefault();
                     first.focus();
                 }
@@ -57,6 +65,9 @@ function ActivityPreviewModal({ activity, link, onClose }) {
         };
 
         document.addEventListener('keydown', handleKey);
+        // Cleanup runs on close (activity -> null) or unmount. Restoring focus here
+        // assumes the modal only ever toggles via null (both call sites do); a future
+        // "open next activity" path would need to skip restore on activity->activity.
         return () => {
             document.removeEventListener('keydown', handleKey);
             const prev = previouslyFocusedRef.current;
