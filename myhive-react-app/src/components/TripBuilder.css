@@ -374,7 +374,9 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  max-height: 45%;
+  /* Height is bounded per-breakpoint: a clamp() on desktop (see the
+     min-width: 769px block below) and a content-sized block with a capped
+     inner list on mobile. */
   padding-bottom: 16px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--card-border, rgba(119, 124, 124, 0.15));
@@ -399,4 +401,32 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Desktop height bounds for the right column and its two stacked scroll
+   regions. The column height is synced to the left column via JS, but a short
+   itinerary used to squash both "Group suggestions" and "Browse More
+   Activities" into tiny strips. */
+@media (min-width: 769px) {
+  /* On the post-vote screen (when the suggestions block is present) the column
+     should fill the available viewport height instead of shrinking to a short
+     itinerary, which used to squash both stacked lists. It still stays within
+     34rem–50rem so it's never cramped, nor wildly taller than the left card on
+     very tall screens. The plain build-your-trip screen is left untouched. */
+  .trip-builder-right:has(.trip-vote-suggestions) {
+    min-height: clamp(34rem, calc(100vh - var(--header-height) - 32px), 50rem);
+  }
+
+  /* Ceiling matches the left column's cap so the column never grows past the
+     viewport even if the JS height sync hasn't run yet. */
+  .trip-builder-right {
+    max-height: calc(100vh - var(--header-height) - 32px);
+  }
+
+  /* Suggestions take at most ~42% of the column, but never less than 11rem
+     (~2 items + heading) and never more than 20rem, so the main browse list
+     below always keeps room. */
+  .trip-vote-suggestions {
+    max-height: clamp(11rem, 42%, 20rem);
+  }
 }
