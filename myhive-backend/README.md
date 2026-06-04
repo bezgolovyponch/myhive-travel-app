@@ -30,4 +30,4 @@ docker compose -f docker-compose.dev.yml up -d
 docker compose -f docker-compose.dev.yml logs -f
 ```
 
-Backend will be available at http://localhost:8081
+Backend will be available at http://localhost:8080

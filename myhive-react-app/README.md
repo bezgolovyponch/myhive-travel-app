@@ -1,70 +1,60 @@
-# Getting Started with Create React App
+# Trivlu — Frontend (React 19 SPA)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Customer-facing + admin single-page app for the Trivlu travel platform. Bootstrapped with
+Create React App; talks to the Spring Boot backend in [`../myhive-backend`](../myhive-backend).
 
-## Available Scripts
+## Prerequisites
 
-In the project directory, you can run:
+- Node 18+
+- Backend running (defaults to `http://localhost:8080`)
 
-### `npm start`
+## Scripts
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| Command         | What it does                                                                                          |
+|-----------------|-------------------------------------------------------------------------------------------------------|
+| `npm install`   | Install dependencies                                                                                  |
+| `npm start`     | Dev server on http://localhost:3000                                                                   |
+| `npm test`      | Jest + React Testing Library (watch mode)                                                             |
+| `npm run build` | Production build to `build/`; also copies `index.html` → `404.html` so SPA deep links work on static hosts |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Environment Variables
 
-### `npm test`
+Build-time only — CRA inlines `REACT_APP_*` at build time. Put them in `.env` (see `.env.example`).
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+| Variable                       | Required         | Default                    | Purpose                              |
+|--------------------------------|------------------|----------------------------|--------------------------------------|
+| `REACT_APP_API_URL`            | yes              | `http://localhost:8080`    | Backend base URL                     |
+| `REACT_APP_SITE_URL`           | no               | `https://trivlu.com`       | Canonical URLs / SEO                 |
+| `REACT_APP_OIDC_AUTHORITY`     | yes              | –                          | Auth0 tenant issuer URL              |
+| `REACT_APP_OIDC_CLIENT_ID`     | yes              | –                          | Auth0 SPA client ID                  |
+| `REACT_APP_OIDC_AUDIENCE`      | yes              | –                          | API audience (`https://api.trivlu.com`) |
+| `REACT_APP_OIDC_REDIRECT_URI`  | no               | `<origin>/admin`           | OIDC redirect target                 |
+| `REACT_APP_OIDC_ROLES_CLAIM`   | no               | `https://trivlu.com/roles` | JWT claim holding roles              |
+| `REACT_APP_TURNSTILE_SITE_KEY` | for contact form | –                          | Cloudflare Turnstile site key        |
 
-### `npm run build`
+## Project Structure (`src/`)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+| Path          | Purpose                                                                                              |
+|---------------|------------------------------------------------------------------------------------------------------|
+| `context/`    | `AppContext` (destinations / activities / trip-builder state via `useReducer`), `AuthContext` (Auth0 via `react-oidc-context`) |
+| `services/`   | `api.js` (public endpoints), `adminApi.js` (admin endpoints, sends JWT), `config.js` (API/site URLs) |
+| `pages/`      | Route-level components — Home, Destination, ActivityDetail, Blog, Contact, plus `pages/admin/*` and `pages/vote/*` |
+| `components/` | Reusable UI — Header, Footer, Layout, AdminLayout, ProtectedRoute, TripBuilder, ChatPanel, `components/admin/*` |
+| `hooks/`, `utils/`, `styles/` | Custom hooks, helpers, and styling                                                   |
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Routing & Auth
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **`BrowserRouter`** (clean URLs). Static hosting relies on the `404.html` fallback produced by `npm run build`.
+- Admin routes are guarded by `ProtectedRoute`. Auth is **Auth0 OIDC** via `react-oidc-context` + `oidc-client-ts`;
+  access token stored in `localStorage` (survives refresh / shared across tabs), silently renewed via hidden iframe.
+  Roles: `ADMIN`, `MANAGER`.
 
-### `npm run eject`
+## Key Libraries
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+React 19 · react-router-dom 7 · react-oidc-context + oidc-client-ts · Bootstrap 5 + react-bootstrap ·
+@dnd-kit (drag-and-drop trip builder) · react-day-picker (date-range picker) · react-helmet-async (per-page SEO meta).
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Deployment
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Served as a **static site on Render** (build output in `build/`). The build step copies `index.html` to
+`404.html` so client-side deep links resolve on static hosting.

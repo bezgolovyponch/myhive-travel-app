@@ -10,6 +10,6 @@ echo Starting containers...
 docker compose -f docker-compose.dev.yml up -d
 
 echo.
-echo Done! Backend running on http://localhost:8081
+echo Done! Backend running on http://localhost:8080
 echo.
 docker compose -f docker-compose.dev.yml logs -f
