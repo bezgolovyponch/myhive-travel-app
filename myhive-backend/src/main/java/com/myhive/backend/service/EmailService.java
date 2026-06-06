@@ -55,6 +55,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+    private final AsyncMailSender asyncMailSender;
 
     @Value("${app.email.from}")
     private String fromEmail;
@@ -82,12 +83,11 @@ public class EmailService {
             String htmlContent = templateEngine.process("itinerary-confirmation", context);
             helper.setText(htmlContent, true);
 
-            log.info("Sending email via SMTP to: {}", toEmail);
-            mailSender.send(message);
-            log.info("Itinerary confirmation email sent successfully to: {}", toEmail);
+            log.info("Queueing itinerary confirmation email to: {}", toEmail);
+            asyncMailSender.send(message, "itinerary confirmation to " + toEmail);
 
         } catch (Exception e) {
-            log.error("Failed to send itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
+            log.error("Failed to build itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
             throw new EmailSendException("Failed to send confirmation email", e);
         }
     }
@@ -112,6 +112,10 @@ public class EmailService {
             String htmlContent = templateEngine.process("contact-notification", context);
             helper.setText(htmlContent, true);
 
+            // Sent synchronously (unlike the other emails): a contact submission has no durable
+            // record behind it, so a delivery failure must surface to the user rather than being
+            // swallowed by the fire-and-forget async sender.
+            log.info("Sending contact form notification via SMTP to: {}", contactToEmail);
             mailSender.send(message);
             log.info("Contact form notification sent successfully to: {}", contactToEmail);
 
@@ -148,12 +152,11 @@ public class EmailService {
             String htmlContent = templateEngine.process("vote-result", context);
             helper.setText(htmlContent, true);
 
-            log.info("Sending vote result email via SMTP to: {}", maskEmail(session.getInitiatorEmail()));
-            mailSender.send(message);
-            log.info("Vote result email sent successfully to: {}", maskEmail(session.getInitiatorEmail()));
+            log.info("Queueing vote result email to: {}", maskEmail(session.getInitiatorEmail()));
+            asyncMailSender.send(message, "vote result to " + maskEmail(session.getInitiatorEmail()));
 
         } catch (Exception e) {
-            log.error("Failed to send vote result email to: {}. Cause: {}", maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
+            log.error("Failed to build vote result email to: {}. Cause: {}", maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
             throw new EmailSendException("Failed to send vote result email", e);
         }
     }
@@ -186,12 +189,11 @@ public class EmailService {
             String htmlContent = templateEngine.process("vote-created", context);
             helper.setText(htmlContent, true);
 
-            log.info("Sending vote-created confirmation email via SMTP to: {}", maskEmail(session.getInitiatorEmail()));
-            mailSender.send(message);
-            log.info("Vote-created confirmation email sent successfully to: {}", maskEmail(session.getInitiatorEmail()));
+            log.info("Queueing vote-created confirmation email to: {}", maskEmail(session.getInitiatorEmail()));
+            asyncMailSender.send(message, "vote-created confirmation to " + maskEmail(session.getInitiatorEmail()));
 
         } catch (Exception e) {
-            log.error("Failed to send vote-created confirmation email to: {}. Cause: {}",
+            log.error("Failed to build vote-created confirmation email to: {}. Cause: {}",
                     maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
             throw new EmailSendException("Failed to send vote-created confirmation email", e);
         }

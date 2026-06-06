@@ -31,7 +31,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `service/`    | Business logic + EmailService                                                                   |
 | `entity/`     | JPA entities (UUID PKs; slug field on Destination, Activity, Category, BlogPost, Package): Destination, Activity, Category, Booking, BookingItem, BlogPost, Package, PackageActivity, plus vote/quiz entities (VoteSession, VoteSessionActivity, VoteActivityLike, QuizQuestion, QuizAnswer, …) |
 | `dto/`        | Request/response objects                                                                        |
-| `config/`     | Security (Auth0 OIDC), CORS, rate limiting, R2, email templates                                 |
+| `config/`     | Security (Auth0 OIDC), CORS, rate limiting, R2, email templates, async email executor (`AsyncConfig`) |
 | `util/`       | SlugUtils (slug generation via Slugify + ICU4J transliteration)                                 |
 
 ### API Endpoints
@@ -65,7 +65,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | Hosting | Render.com    | Backend + frontend static site       |
 | DB      | Render        | PostgreSQL 18 (Basic-256mb)          |
 | CDN/DNS | Cloudflare    | Proxy, DDoS protection, caching, SSL |
-| Email (send)    | Resend    | SMTP relay for transactional email (noreply@trivlu.com) |
+| Email (send)    | Resend    | SMTP relay for transactional email (noreply@trivlu.com); itinerary/vote emails sent asynchronously off the request thread via a bounded pool, contact-form notification stays synchronous |
 | Email (receive) | Zoho Mail | Inbound mailboxes: info@ / support@ / bookings@         |
 | Images  | Cloudflare R2 | S3-compatible object storage         |
 | Auth    | Auth0         | OIDC/OAuth2, roles: ADMIN, MANAGER   |

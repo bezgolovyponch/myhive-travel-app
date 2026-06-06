@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
@@ -27,10 +28,11 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,12 +44,16 @@ class EmailServiceTest {
     @Mock
     private TemplateEngine templateEngine;
 
+    @Mock
+    private AsyncMailSender asyncMailSender;
+
     @InjectMocks
     private EmailService emailService;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@trivlu.com");
+        ReflectionTestUtils.setField(emailService, "contactToEmail", "info@trivlu.com");
     }
 
     @Test
@@ -94,6 +100,51 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendContactNotification_sendsSynchronouslyViaMailSender() {
+        ContactRequest request = new ContactRequest();
+        request.setName("Bob");
+        request.setEmail("bob@example.com");
+        request.setSubject("Hi");
+        request.setMessage("Hello there");
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(templateEngine.process(eq("contact-notification"), any())).thenReturn("<html>ok</html>");
+
+        emailService.sendContactNotification(request);
+
+        // The contact form must send synchronously: a failed delivery has to surface to the user,
+        // because the contact message is the only email with no durable record behind it. It must
+        // NOT be handed to the fire-and-forget async sender.
+        verify(mailSender).send(mimeMessage);
+        verifyNoInteractions(asyncMailSender);
+    }
+
+    @Test
+    void sendVoteResult_masksRecipientInAsyncDescription() throws Exception {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        Destination destination = new Destination();
+        destination.setName("Bali");
+        session.setDestination(destination);
+        session.setInitiatorEmail("alice@example.com");
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(templateEngine.process(eq("vote-result"), any())).thenReturn("<html>test</html>");
+
+        emailService.sendVoteResult(session, List.of(), "https://trivlu.com");
+
+        // The description handed to the async sender is logged — it must carry the masked address,
+        // never the raw initiator email (PII-masking is a project-wide convention for vote emails).
+        ArgumentCaptor<String> descriptionCaptor = ArgumentCaptor.forClass(String.class);
+        verify(asyncMailSender).send(eq(mimeMessage), descriptionCaptor.capture());
+        assertThat(descriptionCaptor.getValue())
+                .contains("a****@example.com")
+                .doesNotContain("alice@example.com");
+    }
+
+    @Test
     void sendVoteResult_doesNotThrowWhenMailSucceeds() throws Exception {
         VoteSession session = new VoteSession();
         session.setShareToken(UUID.randomUUID());
@@ -106,10 +157,12 @@ class EmailServiceTest {
         MimeMessage mimeMessage = mock(MimeMessage.class);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         when(templateEngine.process(eq("vote-result"), any())).thenReturn("<html>test</html>");
-        doNothing().when(mailSender).send(any(MimeMessage.class));
 
         assertThatCode(() -> emailService.sendVoteResult(session, List.of(), "https://trivlu.com"))
                 .doesNotThrowAnyException();
+
+        // The blocking SMTP send is delegated to the async sender, not invoked inline.
+        verify(asyncMailSender).send(eq(mimeMessage), anyString());
     }
 
     @Test
@@ -148,7 +201,7 @@ class EmailServiceTest {
         assertThat(inviteUrl)
                 .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities");
         assertThat(context.getVariable("supportEmail")).isEqualTo("support@trivlu.com");
-        verify(mailSender).send(any(MimeMessage.class));
+        verify(asyncMailSender).send(eq(mimeMessage), anyString());
     }
 
     @Test
