@@ -3,6 +3,7 @@ import {useContext, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import TripBuilderDropdown from './TripBuilderDropdown';
 import TripSetupModal from './TripSetupModal';
+import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './Header.css';
 
 function Header() {
@@ -35,15 +36,9 @@ function Header() {
               .replace('-', ' ')
               .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  const handleDestinationsClick = (event) => {
+  const handleActivitiesClick = (event) => {
     event.preventDefault();
-    navigate('/');
-    setTimeout(() => {
-      const section = document.getElementById('destinations');
-      if (section) {
-        section.scrollIntoView({behavior: 'smooth'});
-      }
-    }, 0);
+    scrollToHomeSection(navigate, 'activities');
   };
 
   return (
@@ -54,9 +49,9 @@ function Header() {
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a href="/" onClick={(e) => {
-            handleDestinationsClick(e);
+            handleActivitiesClick(e);
             setMobileNavOpen(false);
-          }}>Destinations</a>
+          }}>Activities</a>
             <Link to="/about" onClick={() => setMobileNavOpen(false)}>About</Link>
             <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
             <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>

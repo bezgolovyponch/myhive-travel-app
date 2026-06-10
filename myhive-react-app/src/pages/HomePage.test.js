@@ -63,6 +63,8 @@ test('Start Group Vote opens the vote setup modal', async () => {
 
   renderHome();
 
+  await screen.findByText('What the Lads Say');
+
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
 
   // TripSetupModal in vote mode shows the vote-specific confirm button.

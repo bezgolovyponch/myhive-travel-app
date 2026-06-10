@@ -1,7 +1,10 @@
-import {Link} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
+import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './Footer.css';
 
 function Footer() {
+    const navigate = useNavigate();
+
     return (
         <footer className="site-footer">
             <div className="footer-content">
@@ -13,7 +16,7 @@ function Footer() {
                 <div className="footer-nav-group">
                     <nav className="footer-nav">
                         <span className="footer-nav-title">Explore</span>
-                        <a href="/#activities">Activities</a>
+                        <a href="/#activities" onClick={(e) => { e.preventDefault(); scrollToHomeSection(navigate, 'activities'); }}>Activities</a>
                         <Link to="/about">About</Link>
                         <Link to="/contact">Contact</Link>
                     </nav>

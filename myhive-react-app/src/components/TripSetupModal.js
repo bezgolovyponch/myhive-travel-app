@@ -80,13 +80,17 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                     id="voteDestination"
                                     value={selectedDestinationId}
                                     onChange={e => setSelectedDestinationId(e.target.value)}
+                                    disabled={state.loading}
                                     required
                                 >
-                                    <option value="">Select a destination…</option>
-                                    {state.destinations.map(d => (
+                                    <option value="">{state.loading ? 'Loading destinations…' : 'Select a destination…'}</option>
+                                    {!state.loading && state.destinations.map(d => (
                                         <option key={d.id} value={d.id}>{d.name}</option>
                                     ))}
                                 </select>
+                                {state.error && !state.loading && (
+                                    <p className="text-error">Couldn't load destinations. Please try again later.</p>
+                                )}
                             </div>
                         )}
                         {preselectedDestination && (
