@@ -1,0 +1,84 @@
+.how-it-works {
+    padding: var(--gap-xl) var(--page-padding);
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-lg);
+    text-align: center;
+}
+
+.section-subtitle {
+    font-size: 1rem;
+    color: var(--text);
+    opacity: 0.8;
+    max-width: 40rem;
+    margin: 0 auto;
+}
+
+.how-it-works-steps {
+    display: flex;
+    justify-content: center;
+    gap: var(--gap-lg);
+    flex-wrap: wrap;
+}
+
+.how-it-works-step {
+    position: relative;
+    max-width: 13rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+/* dashed connector between steps on desktop */
+.how-it-works-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 1.25rem;
+    left: 100%;
+    width: var(--gap-lg);
+    border-top: 2px dashed rgba(0, 0, 0, 0.25);
+}
+
+.step-number {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--white);
+    border: 2px solid var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.step-icon {
+    font-size: 1.5rem;
+}
+
+.step-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.step-text {
+    font-size: 0.875rem;
+    color: var(--text);
+    opacity: 0.75;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .how-it-works-steps {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .how-it-works-step:not(:last-child)::after {
+        display: none;
+    }
+}
