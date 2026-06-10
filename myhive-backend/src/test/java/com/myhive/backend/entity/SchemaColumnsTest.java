@@ -56,4 +56,22 @@ class SchemaColumnsTest {
 
         assertThat(reloaded.getFeaturedWeight()).isEqualTo(expectedWeight);
     }
+
+    @Test
+    void activity_featured_persists() {
+        Destination destination = new Destination();
+        destination.setName("Lisbon");
+        Destination savedDestination = destinationRepository.save(destination);
+
+        Activity activity = new Activity();
+        activity.setDestination(savedDestination);
+        activity.setName("Fado Night");
+        activity.setPrice(new BigDecimal("40.00"));
+        activity.setFeatured(true);
+
+        Activity saved = activityRepository.saveAndFlush(activity);
+        Activity reloaded = activityRepository.findById(saved.getId()).orElseThrow();
+
+        assertThat(reloaded.isFeatured()).isTrue();
+    }
 }

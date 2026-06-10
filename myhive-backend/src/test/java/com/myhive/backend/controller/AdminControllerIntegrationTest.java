@@ -146,7 +146,8 @@ class AdminControllerIntegrationTest {
                 {
                   "destinationId": "%s",
                   "name": "Updated Tour",
-                  "price": 30.00
+                  "price": 30.00,
+                  "featured": true
                 }
                 """.formatted(destinationId);
 
@@ -155,7 +156,8 @@ class AdminControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name", is("Updated Tour")));
+                .andExpect(jsonPath("$.name", is("Updated Tour")))
+                .andExpect(jsonPath("$.featured", is(true)));
     }
 
     @Test

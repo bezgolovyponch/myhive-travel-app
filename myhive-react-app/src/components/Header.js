@@ -48,7 +48,7 @@ function Header() {
           <img src="/logo-white.png" alt="Trivlu" className="logo-img"/>
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
-          <a href="/" onClick={(e) => {
+          <a href="/#activities" onClick={(e) => {
             handleActivitiesClick(e);
             setMobileNavOpen(false);
           }}>Activities</a>
