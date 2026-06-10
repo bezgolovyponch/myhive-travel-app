@@ -4,7 +4,7 @@
     gap: var(--gap-xl);
     padding: var(--gap-lg) var(--page-padding);
     background: var(--bg);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid var(--card-border);
     flex-wrap: wrap;
 }
 

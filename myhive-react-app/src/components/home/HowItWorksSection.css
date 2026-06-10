@@ -8,14 +8,6 @@
     text-align: center;
 }
 
-.section-subtitle {
-    font-size: 1rem;
-    color: var(--text);
-    opacity: 0.8;
-    max-width: 40rem;
-    margin: 0 auto;
-}
-
 .how-it-works-steps {
     display: flex;
     justify-content: center;
@@ -39,7 +31,7 @@
     top: 1.25rem;
     left: 100%;
     width: var(--gap-lg);
-    border-top: 2px dashed rgba(0, 0, 0, 0.25);
+    border-top: 2px dashed var(--border);
 }
 
 .step-number {
@@ -52,6 +44,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
+    color: var(--primary-text);
 }
 
 .step-icon {

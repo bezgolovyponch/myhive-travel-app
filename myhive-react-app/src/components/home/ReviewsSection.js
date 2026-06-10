@@ -36,7 +36,7 @@ function ReviewsSection({onStartVote}) {
             <div className="reviews-grid">
                 {REVIEWS.map(review => (
                     <div key={review.name} className="review-card">
-                        <div className="review-stars" aria-label="5 out of 5 stars">★★★★★</div>
+                        <div className="review-stars" role="img" aria-label="5 out of 5 stars">★★★★★</div>
                         <blockquote className="review-quote">"{review.quote}"</blockquote>
                         <div className="review-author">
                             <span className="review-avatar" aria-hidden="true">{initials(review.name)}</span>

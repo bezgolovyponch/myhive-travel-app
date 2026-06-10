@@ -65,6 +65,14 @@
     color: var(--text);
 }
 
+.section-subtitle {
+    font-size: 1rem;
+    color: var(--text);
+    opacity: 0.8;
+    max-width: 40rem;
+    margin: 0 auto;
+}
+
 .destinations-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));

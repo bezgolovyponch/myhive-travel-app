@@ -1,6 +1,6 @@
 .how-booking-works {
     padding: var(--gap-xl) var(--page-padding);
-    background: var(--white);
+    background: var(--surface);
     display: flex;
     flex-direction: column;
     align-items: center;

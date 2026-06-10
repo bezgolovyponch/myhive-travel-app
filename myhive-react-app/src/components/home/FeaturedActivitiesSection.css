@@ -30,3 +30,9 @@
         gap: var(--gap);
     }
 }
+
+@media (max-width: 480px) {
+    .featured-activities-grid {
+        grid-template-columns: 1fr;
+    }
+}
