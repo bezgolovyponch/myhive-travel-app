@@ -15,6 +15,7 @@ const EMPTY_FORM = {
     price: '',
     duration: '',
     featuredWeight: 0,
+    featured: false,
     categoryIds: [],
     imageUrl: '',
     includes: '',
@@ -29,6 +30,7 @@ const COLUMNS = [
     {key: 'price', label: 'Price'},
     {key: 'duration', label: 'Duration'},
     {key: 'featuredWeight', label: 'Weight'},
+    {key: 'featured', label: 'Featured'},
 ];
 
 function AdminActivities() {
@@ -60,6 +62,7 @@ function AdminActivities() {
             price: a.price ?? '',
             duration: a.duration ?? '',
             featuredWeight: a.featuredWeight ?? 0,
+            featured: a.featured ?? false,
             categoryIds: a.categoryIds || (a.categories || []).map(c => c.id),
             imageUrl: a.imageUrl || '',
             includes: a.includes || '',
@@ -195,6 +198,7 @@ function AdminActivities() {
                                     {activity.duration ? `${activity.duration} min` : '—'}
                                 </td>
                                 <td className="small">{activity.featuredWeight ?? 0}</td>
+                                <td className="small">{activity.featured ? '✓' : '—'}</td>
                                 <td className="text-end">
                                     <Button variant="outline-primary" size="sm" className="me-1"
                                             onClick={() => openEdit(activity)}>
@@ -288,6 +292,16 @@ function AdminActivities() {
                                 value={form.featuredWeight}
                                 onChange={e => setForm({...form, featuredWeight: e.target.value})}
                                 placeholder="0"
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Check
+                                type="switch"
+                                id="featured-on-homepage"
+                                label="Featured on homepage"
+                                className="text-white"
+                                checked={!!form.featured}
+                                onChange={e => setForm({...form, featured: e.target.checked})}
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
