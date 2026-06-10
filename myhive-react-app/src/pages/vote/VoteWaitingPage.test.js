@@ -61,3 +61,20 @@ test('with managerToken already in localStorage and no param, shows End voting e
   expect(await screen.findByText(/End voting early/i)).toBeInTheDocument();
   expect(screen.getByTestId('search').textContent).toBe('');
 });
+
+test('shows "already voted" confirmation when the voted flag is set for this session', async () => {
+  localStorage.setItem('myhive-voted-tok-4', 'true');
+
+  renderAt('/vote/tok-4/waiting');
+
+  expect(await screen.findByText(/You('|’)ve already voted in this session/i)).toBeInTheDocument();
+});
+
+test('does not show "already voted" when the voted flag is missing or belongs to another session', async () => {
+  localStorage.setItem('myhive-voted-other-token', 'true');
+
+  renderAt('/vote/tok-5/waiting');
+
+  expect(await screen.findByText(/Share with friends/i)).toBeInTheDocument();
+  expect(screen.queryByText(/already voted/i)).not.toBeInTheDocument();
+});

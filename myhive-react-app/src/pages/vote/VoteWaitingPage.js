@@ -10,6 +10,8 @@ function VoteWaitingPage() {
         () => !!localStorage.getItem(`myhive-initiator-${shareToken}`));
     const [managerToken, setManagerToken] = useState(
         () => localStorage.getItem(`myhive-manager-${shareToken}`));
+    const [hasVoted] = useState(
+        () => !!localStorage.getItem(`myhive-voted-${shareToken}`));
 
     const [session, setSession] = useState(null);
     const [participantCount, setParticipantCount] = useState(0);
@@ -131,6 +133,12 @@ function VoteWaitingPage() {
             <p style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))', marginBottom: 32 }}>
                 {session?.destinationName ? `Trip to ${session.destinationName}` : 'Your vote session'}
             </p>
+
+            {hasVoted && (
+                <p style={{ color: '#28a745', fontWeight: 600, marginBottom: 24 }}>
+                    ✓ You’ve already voted in this session.
+                </p>
+            )}
 
             <div style={{ background: 'var(--surface, #262828)', border: '1px solid var(--card-border, rgba(119,124,124,0.15))', borderRadius: 12, padding: 24, marginBottom: 24 }}>
                 <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand, #6A1B9A)' }}>{timeLeft}</div>

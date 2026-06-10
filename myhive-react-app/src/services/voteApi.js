@@ -47,6 +47,7 @@ const voteApi = {
   // Curated voting list (same URL as before — backend now serves curated for new sessions)
   async getActivities(shareToken) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/activities`);
+    if (response.status === 404) throw new Error('Vote session not found');
     if (!response.ok) throw new Error('Failed to fetch vote activities');
     return response.json();
   },

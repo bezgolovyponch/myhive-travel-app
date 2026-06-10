@@ -79,6 +79,14 @@ function ActivityVotePage() {
     if (submitting) return (
         <div style={{ ...stateStyle, color: 'var(--text, #f5f5f5)' }}>Submitting your votes...</div>
     );
+    if (error === 'Vote session not found') return (
+        <div style={{ ...stateStyle, color: 'var(--text, #f5f5f5)' }}>
+            <p style={{ fontWeight: 600 }}>This vote session no longer exists.</p>
+            <p style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))' }}>
+                It may have expired or been removed — ask the organiser for a new link.
+            </p>
+        </div>
+    );
     if (error) return (
         <div style={{ ...stateStyle, color: '#dc3545' }}>{error}</div>
     );
