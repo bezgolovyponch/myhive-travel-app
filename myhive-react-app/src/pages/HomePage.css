@@ -48,16 +48,7 @@
     text-shadow: 1px 1px 0.1875rem rgba(0, 0, 0, 0.8);
 }
 
-/* Destinations Section */
-.destinations-section {
-    padding: var(--gap-xl) 0 7.5rem;
-    background: var(--bg);
-    scroll-margin-top: var(--header-height);
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap-xl);
-}
-
+/* Shared section typography */
 .section-title {
     text-align: center;
     font-size: clamp(1.25rem, 3vw, 1.5rem);
@@ -71,18 +62,4 @@
     opacity: 0.8;
     max-width: 40rem;
     margin: 0 auto;
-}
-
-.destinations-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
-    gap: var(--gap-lg);
-    padding: 0 var(--page-padding);
-}
-
-@media (max-width: 768px) {
-    .destinations-grid {
-        grid-template-columns: 1fr;
-        gap: var(--gap);
-    }
 }

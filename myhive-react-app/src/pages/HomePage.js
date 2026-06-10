@@ -1,67 +1,67 @@
-import {useContext, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {Helmet} from 'react-helmet-async';
-import {AppContext} from '../context/AppContext';
-import DestinationCard from '../components/DestinationCard';
+import {useStartGroupVote} from '../hooks/useStartGroupVote';
+import TripSetupModal from '../components/TripSetupModal';
+import TrustBar from '../components/home/TrustBar';
+import HowItWorksSection from '../components/home/HowItWorksSection';
+import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSection';
+import HowBookingWorksSection from '../components/home/HowBookingWorksSection';
+import ReviewsSection from '../components/home/ReviewsSection';
 import {SITE_URL} from '../services/config';
 import './HomePage.css';
 
 function HomePage() {
-  const { state } = useContext(AppContext);
-  const videoRef = useRef(null);
+    const videoRef = useRef(null);
+    const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.play().catch(() => {});
-  }, []);
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) {
+            return;
+        }
+        video.play().catch(() => {});
+    }, []);
 
-  return (
-    <div className="homepage">
-        <Helmet>
-            <title>Trivlu — Group Travel Made Easy</title>
-            <meta name="description"
-                  content="Turn group travel chaos into epic adventures with zero stress. Trivlu is the first AI trip maker for multi-traveler experiences."/>
-            <link rel="canonical" href={`${SITE_URL}/`}/>
-        </Helmet>
-      <section className="hero">
-        <video ref={videoRef} autoPlay muted loop playsInline className="hero-video">
-          <source src="https://res.cloudinary.com/dfhvltbjz/video/upload/ac_none,q_auto/v1758716526/panorama_sqshpf.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div className="hero-content">
-          <h1 className="hero-title">Epic Weekend of Freedom</h1>
-          <p className="hero-subtitle">
-            Turn group travel chaos into epic adventures with zero stress using first AI trip maker for multi-traveler experiences
-          </p>
-            {!state.loading && !state.error && (
-                <a href="#destinations" className="btn btn--primary btn--lg">
-                    Explore Destinations
-                </a>
-            )}
+    return (
+        <div className="homepage">
+            <Helmet>
+                <title>Trivlu — The Easiest Stag Do Decision. All Sorted For You.</title>
+                <meta name="description"
+                      content="Your mates vote in 10 minutes. We deliver the perfect stag do weekend — activities, booking and logistics all sorted for you."/>
+                <link rel="canonical" href={`${SITE_URL}/`}/>
+            </Helmet>
+
+            <section className="hero">
+                <video ref={videoRef} autoPlay muted loop playsInline className="hero-video">
+                    <source src="https://res.cloudinary.com/dfhvltbjz/video/upload/ac_none,q_auto/v1758716526/panorama_sqshpf.mp4" type="video/mp4"/>
+                    Your browser does not support the video tag.
+                </video>
+                <div className="hero-content">
+                    <h1 className="hero-title">The Easiest Stag Do Decision. All Sorted For You.</h1>
+                    <p className="hero-subtitle">
+                        Your mates vote in 10 minutes. We deliver the perfect weekend.
+                    </p>
+                    <button className="btn btn--primary btn--lg" onClick={openVoteSetup}>
+                        Start Group Vote
+                    </button>
+                </div>
+            </section>
+
+            <TrustBar/>
+            <HowItWorksSection onStartVote={openVoteSetup}/>
+            <FeaturedActivitiesSection/>
+            <HowBookingWorksSection/>
+            <ReviewsSection onStartVote={openVoteSetup}/>
+
+            <TripSetupModal
+                isVoteMode={true}
+                voteOpen={voteSetupOpen}
+                onVoteConfirm={handleVoteConfirm}
+                onVoteCancel={closeVoteSetup}
+                preselectedDestination={preselectedDestination}
+            />
         </div>
-      </section>
-
-      <section className="destinations-section" id="destinations">
-          {state.loading ? (
-              <h2 className="section-title">Loading destinations...</h2>
-          ) : state.error ? (
-              <>
-                  <h2 className="section-title">Error loading destinations</h2>
-                  <p className="text-center text-error">{state.error}</p>
-              </>
-          ) : (
-              <>
-                  <h2 className="section-title">Destinations</h2>
-                  <div className="destinations-grid">
-                      {state.destinations.map(destination => (
-                          <DestinationCard key={destination.id} destination={destination}/>
-                      ))}
-                  </div>
-              </>
-          )}
-      </section>
-    </div>
-  );
+    );
 }
 
 export default HomePage;

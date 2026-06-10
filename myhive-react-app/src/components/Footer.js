@@ -13,7 +13,7 @@ function Footer() {
                 <div className="footer-nav-group">
                     <nav className="footer-nav">
                         <span className="footer-nav-title">Explore</span>
-                        <a href="#destinations">Destinations</a>
+                        <a href="/#activities">Activities</a>
                         <Link to="/about">About</Link>
                         <Link to="/contact">Contact</Link>
                     </nav>

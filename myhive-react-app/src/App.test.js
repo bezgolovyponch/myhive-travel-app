@@ -12,6 +12,7 @@ beforeEach(() => {
 test('renders the public layout with the site header', async () => {
   api.getDestinations.mockResolvedValue([]);
   api.getActivities.mockResolvedValue([]);
+  api.getFeaturedActivities.mockResolvedValue([]);
 
   render(<App />);
 
