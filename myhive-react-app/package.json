@@ -38,7 +38,8 @@
   },
   "jest": {
     "transformIgnorePatterns": [
-      "/node_modules/(?!(react-day-picker|date-fns)/)"
+      "[/\\\\]node_modules[/\\\\](?!(react-day-picker|date-fns)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
+      "^.+\\.module\\.(css|sass|scss)$"
     ],
     "moduleNameMapper": {
       "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
