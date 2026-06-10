@@ -1,0 +1,66 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { AppContext } from '../context/AppContext';
+import { useStartGroupVote } from './useStartGroupVote';
+
+function QuizStub() {
+  const location = useLocation();
+  return <div>quiz page for {location.state?.setup?.destination?.slug}</div>;
+}
+
+function Harness() {
+  const { voteSetupOpen, openVoteSetup, handleVoteConfirm } = useStartGroupVote();
+  return (
+    <div>
+      <span data-testid="open-state">{voteSetupOpen ? 'open' : 'closed'}</span>
+      <button onClick={openVoteSetup}>open setup</button>
+      <button
+        onClick={() =>
+          handleVoteConfirm({
+            travelers: 4,
+            startDate: '2026-08-01',
+            endDate: '2026-08-03',
+            email: 'a@b.c',
+            destination: { id: 'd1', slug: 'prague' },
+            budget: null,
+          })
+        }
+      >
+        confirm
+      </button>
+    </div>
+  );
+}
+
+function renderHarness(dispatch = jest.fn()) {
+  const state = { tripItems: [], destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }] };
+  return render(
+    <AppContext.Provider value={{ state, dispatch }}>
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<Harness />} />
+          <Route path="/vote/new/quiz" element={<QuizStub />} />
+        </Routes>
+      </MemoryRouter>
+    </AppContext.Provider>
+  );
+}
+
+test('openVoteSetup flips voteSetupOpen', async () => {
+  renderHarness();
+
+  expect(screen.getByTestId('open-state')).toHaveTextContent('closed');
+  await userEvent.click(screen.getByText('open setup'));
+  expect(screen.getByTestId('open-state')).toHaveTextContent('open');
+});
+
+test('handleVoteConfirm navigates to the quiz with setup state', async () => {
+  const dispatch = jest.fn();
+  renderHarness(dispatch);
+
+  await userEvent.click(screen.getByText('confirm'));
+
+  expect(await screen.findByText('quiz page for prague')).toBeInTheDocument();
+  expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
+});
