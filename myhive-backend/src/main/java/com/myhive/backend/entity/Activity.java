@@ -60,6 +60,9 @@ public class Activity {
     @Column(name = "featured_weight", nullable = false, columnDefinition = "integer default 0")
     private int featuredWeight = 0;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean featured = false;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "activity_categories",

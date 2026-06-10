@@ -41,6 +41,8 @@ public class ActivityDTO {
 
     private Integer featuredWeight;
 
+    private Boolean featured;
+
     private List<CategoryDTO> categories = new ArrayList<>();
 
     private List<UUID> categoryIds = new ArrayList<>();

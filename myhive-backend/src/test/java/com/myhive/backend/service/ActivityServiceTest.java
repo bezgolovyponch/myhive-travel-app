@@ -342,6 +342,90 @@ class ActivityServiceTest {
     }
 
     @Test
+    void getActivityById_includesFeatured() {
+        UUID activityId = UUID.randomUUID();
+
+        Destination dest = new Destination();
+        dest.setId(UUID.randomUUID());
+
+        Activity act = new Activity();
+        act.setId(activityId);
+        act.setName("Tank Driving");
+        act.setPrice(new BigDecimal("150"));
+        act.setDestination(dest);
+        act.setFeatured(true);
+        act.setCategories(new java.util.HashSet<>());
+
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(act));
+
+        ActivityDTO dto = activityService.getActivityById(activityId);
+
+        assertThat(dto.getFeatured()).isTrue();
+    }
+
+    @Test
+    void updateActivity_persistsFeatured() {
+        UUID activityId = UUID.randomUUID();
+
+        Destination dest = new Destination();
+        dest.setId(UUID.randomUUID());
+
+        Activity existing = new Activity();
+        existing.setId(activityId);
+        existing.setDestination(dest);
+        existing.setName("Old");
+        existing.setPrice(new BigDecimal("100"));
+        existing.setFeatured(false);
+        existing.setCategories(new java.util.HashSet<>());
+
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(i -> i.getArgument(0));
+
+        ActivityDTO input = new ActivityDTO();
+        input.setName("Old");
+        input.setPrice(new BigDecimal("100"));
+        input.setDestinationId(dest.getId());
+        input.setFeatured(true);
+
+        activityService.updateActivity(activityId, input);
+
+        ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
+        verify(activityRepository).save(captor.capture());
+        assertThat(captor.getValue().isFeatured()).isTrue();
+    }
+
+    @Test
+    void updateActivity_nullFeatured_defaultsToFalse() {
+        UUID activityId = UUID.randomUUID();
+
+        Destination dest = new Destination();
+        dest.setId(UUID.randomUUID());
+
+        Activity existing = new Activity();
+        existing.setId(activityId);
+        existing.setDestination(dest);
+        existing.setName("Old");
+        existing.setPrice(new BigDecimal("100"));
+        existing.setFeatured(true);
+        existing.setCategories(new java.util.HashSet<>());
+
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(i -> i.getArgument(0));
+
+        ActivityDTO input = new ActivityDTO();
+        input.setName("Old");
+        input.setPrice(new BigDecimal("100"));
+        input.setDestinationId(dest.getId());
+        input.setFeatured(null);
+
+        activityService.updateActivity(activityId, input);
+
+        ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
+        verify(activityRepository).save(captor.capture());
+        assertThat(captor.getValue().isFeatured()).isFalse();
+    }
+
+    @Test
     void deleteActivityThrowsWhenUsedInPackages() {
         UUID id = UUID.randomUUID();
         when(activityRepository.existsById(id)).thenReturn(true);
