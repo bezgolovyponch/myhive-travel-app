@@ -6,7 +6,7 @@ import { useStartGroupVote } from './useStartGroupVote';
 
 function QuizStub() {
   const location = useLocation();
-  return <div>quiz page for {location.state?.setup?.destination?.slug}</div>;
+  return <div data-testid="quiz-setup">{JSON.stringify(location.state?.setup)}</div>;
 }
 
 function Harness() {
@@ -61,6 +61,14 @@ test('handleVoteConfirm navigates to the quiz with setup state', async () => {
 
   await userEvent.click(screen.getByText('confirm'));
 
-  expect(await screen.findByText('quiz page for prague')).toBeInTheDocument();
+  const setupNode = await screen.findByTestId('quiz-setup');
+  expect(JSON.parse(setupNode.textContent)).toEqual({
+    travelers: 4,
+    startDate: '2026-08-01',
+    endDate: '2026-08-03',
+    email: 'a@b.c',
+    destination: { id: 'd1', slug: 'prague' },
+    budget: null,
+  });
   expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
 });
