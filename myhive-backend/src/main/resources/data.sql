@@ -417,3 +417,11 @@ VALUES ('d2000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-0000000
        ('d2000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000002', '91111111-0000-0000-0000-000000000001', 2),
        ('d2000000-0000-0000-0000-000000000003', 'd1000000-0000-0000-0000-000000000003', '91111111-0000-0000-0000-000000000002', 2),
        ('d2000000-0000-0000-0000-000000000004', 'd1000000-0000-0000-0000-000000000004', '91111111-0000-0000-0000-000000000003', 2);
+
+-- Featured activities shown on the homepage grid
+UPDATE activities SET featured = TRUE WHERE slug IN (
+    'prague-pub-crawl', 'beer-tasting-experience', 'absinth-bar-experience',
+    'nightclub-vip-experience', 'rooftop-jazz-night', 'segway-city-tour',
+    'e-scooter-adventure', 'kayaking-on-the-vltava', 'underground-bunker-tour',
+    'hot-air-balloon-ride', 'jet-ski-adventure', 'sunset-boat-party'
+);
