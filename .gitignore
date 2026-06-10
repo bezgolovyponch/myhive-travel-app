@@ -52,6 +52,3 @@ out/
 ### Database dumps ###
 *.sql.backup
 neon_backup*.sql
-
-### Local temp ###
-/tmp/
