@@ -263,6 +263,32 @@ class PublicControllerIntegrationTest {
                 .andExpect(content().string(containsString("/destination/" + dest.getSlug() + "/package/sitemap-pkg")));
     }
 
+    @Test
+    void getActivities_featuredTrue_returnsOnlyFeatured() throws Exception {
+        Destination dest = destinationRepository.findById(destinationId).orElseThrow();
+        Activity featuredActivity = new Activity();
+        featuredActivity.setSlug("featured-act");
+        featuredActivity.setDestination(dest);
+        featuredActivity.setName("Featured Act");
+        featuredActivity.setPrice(new BigDecimal("99.00"));
+        featuredActivity.setFeatured(true);
+        activityRepository.save(featuredActivity);
+
+        mockMvc.perform(get("/activities").param("featured", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].slug", is("featured-act")))
+                .andExpect(jsonPath("$[0].featured", is(true)));
+    }
+
+    @Test
+    void getActivities_withoutFeaturedParam_returnsAllIncludingNonFeatured() throws Exception {
+        mockMvc.perform(get("/activities"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].featured", is(false)));
+    }
+
     // --- Packages ---
 
     @Test

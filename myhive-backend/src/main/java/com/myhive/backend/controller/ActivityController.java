@@ -22,8 +22,12 @@ public class ActivityController {
     @GetMapping
     public ResponseEntity<List<ActivityDTO>> getAllActivities(
             @RequestParam(required = false) UUID destinationId,
-            @RequestParam(required = false) String categorySlug) {
+            @RequestParam(required = false) String categorySlug,
+            @RequestParam(required = false, defaultValue = "false") boolean featured) {
 
+        if (featured) {
+            return ResponseEntity.ok(activityService.getFeaturedActivities(categorySlug));
+        }
         if (destinationId != null && categorySlug != null) {
             return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlug(destinationId, categorySlug));
         } else if (destinationId != null) {

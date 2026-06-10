@@ -435,4 +435,26 @@ class ActivityServiceTest {
         assertThatThrownBy(() -> activityService.deleteActivity(id))
                 .isInstanceOf(com.myhive.backend.exception.ActivityInUseException.class);
     }
+
+    @Test
+    void getFeaturedActivities_noCategory_returnsFeaturedOnly() {
+        when(activityRepository.findByFeaturedTrueOrderByNameAsc()).thenReturn(List.of(activity));
+
+        List<ActivityDTO> result = activityService.getFeaturedActivities(null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getName()).isEqualTo(activity.getName());
+    }
+
+    @Test
+    void getFeaturedActivities_withCategory_usesCombinedQuery() {
+        String expectedCategorySlug = "nightlife";
+        when(activityRepository.findByFeaturedTrueAndCategoriesSlugOrderByNameAsc(expectedCategorySlug))
+                .thenReturn(List.of(activity));
+
+        List<ActivityDTO> result = activityService.getFeaturedActivities(expectedCategorySlug);
+
+        assertThat(result).hasSize(1);
+        verify(activityRepository).findByFeaturedTrueAndCategoriesSlugOrderByNameAsc(expectedCategorySlug);
+    }
 }

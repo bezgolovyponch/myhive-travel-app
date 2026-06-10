@@ -77,6 +77,15 @@ public class ActivityService {
                 .toList();
     }
 
+    public List<ActivityDTO> getFeaturedActivities(String categorySlug) {
+        List<Activity> featuredActivities = categorySlug == null
+                ? activityRepository.findByFeaturedTrueOrderByNameAsc()
+                : activityRepository.findByFeaturedTrueAndCategoriesSlugOrderByNameAsc(categorySlug);
+        return featuredActivities.stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
     public Page<ActivityDTO> getActivitiesByDestinationPaged(UUID destinationId, Pageable pageable) {
         return activityRepository.findByDestinationId(destinationId, pageable)
                 .map(this::convertToDTO);
