@@ -22,6 +22,7 @@ function TripBuilder({ destinationId }) {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successContactData, setSuccessContactData] = useState(null);
   const [voteResult, setVoteResult] = useState(null);
+  const [voteError, setVoteError] = useState(false);
 
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -54,12 +55,18 @@ function TripBuilder({ destinationId }) {
   }, [destinationId]);
 
   const [searchParams] = useSearchParams();
+  // Depend on the token string, not the searchParams object — its identity
+  // changes on every navigation (e.g. ?tab= switches) and re-running this
+  // effect would re-seed travelers/dates/budget over the user's edits.
+  const voteSession = searchParams.get('voteSession');
 
   useEffect(() => {
-    const voteSession = searchParams.get('voteSession');
     if (!voteSession) return;
+    let cancelled = false;
+    setVoteError(false);
     voteApi.getResult(voteSession)
         .then(result => {
+            if (cancelled) return;
             setVoteResult(result);
             // Seed trip travelers + dates from the result so callers (email link,
             // End-voting button, etc.) don't need to dispatch these separately.
@@ -95,8 +102,15 @@ function TripBuilder({ destinationId }) {
                 });
             });
         })
-        .catch(() => {});
-  }, [searchParams, dispatch]);
+        .catch(() => {
+            if (!cancelled) {
+                setVoteError(true);
+            }
+        });
+    return () => {
+        cancelled = true;
+    };
+  }, [voteSession, dispatch]);
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
@@ -309,6 +323,11 @@ function TripBuilder({ destinationId }) {
         )}
       </div>
       <div className="trip-builder-right" ref={rightRef}>
+        {voteError && (
+            <p className="text-error">
+              Couldn't load your group's vote results. Refresh the page to try again.
+            </p>
+        )}
         {voteResult && voteResult.suggestions && voteResult.suggestions.length > 0 && (
             <div className="trip-vote-suggestions">
               <h3>Group suggestions</h3>
