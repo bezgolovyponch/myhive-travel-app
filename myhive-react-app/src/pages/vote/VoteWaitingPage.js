@@ -34,18 +34,44 @@ function VoteWaitingPage() {
         navigate(`/vote/${shareToken}/waiting`, { replace: true });
     }, [searchParams, shareToken, navigate]);
 
+    // Poll the full session (it includes participantCount) so we also notice
+    // the organizer closing the session / the 24h expiry while we wait.
     useEffect(() => {
-        voteApi.getSession(shareToken)
+        let cancelled = false;
+        const load = (initial) => voteApi.getSession(shareToken)
             .then(s => {
+                if (cancelled) {
+                    return;
+                }
                 setSession(s);
                 setParticipantCount(s.participantCount);
-                if (s.status === 'COMPLETED' && s.destinationSlug) {
-                    navigate(`/destination/${s.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`,
-                        { replace: true });
+                if (s.status === 'COMPLETED') {
+                    if (s.destinationSlug) {
+                        navigate(`/destination/${s.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`,
+                            { replace: true });
+                    } else {
+                        navigate(`/vote/${shareToken}/result`, { replace: true });
+                    }
                 }
             })
-            .catch(e => setSessionError(e.message));
-    }, [shareToken]);
+            .catch(e => {
+                if (cancelled) {
+                    return;
+                }
+                if (initial) {
+                    setSessionError(e.message);
+                } else {
+                    // Transient poll failure — keep the page up, try again next tick.
+                    console.error('session poll error:', e);
+                }
+            });
+        load(true);
+        const id = setInterval(() => load(false), 30_000);
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+        };
+    }, [shareToken, navigate]);
 
     useEffect(() => {
         if (!session?.expiresAt) return;
@@ -60,15 +86,6 @@ function VoteWaitingPage() {
         const id = setInterval(tick, 60_000);
         return () => clearInterval(id);
     }, [session]);
-
-    useEffect(() => {
-        const poll = () => voteApi.getParticipantCount(shareToken)
-            .then(data => setParticipantCount(data.count))
-            .catch(e => console.error('participant-count error:', e));
-        poll();
-        const id = setInterval(poll, 30_000);
-        return () => clearInterval(id);
-    }, [shareToken]);
 
     const handleClose = useCallback(() => {
         if (closing || !managerToken) return;
@@ -93,9 +110,15 @@ function VoteWaitingPage() {
     const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(shareUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            })
+            .catch(() => {
+                // Clipboard unavailable (insecure context / permission denied) —
+                // the readonly input above stays visible for manual copying.
+            });
     };
 
     // Native share sheet (WhatsApp/Telegram/Mail/...) — only available on

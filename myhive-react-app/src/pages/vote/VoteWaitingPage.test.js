@@ -70,6 +70,26 @@ test('shows "already voted" confirmation when the voted flag is set for this ses
   expect(await screen.findByText(/You('|’)ve already voted in this session/i)).toBeInTheDocument();
 });
 
+test('redirects to the trip builder when the session reports COMPLETED', async () => {
+  voteApi.getSession.mockResolvedValue({
+    destinationName: 'Bali',
+    destinationSlug: 'bali',
+    status: 'COMPLETED',
+    participantCount: 3,
+  });
+
+  render(
+    <MemoryRouter initialEntries={['/vote/tok-6/waiting']}>
+      <Routes>
+        <Route path="/vote/:shareToken/waiting" element={<VoteWaitingPage />} />
+        <Route path="/destination/:slug" element={<div data-testid="dest-page" />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+  expect(await screen.findByTestId('dest-page')).toBeInTheDocument();
+});
+
 test('does not show "already voted" when the voted flag is missing or belongs to another session', async () => {
   localStorage.setItem('myhive-voted-other-token', 'true');
 
