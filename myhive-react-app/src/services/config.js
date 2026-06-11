@@ -6,5 +6,9 @@ export const WHATSAPP_URL = 'https://wa.me/0000000000';
 export const MESSENGER_URL = 'https://m.me/trivlu';
 
 // Prague is the only destination on sale, so destination choice is hidden and the
-// first destination from the API is used. Flip to true when new destinations open.
+// default destination is used. Flip to true when new destinations open.
 export const DESTINATION_PICKER_ENABLED = false;
+
+// Used wherever the UI needs a destination without asking the user; falls back to
+// the first destination from the API if this slug is missing.
+export const DEFAULT_DESTINATION_SLUG = 'prague';

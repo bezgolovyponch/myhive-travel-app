@@ -1,6 +1,7 @@
 import {useContext, useEffect, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
+import {getDefaultDestination} from '../utils/defaultDestination';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 
@@ -29,9 +30,9 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     if (!isOpen) return null;
 
     // With the picker disabled (or when the API has a single destination anyway)
-    // the first destination is selected automatically and shown as read-only text.
+    // the default destination is selected automatically and shown as read-only text.
     const canAutoSelect = !DESTINATION_PICKER_ENABLED || state.destinations.length === 1;
-    const autoDestination = canAutoSelect && state.destinations.length > 0 ? state.destinations[0] : null;
+    const autoDestination = canAutoSelect ? getDefaultDestination(state.destinations) : null;
     const effectiveDestination = preselectedDestination || autoDestination;
     const needsDestinationPicker = isVoteMode && !effectiveDestination;
     const destination = effectiveDestination

@@ -80,8 +80,8 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   renderHome({
     ...baseState,
     destinations: [
-      { id: 'd1', slug: 'prague', name: 'Prague' },
       { id: 'd2', slug: 'budapest', name: 'Budapest' },
+      { id: 'd1', slug: 'prague', name: 'Prague' },
     ],
   });
 
@@ -90,7 +90,8 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
   await screen.findByText('Continue to Categories');
 
-  // DESTINATION_PICKER_ENABLED is off: the first destination is auto-selected.
+  // DESTINATION_PICKER_ENABLED is off: the default destination (Prague) is
+  // auto-selected even when the API returns another destination first.
   expect(screen.getByText('Prague')).toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });

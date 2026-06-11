@@ -2,6 +2,7 @@ import {useContext, useEffect, useState} from 'react';
 import {Link} from 'react-router-dom';
 import api from '../../services/api';
 import {AppContext} from '../../context/AppContext';
+import {getDefaultDestination} from '../../utils/defaultDestination';
 import ActivityCard from '../ActivityCard';
 import './FeaturedActivitiesSection.css';
 
@@ -31,7 +32,7 @@ function FeaturedActivitiesSection() {
         return null;
     }
 
-    const mainDestination = state.destinations[0] || null;
+    const mainDestination = getDefaultDestination(state.destinations);
 
     return (
         <section className="featured-activities" id="activities">
