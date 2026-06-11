@@ -1,8 +1,9 @@
-import {useContext, useEffect, useState} from 'react';
+import {useContext} from 'react';
 import {Helmet} from 'react-helmet-async';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
+import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson} from '../utils/format';
 import './ActivityDetailPage.css';
@@ -11,17 +12,7 @@ function ActivityDetailPage() {
     const {destinationSlug, slug} = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useContext(AppContext);
-    const [activity, setActivity] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
-    useEffect(() => {
-        setLoading(true);
-        api.getActivityBySlug(slug)
-            .then(data => setActivity(data))
-            .catch(() => setError(true))
-            .finally(() => setLoading(false));
-    }, [slug]);
+    const {data: activity, loading, error} = useFetchBySlug(api.getActivityBySlug, slug);
 
     if (loading) {
         return (

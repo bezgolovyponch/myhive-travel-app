@@ -1,8 +1,9 @@
-import {useContext, useEffect, useState} from 'react';
+import {useContext} from 'react';
 import {Helmet} from 'react-helmet-async';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {AppContext} from '../context/AppContext';
 import api from '../services/api';
+import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import {DEFAULT_ACTIVITY_IMAGE, formatAmount} from '../utils/format';
 import './PackageDetailPage.css';
@@ -11,17 +12,7 @@ function PackageDetailPage() {
     const {destSlug, slug} = useParams();
     const navigate = useNavigate();
     const {dispatch} = useContext(AppContext);
-    const [pkg, setPkg] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
-    useEffect(() => {
-        setLoading(true);
-        api.getPackageBySlug(slug)
-            .then(data => setPkg(data))
-            .catch(() => setError(true))
-            .finally(() => setLoading(false));
-    }, [slug]);
+    const {data: pkg, loading, error} = useFetchBySlug(api.getPackageBySlug, slug);
 
     if (loading) {
         return (

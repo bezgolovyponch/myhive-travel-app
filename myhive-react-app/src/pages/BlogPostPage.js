@@ -1,22 +1,13 @@
-import {useEffect, useState} from 'react';
 import {Helmet} from 'react-helmet-async';
 import {Link, useParams} from 'react-router-dom';
 import api from '../services/api';
+import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import './BlogPostPage.css';
 
 function BlogPostPage() {
     const {slug} = useParams();
-    const [post, setPost] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
-    useEffect(() => {
-        api.getBlogPostBySlug(slug)
-            .then(data => setPost(data))
-            .catch(() => setError(true))
-            .finally(() => setLoading(false));
-    }, [slug]);
+    const {data: post, loading, error} = useFetchBySlug(api.getBlogPostBySlug, slug);
 
     if (loading) {
         return (
