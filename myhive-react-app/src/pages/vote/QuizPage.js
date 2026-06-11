@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
+import VoteMeta from './VoteMeta';
 import './QuizPage.css';
 
-export default function QuizPage() {
+function QuizContent() {
   const { shareToken } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -105,4 +106,13 @@ export default function QuizPage() {
       </div>
     </div>
   );
+}
+
+export default function QuizPage() {
+    return (
+        <>
+            <VoteMeta title="Group quiz"/>
+            <QuizContent/>
+        </>
+    );
 }

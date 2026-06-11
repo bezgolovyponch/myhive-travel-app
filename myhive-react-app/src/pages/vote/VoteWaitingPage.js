@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
+import VoteMeta from './VoteMeta';
+import './VoteWaitingPage.css';
 
-function VoteWaitingPage() {
+function VoteWaitingContent() {
     const { shareToken } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -146,58 +148,58 @@ function VoteWaitingPage() {
         });
     };
 
-    const pageStyle = { maxWidth: 480, margin: '0 auto', padding: 'calc(var(--header-height) + 24px) 16px 40px', textAlign: 'center' };
-
     if (sessionError) return (
-        <div style={{ ...pageStyle, color: '#dc3545' }}>
+        <div className="vote-waiting-page vote-waiting-page--error">
             <p>Could not load session: {sessionError}</p>
         </div>
     );
 
     if (closing) return (
-        <div style={{ ...pageStyle, color: 'var(--text, #f5f5f5)' }}>
+        <div className="vote-waiting-page">
             <p>Finalising results...</p>
         </div>
     );
 
     return (
-        <div style={{ ...pageStyle, color: 'var(--text, #f5f5f5)' }}>
-            <h2 style={{ marginBottom: 8 }}>Voting is open!</h2>
-            <p style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))', marginBottom: 32 }}>
+        <div className="vote-waiting-page">
+            <h2 className="vote-waiting-title">Voting is open!</h2>
+            <p className="vote-waiting-subtitle">
                 {session?.destinationName ? `Trip to ${session.destinationName}` : 'Your vote session'}
             </p>
 
             {hasVoted && (
-                <p style={{ color: '#28a745', fontWeight: 600, marginBottom: 24 }}>
+                <p className="vote-waiting-voted">
                     ✓ You’ve already voted in this session.
                 </p>
             )}
 
-            <div style={{ background: 'var(--surface, #262828)', border: '1px solid var(--card-border, rgba(119,124,124,0.15))', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand, #6A1B9A)' }}>{timeLeft}</div>
-                <div style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))', fontSize: 14, marginTop: 4 }}>until results</div>
+            <div className="vote-waiting-card">
+                <div className="vote-waiting-count">{timeLeft}</div>
+                <div className="vote-waiting-card-label">until results</div>
             </div>
 
-            <div style={{ background: 'var(--surface, #262828)', border: '1px solid var(--card-border, rgba(119,124,124,0.15))', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{session ? participantCount : '...'}</div>
-                <div style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))', fontSize: 14, marginTop: 4 }}>
+            <div className="vote-waiting-card">
+                <div className="vote-waiting-participants">{session ? participantCount : '...'}</div>
+                <div className="vote-waiting-card-label">
                     {session && (participantCount === 1 ? 'person voted' : 'people voted')}
                     {session?.numberOfTravelers > 0 && ` of ${session.numberOfTravelers}`}
                 </div>
             </div>
 
             {/* Primary CTA: sharing the invite link is the main thing to do here */}
-            <p style={{ marginBottom: 12, fontWeight: 600 }}>Share with friends:</p>
+            <p className="vote-waiting-share-label">Share with friends:</p>
             <input
                 readOnly
+                aria-label="Invite link"
                 value={shareUrl}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', marginBottom: 12, borderRadius: 8, border: '1px solid var(--border, rgba(119,124,124,0.3))', fontSize: 14, background: 'var(--surface, #262828)', color: 'var(--text, #f5f5f5)', textAlign: 'center' }}
+                className="vote-waiting-share-input"
             />
-            <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+            <div className="vote-waiting-actions">
                 {canShare && (
                     <button
+                        type="button"
                         onClick={handleShare}
-                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 0', background: 'var(--brand, #6A1B9A)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 17 }}
+                        className="vote-waiting-btn"
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
@@ -208,8 +210,9 @@ function VoteWaitingPage() {
                     </button>
                 )}
                 <button
+                    type="button"
                     onClick={handleCopy}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 0', background: copied ? '#28a745' : 'var(--brand, #6A1B9A)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 17 }}
+                    className={`vote-waiting-btn ${copied ? 'vote-waiting-btn--copied' : ''}`}
                 >
                     {copied ? '✓ Link copied!' : (
                         <>
@@ -226,17 +229,27 @@ function VoteWaitingPage() {
             {/* Secondary, de-emphasised action placed low so it isn't clicked by reflex right after creating the session */}
             {isInitiator && (
                 <button
+                    type="button"
                     onClick={handleClose}
-                    style={{ width: '100%', padding: '10px 0', marginBottom: 16, background: 'rgba(119,124,124,0.12)', color: 'var(--brand, #6A1B9A)', border: '1px solid var(--brand, #6A1B9A)', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                    className="vote-waiting-close-btn"
                 >
                     End voting early &amp; see results
                 </button>
             )}
 
-            <p style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))', fontSize: 13 }}>
+            <p className="vote-waiting-note">
                 Results will be emailed to the trip organiser after the timer ends.
             </p>
         </div>
+    );
+}
+
+function VoteWaitingPage() {
+    return (
+        <>
+            <VoteMeta title="Voting open"/>
+            <VoteWaitingContent/>
+        </>
     );
 }
 

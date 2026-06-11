@@ -1,0 +1,113 @@
+.vote-waiting-page {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: calc(var(--header-height) + 24px) 16px 40px;
+    text-align: center;
+    color: var(--text, #f5f5f5);
+}
+
+.vote-waiting-page--error {
+    color: #dc3545;
+}
+
+.vote-waiting-title {
+    margin-bottom: 8px;
+}
+
+.vote-waiting-subtitle {
+    color: var(--text-muted, rgba(167, 169, 169, 0.7));
+    margin-bottom: 32px;
+}
+
+.vote-waiting-voted {
+    color: #28a745;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.vote-waiting-card {
+    background: var(--surface, #262828);
+    border: 1px solid var(--card-border, rgba(119, 124, 124, 0.15));
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.vote-waiting-count {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--brand, #6A1B9A);
+}
+
+.vote-waiting-participants {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.vote-waiting-card-label {
+    color: var(--text-muted, rgba(167, 169, 169, 0.7));
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.vote-waiting-share-label {
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.vote-waiting-share-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border, rgba(119, 124, 124, 0.3));
+    font-size: 14px;
+    background: var(--surface, #262828);
+    color: var(--text, #f5f5f5);
+    text-align: center;
+}
+
+.vote-waiting-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.vote-waiting-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 0;
+    background: var(--brand, #6A1B9A);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 17px;
+}
+
+.vote-waiting-btn--copied {
+    background: #28a745;
+}
+
+.vote-waiting-close-btn {
+    width: 100%;
+    padding: 10px 0;
+    margin-bottom: 16px;
+    background: rgba(119, 124, 124, 0.12);
+    color: var(--brand, #6A1B9A);
+    border: 1px solid var(--brand, #6A1B9A);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vote-waiting-note {
+    color: var(--text-muted, rgba(167, 169, 169, 0.7));
+    font-size: 13px;
+}

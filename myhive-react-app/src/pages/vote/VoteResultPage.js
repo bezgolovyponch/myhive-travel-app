@@ -4,6 +4,7 @@ import voteApi from '../../services/voteApi';
 import ActivityCard from '../../components/ActivityCard';
 import { AppContext } from '../../context/AppContext';
 import { formatPrice, formatPricePerPerson } from '../../utils/format';
+import VoteMeta from './VoteMeta';
 import './VoteResultPage.css';
 
 function suggestionToActivity(s) {
@@ -20,7 +21,7 @@ function suggestionToActivity(s) {
     };
 }
 
-function VoteResultPage() {
+function VoteResultContent() {
     const { shareToken } = useParams();
     const navigate = useNavigate();
     const { state, dispatch } = useContext(AppContext);
@@ -153,6 +154,15 @@ function VoteResultPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+function VoteResultPage() {
+    return (
+        <>
+            <VoteMeta title="Vote results"/>
+            <VoteResultContent/>
+        </>
     );
 }
 

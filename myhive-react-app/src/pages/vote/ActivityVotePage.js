@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
+import VoteMeta from './VoteMeta';
+import './ActivityVotePage.css';
 
 const VOTED_KEY = (shareToken) => `myhive-voted-${shareToken}`;
 
-function ActivityVotePage() {
+function ActivityVoteContent() {
     const { shareToken } = useParams();
     const navigate = useNavigate();
 
@@ -72,26 +74,25 @@ function ActivityVotePage() {
         }
     };
 
-    const stateStyle = { paddingTop: 'calc(var(--header-height) + 40px)', textAlign: 'center' };
     if (loading) return (
-        <div style={{ ...stateStyle, color: 'var(--text, #f5f5f5)' }}>Loading activities...</div>
+        <div className="vote-state">Loading activities...</div>
     );
     if (submitting) return (
-        <div style={{ ...stateStyle, color: 'var(--text, #f5f5f5)' }}>Submitting your votes...</div>
+        <div className="vote-state">Submitting your votes...</div>
     );
     if (error === 'Vote session not found') return (
-        <div style={{ ...stateStyle, color: 'var(--text, #f5f5f5)' }}>
-            <p style={{ fontWeight: 600 }}>This vote session no longer exists.</p>
-            <p style={{ color: 'var(--text-muted, rgba(167,169,169,0.7))' }}>
+        <div className="vote-state">
+            <p className="vote-state-title">This vote session no longer exists.</p>
+            <p className="vote-state-muted">
                 It may have expired or been removed — ask the organiser for a new link.
             </p>
         </div>
     );
     if (error) return (
-        <div style={{ ...stateStyle, color: '#dc3545' }}>{error}</div>
+        <div className="vote-state vote-state--error">{error}</div>
     );
     if (activities.length === 0) return (
-        <div style={{ ...stateStyle, color: 'var(--text, #f5f5f5)' }}>
+        <div className="vote-state">
             <p>No activities found for the selected categories.</p>
         </div>
     );
@@ -113,6 +114,15 @@ function ActivityVotePage() {
             shareUrl={shareUrl}
             getCardLink={getCardLink}
         />
+    );
+}
+
+function ActivityVotePage() {
+    return (
+        <>
+            <VoteMeta title="Vote on activities"/>
+            <ActivityVoteContent/>
+        </>
     );
 }
 

@@ -5,9 +5,10 @@ import { getOrCreateVoterToken } from '../../utils/voterToken';
 import SwipeCard from '../../components/SwipeCard';
 import ActivityPreviewModal from '../../components/ActivityPreviewModal';
 import { AppContext } from '../../context/AppContext';
+import VoteMeta from './VoteMeta';
 import './CuratePage.css';
 
-export default function CuratePage() {
+function CurateContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { dispatch } = useContext(AppContext);
@@ -248,4 +249,13 @@ export default function CuratePage() {
       getCardLink={getCardLink}
     />
   );
+}
+
+export default function CuratePage() {
+    return (
+        <>
+            <VoteMeta title="Pick activities"/>
+            <CurateContent/>
+        </>
+    );
 }
