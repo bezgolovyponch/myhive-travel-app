@@ -9,6 +9,12 @@ function ChatPanel() {
   const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
+  const replyTimeoutRef = useRef(null);
+
+  // Clear a pending canned reply if the panel unmounts mid-conversation.
+  useEffect(() => {
+    return () => clearTimeout(replyTimeoutRef.current);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -25,7 +31,7 @@ function ChatPanel() {
           type: 'ADD_CHAT_MESSAGE',
           message: {
             sender: 'ai',
-            text: 'Looking for an epic weekend? Tenerife offers amazing volcanic adventures and beach parties year-round!'
+            text: 'Planning a stag do? Tell me what your group is into and I\'ll point you to the right activities!'
           }
         });
         dispatch({type: 'SET_AUTO_ENGAGED', value: true});
@@ -43,7 +49,8 @@ function ChatPanel() {
       });
       
       // Simulate AI response
-      setTimeout(() => {
+      clearTimeout(replyTimeoutRef.current);
+      replyTimeoutRef.current = setTimeout(() => {
         dispatch({
           type: 'ADD_CHAT_MESSAGE',
           message: {
@@ -57,32 +64,34 @@ function ChatPanel() {
     }
   };
 
+  // Canned responses are destination-agnostic on purpose — the catalog
+  // changes per destination, so naming specific activities here goes stale.
   const getAIResponse = (input, tab) => {
     const userMessageLower = input.toLowerCase();
-    let aiResponse = "I can help you plan the perfect Tenerife getaway! What interests you most?";
+    let aiResponse = "I can help you plan the perfect group getaway! What interests you most?";
 
     if (userMessageLower.includes('party') || userMessageLower.includes('nightlife') || userMessageLower.includes('club')) {
-      aiResponse = "For epic nightlife, try our Sunset Boat Party and Epic Pub Crawl! They're perfect for groups and offer amazing experiences with locals and other travelers.";
-    } else if (userMessageLower.includes('adventure') || userMessageLower.includes('active') || userMessageLower.includes('volcano')) {
-      aiResponse = "Adventure awaits! The Teide National Park Tour showcases incredible volcanic landscapes, and our Jet Ski Adventure lets you explore the stunning coastline from the water.";
+      aiResponse = "For epic nightlife, check the Nightlife category in Activities — bar crawls, club entries and boat parties are group favourites.";
+    } else if (userMessageLower.includes('adventure') || userMessageLower.includes('active')) {
+      aiResponse = "Adventure awaits! Browse the Adventure category for go-karting, water sports and adrenaline activities your group can do together.";
     } else if (userMessageLower.includes('beach') || userMessageLower.includes('relax') || userMessageLower.includes('spa')) {
-      aiResponse = "Perfect for relaxation! Our VIP Beach Club Access gets you into exclusive venues, and the Luxury Spa Session is ideal for unwinding after your adventures.";
+      aiResponse = "Perfect for unwinding — look for spa, beach club and relaxed daytime activities to balance out the big nights.";
     } else if (userMessageLower.includes('package') || userMessageLower.includes('deal')) {
-      aiResponse = "Our packages offer great value! The Action Stag Weekend combines adventure and nightlife, while Beach Bliss is perfect for a more relaxed vibe. Both can be customized!";
+      aiResponse = "Our packages bundle several activities at a discount — check the Packages tab on the destination page and customize any of them in the Trip Builder!";
     } else if (userMessageLower.includes('suggest') || userMessageLower.includes('recommend')) {
-      if (tab === 'activities') {
-        aiResponse = "Based on what's popular, I'd recommend starting with the Sunset Boat Party - it's a great way to meet people and see the island from the water!";
-      } else if (tab === 'packages') {
-        aiResponse = "The Beach Bliss Package is very popular - it has a perfect mix of party and relaxation. You can always customize it in the Trip Builder!";
+      if (tab === 'packages') {
+        aiResponse = "Packages are the easiest start — a ready-made mix of activities at a discount that you can still customize in the Trip Builder!";
       } else if (tab === 'trip-builder') {
         aiResponse = `You have ${state.tripItems.length} activities selected. ${state.tripItems.length < 2 ? 'Consider adding more for a full experience!' : 'This looks like a great balanced trip!'}`;
+      } else {
+        aiResponse = "Start with the featured activities on the home page — they're the most popular with groups. Add anything you like to the Trip Builder!";
       }
     } else if (userMessageLower.includes('price') || userMessageLower.includes('cost') || userMessageLower.includes('budget')) {
-      aiResponse = "Great value options include the Epic Pub Crawl (€35 pp) and VIP Beach Club Access (€45 pp). Our packages offer even better deals when you book multiple activities together!";
+      aiResponse = "Prices are shown per person on every activity card, and packages give you a discount for booking several activities together. The Trip Builder totals everything for your group size.";
     } else if (userMessageLower.includes('group') || userMessageLower.includes('friends')) {
-      aiResponse = "Perfect for groups! The Sunset Boat Party and Epic Pub Crawl are especially great for meeting other travelers. All our activities are group-friendly!";
+      aiResponse = "Everything here is built for groups! You can even start a group vote from the Trip Builder so the whole crew picks the activities together.";
     } else if (userMessageLower.includes('hi') || userMessageLower.includes('hello') || userMessageLower.includes('help')) {
-      aiResponse = "Hello! I'm here to help you create the perfect Tenerife experience. Are you looking for adventure, nightlife, relaxation, or a mix of everything?";
+      aiResponse = "Hello! I'm here to help you plan the perfect trip. Are you looking for adventure, nightlife, relaxation, or a mix of everything?";
     }
 
     return aiResponse;
@@ -94,7 +103,9 @@ function ChatPanel() {
           <div className="chat-header">
             <h3 className="chat-title">AI Travel Assistant</h3>
             <button
+                type="button"
                 className="chat-close-btn"
+                aria-label="Close chat"
                 onClick={() => dispatch({type: 'TOGGLE_CHAT'})}
             >
               ×
@@ -113,14 +124,29 @@ function ChatPanel() {
             <input
                 type="text"
                 className="chat-input"
+                aria-label="Chat message"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Tell me about your ideal trip..."
             />
+            <button
+                type="button"
+                className="chat-send-btn"
+                aria-label="Send message"
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim()}
+            >
+              Send
+            </button>
           </div>
         </div>
-        <button className="chat-trigger-btn" onClick={() => dispatch({type: 'TOGGLE_CHAT'})}>🤖</button>
+        <button
+            type="button"
+            className="chat-trigger-btn"
+            aria-label="Open chat assistant"
+            onClick={() => dispatch({type: 'TOGGLE_CHAT'})}
+        >🤖</button>
       </>
   );
 }

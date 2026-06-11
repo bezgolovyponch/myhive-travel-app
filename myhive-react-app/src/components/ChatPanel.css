@@ -120,9 +120,27 @@
 }
 
 .chat-input-container {
+    display: flex;
+    gap: 0.5rem;
     padding: var(--gap);
     border-top: 1px solid var(--border);
     background: var(--surface);
+}
+
+.chat-send-btn {
+    padding: 0 1rem;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--brand);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.chat-send-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .chat-input {
