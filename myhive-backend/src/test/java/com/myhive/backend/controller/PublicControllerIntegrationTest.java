@@ -265,9 +265,10 @@ class PublicControllerIntegrationTest {
 
     @Test
     void getActivities_featuredTrue_returnsOnlyFeatured() throws Exception {
+        String expectedSlug = "featured-act";
         Destination dest = destinationRepository.findById(destinationId).orElseThrow();
         Activity featuredActivity = new Activity();
-        featuredActivity.setSlug("featured-act");
+        featuredActivity.setSlug(expectedSlug);
         featuredActivity.setDestination(dest);
         featuredActivity.setName("Featured Act");
         featuredActivity.setPrice(new BigDecimal("99.00"));
@@ -277,7 +278,7 @@ class PublicControllerIntegrationTest {
         mockMvc.perform(get("/activities").param("featured", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].slug", is("featured-act")))
+                .andExpect(jsonPath("$[0].slug", is(expectedSlug)))
                 .andExpect(jsonPath("$[0].featured", is(true)));
     }
 

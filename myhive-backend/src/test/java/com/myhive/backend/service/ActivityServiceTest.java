@@ -343,86 +343,51 @@ class ActivityServiceTest {
 
     @Test
     void getActivityById_includesFeatured() {
-        UUID activityId = UUID.randomUUID();
+        activity.setFeatured(true);
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
 
-        Destination dest = new Destination();
-        dest.setId(UUID.randomUUID());
-
-        Activity act = new Activity();
-        act.setId(activityId);
-        act.setName("Tank Driving");
-        act.setPrice(new BigDecimal("150"));
-        act.setDestination(dest);
-        act.setFeatured(true);
-        act.setCategories(new java.util.HashSet<>());
-
-        when(activityRepository.findById(activityId)).thenReturn(Optional.of(act));
-
-        ActivityDTO dto = activityService.getActivityById(activityId);
+        ActivityDTO dto = activityService.getActivityById(activity.getId());
 
         assertThat(dto.getFeatured()).isTrue();
     }
 
     @Test
     void updateActivity_persistsFeatured() {
-        UUID activityId = UUID.randomUUID();
+        activity.setFeatured(false);
 
-        Destination dest = new Destination();
-        dest.setId(UUID.randomUUID());
+        Activity saved = updateFeaturedAndCaptureSaved(true);
 
-        Activity existing = new Activity();
-        existing.setId(activityId);
-        existing.setDestination(dest);
-        existing.setName("Old");
-        existing.setPrice(new BigDecimal("100"));
-        existing.setFeatured(false);
-        existing.setCategories(new java.util.HashSet<>());
-
-        when(activityRepository.findById(activityId)).thenReturn(Optional.of(existing));
-        when(activityRepository.save(any(Activity.class))).thenAnswer(i -> i.getArgument(0));
-
-        ActivityDTO input = new ActivityDTO();
-        input.setName("Old");
-        input.setPrice(new BigDecimal("100"));
-        input.setDestinationId(dest.getId());
-        input.setFeatured(true);
-
-        activityService.updateActivity(activityId, input);
-
-        ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
-        verify(activityRepository).save(captor.capture());
-        assertThat(captor.getValue().isFeatured()).isTrue();
+        assertThat(saved.isFeatured()).isTrue();
     }
 
     @Test
     void updateActivity_nullFeatured_defaultsToFalse() {
-        UUID activityId = UUID.randomUUID();
+        activity.setFeatured(true);
 
-        Destination dest = new Destination();
-        dest.setId(UUID.randomUUID());
+        Activity saved = updateFeaturedAndCaptureSaved(null);
 
-        Activity existing = new Activity();
-        existing.setId(activityId);
-        existing.setDestination(dest);
-        existing.setName("Old");
-        existing.setPrice(new BigDecimal("100"));
-        existing.setFeatured(true);
-        existing.setCategories(new java.util.HashSet<>());
+        assertThat(saved.isFeatured()).isFalse();
+    }
 
-        when(activityRepository.findById(activityId)).thenReturn(Optional.of(existing));
+    /**
+     * Runs updateActivity against the shared {@code activity} fixture with the given
+     * {@code inputFeatured} DTO value and returns the entity passed to {@code save}.
+     */
+    private Activity updateFeaturedAndCaptureSaved(Boolean inputFeatured) {
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
         when(activityRepository.save(any(Activity.class))).thenAnswer(i -> i.getArgument(0));
 
         ActivityDTO input = new ActivityDTO();
-        input.setName("Old");
-        input.setPrice(new BigDecimal("100"));
-        input.setDestinationId(dest.getId());
-        input.setFeatured(null);
+        input.setName(activity.getName());
+        input.setPrice(activity.getPrice());
+        input.setDestinationId(destination.getId());
+        input.setFeatured(inputFeatured);
 
-        activityService.updateActivity(activityId, input);
+        activityService.updateActivity(activity.getId(), input);
 
         ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
         verify(activityRepository).save(captor.capture());
-        assertThat(captor.getValue().isFeatured()).isFalse();
+        return captor.getValue();
     }
 
     @Test

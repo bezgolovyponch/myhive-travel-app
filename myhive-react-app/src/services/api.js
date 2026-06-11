@@ -49,7 +49,9 @@ export const api = {
 
     async getFeaturedActivities() {
         const response = await fetch(`${API_BASE_URL}/activities?featured=true`);
-        if (!response.ok) throw new Error('Failed to fetch featured activities');
+        if (!response.ok) {
+            throw new Error('Failed to fetch featured activities');
+        }
         return response.json();
     },
 
