@@ -1,41 +1,23 @@
 import {API_BASE_URL} from './config';
-
-// Mirror adminApi's error shape: surface the backend's message when there is
-// one (validation errors on bookings/contact), and always attach the status
-// so callers can branch on it.
-async function parseError(response, fallbackMessage) {
-    let body = null;
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-        try {
-            body = await response.json();
-        } catch (e) {
-            body = null; // non-JSON error page — keep the fallback message
-        }
-    }
-    const err = new Error((body && body.message) || fallbackMessage);
-    err.status = response.status;
-    err.body = body;
-    return err;
-}
+import {parseApiError} from './httpError';
 
 export const api = {
   // Destinations
   async getDestinations() {
     const response = await fetch(`${API_BASE_URL}/destinations`);
-    if (!response.ok) throw await parseError(response, 'Failed to fetch destinations');
+    if (!response.ok) throw await parseApiError(response, 'Failed to fetch destinations');
     return response.json();
   },
 
   async getDestination(id) {
     const response = await fetch(`${API_BASE_URL}/destinations/${id}`);
-    if (!response.ok) throw await parseError(response, 'Failed to fetch destination');
+    if (!response.ok) throw await parseApiError(response, 'Failed to fetch destination');
     return response.json();
   },
 
     async getDestinationBySlug(slug) {
         const response = await fetch(`${API_BASE_URL}/destinations/slug/${slug}`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch destination');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch destination');
         return response.json();
     },
 
@@ -50,7 +32,7 @@ export const api = {
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url);
-    if (!response.ok) throw await parseError(response, 'Failed to fetch activities');
+    if (!response.ok) throw await parseApiError(response, 'Failed to fetch activities');
     return response.json();
   },
 
@@ -62,14 +44,14 @@ export const api = {
         if (categorySlug) params.append('categorySlug', categorySlug);
 
         const response = await fetch(`${API_BASE_URL}/activities/paged?${params.toString()}`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch activities');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch activities');
         return response.json();
     },
 
     async getFeaturedActivities() {
         const response = await fetch(`${API_BASE_URL}/activities?featured=true`);
         if (!response.ok) {
-            throw await parseError(response, 'Failed to fetch featured activities');
+            throw await parseApiError(response, 'Failed to fetch featured activities');
         }
         return response.json();
     },
@@ -77,38 +59,38 @@ export const api = {
     // Categories
     async getCategories() {
         const response = await fetch(`${API_BASE_URL}/categories`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch categories');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch categories');
         return response.json();
     },
 
     async getCategoriesForDestination(destinationId) {
         const response = await fetch(`${API_BASE_URL}/destinations/${destinationId}/categories`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch categories for destination');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch categories for destination');
         return response.json();
     },
 
   async getActivity(id) {
     const response = await fetch(`${API_BASE_URL}/activities/${id}`);
-    if (!response.ok) throw await parseError(response, 'Failed to fetch activity');
+    if (!response.ok) throw await parseApiError(response, 'Failed to fetch activity');
     return response.json();
   },
 
     async getActivityBySlug(slug) {
         const response = await fetch(`${API_BASE_URL}/activities/slug/${slug}`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch activity');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch activity');
         return response.json();
     },
 
     // Packages
     async getPackagesByDestination(destinationId) {
         const response = await fetch(`${API_BASE_URL}/packages?destinationId=${encodeURIComponent(destinationId)}`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch packages');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch packages');
         return response.json();
     },
 
     async getPackageBySlug(slug) {
         const response = await fetch(`${API_BASE_URL}/packages/slug/${slug}`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch package');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch package');
         return response.json();
     },
 
@@ -121,19 +103,19 @@ export const api = {
       },
       body: JSON.stringify(bookingData),
     });
-    if (!response.ok) throw await parseError(response, 'Failed to create booking');
+    if (!response.ok) throw await parseApiError(response, 'Failed to create booking');
     return response.json();
   },
 
   async getBooking(id) {
     const response = await fetch(`${API_BASE_URL}/bookings/${id}`);
-    if (!response.ok) throw await parseError(response, 'Failed to fetch booking');
+    if (!response.ok) throw await parseApiError(response, 'Failed to fetch booking');
     return response.json();
   },
 
   async getBookingsByEmail(email) {
     const response = await fetch(`${API_BASE_URL}/bookings?email=${encodeURIComponent(email)}`);
-    if (!response.ok) throw await parseError(response, 'Failed to fetch bookings');
+    if (!response.ok) throw await parseApiError(response, 'Failed to fetch bookings');
     return response.json();
   },
 
@@ -145,26 +127,26 @@ export const api = {
       },
       body: JSON.stringify({ status, stripeSessionId }),
     });
-    if (!response.ok) throw await parseError(response, 'Failed to update booking status');
+    if (!response.ok) throw await parseApiError(response, 'Failed to update booking status');
     return response.json();
   },
 
     // Blog
     async getBlogPosts() {
         const response = await fetch(`${API_BASE_URL}/blog`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch blog posts');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch blog posts');
         return response.json();
     },
 
     async getBlogPost(id) {
         const response = await fetch(`${API_BASE_URL}/blog/${id}`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch blog post');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch blog post');
         return response.json();
     },
 
     async getBlogPostBySlug(slug) {
         const response = await fetch(`${API_BASE_URL}/blog/slug/${slug}`);
-        if (!response.ok) throw await parseError(response, 'Failed to fetch blog post');
+        if (!response.ok) throw await parseApiError(response, 'Failed to fetch blog post');
         return response.json();
     },
 
@@ -177,7 +159,7 @@ export const api = {
             },
             body: JSON.stringify(contactData),
         });
-        if (!response.ok) throw await parseError(response, 'Failed to send message');
+        if (!response.ok) throw await parseApiError(response, 'Failed to send message');
         return response.json();
     },
 
@@ -190,7 +172,7 @@ export const api = {
             },
             body: JSON.stringify(tripData),
         });
-    if (!response.ok) throw await parseError(response, 'Failed to create booking');
+    if (!response.ok) throw await parseApiError(response, 'Failed to create booking');
         return response.json();
     },
 };

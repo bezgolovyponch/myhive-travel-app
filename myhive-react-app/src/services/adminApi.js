@@ -1,4 +1,5 @@
 import {API_BASE_URL} from './config';
+import {parseApiError} from './httpError';
 
 function parseContentDispositionFilename(header) {
     if (!header) {
@@ -31,23 +32,13 @@ export function createAdminApi(getAccessToken) {
             return;
         }
         if (response.status === 401 || response.status === 403) {
+            // useAuthErrorHandler logs out on these statuses; the message is
+            // only a fallback for the brief moment before redirect.
             const err = new Error('Unauthorized');
             err.status = response.status;
             throw err;
         }
-        let body = null;
-        const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-            try {
-                body = await response.json();
-            } catch (e) {
-                body = null;
-            }
-        }
-        const err = new Error((body && body.message) || fallbackMessage);
-        err.status = response.status;
-        err.body = body;
-        throw err;
+        throw await parseApiError(response, fallbackMessage);
     }
 
     return {
