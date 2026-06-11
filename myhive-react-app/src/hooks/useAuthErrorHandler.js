@@ -5,7 +5,7 @@ export function useAuthErrorHandler() {
     const {logout} = useAuth();
 
     return useCallback((err) => {
-        if (err.message === 'Unauthorized') {
+        if (err.status === 401 || err.status === 403) {
             logout();
             return true;
         }

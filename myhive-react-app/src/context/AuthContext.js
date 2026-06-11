@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useMemo} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef} from 'react';
 import {AuthProvider as OidcAuthProvider, useAuth as useOidcAuth} from 'react-oidc-context';
 import {WebStorageStateStore} from 'oidc-client-ts';
 
@@ -30,7 +30,11 @@ export function useAuth() {
 function AuthContextBridge({children}) {
     const auth = useOidcAuth();
 
-    const getAccessToken = useCallback(async () => auth.user?.access_token, [auth.user?.access_token]);
+    // Stable identity: silent token renewal must not recreate consumers
+    // (useAdminApi memoizes on this), so read the freshest user via a ref.
+    const userRef = useRef(auth.user);
+    userRef.current = auth.user;
+    const getAccessToken = useCallback(async () => userRef.current?.access_token, []);
 
     const value = useMemo(() => {
         const idTokenClaims = auth.user?.profile;

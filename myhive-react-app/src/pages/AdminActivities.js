@@ -3,6 +3,7 @@ import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-
 import {formatAmount, truncateText} from '../utils/format';
 import {toggleArrayItem} from '../utils/toggleArrayItem';
 import {useAdminCrud} from '../hooks/useAdminCrud';
+import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
@@ -38,6 +39,7 @@ function AdminActivities() {
     const [categories, setCategories] = useState([]);
     const [filterDestination, setFilterDestination] = useState('');
     const [showImportModal, setShowImportModal] = useState(false);
+    const handleAuthError = useAuthErrorHandler();
 
     const fetchFn = useCallback(
         (api, page, size) => api.getActivitiesPaged(page, size, filterDestination || null),
@@ -47,7 +49,7 @@ function AdminActivities() {
     const {
         items: activities, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, saveError, setSaveError, uploading, setUploading, deleteId, setDeleteId,
+        form, setForm, saving, setSaving, saveError, setSaveError, uploading, setUploading, deleteId, setDeleteId,
         fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
@@ -79,10 +81,14 @@ function AdminActivities() {
 
     const customHandleDelete = async () => {
         try {
+            setSaving(true);
             setError('');
             await adminApi.deleteActivity(deleteId);
             await fetchData();
         } catch (e) {
+            if (handleAuthError(e)) {
+                return;
+            }
             if (e?.status === 409 && Array.isArray(e?.body?.packageNames)) {
                 setError(`Cannot delete: used in packages: ${e.body.packageNames.join(', ')}`);
             } else {
@@ -90,6 +96,7 @@ function AdminActivities() {
             }
         } finally {
             setDeleteId(null);
+            setSaving(false);
         }
     };
 

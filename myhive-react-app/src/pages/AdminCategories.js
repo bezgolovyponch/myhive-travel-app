@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 import {Alert, Button, Card, Form, Modal, Spinner} from 'react-bootstrap';
 import {useAdminCrud} from '../hooks/useAdminCrud';
+import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import AdminTable from '../components/AdminTable';
 import CategoryDeleteModal from '../components/admin/CategoryDeleteModal';
 
@@ -19,6 +20,7 @@ function AdminCategories() {
     const [usage, setUsage] = useState(null);
     const [loadingUsage, setLoadingUsage] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const handleAuthError = useAuthErrorHandler();
 
     const {
         items: categories, loading, error, setError, page, setPage,
@@ -44,6 +46,9 @@ function AdminCategories() {
             setUsage(result);
             setDeleteTarget(category);
         } catch (e) {
+            if (handleAuthError(e)) {
+                return;
+            }
             setError(e.message || 'Failed to load category usage');
         } finally {
             setLoadingUsage(false);
@@ -59,6 +64,9 @@ function AdminCategories() {
             setUsage(null);
             await fetchData();
         } catch (e) {
+            if (handleAuthError(e)) {
+                return;
+            }
             setError(e.message || 'Failed to delete category');
         } finally {
             setDeleting(false);
