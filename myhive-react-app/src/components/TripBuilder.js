@@ -4,6 +4,7 @@ import {AppContext} from '../context/AppContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
+import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import './TripBuilder.css';
@@ -169,35 +170,8 @@ function TripBuilder({ destinationId }) {
 
   const travelers = state.tripTravelers || 1;
 
-  const standalone = state.tripItems.filter(i => !i.packageId);
-  const packageGroups = state.tripItems.reduce((acc, item) => {
-      if (!item.packageId) {
-          return acc;
-      }
-      if (!acc[item.packageId]) {
-          acc[item.packageId] = {
-              packageId: item.packageId,
-              packageName: item.packageName,
-              packageDiscountPct: Number(item.packageDiscountPct) || 0,
-              items: [],
-          };
-      }
-      acc[item.packageId].items.push(item);
-      return acc;
-  }, {});
-  const groupsArray = Object.values(packageGroups);
-
-  const totalPrice = (() => {
-      let total = 0;
-      standalone.forEach(it => {
-          total += (Number(it.price) || 0) * travelers;
-      });
-      groupsArray.forEach(g => {
-          const sub = g.items.reduce((s, it) => s + (Number(it.price) || 0) * travelers, 0);
-          total += sub * (100 - g.packageDiscountPct) / 100;
-      });
-      return Math.round(total * 100) / 100;
-  })();
+  const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
+  const totalPrice = computeTripTotal(state.tripItems, travelers);
 
   const filteredBrowseActivities = browseFilter === 'all'
       ? state.activities

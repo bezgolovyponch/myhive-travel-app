@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
+import {computeTripTotal} from '../utils/tripPricing';
 
 function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
     const [formData, setFormData] = useState({
@@ -81,14 +82,6 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
         }
     };
 
-    const calculateTotalPrice = () => {
-        return tripData.tripItems.reduce((total, item) => {
-            const price = typeof item.price === 'number' ? item.price :
-                parseFloat(item.price?.replace(/[^0-9.]/g, '')) || 0;
-            return total + (price * formData.numberOfTravelers);
-        }, 0);
-    };
-
     if (!isOpen) return null;
 
     return (
@@ -103,7 +96,7 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
                     <div className="trip-summary">
                         <h4>Trip Summary</h4>
                         <p><strong>Activities:</strong> {tripData.tripItems.length} selected</p>
-                        <p><strong>Estimated Total:</strong> €{calculateTotalPrice().toFixed(2)}</p>
+                        <p><strong>Estimated Total:</strong> €{computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1).toFixed(2)}</p>
                     </div>
 
                     {submitError && (
