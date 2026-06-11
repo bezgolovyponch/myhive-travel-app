@@ -23,7 +23,7 @@ function AdminCategories() {
     const {
         items: categories, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, fetchData, openCreate, openEdit, handleSave, adminApi,
+        form, setForm, saving, saveError, setSaveError, fetchData, openCreate, openEdit, handleSave, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
         fetchFn: useCallback((api, page, size) => api.getCategoriesPaged(page, size), []),
@@ -137,6 +137,9 @@ function AdminCategories() {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body data-bs-theme="dark">
+                    {saveError && (
+                        <Alert variant="danger" dismissible onClose={() => setSaveError('')}>{saveError}</Alert>
+                    )}
                     <Form>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Name</Form.Label>

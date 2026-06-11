@@ -27,7 +27,7 @@ function AdminBlog() {
     const {
         items: posts, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, uploading, setUploading, deleteId, setDeleteId,
+        form, setForm, saving, saveError, setSaveError, uploading, setUploading, deleteId, setDeleteId,
         fetchData, openCreate: baseOpenCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
@@ -129,6 +129,9 @@ function AdminBlog() {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body data-bs-theme="dark">
+                    {saveError && (
+                        <Alert variant="danger" dismissible onClose={() => setSaveError('')}>{saveError}</Alert>
+                    )}
                     <Form>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Title</Form.Label>
@@ -187,7 +190,7 @@ function AdminBlog() {
                             uploading={uploading}
                             onUpload={async (file) => {
                                 setUploading(true);
-                                setError('');
+                                setSaveError('');
                                 try {
                                     const {url} = await adminApi.uploadImage(file);
                                     setForm(prev => ({...prev, imageUrl: url}));
@@ -196,7 +199,7 @@ function AdminBlog() {
                                 }
                             }}
                             onError={(err) => {
-                                setError(err.message || 'Failed to upload image');
+                                setSaveError(err.message || 'Failed to upload image');
                             }}
                         />
                     </Form>

@@ -26,6 +26,9 @@ export function useAdminCrud({
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    // Save failures are rendered inside the modal (the page-level error alert
+    // sits behind the open modal's backdrop and is invisible there).
+    const [saveError, setSaveError] = useState('');
 
     const [deleteId, setDeleteId] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -51,12 +54,14 @@ export function useAdminCrud({
     }, [fetchData]);
 
     const openCreate = () => {
+        setSaveError('');
         setForm(emptyForm);
         setEditing(null);
         setShowModal(true);
     };
 
     const openEdit = (item) => {
+        setSaveError('');
         setForm(mapItemToForm(item));
         setEditing(item);
         setShowModal(true);
@@ -65,7 +70,7 @@ export function useAdminCrud({
     const handleSave = async () => {
         try {
             setSaving(true);
-            setError('');
+            setSaveError('');
             const payload = buildPayload(form);
             if (editing) {
                 await updateFn(adminApi, editing.id, payload);
@@ -76,7 +81,7 @@ export function useAdminCrud({
             await fetchData();
         } catch (err) {
             if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to save.');
+            setSaveError(err.message || 'Failed to save.');
         } finally {
             setSaving(false);
         }
@@ -112,6 +117,9 @@ export function useAdminCrud({
         form,
         setForm,
         saving,
+        setSaving,
+        saveError,
+        setSaveError,
         uploading,
         setUploading,
         deleteId,

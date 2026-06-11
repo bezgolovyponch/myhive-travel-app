@@ -1,0 +1,71 @@
+import {act, renderHook, waitFor} from '@testing-library/react';
+import {useAdminCrud} from './useAdminCrud';
+
+// Both mocks must return stable references — they are dependencies of the
+// hook's internal useCallback, and fresh identities per render cause an
+// endless refetch loop.
+jest.mock('./useAdminApi', () => {
+    const stableAdminApi = {};
+    return {useAdminApi: () => stableAdminApi};
+});
+jest.mock('./useAuthErrorHandler', () => {
+    const stableHandler = () => false;
+    return {useAuthErrorHandler: () => stableHandler};
+});
+
+function renderCrud(overrides = {}) {
+    // Built once and reused across re-renders: the hook requires a referentially
+    // stable fetchFn (an inline fn per render causes an endless refetch loop).
+    const props = {
+        emptyForm: {name: ''},
+        fetchFn: jest.fn().mockResolvedValue({content: [], totalPages: 0, totalElements: 0}),
+        createFn: jest.fn(),
+        updateFn: jest.fn(),
+        deleteFn: jest.fn(),
+        mapItemToForm: (item) => item,
+        ...overrides,
+    };
+    return renderHook(() => useAdminCrud(props));
+}
+
+test('failed save sets saveError and keeps the modal open', async () => {
+    const expectedMessage = 'Slug already exists';
+    const {result} = renderCrud({
+        createFn: jest.fn().mockRejectedValue(new Error(expectedMessage)),
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.openCreate());
+    await act(() => result.current.handleSave());
+
+    expect(result.current.saveError).toBe(expectedMessage);
+    expect(result.current.showModal).toBe(true);
+});
+
+test('reopening the modal clears a previous saveError', async () => {
+    const {result} = renderCrud({
+        createFn: jest.fn().mockRejectedValue(new Error('boom')),
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.openCreate());
+    await act(() => result.current.handleSave());
+    expect(result.current.saveError).toBe('boom');
+
+    act(() => result.current.openCreate());
+    expect(result.current.saveError).toBe('');
+});
+
+test('successful save closes the modal and refetches', async () => {
+    const fetchFn = jest.fn().mockResolvedValue({content: [], totalPages: 0, totalElements: 0});
+    const createFn = jest.fn().mockResolvedValue({});
+    const {result} = renderCrud({fetchFn, createFn});
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.openCreate());
+    await act(() => result.current.handleSave());
+
+    expect(result.current.saveError).toBe('');
+    expect(result.current.showModal).toBe(false);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+});
