@@ -48,6 +48,8 @@ test('a failed filter change shows an inline error, not "Destination not found"'
     api.getDestinationBySlug.mockResolvedValue({id: 'd1', name: 'Prague', slug: 'prague'});
     api.getCategoriesForDestination.mockResolvedValue([{slug: 'food', name: 'food'}]);
     api.getPackagesByDestination.mockResolvedValue([]);
+    // The hidden TripBuilder tab fetches the destination's browse activities.
+    api.getActivities.mockResolvedValue([]);
     api.getActivitiesPaged
         .mockResolvedValueOnce({content: [], totalElements: 0, last: true})
         .mockRejectedValueOnce(new Error('network'));
