@@ -39,8 +39,8 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 **Public** (no auth):
 
 - `GET /destinations`, `GET /destinations/{id}`, `GET /destinations/slug/{slug}`
-- `GET /activities`, `GET /activities/{id}`, `GET /activities/slug/{slug}`, `GET /activities/paged` (filter:
-  `?categorySlug=<slug>`)
+- `GET /activities`, `GET /activities/{id}`, `GET /activities/slug/{slug}`, `GET /activities/paged` (filters:
+  `?categorySlug=<slug>`, `?featured=true` — homepage grid, admin-managed via the `featured` flag)
 - `GET /categories`, `GET /categories/{id}`, `GET /categories/slug/{slug}`
 - `GET /packages`, `GET /packages/{id}`, `GET /packages/slug/{slug}`
 - `GET /blog`, `GET /blog/{id}`, `GET /blog/slug/{slug}`
@@ -110,6 +110,10 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `REACT_APP_OIDC_REDIRECT_URI`  | no       | `<origin>/admin`              |
 | `REACT_APP_OIDC_ROLES_CLAIM`   | no       | `https://trivlu.com/roles`    |
 | `REACT_APP_TURNSTILE_SITE_KEY` | for contact | -                          |
+
+Compile-time flags live in `src/services/config.js`: `DESTINATION_PICKER_ENABLED` (destination choice in the
+vote flow — off while Prague is the only live destination), `DEFAULT_DESTINATION_SLUG` (`prague`), and
+placeholder `WHATSAPP_URL` / `MESSENGER_URL` support links used on the homepage.
 
 ## Testing
 
