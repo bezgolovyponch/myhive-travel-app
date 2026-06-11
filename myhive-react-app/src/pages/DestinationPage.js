@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect, useState} from 'react';
+import {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {Helmet} from 'react-helmet-async';
 import {AppContext} from '../context/AppContext';
 import ActivityCard from '../components/ActivityCard';
@@ -31,14 +31,23 @@ function DestinationPage() {
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [totalElements, setTotalElements] = useState(0);
+    // Errors from filter/pagination must not replace the whole loaded page.
+    const [listError, setListError] = useState(false);
+    const [filterLoading, setFilterLoading] = useState(false);
+    const requestSeqRef = useRef(0);
 
     const fetchActivitiesPage = useCallback(async (destinationId, pageNum, categorySlug, reset = false) => {
+        const seq = ++requestSeqRef.current;
         const categoryParam = categorySlug === 'all' ? null : categorySlug;
         const data = await api.getActivitiesPaged(destinationId, {
             page: pageNum,
             size: PAGE_SIZE,
             categorySlug: categoryParam
         });
+        if (seq !== requestSeqRef.current) {
+            // A newer filter/page request started while this one was in flight.
+            return;
+        }
         setTotalElements(data.totalElements);
         setHasMore(!data.last);
         setPage(pageNum);
@@ -50,29 +59,46 @@ function DestinationPage() {
     }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchDestinationData = async () => {
       try {
         setLoading(true);
+          setError(false);
+          setListError(false);
           setCurrentFilter('all');
           const destData = await api.getDestinationBySlug(slug);
           const categoriesData = await api.getCategoriesForDestination(destData.id);
+          if (cancelled) {
+              return;
+          }
         setDestination(destData);
           setCategories(categoriesData);
           await fetchActivitiesPage(destData.id, 0, 'all', true);
           try {
               const pkgData = await api.getPackagesByDestination(destData.id);
-              setPackages(pkgData);
+              if (!cancelled) {
+                  setPackages(pkgData);
+              }
           } catch {
-              setPackages([]);
+              if (!cancelled) {
+                  setPackages([]);
+              }
           }
       } catch {
-          setError(true);
+          if (!cancelled) {
+              setError(true);
+          }
       } finally {
-        setLoading(false);
+          if (!cancelled) {
+              setLoading(false);
+          }
       }
     };
 
     fetchDestinationData();
+    return () => {
+        cancelled = true;
+    };
   }, [slug, fetchActivitiesPage]);
 
   const handleTabChange = (tabName) => {
@@ -83,22 +109,24 @@ function DestinationPage() {
 
     const handleFilterChange = async (filter) => {
         setCurrentFilter(filter);
+        setListError(false);
         try {
-            setLoading(true);
+            setFilterLoading(true);
             await fetchActivitiesPage(destination.id, 0, filter, true);
         } catch {
-            setError(true);
+            setListError(true);
         } finally {
-            setLoading(false);
+            setFilterLoading(false);
         }
     };
 
     const handleLoadMore = async () => {
+        setListError(false);
         try {
             setLoadingMore(true);
             await fetchActivitiesPage(destination.id, page + 1, currentFilter);
         } catch {
-            setError(true);
+            setListError(true);
         } finally {
             setLoadingMore(false);
         }
@@ -195,6 +223,12 @@ function DestinationPage() {
           </div>
         </div>
 
+        {listError && (
+            <p className="text-error">Couldn't load activities. Please try again.</p>
+        )}
+        {filterLoading && (
+            <p>Loading activities...</p>
+        )}
         <div className="activities-grid">
             {activities.map(activity => (
                 <ActivityCard
