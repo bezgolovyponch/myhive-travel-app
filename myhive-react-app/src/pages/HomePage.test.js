@@ -58,7 +58,7 @@ test('hides the activities section when no featured activities exist', async () 
   expect(screen.queryByText('70+ Activities. Something for Every Group.')).not.toBeInTheDocument();
 });
 
-test('Start Group Vote opens the vote setup modal', async () => {
+test('Start Group Vote opens the vote setup modal with the only destination preset', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
 
   renderHome();
@@ -69,4 +69,26 @@ test('Start Group Vote opens the vote setup modal', async () => {
 
   // TripSetupModal in vote mode shows the vote-specific confirm button.
   expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
+  // With a single live destination it is auto-selected and the picker stays hidden.
+  expect(screen.getByText('Prague')).toBeInTheDocument();
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+test('vote setup modal shows the destination picker when several destinations exist', async () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+
+  renderHome({
+    ...baseState,
+    destinations: [
+      { id: 'd1', slug: 'prague', name: 'Prague' },
+      { id: 'd2', slug: 'budapest', name: 'Budapest' },
+    ],
+  });
+
+  await screen.findByText('What the Lads Say');
+
+  await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
+  await screen.findByText('Continue to Categories');
+
+  expect(screen.getByLabelText('Destination *')).toBeInTheDocument();
 });

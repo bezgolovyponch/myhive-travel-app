@@ -27,8 +27,12 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
 
     if (!isOpen) return null;
 
-    const needsDestinationPicker = isVoteMode && !preselectedDestination;
-    const destination = preselectedDestination
+    // Only one destination is live for now, so it is picked automatically and the
+    // selector stays hidden; it reappears as soon as a second destination is added.
+    const autoDestination = state.destinations.length === 1 ? state.destinations[0] : null;
+    const effectiveDestination = preselectedDestination || autoDestination;
+    const needsDestinationPicker = isVoteMode && !effectiveDestination;
+    const destination = effectiveDestination
         || state.destinations.find(d => d.id === selectedDestinationId)
         || null;
 
@@ -93,10 +97,10 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                 )}
                             </div>
                         )}
-                        {preselectedDestination && (
+                        {isVoteMode && effectiveDestination && (
                             <div className="form-group">
                                 <label>Destination</label>
-                                <p style={{ margin: '4px 0 0', fontWeight: 600 }}>{preselectedDestination.name}</p>
+                                <p style={{ margin: '4px 0 0', fontWeight: 600 }}>{effectiveDestination.name}</p>
                             </div>
                         )}
                         <div className="form-group">
