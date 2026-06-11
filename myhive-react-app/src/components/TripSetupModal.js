@@ -1,5 +1,6 @@
 import {useContext, useEffect, useId, useState} from 'react';
 import {AppContext} from '../context/AppContext';
+import {useModalA11y} from '../hooks/useModalA11y';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import './ContactForm.css';
@@ -32,6 +33,16 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             setBudgetError('');
         }
     }, [isOpen]);
+
+    const handleCancel = () => {
+        if (isVoteMode) {
+            onVoteCancel();
+        } else {
+            dispatch({type: 'CANCEL_TRIP_SETUP'});
+        }
+    };
+
+    const contentRef = useModalA11y(isOpen, handleCancel);
 
     if (!isOpen) return null;
 
@@ -73,20 +84,12 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         handleConfirm();
     };
 
-    const handleCancel = () => {
-        if (isVoteMode) {
-            onVoteCancel();
-        } else {
-            dispatch({type: 'CANCEL_TRIP_SETUP'});
-        }
-    };
-
     return (
-        <div className="app-modal">
-            <div className="app-modal-content">
+        <div className="app-modal" role="dialog" aria-modal="true" aria-labelledby={`${formId}-title`}>
+            <div className="app-modal-content" ref={contentRef}>
                 <div className="app-modal-header">
-                    <h2>Set Up Your Trip</h2>
-                    <button className="app-modal-close-btn" onClick={handleCancel}>×</button>
+                    <h2 id={`${formId}-title`}>Set Up Your Trip</h2>
+                    <button type="button" className="app-modal-close-btn" onClick={handleCancel} aria-label="Close">×</button>
                 </div>
                 <div className="app-modal-body">
                     <p className="trip-setup-description">

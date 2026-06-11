@@ -1,14 +1,16 @@
-import React from 'react';
+import {useModalA11y} from '../hooks/useModalA11y';
 
 function SuccessModal({isOpen, onClose, userName, userEmail}) {
+    const contentRef = useModalA11y(isOpen, onClose);
+
     if (!isOpen) return null;
 
     return (
-        <div className="app-modal">
-            <div className="app-modal-content">
+        <div className="app-modal" role="dialog" aria-modal="true" aria-labelledby="success-modal-title">
+            <div className="app-modal-content" ref={contentRef}>
                 <div className="app-modal-header">
-                    <h2>Booking Submitted Successfully!</h2>
-                    <button className="app-modal-close-btn" onClick={onClose}>×</button>
+                    <h2 id="success-modal-title">Booking Submitted Successfully!</h2>
+                    <button type="button" className="app-modal-close-btn" onClick={onClose} aria-label="Close">×</button>
                 </div>
 
                 <div className="app-modal-body">

@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 import {computeTripTotal} from '../utils/tripPricing';
+import {useModalA11y} from '../hooks/useModalA11y';
 
 function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
     const [formData, setFormData] = useState({
@@ -29,6 +30,7 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
     }, [isOpen]);
 
     const [errors, setErrors] = useState({});
+    const contentRef = useModalA11y(isOpen, onClose);
 
     const validateForm = () => {
         const newErrors = {};
@@ -85,11 +87,11 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
     if (!isOpen) return null;
 
     return (
-        <div className="app-modal">
-            <div className="app-modal-content contact-form-modal">
+        <div className="app-modal" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
+            <div className="app-modal-content contact-form-modal" ref={contentRef}>
                 <div className="app-modal-header">
-                    <h2>Complete Your Booking</h2>
-                    <button className="app-modal-close-btn" onClick={onClose}>×</button>
+                    <h2 id="contact-form-title">Complete Your Booking</h2>
+                    <button type="button" className="app-modal-close-btn" onClick={onClose} aria-label="Close">×</button>
                 </div>
 
                 <div className="app-modal-body">

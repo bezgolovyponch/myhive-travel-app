@@ -1,81 +1,11 @@
-import { useEffect, useRef } from 'react';
+import {useModalA11y} from '../hooks/useModalA11y';
 import './ActivityPreviewModal.css';
 
 function ActivityPreviewModal({ activity, link, onClose }) {
-    const contentRef = useRef(null);
-    const previouslyFocusedRef = useRef(null);
-    const onCloseRef = useRef(onClose);
-
-    // Keep the ref current so the focus effect can call the latest onClose without
-    // depending on it — listing onClose would re-run the effect (and yank focus) on
-    // every parent re-render, since the call sites pass an inline-arrow onClose.
-    useEffect(() => {
-        onCloseRef.current = onClose;
-    });
-
-    useEffect(() => {
-        if (!activity) {
-            return;
-        }
-        previouslyFocusedRef.current = document.activeElement;
-        const node = contentRef.current;
-
-        const getFocusable = () => {
-            if (!node) {
-                return [];
-            }
-            return Array.from(
-                node.querySelectorAll(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                )
-            ).filter((el) => !el.hasAttribute('disabled'));
-        };
-
-        const focusables = getFocusable();
-        if (focusables.length > 0) {
-            focusables[0].focus();
-        }
-
-        const handleKey = (e) => {
-            if (e.key === 'Escape') {
-                onCloseRef.current();
-                return;
-            }
-            if (e.key === 'Tab') {
-                const items = getFocusable();
-                if (items.length === 0) {
-                    e.preventDefault();
-                    return;
-                }
-                const first = items[0];
-                const last = items[items.length - 1];
-                const active = document.activeElement;
-                if (!node.contains(active)) {
-                    // Focus drifted outside the dialog (e.g. onto <body>) — pull it back.
-                    e.preventDefault();
-                    first.focus();
-                } else if (e.shiftKey && active === first) {
-                    e.preventDefault();
-                    last.focus();
-                } else if (!e.shiftKey && active === last) {
-                    e.preventDefault();
-                    first.focus();
-                }
-            }
-        };
-
-        document.addEventListener('keydown', handleKey);
-        // Cleanup runs on close (activity -> null) or unmount. Restoring focus here
-        // assumes the modal only ever toggles via null (both call sites do); a future
-        // "open next activity" path would need to skip restore on activity->activity.
-        return () => {
-            document.removeEventListener('keydown', handleKey);
-            const prev = previouslyFocusedRef.current;
-            if (prev && typeof prev.focus === 'function' && document.contains(prev)) {
-                prev.focus();
-            }
-        };
-    }, [activity]);
+    // Focus restore assumes the modal only ever toggles via null (both call
+    // sites do); a future "open next activity" path would need to skip
+    // restore on activity->activity.
+    const contentRef = useModalA11y(!!activity, onClose);
 
     if (!activity) {
         return null;
