@@ -66,7 +66,13 @@ function Header() {
               <TripBuilderDropdown/>
           </div>
         <TripSetupModal/>
-          <button className="hamburger-btn" onClick={() => setMobileNavOpen(!mobileNavOpen)}>
+          <button
+              type="button"
+              className="hamburger-btn"
+              aria-label="Menu"
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen(!mobileNavOpen)}
+          >
               <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
           </button>
       </div>

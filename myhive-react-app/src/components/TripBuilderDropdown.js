@@ -30,7 +30,7 @@ function TripBuilderDropdown() {
         <div className="trip-builder-dropdown">
             <div className="trip-builder-dropdown-header">
                 <h3>Trip Builder</h3>
-                <button className="app-modal-close-btn"
+                <button type="button" className="app-modal-close-btn" aria-label="Close"
                         onClick={() => dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'})}>×
                 </button>
             </div>
@@ -46,7 +46,9 @@ function TripBuilderDropdown() {
                                             <span className="trip-modal-package-discount">{group.packageDiscountPct}% off</span>
                                         )}
                                         <button
+                                            type="button"
                                             className="trip-modal-item-remove"
+                                            aria-label={`Remove ${group.packageName}`}
                                             onClick={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
                                         >×
                                         </button>
@@ -72,7 +74,9 @@ function TripBuilderDropdown() {
                                         <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
                                     </div>
                                     <button
+                                        type="button"
                                         className="trip-modal-item-remove"
+                                        aria-label={`Remove ${item.name || item.title}`}
                                         onClick={() => dispatch({type: 'REMOVE_FROM_TRIP', activityId: item.id})}
                                     >×
                                     </button>

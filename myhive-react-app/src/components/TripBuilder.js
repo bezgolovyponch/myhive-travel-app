@@ -186,9 +186,10 @@ function TripBuilder({ destinationId }) {
           {state.tripItems.length > 0 && (
               <div className="itinerary-trip-info">
                 <div className="trip-info-row">
-                  <label>Travelers:</label>
+                  <label htmlFor="trip-travelers">Travelers:</label>
                   <input
                       type="number"
+                      id="trip-travelers"
                       className="trip-info-input"
                       value={travelers}
                       onChange={e => dispatch({
@@ -219,7 +220,9 @@ function TripBuilder({ destinationId }) {
                       <span className="package-group-discount">{group.packageDiscountPct}% off</span>
                     )}
                     <button
+                      type="button"
                       className="remove-item-btn"
+                      aria-label={`Remove ${group.packageName}`}
                       onClick={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
                     >
                       ×
@@ -256,7 +259,9 @@ function TripBuilder({ destinationId }) {
                     </div>
                   </div>
                   <button
+                    type="button"
                     className="remove-item-btn"
+                    aria-label={`Remove ${item.name}`}
                     onClick={() => handleRemoveActivity(item.id)}
                   >
                     ×

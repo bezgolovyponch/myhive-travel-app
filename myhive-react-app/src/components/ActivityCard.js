@@ -18,6 +18,13 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
         navigate(`/destination/${destSlug}/activity/${activity.slug || activity.id}`);
     };
 
+    const handleCardKeyDown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+        }
+    };
+
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
   const title = activity.name || activity.title;
     const formattedPrice = formatPricePerPerson(activity.price);
@@ -25,7 +32,14 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
         ? activity.categories[0].name
         : null;
   return (
-      <div className="card activity-card" onClick={handleCardClick}>
+      <div
+          className="card activity-card"
+          role="button"
+          tabIndex={0}
+          aria-label={`View ${title}`}
+          onClick={handleCardClick}
+          onKeyDown={handleCardKeyDown}
+      >
           <img
               src={imageUrl}
               alt={title}

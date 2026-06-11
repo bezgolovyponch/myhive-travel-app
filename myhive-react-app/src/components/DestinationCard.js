@@ -10,7 +10,9 @@ function DestinationCard({ destination }) {
   // Map backend data to frontend format
   const imageUrl = destination.imageUrl || `https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop`;
   const hasActivities = destination.activityCount > 0;
-  const badge = destination.rating >= 4.7 ? 'Popular' : 'Hot Deal';
+  // Only highly-rated destinations get a badge; everything else used to fall
+  // through to a misleading "Hot Deal" label.
+  const badge = destination.rating >= 4.7 ? 'Popular' : null;
 
   const handleClick = () => {
     if (hasActivities) {
@@ -20,10 +22,21 @@ function DestinationCard({ destination }) {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   return (
     <div
         className={`card destination-card ${hasActivities ? '' : 'disabled'}`}
-      onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={`View ${destination.name}`}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
     >
       <img 
         src={imageUrl} 
