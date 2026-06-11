@@ -5,7 +5,6 @@ export const AppContext = createContext();
 
 export const initialState = {
     destinations: [],
-    activities: [],
     tripItems: [],
     tripTravelers: 1,
     tripStartDate: '',
@@ -28,8 +27,6 @@ export const reducer = (state, action) => {
     switch (action.type) {
         case 'SET_DESTINATIONS':
             return {...state, destinations: action.destinations, loading: false};
-        case 'SET_ACTIVITIES':
-            return {...state, activities: action.activities};
         case 'SET_ERROR':
             return {...state, error: action.error, loading: false};
         case 'SET_LOADING':
@@ -171,18 +168,15 @@ export function AppProvider({children}) {
         }));
     }, [state.tripTravelers, state.tripStartDate, state.tripEndDate, state.tripBudget]);
 
+  // Only destinations are needed app-wide (header breadcrumbs, vote setup,
+  // home page). Activities are fetched per destination by their consumers —
+  // eagerly loading the whole catalog here taxed every page view.
   useEffect(() => {
     const fetchData = async () => {
       try {
         dispatch({ type: 'SET_LOADING', loading: true });
-        
-        const [destinations, activities] = await Promise.all([
-          api.getDestinations(),
-          api.getActivities()
-        ]);
-
+        const destinations = await api.getDestinations();
         dispatch({ type: 'SET_DESTINATIONS', destinations });
-        dispatch({ type: 'SET_ACTIVITIES', activities });
       } catch (error) {
         console.error('Error fetching data:', error);
         dispatch({ type: 'SET_ERROR', error: error.message });

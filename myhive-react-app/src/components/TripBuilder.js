@@ -15,6 +15,7 @@ function TripBuilder({ destinationId }) {
   const { state, dispatch } = useContext(AppContext);
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
+  const [browseActivities, setBrowseActivities] = useState([]);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +52,20 @@ function TripBuilder({ destinationId }) {
 
   useEffect(() => {
     if (!destinationId) return;
-    api.getCategoriesForDestination(destinationId).then(setCategories).catch(() => {});
+    let cancelled = false;
+    api.getCategoriesForDestination(destinationId)
+        .then(c => {
+            if (!cancelled) setCategories(c);
+        })
+        .catch(() => {});
+    api.getActivities(destinationId)
+        .then(a => {
+            if (!cancelled) setBrowseActivities(a);
+        })
+        .catch(() => {});
+    return () => {
+        cancelled = true;
+    };
   }, [destinationId]);
 
   const [searchParams] = useSearchParams();
@@ -188,8 +202,8 @@ function TripBuilder({ destinationId }) {
   const totalPrice = computeTripTotal(state.tripItems, travelers);
 
   const filteredBrowseActivities = browseFilter === 'all'
-      ? state.activities
-      : state.activities.filter(a => (a.categories || []).some(c => c.slug === browseFilter));
+      ? browseActivities
+      : browseActivities.filter(a => (a.categories || []).some(c => c.slug === browseFilter));
 
   return (
     <div className="trip-builder-layout">
