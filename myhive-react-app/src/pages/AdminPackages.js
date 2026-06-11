@@ -86,9 +86,23 @@ function AdminPackages() {
             setDestinationActivities([]);
             return;
         }
-        adminApi.getActivities()
-            .then(all => setDestinationActivities(all.filter(a => a.destinationId === form.destinationId)))
-            .catch(() => setDestinationActivities([]));
+        let cancelled = false;
+        // Server-side destination filter instead of downloading the whole
+        // catalog; 200 comfortably covers a single destination's activities.
+        adminApi.getActivitiesPaged(0, 200, form.destinationId)
+            .then(page => {
+                if (!cancelled) {
+                    setDestinationActivities(page.content);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setDestinationActivities([]);
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
     }, [adminApi, form.destinationId]);
 
     const handleDestinationChange = (newDestinationId) => {
@@ -109,7 +123,8 @@ function AdminPackages() {
     const activitiesTotal = form.activities.reduce((s, a) => s + Number(a.price || 0), 0);
     const discountPct = Number(form.discountPct) || 0;
 
-    if (loading) {
+    // Spinner only on the initial load — page changes keep the table mounted.
+    if (loading && packages.length === 0) {
         return (
             <div className="d-flex justify-content-center py-5">
                 <Spinner animation="border" variant="primary"/>

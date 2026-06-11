@@ -121,7 +121,8 @@ function AdminActivities() {
     const toggleCategory = (categoryId) =>
         setForm({...form, categoryIds: toggleArrayItem(form.categoryIds || [], categoryId)});
 
-    if (loading) {
+    // Spinner only on the initial load — page changes keep the table mounted.
+    if (loading && activities.length === 0) {
         return (
             <div className="d-flex justify-content-center py-5">
                 <Spinner animation="border" variant="primary"/>
@@ -355,8 +356,9 @@ function AdminActivities() {
                     <Button variant="outline-secondary" size="sm" onClick={() => setShowModal(false)}>
                         Cancel
                     </Button>
+                    {/* form.price === '' (not !form.price): editing a €0 activity must not disable Save */}
                     <Button variant="primary" size="sm" onClick={handleSave}
-                            disabled={saving || uploading || !form.name || !form.destinationId || !form.price}>
+                            disabled={saving || uploading || !form.name || !form.destinationId || form.price === ''}>
                         {saving ? <Spinner animation="border" size="sm"/> : (editing ? 'Save Changes' : 'Create')}
                     </Button>
                 </Modal.Footer>

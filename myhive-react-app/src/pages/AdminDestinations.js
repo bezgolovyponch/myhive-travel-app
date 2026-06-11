@@ -34,6 +34,9 @@ function AdminDestinations() {
     const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
     const [quizDestinationId, setQuizDestinationId] = useState(null);
     const selectedCategoryIdsRef = useRef([]);
+    // Latest-wins guard: opening Edit on A then quickly on B must not let A's
+    // slow category fetch overwrite B's selection (and get saved onto B).
+    const editSeqRef = useRef(0);
     const categoriesAdminApi = useAdminApi();
 
     const updateCategorySelection = (ids) => {
@@ -88,17 +91,22 @@ function AdminDestinations() {
     };
 
     const openEdit = async (destination) => {
+        const seq = ++editSeqRef.current;
         updateCategorySelection([]);
         baseOpenEdit(destination);
         try {
             const dest = await api.getDestination(destination.id);
+            if (seq !== editSeqRef.current) {
+                return;
+            }
             updateCategorySelection((dest.assignedCategories || []).map(c => c.id));
         } catch {
             // leave empty on fetch failure
         }
     };
 
-    if (loading) {
+    // Spinner only on the initial load — page changes keep the table mounted.
+    if (loading && destinations.length === 0) {
         return (
             <div className="d-flex justify-content-center py-5">
                 <Spinner animation="border" variant="primary"/>

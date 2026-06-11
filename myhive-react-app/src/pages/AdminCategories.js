@@ -19,7 +19,9 @@ const COLUMNS = [
 function AdminCategories() {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [usage, setUsage] = useState(null);
-    const [loadingUsage, setLoadingUsage] = useState(false);
+    // Track which row's usage lookup is running, so one click doesn't
+    // spinner-disable every Delete button in the table.
+    const [loadingUsageId, setLoadingUsageId] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const handleAuthError = useAuthErrorHandler();
 
@@ -40,7 +42,7 @@ function AdminCategories() {
     });
 
     const handleDeleteClick = async (category) => {
-        setLoadingUsage(true);
+        setLoadingUsageId(category.id);
         setError('');
         try {
             const result = await adminApi.getCategoryUsage(category.id);
@@ -52,7 +54,7 @@ function AdminCategories() {
             }
             setError(e.message || 'Failed to load category usage');
         } finally {
-            setLoadingUsage(false);
+            setLoadingUsageId(null);
         }
     };
 
@@ -79,7 +81,8 @@ function AdminCategories() {
         setUsage(null);
     };
 
-    if (loading) {
+    // Spinner only on the initial load — page changes keep the table mounted.
+    if (loading && categories.length === 0) {
         return (
             <div className="d-flex justify-content-center py-5">
                 <Spinner animation="border" variant="primary"/>
@@ -127,10 +130,10 @@ function AdminCategories() {
                                     <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        disabled={loadingUsage}
+                                        disabled={loadingUsageId === category.id}
                                         onClick={() => handleDeleteClick(category)}
                                     >
-                                        {loadingUsage ? <Spinner animation="border" size="sm"/> : 'Delete'}
+                                        {loadingUsageId === category.id ? <Spinner animation="border" size="sm"/> : 'Delete'}
                                     </Button>
                                 </td>
                             </tr>

@@ -53,7 +53,8 @@ function AdminBlog() {
         setForm(prev => ({...prev, date: new Date().toISOString().split('T')[0]}));
     };
 
-    if (loading) {
+    // Spinner only on the initial load — page changes keep the table mounted.
+    if (loading && posts.length === 0) {
         return (
             <div className="d-flex justify-content-center py-5">
                 <Spinner animation="border" variant="primary"/>
