@@ -9,11 +9,12 @@ function ChatPanel() {
   const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
-  const replyTimeoutRef = useRef(null);
+  const replyTimeoutsRef = useRef(new Set());
 
-  // Clear a pending canned reply if the panel unmounts mid-conversation.
+  // Clear pending canned replies if the panel unmounts mid-conversation.
   useEffect(() => {
-    return () => clearTimeout(replyTimeoutRef.current);
+    const timeouts = replyTimeoutsRef.current;
+    return () => timeouts.forEach(clearTimeout);
   }, []);
 
   const scrollToBottom = () => {
@@ -48,9 +49,10 @@ function ChatPanel() {
         message: { sender: 'user', text: inputValue } 
       });
       
-      // Simulate AI response
-      clearTimeout(replyTimeoutRef.current);
-      replyTimeoutRef.current = setTimeout(() => {
+      // Simulate AI response. Each message gets its own timeout — sending a
+      // second message quickly must not cancel the first reply.
+      const id = setTimeout(() => {
+        replyTimeoutsRef.current.delete(id);
         dispatch({
           type: 'ADD_CHAT_MESSAGE',
           message: {
@@ -59,6 +61,7 @@ function ChatPanel() {
           }
         });
       }, 1000);
+      replyTimeoutsRef.current.add(id);
       
       setInputValue('');
     }

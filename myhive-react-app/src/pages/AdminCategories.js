@@ -127,10 +127,13 @@ function AdminCategories() {
                                             onClick={() => openEdit(category)}>
                                         Edit
                                     </Button>
+                                    {/* All rows disable while one lookup runs (no concurrent
+                                        lookups — the slower one would retarget the open modal),
+                                        but only the clicked row shows the spinner. */}
                                     <Button
                                         variant="outline-danger"
                                         size="sm"
-                                        disabled={loadingUsageId === category.id}
+                                        disabled={loadingUsageId !== null}
                                         onClick={() => handleDeleteClick(category)}
                                     >
                                         {loadingUsageId === category.id ? <Spinner animation="border" size="sm"/> : 'Delete'}

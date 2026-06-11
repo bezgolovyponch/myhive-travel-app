@@ -88,18 +88,29 @@ function AdminPackages() {
         }
         let cancelled = false;
         // Server-side destination filter instead of downloading the whole
-        // catalog; 200 comfortably covers a single destination's activities.
-        adminApi.getActivitiesPaged(0, 200, form.destinationId)
-            .then(page => {
-                if (!cancelled) {
-                    setDestinationActivities(page.content);
+        // catalog. The backend clamps page size to 50, so walk the pages —
+        // the picker needs every activity of the destination.
+        const loadAll = async () => {
+            try {
+                const all = [];
+                let page = 0;
+                let totalPages = 1;
+                while (page < totalPages) {
+                    const res = await adminApi.getActivitiesPaged(page, 50, form.destinationId);
+                    all.push(...res.content);
+                    totalPages = res.totalPages;
+                    page += 1;
                 }
-            })
-            .catch(() => {
+                if (!cancelled) {
+                    setDestinationActivities(all);
+                }
+            } catch {
                 if (!cancelled) {
                     setDestinationActivities([]);
                 }
-            });
+            }
+        };
+        loadAll();
         return () => {
             cancelled = true;
         };

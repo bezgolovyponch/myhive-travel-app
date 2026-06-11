@@ -19,6 +19,10 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
     };
 
     const handleCardKeyDown = (e) => {
+        if (e.target !== e.currentTarget) {
+            // Keys on nested interactive elements (Add to Trip) belong to them.
+            return;
+        }
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             handleCardClick();

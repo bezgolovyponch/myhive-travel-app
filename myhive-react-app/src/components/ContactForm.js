@@ -30,7 +30,13 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
     }, [isOpen]);
 
     const [errors, setErrors] = useState({});
-    const contentRef = useModalA11y(isOpen, onClose);
+    // Escape must respect the same guard as the disabled Cancel button:
+    // closing mid-submit invites a duplicate booking.
+    const contentRef = useModalA11y(isOpen, () => {
+        if (!isSubmitting) {
+            onClose();
+        }
+    });
 
     const validateForm = () => {
         const newErrors = {};

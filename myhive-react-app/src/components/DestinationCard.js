@@ -23,6 +23,10 @@ function DestinationCard({ destination }) {
   };
 
   const handleKeyDown = (e) => {
+    if (e.target !== e.currentTarget) {
+      // Keys on nested interactive elements belong to them.
+      return;
+    }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       handleClick();

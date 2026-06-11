@@ -19,6 +19,16 @@ function DestinationPage() {
   const location = useLocation();
   const navigate = useNavigate();
     const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
+    // Mount TripBuilder only once its tab has been opened — it fetches the
+    // destination's activity catalog on mount, which is wasted on visitors
+    // who never leave the Activities tab. Once activated it stays mounted
+    // (hidden via CSS) so its state survives tab switches.
+    const [tripBuilderActivated, setTripBuilderActivated] = useState(currentTab === 'trip-builder');
+    useEffect(() => {
+        if (currentTab === 'trip-builder') {
+            setTripBuilderActivated(true);
+        }
+    }, [currentTab]);
   const [currentFilter, setCurrentFilter] = useState('all');
     const [showAllCategories, setShowAllCategories] = useState(false);
   const [destination, setDestination] = useState(null);
@@ -278,7 +288,7 @@ function DestinationPage() {
       {/* Trip Builder Tab */}
         <div id="trip-builder-tab" className="tab-content"
              style={{display: currentTab === 'trip-builder' ? 'flex' : 'none'}}>
-        <TripBuilder destinationId={destination?.id} />
+        {tripBuilderActivated && <TripBuilder destinationId={destination?.id} />}
       </div>
     </div>
   );
