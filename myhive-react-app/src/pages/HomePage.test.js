@@ -69,12 +69,12 @@ test('Start Group Vote opens the vote setup modal with the only destination pres
 
   // TripSetupModal in vote mode shows the vote-specific confirm button.
   expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
-  // With a single live destination it is auto-selected and the picker stays hidden.
+  // The destination picker is disabled, so the destination is preset read-only.
   expect(screen.getByText('Prague')).toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
 
-test('vote setup modal shows the destination picker when several destinations exist', async () => {
+test('vote setup modal keeps the picker hidden even with several destinations in the API', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
 
   renderHome({
@@ -90,5 +90,7 @@ test('vote setup modal shows the destination picker when several destinations ex
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
   await screen.findByText('Continue to Categories');
 
-  expect(screen.getByLabelText('Destination *')).toBeInTheDocument();
+  // DESTINATION_PICKER_ENABLED is off: the first destination is auto-selected.
+  expect(screen.getByText('Prague')).toBeInTheDocument();
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
