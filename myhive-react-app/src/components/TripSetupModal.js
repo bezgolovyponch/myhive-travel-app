@@ -13,6 +13,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     const [email, setEmail] = useState('');
     const [selectedDestinationId, setSelectedDestinationId] = useState('');
     const [budget, setBudget] = useState('');
+    const [budgetError, setBudgetError] = useState('');
 
     const isOpen = isVoteMode ? voteOpen : state.tripSetupModalOpen;
 
@@ -24,6 +25,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             setEmail('');
             setSelectedDestinationId('');
             setBudget('');
+            setBudgetError('');
         }
     }, [isOpen]);
 
@@ -47,8 +49,10 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             if (!voteFormValid) return;
             const budgetValue = budget.trim() === '' ? null : Number(budget);
             if (budgetValue !== null && (!Number.isFinite(budgetValue) || budgetValue <= 0)) {
+                setBudgetError('Budget must be a positive number.');
                 return;
             }
+            setBudgetError('');
             onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination, budget: budgetValue });
         } else {
             dispatch({
@@ -58,6 +62,11 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                 endDate: endDate
             });
         }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        handleConfirm();
     };
 
     const handleCancel = () => {
@@ -79,7 +88,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                     <p className="trip-setup-description">
                         Tell us about your group so we can calculate the right price.
                     </p>
-                    <form className="contact-form" onSubmit={e => e.preventDefault()}>
+                    <form id="trip-setup-form" className="contact-form" onSubmit={handleSubmit}>
                         {needsDestinationPicker && (
                             <div className="form-group">
                                 <label htmlFor="voteDestination">Destination *</label>
@@ -155,20 +164,27 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                         min="0"
                                         step="100"
                                         value={budget}
-                                        onChange={e => setBudget(e.target.value)}
+                                        onChange={e => {
+                                            setBudget(e.target.value);
+                                            setBudgetError('');
+                                        }}
                                         placeholder="3000"
                                         style={{ paddingLeft: '1.6rem' }}
                                     />
                                 </div>
+                                {budgetError && <p className="text-error">{budgetError}</p>}
                             </div>
                         )}
                     </form>
                 </div>
                 <div className="app-modal-footer">
                     <button className="btn btn--secondary" onClick={handleCancel}>Cancel</button>
+                    {/* type=submit + form attr: routes the click through the form so
+                        native constraint validation (email format, budget min) runs. */}
                     <button
+                        type="submit"
+                        form="trip-setup-form"
                         className="btn btn--primary"
-                        onClick={handleConfirm}
                         disabled={isVoteMode && !voteFormValid}
                     >
                         {isVoteMode ? 'Continue to Categories' : 'Confirm'}
