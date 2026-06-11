@@ -1,52 +1,14 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/global.css';
-import {BrowserRouter as Router, Navigate, Route, Routes} from 'react-router-dom';
+import {lazy, Suspense} from 'react';
+import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import {HelmetProvider} from 'react-helmet-async';
 import {AppProvider} from './context/AppContext';
-import {AuthProvider, useAuth} from './context/AuthContext';
 import Layout from './components/Layout';
-import AdminLayout from './components/AdminLayout';
-import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminBookingDetail from './pages/AdminBookingDetail';
-import AdminActivities from './pages/AdminActivities';
-import AdminPackages from './pages/AdminPackages';
-import AdminCategories from './pages/AdminCategories';
-import AdminDestinations from './pages/AdminDestinations';
-import AdminBlog from './pages/AdminBlog';
-import ProtectedRoute from './components/ProtectedRoute';
 
-function AdminIndex() {
-    const {user} = useAuth();
-    if (user?.roles?.includes('ADMIN')) {
-        return <AdminDashboard/>;
-    }
-    return <Navigate to="/admin/activities" replace/>;
-}
-
-function AdminRoutes() {
-  return (
-      <AuthProvider>
-          <Routes>
-              <Route path="login" element={<AdminLogin/>}/>
-              <Route path="*" element={
-                  <ProtectedRoute>
-                      <AdminLayout/>
-                  </ProtectedRoute>
-        }>
-                  <Route index element={<AdminIndex/>}/>
-                  <Route path="bookings/:id"
-                         element={<ProtectedRoute requiredRole="ADMIN"><AdminBookingDetail/></ProtectedRoute>}/>
-          <Route path="activities" element={<AdminActivities/>}/>
-                  <Route path="packages" element={<AdminPackages/>}/>
-                  <Route path="categories" element={<AdminCategories/>}/>
-                  <Route path="destinations" element={<AdminDestinations/>}/>
-                  <Route path="blog" element={<AdminBlog/>}/>
-        </Route>
-          </Routes>
-      </AuthProvider>
-  );
-}
+// Admin pages + the OIDC client are heavy and irrelevant to public visitors —
+// load that whole subtree only when /admin is actually opened.
+const AdminApp = lazy(() => import('./AdminApp'));
 
 function App() {
     return (
@@ -54,7 +16,11 @@ function App() {
             <Router>
                 <Routes>
                     {/* Admin routes — single AuthProvider instance */}
-                    <Route path="/admin/*" element={<AdminRoutes/>}/>
+                    <Route path="/admin/*" element={
+                        <Suspense fallback={<div style={{padding: '4rem', textAlign: 'center'}}>Loading…</div>}>
+                            <AdminApp/>
+                        </Suspense>
+                    }/>
 
                     {/* Public routes — existing app */}
                     <Route path="/*" element={

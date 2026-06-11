@@ -50,7 +50,7 @@ function AdminActivities() {
         items: activities, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
         form, setForm, saving, setSaving, saveError, setSaveError, uploading, setUploading, deleteId, setDeleteId,
-        fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
+        fetchData, openCreate, openEdit, handleSave, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
         fetchFn,

@@ -6,7 +6,6 @@ export const AppContext = createContext();
 export const initialState = {
     destinations: [],
     activities: [],
-    currentPath: '/',
     tripItems: [],
     tripTravelers: 1,
     tripStartDate: '',
@@ -35,8 +34,6 @@ export const reducer = (state, action) => {
             return {...state, error: action.error, loading: false};
         case 'SET_LOADING':
             return {...state, loading: action.loading};
-        case 'NAVIGATE':
-            return {...state, currentPath: action.path};
         case 'ADD_TO_TRIP':
             if (!state.tripItems.some(item => item.id === action.activity.id)) {
                 const isFirstItem = state.tripItems.length === 0;

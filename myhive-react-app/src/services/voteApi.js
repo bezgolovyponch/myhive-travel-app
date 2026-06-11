@@ -39,14 +39,14 @@ const voteApi = {
   },
 
   async getSession(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}`);
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}`);
     if (!response.ok) throw new Error('Failed to fetch vote session');
     return response.json();
   },
 
   // Curated voting list (same URL as before — backend now serves curated for new sessions)
   async getActivities(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/activities`);
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/activities`);
     if (response.status === 404) throw new Error('Vote session not found');
     if (!response.ok) throw new Error('Failed to fetch vote activities');
     return response.json();
@@ -54,13 +54,13 @@ const voteApi = {
 
   // Participant quiz
   async getParticipantQuiz(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/quiz`);
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/quiz`);
     if (!response.ok) throw new Error('Failed to fetch participant quiz');
     return response.json();
   },
 
   async submitParticipantQuiz(shareToken, { voterToken, responses }) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/quiz`, {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/quiz`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ voterToken, responses }),
@@ -70,7 +70,7 @@ const voteApi = {
   },
 
   async castVote(shareToken, { voterToken, activityId, liked }) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/votes`, {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/votes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ voterToken, activityId, liked }),
@@ -80,7 +80,7 @@ const voteApi = {
   },
 
   async castVotes(shareToken, { voterToken, votes }) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/votes/batch`, {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/votes/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ voterToken, votes }),
@@ -90,21 +90,24 @@ const voteApi = {
   },
 
   async getParticipantCount(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/participant-count`);
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/participant-count`);
     if (!response.ok) throw new Error('Failed to fetch participant count');
     return response.json();
   },
 
   async closeSession(shareToken, managerToken) {
+    const base = `${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/close`;
+    // managerToken arrives via a shared URL's query param — encode it so it
+    // cannot inject extra query parameters into the request.
     const url = managerToken
-        ? `${API_BASE_URL}/vote/sessions/${shareToken}/close?managerToken=${managerToken}`
-        : `${API_BASE_URL}/vote/sessions/${shareToken}/close`;
+        ? `${base}?managerToken=${encodeURIComponent(managerToken)}`
+        : base;
     const response = await fetch(url, { method: 'POST' });
     if (!response.ok && response.status !== 400) throw new Error('Failed to close session');
   },
 
   async getResult(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${shareToken}/result`);
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/result`);
     if (response.status === 409) throw new Error('Result not available yet');
     if (!response.ok) throw new Error('Failed to fetch vote result');
     return response.json();
