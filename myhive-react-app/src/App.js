@@ -7,8 +7,15 @@ import {AppProvider} from './context/AppContext';
 import Layout from './components/Layout';
 
 // Admin pages + the OIDC client are heavy and irrelevant to public visitors —
-// load that whole subtree only when /admin is actually opened.
-const AdminApp = lazy(() => import('./AdminApp'));
+// load that whole subtree only when /admin is actually opened. A failed chunk
+// load (stale cached index.html after a redeploy) must not white-screen the app.
+const AdminApp = lazy(() => import('./AdminApp').catch(() => ({
+    default: () => (
+        <div style={{padding: '4rem', textAlign: 'center'}}>
+            Failed to load the admin console. Please refresh the page.
+        </div>
+    ),
+})));
 
 function App() {
     return (

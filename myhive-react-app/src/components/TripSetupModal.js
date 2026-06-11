@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {useContext, useEffect, useId, useState} from 'react';
 import {AppContext} from '../context/AppContext';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
@@ -14,6 +14,10 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     const [selectedDestinationId, setSelectedDestinationId] = useState('');
     const [budget, setBudget] = useState('');
     const [budgetError, setBudgetError] = useState('');
+    // Unique per instance: this modal is mounted in several places (Header,
+    // TripBuilderDropdown, vote flow) and a duplicate id would make the footer
+    // submit button target the wrong form.
+    const formId = useId();
 
     const isOpen = isVoteMode ? voteOpen : state.tripSetupModalOpen;
 
@@ -88,7 +92,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                     <p className="trip-setup-description">
                         Tell us about your group so we can calculate the right price.
                     </p>
-                    <form id="trip-setup-form" className="contact-form" onSubmit={handleSubmit}>
+                    <form id={formId} className="contact-form" onSubmit={handleSubmit}>
                         {needsDestinationPicker && (
                             <div className="form-group">
                                 <label htmlFor="voteDestination">Destination *</label>
@@ -183,7 +187,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                         native constraint validation (email format, budget min) runs. */}
                     <button
                         type="submit"
-                        form="trip-setup-form"
+                        form={formId}
                         className="btn btn--primary"
                         disabled={isVoteMode && !voteFormValid}
                     >

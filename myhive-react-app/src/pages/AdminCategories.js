@@ -4,6 +4,7 @@ import {useAdminCrud} from '../hooks/useAdminCrud';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import AdminTable from '../components/AdminTable';
 import CategoryDeleteModal from '../components/admin/CategoryDeleteModal';
+import SaveErrorAlert from '../components/admin/SaveErrorAlert';
 
 const EMPTY_FORM = {
     name: '',
@@ -145,9 +146,7 @@ function AdminCategories() {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body data-bs-theme="dark">
-                    {saveError && (
-                        <Alert variant="danger" dismissible onClose={() => setSaveError('')}>{saveError}</Alert>
-                    )}
+                    <SaveErrorAlert error={saveError} onClose={() => setSaveError('')}/>
                     <Form>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Name</Form.Label>

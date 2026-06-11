@@ -8,6 +8,7 @@ import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
 import ImportActivitiesModal from '../components/admin/ImportActivitiesModal';
+import SaveErrorAlert from '../components/admin/SaveErrorAlert';
 
 const EMPTY_FORM = {
     name: '',
@@ -49,7 +50,8 @@ function AdminActivities() {
     const {
         items: activities, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, setSaving, saveError, setSaveError, uploading, setUploading, deleteId, setDeleteId,
+        form, setForm, saving, setSaving, saveError, setSaveError, uploading, deleteId, setDeleteId,
+        handleImageUpload, handleImageUploadError,
         fetchData, openCreate, openEdit, handleSave, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
@@ -229,9 +231,7 @@ function AdminActivities() {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body data-bs-theme="dark">
-                    {saveError && (
-                        <Alert variant="danger" dismissible onClose={() => setSaveError('')}>{saveError}</Alert>
-                    )}
+                    <SaveErrorAlert error={saveError} onClose={() => setSaveError('')}/>
                     <Form>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Destination</Form.Label>
@@ -346,19 +346,8 @@ function AdminActivities() {
                         <ImageUploadField
                             imageUrl={form.imageUrl}
                             uploading={uploading}
-                            onUpload={async (file) => {
-                                setUploading(true);
-                                setSaveError('');
-                                try {
-                                    const {url} = await adminApi.uploadImage(file);
-                                    setForm(prev => ({...prev, imageUrl: url}));
-                                } finally {
-                                    setUploading(false);
-                                }
-                            }}
-                            onError={(err) => {
-                                setSaveError(err.message || 'Failed to upload image');
-                            }}
+                            onUpload={handleImageUpload}
+                            onError={handleImageUploadError}
                         />
                     </Form>
                 </Modal.Body>

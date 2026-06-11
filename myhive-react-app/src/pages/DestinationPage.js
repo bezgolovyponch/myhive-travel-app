@@ -39,11 +39,20 @@ function DestinationPage() {
     const fetchActivitiesPage = useCallback(async (destinationId, pageNum, categorySlug, reset = false) => {
         const seq = ++requestSeqRef.current;
         const categoryParam = categorySlug === 'all' ? null : categorySlug;
-        const data = await api.getActivitiesPaged(destinationId, {
-            page: pageNum,
-            size: PAGE_SIZE,
-            categorySlug: categoryParam
-        });
+        let data;
+        try {
+            data = await api.getActivitiesPaged(destinationId, {
+                page: pageNum,
+                size: PAGE_SIZE,
+                categorySlug: categoryParam
+            });
+        } catch (e) {
+            if (seq !== requestSeqRef.current) {
+                // A stale request failing must not disturb the newer one's UI state.
+                return;
+            }
+            throw e;
+        }
         if (seq !== requestSeqRef.current) {
             // A newer filter/page request started while this one was in flight.
             return;
@@ -114,6 +123,10 @@ function DestinationPage() {
             setFilterLoading(true);
             await fetchActivitiesPage(destination.id, 0, filter, true);
         } catch {
+            // Clear the old filter's list so a later Show More cannot append
+            // the new filter's page 1 onto the previous filter's items.
+            setActivities([]);
+            setHasMore(false);
             setListError(true);
         } finally {
             setFilterLoading(false);

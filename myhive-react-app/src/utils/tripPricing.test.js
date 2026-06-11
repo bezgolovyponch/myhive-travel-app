@@ -46,6 +46,11 @@ describe('computeTripTotal', () => {
         expect(computeTripTotal([{id: 'a1', price: null}], 2)).toBe(0);
     });
 
+    test('parses currency-formatted string prices from legacy localStorage carts', () => {
+        const expectedTotal = 240;
+        expect(computeTripTotal([{id: 'a1', price: '€120'}], 2)).toBe(expectedTotal);
+    });
+
     test('rounds to cents', () => {
         const items = [{id: 'a1', price: 33.335, packageId: 'p1', packageDiscountPct: 10}];
         expect(computeTripTotal(items, 1)).toBe(30);

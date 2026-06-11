@@ -89,12 +89,6 @@ const voteApi = {
     if (!response.ok) throw new Error('Failed to cast votes');
   },
 
-  async getParticipantCount(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/participant-count`);
-    if (!response.ok) throw new Error('Failed to fetch participant count');
-    return response.json();
-  },
-
   async closeSession(shareToken, managerToken) {
     const base = `${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/close`;
     // managerToken arrives via a shared URL's query param — encode it so it

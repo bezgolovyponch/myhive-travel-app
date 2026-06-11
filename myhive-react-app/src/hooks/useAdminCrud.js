@@ -87,6 +87,21 @@ export function useAdminCrud({
         }
     };
 
+    const handleImageUpload = async (file) => {
+        setUploading(true);
+        setSaveError('');
+        try {
+            const {url} = await adminApi.uploadImage(file);
+            setForm(prev => ({...prev, imageUrl: url}));
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleImageUploadError = (err) => {
+        setSaveError(err.message || 'Failed to upload image');
+    };
+
     const handleDelete = async () => {
         try {
             setSaving(true);
@@ -122,6 +137,8 @@ export function useAdminCrud({
         setSaveError,
         uploading,
         setUploading,
+        handleImageUpload,
+        handleImageUploadError,
         deleteId,
         setDeleteId,
         fetchData,

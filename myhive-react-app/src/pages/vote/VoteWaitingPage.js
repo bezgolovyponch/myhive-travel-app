@@ -45,6 +45,8 @@ function VoteWaitingPage() {
                 }
                 setSession(s);
                 setParticipantCount(s.participantCount);
+                // A later successful poll recovers from a transient initial failure.
+                setSessionError(null);
                 if (s.status === 'COMPLETED') {
                     if (s.destinationSlug) {
                         navigate(`/destination/${s.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`,
@@ -73,10 +75,14 @@ function VoteWaitingPage() {
         };
     }, [shareToken, navigate]);
 
+    // Keyed on expiresAt (a stable string), not the session object — the 30s
+    // poll stores a fresh object each tick and would needlessly restart the
+    // countdown interval.
+    const expiresAt = session?.expiresAt;
     useEffect(() => {
-        if (!session?.expiresAt) return;
+        if (!expiresAt) return;
         const tick = () => {
-            const diff = new Date(session.expiresAt) - Date.now();
+            const diff = new Date(expiresAt) - Date.now();
             if (diff <= 0) { setTimeLeft('Processing results...'); return; }
             const hours = Math.floor(diff / 3_600_000);
             const minutes = Math.floor((diff % 3_600_000) / 60_000);
@@ -85,7 +91,7 @@ function VoteWaitingPage() {
         tick();
         const id = setInterval(tick, 60_000);
         return () => clearInterval(id);
-    }, [session]);
+    }, [expiresAt]);
 
     const handleClose = useCallback(() => {
         if (closing || !managerToken) return;
@@ -110,6 +116,10 @@ function VoteWaitingPage() {
     const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
 
     const handleCopy = () => {
+        if (!navigator.clipboard) {
+            // Insecure context — the readonly input stays visible for manual copying.
+            return;
+        }
         navigator.clipboard.writeText(shareUrl)
             .then(() => {
                 setCopied(true);

@@ -33,7 +33,6 @@ beforeEach(() => {
     participantCount: 0,
     numberOfTravelers: 2,
   });
-  voteApi.getParticipantCount.mockResolvedValue({ count: 0 });
 });
 
 test('adopts managerToken from ?manager=, shows End voting early, strips token from URL', async () => {

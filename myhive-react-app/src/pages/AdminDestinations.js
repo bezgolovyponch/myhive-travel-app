@@ -8,6 +8,7 @@ import ImageUploadField from '../components/ImageUploadField';
 import api from '../services/api';
 import {useAdminApi} from '../hooks/useAdminApi';
 import AdminDestinationQuiz from './admin/AdminDestinationQuiz';
+import SaveErrorAlert from '../components/admin/SaveErrorAlert';
 
 const EMPTY_FORM = {
     name: '',
@@ -50,8 +51,9 @@ function AdminDestinations() {
     const {
         items: destinations, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, saveError, setSaveError, uploading, setUploading, deleteId, setDeleteId,
-        fetchData, openCreate: baseOpenCreate, openEdit: baseOpenEdit, handleSave, handleDelete, adminApi,
+        form, setForm, saving, saveError, setSaveError, uploading, deleteId, setDeleteId,
+        handleImageUpload, handleImageUploadError,
+        fetchData, openCreate: baseOpenCreate, openEdit: baseOpenEdit, handleSave, handleDelete,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
         fetchFn: useCallback((adminApiInstance, page, size) => adminApiInstance.getDestinationsPaged(page, size), []),
@@ -202,9 +204,7 @@ function AdminDestinations() {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body data-bs-theme="dark">
-                    {saveError && (
-                        <Alert variant="danger" dismissible onClose={() => setSaveError('')}>{saveError}</Alert>
-                    )}
+                    <SaveErrorAlert error={saveError} onClose={() => setSaveError('')}/>
                     <Form>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Name</Form.Label>
@@ -294,19 +294,8 @@ function AdminDestinations() {
                         <ImageUploadField
                             imageUrl={form.imageUrl}
                             uploading={uploading}
-                            onUpload={async (file) => {
-                                setUploading(true);
-                                setSaveError('');
-                                try {
-                                    const {url} = await adminApi.uploadImage(file);
-                                    setForm(prev => ({...prev, imageUrl: url}));
-                                } finally {
-                                    setUploading(false);
-                                }
-                            }}
-                            onError={(err) => {
-                                setSaveError(err.message || 'Failed to upload image');
-                            }}
+                            onUpload={handleImageUpload}
+                            onError={handleImageUploadError}
                         />
                     </Form>
                 </Modal.Body>
