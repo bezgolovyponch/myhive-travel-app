@@ -3,6 +3,7 @@ import {Alert, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstr
 import {formatAmount} from '../utils/format';
 import {toggleArrayItem} from '../utils/toggleArrayItem';
 import {useAdminCrud} from '../hooks/useAdminCrud';
+import {required, slugFormat, discountRange} from '../utils/validators';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
@@ -40,7 +41,7 @@ function AdminPackages() {
     const {
         items: packages, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, saveError, setSaveError, uploading, deleteId, setDeleteId,
+        form, setForm, saving, saveError, setSaveError, fieldErrors, updateField, clearFieldError, uploading, deleteId, setDeleteId,
         handleImageUpload, handleImageUploadError,
         fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
@@ -68,6 +69,26 @@ function AdminPackages() {
                 duration: a.duration,
             })),
         }),
+        validate: (form) => {
+            const errors = {};
+            const name = required(form.name);
+            if (name) errors.name = name;
+            const destinationId = required(form.destinationId, 'Select a destination.');
+            if (destinationId) errors.destinationId = destinationId;
+            const discountRequired = required(form.discountPct, 'Discount is required.');
+            if (discountRequired) {
+                errors.discountPct = discountRequired;
+            } else {
+                const range = discountRange(form.discountPct);
+                if (range) errors.discountPct = range;
+            }
+            if (form.activities.length === 0) {
+                errors.activities = 'Add at least one activity.';
+            }
+            const slug = slugFormat(form.slug);
+            if (slug) errors.slug = slug;
+            return errors;
+        },
         buildPayload: (form) => ({
             ...form,
             discountPct: form.discountPct !== '' ? Number(form.discountPct) : null,
@@ -126,6 +147,7 @@ function AdminPackages() {
         } else {
             setForm({...form, destinationId: newDestinationId});
         }
+        clearFieldError('destinationId');
     };
 
     const toggleCategory = (categoryId) =>
@@ -212,28 +234,34 @@ function AdminPackages() {
                             <Form.Select
                                 value={form.destinationId}
                                 onChange={e => handleDestinationChange(e.target.value)}
+                                isInvalid={!!fieldErrors.destinationId}
                             >
                                 <option value="">Select destination...</option>
                                 {destinations.map(d => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </Form.Select>
+                            <Form.Control.Feedback type="invalid">{fieldErrors.destinationId}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Name</Form.Label>
                             <Form.Control
                                 value={form.name}
-                                onChange={e => setForm({...form, name: e.target.value})}
+                                onChange={e => updateField('name', e.target.value)}
+                                isInvalid={!!fieldErrors.name}
                                 placeholder="Package name"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.name}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
                             <Form.Control
                                 value={form.slug}
-                                onChange={e => setForm({...form, slug: e.target.value})}
+                                onChange={e => updateField('slug', e.target.value)}
+                                isInvalid={!!fieldErrors.slug}
                                 placeholder="Leave blank to auto-generate from name"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.slug}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Description</Form.Label>
@@ -254,9 +282,11 @@ function AdminPackages() {
                                     min="0"
                                     max="100"
                                     value={form.discountPct}
-                                    onChange={e => setForm({...form, discountPct: e.target.value})}
+                                    onChange={e => updateField('discountPct', e.target.value)}
+                                    isInvalid={!!fieldErrors.discountPct}
                                     placeholder="0.00"
                                 />
+                                <Form.Control.Feedback type="invalid">{fieldErrors.discountPct}</Form.Control.Feedback>
                             </Col>
                             <Col sm={6}>
                                 <Form.Label className="small fw-semibold text-white">Duration (hours)</Form.Label>
@@ -292,10 +322,16 @@ function AdminPackages() {
                             <Form.Label className="small fw-semibold text-white">Activities</Form.Label>
                             <PackageActivityPicker
                                 value={form.activities}
-                                onChange={(activities) => setForm({...form, activities})}
+                                onChange={(activities) => {
+                                    setForm({...form, activities});
+                                    clearFieldError('activities');
+                                }}
                                 availableActivities={destinationActivities}
                                 disabled={!form.destinationId}
                             />
+                            {fieldErrors.activities && (
+                                <div className="text-danger small mt-1">{fieldErrors.activities}</div>
+                            )}
                             {form.activities.length > 0 && (
                                 <div className="text-muted small mt-2">
                                     Activities total: {formatAmount(activitiesTotal)}<br/>
@@ -330,7 +366,7 @@ function AdminPackages() {
                         variant="primary"
                         size="sm"
                         onClick={handleSave}
-                        disabled={saving || uploading || !form.name || !form.destinationId || form.discountPct === '' || form.activities.length === 0}
+                        disabled={saving || uploading}
                     >
                         {saving ? <Spinner animation="border" size="sm"/> : (editing ? 'Save Changes' : 'Create')}
                     </Button>
