@@ -25,4 +25,13 @@ describe('formatPricePerPerson', () => {
     it('appends the per-person suffix to the formatted price', () => {
         expect(formatPricePerPerson(45)).toBe('€45.00 / person');
     });
+
+    it('appends the suffix to a legacy string price', () => {
+        expect(formatPricePerPerson('€120')).toBe('€120 / person');
+    });
+
+    it('returns nullish input as-is without the suffix', () => {
+        expect(formatPricePerPerson(null)).toBeNull();
+        expect(formatPricePerPerson(undefined)).toBeUndefined();
+    });
 });

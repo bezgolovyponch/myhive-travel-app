@@ -104,7 +104,7 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
             contentClassName="contact-form-modal"
             footer={
                 <>
-                    <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>
+                    <button type="button" className="btn btn--secondary" onClick={guardedClose} disabled={isSubmitting}>
                         Cancel
                     </button>
                     <button type="submit" form={formId} className="btn btn--primary" disabled={isSubmitting}>
