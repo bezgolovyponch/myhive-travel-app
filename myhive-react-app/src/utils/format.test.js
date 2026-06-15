@@ -40,6 +40,11 @@ describe('formatAmount', () => {
         expect(formatAmount(null)).toBe('—');
         expect(formatAmount(undefined)).toBe('—');
     });
+
+    it('renders an em-dash for non-numeric input instead of €NaN', () => {
+        expect(formatAmount('abc')).toBe('—');
+        expect(formatAmount(NaN)).toBe('—');
+    });
 });
 
 describe('formatPricePerPerson', () => {

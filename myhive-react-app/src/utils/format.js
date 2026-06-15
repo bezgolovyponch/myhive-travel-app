@@ -1,6 +1,9 @@
 export function formatAmount(amount) {
     if (amount == null) return '\u2014';
     const n = Number(amount);
+    // Non-numeric input (e.g. a NaN from a bad value) renders the em-dash
+    // rather than a literal "\u20ACNaN".
+    if (!Number.isFinite(n)) return '\u2014';
     // Cents only when present: whole euros render clean (\u20AC45), fractional
     // amounts keep exactly two decimals (\u20AC40.50). Never one decimal.
     return Number.isInteger(n) ? `\u20AC${n}` : `\u20AC${n.toFixed(2)}`;
