@@ -30,7 +30,7 @@ function ActivityVoteContent() {
             .then(setActivities)
             .catch(e => setError(e.message))
             .finally(() => setLoading(false));
-    }, [shareToken]);
+    }, [shareToken, navigate]);
 
     const handleSwipe = (direction, activityId) => {
         if (submittingRef.current) return;

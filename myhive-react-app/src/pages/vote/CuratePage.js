@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
@@ -13,7 +13,9 @@ function CurateContent() {
   const navigate = useNavigate();
   const { dispatch } = useContext(AppContext);
   const setup = location.state?.setup;
-  const responses = location.state?.responses ?? [];
+  // Stable reference so the effect below doesn't re-run on every render
+  // (the ?? [] fallback would otherwise be a fresh array each time).
+  const responses = useMemo(() => location.state?.responses ?? [], [location.state]);
 
   const [pool, setPool] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);

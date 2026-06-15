@@ -48,7 +48,7 @@ export function useAdminCrud({
         } finally {
             setLoading(false);
         }
-    }, [adminApi, handleAuthError, page, fetchFn]);
+    }, [adminApi, handleAuthError, page, pageSize, fetchFn]);
 
     useEffect(() => {
         fetchData();
