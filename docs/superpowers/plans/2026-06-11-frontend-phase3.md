@@ -159,8 +159,8 @@ export function formatPrice(price) {
 - [ ] Full suite + commit.
 
 ## Final verification
-- [ ] Full suite green; `npm run build` clean (no warnings).
-- [ ] Multi-angle code review of the branch diff; fix findings.
+- [x] Full suite green (120 tests); `npm run build` clean (no warnings).
+- [x] Multi-angle code review of the branch diff (3 independent angles: correctness, React/a11y, test quality); findings fixed — ContactForm Cancel now respects the submit guard, plus added coverage for SwipeCard copy feedback, ContactForm footer-submit + phone regex, AppModal closeOnBackdrop, and formatPricePerPerson passthrough.
 
 ## Phase 4 (next)
 CRA→Vite migration (envPrefix to keep REACT_APP_ vars, Vitest with jest-compatible globals or codemod, Render build output check); AppContext split; admin inline validation; raw `€{...}` interpolations in TripBuilder.
