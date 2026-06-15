@@ -102,3 +102,47 @@ test('failed delete uses mapDeleteError to build the message', async () => {
 
     expect(result.current.error).toBe('Cannot delete: used in packages: Weekend Bali, Sunset Tour');
 });
+
+test('handleSave blocks and sets fieldErrors when validate returns errors', async () => {
+    const createFn = jest.fn();
+    const validate = jest.fn().mockReturnValue({name: 'This field is required.'});
+    const {result} = renderCrud({createFn, validate});
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.openCreate());
+    await act(() => result.current.handleSave());
+
+    expect(result.current.fieldErrors).toEqual({name: 'This field is required.'});
+    expect(createFn).not.toHaveBeenCalled();
+    expect(result.current.showModal).toBe(true);
+});
+
+test('handleSave proceeds and clears fieldErrors when validate passes', async () => {
+    const fetchFn = jest.fn().mockResolvedValue({content: [], totalPages: 0, totalElements: 0});
+    const createFn = jest.fn().mockResolvedValue({});
+    const validate = jest.fn().mockReturnValue({});
+    const {result} = renderCrud({fetchFn, createFn, validate});
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.openCreate());
+    await act(() => result.current.handleSave());
+
+    expect(createFn).toHaveBeenCalledTimes(1);
+    expect(result.current.fieldErrors).toEqual({});
+    expect(result.current.showModal).toBe(false);
+});
+
+test('updateField updates the form and clears that field error only', async () => {
+    const validate = jest.fn().mockReturnValue({name: 'This field is required.', slug: 'Bad slug.'});
+    const {result} = renderCrud({validate});
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.openCreate());
+    await act(() => result.current.handleSave());
+    expect(result.current.fieldErrors).toEqual({name: 'This field is required.', slug: 'Bad slug.'});
+
+    act(() => result.current.updateField('name', 'Bali'));
+
+    expect(result.current.form.name).toBe('Bali');
+    expect(result.current.fieldErrors).toEqual({slug: 'Bad slug.'});
+});

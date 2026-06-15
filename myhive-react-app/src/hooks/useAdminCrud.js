@@ -11,6 +11,7 @@ export function useAdminCrud({
                                  mapItemToForm,
                                  buildPayload = (form) => form,
                                  mapDeleteError,
+                                 validate,
                                  pageSize = 10,
                              }) {
     const adminApi = useAdminApi();
@@ -30,6 +31,9 @@ export function useAdminCrud({
     // Save failures are rendered inside the modal (the page-level error alert
     // sits behind the open modal's backdrop and is invisible there).
     const [saveError, setSaveError] = useState('');
+    // Per-field validation messages, keyed by form field name; rendered inline
+    // under each control. Set on a blocked save, cleared as fields are edited.
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const [deleteId, setDeleteId] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -56,6 +60,7 @@ export function useAdminCrud({
 
     const openCreate = () => {
         setSaveError('');
+        setFieldErrors({});
         setForm(emptyForm);
         setEditing(null);
         setShowModal(true);
@@ -63,12 +68,35 @@ export function useAdminCrud({
 
     const openEdit = (item) => {
         setSaveError('');
+        setFieldErrors({});
         setForm(mapItemToForm(item));
         setEditing(item);
         setShowModal(true);
     };
 
+    const clearFieldError = useCallback((name) => {
+        setFieldErrors(prev => {
+            if (!prev[name]) return prev;
+            const next = {...prev};
+            delete next[name];
+            return next;
+        });
+    }, []);
+
+    const updateField = useCallback((name, value) => {
+        setForm(prev => ({...prev, [name]: value}));
+        clearFieldError(name);
+    }, [clearFieldError]);
+
     const handleSave = async () => {
+        if (validate) {
+            const errors = validate(form);
+            if (Object.keys(errors).length > 0) {
+                setFieldErrors(errors);
+                return;
+            }
+        }
+        setFieldErrors({});
         try {
             setSaving(true);
             setSaveError('');
@@ -138,6 +166,9 @@ export function useAdminCrud({
         setSaving,
         saveError,
         setSaveError,
+        fieldErrors,
+        updateField,
+        clearFieldError,
         uploading,
         setUploading,
         handleImageUpload,
