@@ -18,7 +18,10 @@ export function formatDateTime(dateStr) {
 }
 
 export function formatPrice(price) {
-    if (typeof price === 'number') return `\u20AC${price}`;
+    // Delegate numbers to formatAmount so a price renders identically
+    // (two decimals) wherever it appears; non-numbers (e.g. legacy strings
+    // like "\u20AC120") pass through unchanged.
+    if (typeof price === 'number') return formatAmount(price);
     return price;
 }
 
