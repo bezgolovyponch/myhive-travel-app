@@ -1,6 +1,9 @@
 export function formatAmount(amount) {
     if (amount == null) return '\u2014';
-    return `\u20AC${Number(amount).toFixed(2)}`;
+    const n = Number(amount);
+    // Cents only when present: whole euros render clean (\u20AC45), fractional
+    // amounts keep exactly two decimals (\u20AC40.50). Never one decimal.
+    return Number.isInteger(n) ? `\u20AC${n}` : `\u20AC${n.toFixed(2)}`;
 }
 
 export function formatDate(dateStr) {

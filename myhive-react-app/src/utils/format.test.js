@@ -7,8 +7,8 @@ describe('formatPrice', () => {
         expect(formatPrice(12.5)).toBe('€12.50');
     });
 
-    it('formats whole numbers with two decimals', () => {
-        expect(formatPrice(45)).toBe('€45.00');
+    it('renders whole numbers without decimals', () => {
+        expect(formatPrice(45)).toBe('€45');
     });
 
     it('passes legacy string prices through unchanged', () => {
@@ -21,9 +21,30 @@ describe('formatPrice', () => {
     });
 });
 
+describe('formatAmount', () => {
+    it('renders whole numbers without decimals', () => {
+        expect(formatAmount(45)).toBe('€45');
+    });
+
+    it('keeps two decimals for fractional amounts and never one', () => {
+        expect(formatAmount(45.5)).toBe('€45.50');
+        expect(formatAmount(40.1)).toBe('€40.10');
+    });
+
+    it('applies the same rule to numeric strings', () => {
+        expect(formatAmount('45')).toBe('€45');
+        expect(formatAmount('40.5')).toBe('€40.50');
+    });
+
+    it('renders an em-dash for nullish input', () => {
+        expect(formatAmount(null)).toBe('—');
+        expect(formatAmount(undefined)).toBe('—');
+    });
+});
+
 describe('formatPricePerPerson', () => {
     it('appends the per-person suffix to the formatted price', () => {
-        expect(formatPricePerPerson(45)).toBe('€45.00 / person');
+        expect(formatPricePerPerson(45)).toBe('€45 / person');
     });
 
     it('appends the suffix to a legacy string price', () => {
