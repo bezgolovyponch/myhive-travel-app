@@ -265,7 +265,7 @@ function TripBuilder({ destinationId }) {
                           <div className="itinerary-item-title">{item.name}</div>
                           <div className="itinerary-item-price">
                             {travelers > 1
-                                ? `€${item.price} × ${travelers} = €${item.price * travelers}`
+                                ? `${formatPrice(item.price)} × ${travelers} = ${formatPrice(item.price * travelers)}`
                                 : formatPricePerPerson(item.price)}
                           </div>
                         </div>
@@ -282,7 +282,7 @@ function TripBuilder({ destinationId }) {
                     <div className="itinerary-item-title">{item.name}</div>
                     <div className="itinerary-item-price">
                       {travelers > 1
-                          ? `€${item.price} × ${travelers} = €${item.price * travelers}`
+                          ? `${formatPrice(item.price)} × ${travelers} = ${formatPrice(item.price * travelers)}`
                           : formatPricePerPerson(item.price)}
                     </div>
                   </div>
@@ -323,7 +323,7 @@ function TripBuilder({ destinationId }) {
             <div className="trip-actions">
               <div className="itinerary-total">
                 <span>Total</span>
-                <span className="itinerary-total-price">€{totalPrice}</span>
+                <span className="itinerary-total-price">{formatPrice(totalPrice)}</span>
               </div>
             <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>
               Complete Booking

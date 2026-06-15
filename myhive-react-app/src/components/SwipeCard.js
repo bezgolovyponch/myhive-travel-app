@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import './SwipeCard.css';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import { copyToClipboard } from '../utils/clipboard';
+import { formatPricePerPerson } from '../utils/format';
 
 const SWIPE_THRESHOLD = 80;
 
@@ -127,7 +128,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                                     <div className="swipe-card-meta">
                                         {card.duration && <span>{Math.round(card.duration / 60)}h</span>}
                                         {card.duration && card.price && <span> · </span>}
-                                        {card.price && <span>€{card.price}/person</span>}
+                                        {card.price && <span>{formatPricePerPerson(card.price)}</span>}
                                     </div>
                                 </div>
                             </>

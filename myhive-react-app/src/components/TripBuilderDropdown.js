@@ -85,7 +85,7 @@ function TripBuilderDropdown() {
                         </div>
                         <div className="trip-modal-total">
                             <span>Total ({travelers} {travelers === 1 ? 'person' : 'people'})</span>
-                            <span className="trip-modal-total-price">€{totalPrice}</span>
+                            <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
                         </div>
                         <button className="trip-builder-complete-btn" onClick={handleComplete}>
                             Complete Booking

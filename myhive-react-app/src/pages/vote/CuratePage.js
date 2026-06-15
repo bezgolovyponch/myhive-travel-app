@@ -4,6 +4,7 @@ import voteApi from '../../services/voteApi';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
 import SwipeCard from '../../components/SwipeCard';
 import ActivityPreviewModal from '../../components/ActivityPreviewModal';
+import { formatPricePerPerson } from '../../utils/format';
 import { AppContext } from '../../context/AppContext';
 import VoteMeta from './VoteMeta';
 import './CuratePage.css';
@@ -201,7 +202,7 @@ function CurateContent() {
                       {a.name}
                     </button>
                   </div>
-                  <div className="curate-finalize-card-price">€{a.price}/person</div>
+                  <div className="curate-finalize-card-price">{formatPricePerPerson(a.price)}</div>
                   {a.categories && a.categories.length > 0 && (
                     <div className="curate-finalize-card-cats">{a.categories.join(' · ')}</div>
                   )}

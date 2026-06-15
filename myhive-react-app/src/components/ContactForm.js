@@ -2,6 +2,7 @@ import {useEffect, useId, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 import {computeTripTotal} from '../utils/tripPricing';
+import { formatPrice } from '../utils/format';
 import AppModal from './AppModal';
 
 function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
@@ -116,7 +117,7 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
                     <div className="trip-summary">
                         <h4>Trip Summary</h4>
                         <p><strong>Activities:</strong> {tripData.tripItems.length} selected</p>
-                        <p><strong>Estimated Total:</strong> €{computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1).toFixed(2)}</p>
+                        <p><strong>Estimated Total:</strong> {formatPrice(computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1))}</p>
                     </div>
 
                     {submitError && (
