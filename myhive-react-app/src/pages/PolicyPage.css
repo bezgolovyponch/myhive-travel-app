@@ -1,0 +1,24 @@
+/* Shared layout for the legal policy pages (Cookie Policy, Privacy Policy).
+   The policy body itself is rendered into .policy-section by a GTM-injected
+   CookieYes script, so these styles mainly give that injected content a
+   readable, centred container. */
+.policy-page {
+    padding-bottom: var(--gap-2xl);
+}
+
+.policy-section {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: var(--gap-xl) var(--page-padding);
+    line-height: 1.6;
+    color: var(--text);
+}
+
+.policy-section h2,
+.policy-section h3 {
+    margin-top: var(--gap-xl);
+}
+
+.policy-placeholder {
+    color: var(--text-muted);
+}

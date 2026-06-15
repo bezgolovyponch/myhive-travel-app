@@ -26,6 +26,14 @@ function Footer() {
                         <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter</a>
                         <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a>
                     </nav>
+                    <nav className="footer-nav">
+                        <span className="footer-nav-title">Legal</span>
+                        <Link to="/cookie-policy">Cookie Policy</Link>
+                        <Link to="/privacy-policy">Privacy Policy</Link>
+                        {/* CookieYes binds the click handler to .cky-banner-element to reopen
+                            the consent banner — no JS of ours needed. */}
+                        <button type="button" className="cky-banner-element">Cookie settings</button>
+                    </nav>
                 </div>
             </div>
 
