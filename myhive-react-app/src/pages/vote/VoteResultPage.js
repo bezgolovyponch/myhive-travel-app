@@ -1,8 +1,8 @@
-import { useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import {useEffect, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import ActivityCard from '../../components/ActivityCard';
-import { AppContext } from '../../context/AppContext';
+import {useTrip} from '../../context/TripContext';
 import { formatPrice, formatPricePerPerson } from '../../utils/format';
 import VoteMeta from './VoteMeta';
 import './VoteResultPage.css';
@@ -24,7 +24,7 @@ function suggestionToActivity(s) {
 function VoteResultContent() {
     const { shareToken } = useParams();
     const navigate = useNavigate();
-    const { state, dispatch } = useContext(AppContext);
+    const {state, dispatch} = useTrip();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
 

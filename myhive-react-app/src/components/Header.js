@@ -1,6 +1,7 @@
 import {Link, useLocation, useNavigate} from 'react-router-dom';
-import {useContext, useState} from 'react';
-import {AppContext} from '../context/AppContext';
+import {useState} from 'react';
+import {useCatalog} from '../context/CatalogContext';
+import {useTrip} from '../context/TripContext';
 import TripBuilderDropdown from './TripBuilderDropdown';
 import TripSetupModal from './TripSetupModal';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
@@ -9,7 +10,8 @@ import './Header.css';
 function Header() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {state, dispatch} = useContext(AppContext);
+  const {state: catalog} = useCatalog();
+  const {state, dispatch} = useTrip();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleTripBuilderClick = () => {
@@ -23,7 +25,7 @@ function Header() {
   const destinationMatch = location.pathname.match(/^\/destination\/([^/?]+)/);
   const destinationSlug = destinationMatch ? destinationMatch[1] : null;
   const destination = destinationSlug
-      ? state.destinations.find((item) => item.slug === destinationSlug)
+      ? catalog.destinations.find((item) => item.slug === destinationSlug)
       : null;
   const showBreadcrumbs = Boolean(destinationSlug);
   const isPackagePage = /^\/destination\/[^/?]+\/package\//.test(location.pathname);

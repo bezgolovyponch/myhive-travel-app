@@ -1,6 +1,6 @@
-import {useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Helmet} from 'react-helmet-async';
-import {AppContext} from '../context/AppContext';
+import {useTrip} from '../context/TripContext';
 import ActivityCard from '../components/ActivityCard';
 import TripBuilder from '../components/TripBuilder';
 import {useLocation, useNavigate, useParams} from 'react-router-dom';
@@ -15,7 +15,7 @@ const VISIBLE_CATEGORY_COUNT = 12;
 
 function DestinationPage() {
     const {slug} = useParams();
-    const {state} = useContext(AppContext);
+    const {state: trip} = useTrip();
   const location = useLocation();
   const navigate = useNavigate();
     const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
@@ -257,7 +257,7 @@ function DestinationPage() {
                 <ActivityCard
                     key={activity.id}
               activity={activity}
-              isAdded={state.tripItems.some(item => item.id === activity.id)}
+              isAdded={trip.tripItems.some(item => item.id === activity.id)}
             />
           ))}
         </div>

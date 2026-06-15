@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { AppContext } from '../context/AppContext';
+import {CatalogContext} from '../context/CatalogContext';
+import {TripContext} from '../context/TripContext';
 import { useStartGroupVote } from './useStartGroupVote';
 
 function QuizStub() {
@@ -36,14 +37,16 @@ function Harness() {
 function renderHarness(dispatch = jest.fn()) {
   const state = { tripItems: [], destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }] };
   return render(
-    <AppContext.Provider value={{ state, dispatch }}>
-      <MemoryRouter initialEntries={['/']}>
-        <Routes>
-          <Route path="/" element={<Harness />} />
-          <Route path="/vote/new/quiz" element={<QuizStub />} />
-        </Routes>
-      </MemoryRouter>
-    </AppContext.Provider>
+    <CatalogContext.Provider value={{ state, dispatch }}>
+      <TripContext.Provider value={{ state, dispatch }}>
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route path="/" element={<Harness />} />
+            <Route path="/vote/new/quiz" element={<QuizStub />} />
+          </Routes>
+        </MemoryRouter>
+      </TripContext.Provider>
+    </CatalogContext.Provider>
   );
 }
 

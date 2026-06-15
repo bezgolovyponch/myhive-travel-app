@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import TripSetupModal from './TripSetupModal';
-import { AppContext } from '../context/AppContext';
+import {CatalogContext} from '../context/CatalogContext';
+import {TripContext} from '../context/TripContext';
 
 // The flag is off in real config while Prague is the only live destination;
 // these tests cover the picker logic that comes back once it is re-enabled.
@@ -21,9 +22,11 @@ const baseState = {
 
 function renderVoteModal(state = baseState) {
   return render(
-    <AppContext.Provider value={{ state, dispatch: jest.fn() }}>
-      <TripSetupModal isVoteMode voteOpen onVoteConfirm={jest.fn()} onVoteCancel={jest.fn()} />
-    </AppContext.Provider>
+    <CatalogContext.Provider value={{ state, dispatch: jest.fn() }}>
+      <TripContext.Provider value={{ state, dispatch: jest.fn() }}>
+        <TripSetupModal isVoteMode voteOpen onVoteConfirm={jest.fn()} onVoteCancel={jest.fn()} />
+      </TripContext.Provider>
+    </CatalogContext.Provider>
   );
 }
 

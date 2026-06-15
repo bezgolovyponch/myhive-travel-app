@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import CuratePage from './CuratePage';
 import voteApi from '../../services/voteApi';
-import { AppContext } from '../../context/AppContext';
+import {TripContext} from '../../context/TripContext';
 
 jest.mock('../../services/voteApi');
 
@@ -30,7 +30,7 @@ function DestinationStub() {
 
 function renderWith(state, dispatch = jest.fn()) {
   return render(
-    <AppContext.Provider value={{ state: { tripItems: [] }, dispatch }}>
+    <TripContext.Provider value={{ state: { tripItems: [] }, dispatch }}>
       <MemoryRouter initialEntries={[{ pathname: '/vote/new/curate', state }]}>
         <Routes>
           <Route path="/vote/new/curate" element={<CuratePage />} />
@@ -39,7 +39,7 @@ function renderWith(state, dispatch = jest.fn()) {
           <Route path="/" element={<div>home</div>} />
         </Routes>
       </MemoryRouter>
-    </AppContext.Provider>
+    </TripContext.Provider>
   );
 }
 
@@ -116,14 +116,14 @@ test('clicking an activity name on the finalize list opens the info modal', asyn
 
 test('no setup state redirects home', async () => {
   render(
-    <AppContext.Provider value={{ state: { tripItems: [] }, dispatch: jest.fn() }}>
+    <TripContext.Provider value={{ state: { tripItems: [] }, dispatch: jest.fn() }}>
       <MemoryRouter initialEntries={['/vote/new/curate']}>
         <Routes>
           <Route path="/vote/new/curate" element={<CuratePage />} />
           <Route path="/" element={<div>home</div>} />
         </Routes>
       </MemoryRouter>
-    </AppContext.Provider>
+    </TripContext.Provider>
   );
   expect(await screen.findByText('home')).toBeInTheDocument();
 });

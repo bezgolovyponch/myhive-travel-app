@@ -4,7 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import HomePage from './HomePage';
 import api from '../services/api';
-import { AppContext } from '../context/AppContext';
+import {CatalogContext} from '../context/CatalogContext';
+import {TripContext} from '../context/TripContext';
 
 jest.mock('../services/api');
 
@@ -23,11 +24,13 @@ const baseState = {
 function renderHome(state = baseState) {
   return render(
     <HelmetProvider>
-      <AppContext.Provider value={{ state, dispatch: jest.fn() }}>
-        <MemoryRouter>
-          <HomePage />
-        </MemoryRouter>
-      </AppContext.Provider>
+      <CatalogContext.Provider value={{ state, dispatch: jest.fn() }}>
+        <TripContext.Provider value={{ state, dispatch: jest.fn() }}>
+          <MemoryRouter>
+            <HomePage />
+          </MemoryRouter>
+        </TripContext.Provider>
+      </CatalogContext.Provider>
     </HelmetProvider>
   );
 }

@@ -1,7 +1,8 @@
-import {useContext, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Link} from 'react-router-dom';
 import api from '../../services/api';
-import {AppContext} from '../../context/AppContext';
+import {useCatalog} from '../../context/CatalogContext';
+import {useTrip} from '../../context/TripContext';
 import {getDefaultDestination} from '../../utils/defaultDestination';
 import ActivityCard from '../ActivityCard';
 import './FeaturedActivitiesSection.css';
@@ -9,7 +10,8 @@ import './FeaturedActivitiesSection.css';
 const MAX_FEATURED = 12;
 
 function FeaturedActivitiesSection() {
-    const {state} = useContext(AppContext);
+    const {state: catalog} = useCatalog();
+    const {state: trip} = useTrip();
     const [activities, setActivities] = useState([]);
 
     useEffect(() => {
@@ -32,7 +34,7 @@ function FeaturedActivitiesSection() {
         return null;
     }
 
-    const mainDestination = getDefaultDestination(state.destinations);
+    const mainDestination = getDefaultDestination(catalog.destinations);
 
     return (
         <section className="featured-activities" id="activities">
@@ -45,7 +47,7 @@ function FeaturedActivitiesSection() {
                     <ActivityCard
                         key={activity.id}
                         activity={activity}
-                        isAdded={state.tripItems.some(item => item.id === activity.id)}
+                        isAdded={trip.tripItems.some(item => item.id === activity.id)}
                     />
                 ))}
             </div>

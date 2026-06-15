@@ -1,5 +1,4 @@
 import {Route, Routes} from 'react-router-dom';
-import {useContext} from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import CookieConsent from './CookieConsent';
@@ -16,11 +15,11 @@ import CuratePage from '../pages/vote/CuratePage';
 import ActivityVotePage from '../pages/vote/ActivityVotePage';
 import VoteWaitingPage from '../pages/vote/VoteWaitingPage';
 import VoteResultPage from '../pages/vote/VoteResultPage';
-import {AppContext} from '../context/AppContext';
+import {useDestinationModal} from '../context/DestinationModalContext';
 import AppModal from './AppModal';
 
 function Layout() {
-  const {state, dispatch} = useContext(AppContext);
+  const {state, dispatch} = useDestinationModal();
   const closeDestinationModal = () => dispatch({type: 'CLOSE_DESTINATION_MODAL'});
 
   return (

@@ -1,18 +1,18 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
 import SwipeCard from '../../components/SwipeCard';
 import ActivityPreviewModal from '../../components/ActivityPreviewModal';
 import { formatPricePerPerson } from '../../utils/format';
-import { AppContext } from '../../context/AppContext';
+import {useTrip} from '../../context/TripContext';
 import VoteMeta from './VoteMeta';
 import './CuratePage.css';
 
 function CurateContent() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { dispatch } = useContext(AppContext);
+  const {dispatch} = useTrip();
   const setup = location.state?.setup;
   // Stable reference so the effect below doesn't re-run on every render
   // (the ?? [] fallback would otherwise be a fresh array each time).

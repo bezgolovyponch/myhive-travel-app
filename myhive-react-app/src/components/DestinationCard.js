@@ -1,10 +1,9 @@
-import {useContext} from 'react';
-import {AppContext} from '../context/AppContext';
 import {useNavigate} from 'react-router-dom';
+import {useDestinationModal} from '../context/DestinationModalContext';
 import './DestinationCard.css';
 
 function DestinationCard({ destination }) {
-  const { dispatch } = useContext(AppContext);
+  const {dispatch} = useDestinationModal();
   const navigate = useNavigate();
 
   // Map backend data to frontend format

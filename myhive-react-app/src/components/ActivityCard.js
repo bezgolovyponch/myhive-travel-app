@@ -1,11 +1,10 @@
-import {useContext} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {AppContext} from '../context/AppContext';
+import {useTrip} from '../context/TripContext';
 import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson} from '../utils/format';
 import './ActivityCard.css';
 
 function ActivityCard({ activity, isAdded = false, silent = false }) {
-  const { dispatch } = useContext(AppContext);
+  const {dispatch} = useTrip();
     const navigate = useNavigate();
 
     const handleAddToTrip = (e) => {

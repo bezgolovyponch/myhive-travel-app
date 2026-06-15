@@ -1,13 +1,12 @@
-import {useContext} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {AppContext} from '../context/AppContext';
+import {useTrip} from '../context/TripContext';
 import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
 import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import TripSetupModal from './TripSetupModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 
 function TripBuilderDropdown() {
-    const {state, dispatch} = useContext(AppContext);
+    const {state, dispatch} = useTrip();
     const navigate = useNavigate();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
 

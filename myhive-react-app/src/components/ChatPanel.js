@@ -1,10 +1,32 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useEffect, useReducer, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
-import {AppContext} from '../context/AppContext';
+import {useTrip} from '../context/TripContext';
 import './ChatPanel.css';
 
+const initialChatState = {
+  chatOpen: false,
+  chatMessages: [
+    {sender: 'ai', text: 'Hi! I\'m your AI travel assistant. What type of trip are you looking for?'}
+  ],
+  autoEngaged: false,
+};
+
+function chatReducer(state, action) {
+  switch (action.type) {
+    case 'TOGGLE_CHAT':
+      return {...state, chatOpen: !state.chatOpen};
+    case 'SET_AUTO_ENGAGED':
+      return {...state, autoEngaged: action.value};
+    case 'ADD_CHAT_MESSAGE':
+      return {...state, chatMessages: [...state.chatMessages, action.message]};
+    default:
+      return state;
+  }
+}
+
 function ChatPanel() {
-  const { state, dispatch } = useContext(AppContext);
+  const [state, dispatch] = useReducer(chatReducer, initialChatState);
+  const {state: trip} = useTrip();
   const location = useLocation();
   const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
   const [inputValue, setInputValue] = useState('');
@@ -43,12 +65,11 @@ function ChatPanel() {
 
   const handleSendMessage = () => {
     if (inputValue.trim()) {
-      // Add user message
-      dispatch({ 
-        type: 'ADD_CHAT_MESSAGE', 
-        message: { sender: 'user', text: inputValue } 
+      dispatch({
+        type: 'ADD_CHAT_MESSAGE',
+        message: { sender: 'user', text: inputValue }
       });
-      
+
       // Simulate AI response. Each message gets its own timeout — sending a
       // second message quickly must not cancel the first reply.
       const id = setTimeout(() => {
@@ -62,7 +83,7 @@ function ChatPanel() {
         });
       }, 1000);
       replyTimeoutsRef.current.add(id);
-      
+
       setInputValue('');
     }
   };
@@ -85,7 +106,7 @@ function ChatPanel() {
       if (tab === 'packages') {
         aiResponse = "Packages are the easiest start — a ready-made mix of activities at a discount that you can still customize in the Trip Builder!";
       } else if (tab === 'trip-builder') {
-        aiResponse = `You have ${state.tripItems.length} activities selected. ${state.tripItems.length < 2 ? 'Consider adding more for a full experience!' : 'This looks like a great balanced trip!'}`;
+        aiResponse = `You have ${trip.tripItems.length} activities selected. ${trip.tripItems.length < 2 ? 'Consider adding more for a full experience!' : 'This looks like a great balanced trip!'}`;
       } else {
         aiResponse = "Start with the featured activities on the home page — they're the most popular with groups. Add anything you like to the Trip Builder!";
       }

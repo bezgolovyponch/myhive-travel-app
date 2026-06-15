@@ -1,6 +1,6 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
-import {AppContext} from '../context/AppContext';
+import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
@@ -12,7 +12,7 @@ import './TripBuilder.css';
 const VISIBLE_CATEGORY_COUNT = 12;
 
 function TripBuilder({ destinationId }) {
-  const { state, dispatch } = useContext(AppContext);
+  const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
   const [browseActivities, setBrowseActivities] = useState([]);
@@ -97,7 +97,7 @@ function TripBuilder({ destinationId }) {
             dispatch({ type: 'UPDATE_TRIP_BUDGET', budget: result.budget ?? null });
             // New shape: result.result[] is ResultActivityDTO with snapshot name+price
             // plus live slug/destinationSlug/imageUrl/duration/description/includes.
-            // Map activityId → id so AppContext keys it the same as live activities.
+            // Map activityId → id so TripContext keys it the same as live activities.
             (result.result || []).forEach(row => {
                 dispatch({
                     type: 'ADD_TO_TRIP',

@@ -1,5 +1,6 @@
-import {useContext, useEffect, useId, useState} from 'react';
-import {AppContext} from '../context/AppContext';
+import {useEffect, useId, useState} from 'react';
+import {useCatalog} from '../context/CatalogContext';
+import {useTrip} from '../context/TripContext';
 import AppModal from './AppModal';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
@@ -7,7 +8,8 @@ import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 
 function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null }) {
-    const {state, dispatch} = useContext(AppContext);
+    const {state: catalog} = useCatalog();
+    const {state, dispatch} = useTrip();
     const [travelers, setTravelers] = useState('1');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -46,12 +48,12 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
 
     // With the picker disabled (or when the API has a single destination anyway)
     // the default destination is selected automatically and shown as read-only text.
-    const canAutoSelect = !DESTINATION_PICKER_ENABLED || state.destinations.length === 1;
-    const autoDestination = canAutoSelect ? getDefaultDestination(state.destinations) : null;
+    const canAutoSelect = !DESTINATION_PICKER_ENABLED || catalog.destinations.length === 1;
+    const autoDestination = canAutoSelect ? getDefaultDestination(catalog.destinations) : null;
     const effectiveDestination = preselectedDestination || autoDestination;
     const needsDestinationPicker = isVoteMode && !effectiveDestination;
     const destination = effectiveDestination
-        || state.destinations.find(d => d.id === selectedDestinationId)
+        || catalog.destinations.find(d => d.id === selectedDestinationId)
         || null;
 
     const voteFormValid = startDate && endDate && email && destination;
@@ -114,15 +116,15 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                     id="voteDestination"
                                     value={selectedDestinationId}
                                     onChange={e => setSelectedDestinationId(e.target.value)}
-                                    disabled={state.loading}
+                                    disabled={catalog.loading}
                                     required
                                 >
-                                    <option value="">{state.loading ? 'Loading destinations…' : 'Select a destination…'}</option>
-                                    {!state.loading && state.destinations.map(d => (
+                                    <option value="">{catalog.loading ? 'Loading destinations…' : 'Select a destination…'}</option>
+                                    {!catalog.loading && catalog.destinations.map(d => (
                                         <option key={d.id} value={d.id}>{d.name}</option>
                                     ))}
                                 </select>
-                                {state.error && !state.loading && (
+                                {catalog.error && !catalog.loading && (
                                     <p className="text-error">Couldn't load destinations. Please try again later.</p>
                                 )}
                             </div>

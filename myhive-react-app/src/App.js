@@ -3,7 +3,7 @@ import './styles/global.css';
 import {lazy, Suspense} from 'react';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import {HelmetProvider} from 'react-helmet-async';
-import {AppProvider} from './context/AppContext';
+import {AppProviders} from './context/AppProviders';
 import Layout from './components/Layout';
 
 // Admin pages + the OIDC client are heavy and irrelevant to public visitors —
@@ -31,9 +31,9 @@ function App() {
 
                     {/* Public routes — existing app */}
                     <Route path="/*" element={
-                        <AppProvider>
+                        <AppProviders>
                             <Layout/>
-                        </AppProvider>
+                        </AppProviders>
                     }/>
                 </Routes>
             </Router>

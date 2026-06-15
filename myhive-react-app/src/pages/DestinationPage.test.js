@@ -2,7 +2,7 @@ import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {HelmetProvider} from 'react-helmet-async';
-import {AppContext} from '../context/AppContext';
+import {TripContext} from '../context/TripContext';
 import DestinationPage from './DestinationPage';
 import api from '../services/api';
 
@@ -33,13 +33,13 @@ const baseState = {
 function renderPage() {
     return render(
         <HelmetProvider>
-            <AppContext.Provider value={{state: baseState, dispatch: jest.fn()}}>
+            <TripContext.Provider value={{state: baseState, dispatch: jest.fn()}}>
                 <MemoryRouter initialEntries={['/destination/prague']}>
                     <Routes>
                         <Route path="/destination/:slug" element={<DestinationPage/>}/>
                     </Routes>
                 </MemoryRouter>
-            </AppContext.Provider>
+            </TripContext.Provider>
         </HelmetProvider>
     );
 }

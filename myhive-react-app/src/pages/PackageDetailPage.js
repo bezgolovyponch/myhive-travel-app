@@ -1,7 +1,6 @@
-import {useContext} from 'react';
 import {Helmet} from 'react-helmet-async';
 import {Link, useNavigate, useParams} from 'react-router-dom';
-import {AppContext} from '../context/AppContext';
+import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
@@ -11,7 +10,7 @@ import './PackageDetailPage.css';
 function PackageDetailPage() {
     const {destSlug, slug} = useParams();
     const navigate = useNavigate();
-    const {dispatch} = useContext(AppContext);
+    const {dispatch} = useTrip();
     const {data: pkg, loading, error} = useFetchBySlug(api.getPackageBySlug, slug);
 
     if (loading) {
