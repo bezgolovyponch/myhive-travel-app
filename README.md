@@ -160,6 +160,21 @@ Dev docker-compose available: `docker-compose -f docker-compose.dev.yml up`
 - The backend CSP (`SecurityHeadersFilter`) rides only on `/api` JSON responses, not the separately-served frontend,
   so it does not block GTM.
 
+## Cookie consent (CookieYes + Consent Mode v2)
+
+- Consent is handled by the **CookieYes CMP**, loaded **through GTM** via the official CookieYes CMP Community
+  Template (no CookieYes banner snippet in the repo). The tag fires on **Consent Initialization – All Pages** and
+  sets Google **Consent Mode v2** defaults to **denied** for `analytics_storage`, `ad_storage`, `ad_user_data`,
+  `ad_personalization` (Necessary/Functional granted). The CookieYes dashboard has Consent Mode, cookieless pings,
+  Microsoft UET and Clarity Consent API enabled; banner is English with equal Accept/Reject buttons.
+- **Policy pages** are static React routes — `/cookie-policy` holds the generated Cookie Policy text inline
+  (`CookiePolicyPage.js`); `/privacy-policy` is a placeholder until generated. The CookieYes policy *embed* is not
+  used: it renders on the `window` `load` event, which never fires on an SPA route entered client-side, so dynamic
+  injection leaves it blank.
+- The footer "Legal" group links both policies and exposes a `.cky-banner-element` button ("Cookie settings") that
+  CookieYes auto-binds to reopen the preference center. The previous homegrown cookie banner was removed.
+- Not yet wired: GA4 / Meta Pixel / Microsoft Clarity tags (to be created in GTM and gated via tag Consent Settings).
+
 ## Security
 
 - Auth0 OIDC (OAuth2 Resource Server), stateless sessions
