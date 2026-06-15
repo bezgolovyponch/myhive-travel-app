@@ -1,4 +1,5 @@
 import AppModal from './AppModal';
+import { formatPricePerPerson } from '../utils/format';
 import './ActivityPreviewModal.css';
 
 function ActivityPreviewModal({ activity, link, onClose }) {
@@ -8,7 +9,7 @@ function ActivityPreviewModal({ activity, link, onClose }) {
 
     const meta = [];
     if (activity.price != null) {
-        meta.push(`€${activity.price}/person`);
+        meta.push(formatPricePerPerson(activity.price));
     }
     if (activity.duration != null) {
         meta.push(`${Math.round(activity.duration / 60)}h`);

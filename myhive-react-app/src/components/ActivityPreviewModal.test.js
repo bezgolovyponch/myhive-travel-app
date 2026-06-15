@@ -22,7 +22,7 @@ test('shows name, meta and description', () => {
   render(<ActivityPreviewModal activity={activity} link={null} onClose={jest.fn()} />);
 
   expect(screen.getByRole('heading', { name: 'Snorkeling Tour' })).toBeInTheDocument();
-  expect(screen.getByText(/€45\/person/)).toBeInTheDocument();
+  expect(screen.getByText(/€45 \/ person/)).toBeInTheDocument();
   expect(screen.getByText(/3h/)).toBeInTheDocument();
   expect(screen.getByText(/Water · Nature/)).toBeInTheDocument();
   expect(screen.getByText('Explore the coral reefs with a guide.')).toBeInTheDocument();
