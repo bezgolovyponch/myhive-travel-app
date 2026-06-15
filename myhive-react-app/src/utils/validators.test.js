@@ -49,5 +49,7 @@ describe('discountRange', () => {
         expect(discountRange(-1)).toBeTruthy();
         expect(discountRange(101)).toBeTruthy();
         expect(discountRange('abc')).toBeTruthy();
+        expect(discountRange(Infinity)).toBeTruthy();
+        expect(discountRange(-Infinity)).toBeTruthy();
     });
 });

@@ -146,3 +146,17 @@ test('updateField updates the form and clears that field error only', async () =
     expect(result.current.form.name).toBe('Bali');
     expect(result.current.fieldErrors).toEqual({slug: 'Bad slug.'});
 });
+
+test('clearFieldError removes a single field error directly', async () => {
+    const validate = jest.fn().mockReturnValue({name: 'This field is required.', slug: 'Bad slug.'});
+    const {result} = renderCrud({validate});
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.openCreate());
+    await act(() => result.current.handleSave());
+    expect(result.current.fieldErrors).toEqual({name: 'This field is required.', slug: 'Bad slug.'});
+
+    act(() => result.current.clearFieldError('slug'));
+
+    expect(result.current.fieldErrors).toEqual({name: 'This field is required.'});
+});
