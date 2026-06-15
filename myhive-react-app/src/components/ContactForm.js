@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useId, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 import {computeTripTotal} from '../utils/tripPricing';
@@ -30,6 +30,10 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
     }, [isOpen]);
 
     const [errors, setErrors] = useState({});
+    // The submit button lives in the modal footer, outside the <form>; the
+    // form attribute associates them so a click runs native constraint
+    // validation (e.g. travelers min/max) before our handleSubmit fires.
+    const formId = useId();
     // Escape and × must respect the same guard as the disabled Cancel button:
     // closing mid-submit invites a duplicate booking.
     const guardedClose = () => {
@@ -53,7 +57,7 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
 
         if (!formData.phone.trim()) {
             newErrors.phone = 'Phone number is required';
-        } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
+        } else if (!/^\+?[\d\s\-()]+$/.test(formData.phone)) {
             newErrors.phone = 'Phone number is invalid';
         }
 
@@ -100,10 +104,10 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
             contentClassName="contact-form-modal"
             footer={
                 <>
-                    <button className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>
+                    <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>
                         Cancel
                     </button>
-                    <button className="btn btn--primary" onClick={handleSubmit} disabled={isSubmitting}>
+                    <button type="submit" form={formId} className="btn btn--primary" disabled={isSubmitting}>
                         {isSubmitting ? 'Submitting...' : 'Submit Booking'}
                     </button>
                 </>
@@ -119,7 +123,7 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
                         <div className="form-error">{submitError}</div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="contact-form">
+                    <form id={formId} onSubmit={handleSubmit} className="contact-form">
                         <div className="form-row">
                             <div className="form-group">
                                 <label htmlFor="fullName">Full Name *</label>
