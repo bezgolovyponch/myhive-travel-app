@@ -1,12 +1,7 @@
-import {useModalA11y} from '../hooks/useModalA11y';
+import AppModal from './AppModal';
 import './ActivityPreviewModal.css';
 
 function ActivityPreviewModal({ activity, link, onClose }) {
-    // Focus restore assumes the modal only ever toggles via null (both call
-    // sites do); a future "open next activity" path would need to skip
-    // restore on activity->activity.
-    const contentRef = useModalA11y(!!activity, onClose);
-
     if (!activity) {
         return null;
     }
@@ -23,45 +18,35 @@ function ActivityPreviewModal({ activity, link, onClose }) {
     }
 
     return (
-        <div
-            className="app-modal activity-preview-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="activity-preview-title"
-            onClick={onClose}
+        <AppModal
+            isOpen
+            onClose={onClose}
+            title={activity.name}
+            overlayClassName="activity-preview-modal"
+            closeOnBackdrop
+            footer={link && (
+                <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="activity-preview-link"
+                >
+                    View full page ↗
+                </a>
+            )}
         >
-            <div className="app-modal-content" ref={contentRef} onClick={(e) => e.stopPropagation()}>
-                <div className="app-modal-header">
-                    <h2 id="activity-preview-title">{activity.name}</h2>
-                    <button type="button" className="app-modal-close-btn" onClick={onClose} aria-label="Close">×</button>
-                </div>
-                <div className="app-modal-body">
-                    {activity.imageUrl && (
-                        <img src={activity.imageUrl} alt={activity.name} className="activity-preview-image" />
-                    )}
-                    {meta.length > 0 && (
-                        <div className="activity-preview-meta">{meta.join(' · ')}</div>
-                    )}
-                    <div className="activity-preview-description">
-                        {activity.description
-                            ? activity.description
-                            : <span className="activity-preview-no-desc">No description yet.</span>}
-                    </div>
-                </div>
-                {link && (
-                    <div className="app-modal-footer">
-                        <a
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="activity-preview-link"
-                        >
-                            View full page ↗
-                        </a>
-                    </div>
-                )}
+            {activity.imageUrl && (
+                <img src={activity.imageUrl} alt={activity.name} className="activity-preview-image" />
+            )}
+            {meta.length > 0 && (
+                <div className="activity-preview-meta">{meta.join(' · ')}</div>
+            )}
+            <div className="activity-preview-description">
+                {activity.description
+                    ? activity.description
+                    : <span className="activity-preview-no-desc">No description yet.</span>}
             </div>
-        </div>
+        </AppModal>
     );
 }
 

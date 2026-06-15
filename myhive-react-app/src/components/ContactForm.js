@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 import {computeTripTotal} from '../utils/tripPricing';
-import {useModalA11y} from '../hooks/useModalA11y';
+import AppModal from './AppModal';
 
 function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
     const [formData, setFormData] = useState({
@@ -30,13 +30,13 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
     }, [isOpen]);
 
     const [errors, setErrors] = useState({});
-    // Escape must respect the same guard as the disabled Cancel button:
+    // Escape and × must respect the same guard as the disabled Cancel button:
     // closing mid-submit invites a duplicate booking.
-    const contentRef = useModalA11y(isOpen, () => {
+    const guardedClose = () => {
         if (!isSubmitting) {
             onClose();
         }
-    });
+    };
 
     const validateForm = () => {
         const newErrors = {};
@@ -93,14 +93,22 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
     if (!isOpen) return null;
 
     return (
-        <div className="app-modal" role="dialog" aria-modal="true" aria-labelledby="contact-form-title">
-            <div className="app-modal-content contact-form-modal" ref={contentRef}>
-                <div className="app-modal-header">
-                    <h2 id="contact-form-title">Complete Your Booking</h2>
-                    <button type="button" className="app-modal-close-btn" onClick={onClose} aria-label="Close">×</button>
-                </div>
-
-                <div className="app-modal-body">
+        <AppModal
+            isOpen
+            onClose={guardedClose}
+            title="Complete Your Booking"
+            contentClassName="contact-form-modal"
+            footer={
+                <>
+                    <button className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>
+                        Cancel
+                    </button>
+                    <button className="btn btn--primary" onClick={handleSubmit} disabled={isSubmitting}>
+                        {isSubmitting ? 'Submitting...' : 'Submit Booking'}
+                    </button>
+                </>
+            }
+        >
                     <div className="trip-summary">
                         <h4>Trip Summary</h4>
                         <p><strong>Activities:</strong> {tripData.tripItems.length} selected</p>
@@ -206,18 +214,7 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
                             />
                         </div>
                     </form>
-                </div>
-
-                <div className="app-modal-footer">
-                    <button className="btn btn--secondary" onClick={onClose} disabled={isSubmitting}>
-                        Cancel
-                    </button>
-                    <button className="btn btn--primary" onClick={handleSubmit} disabled={isSubmitting}>
-                        {isSubmitting ? 'Submitting...' : 'Submit Booking'}
-                    </button>
-                </div>
-            </div>
-        </div>
+        </AppModal>
     );
 }
 

@@ -17,12 +17,11 @@ import ActivityVotePage from '../pages/vote/ActivityVotePage';
 import VoteWaitingPage from '../pages/vote/VoteWaitingPage';
 import VoteResultPage from '../pages/vote/VoteResultPage';
 import {AppContext} from '../context/AppContext';
-import {useModalA11y} from '../hooks/useModalA11y';
+import AppModal from './AppModal';
 
 function Layout() {
   const {state, dispatch} = useContext(AppContext);
   const closeDestinationModal = () => dispatch({type: 'CLOSE_DESTINATION_MODAL'});
-  const destinationModalRef = useModalA11y(state.destinationModalOpen, closeDestinationModal);
 
   return (
     <div className="app-container">
@@ -47,27 +46,19 @@ function Layout() {
       </main>
         <Footer/>
         <CookieConsent/>
-        {state.destinationModalOpen && (
-            <div className="app-modal" role="dialog" aria-modal="true" aria-labelledby="destination-modal-title">
-                <div className="app-modal-content" ref={destinationModalRef}>
-                    <div className="app-modal-header">
-                        <h2 id="destination-modal-title">Coming Soon</h2>
-                        <button type="button" className="app-modal-close-btn" onClick={closeDestinationModal} aria-label="Close">
-                            ×
-                        </button>
-                    </div>
-                    <div className="app-modal-body">
-                        <div className="empty-trip-state">
-                            <h3>{state.selectedDestination?.name || 'This destination'} is coming soon!</h3>
-                            <p>We're working hard to bring you amazing experiences here. Stay tuned!</p>
-                            <button className="btn btn--primary" onClick={closeDestinationModal}>
-                                Got it
-                            </button>
-                        </div>
-                    </div>
-                </div>
+        <AppModal
+            isOpen={state.destinationModalOpen}
+            onClose={closeDestinationModal}
+            title="Coming Soon"
+        >
+            <div className="empty-trip-state">
+                <h3>{state.selectedDestination?.name || 'This destination'} is coming soon!</h3>
+                <p>We're working hard to bring you amazing experiences here. Stay tuned!</p>
+                <button className="btn btn--primary" onClick={closeDestinationModal}>
+                    Got it
+                </button>
             </div>
-        )}
+        </AppModal>
     </div>
   );
 }

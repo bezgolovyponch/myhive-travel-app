@@ -1,6 +1,6 @@
 import {useContext, useEffect, useId, useState} from 'react';
 import {AppContext} from '../context/AppContext';
-import {useModalA11y} from '../hooks/useModalA11y';
+import AppModal from './AppModal';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import './ContactForm.css';
@@ -41,8 +41,6 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             dispatch({type: 'CANCEL_TRIP_SETUP'});
         }
     };
-
-    const contentRef = useModalA11y(isOpen, handleCancel);
 
     if (!isOpen) return null;
 
@@ -85,13 +83,26 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     };
 
     return (
-        <div className="app-modal" role="dialog" aria-modal="true" aria-labelledby={`${formId}-title`}>
-            <div className="app-modal-content" ref={contentRef}>
-                <div className="app-modal-header">
-                    <h2 id={`${formId}-title`}>Set Up Your Trip</h2>
-                    <button type="button" className="app-modal-close-btn" onClick={handleCancel} aria-label="Close">×</button>
-                </div>
-                <div className="app-modal-body">
+        <AppModal
+            isOpen
+            onClose={handleCancel}
+            title="Set Up Your Trip"
+            footer={
+                <>
+                    <button className="btn btn--secondary" onClick={handleCancel}>Cancel</button>
+                    {/* type=submit + form attr: routes the click through the form so
+                        native constraint validation (email format, budget min) runs. */}
+                    <button
+                        type="submit"
+                        form={formId}
+                        className="btn btn--primary"
+                        disabled={isVoteMode && !voteFormValid}
+                    >
+                        {isVoteMode ? 'Continue to Categories' : 'Confirm'}
+                    </button>
+                </>
+            }
+        >
                     <p className="trip-setup-description">
                         Tell us about your group so we can calculate the right price.
                     </p>
@@ -183,22 +194,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                             </div>
                         )}
                     </form>
-                </div>
-                <div className="app-modal-footer">
-                    <button className="btn btn--secondary" onClick={handleCancel}>Cancel</button>
-                    {/* type=submit + form attr: routes the click through the form so
-                        native constraint validation (email format, budget min) runs. */}
-                    <button
-                        type="submit"
-                        form={formId}
-                        className="btn btn--primary"
-                        disabled={isVoteMode && !voteFormValid}
-                    >
-                        {isVoteMode ? 'Continue to Categories' : 'Confirm'}
-                    </button>
-                </div>
-            </div>
-        </div>
+        </AppModal>
     );
 }
 
