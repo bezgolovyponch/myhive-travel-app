@@ -151,6 +151,15 @@ Dev docker-compose available: `docker-compose -f docker-compose.dev.yml up`
 - **Open Graph**: Default OG tags in index.html
 - **robots.txt**: Disallow `/admin/`, Sitemap directive
 
+## Analytics
+
+- **Google Tag Manager**: container `GTM-KB7BJLDS`, both snippets hardcoded in `myhive-react-app/public/index.html`
+  (loader as the first element in `<head>`, noscript iframe right after `<body>`). Because the frontend is a single
+  CRA SPA, this one install covers every client-side route — marketing site, Trip Builder, voting (`/vote/*`) and
+  in-app booking/payment screens. The build copies `index.html` → `404.html`, so the SPA-fallback page is tagged too.
+- The backend CSP (`SecurityHeadersFilter`) rides only on `/api` JSON responses, not the separately-served frontend,
+  so it does not block GTM.
+
 ## Security
 
 - Auth0 OIDC (OAuth2 Resource Server), stateless sessions
