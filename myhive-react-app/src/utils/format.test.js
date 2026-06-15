@@ -52,6 +52,10 @@ describe('formatPricePerPerson', () => {
         expect(formatPricePerPerson(45)).toBe('€45 / person');
     });
 
+    it('appends the suffix to a fractional price', () => {
+        expect(formatPricePerPerson(12.5)).toBe('€12.50 / person');
+    });
+
     it('appends the suffix to a legacy string price', () => {
         expect(formatPricePerPerson('€120')).toBe('€120 / person');
     });

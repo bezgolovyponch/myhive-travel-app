@@ -1,9 +1,9 @@
 import {useEffect, useId, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
-import {computeTripTotal} from '../utils/tripPricing';
-import { formatPrice } from '../utils/format';
 import AppModal from './AppModal';
+import {computeTripTotal} from '../utils/tripPricing';
+import {formatPrice} from '../utils/format';
 
 function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
     const [formData, setFormData] = useState({

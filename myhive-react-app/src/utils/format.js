@@ -24,8 +24,9 @@ export function formatDateTime(dateStr) {
 }
 
 export function formatPrice(price) {
-    // Delegate numbers to formatAmount so a price renders identically
-    // (two decimals) wherever it appears; non-numbers (e.g. legacy strings
+    // Delegate numbers to formatAmount for the one canonical format (whole
+    // euros without decimals, fractional amounts with exactly two), so a price
+    // renders identically wherever it appears; non-numbers (e.g. legacy strings
     // like "\u20AC120") pass through unchanged.
     if (typeof price === 'number') return formatAmount(price);
     return price;
