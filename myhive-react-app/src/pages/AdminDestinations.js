@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {truncateText} from '../utils/format';
 import {useAdminCrud} from '../hooks/useAdminCrud';
+import {required, slugFormat} from '../utils/validators';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
@@ -54,7 +55,7 @@ function AdminDestinations() {
     const {
         items: destinations, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, saveError, setSaveError, uploading, deleteId, setDeleteId,
+        form, setForm, saving, saveError, setSaveError, fieldErrors, updateField, uploading, deleteId, setDeleteId,
         handleImageUpload, handleImageUploadError,
         fetchData, openCreate: baseOpenCreate, openEdit: baseOpenEdit, handleSave, handleDelete,
     } = useAdminCrud({
@@ -75,6 +76,14 @@ function AdminDestinations() {
             imageUrl: d.imageUrl || '',
             rating: d.rating ?? '',
         }),
+        validate: (form) => {
+            const errors = {};
+            const name = required(form.name);
+            if (name) errors.name = name;
+            const slug = slugFormat(form.slug);
+            if (slug) errors.slug = slug;
+            return errors;
+        },
         buildPayload: (form) => ({
             ...form,
             rating: form.rating !== '' ? Number(form.rating) : null,
@@ -218,17 +227,21 @@ function AdminDestinations() {
                             <Form.Label className="small fw-semibold text-white">Name</Form.Label>
                             <Form.Control
                                 value={form.name}
-                                onChange={e => setForm({...form, name: e.target.value})}
+                                onChange={e => updateField('name', e.target.value)}
+                                isInvalid={!!fieldErrors.name}
                                 placeholder="Destination name"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.name}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
                             <Form.Control
                                 value={form.slug}
-                                onChange={e => setForm({...form, slug: e.target.value})}
+                                onChange={e => updateField('slug', e.target.value)}
+                                isInvalid={!!fieldErrors.slug}
                                 placeholder="Leave blank to auto-generate from name"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.slug}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Description</Form.Label>
@@ -312,7 +325,7 @@ function AdminDestinations() {
                         Cancel
                     </Button>
                     <Button variant="primary" size="sm" onClick={handleSave}
-                            disabled={saving || uploading || !form.name}>
+                            disabled={saving || uploading}>
                         {saving ? <Spinner animation="border" size="sm"/> : (editing ? 'Save Changes' : 'Create')}
                     </Button>
                 </Modal.Footer>
