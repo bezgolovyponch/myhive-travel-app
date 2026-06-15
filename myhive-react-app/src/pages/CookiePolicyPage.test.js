@@ -10,22 +10,18 @@ function renderPage() {
     );
 }
 
-beforeEach(() => {
-    window.dataLayer = [];
-});
-
-test('renders the heading and the GTM mount point (no CookieYes script in the bundle)', () => {
+test('renders the policy content statically (no injected script)', () => {
     const {container} = renderPage();
 
-    expect(screen.getByRole('heading', {name: /cookie policy/i})).toBeInTheDocument();
-    expect(container.querySelector('#cookie-policy-content')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /^cookie policy$/i})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /what are cookies/i})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /how do we use cookies/i})).toBeInTheDocument();
     expect(container.querySelector('script')).toBeNull();
 });
 
-test('signals GTM that the cookie policy view is ready', () => {
+test('exposes a CookieYes revisit control to reopen the consent banner', () => {
     renderPage();
 
-    expect(window.dataLayer).toEqual(
-        expect.arrayContaining([{event: 'cookie_policy_view'}])
-    );
+    const revisit = screen.getByRole('button', {name: /consent preferences/i});
+    expect(revisit).toHaveClass('cky-banner-element');
 });

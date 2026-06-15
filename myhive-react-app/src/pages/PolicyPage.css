@@ -1,7 +1,4 @@
-/* Shared layout for the legal policy pages (Cookie Policy, Privacy Policy).
-   The policy body itself is rendered into .policy-section by a GTM-injected
-   CookieYes script, so these styles mainly give that injected content a
-   readable, centred container. */
+/* Shared layout for the legal policy pages (Cookie Policy, Privacy Policy). */
 .policy-page {
     padding-bottom: var(--gap-2xl);
 }
@@ -14,11 +11,48 @@
     color: var(--text);
 }
 
-.policy-section h2,
-.policy-section h3 {
+.policy-section h2 {
     margin-top: var(--gap-xl);
+    margin-bottom: var(--gap-sm);
+}
+
+.policy-section p {
+    margin-bottom: var(--gap);
+}
+
+.policy-section ul {
+    margin: 0 0 var(--gap) var(--gap-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+}
+
+.policy-section a {
+    color: var(--brand);
+    overflow-wrap: anywhere;
+}
+
+.policy-dates {
+    color: var(--text-muted);
+    font-size: 0.875rem;
 }
 
 .policy-placeholder {
     color: var(--text-muted);
+}
+
+/* "Consent Preferences" reuses CookieYes' .cky-banner-element hook; style it as
+   a regular button rather than the default footer-link look. */
+.policy-section button.policy-consent-link {
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius, 8px);
+    padding: var(--gap-xs) var(--gap);
+    font-size: 0.9375rem;
+    cursor: pointer;
+}
+
+.policy-section button.policy-consent-link:hover {
+    opacity: 0.9;
 }
