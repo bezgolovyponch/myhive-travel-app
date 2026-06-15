@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import {Alert, Badge, Button, Card, Form, Modal, Spinner} from 'react-bootstrap';
 import {truncateText} from '../utils/format';
 import {useAdminCrud} from '../hooks/useAdminCrud';
+import {required, slugFormat} from '../utils/validators';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
@@ -28,7 +29,7 @@ function AdminBlog() {
     const {
         items: posts, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, saveError, setSaveError, uploading, deleteId, setDeleteId,
+        form, setForm, saving, saveError, setSaveError, fieldErrors, updateField, uploading, deleteId, setDeleteId,
         handleImageUpload, handleImageUploadError,
         fetchData, openCreate: baseOpenCreate, openEdit, handleSave, handleDelete,
     } = useAdminCrud({
@@ -46,6 +47,16 @@ function AdminBlog() {
             imageUrl: post.imageUrl || '',
             date: post.date || new Date().toISOString().split('T')[0],
         }),
+        validate: (form) => {
+            const errors = {};
+            const title = required(form.title);
+            if (title) errors.title = title;
+            const content = required(form.content);
+            if (content) errors.content = content;
+            const slug = slugFormat(form.slug);
+            if (slug) errors.slug = slug;
+            return errors;
+        },
     });
 
     const openCreate = () => {
@@ -138,17 +149,21 @@ function AdminBlog() {
                             <Form.Label className="small fw-semibold text-white">Title</Form.Label>
                             <Form.Control
                                 value={form.title}
-                                onChange={e => setForm({...form, title: e.target.value})}
+                                onChange={e => updateField('title', e.target.value)}
+                                isInvalid={!!fieldErrors.title}
                                 placeholder="Blog post title"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.title}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
                             <Form.Control
                                 value={form.slug}
-                                onChange={e => setForm({...form, slug: e.target.value})}
+                                onChange={e => updateField('slug', e.target.value)}
+                                isInvalid={!!fieldErrors.slug}
                                 placeholder="Leave blank to auto-generate from title"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.slug}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Excerpt</Form.Label>
@@ -166,9 +181,11 @@ function AdminBlog() {
                                 as="textarea"
                                 rows={10}
                                 value={form.content}
-                                onChange={e => setForm({...form, content: e.target.value})}
+                                onChange={e => updateField('content', e.target.value)}
+                                isInvalid={!!fieldErrors.content}
                                 placeholder="Full blog post content. Use blank lines to separate paragraphs."
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.content}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Category</Form.Label>
@@ -199,7 +216,7 @@ function AdminBlog() {
                         Cancel
                     </Button>
                     <Button variant="primary" size="sm" onClick={handleSave}
-                            disabled={saving || uploading || !form.title || !form.content}>
+                            disabled={saving || uploading}>
                         {saving ? <Spinner animation="border" size="sm"/> : (editing ? 'Save Changes' : 'Publish')}
                     </Button>
                 </Modal.Footer>
