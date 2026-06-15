@@ -14,18 +14,21 @@ beforeEach(() => {
   jest.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue();
 });
 
-const baseState = {
+const baseCatalogState = {
   destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }],
-  tripItems: [],
   loading: false,
   error: null,
 };
 
-function renderHome(state = baseState) {
+const baseTripState = {
+  tripItems: [],
+};
+
+function renderHome(catalogState = baseCatalogState, tripState = baseTripState) {
   return render(
     <HelmetProvider>
-      <CatalogContext.Provider value={{ state, dispatch: jest.fn() }}>
-        <TripContext.Provider value={{ state, dispatch: jest.fn() }}>
+      <CatalogContext.Provider value={{ state: catalogState, dispatch: jest.fn() }}>
+        <TripContext.Provider value={{ state: tripState, dispatch: jest.fn() }}>
           <MemoryRouter>
             <HomePage />
           </MemoryRouter>
@@ -81,7 +84,7 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   api.getFeaturedActivities.mockResolvedValue([]);
 
   renderHome({
-    ...baseState,
+    ...baseCatalogState,
     destinations: [
       { id: 'd2', slug: 'budapest', name: 'Budapest' },
       { id: 'd1', slug: 'prague', name: 'Prague' },

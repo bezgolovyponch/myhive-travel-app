@@ -134,3 +134,52 @@ describe('initialState defaults', () => {
         expect(initialState.tripBudget).toBeNull();
     });
 });
+
+describe('reducer — trip builder, items and packages', () => {
+    it('OPEN_TRIP_BUILDER_MODAL opens the builder dropdown', () => {
+        const state = reducer(initialState, {type: 'OPEN_TRIP_BUILDER_MODAL'});
+        expect(state.tripBuilderModalOpen).toBe(true);
+    });
+
+    it('CLOSE_TRIP_BUILDER_MODAL closes the builder dropdown', () => {
+        const prev = {...initialState, tripBuilderModalOpen: true};
+        const state = reducer(prev, {type: 'CLOSE_TRIP_BUILDER_MODAL'});
+        expect(state.tripBuilderModalOpen).toBe(false);
+    });
+
+    it('CLOSE_TRIP_SETUP_MODAL closes only the setup modal', () => {
+        const prev = {...initialState, tripSetupModalOpen: true, tripItems: [activity1]};
+        const state = reducer(prev, {type: 'CLOSE_TRIP_SETUP_MODAL'});
+        expect(state.tripSetupModalOpen).toBe(false);
+        expect(state.tripItems).toEqual([activity1]);
+    });
+
+    it('SET_TRIP_ITEMS replaces the items array', () => {
+        const items = [activity1, activity2];
+        const state = reducer(initialState, {type: 'SET_TRIP_ITEMS', tripItems: items});
+        expect(state.tripItems).toEqual(items);
+    });
+
+    it('ADD_PACKAGE_TO_TRIP adds package activities and replaces standalone copies', () => {
+        const pkg = {
+            id: 'p1', name: 'Weekend', discountPct: 10, destinationSlug: 'bali',
+            activities: [
+                {activityId: '1', name: 'Kayaking', price: 38},
+                {activityId: '3', name: 'Diving', price: 50},
+            ],
+        };
+        const prev = {...initialState, tripItems: [activity1]}; // standalone activity id '1'
+        const state = reducer(prev, {type: 'ADD_PACKAGE_TO_TRIP', pkg});
+        expect(state.tripItems.map(i => i.id).sort()).toEqual(['1', '3']);
+        expect(state.tripItems.every(i => i.packageId === 'p1')).toBe(true);
+    });
+
+    it('REMOVE_PACKAGE_FROM_TRIP removes all items belonging to a package', () => {
+        const prev = {
+            ...initialState,
+            tripItems: [{id: '1', packageId: 'p1'}, {id: '2', packageId: 'p1'}, {id: '3'}],
+        };
+        const state = reducer(prev, {type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: 'p1'});
+        expect(state.tripItems).toEqual([{id: '3'}]);
+    });
+});

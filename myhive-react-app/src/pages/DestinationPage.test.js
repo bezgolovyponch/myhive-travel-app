@@ -23,17 +23,14 @@ beforeEach(() => {
     }));
 });
 
-const baseState = {
+const tripState = {
     tripItems: [],
-    activities: [],
-    loading: false,
-    error: null,
 };
 
 function renderPage() {
     return render(
         <HelmetProvider>
-            <TripContext.Provider value={{state: baseState, dispatch: jest.fn()}}>
+            <TripContext.Provider value={{state: tripState, dispatch: jest.fn()}}>
                 <MemoryRouter initialEntries={['/destination/prague']}>
                     <Routes>
                         <Route path="/destination/:slug" element={<DestinationPage/>}/>

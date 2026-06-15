@@ -10,20 +10,23 @@ jest.mock('../services/config', () => ({
   DESTINATION_PICKER_ENABLED: true,
 }));
 
-const baseState = {
+const baseCatalogState = {
   destinations: [
     { id: 'd1', slug: 'prague', name: 'Prague' },
     { id: 'd2', slug: 'budapest', name: 'Budapest' },
   ],
-  tripSetupModalOpen: false,
   loading: false,
   error: null,
 };
 
-function renderVoteModal(state = baseState) {
+const baseTripState = {
+  tripSetupModalOpen: false,
+};
+
+function renderVoteModal(catalogState = baseCatalogState, tripState = baseTripState) {
   return render(
-    <CatalogContext.Provider value={{ state, dispatch: jest.fn() }}>
-      <TripContext.Provider value={{ state, dispatch: jest.fn() }}>
+    <CatalogContext.Provider value={{ state: catalogState, dispatch: jest.fn() }}>
+      <TripContext.Provider value={{ state: tripState, dispatch: jest.fn() }}>
         <TripSetupModal isVoteMode voteOpen onVoteConfirm={jest.fn()} onVoteCancel={jest.fn()} />
       </TripContext.Provider>
     </CatalogContext.Provider>
@@ -39,7 +42,7 @@ test('shows the destination picker when enabled and several destinations exist',
 
 test('auto-selects the only destination even with the picker enabled', () => {
   renderVoteModal({
-    ...baseState,
+    ...baseCatalogState,
     destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }],
   });
 

@@ -35,10 +35,11 @@ function Harness() {
 }
 
 function renderHarness(dispatch = jest.fn()) {
-  const state = { tripItems: [], destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }] };
+  const catalogState = { destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }] };
+  const tripState = { tripItems: [] };
   return render(
-    <CatalogContext.Provider value={{ state, dispatch }}>
-      <TripContext.Provider value={{ state, dispatch }}>
+    <CatalogContext.Provider value={{ state: catalogState, dispatch }}>
+      <TripContext.Provider value={{ state: tripState, dispatch }}>
         <MemoryRouter initialEntries={['/']}>
           <Routes>
             <Route path="/" element={<Harness />} />
