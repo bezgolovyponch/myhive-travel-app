@@ -3,6 +3,7 @@ import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-
 import {formatAmount, truncateText} from '../utils/format';
 import {toggleArrayItem} from '../utils/toggleArrayItem';
 import {useAdminCrud} from '../hooks/useAdminCrud';
+import {required, slugFormat} from '../utils/validators';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
@@ -48,7 +49,7 @@ function AdminActivities() {
     const {
         items: activities, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, saveError, setSaveError, uploading, deleteId, setDeleteId,
+        form, setForm, saving, saveError, setSaveError, fieldErrors, updateField, uploading, deleteId, setDeleteId,
         handleImageUpload, handleImageUploadError,
         fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
@@ -63,6 +64,18 @@ function AdminActivities() {
             (e?.status === 409 && Array.isArray(e?.body?.packageNames))
                 ? `Cannot delete: used in packages: ${e.body.packageNames.join(', ')}`
                 : (e.message || 'Failed to delete activity'),
+        validate: (form) => {
+            const errors = {};
+            const name = required(form.name);
+            if (name) errors.name = name;
+            const destinationId = required(form.destinationId, 'Select a destination.');
+            if (destinationId) errors.destinationId = destinationId;
+            const price = required(form.price, 'Price is required.');
+            if (price) errors.price = price;
+            const slug = slugFormat(form.slug);
+            if (slug) errors.slug = slug;
+            return errors;
+        },
         mapItemToForm: (a) => ({
             name: a.name || '',
             slug: a.slug || '',
@@ -221,29 +234,35 @@ function AdminActivities() {
                             <Form.Label className="small fw-semibold text-white">Destination</Form.Label>
                             <Form.Select
                                 value={form.destinationId}
-                                onChange={e => setForm({...form, destinationId: e.target.value})}
+                                onChange={e => updateField('destinationId', e.target.value)}
+                                isInvalid={!!fieldErrors.destinationId}
                             >
                                 <option value="">Select destination...</option>
                                 {destinations.map(d => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </Form.Select>
+                            <Form.Control.Feedback type="invalid">{fieldErrors.destinationId}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Name</Form.Label>
                             <Form.Control
                                 value={form.name}
-                                onChange={e => setForm({...form, name: e.target.value})}
+                                onChange={e => updateField('name', e.target.value)}
+                                isInvalid={!!fieldErrors.name}
                                 placeholder="Activity name"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.name}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
                             <Form.Control
                                 value={form.slug}
-                                onChange={e => setForm({...form, slug: e.target.value})}
+                                onChange={e => updateField('slug', e.target.value)}
+                                isInvalid={!!fieldErrors.slug}
                                 placeholder="Leave blank to auto-generate from name"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.slug}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Description</Form.Label>
@@ -263,9 +282,11 @@ function AdminActivities() {
                                     step="0.01"
                                     min="0"
                                     value={form.price}
-                                    onChange={e => setForm({...form, price: e.target.value})}
+                                    onChange={e => updateField('price', e.target.value)}
+                                    isInvalid={!!fieldErrors.price}
                                     placeholder="0.00"
                                 />
+                                <Form.Control.Feedback type="invalid">{fieldErrors.price}</Form.Control.Feedback>
                             </Col>
                             <Col sm={6}>
                                 <Form.Label className="small fw-semibold text-white">Duration (min)</Form.Label>
@@ -339,9 +360,8 @@ function AdminActivities() {
                     <Button variant="outline-secondary" size="sm" onClick={() => setShowModal(false)}>
                         Cancel
                     </Button>
-                    {/* form.price === '' (not !form.price): editing a €0 activity must not disable Save */}
                     <Button variant="primary" size="sm" onClick={handleSave}
-                            disabled={saving || uploading || !form.name || !form.destinationId || form.price === ''}>
+                            disabled={saving || uploading}>
                         {saving ? <Spinner animation="border" size="sm"/> : (editing ? 'Save Changes' : 'Create')}
                     </Button>
                 </Modal.Footer>
