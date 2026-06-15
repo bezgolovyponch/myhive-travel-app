@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 import {Alert, Button, Card, Form, Modal, Spinner} from 'react-bootstrap';
 import {useAdminCrud} from '../hooks/useAdminCrud';
+import {required, slugFormat} from '../utils/validators';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import AdminTable from '../components/AdminTable';
 import CategoryDeleteModal from '../components/admin/CategoryDeleteModal';
@@ -28,7 +29,7 @@ function AdminCategories() {
     const {
         items: categories, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, saveError, setSaveError, fetchData, openCreate, openEdit, handleSave, adminApi,
+        form, saving, saveError, setSaveError, fieldErrors, updateField, fetchData, openCreate, openEdit, handleSave, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
         fetchFn: useCallback((api, page, size) => api.getCategoriesPaged(page, size), []),
@@ -39,6 +40,14 @@ function AdminCategories() {
             name: c.name || '',
             slug: c.slug || '',
         }),
+        validate: (form) => {
+            const errors = {};
+            const name = required(form.name);
+            if (name) errors.name = name;
+            const slug = slugFormat(form.slug);
+            if (slug) errors.slug = slug;
+            return errors;
+        },
     });
 
     const handleDeleteClick = async (category) => {
@@ -158,17 +167,21 @@ function AdminCategories() {
                             <Form.Label className="small fw-semibold text-white">Name</Form.Label>
                             <Form.Control
                                 value={form.name}
-                                onChange={e => setForm({...form, name: e.target.value})}
+                                onChange={e => updateField('name', e.target.value)}
+                                isInvalid={!!fieldErrors.name}
                                 placeholder="e.g. Nightlife, Adventure, Culture"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.name}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Slug</Form.Label>
                             <Form.Control
                                 value={form.slug}
-                                onChange={e => setForm({...form, slug: e.target.value})}
+                                onChange={e => updateField('slug', e.target.value)}
+                                isInvalid={!!fieldErrors.slug}
                                 placeholder="Leave blank to auto-generate from name"
                             />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.slug}</Form.Control.Feedback>
                         </Form.Group>
                     </Form>
                 </Modal.Body>
@@ -177,7 +190,7 @@ function AdminCategories() {
                         Cancel
                     </Button>
                     <Button variant="primary" size="sm" onClick={handleSave}
-                            disabled={saving || !form.name}>
+                            disabled={saving}>
                         {saving ? <Spinner animation="border" size="sm"/> : (editing ? 'Save Changes' : 'Create')}
                     </Button>
                 </Modal.Footer>
