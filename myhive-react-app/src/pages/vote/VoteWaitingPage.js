@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import VoteMeta from './VoteMeta';
+import { copyToClipboard } from '../../utils/clipboard';
 import './VoteWaitingPage.css';
 
 function VoteWaitingContent() {
@@ -118,19 +119,13 @@ function VoteWaitingContent() {
     const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
 
     const handleCopy = () => {
-        if (!navigator.clipboard) {
-            // Insecure context — the readonly input stays visible for manual copying.
-            return;
-        }
-        navigator.clipboard.writeText(shareUrl)
-            .then(() => {
+        copyToClipboard(shareUrl).then(ok => {
+            if (ok) {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
-            })
-            .catch(() => {
-                // Clipboard unavailable (insecure context / permission denied) —
-                // the readonly input above stays visible for manual copying.
-            });
+            }
+            // On failure the readonly input above stays visible for manual copying.
+        });
     };
 
     // Native share sheet (WhatsApp/Telegram/Mail/...) — only available on

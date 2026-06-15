@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import './SwipeCard.css';
 import ActivityPreviewModal from './ActivityPreviewModal';
+import { copyToClipboard } from '../utils/clipboard';
 
 const SWIPE_THRESHOLD = 80;
 
@@ -10,9 +11,12 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
     const [infoCard, setInfoCard] = useState(null);
 
     const handleCopy = useCallback(() => {
-        navigator.clipboard.writeText(shareUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        copyToClipboard(shareUrl).then(ok => {
+            if (ok) {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            }
+        });
     }, [shareUrl]);
 
     const handlePointerDown = useCallback((e) => {
