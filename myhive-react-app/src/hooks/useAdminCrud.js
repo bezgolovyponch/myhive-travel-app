@@ -10,6 +10,7 @@ export function useAdminCrud({
                                  deleteFn,
                                  mapItemToForm,
                                  buildPayload = (form) => form,
+                                 mapDeleteError,
                                  pageSize = 10,
                              }) {
     const adminApi = useAdminApi();
@@ -110,7 +111,9 @@ export function useAdminCrud({
             await fetchData();
         } catch (err) {
             if (handleAuthError(err)) return;
-            setError(err.message || 'Failed to delete.');
+            // mapDeleteError lets a screen turn a structured failure (e.g. a 409
+            // listing blocking references) into a friendly message.
+            setError(mapDeleteError ? mapDeleteError(err) : (err.message || 'Failed to delete.'));
         } finally {
             setDeleteId(null);
             setSaving(false);

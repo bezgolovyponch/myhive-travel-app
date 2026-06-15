@@ -3,7 +3,6 @@ import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-
 import {formatAmount, truncateText} from '../utils/format';
 import {toggleArrayItem} from '../utils/toggleArrayItem';
 import {useAdminCrud} from '../hooks/useAdminCrud';
-import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
@@ -40,7 +39,6 @@ function AdminActivities() {
     const [categories, setCategories] = useState([]);
     const [filterDestination, setFilterDestination] = useState('');
     const [showImportModal, setShowImportModal] = useState(false);
-    const handleAuthError = useAuthErrorHandler();
 
     const fetchFn = useCallback(
         (api, page, size) => api.getActivitiesPaged(page, size, filterDestination || null),
@@ -50,15 +48,21 @@ function AdminActivities() {
     const {
         items: activities, loading, error, setError, page, setPage,
         totalPages, totalElements, showModal, setShowModal, editing,
-        form, setForm, saving, setSaving, saveError, setSaveError, uploading, deleteId, setDeleteId,
+        form, setForm, saving, saveError, setSaveError, uploading, deleteId, setDeleteId,
         handleImageUpload, handleImageUploadError,
-        fetchData, openCreate, openEdit, handleSave, adminApi,
+        fetchData, openCreate, openEdit, handleSave, handleDelete, adminApi,
     } = useAdminCrud({
         emptyForm: EMPTY_FORM,
         fetchFn,
         createFn: (api, payload) => api.createActivity(payload),
         updateFn: (api, id, payload) => api.updateActivity(id, payload),
         deleteFn: (api, id) => api.deleteActivity(id),
+        // Activities used by a package can't be deleted; the backend returns 409
+        // with the blocking package names so we can name them in the message.
+        mapDeleteError: (e) =>
+            (e?.status === 409 && Array.isArray(e?.body?.packageNames))
+                ? `Cannot delete: used in packages: ${e.body.packageNames.join(', ')}`
+                : (e.message || 'Failed to delete activity'),
         mapItemToForm: (a) => ({
             name: a.name || '',
             slug: a.slug || '',
@@ -80,27 +84,6 @@ function AdminActivities() {
                 ? Number(form.featuredWeight) : 0,
         }),
     });
-
-    const customHandleDelete = async () => {
-        try {
-            setSaving(true);
-            setError('');
-            await adminApi.deleteActivity(deleteId);
-            await fetchData();
-        } catch (e) {
-            if (handleAuthError(e)) {
-                return;
-            }
-            if (e?.status === 409 && Array.isArray(e?.body?.packageNames)) {
-                setError(`Cannot delete: used in packages: ${e.body.packageNames.join(', ')}`);
-            } else {
-                setError(e.message || 'Failed to delete activity');
-            }
-        } finally {
-            setDeleteId(null);
-            setSaving(false);
-        }
-    };
 
     const handleExport = async () => {
         setError('');
@@ -367,7 +350,7 @@ function AdminActivities() {
             <DeleteConfirmModal
                 show={!!deleteId}
                 onHide={() => setDeleteId(null)}
-                onConfirm={customHandleDelete}
+                onConfirm={handleDelete}
                 saving={saving}
             />
 

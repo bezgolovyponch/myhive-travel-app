@@ -69,3 +69,36 @@ test('successful save closes the modal and refetches', async () => {
     expect(result.current.showModal).toBe(false);
     expect(fetchFn).toHaveBeenCalledTimes(2);
 });
+
+test('failed delete falls back to the error message without mapDeleteError', async () => {
+    const {result} = renderCrud({
+        deleteFn: jest.fn().mockRejectedValue(new Error('Failed to delete activity')),
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.setDeleteId('id-1'));
+    await act(() => result.current.handleDelete());
+
+    expect(result.current.error).toBe('Failed to delete activity');
+    expect(result.current.deleteId).toBeNull();
+});
+
+test('failed delete uses mapDeleteError to build the message', async () => {
+    const err = Object.assign(new Error('Conflict'), {
+        status: 409,
+        body: {packageNames: ['Weekend Bali', 'Sunset Tour']},
+    });
+    const {result} = renderCrud({
+        deleteFn: jest.fn().mockRejectedValue(err),
+        mapDeleteError: (e) =>
+            (e?.status === 409 && Array.isArray(e?.body?.packageNames))
+                ? `Cannot delete: used in packages: ${e.body.packageNames.join(', ')}`
+                : (e.message || 'Failed to delete.'),
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.setDeleteId('id-1'));
+    await act(() => result.current.handleDelete());
+
+    expect(result.current.error).toBe('Cannot delete: used in packages: Weekend Bali, Sunset Tour');
+});
