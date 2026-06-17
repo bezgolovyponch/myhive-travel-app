@@ -1,6 +1,7 @@
 import {CatalogProvider} from './CatalogContext';
 import {TripProvider} from './TripContext';
 import {DestinationModalProvider} from './DestinationModalContext';
+import AttributionCapture from '../components/AttributionCapture';
 
 // Composes the three focused contexts that replace the former single
 // AppContext. Order is arbitrary — the three are independent.
@@ -9,6 +10,7 @@ export function AppProviders({children}) {
         <CatalogProvider>
             <TripProvider>
                 <DestinationModalProvider>
+                    <AttributionCapture />
                     {children}
                 </DestinationModalProvider>
             </TripProvider>
