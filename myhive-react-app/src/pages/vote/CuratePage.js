@@ -6,6 +6,8 @@ import SwipeCard from '../../components/SwipeCard';
 import ActivityPreviewModal from '../../components/ActivityPreviewModal';
 import { formatPricePerPerson } from '../../utils/format';
 import {useTrip} from '../../context/TripContext';
+import { pushEvent } from '../../utils/analytics';
+import { generateUuid } from '../../utils/uuid';
 import VoteMeta from './VoteMeta';
 import './CuratePage.css';
 
@@ -24,6 +26,9 @@ function CurateContent() {
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
   const pickedRef = useRef([]);
+  // A11 once-guard: tracks whether shortlist_completed has fired for the current
+  // swipe session. Reset to false on start-over (via currentIndex reset).
+  const shortlistFiredRef = useRef(false);
 
   // Set when returning here via the browser back button (see handleBuildMyTrip):
   // the finalized state is stashed in the history entry so we can restore it.
@@ -67,6 +72,22 @@ function CurateContent() {
     };
   }, [setup, responses, navigate, restoreSnapshot]);
 
+  // A11 — shortlist_completed: fire once when the organizer finishes swiping all
+  // cards (finalize screen appears). The once-guard prevents double-firing on
+  // re-renders. Reset the guard whenever currentIndex drops back to 0 (start-over).
+  const isFinalized = pool !== null && pool.length > 0 && currentIndex >= pool.length;
+  useEffect(() => {
+    if (currentIndex === 0) {
+      shortlistFiredRef.current = false;
+    }
+  }, [currentIndex]);
+  useEffect(() => {
+    if (isFinalized && !shortlistFiredRef.current) {
+      shortlistFiredRef.current = true;
+      pushEvent('shortlist_completed', { selected_count: pickedRef.current.length });
+    }
+  }, [isFinalized]);
+
   const getCardLink = (activity) => {
     if (!activity || !activity.slug || !activity.destinationSlug) {
       return null;
@@ -100,6 +121,11 @@ function CurateContent() {
     if (picked.length === 0) {
       return;
     }
+    // A13 — vote_skipped: organizer is leaving the vote flow to build a trip
+    // directly. Mint a client-side trip_id so the direct-book funnel is tracked.
+    const tripId = generateUuid();
+    dispatch({ type: 'SET_TRIP_ID', tripId });
+    pushEvent('vote_skipped', { trip_id: tripId, selected_count: pickedRef.current.length });
     dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: setup.travelers });
     dispatch({
       type: 'UPDATE_TRIP_DATES',
@@ -155,6 +181,12 @@ function CurateContent() {
       if (session.managerToken) {
         localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
       }
+      // A12 — vote_launched: session created successfully; shareToken is the trip_id.
+      pushEvent('vote_launched', {
+        trip_id: session.shareToken,
+        user_role: 'organizer',
+        selected_count: pickedRef.current.length,
+      });
       navigate(`/vote/${session.shareToken}/waiting`, {
         state: { managerToken: session.managerToken },
       });

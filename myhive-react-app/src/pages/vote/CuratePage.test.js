@@ -4,8 +4,17 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import CuratePage from './CuratePage';
 import voteApi from '../../services/voteApi';
 import {TripContext} from '../../context/TripContext';
+import { pushEvent } from '../../utils/analytics';
+import { generateUuid } from '../../utils/uuid';
 
 jest.mock('../../services/voteApi');
+jest.mock('../../utils/analytics', () => ({ pushEvent: jest.fn() }));
+jest.mock('../../utils/uuid', () => ({ generateUuid: jest.fn() }));
+
+beforeEach(() => {
+  pushEvent.mockClear();
+  generateUuid.mockReturnValue('mock-uuid-1234');
+});
 
 const setup = {
   destination: { id: 'dest1', slug: 'bali' },
@@ -235,4 +244,161 @@ test('start over after returning via back clears the snapshot and rebuilds the d
   await userEvent.click(screen.getByRole('button', { name: /Start over/i }));
   expect(await screen.findByLabelText('Like')).toBeInTheDocument();
   await waitFor(() => expect(voteApi.buildPool).toHaveBeenCalledTimes(2));
+});
+
+// --- A11: shortlist_completed ---
+
+test('A11: shortlist_completed fires once when all cards are swiped', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, categories: [] },
+      { activityId: 'act2', name: 'Spa Day', price: 80, imageUrl: null, categories: [] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  // shortlist_completed must NOT have fired yet (swiping is in progress)
+  expect(pushEvent).not.toHaveBeenCalledWith('shortlist_completed', expect.anything());
+
+  await userEvent.click(screen.getByLabelText('Like'));    // act1 → right
+  // still one card to go — must not have fired yet
+  expect(pushEvent).not.toHaveBeenCalledWith('shortlist_completed', expect.anything());
+
+  await userEvent.click(screen.getByLabelText('Dislike')); // act2 → left (last card)
+
+  await screen.findByText(/Your voting list/i);
+  expect(pushEvent).toHaveBeenCalledTimes(1);
+  expect(pushEvent).toHaveBeenCalledWith('shortlist_completed', { selected_count: 1 });
+});
+
+test('A11: shortlist_completed fires only once even after start-over then re-swipe', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, categories: [] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like')); // finalize screen appears → event fires once
+
+  await screen.findByText(/Your voting list \(1\)/i);
+  expect(pushEvent).toHaveBeenCalledTimes(1);
+  expect(pushEvent).toHaveBeenCalledWith('shortlist_completed', { selected_count: 1 });
+
+  // Start over resets the deck — swiping again should fire the event again
+  // (it is a fresh shortlist completion, so one more call is expected)
+  await userEvent.click(screen.getByRole('button', { name: /Start over/i }));
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like')); // finalize again
+
+  await screen.findByText(/Your voting list \(1\)/i);
+  expect(pushEvent).toHaveBeenCalledTimes(2);
+});
+
+// --- A12: vote_launched ---
+
+test('A12: vote_launched fires after successful createSession with correct params', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, categories: [] },
+      { activityId: 'act2', name: 'Spa Day', price: 80, imageUrl: null, categories: [] },
+    ],
+  });
+  voteApi.createSession.mockResolvedValue({ shareToken: 'tok-abc', managerToken: 'mgr-xyz' });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));    // act1 → picked
+  await userEvent.click(screen.getByLabelText('Dislike')); // act2 → skip
+
+  await screen.findByText(/Your voting list/i);
+
+  pushEvent.mockClear(); // clear the shortlist_completed call
+  await userEvent.click(screen.getByRole('button', { name: /Create & get link/i }));
+
+  await waitFor(() => expect(voteApi.createSession).toHaveBeenCalled());
+  await screen.findByText('waiting page');
+
+  expect(pushEvent).toHaveBeenCalledTimes(1);
+  expect(pushEvent).toHaveBeenCalledWith('vote_launched', {
+    trip_id: 'tok-abc',
+    user_role: 'organizer',
+    selected_count: 1,
+  });
+});
+
+test('A12: vote_launched does NOT fire if createSession rejects', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, categories: [] },
+    ],
+  });
+  voteApi.createSession.mockRejectedValue(new Error('Network error'));
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));
+
+  await screen.findByText(/Your voting list/i);
+  pushEvent.mockClear();
+
+  await userEvent.click(screen.getByRole('button', { name: /Create & get link/i }));
+  await waitFor(() => expect(voteApi.createSession).toHaveBeenCalled());
+
+  // Error is shown and vote_launched was never called
+  await screen.findByText(/Network error/i);
+  expect(pushEvent).not.toHaveBeenCalledWith('vote_launched', expect.anything());
+});
+
+// --- A13: vote_skipped ---
+
+test('A13: vote_skipped fires on "Build my own trip" with trip_id and selected_count', async () => {
+  const dispatch = jest.fn();
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: ['Extreme'] },
+      { activityId: 'act2', name: 'Spa Day', price: 80, imageUrl: null, slug: 'spa', destinationSlug: 'bali', categories: [] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] }, dispatch);
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));    // act1 → picked
+  await userEvent.click(screen.getByLabelText('Dislike')); // act2 → skip
+
+  await screen.findByText(/Your voting list/i);
+  pushEvent.mockClear();
+
+  await userEvent.click(screen.getByRole('button', { name: /Build my own trip/i }));
+
+  expect(pushEvent).toHaveBeenCalledWith('vote_skipped', {
+    trip_id: 'mock-uuid-1234',
+    selected_count: 1,
+  });
+});
+
+test('A13: SET_TRIP_ID is dispatched with the minted uuid on "Build my own trip"', async () => {
+  const dispatch = jest.fn();
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: [] },
+    ],
+  });
+
+  renderWith({ setup, responses: [] }, dispatch);
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Like'));
+
+  await screen.findByText(/Your voting list/i);
+  await userEvent.click(screen.getByRole('button', { name: /Build my own trip/i }));
+
+  expect(dispatch).toHaveBeenCalledWith({ type: 'SET_TRIP_ID', tripId: 'mock-uuid-1234' });
 });
