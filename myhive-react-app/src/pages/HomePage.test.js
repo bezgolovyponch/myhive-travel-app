@@ -92,8 +92,10 @@ test('hero "Start Group Vote" fires cta_click with block hero before opening vot
 
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
 
-  expect(pushEvent).toHaveBeenCalledTimes(1);
-  expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Start Group Vote', block: 'hero'});
+  // The hero CTA fires cta_click first; opening the vote setup modal then fires
+  // tb_start, so pushEvent is called more than once. Assert the FIRST call is the
+  // cta_click — proving it fired before the modal opened.
+  expect(pushEvent.mock.calls[0]).toEqual(['cta_click', {cta_label: 'Start Group Vote', block: 'hero'}]);
   // The vote setup modal should still open (existing action not broken).
   expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
 });
