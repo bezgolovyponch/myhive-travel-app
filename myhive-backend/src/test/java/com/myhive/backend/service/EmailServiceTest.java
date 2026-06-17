@@ -205,6 +205,48 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendItineraryConfirmation_includesTripIdInTemplateContext() throws Exception {
+        TripExportRequest request = new TripExportRequest();
+        request.setTripName("Bali Adventure");
+        request.setDestinations(List.of());
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("itinerary-confirmation"), contextCaptor.capture()))
+                .thenReturn("<html>ok</html>");
+
+        String expectedTripId = "TRV-ABCD1234";
+        emailService.sendItineraryConfirmation("customer@example.com", "Alice", request, expectedTripId);
+
+        Context context = contextCaptor.getValue();
+        assertThat(context.getVariable("tripId")).isEqualTo(expectedTripId);
+    }
+
+    @Test
+    void sendItineraryConfirmation_doesNotExposeUtmFieldsInContext() throws Exception {
+        TripExportRequest request = new TripExportRequest();
+        request.setTripName("Bali Adventure");
+        request.setDestinations(List.of());
+        request.setUtmSource("google");
+        request.setUtmMedium("cpc");
+        request.setUtmCampaign("summer");
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("itinerary-confirmation"), contextCaptor.capture()))
+                .thenReturn("<html>ok</html>");
+
+        emailService.sendItineraryConfirmation("customer@example.com", "Alice", request, "TRV-ABCD1234");
+
+        Context context = contextCaptor.getValue();
+        assertThat(context.getVariableNames()).doesNotContain("utmSource", "utmMedium", "utmCampaign");
+    }
+
+    @Test
     void sendVoteCreatedConfirmation_setsRecipientAndSubjectNamingDestination() throws Exception {
         Destination destination = new Destination();
         destination.setName("Bali");

@@ -169,7 +169,7 @@ public class BookingService {
         if (emailEnabled) {
             try {
                 log.info("Email sending is enabled, attempting to send confirmation to: {}", saved.getUserEmail());
-                emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request);
+                emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request, saved.getTripId());
                 log.info("Confirmation email sent successfully to: {}", saved.getUserEmail());
             } catch (Exception e) {
                 log.error("Failed to send confirmation email to: {}. Error: {}", saved.getUserEmail(), e.getMessage(), e);

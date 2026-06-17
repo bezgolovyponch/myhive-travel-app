@@ -63,7 +63,7 @@ public class EmailService {
     @Value("${app.email.contact-to}")
     private String contactToEmail;
 
-    public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData) {
+    public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData, String tripId) {
         log.info("Preparing itinerary confirmation email: from={}, to={}, customer={}", fromEmail, toEmail, customerName);
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -78,6 +78,7 @@ public class EmailService {
             context.setVariable("tripData", tripData);
             context.setVariable("destinationViews", buildDestinationViews(tripData));
             context.setVariable("bookingDate", LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
+            context.setVariable("tripId", tripId);
 
             log.debug("Processing email template: email/itinerary-confirmation");
             String htmlContent = templateEngine.process("itinerary-confirmation", context);

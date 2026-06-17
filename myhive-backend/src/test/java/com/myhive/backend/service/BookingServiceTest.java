@@ -252,7 +252,7 @@ class BookingServiceTest {
 
         bookingService.createBookingFromExport(request);
 
-        verify(emailService).sendItineraryConfirmation(eq("user@test.com"), eq("Test User"), any());
+        verify(emailService).sendItineraryConfirmation(eq("user@test.com"), eq("Test User"), any(), any());
     }
 
     @Test
@@ -283,7 +283,7 @@ class BookingServiceTest {
             return b;
         });
         doThrow(new RuntimeException("SMTP down")).when(emailService)
-                .sendItineraryConfirmation(any(), any(), any());
+                .sendItineraryConfirmation(any(), any(), any(), any());
 
         BookingDTO result = bookingService.createBookingFromExport(request);
 
