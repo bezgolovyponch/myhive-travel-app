@@ -5,6 +5,9 @@ import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
 import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
+import {pushEvent} from '../utils/analytics';
+import {getAttribution, getRef} from '../utils/attribution';
+import {generateUuid} from '../utils/uuid';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import './TripBuilder.css';
@@ -20,6 +23,8 @@ function TripBuilder({ destinationId }) {
   const [showContactForm, setShowContactForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  // Resolved trip id for the current booking session — computed when the form opens.
+  const [effectiveTripId, setEffectiveTripId] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successContactData, setSuccessContactData] = useState(null);
   const [voteResult, setVoteResult] = useState(null);
@@ -135,6 +140,22 @@ function TripBuilder({ destinationId }) {
   };
 
   const handleConfirmTrip = () => {
+    // Resolve the trip_id: voteSession (share token) takes priority, then the
+    // client-minted id from TripContext, then mint a fresh one as a last resort.
+    let tripId = voteSession || state.tripId;
+    if (!tripId) {
+      tripId = generateUuid();
+      dispatch({ type: 'SET_TRIP_ID', tripId });
+    }
+    setEffectiveTripId(tripId);
+
+    const tripTotal = computeTripTotal(state.tripItems, travelers);
+    pushEvent('booking_form_viewed', {
+      trip_id: tripId,
+      value: tripTotal,
+      currency: 'EUR',
+    });
+
     setShowContactForm(true);
   };
 
@@ -148,6 +169,7 @@ function TripBuilder({ destinationId }) {
     setSubmitError(null);
 
     try {
+      const attribution = getAttribution();
       const bookingData = {
         tripName: 'Booking',
         userEmail: contactData.email,
@@ -176,10 +198,34 @@ function TripBuilder({ destinationId }) {
             packageDiscountPct: item.packageDiscountPct || null,
           }))
         }],
-        notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`
+        notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`,
+        // A19: thread trip_id and attribution into the request body so the backend
+        // can tie campaign data to the booking (utm → trip_id → money chain).
+        tripId: effectiveTripId,
+        ...attribution,
+        ref: getRef(),
       };
 
       await api.createBookingFromTrip(bookingData);
+
+      // A18: fire booking_submitted exactly once per trip_id (sessionStorage dedup
+      // prevents re-firing on re-render or accidental double-submit).
+      const dedupKey = `myhive-booked-${effectiveTripId}`;
+      if (!sessionStorage.getItem(dedupKey)) {
+        sessionStorage.setItem(dedupKey, '1');
+        const tripTotal = computeTripTotal(state.tripItems, travelers);
+        const destinationSlug = state.tripItems[0]?.destinationSlug || '';
+        pushEvent('booking_submitted', {
+          trip_id: effectiveTripId,
+          value: tripTotal,
+          currency: 'EUR',
+          activities_count: state.tripItems.length,
+          destination: destinationSlug,
+          group_size: travelers,
+          ...getAttribution(),
+          ref: getRef(),
+        });
+      }
 
       dispatch({ type: 'CANCEL_TRIP_SETUP' });
       dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
