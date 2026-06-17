@@ -1,4 +1,9 @@
-import {initialState, reducer} from './TripContext';
+import {act, renderHook} from '@testing-library/react';
+import {initialState, reducer, TripProvider, useTrip} from './TripContext';
+
+function renderTripHook() {
+    return renderHook(() => useTrip(), {wrapper: TripProvider});
+}
 
 const activity1 = {id: '1', name: 'Kayaking', price: 38};
 const activity2 = {id: '2', name: 'Pub Crawl', price: 25};
@@ -112,6 +117,41 @@ describe('reducer — trip setup actions', () => {
             expect(state.tripSetupModalOpen).toBe(false);
             expect(state.tripBudget).toBeNull();
         });
+
+        it('does NOT clear tripId', () => {
+            const expectedId = 'keep-me-uuid';
+            const prev = {
+                ...initialState,
+                tripId: expectedId,
+                tripItems: [activity1],
+                tripSetupModalOpen: true,
+                tripBudget: 2000
+            };
+            const state = reducer(prev, {type: 'CANCEL_TRIP_SETUP'});
+
+            expect(state.tripId).toBe(expectedId);
+            expect(state.tripItems).toEqual([]);
+        });
+    });
+
+    describe('SET_TRIP_ID', () => {
+        it('sets tripId and leaves other state untouched', () => {
+            const expectedId = 'new-uuid-abc';
+            const prev = {...initialState, tripTravelers: 3, tripItems: [activity1]};
+            const state = reducer(prev, {type: 'SET_TRIP_ID', tripId: expectedId});
+
+            expect(state.tripId).toBe(expectedId);
+            expect(state.tripTravelers).toBe(3);
+            expect(state.tripItems).toEqual([activity1]);
+        });
+
+        it('can be overwritten by dispatching SET_TRIP_ID again', () => {
+            const expectedId = 'second-uuid';
+            const prev = {...initialState, tripId: 'first-uuid'};
+            const state = reducer(prev, {type: 'SET_TRIP_ID', tripId: expectedId});
+
+            expect(state.tripId).toBe(expectedId);
+        });
     });
 
     describe('REMOVE_FROM_TRIP', () => {
@@ -132,6 +172,10 @@ describe('initialState defaults', () => {
         expect(initialState.tripSetupModalOpen).toBe(false);
         expect(initialState.tripItems).toEqual([]);
         expect(initialState.tripBudget).toBeNull();
+    });
+
+    it('defaults tripId to null', () => {
+        expect(initialState.tripId).toBeNull();
     });
 });
 
@@ -181,5 +225,54 @@ describe('reducer — trip builder, items and packages', () => {
         };
         const state = reducer(prev, {type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: 'p1'});
         expect(state.tripItems).toEqual([{id: '3'}]);
+    });
+});
+
+describe('TripProvider — tripId localStorage persistence and hydration', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it('SET_TRIP_ID writes tripId to localStorage["myhive-trip-id"]', () => {
+        const expectedId = 'test-uuid-1234';
+        const {result} = renderTripHook();
+
+        act(() => {
+            result.current.dispatch({type: 'SET_TRIP_ID', tripId: expectedId});
+        });
+
+        expect(result.current.state.tripId).toBe(expectedId);
+        expect(localStorage.getItem('myhive-trip-id')).toBe(expectedId);
+    });
+
+    it('tripId persists through CANCEL_TRIP_SETUP and tripItems is cleared', () => {
+        const expectedId = 'persist-uuid-5678';
+        const {result} = renderTripHook();
+
+        act(() => {
+            result.current.dispatch({type: 'SET_TRIP_ID', tripId: expectedId});
+        });
+        act(() => {
+            result.current.dispatch({
+                type: 'ADD_TO_TRIP',
+                activity: {id: 'act-1', name: 'Surfing', price: 50},
+                silent: true,
+            });
+        });
+        act(() => {
+            result.current.dispatch({type: 'CANCEL_TRIP_SETUP'});
+        });
+
+        expect(result.current.state.tripId).toBe(expectedId);
+        expect(result.current.state.tripItems).toHaveLength(0);
+    });
+
+    it('hydrates tripId from localStorage["myhive-trip-id"] on mount', () => {
+        const expectedId = 'hydrated-uuid-9999';
+        localStorage.setItem('myhive-trip-id', expectedId);
+
+        const {result} = renderTripHook();
+
+        expect(result.current.state.tripId).toBe(expectedId);
     });
 });

@@ -3,6 +3,7 @@ import {createContext, useContext, useEffect, useReducer} from 'react';
 export const TripContext = createContext();
 
 export const initialState = {
+    tripId: null,
     tripItems: [],
     tripTravelers: 1,
     tripStartDate: '',
@@ -77,6 +78,8 @@ export function reducer(state, action) {
         }
         case 'REMOVE_PACKAGE_FROM_TRIP':
             return {...state, tripItems: state.tripItems.filter(i => i.packageId !== action.packageId)};
+        case 'SET_TRIP_ID':
+            return {...state, tripId: action.tripId};
         default:
             return state;
     }
@@ -84,7 +87,13 @@ export function reducer(state, action) {
 
 export function TripProvider({children}) {
     const [state, dispatch] = useReducer(reducer, initialState, (init) => {
-        let {tripItems, tripTravelers, tripStartDate, tripEndDate, tripBudget} = init;
+        let {tripId, tripItems, tripTravelers, tripStartDate, tripEndDate, tripBudget} = init;
+        try {
+            const saved = localStorage.getItem('myhive-trip-id');
+            if (saved) {
+                tripId = saved;
+            }
+        } catch (e) { /* ignore corrupt storage */ }
         try {
             const saved = localStorage.getItem('myhive-trip-items');
             if (saved) {
@@ -101,8 +110,14 @@ export function TripProvider({children}) {
                 tripBudget = setup.budget ?? null;
             }
         } catch (e) { /* ignore corrupt storage */ }
-        return {...init, tripItems, tripTravelers, tripStartDate, tripEndDate, tripBudget};
+        return {...init, tripId, tripItems, tripTravelers, tripStartDate, tripEndDate, tripBudget};
     });
+
+    useEffect(() => {
+        if (state.tripId !== null) {
+            localStorage.setItem('myhive-trip-id', state.tripId);
+        }
+    }, [state.tripId]);
 
     useEffect(() => {
         localStorage.setItem('myhive-trip-items', JSON.stringify(state.tripItems));
