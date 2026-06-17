@@ -174,7 +174,7 @@ public class EmailService {
             helper.setSubject("Your group vote for " + session.getDestination().getName() + " is live");
 
             String shareToken = session.getShareToken().toString();
-            String inviteUrl = frontendUrl + "/vote/" + shareToken + "/activities";
+            String inviteUrl = frontendUrl + "/vote/" + shareToken + "/activities?ref=invite";
             String dashboardUrl = frontendUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken();
 
             Context context = new Context();

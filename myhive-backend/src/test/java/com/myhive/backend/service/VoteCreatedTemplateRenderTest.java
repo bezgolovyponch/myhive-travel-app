@@ -39,7 +39,7 @@ class VoteCreatedTemplateRenderTest {
 
         Context context = new Context();
         context.setVariable("session", session);
-        context.setVariable("inviteUrl", "https://trivlu.com/vote/tok/activities");
+        context.setVariable("inviteUrl", "https://trivlu.com/vote/tok/activities?ref=invite");
         context.setVariable("dashboardUrl", "https://trivlu.com/vote/tok/waiting?manager=mgr-9");
         context.setVariable("supportEmail", "support@trivlu.com");
         context.setVariable("startDate", "August 1, 2026");
@@ -51,7 +51,7 @@ class VoteCreatedTemplateRenderTest {
         assertThat(html)
                 .contains("Bali")
                 .contains("https://trivlu.com/vote/tok/waiting?manager=mgr-9")
-                .contains("https://trivlu.com/vote/tok/activities")
+                .contains("https://trivlu.com/vote/tok/activities?ref=invite")
                 .contains("mailto:support@trivlu.com")
                 .contains("How it works");
     }

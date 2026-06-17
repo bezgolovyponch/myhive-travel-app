@@ -116,7 +116,7 @@ function VoteWaitingContent() {
     // participant-count threshold — `numberOfTravelers` is a pricing input,
     // not an expected-voter count.
 
-    const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
+    const shareUrl = `${window.location.origin}/vote/${shareToken}/activities?ref=invite`;
 
     const handleCopy = () => {
         copyToClipboard(shareUrl).then(ok => {

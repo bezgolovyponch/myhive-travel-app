@@ -89,6 +89,13 @@ test('redirects to the trip builder when the session reports COMPLETED', async (
   expect(await screen.findByTestId('dest-page')).toBeInTheDocument();
 });
 
+test('invite link displayed to the organiser contains ?ref=invite', async () => {
+  renderAt('/vote/tok-7/waiting');
+
+  const input = await screen.findByRole('textbox', { name: /invite link/i });
+  expect(input.value).toMatch(/\/vote\/tok-7\/activities\?ref=invite$/);
+});
+
 test('does not show "already voted" when the voted flag is missing or belongs to another session', async () => {
   localStorage.setItem('myhive-voted-other-token', 'true');
 

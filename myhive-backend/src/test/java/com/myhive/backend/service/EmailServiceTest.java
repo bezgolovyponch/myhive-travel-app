@@ -199,7 +199,7 @@ class EmailServiceTest {
                 .contains("/vote/" + shareToken + "/waiting")
                 .contains("manager=" + managerToken);
         assertThat(inviteUrl)
-                .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities");
+                .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities?ref=invite");
         assertThat(context.getVariable("supportEmail")).isEqualTo("support@trivlu.com");
         verify(asyncMailSender).send(eq(mimeMessage), anyString());
     }
