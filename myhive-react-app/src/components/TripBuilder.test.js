@@ -227,6 +227,21 @@ test('A17: booking_form_viewed uses voteSession as trip_id when param is present
     expect(viewedCalls[0][1].trip_id).toBe('vote-tok-xyz');
 });
 
+test('A17: booking_form_viewed does not fire a second time on rapid double-click (sessionStorage dedup)', async () => {
+    const user = userEvent.setup();
+    renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }));
+
+    // First click — fires the event and sets the sessionStorage flag
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+
+    // Close the form and click again for the same trip_id
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+
+    const viewedCalls = pushEvent.mock.calls.filter(([event]) => event === 'booking_form_viewed');
+    expect(viewedCalls).toHaveLength(1);
+});
+
 // ---------------------------------------------------------------------------
 // A18 — booking_submitted
 // ---------------------------------------------------------------------------

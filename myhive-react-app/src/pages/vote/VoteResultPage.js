@@ -49,6 +49,7 @@ function VoteResultContent() {
     };
 
     useEffect(() => {
+        checkoutFiredRef.current = false; // reset for the new shareToken
         let cancelled = false;
         voteApi.getResult(shareToken)
             .then(response => {

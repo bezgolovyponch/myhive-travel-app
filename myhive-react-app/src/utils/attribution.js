@@ -37,31 +37,37 @@ export function captureFromUrl(search, referrer, nowMs = Date.now()) {
   }
 }
 
-// Returns the stored attribution object, or {} if absent, malformed, or expired
-// (>= 90 days). Removes the key on malformed/expired data.
+// Returns the stored attribution object (without ts), or {} if absent, malformed,
+// or expired (>= 90 days). Removes the key on malformed/expired data.
 export function getAttribution(nowMs = Date.now()) {
-  const raw = localStorage.getItem(ATTRIBUTION_KEY);
-  if (raw === null) {
-    return {};
-  }
-
-  let stored;
   try {
-    stored = JSON.parse(raw);
+    const raw = localStorage.getItem(ATTRIBUTION_KEY);
+    if (raw === null) {
+      return {};
+    }
+    let stored;
+    try {
+      stored = JSON.parse(raw);
+    } catch (_e) {
+      localStorage.removeItem(ATTRIBUTION_KEY);
+      return {};
+    }
+    if (!Number.isFinite(stored.ts) || nowMs - stored.ts >= MAX_AGE_MS) {
+      localStorage.removeItem(ATTRIBUTION_KEY);
+      return {};
+    }
+    const { ts, ...attribution } = stored;
+    return attribution;
   } catch (_e) {
-    localStorage.removeItem(ATTRIBUTION_KEY);
     return {};
   }
-
-  if (!Number.isFinite(stored.ts) || nowMs - stored.ts >= MAX_AGE_MS) {
-    localStorage.removeItem(ATTRIBUTION_KEY);
-    return {};
-  }
-
-  return stored;
 }
 
 // Returns the stored ref value, or null if unset.
 export function getRef() {
-  return localStorage.getItem(REF_KEY);
+  try {
+    return localStorage.getItem(REF_KEY);
+  } catch (_e) {
+    return null;
+  }
 }

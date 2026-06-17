@@ -1,6 +1,6 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, RouterProvider, createMemoryRouter } from 'react-router-dom';
 import ActivityVotePage from './ActivityVotePage';
 import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
@@ -95,6 +95,52 @@ test('A14: vote_opened does not fire multiple times on re-render', async () => {
 
     await waitFor(() => {
         expect(pushEvent).toHaveBeenCalledTimes(1);
+    });
+});
+
+test('A14: vote_opened fires again for a different shareToken when component stays mounted', async () => {
+    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
+
+    const router = createMemoryRouter(
+        [
+            { path: '/vote/:shareToken/activities', element: <ActivityVotePage /> },
+            { path: '/vote/:shareToken/waiting', element: <div>waiting page</div> },
+        ],
+        { initialEntries: ['/vote/tok-first/activities'] }
+    );
+
+    render(<RouterProvider router={router} />);
+
+    await screen.findByLabelText('Like');
+
+    expect(pushEvent).toHaveBeenCalledTimes(1);
+    expect(pushEvent).toHaveBeenCalledWith('vote_opened', {
+        trip_id: 'tok-first',
+        user_role: 'participant',
+    });
+
+    // Navigate to a different shareToken — same component instance
+    await act(async () => {
+        router.navigate('/vote/tok-second/activities');
+    });
+
+    await waitFor(() => {
+        expect(pushEvent).toHaveBeenCalledTimes(2);
+    });
+
+    expect(pushEvent).toHaveBeenCalledWith('vote_opened', {
+        trip_id: 'tok-second',
+        user_role: 'participant',
+    });
+
+    // Navigate back to tok-first — must NOT fire again (already in the Set)
+    await act(async () => {
+        router.navigate('/vote/tok-first/activities');
+    });
+
+    await waitFor(() => {
+        // Still only 2 total calls
+        expect(pushEvent).toHaveBeenCalledTimes(2);
     });
 });
 

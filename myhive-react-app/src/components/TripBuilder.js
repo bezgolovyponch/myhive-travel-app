@@ -149,12 +149,14 @@ function TripBuilder({ destinationId }) {
     }
     setEffectiveTripId(tripId);
 
-    const tripTotal = computeTripTotal(state.tripItems, travelers);
-    pushEvent('booking_form_viewed', {
-      trip_id: tripId,
-      value: tripTotal,
-      currency: 'EUR',
-    });
+    // A17: fire booking_form_viewed at most once per trip_id (sessionStorage dedup
+    // prevents double-fire on rapid double-clicks for the same trip).
+    const formViewedKey = `myhive-form-viewed-${tripId}`;
+    if (!sessionStorage.getItem(formViewedKey)) {
+      sessionStorage.setItem(formViewedKey, '1');
+      const tripTotal = computeTripTotal(state.tripItems, travelers);
+      pushEvent('booking_form_viewed', { trip_id: tripId, value: tripTotal, currency: 'EUR' });
+    }
 
     setShowContactForm(true);
   };
@@ -210,18 +212,19 @@ function TripBuilder({ destinationId }) {
 
       // A18: fire booking_submitted exactly once per trip_id (sessionStorage dedup
       // prevents re-firing on re-render or accidental double-submit).
+      // Use the submitted traveler count so the event matches the actual booking.
+      const submittedTravelers = parseInt(contactData.numberOfTravelers, 10) || 1;
       const dedupKey = `myhive-booked-${effectiveTripId}`;
       if (!sessionStorage.getItem(dedupKey)) {
         sessionStorage.setItem(dedupKey, '1');
-        const tripTotal = computeTripTotal(state.tripItems, travelers);
         const destinationSlug = state.tripItems[0]?.destinationSlug || '';
         pushEvent('booking_submitted', {
           trip_id: effectiveTripId,
-          value: tripTotal,
+          value: computeTripTotal(state.tripItems, submittedTravelers),
           currency: 'EUR',
           activities_count: state.tripItems.length,
           destination: destinationSlug,
-          group_size: travelers,
+          group_size: submittedTravelers,
           ...getAttribution(),
           ref: getRef(),
         });

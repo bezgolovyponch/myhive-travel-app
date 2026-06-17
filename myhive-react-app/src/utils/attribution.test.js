@@ -13,7 +13,6 @@ describe('captureFromUrl — UTM attribution', () => {
       utm_medium: 'paid_social',
       utm_campaign: 'test',
       referrer: 'https://google.com',
-      ts: 1000,
     });
   });
 
@@ -25,7 +24,7 @@ describe('captureFromUrl — UTM attribution', () => {
     expect(stored.utm_source).toBe('ig');
     expect(stored.utm_campaign).toBe('winter');
     expect(stored.utm_medium).toBeUndefined();
-    expect(stored.ts).toBe(2000);
+    expect(stored.ts).toBeUndefined();
   });
 
   test('param-less call does NOT clear existing attribution (direct visit)', () => {
@@ -35,7 +34,7 @@ describe('captureFromUrl — UTM attribution', () => {
     const stored = getAttribution(2000);
     expect(stored.utm_source).toBe('fb');
     expect(stored.utm_campaign).toBe('test');
-    expect(stored.ts).toBe(1000);
+    expect(stored.ts).toBeUndefined();
   });
 
   test('only includes params that are actually present (no undefined keys)', () => {
@@ -60,12 +59,14 @@ describe('captureFromUrl — UTM attribution', () => {
 
   test('gclid and fbclid are treated as attribution params', () => {
     captureFromUrl('?gclid=abc123', '', 1000);
-    expect(getAttribution(1000)).toMatchObject({ gclid: 'abc123', ts: 1000 });
+    expect(getAttribution(1000)).toMatchObject({ gclid: 'abc123' });
+    expect(getAttribution(1000)).not.toHaveProperty('ts');
 
     localStorage.clear();
 
     captureFromUrl('?fbclid=xyz789', '', 2000);
-    expect(getAttribution(2000)).toMatchObject({ fbclid: 'xyz789', ts: 2000 });
+    expect(getAttribution(2000)).toMatchObject({ fbclid: 'xyz789' });
+    expect(getAttribution(2000)).not.toHaveProperty('ts');
   });
 });
 
@@ -95,8 +96,9 @@ describe('captureFromUrl — ref storage', () => {
     captureFromUrl('?utm_source=fb&ref=partner', 'https://fb.com', 1000);
 
     expect(getRef()).toBe('partner');
-    expect(getAttribution(1000)).toMatchObject({ utm_source: 'fb', ts: 1000 });
+    expect(getAttribution(1000)).toMatchObject({ utm_source: 'fb' });
     expect(getAttribution(1000)).not.toHaveProperty('ref');
+    expect(getAttribution(1000)).not.toHaveProperty('ts');
   });
 
   test('getRef returns null when no ref was stored', () => {
@@ -144,7 +146,6 @@ describe('idempotency', () => {
       utm_source: 'fb',
       utm_campaign: 'test',
       referrer: 'https://fb.com',
-      ts: 1000,
     });
   });
 

@@ -21,11 +21,11 @@ function ActivityVoteContent() {
     const [error, setError] = useState(null);
     const votesRef = useRef([]);
     const submittingRef = useRef(false);
-    const voteOpenedFiredRef = useRef(false);
+    const voteOpenedFiredRef = useRef(new Set());
 
     useEffect(() => {
-        if (!voteOpenedFiredRef.current) {
-            voteOpenedFiredRef.current = true;
+        if (!voteOpenedFiredRef.current.has(shareToken)) {
+            voteOpenedFiredRef.current.add(shareToken);
             pushEvent('vote_opened', { trip_id: shareToken, user_role: 'participant' });
         }
     }, [shareToken]);
