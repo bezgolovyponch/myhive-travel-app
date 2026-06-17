@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TripSetupModal from './TripSetupModal';
 import {CatalogContext} from '../context/CatalogContext';
@@ -136,27 +136,48 @@ test('A8: tb_start does NOT fire when the modal is open in trip/direct mode', ()
   renderTripModal();
 
   expect(pushEvent).not.toHaveBeenCalledWith('tb_start', expect.anything());
+  // Trip-mode open should emit no analytics at all (tb_group_submitted only
+  // fires on confirm), so guard against any unexpected event on open.
+  expect(pushEvent).not.toHaveBeenCalled();
 });
 
-test('A8: tb_start fires only once even after a re-render', () => {
-  const { rerender, mockDispatch } = renderVoteModal();
-
-  // Force a re-render by supplying same props again
-  rerender(
+function voteModalTree(voteOpen, mockDispatch) {
+  return (
     <CatalogContext.Provider value={{ state: baseCatalogState, dispatch: jest.fn() }}>
       <TripContext.Provider value={{ state: baseTripState, dispatch: mockDispatch }}>
         <TripSetupModal
           isVoteMode
-          voteOpen
+          voteOpen={voteOpen}
           onVoteConfirm={jest.fn()}
           onVoteCancel={jest.fn()}
         />
       </TripContext.Provider>
     </CatalogContext.Provider>
   );
+}
+
+test('A8: tb_start fires only once even after a re-render', () => {
+  const { rerender, mockDispatch } = renderVoteModal();
+
+  // Force a re-render by supplying the same props again
+  rerender(voteModalTree(true, mockDispatch));
 
   const tbStartCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_start');
   expect(tbStartCalls).toHaveLength(1);
+});
+
+test('A8: tb_start fires again after the modal is closed and reopened', () => {
+  const mockDispatch = jest.fn();
+  const { rerender } = render(voteModalTree(true, mockDispatch));
+
+  expect(pushEvent.mock.calls.filter(([event]) => event === 'tb_start')).toHaveLength(1);
+
+  // Close, then reopen — the once-per-open ref should reset and fire again.
+  rerender(voteModalTree(false, mockDispatch));
+  rerender(voteModalTree(true, mockDispatch));
+
+  const tbStartCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_start');
+  expect(tbStartCalls).toHaveLength(2);
 });
 
 // ---------------------------------------------------------------------------
@@ -166,6 +187,23 @@ test('A8: tb_start fires only once even after a re-render', () => {
 test('A9: tb_group_submitted does NOT fire when vote form is invalid (missing dates/email)', async () => {
   // renderVoteModal with multiple destinations → voteFormValid is false (no destination selected, no dates, no email)
   renderVoteModal();
+
+  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
+  await userEvent.click(submitBtn);
+
+  const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
+  expect(submittedCalls).toHaveLength(0);
+});
+
+test('A9: tb_group_submitted does NOT fire when budget is invalid (negative)', async () => {
+  // All required fields valid, but a negative budget hits the second early return.
+  renderVoteModal(singleDestCatalogState);
+
+  await userEvent.type(screen.getByTestId('date-from'), '2026-08-01');
+  await userEvent.type(screen.getByTestId('date-to'), '2026-08-07');
+  await userEvent.clear(screen.getByLabelText(/your email/i));
+  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
+  await userEvent.type(screen.getByLabelText(/group budget/i), '-100');
 
   const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
   await userEvent.click(submitBtn);
