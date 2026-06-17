@@ -66,6 +66,36 @@ public class Booking {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "trip_id")
+    private String tripId;
+
+    @Column(name = "utm_source")
+    private String utmSource;
+
+    @Column(name = "utm_medium")
+    private String utmMedium;
+
+    @Column(name = "utm_campaign")
+    private String utmCampaign;
+
+    @Column(name = "utm_term")
+    private String utmTerm;
+
+    @Column(name = "utm_content")
+    private String utmContent;
+
+    @Column(name = "ref")
+    private String ref;
+
+    @Column(name = "gclid")
+    private String gclid;
+
+    @Column(name = "fbclid")
+    private String fbclid;
+
+    @Column(name = "referrer")
+    private String referrer;
+
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<BookingItem> bookingItems;
 }

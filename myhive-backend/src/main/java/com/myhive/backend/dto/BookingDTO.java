@@ -27,5 +27,6 @@ public class BookingDTO {
     private LocalDate startDate;
     private LocalDate endDate;
     private String notes;
+    private String tripId;
     private List<BookingItemDTO> items;
 }

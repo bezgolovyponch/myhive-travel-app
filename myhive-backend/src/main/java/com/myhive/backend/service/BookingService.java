@@ -144,6 +144,20 @@ public class BookingService {
             }
         }
 
+        String tripId = (request.getTripId() != null && !request.getTripId().isBlank())
+                ? request.getTripId()
+                : "TRV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        booking.setTripId(tripId);
+        booking.setUtmSource(request.getUtmSource());
+        booking.setUtmMedium(request.getUtmMedium());
+        booking.setUtmCampaign(request.getUtmCampaign());
+        booking.setUtmTerm(request.getUtmTerm());
+        booking.setUtmContent(request.getUtmContent());
+        booking.setRef(request.getRef());
+        booking.setGclid(request.getGclid());
+        booking.setFbclid(request.getFbclid());
+        booking.setReferrer(request.getReferrer());
+
         booking.setBookingItems(items);
         booking.setTotalAmount(calculateTotal(items));
 
@@ -220,6 +234,7 @@ public class BookingService {
         dto.setStartDate(booking.getStartDate());
         dto.setEndDate(booking.getEndDate());
         dto.setNotes(booking.getNotes());
+        dto.setTripId(booking.getTripId());
 
         if (booking.getBookingItems() != null) {
             dto.setItems(booking.getBookingItems().stream()

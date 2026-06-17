@@ -1,5 +1,6 @@
 package com.myhive.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
@@ -34,6 +35,31 @@ public class TripExportRequest {
     private List<DestinationExport> destinations;
 
     private String notes;
+
+    private String tripId;
+
+    @JsonProperty("utm_source")
+    private String utmSource;
+
+    @JsonProperty("utm_medium")
+    private String utmMedium;
+
+    @JsonProperty("utm_campaign")
+    private String utmCampaign;
+
+    @JsonProperty("utm_term")
+    private String utmTerm;
+
+    @JsonProperty("utm_content")
+    private String utmContent;
+
+    private String ref;
+
+    private String gclid;
+
+    private String fbclid;
+
+    private String referrer;
 
     @Data
     @NoArgsConstructor

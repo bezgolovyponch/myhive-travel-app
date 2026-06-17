@@ -292,6 +292,64 @@ class BookingServiceTest {
     }
 
     @Test
+    void createBookingFromExport_withTripIdAndUtm_persistsAttributionAndReturnsTripId() {
+        String expectedTripId = "vote-abc-123";
+        String expectedUtmSource = "instagram";
+        String expectedUtmMedium = "social";
+        String expectedUtmCampaign = "summer2026";
+        String expectedRef = "partner42";
+
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        request.setTripId(expectedTripId);
+        request.setUtmSource(expectedUtmSource);
+        request.setUtmMedium(expectedUtmMedium);
+        request.setUtmCampaign(expectedUtmCampaign);
+        request.setRef(expectedRef);
+
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        BookingDTO result = bookingService.createBookingFromExport(request);
+
+        ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(captor.capture());
+        Booking saved = captor.getValue();
+        assertThat(saved.getTripId()).isEqualTo(expectedTripId);
+        assertThat(saved.getUtmSource()).isEqualTo(expectedUtmSource);
+        assertThat(saved.getUtmMedium()).isEqualTo(expectedUtmMedium);
+        assertThat(saved.getUtmCampaign()).isEqualTo(expectedUtmCampaign);
+        assertThat(saved.getRef()).isEqualTo(expectedRef);
+        assertThat(result.getTripId()).isEqualTo(expectedTripId);
+    }
+
+    @Test
+    void createBookingFromExport_withNullTripId_generatesTrvFallback() {
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        request.setTripId(null);
+
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        bookingService.createBookingFromExport(request);
+
+        ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(captor.capture());
+        String generatedTripId = captor.getValue().getTripId();
+        assertThat(generatedTripId).startsWith("TRV-");
+        assertThat(generatedTripId).hasSize(12); // "TRV-" (4) + 8 chars
+    }
+
+    @Test
     void packageBookingAppliesDiscountToTotal() {
         Activity a1 = TestDataFactory.activity(destination); a1.setPrice(new BigDecimal("100.00"));
         Activity a2 = TestDataFactory.activity(destination); a2.setPrice(new BigDecimal("200.00"));
