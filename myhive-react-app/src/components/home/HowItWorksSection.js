@@ -1,3 +1,4 @@
+import {pushEvent} from '../../utils/analytics';
 import './HowItWorksSection.css';
 
 const STEPS = [
@@ -24,7 +25,13 @@ function HowItWorksSection({onStartVote}) {
                     </div>
                 ))}
             </div>
-            <button className="btn btn--primary btn--lg" onClick={onStartVote}>
+            <button
+                className="btn btn--primary btn--lg"
+                onClick={() => {
+                    pushEvent('cta_click', {cta_label: 'Start Group Vote', block: 'trip_builder'});
+                    onStartVote();
+                }}
+            >
                 Start Group Vote
             </button>
         </section>

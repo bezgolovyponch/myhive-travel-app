@@ -1,4 +1,5 @@
 import {MESSENGER_URL, WHATSAPP_URL} from '../../services/config';
+import {pushEvent} from '../../utils/analytics';
 import './HowBookingWorksSection.css';
 
 const BOOKING_STEPS = [
@@ -24,10 +25,22 @@ function HowBookingWorksSection() {
             <div className="booking-support">
                 <p className="booking-support-text">Got questions? Contact us.</p>
                 <div className="booking-support-buttons">
-                    <a className="btn btn--primary" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                    <a
+                        className="btn btn--primary"
+                        href={WHATSAPP_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => pushEvent('contact_click', {channel: 'whatsapp'})}
+                    >
                         WhatsApp
                     </a>
-                    <a className="btn btn--primary" href={MESSENGER_URL} target="_blank" rel="noopener noreferrer">
+                    <a
+                        className="btn btn--primary"
+                        href={MESSENGER_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => pushEvent('contact_click', {channel: 'messenger'})}
+                    >
                         Facebook Messenger
                     </a>
                 </div>

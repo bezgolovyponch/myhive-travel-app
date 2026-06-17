@@ -8,6 +8,7 @@ import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSect
 import HowBookingWorksSection from '../components/home/HowBookingWorksSection';
 import ReviewsSection from '../components/home/ReviewsSection';
 import {SITE_URL} from '../services/config';
+import {pushEvent} from '../utils/analytics';
 import './HomePage.css';
 
 function HomePage() {
@@ -41,7 +42,13 @@ function HomePage() {
                     <p className="hero-subtitle">
                         Your mates vote in 10 minutes. We deliver the perfect weekend.
                     </p>
-                    <button className="btn btn--primary btn--lg" onClick={openVoteSetup}>
+                    <button
+                        className="btn btn--primary btn--lg"
+                        onClick={() => {
+                            pushEvent('cta_click', {cta_label: 'Start Group Vote', block: 'hero'});
+                            openVoteSetup();
+                        }}
+                    >
                         Start Group Vote
                     </button>
                 </div>

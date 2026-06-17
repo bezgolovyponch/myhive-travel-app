@@ -6,12 +6,15 @@ import HomePage from './HomePage';
 import api from '../services/api';
 import {CatalogContext} from '../context/CatalogContext';
 import {TripContext} from '../context/TripContext';
+import {pushEvent} from '../utils/analytics';
 
 jest.mock('../services/api');
+jest.mock('../utils/analytics', () => ({pushEvent: jest.fn()}));
 
 beforeEach(() => {
   // jsdom does not implement media playback; the hero video autoplays.
   jest.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  jest.clearAllMocks();
 });
 
 const baseCatalogState = {
@@ -78,6 +81,21 @@ test('Start Group Vote opens the vote setup modal with the only destination pres
   // The destination picker is disabled, so the destination is preset read-only.
   expect(screen.getByText('Prague')).toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+test('hero "Start Group Vote" fires cta_click with block hero before opening vote setup', async () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+
+  renderHome();
+
+  await screen.findByText('What the Lads Say');
+
+  await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
+
+  expect(pushEvent).toHaveBeenCalledTimes(1);
+  expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Start Group Vote', block: 'hero'});
+  // The vote setup modal should still open (existing action not broken).
+  expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
 });
 
 test('vote setup modal keeps the picker hidden even with several destinations in the API', async () => {

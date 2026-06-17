@@ -1,3 +1,4 @@
+import {pushEvent} from '../../utils/analytics';
 import './ReviewsSection.css';
 
 // Hardcoded until real reviews exist; replace content only, keep the shape.
@@ -48,7 +49,13 @@ function ReviewsSection({onStartVote}) {
                     </div>
                 ))}
             </div>
-            <button className="btn btn--primary btn--lg" onClick={onStartVote}>
+            <button
+                className="btn btn--primary btn--lg"
+                onClick={() => {
+                    pushEvent('cta_click', {cta_label: 'Build Your Trip', block: 'reviews'});
+                    onStartVote();
+                }}
+            >
                 Build Your Trip
             </button>
         </section>

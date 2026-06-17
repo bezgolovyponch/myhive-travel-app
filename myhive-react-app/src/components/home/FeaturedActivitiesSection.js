@@ -4,6 +4,7 @@ import api from '../../services/api';
 import {useCatalog} from '../../context/CatalogContext';
 import {useTrip} from '../../context/TripContext';
 import {getDefaultDestination} from '../../utils/defaultDestination';
+import {pushEvent} from '../../utils/analytics';
 import ActivityCard from '../ActivityCard';
 import './FeaturedActivitiesSection.css';
 
@@ -52,7 +53,11 @@ function FeaturedActivitiesSection() {
                 ))}
             </div>
             {mainDestination && (
-                <Link to={`/destination/${mainDestination.slug}`} className="btn btn--primary btn--lg">
+                <Link
+                    to={`/destination/${mainDestination.slug}`}
+                    className="btn btn--primary btn--lg"
+                    onClick={() => pushEvent('cta_click', {cta_label: 'View All Activities', block: 'activities'})}
+                >
                     View All Activities
                 </Link>
             )}
