@@ -94,12 +94,14 @@ Confirmed reusable facts:
 | 8 | `vote_skipped` | `handleBuildMyTrip` (`CuratePage.js:98`, real label "Build my own trip") | client trip_id | `selected_count` | – | `vote_skipped` |
 | 9 | `vote_opened` | `useEffect` on mount, `useRef` once-guard (`ActivityVotePage.js:24–33`) | **shareToken** | `user_role=participant` | – | `vote_opened` |
 | 10 | `vote_completed` | **after** `castVotes` success, after `VOTED_KEY` set (`ActivityVotePage.js:60–64`) | **shareToken** | `user_role=participant` | – | `vote_completed` |
-| 11 | `checkout_viewed` | inside the `.then` after `setData`, once (`VoteResultPage.js:53`, not `:50`); skip on error | **shareToken** | `items_count`, `value`, `currency=EUR` | `InitiateCheckout` | `checkout_viewed` |
-| 12 | `booking_form_viewed` | `useEffect([isOpen])` in `ContactForm.js` (fires when form opens; opened by `TripBuilder.js:138`) | if present | `value`, `currency` | – | `booking_form_viewed` |
+| 11 | `checkout_viewed` | inside the `.then` after `setData`, once per shareToken (`VoteResultPage.js`); skip on error | **shareToken** | `user_role`, `items_count`, `value`, `currency=EUR` | `InitiateCheckout` | `checkout_viewed` |
+| 12 | `booking_form_viewed` | in `TripBuilder.handleConfirmTrip` when the form opens; per-trip `sessionStorage['myhive-form-viewed-{tripId}']` dedup | `trip_id` | `value`, `currency` | – | `booking_form_viewed` |
 | 13 | `booking_submitted` | **after** `createBookingFromTrip` success (`TripBuilder.js:182`); dedup guard `sessionStorage['myhive-booked-{tripId}']` set after success | **yes** | `value`, `currency=EUR`, `activities_count`, `destination`, `group_size`, `utm_*`, `ref` | **`Lead`** + value/currency | **`generate_lead`** *(key)* |
 | 14–16 | `payment_*`, `trip_fully_paid` | **❌ no payment system** | — | — | — | **Phase 2** |
 
 > Naming reconciliations: modal button reads **"Continue to Categories"**; skip button reads **"Build my own trip"** → goes to Trip Builder. `WHATSAPP_URL` is a placeholder (`wa.me/0000000000`) — flag the real number to marketing.
+
+> `user_role` reconciliation: in addition to the participant `vote_*` events, `user_role` is intentionally attached to `quiz_completed` (participant), `vote_launched` (`organizer`), and `checkout_viewed` (`resolveUserRole`). It is a registered GA4 custom dimension, so populating it on more events only improves organizer-vs-participant segmentation; extra dataLayer params are ignored by tags not configured for them. (The earlier table omitted these — the implementation is the source of truth.)
 
 ---
 
