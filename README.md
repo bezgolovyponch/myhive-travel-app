@@ -160,6 +160,29 @@ Dev docker-compose available: `docker-compose -f docker-compose.dev.yml up`
 - The backend CSP (`SecurityHeadersFilter`) rides only on `/api` JSON responses, not the separately-served frontend,
   so it does not block GTM.
 
+### Event layer & attribution (dataLayer → GTM)
+
+The SPA emits a consent-gated `dataLayer` event layer that GTM routes to GA4 / Meta Pixel / Microsoft Clarity
+(tags configured in GTM — no vendor snippet in the repo):
+
+- `src/utils/analytics.js` — stateless `pushEvent(event, params)`; the only code that touches `window.dataLayer`.
+  Attaches a uuid `event_id` to every event (server-dedup/CAPI seed) and drops empty params (keeps `false`/`0`).
+- 13 funnel events (homepage CTAs, Trip Builder, quiz, vote flow, booking) — e.g. `cta_click`,
+  `tb_group_submitted` (email passed for Meta Advanced Matching only with `ad_storage` consent), `vote_launched`,
+  `checkout_viewed`, and `booking_submitted` (→ Meta `Lead` / GA4 `generate_lead`, the campaign-optimisation conversion).
+- A `trip_id` threads the whole funnel: the vote `shareToken` for the vote flow, a client-minted UUID for the
+  direct-book flow (`TripContext` + `localStorage['myhive-trip-id']`, survives cancel). `user_role` (`src/utils/userRole.js`)
+  distinguishes organizer vs participant.
+- `src/utils/attribution.js` + `components/AttributionCapture.js` — captures `utm_*`/`gclid`/`fbclid`/referrer
+  (90-day, last-non-direct-click) and the viral-loop `ref=invite`, on first visit and on SPA navigation.
+- Privacy: PII (email) reaches the dataLayer only with `ad_storage` consent (`src/utils/consent.js`, deny-by-default);
+  per-vendor consent gating is done by the GTM tags (CookieYes Consent Mode v2).
+- **Backend**: `POST /bookings/trip` accepts and persists `tripId` + the attribution fields on `Booking`
+  (`utm_*`, `ref`, `gclid`, `fbclid`, `referrer`), so campaigns tie to bookings (`utm → trip_id → money`); the
+  confirmation email shows `tripId` as a booking reference, and participant invite links carry `?ref=invite`.
+- Pending (out of repo): GA4/Meta/Clarity tag creation in GTM, and the payment-funnel events (Phase 2 — no payment
+  system exists yet). Full design: `docs/superpowers/plans/2026-06-17-analytics-tracking-integration.md`.
+
 ## Cookie consent (CookieYes + Consent Mode v2)
 
 - Consent is handled by the **CookieYes CMP**, loaded **through GTM** via the official CookieYes CMP Community
