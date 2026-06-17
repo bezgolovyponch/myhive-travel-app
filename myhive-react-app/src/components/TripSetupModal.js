@@ -1,9 +1,13 @@
-import {useEffect, useId, useState} from 'react';
+import {useEffect, useId, useRef, useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
 import AppModal from './AppModal';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
+import {pushEvent} from '../utils/analytics';
+import {getRef} from '../utils/attribution';
+import {hasConsent} from '../utils/consent';
+import {generateUuid} from '../utils/uuid';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 
@@ -35,6 +39,18 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             setBudgetError('');
         }
     }, [isOpen]);
+
+    // A8: fire tb_start once per open transition in vote mode.
+    const tbStartFiredRef = useRef(false);
+    useEffect(() => {
+        if (isOpen && isVoteMode && !tbStartFiredRef.current) {
+            tbStartFiredRef.current = true;
+            pushEvent('tb_start', {ref: getRef()});
+        }
+        if (!isOpen) {
+            tbStartFiredRef.current = false;
+        }
+    }, [isOpen, isVoteMode]);
 
     const handleCancel = () => {
         if (isVoteMode) {
@@ -68,8 +84,27 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                 return;
             }
             setBudgetError('');
+            // A9: tb_group_submitted — vote mode (no trip_id; email gated by ad_storage consent).
+            const voteEventParams = {
+                destination: destination ? destination.slug : undefined,
+                group_size: travelersNum,
+                has_budget: budget.trim() !== '',
+            };
+            if (email && hasConsent('ad_storage')) {
+                voteEventParams.email = email;
+            }
+            pushEvent('tb_group_submitted', voteEventParams);
             onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination, budget: budgetValue });
         } else {
+            // A9: tb_group_submitted — trip/direct mode (mint trip_id; no email collected).
+            const tripId = generateUuid();
+            dispatch({type: 'SET_TRIP_ID', tripId});
+            pushEvent('tb_group_submitted', {
+                destination: destination ? destination.slug : undefined,
+                group_size: travelersNum,
+                has_budget: budget.trim() !== '',
+                trip_id: tripId,
+            });
             dispatch({
                 type: 'SET_TRIP_SETUP',
                 travelers: travelersNum,
