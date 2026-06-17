@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
+import { pushEvent } from '../../utils/analytics';
 import VoteMeta from './VoteMeta';
 import './ActivityVotePage.css';
 
@@ -20,6 +21,14 @@ function ActivityVoteContent() {
     const [error, setError] = useState(null);
     const votesRef = useRef([]);
     const submittingRef = useRef(false);
+    const voteOpenedFiredRef = useRef(false);
+
+    useEffect(() => {
+        if (!voteOpenedFiredRef.current) {
+            voteOpenedFiredRef.current = true;
+            pushEvent('vote_opened', { trip_id: shareToken, user_role: 'participant' });
+        }
+    }, [shareToken]);
 
     useEffect(() => {
         if (localStorage.getItem(VOTED_KEY(shareToken))) {
@@ -62,6 +71,7 @@ function ActivityVoteContent() {
                 votes: deduped.map(v => ({ activityId: v.activityId, liked: v.liked })),
             });
             localStorage.setItem(VOTED_KEY(shareToken), 'true');
+            pushEvent('vote_completed', { trip_id: shareToken, user_role: 'participant' });
             navigate(`/vote/${shareToken}/waiting`);
         } catch (e) {
             if (e.message === 'Session is full') {
