@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
+import { pushEvent } from '../../utils/analytics';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
 import VoteMeta from './VoteMeta';
 import './QuizPage.css';
@@ -70,7 +71,14 @@ function QuizContent() {
       setStepIndex(stepIndex + 1);
       return;
     }
+    const quizParams = {
+      q_daytime: updated[0]?.answerId,
+      q_adrenaline: updated[1]?.answerId,
+      q_food: updated[2]?.answerId,
+      q_classy: updated[3]?.answerId,
+    };
     if (isOrganizer) {
+      pushEvent('quiz_completed', quizParams);
       navigate('/vote/new/curate', { state: { setup, responses: updated } });
       return;
     }
@@ -80,6 +88,7 @@ function QuizContent() {
         voterToken: getOrCreateVoterToken(),
         responses: updated,
       });
+      pushEvent('quiz_completed', { ...quizParams, trip_id: shareToken, user_role: 'participant' });
       navigate(`/vote/${shareToken}/activities`);
     } catch (e) {
       setError(e.message);
