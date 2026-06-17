@@ -1,9 +1,11 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import ActivityCard from '../../components/ActivityCard';
 import {useTrip} from '../../context/TripContext';
 import { formatPrice, formatPricePerPerson } from '../../utils/format';
+import { pushEvent } from '../../utils/analytics';
+import { resolveUserRole } from '../../utils/userRole';
 import VoteMeta from './VoteMeta';
 import './VoteResultPage.css';
 
@@ -27,6 +29,7 @@ function VoteResultContent() {
     const {state, dispatch} = useTrip();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
+    const checkoutFiredRef = useRef(false);
 
     const handleOpenTripBuilder = () => {
         if (!data) {
@@ -51,6 +54,16 @@ function VoteResultContent() {
             .then(response => {
                 if (!cancelled) {
                     setData(response);
+                    if (!checkoutFiredRef.current) {
+                        checkoutFiredRef.current = true;
+                        pushEvent('checkout_viewed', {
+                            trip_id: shareToken,
+                            user_role: resolveUserRole(shareToken),
+                            items_count: response.result.length,
+                            value: Number(response.totalPrice),
+                            currency: 'EUR',
+                        });
+                    }
                 }
             })
             .catch(e => {
