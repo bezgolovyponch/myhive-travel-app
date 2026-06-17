@@ -1,7 +1,4 @@
-import { captureFromUrl, getAttribution, getRef } from './attribution';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_AGE_MS = 90 * DAY_MS;
+import { captureFromUrl, getAttribution, getRef, MAX_AGE_MS } from './attribution';
 
 beforeEach(() => {
   localStorage.clear();
@@ -54,6 +51,13 @@ describe('captureFromUrl — UTM attribution', () => {
     expect(stored).not.toHaveProperty('fbclid');
   });
 
+  test('ignores empty-string param values (e.g. "?utm_source=")', () => {
+    captureFromUrl('?utm_source=', '', 1000);
+
+    expect(getAttribution(1000)).toEqual({});
+    expect(localStorage.getItem('myhive-attribution')).toBeNull();
+  });
+
   test('gclid and fbclid are treated as attribution params', () => {
     captureFromUrl('?gclid=abc123', '', 1000);
     expect(getAttribution(1000)).toMatchObject({ gclid: 'abc123', ts: 1000 });
@@ -94,6 +98,10 @@ describe('captureFromUrl — ref storage', () => {
     expect(getAttribution(1000)).toMatchObject({ utm_source: 'fb', ts: 1000 });
     expect(getAttribution(1000)).not.toHaveProperty('ref');
   });
+
+  test('getRef returns null when no ref was stored', () => {
+    expect(getRef()).toBeNull();
+  });
 });
 
 describe('getAttribution — TTL', () => {
@@ -112,6 +120,13 @@ describe('getAttribution — TTL', () => {
 
     const expired = t0 + MAX_AGE_MS;
     expect(getAttribution(expired)).toEqual({});
+    expect(localStorage.getItem('myhive-attribution')).toBeNull();
+  });
+
+  test('returns {} and removes the key when stored ts is missing/NaN', () => {
+    localStorage.setItem('myhive-attribution', JSON.stringify({ utm_source: 'x' }));
+
+    expect(getAttribution(1000)).toEqual({});
     expect(localStorage.getItem('myhive-attribution')).toBeNull();
   });
 
