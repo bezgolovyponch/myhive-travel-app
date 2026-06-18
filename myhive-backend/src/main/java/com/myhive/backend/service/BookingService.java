@@ -235,6 +235,15 @@ public class BookingService {
         dto.setEndDate(booking.getEndDate());
         dto.setNotes(booking.getNotes());
         dto.setTripId(booking.getTripId());
+        dto.setUtmSource(booking.getUtmSource());
+        dto.setUtmMedium(booking.getUtmMedium());
+        dto.setUtmCampaign(booking.getUtmCampaign());
+        dto.setUtmTerm(booking.getUtmTerm());
+        dto.setUtmContent(booking.getUtmContent());
+        dto.setRef(booking.getRef());
+        dto.setGclid(booking.getGclid());
+        dto.setFbclid(booking.getFbclid());
+        dto.setReferrer(booking.getReferrer());
 
         if (booking.getBookingItems() != null) {
             dto.setItems(booking.getBookingItems().stream()

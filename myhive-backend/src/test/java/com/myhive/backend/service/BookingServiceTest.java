@@ -325,6 +325,11 @@ class BookingServiceTest {
         assertThat(saved.getUtmCampaign()).isEqualTo(expectedUtmCampaign);
         assertThat(saved.getRef()).isEqualTo(expectedRef);
         assertThat(result.getTripId()).isEqualTo(expectedTripId);
+        // Attribution must also be surfaced on the returned DTO (admin booking card).
+        assertThat(result.getUtmSource()).isEqualTo(expectedUtmSource);
+        assertThat(result.getUtmMedium()).isEqualTo(expectedUtmMedium);
+        assertThat(result.getUtmCampaign()).isEqualTo(expectedUtmCampaign);
+        assertThat(result.getRef()).isEqualTo(expectedRef);
     }
 
     @Test

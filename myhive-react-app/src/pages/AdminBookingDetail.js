@@ -160,6 +160,62 @@ function AdminBookingDetail() {
                             </Row>
                         </Card.Body>
                     </Card>
+
+                    <Card className="shadow-sm mt-3">
+                        <Card.Header className="border-bottom">
+                            <h6 className="fw-semibold mb-0">Marketing Attribution</h6>
+                        </Card.Header>
+                        <Card.Body>
+                            <Row className="g-3">
+                                <Col sm={6}>
+                                    <div className="text-muted small">Trip ID</div>
+                                    <div className="fw-semibold">
+                                        {booking.tripId ? <code className="small">{booking.tripId}</code> : '—'}
+                                    </div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">UTM Source</div>
+                                    <div className="fw-semibold">{booking.utmSource || '—'}</div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">UTM Medium</div>
+                                    <div className="fw-semibold">{booking.utmMedium || '—'}</div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">UTM Campaign</div>
+                                    <div className="fw-semibold">{booking.utmCampaign || '—'}</div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">UTM Term</div>
+                                    <div className="fw-semibold">{booking.utmTerm || '—'}</div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">UTM Content</div>
+                                    <div className="fw-semibold">{booking.utmContent || '—'}</div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">Referral (ref)</div>
+                                    <div className="fw-semibold">{booking.ref || '—'}</div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">gclid</div>
+                                    <div className="fw-semibold">
+                                        {booking.gclid ? <code className="small">{booking.gclid}</code> : '—'}
+                                    </div>
+                                </Col>
+                                <Col sm={6}>
+                                    <div className="text-muted small">fbclid</div>
+                                    <div className="fw-semibold">
+                                        {booking.fbclid ? <code className="small">{booking.fbclid}</code> : '—'}
+                                    </div>
+                                </Col>
+                                <Col sm={12}>
+                                    <div className="text-muted small">Referrer</div>
+                                    <div className="fw-semibold text-break">{booking.referrer || '—'}</div>
+                                </Col>
+                            </Row>
+                        </Card.Body>
+                    </Card>
                 </Col>
 
                 <Col md={4}>

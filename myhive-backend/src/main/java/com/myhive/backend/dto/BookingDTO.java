@@ -28,5 +28,14 @@ public class BookingDTO {
     private LocalDate endDate;
     private String notes;
     private String tripId;
+    private String utmSource;
+    private String utmMedium;
+    private String utmCampaign;
+    private String utmTerm;
+    private String utmContent;
+    private String ref;
+    private String gclid;
+    private String fbclid;
+    private String referrer;
     private List<BookingItemDTO> items;
 }
