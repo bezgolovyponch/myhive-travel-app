@@ -2,10 +2,10 @@ import {pushEvent} from '../../utils/analytics';
 import './HowItWorksSection.css';
 
 const STEPS = [
-    {icon: '🎯', title: 'Define your stag style', text: 'wild or classy, chill or adrenaline'},
-    {icon: '👆', title: 'Handpick the shortlist', text: 'pick what the group gets to vote on'},
-    {icon: '🗳️', title: 'Send the vote link', text: 'your mates pick their favourites'},
-    {icon: '✏️', title: 'Review & confirm', text: 'add, remove or tweak activities before you book'},
+    {icon: 'ph-target', title: 'Define your stag style', text: 'Wild or classy, chill or adrenaline'},
+    {icon: 'ph-hand-pointing', title: 'Handpick the shortlist', text: 'Pick what the group gets to vote on'},
+    {icon: 'ph-paper-plane-tilt', title: 'Send the vote link', text: 'Your mates pick their favourites'},
+    {icon: 'ph-pencil-simple', title: 'Review & confirm', text: 'Add, remove or tweak before you book'},
 ];
 
 function HowItWorksSection({onStartVote}) {
@@ -19,7 +19,7 @@ function HowItWorksSection({onStartVote}) {
                 {STEPS.map((step, index) => (
                     <div key={step.title} className="how-it-works-step">
                         <span className="step-number">{index + 1}</span>
-                        <span className="step-icon" aria-hidden="true">{step.icon}</span>
+                        <span className="step-icon" aria-hidden="true"><i className={`ph ${step.icon}`}/></span>
                         <h3 className="step-title">{step.title}</h3>
                         <p className="step-text">{step.text}</p>
                     </div>

@@ -3,9 +3,9 @@ import {pushEvent} from '../../utils/analytics';
 import './HowBookingWorksSection.css';
 
 const BOOKING_STEPS = [
-    {icon: '🗳️', title: 'Vote & Confirm', text: 'your group votes on activities via Trip Builder'},
-    {icon: '📝', title: 'Tweak the List', text: 'add or remove activities to fit your budget'},
-    {icon: '🔒', title: 'Lock It In', text: '30% deposit secures the booking, rest paid closer to the date'},
+    {icon: 'ph-check-square', title: 'Vote & Confirm', text: 'your group votes on activities via Trip Builder'},
+    {icon: 'ph-pencil-simple-line', title: 'Tweak the List', text: 'add or remove activities to fit your budget'},
+    {icon: 'ph-lock-key', title: 'Lock It In', text: '30% deposit secures the booking, rest paid closer to the date'},
 ];
 
 function HowBookingWorksSection() {
@@ -16,7 +16,7 @@ function HowBookingWorksSection() {
             <div className="booking-steps">
                 {BOOKING_STEPS.map(step => (
                     <div key={step.title} className="booking-step">
-                        <span className="booking-step-icon" aria-hidden="true">{step.icon}</span>
+                        <span className="booking-step-icon" aria-hidden="true"><i className={`ph ${step.icon}`}/></span>
                         <h3 className="booking-step-title">{step.title}</h3>
                         <p className="booking-step-text">{step.text}</p>
                     </div>
@@ -26,13 +26,13 @@ function HowBookingWorksSection() {
                 <p className="booking-support-text">Got questions? Contact us.</p>
                 <div className="booking-support-buttons">
                     <a
-                        className="btn btn--primary"
+                        className="btn btn--primary booking-support-wa"
                         href={WHATSAPP_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => pushEvent('contact_click', {channel: 'whatsapp'})}
                     >
-                        WhatsApp
+                        <i className="ph ph-whatsapp-logo" aria-hidden="true"/> WhatsApp
                     </a>
                     <a
                         className="btn btn--primary"

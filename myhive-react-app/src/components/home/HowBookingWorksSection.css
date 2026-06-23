@@ -24,7 +24,6 @@
 }
 
 .booking-step-icon {
-    font-size: 1.75rem;
     width: 3.5rem;
     height: 3.5rem;
     display: flex;
@@ -32,6 +31,11 @@
     justify-content: center;
     background: var(--bg);
     border-radius: 0.75rem;
+    color: var(--purple-ll, #8B82E6);
+}
+
+.booking-step-icon i {
+    font-size: 1.75rem;
 }
 
 .booking-step-title {
@@ -65,6 +69,19 @@
     gap: var(--gap);
     flex-wrap: wrap;
     justify-content: center;
+}
+
+.booking-support-buttons .booking-support-wa {
+    background: var(--wa, #25D366);
+    color: #fff;
+    box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.booking-support-buttons .booking-support-wa:hover {
+    background: #1eba59;
 }
 
 @media (max-width: 768px) {

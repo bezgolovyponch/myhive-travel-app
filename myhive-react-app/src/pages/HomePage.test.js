@@ -12,8 +12,6 @@ jest.mock('../services/api');
 jest.mock('../utils/analytics', () => ({pushEvent: jest.fn()}));
 
 beforeEach(() => {
-  // jsdom does not implement media playback; the hero video autoplays.
-  jest.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue();
   jest.clearAllMocks();
 });
 

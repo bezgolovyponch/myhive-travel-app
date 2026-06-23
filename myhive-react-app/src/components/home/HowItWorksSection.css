@@ -41,17 +41,18 @@
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
-    background: var(--white);
-    border: 2px solid var(--text);
+    background: var(--purple, #534AB7);
+    border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    color: var(--primary-text);
+    color: #fff;
 }
 
 .step-icon {
     font-size: 1.5rem;
+    color: var(--purple-ll, #8B82E6);
 }
 
 .step-title {
