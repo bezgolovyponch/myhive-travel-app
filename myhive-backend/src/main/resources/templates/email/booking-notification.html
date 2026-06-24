@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New Booking</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        h2 { color: #1f2121; }
+        h3 { font-size: 14px; color: #1f2121; margin: 16px 0 8px; }
+        .row { padding: 6px 0; border-bottom: 1px solid #eee; }
+        .label { color: #666; }
+        .section { margin: 18px 0; padding: 14px 16px; border-left: 4px solid #6A1B9A; background: #f8f9fa; }
+        .activity { margin: 6px 0; padding: 10px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; }
+        .activity h4 { margin: 0 0 4px; font-size: 14px; }
+        .price { color: #6A1B9A; font-weight: bold; }
+        .discount { color: #e74c3c; }
+    </style>
+</head>
+<body>
+<h2>New booking received</h2>
+
+<div class="row"><span class="label">Customer:</span> <strong th:text="${customerName}"></strong></div>
+<div class="row"><span class="label">Email:</span> <strong th:text="${userEmail}"></strong></div>
+<div class="row"><span class="label">Phone:</span> <strong th:text="${phone}"></strong></div>
+<div class="row"><span class="label">Booking ref:</span> <strong th:text="${tripId}"></strong></div>
+<div class="row" th:if="${tripName != null and !#strings.isEmpty(tripName)}">
+    <span class="label">Trip name:</span> <strong th:text="${tripName}"></strong>
+</div>
+<div class="row"><span class="label">Total:</span> <strong th:text="${totalAmount != null ? '€' + totalAmount : 'N/A'}"></strong></div>
+
+<!-- Itinerary summary -->
+<div th:if="${destinationViews}" th:each="destinationView : ${destinationViews}" class="section">
+    <h2><span th:text="${destinationView.destinationName}">Destination</span></h2>
+    <div th:if="${destinationView.startDate != null and destinationView.endDate != null}">
+        <p><strong>Dates:</strong>
+            <span th:text="${destinationView.startDate}">Start</span> –
+            <span th:text="${destinationView.endDate}">End</span>
+        </p>
+    </div>
+
+    <!-- Package groups -->
+    <div th:each="packageGroup : ${destinationView.packageGroups}">
+        <h3>Package: <span th:text="${packageGroup.packageName}">Package</span></h3>
+        <div th:each="activity : ${packageGroup.activities}" class="activity">
+            <h4 th:text="${activity.activityName}">Activity</h4>
+            <p class="price">€<span th:text="${#numbers.formatDecimal(activity.price ?: 0, 1, 2)}">0.00</span></p>
+        </div>
+        <p class="discount"><strong>Package discount (−<span th:text="${packageGroup.discountPct}">0</span>%):</strong>
+            −€<span th:text="${#numbers.formatDecimal(packageGroup.subtotal - packageGroup.discounted, 1, 2)}">0.00</span>
+        </p>
+        <p><strong>Package total:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(packageGroup.discounted, 1, 2)}">0.00</span></span></p>
+    </div>
+
+    <!-- Standalone activities -->
+    <div th:if="${not #lists.isEmpty(destinationView.standaloneActivities)}">
+        <h3>Activities</h3>
+        <div th:each="activity : ${destinationView.standaloneActivities}" class="activity">
+            <h4 th:text="${activity.activityName}">Activity</h4>
+            <p class="price">€<span th:text="${#numbers.formatDecimal(activity.price ?: 0, 1, 2)}">0.00</span></p>
+        </div>
+    </div>
+</div>
+
+<p>This is an automated internal notification. Reply to reach the customer directly.</p>
+</body>
+</html>

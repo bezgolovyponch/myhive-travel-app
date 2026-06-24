@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
 import jakarta.mail.Session;
@@ -54,6 +55,35 @@ class EmailServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@trivlu.com");
         ReflectionTestUtils.setField(emailService, "contactToEmail", "info@trivlu.com");
+        ReflectionTestUtils.setField(emailService, "bookingsToEmail", "booking@trivlu.com");
+    }
+
+    @Test
+    void sendBookingNotification_sendsToBookingsInboxWithTripIdSubjectAndCustomerReplyTo() throws Exception {
+        String expectedTripId = "TRV-ABCD1234";
+        String expectedReplyTo = "customer@example.com";
+        Booking booking = new Booking();
+        booking.setTripId(expectedTripId);
+        booking.setUserEmail(expectedReplyTo);
+        booking.setCustomerName("Jane Traveller");
+        booking.setTotalAmount(new BigDecimal("120.00"));
+
+        TripExportRequest request = new TripExportRequest();
+        request.setDestinations(List.of());
+
+        // Real MimeMessage so the to-address / subject / reply-to set via MimeMessageHelper are retrievable.
+        MimeMessage realMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        when(templateEngine.process(eq("booking-notification"), any())).thenReturn("<html>booking</html>");
+
+        emailService.sendBookingNotification(booking, request);
+
+        assertThat(realMessage.getAllRecipients()).hasSize(1);
+        assertThat(realMessage.getAllRecipients()[0].toString()).isEqualTo("booking@trivlu.com");
+        assertThat(realMessage.getSubject()).contains(expectedTripId);
+        // Reply-To points at the customer so staff can respond directly.
+        assertThat(realMessage.getReplyTo()[0].toString()).isEqualTo(expectedReplyTo);
+        verify(asyncMailSender).send(eq(realMessage), anyString());
     }
 
     @Test

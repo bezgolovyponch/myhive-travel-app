@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.EmailSendException;
@@ -63,6 +64,9 @@ public class EmailService {
     @Value("${app.email.contact-to}")
     private String contactToEmail;
 
+    @Value("${app.email.bookings-to}")
+    private String bookingsToEmail;
+
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData, String tripId) {
         log.info("Preparing itinerary confirmation email: from={}, to={}, customer={}", fromEmail, toEmail, customerName);
         try {
@@ -90,6 +94,46 @@ public class EmailService {
         } catch (Exception e) {
             log.error("Failed to build itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
             throw new EmailSendException("Failed to send confirmation email", e);
+        }
+    }
+
+    /**
+     * Internal notification to the bookings inbox so the team is alerted the moment a booking comes in.
+     * Carries the customer's contact details and a summary of the booked itinerary; Reply-To is set to
+     * the customer so staff can respond directly. Distinct from {@link #sendItineraryConfirmation}, which
+     * is the customer-facing confirmation.
+     */
+    public void sendBookingNotification(Booking booking, TripExportRequest tripData) {
+        log.info("Preparing booking notification for booking {} to: {}", booking.getId(), bookingsToEmail);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(bookingsToEmail);
+            if (booking.getUserEmail() != null) {
+                helper.setReplyTo(booking.getUserEmail());
+            }
+            helper.setSubject("New booking — " + booking.getTripId());
+
+            Context context = new Context();
+            context.setVariable("customerName", booking.getCustomerName());
+            context.setVariable("userEmail", booking.getUserEmail());
+            context.setVariable("phone", booking.getPhone());
+            context.setVariable("tripId", booking.getTripId());
+            context.setVariable("totalAmount", booking.getTotalAmount());
+            context.setVariable("tripName", tripData.getTripName());
+            context.setVariable("destinationViews", buildDestinationViews(tripData));
+
+            log.debug("Processing email template: email/booking-notification");
+            String htmlContent = templateEngine.process("booking-notification", context);
+            helper.setText(htmlContent, true);
+
+            asyncMailSender.send(message, "booking notification for booking " + booking.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to build booking notification for booking {}. Cause: {}", booking.getId(), e.getMessage(), e);
+            throw new EmailSendException("Failed to send booking notification", e);
         }
     }
 

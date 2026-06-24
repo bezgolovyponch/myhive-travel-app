@@ -174,8 +174,17 @@ public class BookingService {
             } catch (Exception e) {
                 log.error("Failed to send confirmation email to: {}. Error: {}", saved.getUserEmail(), e.getMessage(), e);
             }
+
+            // Internal heads-up to the bookings inbox. Kept in its own try/catch so a failure here
+            // never suppresses the customer confirmation above, nor fails the booking.
+            try {
+                emailService.sendBookingNotification(saved, request);
+                log.info("Booking notification sent for booking: {}", saved.getId());
+            } catch (Exception e) {
+                log.error("Failed to send booking notification for booking: {}. Error: {}", saved.getId(), e.getMessage(), e);
+            }
         } else {
-            log.info("Email sending is disabled (app.email.enabled=false), skipping confirmation email");
+            log.info("Email sending is disabled (app.email.enabled=false), skipping booking emails");
         }
 
         return convertToDTO(saved);
