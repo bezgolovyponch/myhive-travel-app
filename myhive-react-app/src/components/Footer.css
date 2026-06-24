@@ -2,54 +2,41 @@
 .site-footer {
     display: flex;
     flex-direction: column;
-    gap: var(--gap-xl);
-    background: var(--surface);
+    gap: var(--gap-lg);
+    background: var(--bg-deep, #100e15);
     border-top: 1px solid var(--card-border);
     padding: var(--gap-2xl) var(--page-padding) var(--gap-lg);
+    text-align: center;
 }
 
 .footer-content {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--gap-xl);
-}
-
-.footer-brand {
-    display: flex;
     flex-direction: column;
+    align-items: center;
     gap: var(--gap-sm);
 }
 
 .footer-logo {
     font-size: clamp(1.25rem, 2vw, 1.5rem);
     font-weight: 600;
-    color: var(--brand);
+    color: var(--text);
     text-decoration: none;
 }
 
 .footer-tagline {
     color: var(--text-muted);
     font-size: 0.875rem;
-    max-width: 22rem;
-}
-
-.footer-nav-group {
-    display: flex;
-    gap: var(--gap-3xl);
+    max-width: 30rem;
+    margin: 0;
 }
 
 .footer-nav {
     display: flex;
-    gap: var(--gap-sm);
+    gap: var(--gap-lg);
+    justify-content: center;
     align-items: center;
-}
-
-.footer-nav-title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text);
-    margin-right: var(--gap-sm);
+    flex-wrap: wrap;
+    margin-top: var(--gap-sm);
 }
 
 .footer-nav a {
@@ -63,41 +50,48 @@
     color: var(--brand);
 }
 
-/* The CookieYes "Cookie settings" revisit control is a button (no navigable
-   href); style it to match the surrounding footer links. */
-.footer-nav button.cky-banner-element {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 0.875rem;
+.footer-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-sm);
+    padding-top: var(--gap-lg);
+    border-top: 1px solid var(--card-border);
+}
+
+.footer-legal {
+    display: flex;
+    gap: var(--gap-lg);
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-legal a,
+.footer-legal button.cky-banner-element {
     color: var(--text-muted);
-    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.8125rem;
     transition: color 150ms;
 }
 
-.footer-nav button.cky-banner-element:hover {
-    color: var(--brand);
+/* The CookieYes "Cookie settings" revisit control is a button (no navigable
+   href); style it to match the surrounding footer links. */
+.footer-legal button.cky-banner-element {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
 }
 
-.footer-bottom {
-    padding-top: var(--gap-lg);
-    border-top: 1px solid var(--card-border);
-    text-align: center;
+.footer-legal a:hover,
+.footer-legal button.cky-banner-element:hover {
+    color: var(--brand);
 }
 
 .footer-bottom p {
     color: var(--text-muted);
     font-size: 0.75rem;
-}
-
-@media (max-width: 768px) {
-    .footer-content {
-        flex-direction: column;
-        gap: var(--gap-lg);
-    }
-
-    .footer-nav-group {
-        flex-direction: column;
-        gap: var(--gap);
-    }
+    margin: 0;
 }

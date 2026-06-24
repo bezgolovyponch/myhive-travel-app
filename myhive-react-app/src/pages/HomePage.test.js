@@ -51,8 +51,8 @@ test('renders all homepage sections', async () => {
   expect(screen.getByText('The Smartest Way to Plan a Stag Do')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
   expect(screen.getByText('View All Activities')).toHaveAttribute('href', '/destination/prague');
-  expect(screen.getByText('How Booking Works')).toBeInTheDocument();
   expect(screen.getByText('What the Lads Say')).toBeInTheDocument();
+  expect(screen.getByText("We're just a message away")).toBeInTheDocument();
 });
 
 test('hides the activities section when no featured activities exist', async () => {

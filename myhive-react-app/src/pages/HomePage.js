@@ -4,8 +4,8 @@ import TripSetupModal from '../components/TripSetupModal';
 import TrustBar from '../components/home/TrustBar';
 import HowItWorksSection from '../components/home/HowItWorksSection';
 import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSection';
-import HowBookingWorksSection from '../components/home/HowBookingWorksSection';
 import ReviewsSection from '../components/home/ReviewsSection';
+import ContactCtaSection from '../components/home/ContactCtaSection';
 import {SITE_URL} from '../services/config';
 import {pushEvent} from '../utils/analytics';
 import './HomePage.css';
@@ -24,6 +24,7 @@ function HomePage() {
 
             <section className="hero">
                 <div className="hero-overlay"/>
+                <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
                         <h1 className="hero-title">The Easiest Stag Do Decision. All Sorted For You.</h1>
@@ -78,8 +79,8 @@ function HomePage() {
             <TrustBar/>
             <HowItWorksSection onStartVote={openVoteSetup}/>
             <FeaturedActivitiesSection/>
-            <HowBookingWorksSection/>
             <ReviewsSection onStartVote={openVoteSetup}/>
+            <ContactCtaSection/>
 
             <TripSetupModal
                 isVoteMode={true}

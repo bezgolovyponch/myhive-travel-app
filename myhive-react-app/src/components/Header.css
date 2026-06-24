@@ -9,6 +9,13 @@
     box-shadow: var(--shadow-md);
 }
 
+/* On the homepage the header overlays the hero image: no background, no shadow,
+   smaller height. Scoped so every other page keeps the solid brand header. */
+.header--transparent {
+    background: transparent;
+    box-shadow: none;
+}
+
 .header-content {
     height: var(--header-height);
     padding: 0 var(--page-padding);
@@ -16,6 +23,10 @@
     align-items: center;
     justify-content: space-between;
     position: relative;
+}
+
+.header--transparent .header-content {
+    height: 4rem;
 }
 
 .logo {
@@ -42,6 +53,17 @@
     align-items: center;
 }
 
+/* Transparent (homepage) header: nav-links sit on the right next to the
+   Trip Builder button instead of dead-centre, matching the template. */
+.header--transparent .nav-links {
+    position: static;
+    left: auto;
+    transform: none;
+    margin-left: auto;
+    margin-right: var(--gap-lg);
+    gap: 1.375rem;
+}
+
 .nav-links a {
     color: var(--white);
     text-decoration: none;
@@ -49,6 +71,12 @@
     font-size: 1rem;
     transition: opacity 150ms;
     cursor: pointer;
+}
+
+.header--transparent .nav-links a {
+    font-size: 0.875rem;
+    font-weight: 400;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
 }
 
 .nav-links a:hover {

@@ -43,8 +43,10 @@ function Header() {
     scrollToHomeSection(navigate, 'activities');
   };
 
+  const isHome = location.pathname === '/';
+
   return (
-    <header className="header">
+    <header className={`header ${isHome ? 'header--transparent' : ''}`}>
       <div className="header-content">
         <Link to="/" className="logo">
           <img src="/logo-white.png" alt="Trivlu" className="logo-img"/>
@@ -53,7 +55,7 @@ function Header() {
           <a href="/#activities" onClick={(e) => {
             handleActivitiesClick(e);
             setMobileNavOpen(false);
-          }}>Activities</a>
+          }}>Destinations</a>
             <Link to="/about" onClick={() => setMobileNavOpen(false)}>About</Link>
             <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
             <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
