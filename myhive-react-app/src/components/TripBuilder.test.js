@@ -160,6 +160,88 @@ beforeEach(() => {
 });
 
 // ---------------------------------------------------------------------------
+// A16b — trip_builder_viewed (→ Meta InitiateCheckout)
+// Fires when the user lands on the trip-builder/checkout screen with a
+// non-empty trip — one funnel step earlier than the "Complete Booking" click.
+// ---------------------------------------------------------------------------
+
+test('A16b: trip_builder_viewed fires once on mount when the trip has items', async () => {
+    renderTripBuilder(); // default state: 1 item, 2 travelers, tripId 'ctx-trip-id'
+
+    await waitFor(() => {
+        const calls = pushEvent.mock.calls.filter(([event]) => event === 'trip_builder_viewed');
+        expect(calls).toHaveLength(1);
+    });
+
+    const [, params] = pushEvent.mock.calls.find(([event]) => event === 'trip_builder_viewed');
+    expect(params.trip_id).toBe('ctx-trip-id');
+    expect(params.value).toBe(120); // 60 * 2 travelers
+    expect(params.currency).toBe('EUR');
+    expect(params.items_count).toBe(1);
+});
+
+test('A16b: trip_builder_viewed does NOT fire when the trip is empty', async () => {
+    renderTripBuilder(buildTripState({ tripItems: [] }));
+
+    // Let the mount effects run (browse activities fetch fires on mount).
+    await waitFor(() => expect(api.getActivities).toHaveBeenCalled());
+
+    const calls = pushEvent.mock.calls.filter(([event]) => event === 'trip_builder_viewed');
+    expect(calls).toHaveLength(0);
+});
+
+test('A16b: trip_builder_viewed uses voteSession as trip_id when present', async () => {
+    renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }), '/?voteSession=vote-tok-xyz');
+
+    await waitFor(() => {
+        const calls = pushEvent.mock.calls.filter(([event]) => event === 'trip_builder_viewed');
+        expect(calls).toHaveLength(1);
+    });
+
+    const [, params] = pushEvent.mock.calls.find(([event]) => event === 'trip_builder_viewed');
+    expect(params.trip_id).toBe('vote-tok-xyz');
+});
+
+test('A16b: trip_builder_viewed mints a trip_id when none exists', async () => {
+    const { dispatchMock } = renderTripBuilder(buildTripState({ tripId: null }), '/');
+
+    await waitFor(() => {
+        const calls = pushEvent.mock.calls.filter(([event]) => event === 'trip_builder_viewed');
+        expect(calls).toHaveLength(1);
+    });
+
+    const [, params] = pushEvent.mock.calls.find(([event]) => event === 'trip_builder_viewed');
+    expect(params.trip_id).toBe('fresh-uuid');
+    expect(dispatchMock).toHaveBeenCalledWith({ type: 'SET_TRIP_ID', tripId: 'fresh-uuid' });
+});
+
+test('A16b: trip_builder_viewed fires only once across re-renders', async () => {
+    const state = buildTripState();
+    const dispatch = jest.fn();
+    const { rerender } = render(
+        <MemoryRouter initialEntries={['/']}>
+            <TripContext.Provider value={{ state, dispatch }}>
+                <TripBuilder destinationId="dest-1" />
+            </TripContext.Provider>
+        </MemoryRouter>
+    );
+
+    await waitFor(() => {
+        expect(pushEvent.mock.calls.filter(([e]) => e === 'trip_builder_viewed')).toHaveLength(1);
+    });
+
+    rerender(
+        <MemoryRouter initialEntries={['/']}>
+            <TripContext.Provider value={{ state, dispatch }}>
+                <TripBuilder destinationId="dest-1" />
+            </TripContext.Provider>
+        </MemoryRouter>
+    );
+
+    expect(pushEvent.mock.calls.filter(([e]) => e === 'trip_builder_viewed')).toHaveLength(1);
+});
+
+// ---------------------------------------------------------------------------
 // A17 — booking_form_viewed
 // ---------------------------------------------------------------------------
 

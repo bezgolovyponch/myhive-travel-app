@@ -131,6 +131,35 @@ function TripBuilder({ destinationId }) {
     };
   }, [voteSession, dispatch]);
 
+  // A16b: fire trip_builder_viewed (→ Meta InitiateCheckout) once the user lands
+  // on the trip-builder/checkout screen with a non-empty trip — one funnel step
+  // earlier than booking_form_viewed (which fires on the "Complete Booking"
+  // click). A ref guards within a mount; per-trip sessionStorage guards across
+  // mounts so it fires at most once per trip.
+  const checkoutViewedRef = useRef(false);
+  useEffect(() => {
+    if (checkoutViewedRef.current || state.tripItems.length === 0) {
+      return;
+    }
+    let tripId = voteSession || state.tripId;
+    if (!tripId) {
+      tripId = generateUuid();
+      dispatch({ type: 'SET_TRIP_ID', tripId });
+    }
+    checkoutViewedRef.current = true;
+    const viewedKey = `myhive-tb-viewed-${tripId}`;
+    if (sessionStorage.getItem(viewedKey)) {
+      return;
+    }
+    sessionStorage.setItem(viewedKey, '1');
+    pushEvent('trip_builder_viewed', {
+      trip_id: tripId,
+      value: computeTripTotal(state.tripItems, state.tripTravelers || 1),
+      currency: 'EUR',
+      items_count: state.tripItems.length,
+    });
+  }, [state.tripItems, state.tripId, state.tripTravelers, voteSession, dispatch]);
+
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
   };
