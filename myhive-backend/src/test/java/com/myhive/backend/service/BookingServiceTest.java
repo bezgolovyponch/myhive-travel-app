@@ -272,6 +272,45 @@ class BookingServiceTest {
     }
 
     @Test
+    void createBookingFromExport_withEmailEnabled_sendsBookingNotification() {
+        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        bookingService.createBookingFromExport(request);
+
+        // Both the customer confirmation and the internal bookings-inbox notification fire.
+        verify(emailService).sendItineraryConfirmation(eq("user@test.com"), eq("Test User"), any(), any());
+        verify(emailService).sendBookingNotification(any(Booking.class), eq(request));
+    }
+
+    @Test
+    void createBookingFromExport_withBookingNotificationFailure_stillReturnsBooking() {
+        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+        doThrow(new RuntimeException("SMTP down")).when(emailService)
+                .sendBookingNotification(any(Booking.class), any());
+
+        BookingDTO result = bookingService.createBookingFromExport(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStatus()).isEqualTo("PENDING");
+    }
+
+    @Test
     void createBookingFromExport_withEmailFailure_stillReturnsBooking() {
         ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
         TripExportRequest request = TestDataFactory.tripExportRequest();
@@ -355,6 +394,27 @@ class BookingServiceTest {
     }
 
     @Test
+    void createBookingEntity_buildsPendingEntityWithTotal_andSendsNoEmail() {
+        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        // SEC-1: price is taken from the looked-up activity, not the request body.
+        activity.setPrice(new BigDecimal("75.00"));
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        Booking result = bookingService.createBookingEntity(request);
+
+        assertThat(result.getStatus()).isEqualTo(BookingStatus.PENDING);
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("150.00")); // activity price 75.00 * 2 travelers
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
     void packageBookingAppliesDiscountToTotal() {
         Activity a1 = TestDataFactory.activity(destination); a1.setPrice(new BigDecimal("100.00"));
         Activity a2 = TestDataFactory.activity(destination); a2.setPrice(new BigDecimal("200.00"));
@@ -387,5 +447,109 @@ class BookingServiceTest {
         BigDecimal expectedTotal = new BigDecimal("270.00");
         assertThat(dto.getTotalAmount()).isEqualByComparingTo(expectedTotal);
         assertThat(dto.getItems()).allMatch(i -> pkg.getId().equals(i.getPackageId()));
+    }
+
+    @Test
+    void createBookingEntity_paidFlow_usesCatalogDiscountNotClientValue() {
+        // C1: a malicious initiator sends the real activity + real package but packageDiscountPct=99.
+        // The paid flow must apply the persisted catalog discount (10%), never the request value.
+        Activity a1 = TestDataFactory.activity(destination);
+        a1.setPrice(new BigDecimal("100.00"));
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        pkg.setDiscountPct(new BigDecimal("10.00"));
+        com.myhive.backend.entity.PackageActivity pa = new com.myhive.backend.entity.PackageActivity();
+        pa.setActivity(a1);
+        pkg.setPackageActivities(List.of(pa));
+
+        when(activityRepository.findById(a1.getId())).thenReturn(Optional.of(a1));
+        when(packageRepository.findById(pkg.getId())).thenReturn(Optional.of(pkg));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TripExportRequest req = new TripExportRequest();
+        req.setUserEmail("a@b.com");
+        req.setCustomerName("A");
+        req.setNumberOfTravelers(1);
+        TripExportRequest.DestinationExport de = new TripExportRequest.DestinationExport();
+        de.setDestinationName(destination.getName());
+        TripExportRequest.ActivityExport ae = new TripExportRequest.ActivityExport();
+        ae.setActivityId(a1.getId());
+        ae.setActivityName(a1.getName());
+        ae.setPackageId(pkg.getId());
+        ae.setPackageName(pkg.getName());
+        ae.setPackageDiscountPct(new BigDecimal("99.00")); // attacker value — must be ignored
+        de.setActivities(List.of(ae));
+        req.setDestinations(List.of(de));
+
+        Booking saved = bookingService.createBookingEntity(req, true);
+
+        // 100.00 * (100 - 10)/100 = 90.00 ; the client's 99% would have deflated this to 1.00
+        assertThat(saved.getTotalAmount()).isEqualByComparingTo(new BigDecimal("90.00"));
+    }
+
+    @Test
+    void createBookingEntity_paidFlow_rejectsItemWithoutActivityId() {
+        // C1: in the paid flow every line must reference a catalog activity, so a client-supplied
+        // price (e.g. 0.01) can never set what is charged.
+        TripExportRequest req = new TripExportRequest();
+        req.setUserEmail("a@b.com");
+        req.setCustomerName("A");
+        req.setNumberOfTravelers(1);
+        TripExportRequest.DestinationExport de = new TripExportRequest.DestinationExport();
+        de.setDestinationName(destination.getName());
+        TripExportRequest.ActivityExport ae = new TripExportRequest.ActivityExport();
+        ae.setActivityId(null);
+        ae.setPrice(0.01);
+        de.setActivities(List.of(ae));
+        req.setDestinations(List.of(de));
+
+        assertThatThrownBy(() -> bookingService.createBookingEntity(req, true))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void createBookingEntity_paidFlow_rejectsActivityNotInPackage() {
+        // C1: a real activity cannot borrow a different package's discount — membership is verified.
+        Activity a1 = TestDataFactory.activity(destination);
+        a1.setPrice(new BigDecimal("100.00"));
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination); // empty packageActivities
+        when(activityRepository.findById(a1.getId())).thenReturn(Optional.of(a1));
+        when(packageRepository.findById(pkg.getId())).thenReturn(Optional.of(pkg));
+
+        TripExportRequest req = new TripExportRequest();
+        req.setUserEmail("a@b.com");
+        req.setCustomerName("A");
+        req.setNumberOfTravelers(1);
+        TripExportRequest.DestinationExport de = new TripExportRequest.DestinationExport();
+        de.setDestinationName(destination.getName());
+        TripExportRequest.ActivityExport ae = new TripExportRequest.ActivityExport();
+        ae.setActivityId(a1.getId());
+        ae.setPackageId(pkg.getId());
+        de.setActivities(List.of(ae));
+        req.setDestinations(List.of(de));
+
+        assertThatThrownBy(() -> bookingService.createBookingEntity(req, true))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void createBookingEntity_leadFlow_keepsClientPriceForNonCatalogItem() {
+        // Regression: the lenient export/lead path (no money charged) still honors client prices.
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TripExportRequest req = new TripExportRequest();
+        req.setUserEmail("a@b.com");
+        req.setCustomerName("A");
+        req.setNumberOfTravelers(2);
+        TripExportRequest.DestinationExport de = new TripExportRequest.DestinationExport();
+        de.setDestinationName(destination.getName());
+        TripExportRequest.ActivityExport ae = new TripExportRequest.ActivityExport();
+        ae.setActivityId(null);
+        ae.setPrice(50.0);
+        de.setActivities(List.of(ae));
+        req.setDestinations(List.of(de));
+
+        Booking saved = bookingService.createBookingEntity(req); // lenient default overload
+
+        assertThat(saved.getTotalAmount()).isEqualByComparingTo(new BigDecimal("100.00")); // 50 * 2 travelers
     }
 }

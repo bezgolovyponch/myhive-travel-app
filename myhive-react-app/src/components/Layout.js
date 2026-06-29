@@ -16,6 +16,8 @@ import CuratePage from '../pages/vote/CuratePage';
 import ActivityVotePage from '../pages/vote/ActivityVotePage';
 import VoteWaitingPage from '../pages/vote/VoteWaitingPage';
 import VoteResultPage from '../pages/vote/VoteResultPage';
+import PaymentSuccessPage from '../pages/PaymentSuccessPage';
+import PaymentCancelledPage from '../pages/PaymentCancelledPage';
 import {useDestinationModal} from '../context/DestinationModalContext';
 import AppModal from './AppModal';
 
@@ -44,6 +46,8 @@ function Layout() {
             <Route path="/vote/:shareToken/activities" element={<ActivityVotePage />} />
             <Route path="/vote/:shareToken/waiting" element={<VoteWaitingPage />} />
             <Route path="/vote/:shareToken/result" element={<VoteResultPage />} />
+            <Route path="/payment/success" element={<PaymentSuccessPage />} />
+            <Route path="/payment/cancelled" element={<PaymentCancelledPage />} />
         </Routes>
       </main>
         <Footer/>

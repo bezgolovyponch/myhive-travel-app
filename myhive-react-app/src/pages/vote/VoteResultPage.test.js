@@ -1,13 +1,20 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import VoteResultPage from './VoteResultPage';
 import voteApi from '../../services/voteApi';
+import { paymentApi } from '../../services/paymentApi';
 import { pushEvent } from '../../utils/analytics';
+import { getAttribution, getRef } from '../../utils/attribution';
 import { resolveUserRole } from '../../utils/userRole';
 import { TripContext } from '../../context/TripContext';
 
 jest.mock('../../services/voteApi');
+jest.mock('../../services/paymentApi', () => ({
+    paymentApi: { createDepositSession: jest.fn(), createConsultationLead: jest.fn() },
+}));
 jest.mock('../../utils/analytics', () => ({ pushEvent: jest.fn() }));
+jest.mock('../../utils/attribution', () => ({ getAttribution: jest.fn(), getRef: jest.fn() }));
 jest.mock('../../utils/userRole', () => ({ resolveUserRole: jest.fn() }));
 
 const DEFAULT_RESULT = {
@@ -41,6 +48,10 @@ beforeEach(() => {
     pushEvent.mockClear();
     resolveUserRole.mockReturnValue('organizer');
     voteApi.getResult.mockResolvedValue(DEFAULT_RESULT);
+    getAttribution.mockReturnValue({});
+    getRef.mockReturnValue(null);
+    paymentApi.createConsultationLead.mockResolvedValue({ bookingId: 'b1', message: 'ok' });
+    paymentApi.createDepositSession.mockResolvedValue({ bookingId: 'b1', checkoutUrl: 'https://checkout/cs_1' });
 });
 
 // --- A16: checkout_viewed ---
@@ -142,4 +153,35 @@ test('A16: user_role comes from resolveUserRole with the shareToken', async () =
         user_role: 'participant',
         trip_id: 'tok-part',
     }));
+});
+
+// --- UTM attribution on consultation-lead bookings ---
+
+test('consultation-lead payload carries campaign attribution (utm_*, ref)', async () => {
+    const user = userEvent.setup();
+    // Only the initiator (manager token + initiator flag) sees the payment actions.
+    localStorage.setItem('myhive-manager-tok-utm', 'mgr-1');
+    localStorage.setItem('myhive-initiator-tok-utm', 'true');
+    getAttribution.mockReturnValue({ utm_source: 'facebook', utm_campaign: 'summer2026', utm_content: 'video-ad-3' });
+    getRef.mockReturnValue('partner42');
+
+    renderAt('/vote/tok-utm/result');
+
+    await user.click(await screen.findByRole('button', { name: /Contact our consultant/i }));
+    await user.type(screen.getByLabelText(/Full Name/i), 'Jane Doe');
+    await user.type(screen.getByLabelText(/Email Address/i), 'jane@example.com');
+    await user.type(screen.getByLabelText(/Phone Number/i), '+1 555 123 4567');
+    await user.click(screen.getByRole('button', { name: /Submit Booking/i }));
+
+    expect(paymentApi.createConsultationLead).toHaveBeenCalledWith(
+        'tok-utm',
+        'mgr-1',
+        expect.objectContaining({
+            userEmail: 'jane@example.com',
+            utm_source: 'facebook',
+            utm_campaign: 'summer2026',
+            utm_content: 'video-ad-3',
+            ref: 'partner42',
+        }),
+    );
 });

@@ -413,6 +413,33 @@ public class VoteSessionService {
                 session.getStartDate(), session.getEndDate());
     }
 
+    public VoteSession requireManager(UUID shareToken, UUID managerToken) {
+        VoteSession session = findByShareToken(shareToken);
+        if (!session.getManagerToken().equals(managerToken)) {
+            throw new BadRequestException("Invalid manager token");
+        }
+        return session;
+    }
+
+    public VoteSession requireManagerById(UUID sessionId, UUID managerToken) {
+        VoteSession session = voteSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vote session not found"));
+        if (!session.getManagerToken().equals(managerToken)) {
+            throw new BadRequestException("Invalid manager token");
+        }
+        return session;
+    }
+
+    /**
+     * Acquires a pessimistic write lock on the session row within the caller's transaction, so concurrent
+     * deposit-creation requests for the same vote session serialize and cannot create duplicate
+     * bookings/checkout sessions (M1). Joins the surrounding transaction (REQUIRED).
+     */
+    @Transactional
+    public void lockSession(UUID sessionId) {
+        voteSessionRepository.findByIdForUpdate(sessionId);
+    }
+
     @Transactional
     public void closeSession(UUID shareToken, UUID managerToken) {
         VoteSession session = findByShareToken(shareToken);

@@ -8,6 +8,7 @@ import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
+import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
@@ -92,7 +93,20 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingDTO createBookingFromExport(TripExportRequest request) {
+    public Booking createBookingEntity(TripExportRequest request) {
+        return createBookingEntity(request, false);
+    }
+
+    /**
+     * @param enforceTrustedPricing when true (the paid Stripe flow), every line is priced exclusively
+     *     from the catalog: each item must reference a resolvable {@code activityId}, package discounts
+     *     come from the persisted {@link Package} (never the request body), the activity must actually
+     *     belong to the package, and the computed total must be positive. Prevents a client from
+     *     deflating the charged amount (C1). When false (the export/lead flow, no money charged) the
+     *     historical lenient behavior is preserved.
+     */
+    @Transactional
+    public Booking createBookingEntity(TripExportRequest request, boolean enforceTrustedPricing) {
         Booking booking = new Booking();
         booking.setUserEmail(request.getUserEmail());
         booking.setStatus(BookingStatus.PENDING);
@@ -122,22 +136,43 @@ public class BookingService {
             for (TripExportRequest.ActivityExport act : dest.getActivities()) {
                 BookingItem item = new BookingItem();
                 item.setBooking(booking);
+                Activity activity = null;
                 if (act.getActivityId() != null) {
-                    Activity activity = activityRepository.findById(act.getActivityId())
+                    activity = activityRepository.findById(act.getActivityId())
                             .orElseThrow(() -> new ResourceNotFoundException("Activity", act.getActivityId()));
                     item.setActivity(activity);
+                    item.setPrice(activity.getPrice());           // trusted server-side price (SEC-1)
+                } else if (enforceTrustedPricing) {
+                    // C1: a charged booking must price every line from the catalog, never the request body.
+                    throw new BadRequestException(
+                            "Each activity in a paid booking must reference a catalog activityId");
+                } else {
+                    item.setPrice(act.getPrice() != null ? BigDecimal.valueOf(act.getPrice()) : BigDecimal.ZERO);
                 }
                 item.setActivityName(act.getActivityName());
                 item.setDestinationName(dest.getDestinationName());
-                item.setPrice(act.getPrice() != null ? BigDecimal.valueOf(act.getPrice()) : BigDecimal.ZERO);
 
                 int travelers = request.getNumberOfTravelers() != null ? request.getNumberOfTravelers() : 1;
                 item.setQuantity(travelers);
 
                 if (act.getPackageId() != null) {
-                    item.setPkg(packageRepository.findById(act.getPackageId()).orElse(null));
+                    Package pkg = packageRepository.findById(act.getPackageId()).orElse(null);
+                    item.setPkg(pkg);
                     item.setPackageName(act.getPackageName());
-                    item.setPackageDiscountPct(act.getPackageDiscountPct());
+                    if (enforceTrustedPricing) {
+                        // C1: trust the persisted catalog discount, never the client value, and only
+                        // after confirming this activity actually belongs to the package.
+                        if (pkg == null) {
+                            throw new BadRequestException("Unknown packageId: " + act.getPackageId());
+                        }
+                        if (activity != null && !packageContainsActivity(pkg, activity.getId())) {
+                            throw new BadRequestException("Activity " + activity.getId()
+                                    + " does not belong to package " + pkg.getId());
+                        }
+                        item.setPackageDiscountPct(pkg.getDiscountPct());
+                    } else {
+                        item.setPackageDiscountPct(act.getPackageDiscountPct());
+                    }
                 }
 
                 items.add(item);
@@ -159,12 +194,23 @@ public class BookingService {
         booking.setReferrer(request.getReferrer());
 
         booking.setBookingItems(items);
-        booking.setTotalAmount(calculateTotal(items));
+        BigDecimal total = calculateTotal(items);
+        if (enforceTrustedPricing && total.signum() <= 0) {
+            throw new BadRequestException("Computed booking total must be positive");
+        }
+        booking.setTotalAmount(total);
 
         Booking saved = bookingRepository.save(booking);
-        log.info("Booking created successfully: id={}, customer={}, email={}, items={}, total={}",
-                saved.getId(), saved.getCustomerName(), saved.getUserEmail(),
+        // Mask the customer email — PII must not land in logs unmasked (consistent with EmailService).
+        log.info("Booking created successfully: id={}, email={}, items={}, total={}",
+                saved.getId(), com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()),
                 saved.getBookingItems().size(), saved.getTotalAmount());
+        return saved;
+    }
+
+    @Transactional
+    public BookingDTO createBookingFromExport(TripExportRequest request) {
+        Booking saved = createBookingEntity(request);
 
         if (emailEnabled) {
             try {
@@ -289,6 +335,11 @@ public class BookingService {
             total = total.add(groupTotal);
         }
         return total;
+    }
+
+    private static boolean packageContainsActivity(Package pkg, UUID activityId) {
+        return pkg.getPackageActivities().stream()
+                .anyMatch(pa -> pa.getActivity() != null && activityId.equals(pa.getActivity().getId()));
     }
 
     private static @NonNull BigDecimal getGroupTotal(Map.Entry<UUID, List<BookingItem>> entry) {

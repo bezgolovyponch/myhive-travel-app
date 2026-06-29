@@ -35,6 +35,17 @@ public class RateLimitFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
+        // Exempt the Stripe webhook from rate limiting. Deliveries come from a few Stripe source
+        // IPs and are bursty (plus retries), so a shared bucket would 429 and drop source-of-truth
+        // events. The endpoint is safe: authenticated by Stripe signature + idempotent processing.
+        // The prod /api context-path is already stripped by the container, so the servlet path is
+        // /payments/webhook in both dev and prod.
+        if ("POST".equalsIgnoreCase(httpRequest.getMethod())
+                && "/payments/webhook".equals(httpRequest.getServletPath())) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         String clientIp = getClientIp(httpRequest);
         AtomicInteger count = requestCounts.computeIfAbsent(clientIp, k -> new AtomicInteger(0));
 

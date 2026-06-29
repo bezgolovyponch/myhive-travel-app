@@ -1,10 +1,12 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.model.BookingStatus;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -252,6 +254,34 @@ class EmailServiceTest {
 
         Context context = contextCaptor.getValue();
         assertThat(context.getVariable("tripId")).isEqualTo(expectedTripId);
+    }
+
+    @Test
+    void sendPaymentReceived_rendersTemplateWithAmounts() throws Exception {
+        jakarta.mail.internet.MimeMessage mimeMessage = mock(jakarta.mail.internet.MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<org.thymeleaf.context.Context> ctx = ArgumentCaptor.forClass(org.thymeleaf.context.Context.class);
+        when(templateEngine.process(eq("payment-received"), ctx.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendPaymentReceived("payer@example.com", "Alice", "TRV-ABCD1234",
+                new BigDecimal("30.00"), new BigDecimal("100.00"), false);
+
+        assertThat(ctx.getValue().getVariable("tripId")).isEqualTo("TRV-ABCD1234");
+        assertThat(ctx.getValue().getVariable("fullyPaid")).isEqualTo(false);
+        verify(asyncMailSender).send(eq(mimeMessage), anyString());
+    }
+
+    @Test
+    void sendConsultationLead_sendsToContactInbox() throws Exception {
+        jakarta.mail.internet.MimeMessage mimeMessage = mock(jakarta.mail.internet.MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(templateEngine.process(eq("consultation-lead"), any(org.thymeleaf.context.Context.class)))
+                .thenReturn("<html>lead</html>");
+
+        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+        emailService.sendConsultationLead(booking);
+
+        verify(asyncMailSender).send(eq(mimeMessage), anyString());
     }
 
     @Test

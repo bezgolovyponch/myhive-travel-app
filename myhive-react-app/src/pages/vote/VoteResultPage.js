@@ -5,7 +5,9 @@ import ActivityCard from '../../components/ActivityCard';
 import {useTrip} from '../../context/TripContext';
 import { formatPrice, formatPricePerPerson } from '../../utils/format';
 import { pushEvent } from '../../utils/analytics';
+import { getAttribution, getRef } from '../../utils/attribution';
 import { resolveUserRole } from '../../utils/userRole';
+import PaymentActions from '../../components/PaymentActions';
 import VoteMeta from './VoteMeta';
 import './VoteResultPage.css';
 
@@ -30,6 +32,36 @@ function VoteResultContent() {
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const checkoutFiredRef = useRef(false);
+
+    const managerToken = localStorage.getItem(`myhive-manager-${shareToken}`);
+    const isInitiator = localStorage.getItem(`myhive-initiator-${shareToken}`) === 'true' && !!managerToken;
+
+    const makeBookingPayload = (contactData) => ({
+        tripName: 'Vote booking',
+        userEmail: contactData.email,
+        customerName: contactData.fullName,
+        phone: contactData.phone,
+        numberOfTravelers: parseInt(contactData.numberOfTravelers, 10) || data?.numberOfTravelers || 1,
+        notes: contactData.specialRequirements || '',
+        destinations: [{
+            destinationName: data?.destination || '',
+            startDate: data?.startDate || null,
+            endDate: data?.endDate || null,
+            activities: (data?.result || []).map((r) => ({
+                activityId: r.activityId,
+                activityName: r.name,
+                price: Number(r.price),
+            })),
+        }],
+        // Tie the consultation-lead / deposit booking to its originating campaign,
+        // same as a direct booking from the Trip Builder.
+        ...getAttribution(),
+        ref: getRef(),
+    });
+
+    const paymentTripData = {
+        tripItems: (data?.result || []).map((r) => ({id: r.activityId, price: Number(r.price)})),
+    };
 
     const handleOpenTripBuilder = () => {
         if (!data) {
@@ -145,6 +177,20 @@ function VoteResultContent() {
                     >
                         Open in Trip Builder
                     </button>
+                )}
+
+                {isInitiator && data && (
+                    <PaymentActions
+                        voteShareToken={shareToken}
+                        managerToken={managerToken}
+                        tripData={paymentTripData}
+                        initialValues={{
+                            numberOfTravelers: data.numberOfTravelers,
+                            startDate: data.startDate,
+                            endDate: data.endDate,
+                        }}
+                        makeBookingPayload={makeBookingPayload}
+                    />
                 )}
 
                 {data.suggestions.length > 0 && (

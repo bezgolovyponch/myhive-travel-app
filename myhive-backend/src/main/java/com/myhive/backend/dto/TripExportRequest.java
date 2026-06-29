@@ -1,9 +1,17 @@
 package com.myhive.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,6 +29,7 @@ public class TripExportRequest {
     private String tripName;
 
     @NotBlank(message = "User email is required")
+    @Email(message = "Invalid email format")
     private String userEmail;
 
     @NotBlank(message = "Customer name is required")
@@ -29,13 +38,17 @@ public class TripExportRequest {
     private String phone;
 
     @Positive(message = "Number of travelers must be positive")
+    @Max(value = 100, message = "Number of travelers must not exceed 100")
     private Integer numberOfTravelers;
 
+    @Valid
     @NotEmpty(message = "Destinations cannot be empty")
     private List<DestinationExport> destinations;
 
     private String notes;
 
+    @Size(max = 64, message = "tripId must not exceed 64 characters")
+    @Pattern(regexp = "^[\\w.-]+$", message = "tripId may contain only letters, digits, '.', '_' and '-'")
     private String tripId;
 
     @JsonProperty("utm_source")
@@ -67,6 +80,8 @@ public class TripExportRequest {
     public static class DestinationExport {
         private String destinationName;
         private String country;
+        @Valid
+        @NotEmpty(message = "Each destination must have at least one activity")
         private List<ActivityExport> activities;
         private Integer duration;
         private String startDate;
@@ -81,11 +96,14 @@ public class TripExportRequest {
         private String activityName;
         private String category;
         private String description;
+        @PositiveOrZero(message = "Activity price must not be negative")
         private Double price;
         private Integer duration;
         private String timeOfDay;
         private UUID packageId;
         private String packageName;
+        @DecimalMin(value = "0.00", message = "Discount must be between 0 and 100")
+        @DecimalMax(value = "100.00", message = "Discount must be between 0 and 100")
         private BigDecimal packageDiscountPct;
     }
 }

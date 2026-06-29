@@ -244,14 +244,64 @@ public class EmailService {
         }
     }
 
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return "***";
+    public void sendPaymentReceived(String toEmail, String customerName, String tripId,
+            BigDecimal amountPaid, BigDecimal totalAmount, boolean fullyPaid) {
+        log.info("Preparing payment-received email: to={}, tripId={}, fullyPaid={}", maskEmail(toEmail), tripId, fullyPaid);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject(fullyPaid ? "Your trip is fully paid 🎉" : "We received your payment");
+
+            Context context = new Context();
+            context.setVariable("customerName", customerName);
+            context.setVariable("tripId", tripId);
+            context.setVariable("amountPaid", amountPaid);
+            context.setVariable("totalAmount", totalAmount);
+            context.setVariable("fullyPaid", fullyPaid);
+
+            String htmlContent = templateEngine.process("payment-received", context);
+            helper.setText(htmlContent, true);
+
+            asyncMailSender.send(message, "payment received to " + maskEmail(toEmail));
+        } catch (Exception e) {
+            log.error("Failed to build payment-received email to: {}. Cause: {}", maskEmail(toEmail), e.getMessage(), e);
+            throw new EmailSendException("Failed to send payment-received email", e);
         }
-        int atIdx = email.indexOf('@');
-        String local = email.substring(0, atIdx);
-        String masked = local.charAt(0) + "*".repeat(Math.max(1, local.length() - 1));
-        return masked + email.substring(atIdx);
+    }
+
+    public void sendConsultationLead(Booking booking) {
+        log.info("Preparing consultation-lead notification for booking {}", booking.getId());
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(contactToEmail);
+            if (booking.getUserEmail() != null) {
+                helper.setReplyTo(booking.getUserEmail());
+            }
+            helper.setSubject("New consultation request — " + booking.getTripId());
+
+            Context context = new Context();
+            context.setVariable("customerName", booking.getCustomerName());
+            context.setVariable("userEmail", booking.getUserEmail());
+            context.setVariable("phone", booking.getPhone());
+            context.setVariable("tripId", booking.getTripId());
+            context.setVariable("totalAmount", booking.getTotalAmount());
+
+            String htmlContent = templateEngine.process("consultation-lead", context);
+            helper.setText(htmlContent, true);
+
+            asyncMailSender.send(message, "consultation lead for booking " + booking.getId());
+        } catch (Exception e) {
+            log.error("Failed to build consultation-lead email for booking {}. Cause: {}", booking.getId(), e.getMessage(), e);
+            throw new EmailSendException("Failed to send consultation-lead email", e);
+        }
+    }
+
+    private String maskEmail(String email) {
+        return com.myhive.backend.util.EmailMasker.mask(email);
     }
 
     List<DestinationView> buildDestinationViews(TripExportRequest tripData) {

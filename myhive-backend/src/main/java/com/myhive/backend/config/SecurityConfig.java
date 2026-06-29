@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/contact").permitAll()
                         // Vote Together
                         .requestMatchers("/vote/**").permitAll()
+                        // Payments — public (manager-token / Stripe-signature authorized, never JWT)
+                        .requestMatchers("/payments/**").permitAll()
                         // Sitemap
                         .requestMatchers("/sitemap.xml").permitAll()
                         // Health & info

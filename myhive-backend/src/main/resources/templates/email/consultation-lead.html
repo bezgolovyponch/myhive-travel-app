@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New Consultation Request</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .row { padding: 6px 0; border-bottom: 1px solid #eee; }
+        .label { color: #666; }
+    </style>
+</head>
+<body>
+<h2>New consultation request</h2>
+<div class="row"><span class="label">Name:</span> <strong th:text="${customerName}"></strong></div>
+<div class="row"><span class="label">Email:</span> <strong th:text="${userEmail}"></strong></div>
+<div class="row"><span class="label">Phone:</span> <strong th:text="${phone}"></strong></div>
+<div class="row"><span class="label">Booking ref:</span> <strong th:text="${tripId}"></strong></div>
+<div class="row"><span class="label">Estimated total:</span> <strong th:text="${totalAmount != null ? '€' + totalAmount : 'N/A'}"></strong></div>
+<p>Follow up with this lead and, after consulting, create a Stripe payment link from the Dashboard.</p>
+</body>
+</html>

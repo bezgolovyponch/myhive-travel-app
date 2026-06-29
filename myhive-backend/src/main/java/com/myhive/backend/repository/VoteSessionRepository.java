@@ -2,7 +2,9 @@ package com.myhive.backend.repository;
 
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.model.VoteSessionStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +20,12 @@ public interface VoteSessionRepository extends JpaRepository<VoteSession, UUID> 
     Optional<VoteSession> findByShareToken(UUID shareToken);
 
     List<VoteSession> findByStatusAndExpiresAtBefore(VoteSessionStatus status, LocalDateTime time);
+
+    /** Pessimistic write lock to serialize deposit creation per session, preventing duplicate
+     *  bookings/checkout sessions from a double-submit (M1). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select v from VoteSession v where v.id = :id")
+    Optional<VoteSession> findByIdForUpdate(@Param("id") UUID id);
 
     @Modifying
     @Transactional
