@@ -121,6 +121,32 @@
     background: var(--purple-l);
 }
 
+.hero-cta-group {
+    display: flex;
+    gap: 0.875rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.hp-btn-secondary {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 0.9375rem 1.875rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.hp-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
 .hero-trust-line {
     display: flex;
     align-items: center;
@@ -258,7 +284,8 @@
         max-width: none;
     }
 
-    .hp-btn-primary {
+    .hp-btn-primary,
+    .hp-btn-secondary {
         width: 100%;
         justify-content: center;
     }

@@ -6,7 +6,7 @@ import HowItWorksSection from '../components/home/HowItWorksSection';
 import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSection';
 import ReviewsSection from '../components/home/ReviewsSection';
 import ContactCtaSection from '../components/home/ContactCtaSection';
-import {SITE_URL} from '../services/config';
+import {SITE_URL, activitiesUrl, DEFAULT_DESTINATION_SLUG} from '../services/config';
 import {pushEvent} from '../utils/analytics';
 import './HomePage.css';
 
@@ -56,15 +56,24 @@ function HomePage() {
                             ))}
                         </aside>
 
-                        <button
-                            className="hp-btn-primary"
-                            onClick={() => {
-                                pushEvent('cta_click', {cta_label: 'Start Group Vote', block: 'hero'});
-                                openVoteSetup();
-                            }}
-                        >
-                            <i className="ph ph-check-square" aria-hidden="true"/> Start Group Vote
-                        </button>
+                        <div className="hero-cta-group">
+                            <button
+                                className="hp-btn-primary"
+                                onClick={() => {
+                                    pushEvent('cta_click', {cta_label: 'Start Group Vote', block: 'hero'});
+                                    openVoteSetup();
+                                }}
+                            >
+                                <i className="ph ph-check-square" aria-hidden="true"/> Start Group Vote
+                            </button>
+                            <a
+                                className="hp-btn-secondary"
+                                href={activitiesUrl(DEFAULT_DESTINATION_SLUG)}
+                                onClick={() => pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'})}
+                            >
+                                Explore activities
+                            </a>
+                        </div>
                         <div className="hero-trust-line">
                             <span>You pick the vibe</span>
                             <span className="dot">·</span>

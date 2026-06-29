@@ -119,3 +119,11 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   expect(screen.getByText('Prague')).toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
+
+test('renders the Explore activities secondary CTA to the activities subdomain', () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+  // render HomePage the same way the existing tests in this file do
+  renderHome();
+  const cta = screen.getByRole('link', {name: /Explore activities/i});
+  expect(cta).toHaveAttribute('href', expect.stringMatching(/^https:\/\/[a-z]+\.trivlu\.com$/));
+});
