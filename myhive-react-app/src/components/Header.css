@@ -384,7 +384,7 @@
     display: flex;
     align-items: center;
     gap: var(--gap-sm);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
 }
 
 .breadcrumb-item {
@@ -400,7 +400,7 @@
 
 .breadcrumb-item.current {
     opacity: 1;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .breadcrumb-separator {
