@@ -1,4 +1,5 @@
 import AppModal from './AppModal';
+import {WHATSAPP_URL} from '../services/config';
 
 function SuccessModal({isOpen, onClose, userName, userEmail}) {
     return (
@@ -26,6 +27,19 @@ function SuccessModal({isOpen, onClose, userName, userEmail}) {
                     <li>We'll provide personalized recommendations</li>
                     <li>We'll finalize your travel itinerary</li>
                 </ul>
+            </div>
+
+            <div className="success-whatsapp">
+                <h5>Contact us to get details about your trip</h5>
+                <a
+                    className="success-whatsapp-link"
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Contact us on WhatsApp"
+                >
+                    <i className="ph ph-whatsapp-logo" aria-hidden="true"/> WhatsApp us
+                </a>
             </div>
         </AppModal>
     );
