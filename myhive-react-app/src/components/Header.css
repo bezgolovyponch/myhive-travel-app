@@ -12,7 +12,7 @@
 /* On the homepage the header overlays the hero image: no background, no shadow,
    smaller height. Scoped so every other page keeps the solid brand header. */
 .header--transparent {
-    background: transparent;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 100%);
     box-shadow: none;
 }
 

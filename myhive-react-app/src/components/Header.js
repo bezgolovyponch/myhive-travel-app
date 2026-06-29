@@ -1,14 +1,13 @@
-import {Link, useLocation, useNavigate} from 'react-router-dom';
+import {Link, useLocation} from 'react-router-dom';
 import {useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
 import TripBuilderDropdown from './TripBuilderDropdown';
 import TripSetupModal from './TripSetupModal';
-import {scrollToHomeSection} from '../utils/scrollToHomeSection';
+import {DESTINATIONS_URL, activitiesUrl, DEFAULT_DESTINATION_SLUG} from '../services/config';
 import './Header.css';
 
 function Header() {
-  const navigate = useNavigate();
   const location = useLocation();
   const {state: catalog} = useCatalog();
   const {state, dispatch} = useTrip();
@@ -38,27 +37,18 @@ function Header() {
               .replace('-', ' ')
               .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  const handleActivitiesClick = (event) => {
-    event.preventDefault();
-    scrollToHomeSection(navigate, 'activities');
-  };
-
-  const isHome = location.pathname === '/';
-
   return (
-    <header className={`header ${isHome ? 'header--transparent' : ''}`}>
+    <header className="header header--transparent">
       <div className="header-content">
         <Link to="/" className="logo">
           <img src="/logo-white.png" alt="Trivlu" className="logo-img"/>
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
-          <a href="/#activities" onClick={(e) => {
-            handleActivitiesClick(e);
-            setMobileNavOpen(false);
-          }}>Destinations</a>
-            <Link to="/about" onClick={() => setMobileNavOpen(false)}>About</Link>
-            <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
-            <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
+          <a href={DESTINATIONS_URL} onClick={() => setMobileNavOpen(false)}>Destinations</a>
+          <a href={activitiesUrl(DEFAULT_DESTINATION_SLUG)} onClick={() => setMobileNavOpen(false)}>Activities</a>
+          <Link to="/about" onClick={() => setMobileNavOpen(false)}>About</Link>
+          <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
+          <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
         </nav>
           <div className="trip-builder-wrapper">
               <button className="trip-builder-btn" onClick={handleTripBuilderClick}>
