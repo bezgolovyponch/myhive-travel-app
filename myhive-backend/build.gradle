@@ -32,7 +32,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
-    // Stripe payments (deposit Checkout + per-participant Payment Links + webhook)
+    // Stripe payments (deposit Checkout + webhook)
     implementation 'com.stripe:stripe-java:32.2.0'
 
     // Cloudflare R2 (S3-compatible) image uploads

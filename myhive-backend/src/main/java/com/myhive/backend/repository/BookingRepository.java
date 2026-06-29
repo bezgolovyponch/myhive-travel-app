@@ -28,7 +28,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     long countByVoteSessionIdAndConsultationRequestedTrue(UUID voteSessionId);
 
-    /** Pessimistic write lock used to serialize balance-collection so the mode-lock is race-safe (H2). */
+    /** Pessimistic write lock on a booking row. Reserved for the balance-collection flow (mode-lock
+     *  race-safety, H2) on the follow-up branch; unused by the deposit-only flow. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select b from Booking b where b.id = :id")
     Optional<Booking> findByIdForUpdate(@Param("id") UUID id);

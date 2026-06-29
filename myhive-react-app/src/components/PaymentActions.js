@@ -23,8 +23,8 @@ function PaymentActions({voteShareToken, managerToken, tripData, initialValues, 
             const payload = makeBookingPayload(contactData);
             if (mode === 'deposit') {
                 const {bookingId, checkoutUrl} = await paymentApi.createDepositSession(voteShareToken, managerToken, payload);
-                // Remember which booking belongs to this vote so the initiator dashboard
-                // (VoteWaitingPage) can render the balance-collection step after the deposit.
+                // Remember which booking belongs to this vote. Consumed by the balance-collection step
+                // (which ships on the follow-up branch); harmless no-op on the prepayment-only flow.
                 if (bookingId) {
                     localStorage.setItem(`myhive-booking-${voteShareToken}`, bookingId);
                 }

@@ -179,7 +179,7 @@ function VoteResultContent() {
                     </button>
                 )}
 
-                {isInitiator && data && (
+                {isInitiator && data.result.length > 0 && (
                     <PaymentActions
                         voteShareToken={shareToken}
                         managerToken={managerToken}

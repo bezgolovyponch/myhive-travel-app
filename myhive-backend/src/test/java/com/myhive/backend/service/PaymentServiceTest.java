@@ -421,7 +421,7 @@ class PaymentServiceTest {
         VoteSession session = new VoteSession();
         session.setId(UUID.randomUUID());
         when(voteSessionService.requireManager(shareToken, managerToken)).thenReturn(session);
-        when(bookingRepository.countByVoteSessionIdAndConsultationRequestedTrue(session.getId())).thenReturn(3L);
+        when(bookingRepository.countByVoteSessionIdAndConsultationRequestedTrue(session.getId())).thenReturn(1L);
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
                         paymentService.createConsultationLead(shareToken, managerToken, new TripExportRequest()))

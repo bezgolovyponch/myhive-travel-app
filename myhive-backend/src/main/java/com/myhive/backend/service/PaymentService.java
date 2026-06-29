@@ -38,8 +38,9 @@ public class PaymentService {
     /** Stripe's per-transaction minimum for EUR (~€0.50). Smaller charges are rejected by the gateway. */
     private static final long STRIPE_MIN_CHARGE_CENTS = 50L;
 
-    /** L5: cap on consultation leads per vote session, to bound staff-inbox spam. */
-    private static final long MAX_CONSULTATION_LEADS_PER_SESSION = 3L;
+    /** L5: at most one consultation lead per vote session (matches the "already requested" message),
+     *  to bound staff-inbox spam. */
+    private static final long MAX_CONSULTATION_LEADS_PER_SESSION = 1L;
 
     private final BookingService bookingService;
     private final BookingRepository bookingRepository;
