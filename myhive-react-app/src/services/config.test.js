@@ -1,4 +1,4 @@
-import {resolveDestinationSlugFromHost, FALLBACK_DESTINATION_SLUG} from './config';
+import {resolveDestinationSlugFromHost, FALLBACK_DESTINATION_SLUG, DESTINATIONS_URL, activitiesUrl} from './config';
 
 test('uses the first label of a destination subdomain', () => {
     expect(resolveDestinationSlugFromHost('prague.trivlu.com')).toBe('prague');
@@ -18,4 +18,13 @@ test('falls back on localhost and onrender hosts', () => {
 test('falls back on empty or missing host', () => {
     expect(resolveDestinationSlugFromHost('')).toBe(FALLBACK_DESTINATION_SLUG);
     expect(resolveDestinationSlugFromHost(undefined)).toBe(FALLBACK_DESTINATION_SLUG);
+});
+
+test('DESTINATIONS_URL points at the apex', () => {
+    expect(DESTINATIONS_URL).toBe('https://trivlu.com');
+});
+
+test('activitiesUrl builds a destination subdomain URL', () => {
+    expect(activitiesUrl('prague')).toBe('https://prague.trivlu.com');
+    expect(activitiesUrl('barcelona')).toBe('https://barcelona.trivlu.com');
 });

@@ -38,3 +38,11 @@ export const DEFAULT_DESTINATION_SLUG =
     typeof window !== 'undefined' && window.location
         ? resolveDestinationSlugFromHost(window.location.hostname)
         : FALLBACK_DESTINATION_SLUG;
+
+// Cross-domain navigation targets. "Destinations" goes to the apex marketing
+// site; "Activities" goes to the destination subdomain (prague.trivlu.com).
+export const DESTINATIONS_URL = 'https://trivlu.com';
+
+export function activitiesUrl(slug) {
+    return `https://${slug}.trivlu.com`;
+}
