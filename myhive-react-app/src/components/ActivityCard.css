@@ -35,10 +35,26 @@
     color: var(--text);
 }
 
-.activity-description {
+.activity-actions {
+    display: flex;
+    gap: var(--gap-sm);
+    align-items: center;
+}
+
+.more-info-btn {
+    background: transparent;
+    color: var(--brand);
+    border: 1px solid var(--brand);
+    padding: var(--gap-sm) var(--gap);
+    border-radius: var(--radius);
     font-size: 0.75rem;
-    color: var(--text-muted);
-    line-height: 1.5;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms;
+}
+
+.more-info-btn:hover {
+    background: var(--tint-blue);
 }
 
 .activity-includes {
