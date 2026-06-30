@@ -9,8 +9,9 @@
     box-shadow: var(--shadow-md);
 }
 
-/* On the homepage the header overlays the hero image: no background, no shadow,
-   smaller height. Scoped so every other page keeps the solid brand header. */
+/* The header floats over page content on every page: no solid background, no
+   shadow, smaller height. A subtle top-down gradient keeps white nav text
+   legible over light page backgrounds. */
 .header--transparent {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 100%);
     box-shadow: none;
@@ -53,8 +54,8 @@
     align-items: center;
 }
 
-/* Transparent (homepage) header: nav-links sit on the right next to the
-   Trip Builder button instead of dead-centre, matching the template. */
+/* Transparent header: nav-links sit on the right next to the Trip Builder
+   button instead of dead-centre, matching the template. */
 .header--transparent .nav-links {
     position: static;
     left: auto;
