@@ -1,14 +1,15 @@
-import {Link, useLocation} from 'react-router-dom';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
 import TripBuilderDropdown from './TripBuilderDropdown';
 import TripSetupModal from './TripSetupModal';
-import {DESTINATIONS_URL, activitiesUrl, DEFAULT_DESTINATION_SLUG} from '../services/config';
+import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './Header.css';
 
 function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const {state: catalog} = useCatalog();
   const {state, dispatch} = useTrip();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -26,16 +27,13 @@ function Header() {
   const destination = destinationSlug
       ? catalog.destinations.find((item) => item.slug === destinationSlug)
       : null;
-  const showBreadcrumbs = Boolean(destinationSlug);
-  const isPackagePage = /^\/destination\/[^/?]+\/package\//.test(location.pathname);
-  const isActivityPage = /^\/destination\/[^/?]+\/activity\//.test(location.pathname);
-  const currentTabLabel = isPackagePage
-      ? 'Package'
-      : isActivityPage
-          ? 'Activity'
-          : (new URLSearchParams(location.search).get('tab') || 'activities')
-              .replace('-', ' ')
-              .replace(/\b\w/g, (char) => char.toUpperCase());
+  // Activity/package detail pages render their own richer breadcrumbs (with the
+  // actual item name), so the header only shows breadcrumbs on destination pages.
+  const isDetailPage = /^\/destination\/[^/?]+\/(activity|package)\//.test(location.pathname);
+  const showBreadcrumbs = Boolean(destinationSlug) && !isDetailPage;
+  const currentTabLabel = (new URLSearchParams(location.search).get('tab') || 'activities')
+      .replace('-', ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
   return (
     <header className="header header--transparent">
@@ -44,8 +42,16 @@ function Header() {
           <img src="/logo-white.png" alt="Trivlu" className="logo-img"/>
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
-          <a href={DESTINATIONS_URL} onClick={() => setMobileNavOpen(false)}>Destinations</a>
-          <a href={activitiesUrl(DEFAULT_DESTINATION_SLUG)} onClick={() => setMobileNavOpen(false)}>Activities</a>
+          <a
+              href="/#activities"
+              onClick={(e) => {
+                e.preventDefault();
+                setMobileNavOpen(false);
+                scrollToHomeSection(navigate, 'activities');
+              }}
+          >
+            Activities
+          </a>
           <Link to="/about" onClick={() => setMobileNavOpen(false)}>About</Link>
           <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
           <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>

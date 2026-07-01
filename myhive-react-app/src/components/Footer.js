@@ -12,7 +12,7 @@ function Footer() {
                 <p className="footer-tagline">Turn group travel chaos into epic adventures with zero stress.</p>
 
                 <nav className="footer-nav">
-                    <a href="/#activities" onClick={(e) => { e.preventDefault(); scrollToHomeSection(navigate, 'activities'); }}>Destinations</a>
+                    <a href="/#activities" onClick={(e) => { e.preventDefault(); scrollToHomeSection(navigate, 'activities'); }}>Activities</a>
                     <Link to="/about">About</Link>
                     <Link to="/blog">Blog</Link>
                     <Link to="/contact">Contact</Link>

@@ -39,10 +39,11 @@ export const DEFAULT_DESTINATION_SLUG =
         ? resolveDestinationSlugFromHost(window.location.hostname)
         : FALLBACK_DESTINATION_SLUG;
 
-// Cross-domain navigation targets. "Destinations" goes to the apex marketing
-// site; "Activities" goes to the destination subdomain (prague.trivlu.com).
-export const DESTINATIONS_URL = 'https://trivlu.com';
-
-export function activitiesUrl(slug) {
-    return `https://${slug}.trivlu.com`;
-}
+// TODO(multidomain): cross-domain nav was removed when the header/hero switched to
+// scrolling to the homepage #activities section. To reimplement multi-destination
+// support later, restore:
+//   export const DESTINATIONS_URL = 'https://trivlu.com';            // apex marketing site
+//   export function activitiesUrl(slug) { return `https://${slug}.trivlu.com`; }
+// and point the Header "Destinations"/"Activities" links + the hero "Explore
+// activities" CTA at them (see git history of Header.js / HomePage.js).
+// resolveDestinationSlugFromHost above still resolves the per-subdomain slug.

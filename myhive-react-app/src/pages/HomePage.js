@@ -1,4 +1,5 @@
 import {Helmet} from 'react-helmet-async';
+import {useNavigate} from 'react-router-dom';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import TripSetupModal from '../components/TripSetupModal';
 import TrustBar from '../components/home/TrustBar';
@@ -6,11 +7,13 @@ import HowItWorksSection from '../components/home/HowItWorksSection';
 import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSection';
 import ReviewsSection from '../components/home/ReviewsSection';
 import ContactCtaSection from '../components/home/ContactCtaSection';
-import {SITE_URL, activitiesUrl, DEFAULT_DESTINATION_SLUG} from '../services/config';
+import {SITE_URL} from '../services/config';
 import {pushEvent} from '../utils/analytics';
+import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './HomePage.css';
 
 function HomePage() {
+    const navigate = useNavigate();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
 
     return (
@@ -68,8 +71,12 @@ function HomePage() {
                             </button>
                             <a
                                 className="hp-btn-secondary"
-                                href={activitiesUrl(DEFAULT_DESTINATION_SLUG)}
-                                onClick={() => pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'})}
+                                href="/#activities"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'});
+                                    scrollToHomeSection(navigate, 'activities');
+                                }}
                             >
                                 Explore activities
                             </a>

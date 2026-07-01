@@ -1,11 +1,15 @@
-import {render, screen} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import Header from './Header';
 import {CatalogProvider} from '../context/CatalogContext';
 import {TripProvider} from '../context/TripContext';
 import api from '../services/api';
 
-jest.spyOn(api, 'getDestinations').mockResolvedValue([]);
+beforeEach(() => {
+  // CRA's jest config resets mocks between tests, so re-apply per test.
+  jest.spyOn(api, 'getDestinations').mockResolvedValue([]);
+});
 
 function renderHeader(initialPath = '/') {
   return render(
@@ -19,19 +23,42 @@ function renderHeader(initialPath = '/') {
   );
 }
 
-test('Destinations link points at the apex domain', () => {
+test('nav has no Destinations link', () => {
   renderHeader();
-  expect(screen.getByRole('link', {name: 'Destinations'}))
-    .toHaveAttribute('href', 'https://trivlu.com');
+  expect(screen.queryByRole('link', {name: 'Destinations'})).toBeNull();
 });
 
-test('Activities link points at the destination subdomain', () => {
+test('Activities nav item scrolls to the homepage activities section', async () => {
+  const user = userEvent.setup();
   renderHeader();
-  expect(screen.getByRole('link', {name: 'Activities'}))
-    .toHaveAttribute('href', expect.stringMatching(/^https:\/\/[a-z]+\.trivlu\.com$/));
+  const section = document.createElement('div');
+  section.id = 'activities';
+  section.scrollIntoView = jest.fn();
+  document.body.appendChild(section);
+
+  const link = screen.getByRole('link', {name: 'Activities'});
+  expect(link).toHaveAttribute('href', '/#activities');
+  await user.click(link);
+  await waitFor(() => expect(section.scrollIntoView).toHaveBeenCalled());
+  section.remove();
 });
 
 test('header is transparent on a non-home page', () => {
   const {container} = renderHeader('/about');
   expect(container.querySelector('.header')).toHaveClass('header--transparent');
+});
+
+test('shows breadcrumbs on a destination page', () => {
+  const {container} = renderHeader('/destination/prague?tab=activities');
+  expect(container.querySelector('.breadcrumbs')).toBeInTheDocument();
+});
+
+test('hides breadcrumbs on the activity detail page (page renders its own)', () => {
+  const {container} = renderHeader('/destination/prague/activity/karting');
+  expect(container.querySelector('.breadcrumbs')).toBeNull();
+});
+
+test('hides breadcrumbs on the package detail page (page renders its own)', () => {
+  const {container} = renderHeader('/destination/prague/package/stag-weekend');
+  expect(container.querySelector('.breadcrumbs')).toBeNull();
 });

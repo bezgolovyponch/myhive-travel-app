@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -120,10 +120,18 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
 
-test('renders the Explore activities secondary CTA to the activities subdomain', () => {
+test('Explore activities CTA scrolls to the activities section', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
-  // render HomePage the same way the existing tests in this file do
   renderHome();
+  const section = document.createElement('div');
+  section.id = 'activities';
+  section.scrollIntoView = jest.fn();
+  document.body.appendChild(section);
+
   const cta = screen.getByRole('link', {name: /Explore activities/i});
-  expect(cta).toHaveAttribute('href', expect.stringMatching(/^https:\/\/[a-z]+\.trivlu\.com$/));
+  expect(cta).toHaveAttribute('href', '/#activities');
+  await userEvent.click(cta);
+  await waitFor(() => expect(section.scrollIntoView).toHaveBeenCalled());
+  expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});
+  section.remove();
 });
