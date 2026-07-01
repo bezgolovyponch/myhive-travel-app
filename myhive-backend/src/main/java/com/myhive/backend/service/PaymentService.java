@@ -229,9 +229,15 @@ public class PaymentService {
                     event.sessionId(), paymentStatus);
             return;
         }
-        // SEC-2: never credit a share for less (or more) than its expected amount.
-        if (event.amountTotalCents() != null
-                && event.amountTotalCents().longValue() != PaymentCalculator.toCents(share.getAmount())) {
+        // SEC-2: never credit a share for less (or more) than its expected amount. A genuine settled
+        // checkout.session.completed always carries amount_total; a null means we cannot verify the amount
+        // and must not credit (treating it the same as a mismatch).
+        if (event.amountTotalCents() == null) {
+            log.warn("Stripe event {} has no amount_total for share {}; cannot verify amount — skipping",
+                    event.id(), share.getId());
+            return;
+        }
+        if (event.amountTotalCents().longValue() != PaymentCalculator.toCents(share.getAmount())) {
             log.warn("Stripe amount {} != expected share amount {} cents for share {}; skipping",
                     event.amountTotalCents(), PaymentCalculator.toCents(share.getAmount()), share.getId());
             return;

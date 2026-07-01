@@ -382,6 +382,38 @@ class PaymentServiceTest {
     }
 
     @Test
+    void handleStripeEvent_nullSettledAmount_doesNotCreditShare() {
+        // F4: a checkout.session.completed event with a null amount_total cannot be verified
+        // and must not credit the share — mirrors the amountMismatch guard.
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-NULL");
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setTotalAmount(new BigDecimal("100.00"));
+
+        BookingPaymentShare deposit = new BookingPaymentShare();
+        deposit.setId(UUID.randomUUID());
+        deposit.setBooking(booking);
+        deposit.setType(PaymentShareType.DEPOSIT);
+        deposit.setAmount(new BigDecimal("30.00"));
+        deposit.setPaid(false);
+
+        com.myhive.backend.payment.StripeRefs.StripeWebhookEvent nullAmountEvent =
+                new com.myhive.backend.payment.StripeRefs.StripeWebhookEvent(
+                        "evt_nullamt", "checkout.session.completed", deposit.getId().toString(), null, "cs_null",
+                        "pi_null", "payer@example.com", "paid", null, null, false);
+        when(processedEventRepository.existsById("evt_nullamt")).thenReturn(false);
+        when(stripeGateway.constructEvent("b", "s")).thenReturn(nullAmountEvent);
+        when(shareRepository.findById(deposit.getId())).thenReturn(Optional.of(deposit));
+
+        paymentService.handleStripeEvent("b", "s");
+
+        assertThat(deposit.isPaid()).isFalse();
+        verify(shareRepository, never()).save(any());
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
     void handleStripeEvent_unsettledPaymentStatus_defersWithoutCrediting() {
         // STRIPE-1 (L4): payment_status not settled -> defer, no credit, no email.
         Booking booking = new Booking();
