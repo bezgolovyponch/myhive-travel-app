@@ -8,6 +8,9 @@ public final class StripeRefs {
     public record CheckoutSessionRef(String id, String url) {
     }
 
+    public record PaymentLinkRef(String id, String url) {
+    }
+
     /**
      * Normalized view of the Stripe webhook events PaymentService cares about, so the
      * service never touches the Stripe SDK. Fields not relevant to a given event type are null.
