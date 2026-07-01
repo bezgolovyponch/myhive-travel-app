@@ -2,10 +2,30 @@ import {pushEvent} from '../../utils/analytics';
 import './HowItWorksSection.css';
 
 const STEPS = [
-    {icon: '🎯', title: 'Define your stag style', text: 'wild or classy, chill or adrenaline'},
-    {icon: '👆', title: 'Handpick the shortlist', text: 'pick what the group gets to vote on'},
-    {icon: '🗳️', title: 'Send the vote link', text: 'your mates pick their favourites'},
-    {icon: '✏️', title: 'Review & confirm', text: 'add, remove or tweak activities before you book'},
+    {
+        title: 'Define your stag style',
+        text: 'Wild or classy, chill or adrenaline',
+        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.38.35.png',
+        objectPosition: 'top',
+    },
+    {
+        title: 'Handpick the shortlist',
+        text: 'Pick what the group gets to vote on',
+        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.52.51.jpg',
+        objectPosition: 'center',
+    },
+    {
+        title: 'Send the vote link',
+        text: 'Your mates pick their favourites',
+        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.55.15.png',
+        objectPosition: 'center',
+    },
+    {
+        title: 'Review & confirm',
+        text: 'Add, remove or tweak before you book',
+        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.40.55.jpg',
+        objectPosition: 'left top',
+    },
 ];
 
 function HowItWorksSection({onStartVote}) {
@@ -18,10 +38,16 @@ function HowItWorksSection({onStartVote}) {
             <div className="how-it-works-steps">
                 {STEPS.map((step, index) => (
                     <div key={step.title} className="how-it-works-step">
-                        <span className="step-number">{index + 1}</span>
-                        <span className="step-icon" aria-hidden="true">{step.icon}</span>
-                        <h3 className="step-title">{step.title}</h3>
-                        <p className="step-text">{step.text}</p>
+                        <div className="step-img">
+                            <img src={step.img} alt="" loading="lazy" style={{objectPosition: step.objectPosition}}/>
+                        </div>
+                        <div className="step-body">
+                            <div className="step-head">
+                                <span className="step-number">{index + 1}</span>
+                                <h3 className="step-title">{step.title}</h3>
+                            </div>
+                            <p className="step-text">{step.text}</p>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -32,7 +58,7 @@ function HowItWorksSection({onStartVote}) {
                     onStartVote();
                 }}
             >
-                Start Group Vote
+                <i className="ph ph-check-square" aria-hidden="true"/> Start Group Vote
             </button>
         </section>
     );

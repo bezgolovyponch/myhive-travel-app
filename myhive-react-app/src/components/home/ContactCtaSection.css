@@ -1,0 +1,83 @@
+.contact-cta {
+    padding: var(--gap-xl) var(--page-padding) var(--gap-2xl);
+    background: var(--bg);
+}
+
+.contact-cta-card {
+    display: flex;
+    align-items: stretch;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: var(--card, #262430);
+    box-shadow: 0 0.25rem 1.5rem rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--line, #34313f);
+    min-height: 17.5rem;
+    max-width: 68.75rem;
+    margin: 0 auto;
+}
+
+.contact-cta-text {
+    flex: 1 1 56%;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
+}
+
+.contact-cta-title {
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    color: #fff;
+    margin: 0 0 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03125rem;
+}
+
+.contact-cta-sub {
+    font-size: 0.9375rem;
+    color: var(--hp-muted-l, #b0acbb);
+    margin: 0 0 1.625rem;
+    line-height: 1.5;
+    max-width: 26.25rem;
+}
+
+.contact-cta-wa {
+    background: var(--wa, #25D366);
+    color: #fff;
+    border: none;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    padding: 0.875rem 1.625rem;
+    border-radius: 0.625rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.contact-cta-wa:hover {
+    filter: brightness(1.08);
+}
+
+.contact-cta-img {
+    flex: 1 1 44%;
+    background: url('https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/1781877795.jpg') center / cover no-repeat var(--bg-alt, #1b1822);
+}
+
+@media (max-width: 768px) {
+    .contact-cta-card {
+        flex-direction: column;
+    }
+
+    .contact-cta-text {
+        clip-path: none;
+        padding: 1.75rem 1.375rem;
+        order: 1;
+    }
+
+    .contact-cta-img {
+        min-height: 10rem;
+        order: 0;
+    }
+}

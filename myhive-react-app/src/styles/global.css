@@ -359,3 +359,28 @@ textarea {
     font-family: 'FKGroteskNeue';
     src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2') format('woff2');
 }
+
+.success-whatsapp {
+    margin-top: var(--gap-lg);
+    text-align: center;
+}
+
+.success-whatsapp h5 {
+    margin-bottom: var(--gap);
+}
+
+.success-whatsapp-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #25d366;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius);
+}
+
+.success-whatsapp-link:hover {
+    filter: brightness(0.95);
+}

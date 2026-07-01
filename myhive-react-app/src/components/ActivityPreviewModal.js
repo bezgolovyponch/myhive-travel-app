@@ -18,6 +18,13 @@ function ActivityPreviewModal({ activity, link, onClose }) {
         meta.push(activity.categories.join(' · '));
     }
 
+    // Same parsing as the detail page: the API stores includes as one
+    // comma/semicolon/newline-separated string.
+    const includedItems = (activity.includes || '')
+        .split(/[,;\n]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
     return (
         <AppModal
             isOpen
@@ -47,6 +54,16 @@ function ActivityPreviewModal({ activity, link, onClose }) {
                     ? activity.description
                     : <span className="activity-preview-no-desc">No description yet.</span>}
             </div>
+            {includedItems.length > 0 && (
+                <div className="activity-preview-includes">
+                    <h3 className="activity-preview-includes-title">What's included</h3>
+                    <ul className="activity-preview-includes-list">
+                        {includedItems.map((item) => (
+                            <li key={item}>{item}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </AppModal>
     );
 }

@@ -9,6 +9,7 @@ const activity = {
   categories: ['Water', 'Nature'],
   imageUrl: 'http://img/snorkel.jpg',
   description: 'Explore the coral reefs with a guide.',
+  includes: 'Mask, Fins; Guide',
 };
 
 test('renders nothing when activity is null', () => {
@@ -33,6 +34,22 @@ test('shows a muted placeholder when there is no description', () => {
     <ActivityPreviewModal activity={{ ...activity, description: '' }} link={null} onClose={jest.fn()} />
   );
   expect(screen.getByText(/No description yet/i)).toBeInTheDocument();
+});
+
+test('shows the What\'s included list parsed from the includes string', () => {
+  render(<ActivityPreviewModal activity={activity} link={null} onClose={jest.fn()} />);
+
+  expect(screen.getByText(/What's included/i)).toBeInTheDocument();
+  expect(screen.getByText('Mask')).toBeInTheDocument();
+  expect(screen.getByText('Fins')).toBeInTheDocument();
+  expect(screen.getByText('Guide')).toBeInTheDocument();
+});
+
+test('hides the What\'s included section when includes is empty', () => {
+  render(
+    <ActivityPreviewModal activity={{ ...activity, includes: '' }} link={null} onClose={jest.fn()} />
+  );
+  expect(screen.queryByText(/What's included/i)).not.toBeInTheDocument();
 });
 
 test('shows the View full page link only when link is provided', () => {

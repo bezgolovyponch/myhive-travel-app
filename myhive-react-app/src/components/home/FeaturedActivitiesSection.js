@@ -55,7 +55,7 @@ function FeaturedActivitiesSection() {
             {mainDestination && (
                 <Link
                     to={`/destination/${mainDestination.slug}`}
-                    className="btn btn--primary btn--lg"
+                    className="btn btn--lg featured-activities-cta"
                     onClick={() => pushEvent('cta_click', {cta_label: 'View All Activities', block: 'activities'})}
                 >
                     View All Activities
