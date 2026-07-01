@@ -90,8 +90,10 @@ public class BookingService {
         dto.setAmountPaid(booking.getAmountPaid());
         dto.setDepositAmount(booking.getDepositAmount());
         dto.setPaymentLinks(shareRepository.findByBookingId(booking.getId()).stream()
-                .filter(s -> s.getType() == PaymentShareType.BALANCE && s.getPaymentUrl() != null)
-                .map(s -> new BookingDTO.PaymentLinkDTO(s.getId(), s.getAmount(), s.isPaid(), s.getPaymentUrl()))
+                .filter(s -> s.getType() == PaymentShareType.DEPOSIT
+                        || (s.getType() == PaymentShareType.BALANCE && s.getPaymentUrl() != null))
+                .map(s -> new BookingDTO.PaymentLinkDTO(s.getId(), s.getAmount(), s.isPaid(),
+                        s.getPaymentUrl(), s.getType().name()))
                 .toList());
         return dto;
     }

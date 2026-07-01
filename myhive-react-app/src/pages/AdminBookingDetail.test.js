@@ -27,6 +27,25 @@ function renderPage() {
     );
 }
 
+test('shows Deposit and Balance type labels in payment history', async () => {
+    mockApi.getBookingById.mockResolvedValue({
+        id: 'b1', status: 'DEPOSIT_PAID', userEmail: 'x@y.z',
+        totalAmount: 40, amountPaid: 12, items: [],
+        paymentLinks: [
+            {id: 'd1', amount: 12, paid: true, url: 'https://checkout/cs_dep', type: 'DEPOSIT'},
+            {id: 'l1', amount: 28, paid: false, url: 'https://pay/plink_1', type: 'BALANCE'},
+        ],
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('heading', {name: 'Payment'})).toBeInTheDocument();
+    expect(await screen.findByText('Deposit')).toBeInTheDocument();
+    expect(await screen.findByText('Balance')).toBeInTheDocument();
+    // Both rows are present — one paid (deposit), one unpaid with a URL (balance)
+    expect(screen.getByText('https://pay/plink_1')).toBeInTheDocument();
+});
+
 test('shows balance and creates a payment link with cents', async () => {
     const user = userEvent.setup();
     // First call (initial load): no payment links.

@@ -587,26 +587,44 @@ class BookingServiceTest {
     }
 
     @Test
-    void getBookingById_includesAmountPaidAndPaymentLinks() {
+    void getBookingById_includesAmountPaidAndPaymentHistory() {
         Booking booking = TestDataFactory.booking(BookingStatus.DEPOSIT_PAID);
         booking.setTotalAmount(new BigDecimal("40.00"));
         booking.setAmountPaid(new BigDecimal("12.00"));
         booking.setBookingItems(List.of());
-        BookingPaymentShare link = new BookingPaymentShare();
-        link.setId(UUID.randomUUID());
-        link.setType(PaymentShareType.BALANCE);
-        link.setAmount(new BigDecimal("28.00"));
-        link.setPaid(false);
-        link.setPaymentUrl("https://pay/plink_1");
+
+        BookingPaymentShare deposit = new BookingPaymentShare();
+        deposit.setId(UUID.randomUUID());
+        deposit.setType(PaymentShareType.DEPOSIT);
+        deposit.setAmount(new BigDecimal("12.00"));
+        deposit.setPaid(true);
+        deposit.setPaymentUrl("https://checkout/cs_dep");
+
+        BookingPaymentShare balance = new BookingPaymentShare();
+        balance.setId(UUID.randomUUID());
+        balance.setType(PaymentShareType.BALANCE);
+        balance.setAmount(new BigDecimal("28.00"));
+        balance.setPaid(false);
+        balance.setPaymentUrl("https://pay/plink_1");
+
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
-        when(shareRepository.findByBookingId(booking.getId())).thenReturn(List.of(link));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(List.of(deposit, balance));
 
         BookingDTO dto = bookingService.getBookingById(booking.getId());
 
         assertThat(dto.getAmountPaid()).isEqualByComparingTo(new BigDecimal("12.00"));
-        assertThat(dto.getPaymentLinks()).hasSize(1);
-        assertThat(dto.getPaymentLinks().get(0).getUrl()).isEqualTo("https://pay/plink_1");
-        assertThat(dto.getPaymentLinks().get(0).isPaid()).isFalse();
+        assertThat(dto.getPaymentLinks()).hasSize(2);
+
+        BookingDTO.PaymentLinkDTO depositLink = dto.getPaymentLinks().stream()
+                .filter(pl -> "DEPOSIT".equals(pl.getType()))
+                .findFirst().orElseThrow();
+        assertThat(depositLink.isPaid()).isTrue();
+
+        BookingDTO.PaymentLinkDTO balanceLink = dto.getPaymentLinks().stream()
+                .filter(pl -> "BALANCE".equals(pl.getType()))
+                .findFirst().orElseThrow();
+        assertThat(balanceLink.getUrl()).isEqualTo("https://pay/plink_1");
+        assertThat(balanceLink.isPaid()).isFalse();
     }
 
     @Test

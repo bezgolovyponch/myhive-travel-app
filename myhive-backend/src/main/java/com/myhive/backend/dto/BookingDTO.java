@@ -23,6 +23,7 @@ public class BookingDTO {
         private BigDecimal amount;
         private boolean paid;
         private String url;
+        private String type;
     }
     private UUID id;
     private String userEmail;

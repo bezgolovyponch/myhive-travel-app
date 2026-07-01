@@ -286,6 +286,7 @@ function AdminBookingDetail() {
                                         <thead>
                                         <tr>
                                             <th className="small text-muted text-uppercase">Amount</th>
+                                            <th className="small text-muted text-uppercase">Type</th>
                                             <th className="small text-muted text-uppercase">Status</th>
                                             <th className="small text-muted text-uppercase">Link</th>
                                         </tr>
@@ -294,6 +295,7 @@ function AdminBookingDetail() {
                                         {booking.paymentLinks.map((pl) => (
                                             <tr key={pl.id}>
                                                 <td className="small">{formatAmount(pl.amount)}</td>
+                                                <td className="small">{pl.type === 'DEPOSIT' ? 'Deposit' : pl.type === 'BALANCE' ? 'Balance' : pl.type}</td>
                                                 <td><Badge bg={pl.paid ? 'success' : 'secondary'}>
                                                     {pl.paid ? 'Paid' : 'Unpaid'}</Badge></td>
                                                 <td className="small">
