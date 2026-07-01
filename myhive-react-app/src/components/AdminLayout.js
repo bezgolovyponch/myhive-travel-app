@@ -14,7 +14,7 @@ function AdminLayout() {
                         Trivlu Admin
                     </Navbar.Brand>
                     <Nav className="me-auto">
-                        {user?.roles?.includes('ADMIN') && (
+                        {(user?.roles?.includes('ADMIN') || user?.roles?.includes('MANAGER')) && (
                             <Nav.Link as={NavLink} to="/admin" end>
                                 Bookings
                             </Nav.Link>

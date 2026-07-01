@@ -13,7 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function AdminIndex() {
     const {user} = useAuth();
-    if (user?.roles?.includes('ADMIN')) {
+    if (user?.roles?.includes('ADMIN') || user?.roles?.includes('MANAGER')) {
         return <AdminDashboard/>;
     }
     return <Navigate to="/admin/activities" replace/>;
@@ -31,7 +31,7 @@ function AdminApp() {
                 }>
                     <Route index element={<AdminIndex/>}/>
                     <Route path="bookings/:id"
-                           element={<ProtectedRoute requiredRole="ADMIN"><AdminBookingDetail/></ProtectedRoute>}/>
+                           element={<ProtectedRoute requiredRole={['ADMIN', 'MANAGER']}><AdminBookingDetail/></ProtectedRoute>}/>
                     <Route path="activities" element={<AdminActivities/>}/>
                     <Route path="packages" element={<AdminPackages/>}/>
                     <Route path="categories" element={<AdminCategories/>}/>

@@ -17,7 +17,7 @@ function ProtectedRoute({children, requiredRole}) {
         return <Navigate to="/admin/login" replace/>;
     }
 
-    if (requiredRole && user?.roles && !user.roles.includes(requiredRole)) {
+    if (requiredRole && user?.roles && ![].concat(requiredRole).some(r => user.roles.includes(r))) {
         return <Navigate to="/admin/activities" replace/>;
     }
 
