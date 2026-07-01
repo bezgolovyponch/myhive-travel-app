@@ -4,6 +4,8 @@ import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.dto.ActivityImportApplyRequest;
 import com.myhive.backend.dto.ActivityImportPreviewDTO;
 import com.myhive.backend.dto.ActivityImportResultDTO;
+import com.myhive.backend.dto.AdminPaymentLinkRequest;
+import com.myhive.backend.dto.AdminPaymentLinkResponse;
 import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
@@ -19,6 +21,7 @@ import com.myhive.backend.service.CategoryService;
 import com.myhive.backend.service.DestinationService;
 import com.myhive.backend.service.ImageUploadService;
 import com.myhive.backend.service.PackageService;
+import com.myhive.backend.service.PaymentService;
 import com.myhive.backend.service.QuizService;
 import com.myhive.backend.service.activity.ActivityCsvExporter;
 import com.myhive.backend.service.activity.ActivityCsvImporter;
@@ -63,6 +66,7 @@ public class AdminController {
     private final DestinationService destinationService;
     private final CategoryService categoryService;
     private final PackageService packageService;
+    private final PaymentService paymentService;
     private final QuizService quizService;
     private final Optional<ImageUploadService> imageUploadService;
     private final ActivityCsvExporter activityCsvExporter;
@@ -83,6 +87,14 @@ public class AdminController {
     @GetMapping("/bookings/stats")
     public ResponseEntity<BookingStatsDTO> getBookingStats() {
         return ResponseEntity.ok(bookingService.getBookingStats());
+    }
+
+    @PostMapping("/bookings/{id}/payment-link")
+    public ResponseEntity<AdminPaymentLinkResponse> createBookingPaymentLink(
+            @PathVariable UUID id,
+            @Valid @RequestBody AdminPaymentLinkRequest request) {
+        AdminPaymentLinkResponse response = paymentService.createAdminPaymentLink(id, request.amountCents());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/activities")

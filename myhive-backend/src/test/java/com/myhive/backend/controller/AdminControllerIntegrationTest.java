@@ -1,18 +1,23 @@
 package com.myhive.backend.controller;
 
 import com.myhive.backend.config.TestSecurityConfig;
+import com.myhive.backend.dto.AdminPaymentLinkResponse;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +29,10 @@ import static com.myhive.backend.util.JwtTestHelper.adminJwt;
 import static com.myhive.backend.util.JwtTestHelper.managerJwt;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -34,11 +43,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@Import(TestSecurityConfig.class)
+@Import({TestSecurityConfig.class, AdminControllerIntegrationTest.MockPaymentConfig.class})
 class AdminControllerIntegrationTest {
+
+    @TestConfiguration
+    static class MockPaymentConfig {
+        @Bean
+        @Primary
+        public PaymentService paymentService() {
+            return mock(PaymentService.class);
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private PaymentService paymentService;
 
     @Autowired
     private DestinationRepository destinationRepository;
@@ -58,6 +79,7 @@ class AdminControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        reset(paymentService);
         Destination dest = new Destination();
         dest.setName("Paris");
         dest.setCountry("France");
@@ -338,5 +360,20 @@ class AdminControllerIntegrationTest {
         mockMvc.perform(get("/admin/categories/" + categoryId + "/usage")
                         .with(adminJwt()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createPaymentLink_returns201WithUrl() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID shareId = UUID.randomUUID();
+        when(paymentService.createAdminPaymentLink(eq(bookingId), eq(2800L)))
+                .thenReturn(new AdminPaymentLinkResponse("https://pay/plink_1", new BigDecimal("28.00"), shareId));
+
+        mockMvc.perform(post("/admin/bookings/" + bookingId + "/payment-link")
+                        .with(adminJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amountCents\": 2800}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.url").value("https://pay/plink_1"));
     }
 }
