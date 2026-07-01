@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.myhive.backend.dto.AdminPaymentLinkResponse;
 import com.myhive.backend.dto.ConsultationLeadResponse;
 import com.myhive.backend.dto.DepositSessionResponse;
 import com.myhive.backend.dto.TripExportRequest;
@@ -21,6 +22,7 @@ import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.payment.StripeGateway;
 import com.myhive.backend.payment.StripeRefs.CheckoutSessionRef;
+import com.myhive.backend.payment.StripeRefs.PaymentLinkRef;
 import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.ProcessedStripeEventRepository;
@@ -471,6 +473,66 @@ class PaymentServiceTest {
         verifyNoInteractions(bookingService);
         // F3: the per-session lock is taken before the cap check so the count-then-insert is serialized.
         verify(voteSessionService).lockSession(session.getId());
+    }
+
+    @Test
+    void createAdminPaymentLink_createsLinkAndBalanceShare() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setTripId("TRV-ADMIN1");
+        booking.setStatus(BookingStatus.DEPOSIT_PAID);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(stripeProperties.getCurrency()).thenReturn("eur");
+        when(stripeGateway.createPaymentLink(eq(2800L), eq("eur"), anyString(), anyMap()))
+                .thenReturn(new PaymentLinkRef("plink_1", "https://pay/plink_1"));
+        when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
+            BookingPaymentShare s = inv.getArgument(0);
+            if (s.getId() == null) {
+                s.setId(UUID.randomUUID());
+            }
+            return s;
+        });
+
+        AdminPaymentLinkResponse response = paymentService.createAdminPaymentLink(bookingId, 2800L);
+
+        assertThat(response.url()).isEqualTo("https://pay/plink_1");
+        assertThat(response.amount()).isEqualByComparingTo(new BigDecimal("28.00"));
+        ArgumentCaptor<BookingPaymentShare> shareCaptor = ArgumentCaptor.forClass(BookingPaymentShare.class);
+        verify(shareRepository, org.mockito.Mockito.atLeastOnce()).save(shareCaptor.capture());
+        BookingPaymentShare saved = shareCaptor.getValue();
+        assertThat(saved.getType()).isEqualTo(PaymentShareType.BALANCE);
+        assertThat(saved.getStripePaymentLinkId()).isEqualTo("plink_1");
+        assertThat(saved.getPaymentUrl()).isEqualTo("https://pay/plink_1");
+        assertThat(saved.isPaid()).isFalse();
+    }
+
+    @Test
+    void createAdminPaymentLink_belowMinimum_throwsBadRequest() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setStatus(BookingStatus.DEPOSIT_PAID);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> paymentService.createAdminPaymentLink(bookingId, 40L))
+                .isInstanceOf(com.myhive.backend.exception.BadRequestException.class);
+        verify(stripeGateway, never()).createPaymentLink(anyLong(), anyString(), anyString(), anyMap());
+    }
+
+    @Test
+    void createAdminPaymentLink_cancelledBooking_throwsBadRequest() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setStatus(BookingStatus.CANCELLED);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> paymentService.createAdminPaymentLink(bookingId, 2800L))
+                .isInstanceOf(com.myhive.backend.exception.BadRequestException.class);
+        verify(stripeGateway, never()).createPaymentLink(anyLong(), anyString(), anyString(), anyMap());
     }
 
     @Test

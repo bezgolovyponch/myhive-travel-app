@@ -1,6 +1,7 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.config.StripeProperties;
+import com.myhive.backend.dto.AdminPaymentLinkResponse;
 import com.myhive.backend.dto.ConsultationLeadResponse;
 import com.myhive.backend.dto.DepositSessionResponse;
 import com.myhive.backend.dto.TripExportRequest;
@@ -10,10 +11,12 @@ import com.myhive.backend.entity.ProcessedStripeEvent;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ConflictException;
+import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.payment.StripeGateway;
 import com.myhive.backend.payment.StripeRefs.CheckoutSessionRef;
+import com.myhive.backend.payment.StripeRefs.PaymentLinkRef;
 import com.myhive.backend.payment.StripeRefs.StripeWebhookEvent;
 import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
@@ -37,6 +40,9 @@ public class PaymentService {
 
     /** Stripe's per-transaction minimum for EUR (~€0.50). Smaller charges are rejected by the gateway. */
     private static final long STRIPE_MIN_CHARGE_CENTS = 50L;
+
+    /** Typo guard: an admin-created payment link must not exceed €50,000 (5,000,000 cents). */
+    private static final long ADMIN_PAYMENT_LINK_MAX_CENTS = 5_000_000L;
 
     /** L5: at most one consultation lead per vote session (matches the "already requested" message),
      *  to bound staff-inbox spam. */
@@ -110,6 +116,41 @@ public class PaymentService {
     public DepositSessionResponse createTripDepositSession(TripExportRequest request) {
         Booking booking = bookingService.createBookingEntity(request, true);
         return createDepositCheckout(booking);
+    }
+
+    /** Admin-created Stripe Payment Link for an arbitrary amount on a booking (balance or add-on). */
+    @Transactional
+    public AdminPaymentLinkResponse createAdminPaymentLink(UUID bookingId, long amountCents) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new BadRequestException("Cannot collect payment on a cancelled booking");
+        }
+        if (amountCents < STRIPE_MIN_CHARGE_CENTS) {
+            throw new BadRequestException("Amount is below the minimum chargeable value");
+        }
+        if (amountCents > ADMIN_PAYMENT_LINK_MAX_CENTS) {
+            throw new BadRequestException("Amount exceeds the maximum allowed value");
+        }
+
+        BookingPaymentShare share = new BookingPaymentShare();
+        share.setBooking(booking);
+        share.setType(PaymentShareType.BALANCE);
+        share.setAmount(centsToBig(amountCents));
+        share.setPaid(false);
+        shareRepository.save(share);
+
+        Map<String, String> metadata = Map.of(
+                "booking_id", booking.getId().toString(),
+                "share_id", share.getId().toString());
+        PaymentLinkRef ref = stripeGateway.createPaymentLink(amountCents,
+                stripeProperties.getCurrency(), "Payment for trip " + booking.getTripId(), metadata);
+
+        share.setStripePaymentLinkId(ref.id());
+        share.setPaymentUrl(ref.url());
+        shareRepository.save(share);
+
+        return new AdminPaymentLinkResponse(ref.url(), centsToBig(amountCents), share.getId());
     }
 
     /** Shared: compute the 30% deposit for a freshly-built booking, persist the DEPOSIT share, and open a
