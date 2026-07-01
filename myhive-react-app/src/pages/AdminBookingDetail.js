@@ -4,6 +4,7 @@ import {useAdminApi} from '../hooks/useAdminApi';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 import {Alert, Badge, Button, Card, Col, Row, Spinner, Table} from 'react-bootstrap';
 import {formatAmount, formatDate, formatDateTime, STATUS_VARIANTS} from '../utils/format';
+import {copyToClipboard} from '../utils/clipboard';
 
 function AdminBookingDetail() {
     const adminApi = useAdminApi();
@@ -13,6 +14,9 @@ function AdminBookingDetail() {
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [amount, setAmount] = useState('');
+    const [creating, setCreating] = useState(false);
+    const [linkError, setLinkError] = useState('');
 
     const fetchBooking = useCallback(async () => {
         try {
@@ -31,6 +35,34 @@ function AdminBookingDetail() {
     useEffect(() => {
         fetchBooking();
     }, [fetchBooking]);
+
+    const balanceDue = Math.max(0, (booking?.totalAmount || 0) - (booking?.amountPaid || 0));
+
+    useEffect(() => {
+        if (booking) {
+            setAmount(balanceDue > 0 ? String(balanceDue) : '');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [booking?.id]);
+
+    const handleCreateLink = async () => {
+        const cents = Math.round(parseFloat(amount) * 100);
+        if (!Number.isFinite(cents) || cents < 50) {
+            setLinkError('Enter a valid amount (min €0.50)');
+            return;
+        }
+        try {
+            setCreating(true);
+            setLinkError('');
+            await adminApi.createBookingPaymentLink(id, cents);
+            await fetchBooking();
+        } catch (err) {
+            if (handleAuthError(err)) return;
+            setLinkError(err.message || 'Failed to create payment link');
+        } finally {
+            setCreating(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -216,6 +248,72 @@ function AdminBookingDetail() {
                             </Row>
                         </Card.Body>
                     </Card>
+
+                    {booking.status?.toUpperCase() !== 'CANCELLED' && (
+                        <Card className="shadow-sm mt-3">
+                            <Card.Header className="border-bottom">
+                                <h6 className="fw-semibold mb-0">Payment</h6>
+                            </Card.Header>
+                            <Card.Body>
+                                <Row className="g-3 mb-3">
+                                    <Col sm={4}>
+                                        <div className="text-muted small">Total</div>
+                                        <div className="fw-semibold">{formatAmount(booking.totalAmount)}</div>
+                                    </Col>
+                                    <Col sm={4}>
+                                        <div className="text-muted small">Paid</div>
+                                        <div className="fw-semibold">{formatAmount(booking.amountPaid || 0)}</div>
+                                    </Col>
+                                    <Col sm={4}>
+                                        <div className="text-muted small">Balance due</div>
+                                        <div className="fw-bold">{formatAmount(balanceDue)}</div>
+                                    </Col>
+                                </Row>
+                                {linkError && <Alert variant="danger" className="py-2">{linkError}</Alert>}
+                                <div className="d-flex gap-2 align-items-end">
+                                    <div>
+                                        <label htmlFor="pl-amount" className="text-muted small d-block">Amount (€)</label>
+                                        <input id="pl-amount" type="number" step="0.01" min="0.5"
+                                               className="form-control" style={{maxWidth: '10rem'}}
+                                               value={amount} onChange={(e) => setAmount(e.target.value)}/>
+                                    </div>
+                                    <Button variant="primary" onClick={handleCreateLink} disabled={creating}>
+                                        {creating ? 'Creating…' : 'Create payment link'}
+                                    </Button>
+                                </div>
+                                {booking.paymentLinks?.length > 0 && (
+                                    <Table responsive className="mt-3 mb-0 align-middle">
+                                        <thead>
+                                        <tr>
+                                            <th className="small text-muted text-uppercase">Amount</th>
+                                            <th className="small text-muted text-uppercase">Status</th>
+                                            <th className="small text-muted text-uppercase">Link</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {booking.paymentLinks.map((pl) => (
+                                            <tr key={pl.id}>
+                                                <td className="small">{formatAmount(pl.amount)}</td>
+                                                <td><Badge bg={pl.paid ? 'success' : 'secondary'}>
+                                                    {pl.paid ? 'Paid' : 'Unpaid'}</Badge></td>
+                                                <td className="small">
+                                                    {pl.paid ? <span className="text-muted">—</span> : (
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <span className="text-break">{pl.url}</span>
+                                                            <Button size="sm" variant="outline-secondary"
+                                                                    onClick={() => copyToClipboard(pl.url)}>
+                                                                Copy</Button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </Table>
+                                )}
+                            </Card.Body>
+                        </Card>
+                    )}
                 </Col>
 
                 <Col md={4}>
