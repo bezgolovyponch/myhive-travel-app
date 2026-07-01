@@ -74,7 +74,7 @@ public class EmailService {
     /** Overload that also renders a payment summary (deposit paid / balance due) — used by the deposit flow. */
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData,
             String tripId, BigDecimal amountPaid, BigDecimal totalAmount) {
-        log.info("Preparing itinerary confirmation email: from={}, to={}, customer={}", fromEmail, toEmail, customerName);
+        log.info("Preparing itinerary confirmation email: from={}, to={}", fromEmail, maskEmail(toEmail));
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -102,11 +102,11 @@ public class EmailService {
             String htmlContent = templateEngine.process("itinerary-confirmation", context);
             helper.setText(htmlContent, true);
 
-            log.info("Queueing itinerary confirmation email to: {}", toEmail);
-            asyncMailSender.send(message, "itinerary confirmation to " + toEmail);
+            log.info("Queueing itinerary confirmation email to: {}", maskEmail(toEmail));
+            asyncMailSender.send(message, "itinerary confirmation to " + maskEmail(toEmail));
 
         } catch (Exception e) {
-            log.error("Failed to build itinerary confirmation email to: {}. Cause: {}", toEmail, e.getMessage(), e);
+            log.error("Failed to build itinerary confirmation email to: {}. Cause: {}", maskEmail(toEmail), e.getMessage(), e);
             throw new EmailSendException("Failed to send confirmation email", e);
         }
     }

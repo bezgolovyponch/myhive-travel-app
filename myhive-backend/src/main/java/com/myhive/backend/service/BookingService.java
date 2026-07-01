@@ -267,11 +267,11 @@ public class BookingService {
 
         if (emailEnabled) {
             try {
-                log.info("Email sending is enabled, attempting to send confirmation to: {}", saved.getUserEmail());
+                log.info("Email sending is enabled, attempting to send confirmation to: {}", com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()));
                 emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request, saved.getTripId());
-                log.info("Confirmation email sent successfully to: {}", saved.getUserEmail());
+                log.info("Confirmation email sent successfully to: {}", com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()));
             } catch (Exception e) {
-                log.error("Failed to send confirmation email to: {}. Error: {}", saved.getUserEmail(), e.getMessage(), e);
+                log.error("Failed to send confirmation email to: {}. Error: {}", com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()), e.getMessage(), e);
             }
 
             // Internal heads-up to the bookings inbox. Kept in its own try/catch so a failure here
