@@ -12,7 +12,9 @@ import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.PackageRepository;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +48,7 @@ public class BookingService {
     private final ActivityRepository activityRepository;
     private final PackageRepository packageRepository;
     private final EmailService emailService;
+    private final BookingPaymentShareRepository shareRepository;
 
     @Value("${app.email.enabled:false}")
     private boolean emailEnabled;
@@ -83,7 +86,14 @@ public class BookingService {
     public BookingDTO getBookingById(UUID id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", id));
-        return convertToDTO(booking);
+        BookingDTO dto = convertToDTO(booking);
+        dto.setAmountPaid(booking.getAmountPaid());
+        dto.setDepositAmount(booking.getDepositAmount());
+        dto.setPaymentLinks(shareRepository.findByBookingId(booking.getId()).stream()
+                .filter(s -> s.getType() == PaymentShareType.BALANCE && s.getPaymentUrl() != null)
+                .map(s -> new BookingDTO.PaymentLinkDTO(s.getId(), s.getAmount(), s.isPaid(), s.getPaymentUrl()))
+                .toList());
+        return dto;
     }
 
     public List<BookingDTO> getBookingsByEmail(String email) {

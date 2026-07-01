@@ -12,7 +12,9 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.PackageRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +51,9 @@ class BookingServiceTest {
 
     @Mock
     private PackageRepository packageRepository;
+
+    @Mock
+    private BookingPaymentShareRepository shareRepository;
 
     @InjectMocks
     private BookingService bookingService;
@@ -578,6 +583,29 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> bookingService.createBookingEntity(req, true))
                 .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void getBookingById_includesAmountPaidAndPaymentLinks() {
+        Booking booking = TestDataFactory.booking(BookingStatus.DEPOSIT_PAID);
+        booking.setTotalAmount(new BigDecimal("40.00"));
+        booking.setAmountPaid(new BigDecimal("12.00"));
+        booking.setBookingItems(List.of());
+        BookingPaymentShare link = new BookingPaymentShare();
+        link.setId(UUID.randomUUID());
+        link.setType(com.myhive.backend.model.PaymentShareType.BALANCE);
+        link.setAmount(new BigDecimal("28.00"));
+        link.setPaid(false);
+        link.setPaymentUrl("https://pay/plink_1");
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(List.of(link));
+
+        BookingDTO dto = bookingService.getBookingById(booking.getId());
+
+        assertThat(dto.getAmountPaid()).isEqualByComparingTo(new BigDecimal("12.00"));
+        assertThat(dto.getPaymentLinks()).hasSize(1);
+        assertThat(dto.getPaymentLinks().get(0).getUrl()).isEqualTo("https://pay/plink_1");
+        assertThat(dto.getPaymentLinks().get(0).isPaid()).isFalse();
     }
 
     @Test

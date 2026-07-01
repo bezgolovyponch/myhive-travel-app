@@ -14,6 +14,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookingDTO {
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PaymentLinkDTO {
+        private UUID id;
+        private BigDecimal amount;
+        private boolean paid;
+        private String url;
+    }
     private UUID id;
     private String userEmail;
     private String stripeSessionId;
@@ -38,4 +48,7 @@ public class BookingDTO {
     private String fbclid;
     private String referrer;
     private List<BookingItemDTO> items;
+    private BigDecimal amountPaid;
+    private BigDecimal depositAmount;
+    private List<PaymentLinkDTO> paymentLinks;
 }
