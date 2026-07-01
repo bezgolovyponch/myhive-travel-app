@@ -395,5 +395,16 @@ export function createAdminApi(getAccessToken) {
             });
             await handleError(response, 'Failed to delete package');
         },
+
+        async createBookingPaymentLink(id, amountCents) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}/payment-link`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({amountCents}),
+            });
+            await handleError(response, 'Failed to create payment link');
+            return response.json();
+        },
     };
 }

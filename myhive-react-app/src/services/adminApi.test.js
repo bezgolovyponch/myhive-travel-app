@@ -54,4 +54,18 @@ describe('createAdminApi', () => {
             body: errorBody,
         });
     });
+
+    it('createBookingPaymentLink POSTs amountCents and returns the link', async () => {
+        const expectedLink = {url: 'https://pay/plink_1', amount: 28, shareId: 's1'};
+        global.fetch = jest.fn().mockResolvedValue(stubResponse({body: expectedLink}));
+        const api = createAdminApi(getAccessToken);
+
+        const result = await api.createBookingPaymentLink('b1', 2800);
+
+        expect(result).toEqual(expectedLink);
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/admin/bookings/b1/payment-link');
+        expect(opts.method).toBe('POST');
+        expect(JSON.parse(opts.body)).toEqual({amountCents: 2800});
+    });
 });
