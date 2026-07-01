@@ -1,6 +1,10 @@
-import {render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ContactForm from './ContactForm';
+
+afterEach(() => {
+    delete window.turnstile;
+});
 
 function renderForm(props = {}) {
     const onSubmit = jest.fn();
@@ -63,4 +67,41 @@ test('Cancel respects the in-flight submit guard', async () => {
     await user.click(cancel);
 
     expect(onClose).not.toHaveBeenCalled();
+});
+
+test('no deposit button when onDepositSubmit is not provided', () => {
+    renderForm();
+    expect(screen.queryByRole('button', {name: /Complete and pay 30% deposit/i})).not.toBeInTheDocument();
+});
+
+test('deposit button is disabled until Turnstile is solved, then submits with the token', async () => {
+    const user = userEvent.setup();
+    let turnstileCallback;
+    window.turnstile = {
+        render: (el, opts) => {
+            turnstileCallback = opts.callback;
+            return 'widget-1';
+        },
+        remove: jest.fn(),
+    };
+    const onDepositSubmit = jest.fn();
+    renderForm({onDepositSubmit});
+
+    await fillRequired(user);
+
+    const depositBtn = screen.getByRole('button', {name: /Complete and pay 30% deposit/i});
+    // No captcha token yet → the real-charge action stays locked.
+    expect(depositBtn).toBeDisabled();
+
+    // Simulate the user solving the captcha.
+    act(() => {
+        turnstileCallback('turnstile-tok');
+    });
+    expect(depositBtn).toBeEnabled();
+
+    await user.click(depositBtn);
+    expect(onDepositSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({fullName: 'John Doe', email: 'john@example.com'}),
+        'turnstile-tok',
+    );
 });

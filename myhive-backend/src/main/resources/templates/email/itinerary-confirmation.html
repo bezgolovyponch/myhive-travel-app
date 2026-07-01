@@ -131,6 +131,14 @@
             <p><strong>Status:</strong> <span class="status-confirmed">Confirmed</span></p>
         </div>
 
+        <!-- Payment summary — shown only when a deposit has been collected (not for lead bookings). -->
+        <div class="section" th:if="${depositPaid}">
+            <h2>Payment</h2>
+            <p><strong>Deposit paid:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(amountPaid, 1, 2)}">0.00</span></span></p>
+            <p th:if="${totalAmount != null}"><strong>Trip total:</strong> €<span th:text="${#numbers.formatDecimal(totalAmount, 1, 2)}">0.00</span></p>
+            <p th:if="${balanceDue != null}"><strong>Balance due:</strong> €<span th:text="${#numbers.formatDecimal(balanceDue, 1, 2)}">0.00</span></p>
+        </div>
+
         <!-- Destinations and Activities -->
         <div th:if="${destinationViews}" th:each="destinationView : ${destinationViews}">
             <div class="section">

@@ -185,3 +185,45 @@ test('consultation-lead payload carries campaign attribution (utm_*, ref)', asyn
         }),
     );
 });
+
+// --- Option B: a self-added activity is bookable even with an empty voted result ---
+
+test('B: deposit CTA shows on empty result when the initiator added an activity, and the payload includes it', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('myhive-manager-tok-add', 'mgr-9');
+    localStorage.setItem('myhive-initiator-tok-add', 'true');
+    Object.defineProperty(window, 'location', { configurable: true, value: { assign: jest.fn(), href: '' } });
+    voteApi.getResult.mockResolvedValue({
+        ...DEFAULT_RESULT,
+        result: [], // the group didn't agree on anything
+        totalPrice: 0,
+        suggestions: [
+            { activityId: 'sug1', name: 'Jet Ski', price: 60 },
+            { activityId: 'sug2', name: 'Kayaking', price: 40 },
+        ],
+    });
+
+    // The initiator added only sug1 to their trip (full activity shape, as TripContext stores it).
+    renderAt('/vote/tok-add/result', { tripItems: [{ id: 'sug1', name: 'Jet Ski', price: 60 }] });
+
+    // Even with an empty voted result, the deposit CTA appears because the trip has a payable activity.
+    const payBtn = await screen.findByRole('button', { name: /Book & pay 30% prepayment/i });
+    expect(payBtn).toBeInTheDocument();
+
+    await user.click(payBtn);
+    await user.type(screen.getByLabelText(/Full Name/i), 'Joe Tester');
+    await user.type(screen.getByLabelText(/Email Address/i), 'joe@example.com');
+    await user.type(screen.getByLabelText(/Phone Number/i), '+1 555 000 1111');
+    await user.click(screen.getByRole('button', { name: /Submit Booking/i }));
+
+    // The deposit booking carries exactly the added activity (sug1), not the un-added sug2.
+    expect(paymentApi.createDepositSession).toHaveBeenCalledWith(
+        'tok-add',
+        'mgr-9',
+        expect.objectContaining({
+            destinations: [expect.objectContaining({
+                activities: [expect.objectContaining({ activityId: 'sug1', activityName: 'Jet Ski' })],
+            })],
+        }),
+    );
+});

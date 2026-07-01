@@ -3,7 +3,9 @@ package com.myhive.backend.controller;
 import com.myhive.backend.dto.ConsultationLeadResponse;
 import com.myhive.backend.dto.DepositSessionResponse;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.service.PaymentService;
+import com.myhive.backend.service.TurnstileService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final TurnstileService turnstileService;
 
     @PostMapping("/deposit-session")
     public ResponseEntity<DepositSessionResponse> createDepositSession(
@@ -29,6 +32,17 @@ public class PaymentController {
             @Valid @RequestBody TripExportRequest request) {
         DepositSessionResponse response = paymentService.createDepositBookingAndSession(voteShareToken, managerToken, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /** Direct 30% deposit for a self-curated Trip Builder trip (no vote). Public but Turnstile-gated. */
+    @PostMapping("/trip-deposit-session")
+    public ResponseEntity<DepositSessionResponse> createTripDepositSession(
+            @RequestHeader("X-Turnstile-Token") String turnstileToken,
+            @Valid @RequestBody TripExportRequest request) {
+        if (!turnstileService.verifyToken(turnstileToken)) {
+            throw new BadRequestException("Captcha verification failed");
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.createTripDepositSession(request));
     }
 
     @PostMapping("/webhook")

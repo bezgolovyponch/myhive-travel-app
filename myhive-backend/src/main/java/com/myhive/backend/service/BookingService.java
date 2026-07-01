@@ -208,6 +208,53 @@ public class BookingService {
         return saved;
     }
 
+    /**
+     * Rebuild a {@link TripExportRequest} from a persisted booking. The deposit flow persists the booking
+     * up front but only sends the itinerary confirmation / inbox notification once the deposit is paid —
+     * and at that point (the Stripe webhook) only the Booking entity is on hand, not the original request.
+     * This inverts {@link #createBookingEntity} so those emails render the same itinerary.
+     */
+    public TripExportRequest toExportRequest(Booking booking) {
+        TripExportRequest request = new TripExportRequest();
+        request.setTripName("Booking");
+        request.setUserEmail(booking.getUserEmail());
+        request.setCustomerName(booking.getCustomerName());
+        request.setPhone(booking.getPhone());
+        request.setNumberOfTravelers(booking.getNumberOfTravelers());
+        request.setNotes(booking.getNotes());
+        request.setTripId(booking.getTripId());
+
+        String startDate = booking.getStartDate() != null ? booking.getStartDate().toString() : null;
+        String endDate = booking.getEndDate() != null ? booking.getEndDate().toString() : null;
+
+        // Group items under their destination, preserving booked order.
+        Map<String, TripExportRequest.DestinationExport> byDestination = new LinkedHashMap<>();
+        for (BookingItem item : booking.getBookingItems()) {
+            TripExportRequest.DestinationExport dest = byDestination.computeIfAbsent(
+                    item.getDestinationName(), name -> {
+                        TripExportRequest.DestinationExport d = new TripExportRequest.DestinationExport();
+                        d.setDestinationName(name);
+                        d.setStartDate(startDate);
+                        d.setEndDate(endDate);
+                        d.setActivities(new ArrayList<>());
+                        return d;
+                    });
+
+            TripExportRequest.ActivityExport activity = new TripExportRequest.ActivityExport();
+            activity.setActivityId(item.getActivity() != null ? item.getActivity().getId() : null);
+            activity.setActivityName(item.getActivityName());
+            activity.setPrice(item.getPrice() != null ? item.getPrice().doubleValue() : null);
+            if (item.getPkg() != null) {
+                activity.setPackageId(item.getPkg().getId());
+                activity.setPackageName(item.getPackageName());
+                activity.setPackageDiscountPct(item.getPackageDiscountPct());
+            }
+            dest.getActivities().add(activity);
+        }
+        request.setDestinations(new ArrayList<>(byDestination.values()));
+        return request;
+    }
+
     @Transactional
     public BookingDTO createBookingFromExport(TripExportRequest request) {
         Booking saved = createBookingEntity(request);

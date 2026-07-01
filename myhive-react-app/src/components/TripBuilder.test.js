@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from '@testing-library/react';
+import {act, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import TripBuilder from './TripBuilder';
@@ -24,7 +24,14 @@ jest.mock('../services/voteApi', () => ({
     },
 }));
 
+jest.mock('../services/paymentApi', () => ({
+    paymentApi: { createTripDepositSession: jest.fn() },
+}));
+
 const voteApi = require('../services/voteApi').default;
+const { paymentApi } = require('../services/paymentApi');
+// Captures the Turnstile success callback so tests can simulate a solved captcha.
+let turnstileCallback;
 
 jest.mock('../utils/analytics', () => ({ pushEvent: jest.fn() }));
 
@@ -126,7 +133,8 @@ async function fillAndSubmitContactForm(user) {
     // Dates (mocked DateRangePicker exposes two testid inputs)
     await user.type(screen.getByTestId('date-from'), '2026-08-01');
     await user.type(screen.getByTestId('date-to'), '2026-08-07');
-    await user.click(screen.getByRole('button', {name: /Submit Booking/i}));
+    // Lead path ("we'll call you") — distinct from the deposit button which also says "Complete booking".
+    await user.click(screen.getByRole('button', {name: /call you/i}));
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +151,13 @@ beforeEach(() => {
     getAttribution.mockReturnValue({ utm_source: 'facebook', utm_medium: 'cpc' });
     getRef.mockReturnValue('ref-abc');
     generateUuid.mockReturnValue('fresh-uuid');
+
+    // Turnstile is available immediately; capture its success callback so tests can solve the captcha.
+    turnstileCallback = undefined;
+    window.turnstile = {
+        render: (el, opts) => { turnstileCallback = opts.callback; return 'w1'; },
+        remove: jest.fn(),
+    };
 
     // Clear sessionStorage between tests
     sessionStorage.clear();
@@ -540,4 +555,42 @@ test('A18+A19: multi-activity trip computes correct value and activities_count',
     expect(params.value).toBe(300);
     expect(params.activities_count).toBe(2);
     expect(params.group_size).toBe(3);
+});
+
+// ---------------------------------------------------------------------------
+// Trip Builder 30% deposit — Stripe Checkout (Turnstile-gated)
+// ---------------------------------------------------------------------------
+
+test('deposit: solving Turnstile enables the deposit button, which opens Stripe Checkout with the booking + token', async () => {
+    const user = userEvent.setup();
+    paymentApi.createTripDepositSession.mockResolvedValue({ bookingId: 'dep-1', checkoutUrl: 'https://checkout/cs_dep' });
+    const assign = jest.fn();
+    Object.defineProperty(window, 'location', { configurable: true, value: { assign, href: '' } });
+
+    renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }), '/');
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    // Fill the contact fields (without submitting the lead).
+    await user.type(screen.getByLabelText(/Full Name/i), 'Jane Smith');
+    await user.type(screen.getByLabelText(/Email Address/i), 'jane@example.com');
+    await user.type(screen.getByLabelText(/Phone Number/i), '+1 555 000 1111');
+    await user.type(screen.getByTestId('date-from'), '2026-08-01');
+    await user.type(screen.getByTestId('date-to'), '2026-08-07');
+
+    const depositBtn = screen.getByRole('button', {name: /pay 30% deposit/i});
+    expect(depositBtn).toBeDisabled(); // no captcha yet
+
+    act(() => { turnstileCallback('tok-xyz'); });
+    expect(depositBtn).toBeEnabled();
+
+    await user.click(depositBtn);
+
+    await waitFor(() => expect(paymentApi.createTripDepositSession).toHaveBeenCalledTimes(1));
+    const [bookingData, token] = paymentApi.createTripDepositSession.mock.calls[0];
+    expect(token).toBe('tok-xyz');
+    expect(bookingData.tripId).toBe('ctx-trip-id');
+    expect(bookingData.destinations[0].activities[0].activityId).toBe('act-1');
+    expect(assign).toHaveBeenCalledWith('https://checkout/cs_dep');
+    // The lead endpoint must NOT be called for a deposit checkout.
+    expect(api.createBookingFromTrip).not.toHaveBeenCalled();
 });

@@ -1,11 +1,11 @@
-import {useEffect, useId, useState} from 'react';
+import {useCallback, useEffect, useId, useRef, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 import AppModal from './AppModal';
 import {computeTripTotal} from '../utils/tripPricing';
 import {formatPrice} from '../utils/format';
 
-function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubmitting, submitError}) {
+function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking', onDepositSubmit, depositLabel = 'Complete and pay 30% deposit', tripData, initialValues, isSubmitting, submitError}) {
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -95,6 +95,52 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
         }
     };
 
+    // Turnstile is required only for the deposit action (a real charge). It renders lazily once the
+    // Cloudflare script is present, and is reset when the modal closes so a reopen gets a fresh widget.
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const turnstileRef = useRef(null);
+    const widgetIdRef = useRef(null);
+
+    const renderTurnstile = useCallback(() => {
+        if (window.turnstile && turnstileRef.current && widgetIdRef.current === null) {
+            widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+                sitekey: process.env.REACT_APP_TURNSTILE_SITE_KEY,
+                callback: (token) => setTurnstileToken(token),
+                'expired-callback': () => setTurnstileToken(''),
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen || !onDepositSubmit) {
+            return undefined;
+        }
+        if (window.turnstile) {
+            renderTurnstile();
+            return undefined;
+        }
+        const interval = setInterval(() => {
+            if (window.turnstile) {
+                clearInterval(interval);
+                renderTurnstile();
+            }
+        }, 100);
+        return () => clearInterval(interval);
+    }, [isOpen, onDepositSubmit, renderTurnstile]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            widgetIdRef.current = null;
+            setTurnstileToken('');
+        }
+    }, [isOpen]);
+
+    const handleDepositClick = () => {
+        if (validateForm() && turnstileToken) {
+            onDepositSubmit(formData, turnstileToken);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -109,8 +155,14 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
                         Cancel
                     </button>
                     <button type="submit" form={formId} className="btn btn--primary" disabled={isSubmitting}>
-                        {isSubmitting ? 'Submitting...' : 'Submit Booking'}
+                        {isSubmitting ? 'Submitting...' : submitLabel}
                     </button>
+                    {onDepositSubmit && (
+                        <button type="button" className="btn btn--primary contact-form__deposit"
+                                onClick={handleDepositClick} disabled={isSubmitting || !turnstileToken}>
+                            {depositLabel}
+                        </button>
+                    )}
                 </>
             }
         >
@@ -218,6 +270,16 @@ function ContactForm({isOpen, onClose, onSubmit, tripData, initialValues, isSubm
                                 placeholder="Any special dietary requirements, accessibility needs, or other preferences..."
                             />
                         </div>
+
+                        {onDepositSubmit && (
+                            <div className="form-group">
+                                <label>Verification</label>
+                                <div ref={turnstileRef} className="turnstile-widget" />
+                                <small className="contact-form__deposit-hint">
+                                    Only needed to pay the 30% deposit now — not to request a callback.
+                                </small>
+                            </div>
+                        )}
                     </form>
         </AppModal>
     );

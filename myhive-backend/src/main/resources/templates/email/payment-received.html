@@ -8,8 +8,12 @@
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
         .header { background: #6A1B9A; color: white; padding: 32px 30px; text-align: center; border-bottom: 3px solid #4A148C; }
         .header h1 { margin: 12px 0 8px; font-size: 22px; font-weight: 700; }
-        .content { padding: 30px; }
-        .amount-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .content { padding: 30px; text-align: center; }
+        .amounts { margin: 24px 0; }
+        .amount-block { padding: 14px 0; border-bottom: 1px solid #eee; }
+        .amount-block:last-child { border-bottom: none; }
+        .amount-label { color: #888; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .amount-value { font-size: 18px; font-weight: 700; color: #333; word-break: break-all; }
         .footer { background: #4A148C; padding: 24px 20px; text-align: center; border-top: 3px solid #6A1B9A; }
         .footer p { color: rgba(245,245,245,0.6); font-size: 12px; margin: 4px 0; }
     </style>
@@ -24,9 +28,20 @@
         <p>Hi <strong th:text="${customerName}">there</strong>,</p>
         <p th:if="${fullyPaid}">All payments for your trip have been collected. We'll be in touch with the final details.</p>
         <p th:unless="${fullyPaid}">Thanks — we've received a payment toward your trip. Here's where things stand:</p>
-        <div class="amount-row"><span>Booking reference</span><strong th:text="${tripId}"></strong></div>
-        <div class="amount-row"><span>Paid so far</span><strong th:text="'€' + ${amountPaid}"></strong></div>
-        <div class="amount-row"><span>Trip total</span><strong th:text="'€' + ${totalAmount}"></strong></div>
+        <div class="amounts">
+            <div class="amount-block">
+                <div class="amount-label">Booking reference</div>
+                <div class="amount-value" th:text="${tripId}"></div>
+            </div>
+            <div class="amount-block">
+                <div class="amount-label">Paid so far</div>
+                <div class="amount-value" th:text="'€' + ${amountPaid}"></div>
+            </div>
+            <div class="amount-block">
+                <div class="amount-label">Trip total</div>
+                <div class="amount-value" th:text="'€' + ${totalAmount}"></div>
+            </div>
+        </div>
     </div>
     <div class="footer">
         <p>Creating unforgettable travel experiences</p>

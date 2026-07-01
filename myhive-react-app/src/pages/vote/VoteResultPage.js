@@ -36,6 +36,22 @@ function VoteResultContent() {
     const managerToken = localStorage.getItem(`myhive-manager-${shareToken}`);
     const isInitiator = localStorage.getItem(`myhive-initiator-${shareToken}`) === 'true' && !!managerToken;
 
+    // The bookable trip = the group's voted result PLUS every activity the initiator added to their trip
+    // (state.tripItems), deduped by activityId. The deposit is taken on this whole curated trip, not just
+    // the voted picks — so an added activity is payable even if it was never a vote "suggestion".
+    const bookedActivities = [
+        ...(data?.result || []).map((r) => ({
+            activityId: r.activityId,
+            activityName: r.name,
+            price: Number(r.price),
+        })),
+        ...(state.tripItems || []).map((i) => ({
+            activityId: i.id,
+            activityName: i.name,
+            price: Number(i.price),
+        })),
+    ].filter((a, idx, arr) => a.activityId && arr.findIndex((x) => x.activityId === a.activityId) === idx);
+
     const makeBookingPayload = (contactData) => ({
         tripName: 'Vote booking',
         userEmail: contactData.email,
@@ -47,11 +63,7 @@ function VoteResultContent() {
             destinationName: data?.destination || '',
             startDate: data?.startDate || null,
             endDate: data?.endDate || null,
-            activities: (data?.result || []).map((r) => ({
-                activityId: r.activityId,
-                activityName: r.name,
-                price: Number(r.price),
-            })),
+            activities: bookedActivities,
         }],
         // Tie the consultation-lead / deposit booking to its originating campaign,
         // same as a direct booking from the Trip Builder.
@@ -60,7 +72,7 @@ function VoteResultContent() {
     });
 
     const paymentTripData = {
-        tripItems: (data?.result || []).map((r) => ({id: r.activityId, price: Number(r.price)})),
+        tripItems: bookedActivities.map((a) => ({id: a.activityId, price: a.price})),
     };
 
     const handleOpenTripBuilder = () => {
@@ -146,10 +158,8 @@ function VoteResultContent() {
 
                 {(() => {
                     const travelers = Number(data.numberOfTravelers) || 1;
-                    const addedSuggestionsTotal = (data.suggestions || [])
-                        .filter(s => state.tripItems.some(i => i.id === s.activityId))
-                        .reduce((sum, s) => sum + Number(s.price) * travelers, 0);
-                    const displayedTotal = Number(data.totalPrice) + addedSuggestionsTotal;
+                    // Budget reflects the same curated trip the deposit charges (voted result + added activities).
+                    const displayedTotal = bookedActivities.reduce((sum, a) => sum + Number(a.price) * travelers, 0);
                     const displayedRemaining = data.budget != null
                         ? Number(data.budget) - displayedTotal
                         : null;
@@ -179,7 +189,7 @@ function VoteResultContent() {
                     </button>
                 )}
 
-                {isInitiator && data.result.length > 0 && (
+                {isInitiator && bookedActivities.length > 0 && (
                     <PaymentActions
                         voteShareToken={shareToken}
                         managerToken={managerToken}

@@ -257,6 +257,68 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendItineraryConfirmation_withDeposit_setsPaymentContext() throws Exception {
+        TripExportRequest request = new TripExportRequest();
+        request.setTripName("Prague");
+        request.setDestinations(List.of());
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("itinerary-confirmation"), contextCaptor.capture()))
+                .thenReturn("<html>ok</html>");
+
+        emailService.sendItineraryConfirmation("customer@example.com", "Alice", request, "TRV-1",
+                new BigDecimal("12.00"), new BigDecimal("40.00"));
+
+        Context context = contextCaptor.getValue();
+        assertThat(context.getVariable("depositPaid")).isEqualTo(true);
+        assertThat(context.getVariable("amountPaid")).isEqualTo(new BigDecimal("12.00"));
+        assertThat(context.getVariable("balanceDue")).isEqualTo(new BigDecimal("28.00"));
+    }
+
+    @Test
+    void sendItineraryConfirmation_lead_hasNoDepositInContext() throws Exception {
+        TripExportRequest request = new TripExportRequest();
+        request.setTripName("Prague");
+        request.setDestinations(List.of());
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("itinerary-confirmation"), contextCaptor.capture()))
+                .thenReturn("<html>ok</html>");
+
+        // 4-arg overload (lead flow) → no deposit line.
+        emailService.sendItineraryConfirmation("customer@example.com", "Alice", request, "TRV-1");
+
+        assertThat(contextCaptor.getValue().getVariable("depositPaid")).isEqualTo(false);
+    }
+
+    @Test
+    void sendBookingNotification_withPaidDeposit_setsPaymentContext() throws Exception {
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("booking-notification"), contextCaptor.capture()))
+                .thenReturn("<html>ok</html>");
+
+        Booking booking = TestDataFactory.booking(BookingStatus.DEPOSIT_PAID);
+        booking.setTotalAmount(new BigDecimal("40.00"));
+        booking.setAmountPaid(new BigDecimal("12.00"));
+        TripExportRequest request = new TripExportRequest();
+        request.setTripName("Prague");
+        request.setDestinations(List.of());
+
+        emailService.sendBookingNotification(booking, request);
+
+        Context context = contextCaptor.getValue();
+        assertThat(context.getVariable("depositPaid")).isEqualTo(true);
+        assertThat(context.getVariable("amountPaid")).isEqualTo(new BigDecimal("12.00"));
+        assertThat(context.getVariable("balanceDue")).isEqualTo(new BigDecimal("28.00"));
+    }
+
+    @Test
     void sendPaymentReceived_rendersTemplateWithAmounts() throws Exception {
         jakarta.mail.internet.MimeMessage mimeMessage = mock(jakarta.mail.internet.MimeMessage.class);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);

@@ -7,6 +7,7 @@ import com.myhive.backend.dto.CreateBookingRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Booking;
+import com.myhive.backend.entity.BookingItem;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
@@ -84,6 +85,54 @@ class BookingServiceTest {
         ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
         verify(bookingRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(BookingStatus.PENDING);
+    }
+
+    @Test
+    void toExportRequest_rebuildsItineraryFromBooking_groupingByDestination() {
+        Booking booking = new Booking();
+        booking.setUserEmail("buyer@test.com");
+        booking.setCustomerName("Buyer");
+        booking.setPhone("+123");
+        booking.setNumberOfTravelers(2);
+        booking.setTripId("TRV-XYZ");
+        booking.setStartDate(java.time.LocalDate.parse("2026-08-01"));
+        booking.setEndDate(java.time.LocalDate.parse("2026-08-05"));
+
+        BookingItem first = new BookingItem();
+        first.setBooking(booking);
+        first.setActivity(activity); // has an id
+        first.setActivityName("Pub Crawl");
+        first.setDestinationName("Prague");
+        first.setPrice(new BigDecimal("40.00"));
+        first.setQuantity(2);
+
+        BookingItem second = new BookingItem();
+        second.setBooking(booking);
+        second.setActivityName("River Cruise"); // no catalog activity → null activityId
+        second.setDestinationName("Prague");
+        second.setPrice(new BigDecimal("55.00"));
+        second.setQuantity(2);
+
+        booking.setBookingItems(List.of(first, second));
+
+        TripExportRequest request = bookingService.toExportRequest(booking);
+
+        assertThat(request.getUserEmail()).isEqualTo("buyer@test.com");
+        assertThat(request.getCustomerName()).isEqualTo("Buyer");
+        assertThat(request.getNumberOfTravelers()).isEqualTo(2);
+        assertThat(request.getTripId()).isEqualTo("TRV-XYZ");
+        // Both items share one destination → grouped under a single DestinationExport.
+        assertThat(request.getDestinations()).hasSize(1);
+        TripExportRequest.DestinationExport dest = request.getDestinations().get(0);
+        assertThat(dest.getDestinationName()).isEqualTo("Prague");
+        assertThat(dest.getStartDate()).isEqualTo("2026-08-01");
+        assertThat(dest.getEndDate()).isEqualTo("2026-08-05");
+        assertThat(dest.getActivities()).hasSize(2);
+        assertThat(dest.getActivities().get(0).getActivityId()).isEqualTo(activity.getId());
+        assertThat(dest.getActivities().get(0).getActivityName()).isEqualTo("Pub Crawl");
+        assertThat(dest.getActivities().get(0).getPrice()).isEqualTo(40.0);
+        assertThat(dest.getActivities().get(1).getActivityId()).isNull();
+        assertThat(dest.getActivities().get(1).getPrice()).isEqualTo(55.0);
     }
 
     @Test

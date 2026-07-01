@@ -27,6 +27,8 @@
     <span class="label">Trip name:</span> <strong th:text="${tripName}"></strong>
 </div>
 <div class="row"><span class="label">Total:</span> <strong th:text="${totalAmount != null ? '€' + totalAmount : 'N/A'}"></strong></div>
+<div class="row" th:if="${depositPaid}"><span class="label">Deposit paid:</span> <strong th:text="'€' + ${#numbers.formatDecimal(amountPaid, 1, 2)}"></strong></div>
+<div class="row" th:if="${depositPaid and balanceDue != null}"><span class="label">Balance due:</span> <strong th:text="'€' + ${#numbers.formatDecimal(balanceDue, 1, 2)}"></strong></div>
 
 <!-- Itinerary summary -->
 <div th:if="${destinationViews}" th:each="destinationView : ${destinationViews}" class="section">

@@ -68,6 +68,12 @@ public class EmailService {
     private String bookingsToEmail;
 
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData, String tripId) {
+        sendItineraryConfirmation(toEmail, customerName, tripData, tripId, null, null);
+    }
+
+    /** Overload that also renders a payment summary (deposit paid / balance due) — used by the deposit flow. */
+    public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData,
+            String tripId, BigDecimal amountPaid, BigDecimal totalAmount) {
         log.info("Preparing itinerary confirmation email: from={}, to={}, customer={}", fromEmail, toEmail, customerName);
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -83,6 +89,14 @@ public class EmailService {
             context.setVariable("destinationViews", buildDestinationViews(tripData));
             context.setVariable("bookingDate", LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
             context.setVariable("tripId", tripId);
+            // Payment status — only present when a deposit has actually been collected (not for leads).
+            boolean depositPaid = amountPaid != null && amountPaid.signum() > 0;
+            context.setVariable("depositPaid", depositPaid);
+            context.setVariable("amountPaid", amountPaid);
+            context.setVariable("totalAmount", totalAmount);
+            if (depositPaid && totalAmount != null) {
+                context.setVariable("balanceDue", totalAmount.subtract(amountPaid));
+            }
 
             log.debug("Processing email template: email/itinerary-confirmation");
             String htmlContent = templateEngine.process("itinerary-confirmation", context);
@@ -124,6 +138,14 @@ public class EmailService {
             context.setVariable("totalAmount", booking.getTotalAmount());
             context.setVariable("tripName", tripData.getTripName());
             context.setVariable("destinationViews", buildDestinationViews(tripData));
+            // Payment status — present only once a deposit has been collected (paid deposit vs. a lead).
+            BigDecimal amountPaid = booking.getAmountPaid();
+            boolean depositPaid = amountPaid != null && amountPaid.signum() > 0;
+            context.setVariable("depositPaid", depositPaid);
+            context.setVariable("amountPaid", amountPaid);
+            if (depositPaid && booking.getTotalAmount() != null) {
+                context.setVariable("balanceDue", booking.getTotalAmount().subtract(amountPaid));
+            }
 
             log.debug("Processing email template: email/booking-notification");
             String htmlContent = templateEngine.process("booking-notification", context);

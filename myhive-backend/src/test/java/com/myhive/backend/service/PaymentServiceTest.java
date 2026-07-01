@@ -164,6 +164,41 @@ class PaymentServiceTest {
                 anyMap(), anyString(), anyString(), anyString());
     }
 
+    @Test
+    void createTripDepositSession_computesDepositAndReturnsUrl_withoutVoteSession() {
+        // Trip Builder direct deposit: catalog-trusted pricing (C1), 30% deposit, NO vote session.
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-DIRECT1");
+        booking.setTotalAmount(new BigDecimal("100.00"));
+        when(bookingService.createBookingEntity(any(TripExportRequest.class), eq(true))).thenReturn(booking);
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
+            BookingPaymentShare s = inv.getArgument(0);
+            if (s.getId() == null) {
+                s.setId(UUID.randomUUID());
+            }
+            return s;
+        });
+        when(stripeProperties.getDepositPct()).thenReturn(30);
+        when(stripeProperties.getCurrency()).thenReturn("eur");
+        ArgumentCaptor<Long> amount = ArgumentCaptor.forClass(Long.class);
+        when(stripeGateway.createCheckoutSession(amount.capture(), anyString(), anyString(), anyMap(),
+                anyString(), anyString(), anyString()))
+                .thenReturn(new CheckoutSessionRef("cs_direct", "https://checkout/cs_direct"));
+
+        DepositSessionResponse response = paymentService.createTripDepositSession(new TripExportRequest());
+
+        assertThat(response.getCheckoutUrl()).isEqualTo("https://checkout/cs_direct");
+        assertThat(response.getBookingId()).isEqualTo(booking.getId());
+        assertThat(booking.getDepositAmount()).isEqualByComparingTo(new BigDecimal("30.00"));
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.PENDING);
+        assertThat(booking.getVoteSessionId()).isNull();
+        assertThat(amount.getValue()).isEqualTo(3000L);
+        verify(bookingService).createBookingEntity(any(TripExportRequest.class), eq(true));
+        verifyNoInteractions(voteSessionService);
+    }
+
     private com.myhive.backend.payment.StripeRefs.StripeWebhookEvent paidEvent(String eventId, String shareId, long cents) {
         return new com.myhive.backend.payment.StripeRefs.StripeWebhookEvent(
                 eventId, "checkout.session.completed", shareId, null, "cs_x", "pi_" + shareId,
@@ -194,6 +229,7 @@ class PaymentServiceTest {
         when(shareRepository.findById(deposit.getId())).thenReturn(java.util.Optional.of(deposit));
         when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of(deposit));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bookingService.toExportRequest(booking)).thenReturn(new TripExportRequest());
 
         paymentService.handleStripeEvent("body", "sig");
 
@@ -202,6 +238,12 @@ class PaymentServiceTest {
         assertThat(booking.getAmountPaid()).isEqualByComparingTo(new BigDecimal("30.00"));
         verify(emailService).sendPaymentReceived(eq("init@test.com"), eq("Init"), eq("TRV-1"),
                 any(BigDecimal.class), any(BigDecimal.class), eq(false));
+        // A paid deposit also sends the customer's itinerary confirmation (with the paid amount + total)
+        // and alerts the bookings inbox.
+        verify(emailService).sendItineraryConfirmation(eq("init@test.com"), eq("Init"),
+                any(TripExportRequest.class), eq("TRV-1"),
+                any(java.math.BigDecimal.class), any(java.math.BigDecimal.class));
+        verify(emailService).sendBookingNotification(eq(booking), any(TripExportRequest.class));
         verify(processedEventRepository).save(any());
     }
 

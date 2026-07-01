@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.DepositSessionResponse;
 import com.myhive.backend.service.PaymentService;
+import com.myhive.backend.service.TurnstileService;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,12 @@ class PaymentControllerTest {
         public PaymentService paymentService() {
             return mock(PaymentService.class);
         }
+
+        @Bean
+        @Primary
+        public TurnstileService turnstileService() {
+            return mock(TurnstileService.class);
+        }
     }
 
     @Autowired
@@ -44,9 +51,12 @@ class PaymentControllerTest {
     @Autowired
     private PaymentService paymentService;
 
+    @Autowired
+    private TurnstileService turnstileService;
+
     @BeforeEach
     void setUp() {
-        reset(paymentService);
+        reset(paymentService, turnstileService);
     }
 
     @Test
@@ -96,6 +106,58 @@ class PaymentControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void tripDepositSession_returns201AndUrl_whenTurnstileValid() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        when(turnstileService.verifyToken(any())).thenReturn(true);
+        when(paymentService.createTripDepositSession(any()))
+                .thenReturn(new DepositSessionResponse(bookingId, "https://checkout.stripe.com/cs_direct"));
+
+        mockMvc.perform(post("/payments/trip-deposit-session")
+                        .header("X-Turnstile-Token", "tok-ok")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tripName": "Booking",
+                                  "userEmail": "buyer@test.com",
+                                  "customerName": "Buyer",
+                                  "numberOfTravelers": 2,
+                                  "destinations": [
+                                    {"destinationName": "Prague", "activities": [
+                                      {"activityName": "Beer Tour", "price": 25.0}
+                                    ]}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.checkoutUrl").value("https://checkout.stripe.com/cs_direct"));
+    }
+
+    @Test
+    void tripDepositSession_returns400_whenTurnstileInvalid() throws Exception {
+        // A bad/absent captcha must be rejected before any booking or Stripe session is created.
+        when(turnstileService.verifyToken(any())).thenReturn(false);
+
+        mockMvc.perform(post("/payments/trip-deposit-session")
+                        .header("X-Turnstile-Token", "tok-bad")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tripName": "Booking",
+                                  "userEmail": "buyer@test.com",
+                                  "customerName": "Buyer",
+                                  "numberOfTravelers": 2,
+                                  "destinations": [
+                                    {"destinationName": "Prague", "activities": [
+                                      {"activityName": "Beer Tour", "price": 25.0}
+                                    ]}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+        org.mockito.Mockito.verify(paymentService, org.mockito.Mockito.never()).createTripDepositSession(any());
     }
 
     @Test

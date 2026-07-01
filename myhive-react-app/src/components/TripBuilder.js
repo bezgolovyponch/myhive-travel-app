@@ -3,6 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
+import {paymentApi} from '../services/paymentApi';
 import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
 import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
@@ -190,6 +191,46 @@ function TripBuilder({ destinationId }) {
     setShowContactForm(true);
   };
 
+  // Shared trip → booking payload, used by both the lead ("Submit Booking") and the 30% deposit flow.
+  const buildBookingData = (contactData) => {
+    const attribution = getAttribution();
+    return {
+      tripName: 'Booking',
+      userEmail: contactData.email,
+      customerName: contactData.fullName,
+      phone: contactData.phone,
+      numberOfTravelers: parseInt(contactData.numberOfTravelers, 10) || 1,
+      destinations: [{
+        destinationName: 'Custom Travel Package',
+        country: 'Not specified',
+        duration: contactData.startDate && contactData.endDate ?
+            Math.ceil((new Date(contactData.endDate) - new Date(contactData.startDate)) / (1000 * 60 * 60 * 24)) + 1 : 1,
+        startDate: contactData.startDate,
+        endDate: contactData.endDate,
+        activities: state.tripItems.map(item => ({
+          activityId: item.id,
+          activityName: item.name,
+          category: (item.categories && item.categories.length > 0)
+              ? item.categories.map(c => c.name).join(', ')
+              : 'General',
+          description: item.description || '',
+          price: item.price || 0,
+          duration: item.duration || 0,
+          timeOfDay: item.timeOfDay || 'Any',
+          packageId: item.packageId || null,
+          packageName: item.packageName || null,
+          packageDiscountPct: item.packageDiscountPct || null,
+        }))
+      }],
+      notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`,
+      // A19: thread trip_id and attribution into the request body so the backend
+      // can tie campaign data to the booking (utm → trip_id → money chain).
+      tripId: effectiveTripId,
+      ...attribution,
+      ref: getRef(),
+    };
+  };
+
   const handleContactSubmit = async (contactData) => {
     if (state.tripItems.length === 0) {
       alert('Please add some activities to your trip before submitting.');
@@ -200,42 +241,7 @@ function TripBuilder({ destinationId }) {
     setSubmitError(null);
 
     try {
-      const attribution = getAttribution();
-      const bookingData = {
-        tripName: 'Booking',
-        userEmail: contactData.email,
-        customerName: contactData.fullName,
-        phone: contactData.phone,
-        numberOfTravelers: parseInt(contactData.numberOfTravelers, 10) || 1,
-        destinations: [{
-          destinationName: 'Custom Travel Package',
-          country: 'Not specified',
-          duration: contactData.startDate && contactData.endDate ?
-              Math.ceil((new Date(contactData.endDate) - new Date(contactData.startDate)) / (1000 * 60 * 60 * 24)) + 1 : 1,
-          startDate: contactData.startDate,
-          endDate: contactData.endDate,
-          activities: state.tripItems.map(item => ({
-            activityId: item.id,
-            activityName: item.name,
-            category: (item.categories && item.categories.length > 0)
-                ? item.categories.map(c => c.name).join(', ')
-                : 'General',
-            description: item.description || '',
-            price: item.price || 0,
-            duration: item.duration || 0,
-            timeOfDay: item.timeOfDay || 'Any',
-            packageId: item.packageId || null,
-            packageName: item.packageName || null,
-            packageDiscountPct: item.packageDiscountPct || null,
-          }))
-        }],
-        notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`,
-        // A19: thread trip_id and attribution into the request body so the backend
-        // can tie campaign data to the booking (utm → trip_id → money chain).
-        tripId: effectiveTripId,
-        ...attribution,
-        ref: getRef(),
-      };
+      const bookingData = buildBookingData(contactData);
 
       await api.createBookingFromTrip(bookingData);
 
@@ -270,6 +276,27 @@ function TripBuilder({ destinationId }) {
       console.error('Booking submission error:', error);
       setSubmitError(error.message || 'Failed to submit booking. Please try again.');
     } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDepositSubmit = async (contactData, turnstileToken) => {
+    if (state.tripItems.length === 0) {
+      alert('Please add some activities to your trip before submitting.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const bookingData = buildBookingData(contactData);
+      const {checkoutUrl} = await paymentApi.createTripDepositSession(bookingData, turnstileToken);
+      // Hand off to Stripe Checkout; keep isSubmitting true through the redirect so the modal stays locked.
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      console.error('Deposit checkout error:', error);
+      setSubmitError(error.message || 'Failed to start payment. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -520,6 +547,9 @@ function TripBuilder({ destinationId }) {
           isOpen={showContactForm}
           onClose={() => setShowContactForm(false)}
           onSubmit={handleContactSubmit}
+          submitLabel="Complete booking — we'll call you"
+          onDepositSubmit={handleDepositSubmit}
+          depositLabel="Complete booking & pay 30% deposit"
           tripData={{tripItems: state.tripItems, travelers}}
           initialValues={{
             numberOfTravelers: travelers,

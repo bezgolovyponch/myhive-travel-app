@@ -99,6 +99,22 @@ public class PaymentService {
         long participants = voteSessionService.getParticipantCount(voteShareToken);
         booking.setParticipantShareCount((int) Math.max(0, participants - 1));
 
+        return createDepositCheckout(booking);
+    }
+
+    /**
+     * A direct 30% deposit for a self-curated Trip Builder trip — no vote session. Turnstile is verified
+     * at the controller (public endpoint). Pricing is catalog-trusted (C1) exactly like the vote deposit.
+     */
+    @Transactional
+    public DepositSessionResponse createTripDepositSession(TripExportRequest request) {
+        Booking booking = bookingService.createBookingEntity(request, true);
+        return createDepositCheckout(booking);
+    }
+
+    /** Shared: compute the 30% deposit for a freshly-built booking, persist the DEPOSIT share, and open a
+     *  Stripe Checkout session. Used by both the vote deposit and the Trip Builder deposit. */
+    private DepositSessionResponse createDepositCheckout(Booking booking) {
         long totalCents = PaymentCalculator.toCents(booking.getTotalAmount());
         long depositCents = PaymentCalculator.depositCents(totalCents, stripeProperties.getDepositPct());
         // L3 (symmetry): the deposit must also clear Stripe's per-transaction minimum, else a clean 400
@@ -215,6 +231,30 @@ public class PaymentService {
                         booking.getTripId(), paidSum, booking.getTotalAmount(), fullyPaid);
             } catch (Exception e) {
                 log.error("Payment-received email failed for booking {}: {}", booking.getId(), e.getMessage(), e);
+            }
+            // The booking is now confirmed by payment, so send the customer's itinerary confirmation and
+            // alert the bookings inbox — the same pair a normal booking sends, deferred until money is in.
+            // Only the Booking is on hand here, so rebuild the itinerary request from it. All of this is
+            // best-effort: the payment is already fulfilled, so a rebuild/email failure must never throw
+            // (which would roll back the fulfillment and make Stripe retry).
+            TripExportRequest itinerary = null;
+            try {
+                itinerary = bookingService.toExportRequest(booking);
+            } catch (Exception e) {
+                log.error("Failed to rebuild itinerary request for booking {}: {}", booking.getId(), e.getMessage(), e);
+            }
+            if (itinerary != null) {
+                try {
+                    emailService.sendItineraryConfirmation(booking.getUserEmail(), booking.getCustomerName(),
+                            itinerary, booking.getTripId(), booking.getAmountPaid(), booking.getTotalAmount());
+                } catch (Exception e) {
+                    log.error("Itinerary confirmation email failed for booking {}: {}", booking.getId(), e.getMessage(), e);
+                }
+                try {
+                    emailService.sendBookingNotification(booking, itinerary);
+                } catch (Exception e) {
+                    log.error("Booking notification email failed for booking {}: {}", booking.getId(), e.getMessage(), e);
+                }
             }
         }
     }
