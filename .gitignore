@@ -52,3 +52,6 @@ out/
 ### Database dumps ###
 *.sql.backup
 neon_backup*.sql
+
+### Root dev orchestrator (npm run dev) ###
+/node_modules/

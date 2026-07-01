@@ -1,0 +1,15 @@
+{
+  "name": "myhive-travel-app-dev",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local dev orchestrator — boots backend + frontend + Stripe webhook listener with one command.",
+  "scripts": {
+    "dev": "concurrently -k -n be,fe,stripe -c blue,green,magenta \"cd myhive-backend && gradlew bootRun --args=--spring.profiles.active=dev\" \"cd myhive-react-app && npm start\" \"stripe listen --forward-to localhost:8080/payments/webhook\"",
+    "dev:be": "cd myhive-backend && gradlew bootRun --args=--spring.profiles.active=dev",
+    "dev:fe": "cd myhive-react-app && npm start",
+    "dev:stripe": "stripe listen --forward-to localhost:8080/payments/webhook"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

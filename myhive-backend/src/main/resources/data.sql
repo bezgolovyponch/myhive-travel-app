@@ -207,19 +207,20 @@ VALUES ('f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66',
 
 -- Insert sample bookings for testing admin dashboard
 INSERT INTO bookings (id, user_email, stripe_session_id, total_amount, status, created_at, paid_at,
-                      customer_name, phone, number_of_travelers, start_date, end_date, notes)
+                      customer_name, phone, number_of_travelers, start_date, end_date, notes,
+                      consultation_requested)
 VALUES ('10000000-0000-0000-0000-000000000001', 'john.doe@example.com', 'cs_test_a1b2c3d4e5f6', 145.00, 'PAID',
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
         'John Doe', '+44 7700 900123', 2, '2026-04-10', '2026-04-15',
-        'Special requirements: Vegetarian meals | Contact method: email'),
+        'Special requirements: Vegetarian meals | Contact method: email', false),
        ('10000000-0000-0000-0000-000000000002', 'jane.smith@example.com', 'cs_test_g7h8i9j0k1l2', 90.00, 'CONFIRMED',
         CURRENT_TIMESTAMP, NULL,
         'Jane Smith', '+34 612 345 678', 4, '2026-05-01', '2026-05-07',
-        'Special requirements: Wheelchair accessible | Contact method: whatsapp'),
+        'Special requirements: Wheelchair accessible | Contact method: whatsapp', false),
        ('10000000-0000-0000-0000-000000000003', 'bob.wilson@example.com', 'cs_test_m3n4o5p6q7r8', 120.00, 'PENDING',
         CURRENT_TIMESTAMP, NULL,
         'Bob Wilson', '+1 555 234 5678', 1, '2026-06-20', '2026-06-25',
-        'Special requirements: None | Contact method: phone');
+        'Special requirements: None | Contact method: phone', false);
 
 -- Insert booking items for the sample bookings
 INSERT INTO booking_items (id, booking_id, activity_id, activity_name, destination_name, price, quantity)
