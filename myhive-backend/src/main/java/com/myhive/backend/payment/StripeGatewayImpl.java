@@ -87,6 +87,11 @@ public class StripeGatewayImpl implements StripeGateway {
                     .setPaymentIntentData(PaymentLinkCreateParams.PaymentIntentData.builder()
                             .putAllMetadata(metadata)
                             .build())
+                    .setRestrictions(PaymentLinkCreateParams.Restrictions.builder()
+                            .setCompletedSessions(PaymentLinkCreateParams.Restrictions.CompletedSessions.builder()
+                                    .setLimit(1L)
+                                    .build())
+                            .build())
                     .build());
             return new PaymentLinkRef(link.getId(), link.getUrl());
         } catch (StripeException e) {
