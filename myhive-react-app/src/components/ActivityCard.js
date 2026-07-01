@@ -53,6 +53,7 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
     };
 
     return (
+        <>
         <div
             className="card activity-card"
             role="button"
@@ -72,9 +73,6 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
           {primaryCategory ? capitalizeFirst(primaryCategory) : 'Activity'}
         </span>
                 <h3 className="activity-title">{title}</h3>
-                {activity.includes && (
-                    <p className="activity-includes">Includes: {activity.includes}</p>
-                )}
                 <div className="activity-footer">
                     <span className="activity-price">{formattedPrice}</span>
                     <div className="activity-actions">
@@ -94,14 +92,18 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                     </div>
                 </div>
             </div>
-            {previewOpen && (
-                <ActivityPreviewModal
-                    activity={previewActivity}
-                    link={activityLink}
-                    onClose={() => setPreviewOpen(false)}
-                />
-            )}
         </div>
+        {/* Rendered outside the card: the card's hover transform would otherwise
+            become the containing block for the fixed-position overlay (flicker),
+            and clicks in the modal would bubble to the card's navigate handler. */}
+        {previewOpen && (
+            <ActivityPreviewModal
+                activity={previewActivity}
+                link={activityLink}
+                onClose={() => setPreviewOpen(false)}
+            />
+        )}
+        </>
     );
 }
 

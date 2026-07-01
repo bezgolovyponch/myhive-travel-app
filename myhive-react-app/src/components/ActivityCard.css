@@ -12,10 +12,10 @@
 }
 
 .activity-content {
-    padding: var(--gap-lg);
+    padding: var(--gap);
     display: flex;
     flex-direction: column;
-    gap: var(--gap);
+    gap: var(--gap-sm);
     flex: 1;
 }
 
@@ -38,7 +38,12 @@
 .activity-actions {
     display: flex;
     gap: var(--gap-sm);
-    align-items: center;
+    align-items: stretch;
+}
+
+/* Equal-width buttons keep every card's action row aligned in narrow grid columns. */
+.activity-actions button {
+    flex: 1;
 }
 
 .more-info-btn {
@@ -57,18 +62,13 @@
     background: var(--tint-blue);
 }
 
-.activity-includes {
-    font-size: 0.6875rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
+/* Stacked footer: price on its own line, actions row pinned to the card bottom.
+   A single price+buttons row overflows in the 4-column featured grid. */
 .activity-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--gap-sm);
     margin-top: auto;
 }
 
