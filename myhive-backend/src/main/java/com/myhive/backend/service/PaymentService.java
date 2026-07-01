@@ -266,6 +266,17 @@ public class PaymentService {
         }
         bookingRepository.save(booking);
 
+        // A Payment-Link share (admin balance/add-on) is single-use: deactivate the link so its URL
+        // cannot be paid again. Best-effort — never let this break webhook fulfilment.
+        if (share.getStripePaymentLinkId() != null) {
+            try {
+                stripeGateway.deactivatePaymentLink(share.getStripePaymentLinkId());
+            } catch (Exception e) {
+                log.error("Failed to deactivate payment link {} for booking {}: {}",
+                        share.getStripePaymentLinkId(), booking.getId(), e.getMessage(), e);
+            }
+        }
+
         if (share.getType() == PaymentShareType.DEPOSIT || fullyPaid) {
             try {
                 emailService.sendPaymentReceived(booking.getUserEmail(), booking.getCustomerName(),

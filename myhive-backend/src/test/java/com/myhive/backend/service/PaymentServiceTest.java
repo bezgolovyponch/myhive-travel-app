@@ -209,6 +209,13 @@ class PaymentServiceTest {
                 "payer@example.com", "paid", cents, null, false);
     }
 
+    private com.myhive.backend.payment.StripeRefs.StripeWebhookEvent balanceLinkEvent(
+            String eventId, String linkId, long cents) {
+        return new com.myhive.backend.payment.StripeRefs.StripeWebhookEvent(
+                eventId, "checkout.session.completed", null, linkId, "cs_bal", "pi_bal",
+                "payer@example.com", "paid", cents, null, false);
+    }
+
     @Test
     void handleStripeEvent_depositPaid_transitionsToDepositPaidAndEmails() {
         Booking booking = new Booking();
@@ -550,6 +557,46 @@ class PaymentServiceTest {
                         () -> paymentService.createAdminPaymentLink(bookingId, 2800L))
                 .isInstanceOf(BadRequestException.class);
         verify(stripeGateway, never()).createPaymentLink(anyLong(), anyString(), anyString(), anyMap());
+    }
+
+    @Test
+    void handleStripeEvent_balanceLinkPaid_deactivatesLink() {
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-ADMIN1");
+        booking.setStatus(BookingStatus.DEPOSIT_PAID);
+        booking.setTotalAmount(new BigDecimal("40.00"));
+        booking.setAmountPaid(new BigDecimal("12.00"));
+
+        // A previously-paid deposit share — included so paidSum (12+28=40) == totalAmount (fullyPaid),
+        // which is why the email block fires and the toExportRequest stub below is needed.
+        BookingPaymentShare priorDeposit = new BookingPaymentShare();
+        priorDeposit.setId(UUID.randomUUID());
+        priorDeposit.setBooking(booking);
+        priorDeposit.setType(PaymentShareType.DEPOSIT);
+        priorDeposit.setAmount(new BigDecimal("12.00"));
+        priorDeposit.setPaid(true);
+
+        BookingPaymentShare balance = new BookingPaymentShare();
+        balance.setId(UUID.randomUUID());
+        balance.setBooking(booking);
+        balance.setType(PaymentShareType.BALANCE);
+        balance.setAmount(new BigDecimal("28.00"));
+        balance.setPaid(false);
+        balance.setStripePaymentLinkId("plink_1");
+
+        when(processedEventRepository.existsById("evt_bal")).thenReturn(false);
+        when(stripeGateway.constructEvent("body", "sig"))
+                .thenReturn(balanceLinkEvent("evt_bal", "plink_1", 2800L));
+        when(shareRepository.findByStripePaymentLinkId("plink_1")).thenReturn(java.util.Optional.of(balance));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of(priorDeposit, balance));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bookingService.toExportRequest(booking)).thenReturn(new TripExportRequest());
+
+        paymentService.handleStripeEvent("body", "sig");
+
+        assertThat(balance.isPaid()).isTrue();
+        verify(stripeGateway).deactivatePaymentLink("plink_1");
     }
 
     @Test
