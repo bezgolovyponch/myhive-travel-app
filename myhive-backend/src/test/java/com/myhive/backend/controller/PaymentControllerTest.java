@@ -12,6 +12,7 @@ import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.DepositSessionResponse;
 import com.myhive.backend.service.PaymentService;
 import com.myhive.backend.service.TurnstileService;
+import java.util.Collections;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -156,6 +157,34 @@ class PaymentControllerTest {
                                   ]
                                 }
                                 """))
+                .andExpect(status().isBadRequest());
+        org.mockito.Mockito.verify(paymentService, org.mockito.Mockito.never()).createTripDepositSession(any());
+    }
+
+    @Test
+    void tripDepositSession_returns400_whenActivitiesListExceedsMax() throws Exception {
+        // DoS guard: a single destination with 101 activities (> max 100) must be rejected
+        // by Bean Validation before reaching the service layer.
+        when(turnstileService.verifyToken(any())).thenReturn(true);
+
+        String activityEntry = "{\"activityName\": \"Tour\", \"price\": 10.0}";
+        String activities = String.join(", ", Collections.nCopies(101, activityEntry));
+        String body = """
+                {
+                  "tripName": "Big Trip",
+                  "userEmail": "buyer@test.com",
+                  "customerName": "Buyer",
+                  "numberOfTravelers": 2,
+                  "destinations": [
+                    {"destinationName": "Prague", "activities": [%s]}
+                  ]
+                }
+                """.formatted(activities);
+
+        mockMvc.perform(post("/payments/trip-deposit-session")
+                        .header("X-Turnstile-Token", "tok-ok")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
                 .andExpect(status().isBadRequest());
         org.mockito.Mockito.verify(paymentService, org.mockito.Mockito.never()).createTripDepositSession(any());
     }

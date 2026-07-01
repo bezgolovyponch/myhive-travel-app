@@ -26,6 +26,7 @@ import java.util.UUID;
 public class TripExportRequest {
 
     @NotBlank(message = "Trip name is required")
+    @Size(max = 120, message = "Trip name must not exceed 120 characters")
     private String tripName;
 
     @NotBlank(message = "User email is required")
@@ -33,6 +34,7 @@ public class TripExportRequest {
     private String userEmail;
 
     @NotBlank(message = "Customer name is required")
+    @Size(max = 120, message = "Customer name must not exceed 120 characters")
     private String customerName;
 
     private String phone;
@@ -43,8 +45,10 @@ public class TripExportRequest {
 
     @Valid
     @NotEmpty(message = "Destinations cannot be empty")
+    @Size(max = 25, message = "Destinations list must not exceed 25 entries")
     private List<DestinationExport> destinations;
 
+    @Size(max = 5000, message = "Notes must not exceed 5000 characters")
     private String notes;
 
     @Size(max = 64, message = "tripId must not exceed 64 characters")
@@ -82,6 +86,7 @@ public class TripExportRequest {
         private String country;
         @Valid
         @NotEmpty(message = "Each destination must have at least one activity")
+        @Size(max = 100, message = "Activities list must not exceed 100 entries per destination")
         private List<ActivityExport> activities;
         private Integer duration;
         private String startDate;
@@ -93,8 +98,10 @@ public class TripExportRequest {
     @AllArgsConstructor
     public static class ActivityExport {
         private UUID activityId;
+        @Size(max = 200, message = "Activity name must not exceed 200 characters")
         private String activityName;
         private String category;
+        @Size(max = 5000, message = "Activity description must not exceed 5000 characters")
         private String description;
         @PositiveOrZero(message = "Activity price must not be negative")
         private Double price;
