@@ -10,7 +10,7 @@ class StripeGatewayImplTest {
 
     @Test
     void constructEvent_throwsBadRequest_onInvalidSignature() {
-        StripeProperties props = new StripeProperties("sk_test_dummy", "whsec_test_dummy", "eur", 30);
+        StripeProperties props = new StripeProperties("sk_test_dummy", "whsec_test_dummy", "eur", 30, "test");
         StripeGatewayImpl gateway = new StripeGatewayImpl(props);
 
         assertThatThrownBy(() -> gateway.constructEvent("{\"id\":\"evt_1\"}", "t=1,v1=deadbeef"))
