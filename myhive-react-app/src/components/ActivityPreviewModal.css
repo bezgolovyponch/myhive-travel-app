@@ -23,6 +23,40 @@
     font-style: italic;
 }
 
+.activity-preview-includes {
+    margin-top: var(--gap);
+}
+
+.activity-preview-includes-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--gap-sm);
+}
+
+.activity-preview-includes-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap-xs) var(--gap);
+    padding: 0;
+    margin: 0;
+}
+
+.activity-preview-includes-list li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--gap-xs);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.activity-preview-includes-list li::before {
+    content: "✓";
+    color: var(--brand);
+    font-weight: 700;
+}
+
 .activity-preview-link {
     color: var(--primary);
     text-decoration: none;
