@@ -1,6 +1,7 @@
 package com.myhive.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -18,6 +19,7 @@ import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.payment.StripeGateway;
@@ -159,9 +161,9 @@ class PaymentServiceTest {
         when(bookingService.createBookingEntity(any(TripExportRequest.class), eq(true))).thenReturn(booking);
         when(stripeProperties.getDepositPct()).thenReturn(30);
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+        assertThatThrownBy(() ->
                         paymentService.createDepositBookingAndSession(shareToken, managerToken, new TripExportRequest()))
-                .isInstanceOf(com.myhive.backend.exception.BadRequestException.class);
+                .isInstanceOf(BadRequestException.class);
         verify(stripeGateway, never()).createCheckoutSession(anyLong(), anyString(), anyString(),
                 anyMap(), anyString(), anyString(), anyString());
     }
@@ -309,7 +311,7 @@ class PaymentServiceTest {
         when(shareRepository.findById(shareId)).thenReturn(java.util.Optional.empty());
         when(shareRepository.findByStripeCheckoutSessionId("cs_x")).thenReturn(java.util.Optional.empty());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> paymentService.handleStripeEvent("b", "s"))
+        assertThatThrownBy(() -> paymentService.handleStripeEvent("b", "s"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -453,7 +455,7 @@ class PaymentServiceTest {
                         "evt_reforphan", "charge.refunded", null, null, null, "pi_unknown", null, null, null, 3000L, true));
         when(shareRepository.findByStripePaymentIntentId("pi_unknown")).thenReturn(Optional.empty());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> paymentService.handleStripeEvent("b", "s"))
+        assertThatThrownBy(() -> paymentService.handleStripeEvent("b", "s"))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -467,7 +469,7 @@ class PaymentServiceTest {
         when(voteSessionService.requireManager(shareToken, managerToken)).thenReturn(session);
         when(bookingRepository.countByVoteSessionIdAndConsultationRequestedTrue(session.getId())).thenReturn(1L);
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+        assertThatThrownBy(() ->
                         paymentService.createConsultationLead(shareToken, managerToken, new TripExportRequest()))
                 .isInstanceOf(com.myhive.backend.exception.ConflictException.class);
         verifyNoInteractions(bookingService);
@@ -499,12 +501,13 @@ class PaymentServiceTest {
         assertThat(response.url()).isEqualTo("https://pay/plink_1");
         assertThat(response.amount()).isEqualByComparingTo(new BigDecimal("28.00"));
         ArgumentCaptor<BookingPaymentShare> shareCaptor = ArgumentCaptor.forClass(BookingPaymentShare.class);
-        verify(shareRepository, org.mockito.Mockito.atLeastOnce()).save(shareCaptor.capture());
+        verify(shareRepository, org.mockito.Mockito.times(2)).save(shareCaptor.capture());
         BookingPaymentShare saved = shareCaptor.getValue();
         assertThat(saved.getType()).isEqualTo(PaymentShareType.BALANCE);
         assertThat(saved.getStripePaymentLinkId()).isEqualTo("plink_1");
         assertThat(saved.getPaymentUrl()).isEqualTo("https://pay/plink_1");
         assertThat(saved.isPaid()).isFalse();
+        assertThat(response.shareId()).isEqualTo(saved.getId());
     }
 
     @Test
@@ -515,9 +518,23 @@ class PaymentServiceTest {
         booking.setStatus(BookingStatus.DEPOSIT_PAID);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(
+        assertThatThrownBy(
                         () -> paymentService.createAdminPaymentLink(bookingId, 40L))
-                .isInstanceOf(com.myhive.backend.exception.BadRequestException.class);
+                .isInstanceOf(BadRequestException.class);
+        verify(stripeGateway, never()).createPaymentLink(anyLong(), anyString(), anyString(), anyMap());
+    }
+
+    @Test
+    void createAdminPaymentLink_aboveMaximum_throwsBadRequest() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setStatus(BookingStatus.DEPOSIT_PAID);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(
+                        () -> paymentService.createAdminPaymentLink(bookingId, 5_000_001L))
+                .isInstanceOf(BadRequestException.class);
         verify(stripeGateway, never()).createPaymentLink(anyLong(), anyString(), anyString(), anyMap());
     }
 
@@ -529,9 +546,9 @@ class PaymentServiceTest {
         booking.setStatus(BookingStatus.CANCELLED);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(
+        assertThatThrownBy(
                         () -> paymentService.createAdminPaymentLink(bookingId, 2800L))
-                .isInstanceOf(com.myhive.backend.exception.BadRequestException.class);
+                .isInstanceOf(BadRequestException.class);
         verify(stripeGateway, never()).createPaymentLink(anyLong(), anyString(), anyString(), anyMap());
     }
 
