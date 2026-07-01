@@ -4,16 +4,22 @@ import com.myhive.backend.config.StripeProperties;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.PaymentGatewayException;
 import com.myhive.backend.payment.StripeRefs.CheckoutSessionRef;
+import com.myhive.backend.payment.StripeRefs.PaymentLinkRef;
 import com.myhive.backend.payment.StripeRefs.StripeWebhookEvent;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Charge;
 import com.stripe.model.Event;
+import com.stripe.model.PaymentLink;
+import com.stripe.model.Price;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.net.Webhook;
+import com.stripe.param.PaymentLinkCreateParams;
+import com.stripe.param.PaymentLinkUpdateParams;
+import com.stripe.param.PriceCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +64,46 @@ public class StripeGatewayImpl implements StripeGateway {
             // M3: log the upstream detail server-side; surface a generic 502 (not a 400 with the raw message).
             log.error("Stripe Checkout session creation failed: {}", e.getMessage(), e);
             throw new PaymentGatewayException("Unable to start payment. Please try again later.");
+        }
+    }
+
+    @Override
+    public PaymentLinkRef createPaymentLink(long amountCents, String currency, String description,
+            Map<String, String> metadata) {
+        try {
+            Price price = Price.create(PriceCreateParams.builder()
+                    .setCurrency(currency)
+                    .setUnitAmount(amountCents)
+                    .setProductData(PriceCreateParams.ProductData.builder()
+                            .setName(description)
+                            .build())
+                    .build());
+            PaymentLink link = PaymentLink.create(PaymentLinkCreateParams.builder()
+                    .addLineItem(PaymentLinkCreateParams.LineItem.builder()
+                            .setPrice(price.getId())
+                            .setQuantity(1L)
+                            .build())
+                    .putAllMetadata(metadata)
+                    .setPaymentIntentData(PaymentLinkCreateParams.PaymentIntentData.builder()
+                            .putAllMetadata(metadata)
+                            .build())
+                    .build());
+            return new PaymentLinkRef(link.getId(), link.getUrl());
+        } catch (StripeException e) {
+            log.error("Stripe Payment Link creation failed: {}", e.getMessage(), e);
+            throw new PaymentGatewayException("Unable to create payment link. Please try again later.");
+        }
+    }
+
+    @Override
+    public void deactivatePaymentLink(String paymentLinkId) {
+        try {
+            PaymentLink link = PaymentLink.retrieve(paymentLinkId);
+            link.update(PaymentLinkUpdateParams.builder().setActive(false).build());
+        } catch (StripeException e) {
+            // Best-effort: a failed deactivation must not break webhook fulfilment (caller ignores).
+            log.error("Stripe Payment Link deactivation failed for {}: {}", paymentLinkId, e.getMessage(), e);
+            throw new PaymentGatewayException("Unable to deactivate payment link.");
         }
     }
 
