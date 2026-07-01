@@ -19,7 +19,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -103,20 +102,6 @@ class BookingControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void getBookingById_nonexistent_returns404() throws Exception {
-        mockMvc.perform(get("/bookings/" + UUID.randomUUID()))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void getBookingsByEmail_validEmail_returnsEmpty() throws Exception {
-        mockMvc.perform(get("/bookings")
-                        .param("email", "nobody@test.com"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
     }
 
     @Test

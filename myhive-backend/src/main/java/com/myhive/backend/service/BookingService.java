@@ -98,12 +98,6 @@ public class BookingService {
         return dto;
     }
 
-    public List<BookingDTO> getBookingsByEmail(String email) {
-        return bookingRepository.findByUserEmail(email).stream()
-                .map(this::convertToDTO)
-                .toList();
-    }
-
     @Transactional
     public Booking createBookingEntity(TripExportRequest request) {
         return createBookingEntity(request, false);

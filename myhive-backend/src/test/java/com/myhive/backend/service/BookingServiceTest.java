@@ -175,18 +175,6 @@ class BookingServiceTest {
     }
 
     @Test
-    void getBookingsByEmail_returnsMatchingBookings() {
-        Booking b1 = TestDataFactory.booking(BookingStatus.PENDING);
-        b1.setBookingItems(List.of());
-        when(bookingRepository.findByUserEmail("user@test.com")).thenReturn(List.of(b1));
-
-        List<BookingDTO> result = bookingService.getBookingsByEmail("user@test.com");
-
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().getUserEmail()).isEqualTo("user@test.com");
-    }
-
-    @Test
     void updateBookingStatus_validStatus_updatesAndSaves() {
         Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
         booking.setBookingItems(List.of());

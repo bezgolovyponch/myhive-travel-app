@@ -107,18 +107,6 @@ export const api = {
     return response.json();
   },
 
-  async getBooking(id) {
-    const response = await fetch(`${API_BASE_URL}/bookings/${id}`);
-    if (!response.ok) throw await parseApiError(response, 'Failed to fetch booking');
-    return response.json();
-  },
-
-  async getBookingsByEmail(email) {
-    const response = await fetch(`${API_BASE_URL}/bookings?email=${encodeURIComponent(email)}`);
-    if (!response.ok) throw await parseApiError(response, 'Failed to fetch bookings');
-    return response.json();
-  },
-
   async updateBookingStatus(id, status, stripeSessionId = null) {
     const response = await fetch(`${API_BASE_URL}/bookings/${id}/status`, {
       method: 'PATCH',
