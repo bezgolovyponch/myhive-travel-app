@@ -77,6 +77,8 @@ public class SecurityConfig {
                         .requestMatchers("/admin/activities/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/admin/blog/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/admin/upload").hasAnyRole("ADMIN", "MANAGER")
+                        // Bookings (view + create a payment link): ADMIN or MANAGER
+                        .requestMatchers("/admin/bookings/**").hasAnyRole("ADMIN", "MANAGER")
                         // Admin endpoints — everything else: ADMIN only
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Everything else requires authentication

@@ -63,10 +63,11 @@ class SecurityConfigIntegrationTest {
     }
 
     @Test
-    void managerRole_cannotAccessAdminBookings() throws Exception {
+    void managerRole_canAccessAdminBookings() throws Exception {
+        // Managers now have bookings access (to view a booking and create a payment link).
         mockMvc.perform(get("/admin/bookings")
                         .with(managerJwt()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

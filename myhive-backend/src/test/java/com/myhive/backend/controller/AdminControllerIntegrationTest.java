@@ -250,10 +250,11 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    void getBookings_withManagerAuth_returns403() throws Exception {
+    void getBookings_withManagerAuth_returns200() throws Exception {
+        // Managers now have bookings access (needed to view a booking and create a payment link).
         mockMvc.perform(get("/admin/bookings")
                         .with(managerJwt()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -375,5 +376,19 @@ class AdminControllerIntegrationTest {
                         .content("{\"amountCents\": 2800}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.url").value("https://pay/plink_1"));
+    }
+
+    @Test
+    void createPaymentLink_withManagerAuth_returns201() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        when(paymentService.createAdminPaymentLink(eq(bookingId), eq(2800L)))
+                .thenReturn(new AdminPaymentLinkResponse("https://pay/plink_2", new BigDecimal("28.00"), UUID.randomUUID()));
+
+        mockMvc.perform(post("/admin/bookings/" + bookingId + "/payment-link")
+                        .with(managerJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amountCents\": 2800}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.url").value("https://pay/plink_2"));
     }
 }
