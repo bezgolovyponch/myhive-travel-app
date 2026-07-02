@@ -15,7 +15,6 @@ import java.util.UUID;
 
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
     Optional<Booking> findByStripeSessionId(String stripeSessionId);
-    List<Booking> findByUserEmail(String userEmail);
 
     List<Booking> findByStatus(BookingStatus status);
 

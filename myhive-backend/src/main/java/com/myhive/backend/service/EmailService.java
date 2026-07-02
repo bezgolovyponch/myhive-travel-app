@@ -160,7 +160,9 @@ public class EmailService {
     }
 
     public void sendContactNotification(ContactRequest request) {
-        log.info("Sending contact form notification: from={}, subject={}", request.getEmail(), request.getSubject());
+        // PII/log-forging guard: mask the sender address and keep the user-controlled subject out of logs
+        // (same treatment as customerName in the itinerary emails).
+        log.info("Sending contact form notification: from={}", maskEmail(request.getEmail()));
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

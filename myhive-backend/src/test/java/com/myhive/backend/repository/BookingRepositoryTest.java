@@ -30,17 +30,6 @@ class BookingRepositoryTest {
     }
 
     @Test
-    void findByUserEmail_returnsMatchingBookings() {
-        createBooking("user@test.com", BookingStatus.PENDING);
-        createBooking("other@test.com", BookingStatus.PENDING);
-
-        var result = bookingRepository.findByUserEmail("user@test.com");
-
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().getUserEmail()).isEqualTo("user@test.com");
-    }
-
-    @Test
     void findByStripeSessionId_returnsBooking() {
         Booking b = createBooking("user@test.com", BookingStatus.PAID);
         b.setStripeSessionId("sess_abc123");
