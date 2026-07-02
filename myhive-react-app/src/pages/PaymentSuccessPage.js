@@ -13,11 +13,16 @@ function PaymentSuccessPage() {
         // The paid-for activities are booked now — clear the builder the same way the lead flow
         // does after submit, so the trip doesn't linger and get booked twice. The backend returns
         // the buyer to the origin they paid from, so this reaches the right localStorage.
+        // Gated on the booking param (Stripe always appends it) so opening the bare URL from
+        // history or a shared link cannot wipe a freshly built trip.
+        if (!booking) {
+            return;
+        }
         dispatch({type: 'CANCEL_TRIP_SETUP'});
         dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: 1});
         dispatch({type: 'UPDATE_TRIP_DATES', startDate: '', endDate: ''});
         dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
-    }, [dispatch]);
+    }, [dispatch, booking]);
 
     return (
         <div className="payment-return">

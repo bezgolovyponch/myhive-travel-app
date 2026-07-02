@@ -28,8 +28,9 @@
 .payment-return__ref {
     font-family: monospace;
     font-size: 0.9rem;
-    background: #f3f0f7;
-    color: #4A148C;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
     padding: 0.5rem 0.9rem;
     border-radius: 6px;
     word-break: break-all;

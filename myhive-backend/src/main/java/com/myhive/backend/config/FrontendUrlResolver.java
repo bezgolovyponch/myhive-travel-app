@@ -24,7 +24,7 @@ public class FrontendUrlResolver {
     private final String defaultFrontendUrl;
 
     public FrontendUrlResolver(
-            @Value("${CORS_ALLOWED_ORIGINS:https://trivlu.com,https://www.trivlu.com,https://*.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000}")
+            @Value("${CORS_ALLOWED_ORIGINS:" + WebConfig.DEFAULT_ALLOWED_ORIGINS + "}")
             String[] allowedOrigins,
             @Value("${app.frontend.url:https://trivlu.com}") String defaultFrontendUrl) {
         this.allowedOriginPatterns = Arrays.stream(allowedOrigins)
@@ -57,6 +57,10 @@ public class FrontendUrlResolver {
      * Compiles an allow-list entry to an anchored regex. {@code *} matches exactly one hostname
      * label (no dots), so {@code https://*.trivlu.com} matches {@code https://prague.trivlu.com}
      * but not {@code https://prague.trivlu.com.evil.com} or {@code https://a.b.trivlu.com}.
+     *
+     * <p>Intentionally narrower than Spring's CORS pattern matching (which expands {@code *} to
+     * {@code .*}): a multi-label host that CORS would accept falls back to the apex here, which
+     * is fail-safe for a redirect target.
      */
     private static Pattern toPattern(String allowedOrigin) {
         String[] literals = allowedOrigin.trim().toLowerCase(Locale.ROOT).split("\\*", -1);

@@ -13,7 +13,13 @@ import java.util.List;
 @Configuration
 public class WebConfig {
 
-    @Value("${CORS_ALLOWED_ORIGINS:https://trivlu.com,https://www.trivlu.com,https://*.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000}")
+    /** Single source of truth for the default allow-list — also consumed by
+     *  {@link FrontendUrlResolver}, so CORS and Stripe return-URL validation cannot drift. */
+    public static final String DEFAULT_ALLOWED_ORIGINS =
+            "https://trivlu.com,https://www.trivlu.com,https://*.trivlu.com,"
+                    + "https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000";
+
+    @Value("${CORS_ALLOWED_ORIGINS:" + DEFAULT_ALLOWED_ORIGINS + "}")
     private String[] allowedOrigins;
 
     @Bean

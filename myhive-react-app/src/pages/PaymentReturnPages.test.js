@@ -35,6 +35,21 @@ test('success page clears the trip so paid activities are not booked twice', () 
     expect(JSON.parse(localStorage.getItem('myhive-trip-setup'))).toEqual(expectedSetup);
 });
 
+test('success page without a booking reference leaves the trip intact', () => {
+    // A bare /payment/success (opened from history or a shared link) is not proof of payment.
+    localStorage.setItem('myhive-trip-items', JSON.stringify([{id: 'a1', name: 'Beer Tour', price: 25}]));
+
+    render(
+        <MemoryRouter initialEntries={['/payment/success']}>
+            <TripProvider>
+                <PaymentSuccessPage />
+            </TripProvider>
+        </MemoryRouter>
+    );
+
+    expect(JSON.parse(localStorage.getItem('myhive-trip-items'))).toHaveLength(1);
+});
+
 test('success page offers the WhatsApp follow-up contact', () => {
     renderSuccessPage();
     const link = screen.getByRole('link', {name: /whatsapp/i});

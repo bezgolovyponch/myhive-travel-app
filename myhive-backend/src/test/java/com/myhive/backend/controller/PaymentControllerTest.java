@@ -65,12 +65,14 @@ class PaymentControllerTest {
     @Test
     void depositSession_returns201AndUrl_withoutJwt() throws Exception {
         UUID bookingId = UUID.randomUUID();
+        String expectedOrigin = "https://prague.trivlu.com";
         when(paymentService.createDepositBookingAndSession(any(), any(), any(), any()))
                 .thenReturn(new DepositSessionResponse(bookingId, "https://checkout.stripe.com/cs_test"));
 
         mockMvc.perform(post("/payments/deposit-session")
                         .header("X-Vote-Share-Token", UUID.randomUUID().toString())
                         .header("X-Manager-Token", UUID.randomUUID().toString())
+                        .header("Origin", expectedOrigin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -87,6 +89,8 @@ class PaymentControllerTest {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.checkoutUrl").value("https://checkout.stripe.com/cs_test"));
+        // Multidomain: the vote deposit must forward the buyer's Origin just like the trip deposit.
+        verify(paymentService).createDepositBookingAndSession(any(), any(), any(), eq(expectedOrigin));
     }
 
     @Test
