@@ -74,6 +74,22 @@ test('no deposit button when onDepositSubmit is not provided', () => {
     expect(screen.queryByRole('button', {name: /Complete and pay 30% deposit/i})).not.toBeInTheDocument();
 });
 
+test('renders the Turnstile widget with the Cloudflare test sitekey on localhost', () => {
+    // jsdom serves the app from http://localhost, so the deposit widget must use the "always passes"
+    // test sitekey (not the production key, which Cloudflare rejects on localhost).
+    let renderedSitekey;
+    window.turnstile = {
+        render: (el, opts) => {
+            renderedSitekey = opts.sitekey;
+            return 'widget-1';
+        },
+        remove: jest.fn(),
+    };
+    renderForm({onDepositSubmit: jest.fn()});
+
+    expect(renderedSitekey).toBe('1x00000000000000000000AA');
+});
+
 test('deposit button is disabled until Turnstile is solved, then submits with the token', async () => {
     const user = userEvent.setup();
     let turnstileCallback;
