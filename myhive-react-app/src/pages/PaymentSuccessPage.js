@@ -13,8 +13,10 @@ function PaymentSuccessPage() {
         // The paid-for activities are booked now — clear the builder the same way the lead flow
         // does after submit, so the trip doesn't linger and get booked twice. The backend returns
         // the buyer to the origin they paid from, so this reaches the right localStorage.
-        // Gated on the booking param (Stripe always appends it) so opening the bare URL from
-        // history or a shared link cannot wipe a freshly built trip.
+        // Require the booking param so a bare /payment/success (opened from history) is a no-op.
+        // This is not a security gate: a crafted ?booking=x link can still wipe an unsaved cart,
+        // but that is harmless griefing (no auth/payment/PII impact) — the same trip-clear the
+        // lead flow performs on submit.
         if (!booking) {
             return;
         }
