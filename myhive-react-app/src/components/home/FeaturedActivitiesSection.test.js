@@ -51,6 +51,40 @@ test('clicking "View All Activities" fires cta_click with block activities', asy
     expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'View All Activities', block: 'activities'});
 });
 
+test('falls back to regular activities when nothing is featured', async () => {
+    api.getFeaturedActivities.mockResolvedValue([]);
+    api.getActivities.mockResolvedValue([
+        {id: 'a2', name: 'Shooting', price: 80, slug: 'shooting', destinationSlug: 'prague', categories: []},
+    ]);
+
+    renderSection();
+
+    expect(await screen.findByText('Shooting')).toBeInTheDocument();
+    expect(api.getActivities).toHaveBeenCalledTimes(1);
+});
+
+test('falls back to regular activities when the featured fetch fails', async () => {
+    api.getFeaturedActivities.mockRejectedValue(new Error('boom'));
+    api.getActivities.mockResolvedValue([
+        {id: 'a2', name: 'Shooting', price: 80, slug: 'shooting', destinationSlug: 'prague', categories: []},
+    ]);
+
+    renderSection();
+
+    expect(await screen.findByText('Shooting')).toBeInTheDocument();
+});
+
+test('does not fetch the fallback when featured activities exist', async () => {
+    api.getFeaturedActivities.mockResolvedValue([
+        {id: 'a1', name: 'Go-Karting', price: 50, slug: 'go-karting', destinationSlug: 'prague', categories: []},
+    ]);
+
+    renderSection();
+
+    expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
+    expect(api.getActivities).not.toHaveBeenCalled();
+});
+
 test('pushEvent does not fire on render', async () => {
     api.getFeaturedActivities.mockResolvedValue([
         {id: 'a1', name: 'Go-Karting', price: 50, slug: 'go-karting', destinationSlug: 'prague', categories: []},

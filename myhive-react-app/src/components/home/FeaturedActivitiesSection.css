@@ -39,15 +39,15 @@
     }
 }
 
+/* Mockup keeps the grid two-up on all mobile widths with compact cards.
+   Phones show only the first 4 cards — "View All Activities" covers the rest. */
 @media (max-width: 768px) {
     .featured-activities-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: var(--gap);
+        gap: 0.875rem;
     }
-}
 
-@media (max-width: 480px) {
-    .featured-activities-grid {
-        grid-template-columns: 1fr;
+    .featured-activities-grid > *:nth-child(n+5) {
+        display: none;
     }
 }

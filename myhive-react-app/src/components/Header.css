@@ -414,18 +414,54 @@
         display: block;
     }
 
-    .nav-links {
+    /* Mockup mobile nav: small, fully transparent (the hero overlay keeps text
+       legible), logo on the left, trip builder + burger grouped on the right. */
+    .header--transparent {
+        background: transparent;
+    }
+
+    .header--transparent .header-content {
+        height: 3.25rem;
+    }
+
+    .logo-img {
+        height: 26px;
+    }
+
+    .trip-builder-wrapper {
+        margin-left: auto;
+        margin-right: var(--gap-sm);
+    }
+
+    .trip-builder-btn {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.875rem;
+    }
+
+    /* The .header--transparent .nav-links desktop rule (higher specificity) must
+       not leak into mobile, so the dropdown selector repeats it.
+       Almost-transparent blurred panel on the right half of the screen; it is
+       anchored to .header (not .header-content) so it opens below the
+       breadcrumbs bar instead of covering it. */
+    .nav-links,
+    .header--transparent .nav-links {
         display: none;
         position: absolute;
         top: 100%;
-        left: 0;
+        left: auto;
         right: 0;
+        width: 50%;
+        margin: 0;
         transform: none;
-        background: var(--brand);
+        background: rgba(20, 18, 26, 0.55);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         flex-direction: column;
+        align-items: stretch;
         gap: 0;
         padding: var(--gap-sm) 0;
-        box-shadow: var(--shadow-md);
+        box-shadow: none;
+        border-bottom-left-radius: var(--radius, 0.5rem);
     }
 
     .nav-links.nav-open {
@@ -433,12 +469,19 @@
     }
 
     .nav-links a {
-        padding: 0.75rem var(--gap-lg);
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.75rem 1.25rem;
+        text-align: left;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 
+    .nav-links a:first-child {
+        border-top: none;
+    }
+
+    /* Static so the fixed .header is the dropdown's containing block — the
+       panel then lands below the breadcrumbs row when one is shown. */
     .header-content {
-        position: relative;
+        position: static;
     }
 
     .trip-builder-dropdown {

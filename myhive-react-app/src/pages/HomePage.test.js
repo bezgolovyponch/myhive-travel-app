@@ -55,8 +55,9 @@ test('renders all homepage sections', async () => {
   expect(screen.getByText("We're just a message away")).toBeInTheDocument();
 });
 
-test('hides the activities section when no featured activities exist', async () => {
+test('hides the activities section when featured and fallback activities are both empty', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
+  api.getActivities.mockResolvedValue([]);
 
   renderHome();
 
