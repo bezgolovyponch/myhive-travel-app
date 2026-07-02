@@ -1,6 +1,10 @@
 /* Homepage redesign palette — scoped to .homepage so the rest of the app and
    admin keep the existing brand/teal tokens untouched. */
 .homepage {
+    /* Mockup page background. The hero photos fade to this purple-black and the
+       hero gradients end on var(--bg); the global #1f2121 (green-grey) leaves a
+       visible hue seam against the image, so the homepage overrides it. */
+    --bg: #16131c;
     --purple: #534AB7;
     --purple-l: #7F77DD;
     --purple-ll: #8B82E6;
@@ -273,11 +277,15 @@
         max-width: none;
     }
 
+    /* Mockup mobile overlay: slight darkening at the top for the header, clear
+       mid-image, then fades to the fully opaque page background so the hero
+       blends into the next section (the desktop .hero-fade is hidden here). */
     .hero-overlay {
         background: linear-gradient(180deg,
             rgba(16, 13, 21, 0.3) 0%,
-            rgba(16, 13, 21, 0.55) 55%,
-            rgba(16, 13, 21, 0.85) 100%);
+            rgba(16, 13, 21, 0) 34%,
+            rgba(16, 13, 21, 0.55) 66%,
+            var(--bg) 100%);
     }
 
     .vote-card {

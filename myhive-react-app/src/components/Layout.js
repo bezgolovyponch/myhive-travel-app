@@ -1,6 +1,7 @@
 import {Route, Routes} from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
+import ScrollToTop from './ScrollToTop';
 import HomePage from '../pages/HomePage';
 import DestinationPage from '../pages/DestinationPage';
 import ActivityDetailPage from '../pages/ActivityDetailPage';
@@ -25,6 +26,7 @@ function Layout() {
 
   return (
     <div className="app-container">
+      <ScrollToTop />
       <Header />
       <main>
         <Routes>
