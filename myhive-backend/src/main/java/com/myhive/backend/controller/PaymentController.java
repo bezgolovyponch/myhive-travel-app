@@ -29,8 +29,10 @@ public class PaymentController {
     public ResponseEntity<DepositSessionResponse> createDepositSession(
             @RequestHeader("X-Vote-Share-Token") UUID voteShareToken,
             @RequestHeader("X-Manager-Token") UUID managerToken,
+            @RequestHeader(value = "Origin", required = false) String origin,
             @Valid @RequestBody TripExportRequest request) {
-        DepositSessionResponse response = paymentService.createDepositBookingAndSession(voteShareToken, managerToken, request);
+        DepositSessionResponse response =
+                paymentService.createDepositBookingAndSession(voteShareToken, managerToken, request, origin);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -38,11 +40,13 @@ public class PaymentController {
     @PostMapping("/trip-deposit-session")
     public ResponseEntity<DepositSessionResponse> createTripDepositSession(
             @RequestHeader("X-Turnstile-Token") String turnstileToken,
+            @RequestHeader(value = "Origin", required = false) String origin,
             @Valid @RequestBody TripExportRequest request) {
         if (!turnstileService.verifyToken(turnstileToken)) {
             throw new BadRequestException("Captcha verification failed");
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.createTripDepositSession(request));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(paymentService.createTripDepositSession(request, origin));
     }
 
     @PostMapping("/webhook")

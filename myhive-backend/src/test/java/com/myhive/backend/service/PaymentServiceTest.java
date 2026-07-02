@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.myhive.backend.config.FrontendUrlResolver;
 import com.myhive.backend.dto.AdminPaymentLinkResponse;
 import com.myhive.backend.dto.ConsultationLeadResponse;
 import com.myhive.backend.dto.DepositSessionResponse;
@@ -37,7 +38,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -55,9 +55,14 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Real resolver (pure logic): unknown/absent origins fall back to http://localhost:3000,
+        // which keeps the pre-multidomain URL assertions unchanged.
+        FrontendUrlResolver frontendUrlResolver = new FrontendUrlResolver(
+                new String[] {"https://trivlu.com", "https://*.trivlu.com", "http://localhost:3000"},
+                "http://localhost:3000");
         paymentService = new PaymentService(bookingService, bookingRepository, shareRepository,
-                processedEventRepository, voteSessionService, stripeGateway, stripeProperties, emailService);
-        ReflectionTestUtils.setField(paymentService, "frontendUrl", "http://localhost:3000");
+                processedEventRepository, voteSessionService, stripeGateway, stripeProperties, emailService,
+                frontendUrlResolver);
     }
 
     @Test
@@ -91,7 +96,8 @@ class PaymentServiceTest {
         when(stripeGateway.createCheckoutSession(anyLong(), anyString(), anyString(), anyMap(), anyString(), anyString(), anyString()))
                 .thenReturn(new CheckoutSessionRef("cs_test_1", "https://checkout.stripe.com/cs_test_1"));
 
-        DepositSessionResponse response = paymentService.createDepositBookingAndSession(shareToken, managerToken, new TripExportRequest());
+        DepositSessionResponse response =
+                paymentService.createDepositBookingAndSession(shareToken, managerToken, new TripExportRequest(), null);
 
         assertThat(response.getCheckoutUrl()).isEqualTo("https://checkout.stripe.com/cs_test_1");
         assertThat(response.getBookingId()).isEqualTo(booking.getId());
@@ -136,7 +142,7 @@ class PaymentServiceTest {
         when(shareRepository.findByBookingId(existing.getId())).thenReturn(java.util.List.of(deposit));
 
         DepositSessionResponse response =
-                paymentService.createDepositBookingAndSession(shareToken, managerToken, new TripExportRequest());
+                paymentService.createDepositBookingAndSession(shareToken, managerToken, new TripExportRequest(), null);
 
         assertThat(response.getBookingId()).isEqualTo(existing.getId());
         assertThat(response.getCheckoutUrl()).isEqualTo(expectedUrl);
@@ -162,7 +168,7 @@ class PaymentServiceTest {
         when(stripeProperties.getDepositPct()).thenReturn(30);
 
         assertThatThrownBy(() ->
-                        paymentService.createDepositBookingAndSession(shareToken, managerToken, new TripExportRequest()))
+                        paymentService.createDepositBookingAndSession(shareToken, managerToken, new TripExportRequest(), null))
                 .isInstanceOf(BadRequestException.class);
         verify(stripeGateway, never()).createCheckoutSession(anyLong(), anyString(), anyString(),
                 anyMap(), anyString(), anyString(), anyString());
@@ -191,7 +197,7 @@ class PaymentServiceTest {
                 anyString(), anyString(), anyString()))
                 .thenReturn(new CheckoutSessionRef("cs_direct", "https://checkout/cs_direct"));
 
-        DepositSessionResponse response = paymentService.createTripDepositSession(new TripExportRequest());
+        DepositSessionResponse response = paymentService.createTripDepositSession(new TripExportRequest(), null);
 
         assertThat(response.getCheckoutUrl()).isEqualTo("https://checkout/cs_direct");
         assertThat(response.getBookingId()).isEqualTo(booking.getId());
@@ -201,6 +207,71 @@ class PaymentServiceTest {
         assertThat(amount.getValue()).isEqualTo(3000L);
         verify(bookingService).createBookingEntity(any(TripExportRequest.class), eq(true));
         verifyNoInteractions(voteSessionService);
+    }
+
+    @Test
+    void createTripDepositSession_usesBuyerOriginForReturnUrls_whenOriginAllowed() {
+        // Multidomain: a buyer on prague.trivlu.com must be sent back there after Checkout —
+        // their trip state lives in that origin's localStorage.
+        String expectedOrigin = "https://prague.trivlu.com";
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-SUBDOM1");
+        booking.setTotalAmount(new BigDecimal("100.00"));
+        when(bookingService.createBookingEntity(any(TripExportRequest.class), eq(true))).thenReturn(booking);
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
+            BookingPaymentShare s = inv.getArgument(0);
+            if (s.getId() == null) {
+                s.setId(UUID.randomUUID());
+            }
+            return s;
+        });
+        when(stripeProperties.getDepositPct()).thenReturn(30);
+        when(stripeProperties.getCurrency()).thenReturn("eur");
+        ArgumentCaptor<String> successUrl = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> cancelUrl = ArgumentCaptor.forClass(String.class);
+        when(stripeGateway.createCheckoutSession(anyLong(), anyString(), anyString(), anyMap(),
+                successUrl.capture(), cancelUrl.capture(), anyString()))
+                .thenReturn(new CheckoutSessionRef("cs_sub", "https://checkout/cs_sub"));
+
+        paymentService.createTripDepositSession(new TripExportRequest(), expectedOrigin);
+
+        assertThat(successUrl.getValue())
+                .isEqualTo(expectedOrigin + "/payment/success?booking=" + booking.getId());
+        assertThat(cancelUrl.getValue()).isEqualTo(expectedOrigin + "/payment/cancelled");
+    }
+
+    @Test
+    void createTripDepositSession_fallsBackToDefaultUrl_whenOriginNotAllowed() {
+        // Open-redirect guard: a forged Origin header must never become the Stripe return URL.
+        String expectedFallback = "http://localhost:3000";
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-EVIL0001");
+        booking.setTotalAmount(new BigDecimal("100.00"));
+        when(bookingService.createBookingEntity(any(TripExportRequest.class), eq(true))).thenReturn(booking);
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
+            BookingPaymentShare s = inv.getArgument(0);
+            if (s.getId() == null) {
+                s.setId(UUID.randomUUID());
+            }
+            return s;
+        });
+        when(stripeProperties.getDepositPct()).thenReturn(30);
+        when(stripeProperties.getCurrency()).thenReturn("eur");
+        ArgumentCaptor<String> successUrl = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> cancelUrl = ArgumentCaptor.forClass(String.class);
+        when(stripeGateway.createCheckoutSession(anyLong(), anyString(), anyString(), anyMap(),
+                successUrl.capture(), cancelUrl.capture(), anyString()))
+                .thenReturn(new CheckoutSessionRef("cs_evil", "https://checkout/cs_evil"));
+
+        paymentService.createTripDepositSession(new TripExportRequest(), "https://prague.trivlu.com.evil.com");
+
+        assertThat(successUrl.getValue())
+                .isEqualTo(expectedFallback + "/payment/success?booking=" + booking.getId());
+        assertThat(cancelUrl.getValue()).isEqualTo(expectedFallback + "/payment/cancelled");
     }
 
     private com.myhive.backend.payment.StripeRefs.StripeWebhookEvent paidEvent(String eventId, String shareId, long cents) {

@@ -86,7 +86,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `EMAIL_FROM`             | for email   | `noreply@trivlu.com`     |
 | `EMAIL_CONTACT_TO`       | for email   | `info@trivlu.com`        |
 | `EMAIL_ENABLED`          | no          | `false` (dev) / `true` (prod) |
-| `CORS_ALLOWED_ORIGINS`   | yes         | `https://trivlu.com,https://www.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000` |
+| `CORS_ALLOWED_ORIGINS`   | yes         | `https://trivlu.com,https://www.trivlu.com,https://*.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000` (also drives Stripe return-URL origin validation) |
 | `TURNSTILE_SECRET_KEY`   | for contact | -                        |
 | `R2_ACCESS_KEY`          | for uploads | -                        |
 | `R2_SECRET_KEY`          | for uploads | -                        |

@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.config.FrontendUrlResolver;
 import com.myhive.backend.config.StripeProperties;
 import com.myhive.backend.dto.AdminPaymentLinkResponse;
 import com.myhive.backend.dto.ConsultationLeadResponse;
@@ -29,7 +30,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,14 +56,12 @@ public class PaymentService {
     private final StripeGateway stripeGateway;
     private final StripeProperties stripeProperties;
     private final EmailService emailService;
-
-    @Value("${app.frontend.url:https://trivlu.com}")
-    private String frontendUrl;
+    private final FrontendUrlResolver frontendUrlResolver;
 
     public PaymentService(BookingService bookingService, BookingRepository bookingRepository,
             BookingPaymentShareRepository shareRepository, ProcessedStripeEventRepository processedEventRepository,
             VoteSessionService voteSessionService, StripeGateway stripeGateway, StripeProperties stripeProperties,
-            EmailService emailService) {
+            EmailService emailService, FrontendUrlResolver frontendUrlResolver) {
         this.bookingService = bookingService;
         this.bookingRepository = bookingRepository;
         this.shareRepository = shareRepository;
@@ -72,11 +70,12 @@ public class PaymentService {
         this.stripeGateway = stripeGateway;
         this.stripeProperties = stripeProperties;
         this.emailService = emailService;
+        this.frontendUrlResolver = frontendUrlResolver;
     }
 
     @Transactional
     public DepositSessionResponse createDepositBookingAndSession(UUID voteShareToken, UUID managerToken,
-            TripExportRequest request) {
+            TripExportRequest request, String originHeader) {
         VoteSession session = voteSessionService.requireManager(voteShareToken, managerToken);
         // M1: serialize deposit creation per session so a concurrent double-submit cannot race past the
         // dedup check below and create two bookings + two live deposit checkout sessions.
@@ -105,7 +104,7 @@ public class PaymentService {
         long participants = voteSessionService.getParticipantCount(voteShareToken);
         booking.setParticipantShareCount((int) Math.max(0, participants - 1));
 
-        return createDepositCheckout(booking);
+        return createDepositCheckout(booking, originHeader);
     }
 
     /**
@@ -113,9 +112,9 @@ public class PaymentService {
      * at the controller (public endpoint). Pricing is catalog-trusted (C1) exactly like the vote deposit.
      */
     @Transactional
-    public DepositSessionResponse createTripDepositSession(TripExportRequest request) {
+    public DepositSessionResponse createTripDepositSession(TripExportRequest request, String originHeader) {
         Booking booking = bookingService.createBookingEntity(request, true);
-        return createDepositCheckout(booking);
+        return createDepositCheckout(booking, originHeader);
     }
 
     /** Admin-created Stripe Payment Link for an arbitrary amount on a booking (balance or add-on). */
@@ -155,7 +154,7 @@ public class PaymentService {
 
     /** Shared: compute the 30% deposit for a freshly-built booking, persist the DEPOSIT share, and open a
      *  Stripe Checkout session. Used by both the vote deposit and the Trip Builder deposit. */
-    private DepositSessionResponse createDepositCheckout(Booking booking) {
+    private DepositSessionResponse createDepositCheckout(Booking booking, String originHeader) {
         long totalCents = PaymentCalculator.toCents(booking.getTotalAmount());
         long depositCents = PaymentCalculator.depositCents(totalCents, stripeProperties.getDepositPct());
         // L3 (symmetry): the deposit must also clear Stripe's per-transaction minimum, else a clean 400
@@ -179,8 +178,11 @@ public class PaymentService {
         Map<String, String> metadata = Map.of(
                 "booking_id", booking.getId().toString(),
                 "share_id", deposit.getId().toString());
-        String successUrl = frontendUrl + "/payment/success?booking=" + booking.getId();
-        String cancelUrl = frontendUrl + "/payment/cancelled";
+        // Multidomain: return the buyer to the origin they paid from (prague.trivlu.com, ...) so their
+        // localStorage trip state is reachable; foreign/absent origins fall back to the apex.
+        String frontendBase = frontendUrlResolver.resolve(originHeader);
+        String successUrl = frontendBase + "/payment/success?booking=" + booking.getId();
+        String cancelUrl = frontendBase + "/payment/cancelled";
         CheckoutSessionRef ref = stripeGateway.createCheckoutSession(depositCents, stripeProperties.getCurrency(),
                 "Deposit for trip " + booking.getTripId(), metadata, successUrl, cancelUrl,
                 "deposit-" + booking.getId());
@@ -232,6 +234,10 @@ public class PaymentService {
         // SEC-2: never credit a share for less (or more) than its expected amount. A genuine settled
         // checkout.session.completed always carries amount_total; a null means we cannot verify the amount
         // and must not credit (treating it the same as a mismatch).
+        // NOTE: these `return`s commit the ProcessedStripeEvent row, so Stripe gets a 200 and will NOT
+        // retry — acceptable while card-only (amounts are fixed at session creation, a mismatch is a
+        // config bug to fix from the warn-log, not a transient state). Revisit if async payment methods
+        // (bank transfers, partial captures) are enabled: those may need a retry via throw instead.
         if (event.amountTotalCents() == null) {
             log.warn("Stripe event {} has no amount_total for share {}; cannot verify amount — skipping",
                     event.id(), share.getId());
