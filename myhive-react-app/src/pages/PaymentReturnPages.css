@@ -21,7 +21,7 @@
 .payment-return p {
     margin: 0 0 1rem;
     max-width: 34rem;
-    color: #555;
+    color: var(--text-muted);
     line-height: 1.6;
 }
 
