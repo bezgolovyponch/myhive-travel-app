@@ -130,7 +130,10 @@ public class Booking {
     @Column(name = "vote_session_id")
     private UUID voteSessionId;
 
-    @Column(name = "consultation_requested", nullable = false)
+    // columnDefinition carries a DEFAULT so ddl-auto=update can add this NOT NULL column to an
+    // already-populated bookings table (Postgres rejects ADD COLUMN NOT NULL without a default on
+    // a non-empty table; existing bookings are not consultation leads, so false is correct).
+    @Column(name = "consultation_requested", nullable = false, columnDefinition = "boolean not null default false")
     private boolean consultationRequested;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
