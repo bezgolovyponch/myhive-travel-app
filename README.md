@@ -44,18 +44,28 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 - `GET /categories`, `GET /categories/{id}`, `GET /categories/slug/{slug}`
 - `GET /packages`, `GET /packages/{id}`, `GET /packages/slug/{slug}`
 - `GET /blog`, `GET /blog/{id}`, `GET /blog/slug/{slug}`
-- `POST /bookings`, `POST /bookings/trip`, `GET /bookings/{id}`, `GET /bookings?email=` (PATCH `/bookings/{id}/status` requires ADMIN)
+- `POST /bookings`, `POST /bookings/trip` (PATCH `/bookings/{id}/status` requires ADMIN). The public
+  read endpoints (`GET /bookings/{id}`, `GET /bookings?email=`) were removed — booking detail is served
+  only from the JWT-gated `/admin/bookings/**`.
 - `POST /contact`
 - `GET /sitemap.xml` — XML sitemap (1h cache)
 - **Vote sessions** (share-token based, no auth): `POST /vote/sessions`, `GET /vote/sessions/{shareToken}`
   (+ `/activities`, `/votes`, `/votes/batch`, `/participant-count`, `/close`, `/result`, `/quiz`),
   `GET /vote/destinations/{destinationId}/quiz`, `POST /vote/pool`
+- **Payments** (Stripe; public but gated per-endpoint): `POST /payments/deposit-session` (vote deposit —
+  requires `X-Vote-Share-Token` + `X-Manager-Token`), `POST /payments/trip-deposit-session` (Trip Builder
+  deposit — Turnstile-gated via `X-Turnstile-Token`), `POST /payments/consultation-lead`,
+  `POST /payments/webhook` (Stripe-signature authenticated, rate-limit-exempt with a 512 KB body cap).
+  Both deposit endpoints read the `Origin` header to build same-origin Stripe return URLs (validated
+  against `CORS_ALLOWED_ORIGINS`, falls back to `FRONTEND_URL`).
 - `GET /auth/me` — current user info from JWT (permitAll; returns roles when a token is present)
 
 **Admin** (Auth0 JWT, ADMIN/MANAGER role; categories require ADMIN):
 
 - `/admin/bookings/**`, `/admin/destinations/**`, `/admin/activities/**`, `/admin/categories/**`, `/admin/blog/**`,
   `/admin/upload`
+- `POST /admin/bookings/{id}/payment-link` — ADMIN/MANAGER creates a Stripe Payment Link for an editable
+  amount (balance/add-on) on any non-CANCELLED booking; single-use (deactivated after one completed payment)
 - Paged list endpoints: `/admin/*/paged?page=0&size=10`
 
 ## Services
@@ -69,6 +79,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | Email (receive) | Zoho Mail | Inbound mailboxes: info@ / support@ / bookings@         |
 | Images  | Cloudflare R2 | S3-compatible object storage         |
 | Auth    | Auth0         | OIDC/OAuth2, roles: ADMIN, MANAGER   |
+| Payments | Stripe       | Checkout Sessions (30% deposits) + Payment Links (admin balance/add-on); webhook-driven fulfilment |
 | Domain  | Namecheap     | Registrar (DNS hosted on Cloudflare) |
 
 ## Environment Variables
@@ -87,7 +98,11 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `EMAIL_CONTACT_TO`       | for email   | `info@trivlu.com`        |
 | `EMAIL_ENABLED`          | no          | `false` (dev) / `true` (prod) |
 | `CORS_ALLOWED_ORIGINS`   | yes         | `https://trivlu.com,https://www.trivlu.com,https://*.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000` (also drives Stripe return-URL origin validation) |
-| `TURNSTILE_SECRET_KEY`   | for contact | -                        |
+| `TURNSTILE_SECRET_KEY`   | for contact + Trip Builder deposit | -       |
+| `STRIPE_SECRET_KEY`      | for payments (blank fails fast in prod) | -  |
+| `STRIPE_WEBHOOK_SECRET`  | for payments (blank fails fast in prod) | -  |
+| `STRIPE_CURRENCY`        | no          | `eur`                    |
+| `PAYMENT_DEPOSIT_PCT`    | no          | `30` (must be 1–99)      |
 | `R2_ACCESS_KEY`          | for uploads | -                        |
 | `R2_SECRET_KEY`          | for uploads | -                        |
 | `R2_BUCKET_NAME`         | for uploads | -                        |
@@ -96,7 +111,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `AUTH0_ISSUER_URI`       | yes         | -                        |
 | `AUTH0_AUDIENCE`         | yes         | `https://api.trivlu.com` |
 | `AUTH0_ROLES_CLAIM`      | no          | `https://trivlu.com/roles` |
-| `FRONTEND_URL`           | for sitemap | `https://trivlu.com`     |
+| `FRONTEND_URL`           | for sitemap | `https://trivlu.com` (also the Stripe return-URL fallback when the request Origin is absent/untrusted) |
 
 ### Frontend (build-time `REACT_APP_*`)
 
