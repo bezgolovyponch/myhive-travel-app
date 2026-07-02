@@ -1,15 +1,41 @@
+import {useEffect} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
+import {useTrip} from '../context/TripContext';
+import {WHATSAPP_URL} from '../services/config';
 import './PaymentReturnPages.css';
 
 function PaymentSuccessPage() {
     const [params] = useSearchParams();
     const booking = params.get('booking');
+    const {dispatch} = useTrip();
+
+    useEffect(() => {
+        // The paid-for activities are booked now — clear the builder the same way the lead flow
+        // does after submit, so the trip doesn't linger and get booked twice. The backend returns
+        // the buyer to the origin they paid from, so this reaches the right localStorage.
+        dispatch({type: 'CANCEL_TRIP_SETUP'});
+        dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: 1});
+        dispatch({type: 'UPDATE_TRIP_DATES', startDate: '', endDate: ''});
+        dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
+    }, [dispatch]);
 
     return (
         <div className="payment-return">
             <h1>Thank you — your payment is on its way!</h1>
             <p>We're confirming your payment with our provider. You'll get an email once it's processed.</p>
             {booking && <p className="payment-return__ref">Booking reference: {booking}</p>}
+            <div className="success-whatsapp">
+                <h5>Contact us to get details about your trip</h5>
+                <a
+                    className="success-whatsapp-link"
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Contact us on WhatsApp"
+                >
+                    <i className="ph ph-whatsapp-logo" aria-hidden="true"/> WhatsApp us
+                </a>
+            </div>
             <Link to="/" className="btn btn--primary">Back to home</Link>
         </div>
     );
