@@ -21,6 +21,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RateLimitFilter implements Filter {
 
     private static final int MAX_REQUESTS_PER_MINUTE = 100;
+
+    /** Stripe webhook payloads are a few KB (largest event objects stay well under this). Reject
+     *  anything larger before the body is read/HMAC'd, so the un-rate-limited webhook can't be a
+     *  cheap unauthenticated DoS (large-body flood). */
+    private static final long MAX_WEBHOOK_BODY_BYTES = 512L * 1024L;
     private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "rate-limit-cleanup");
@@ -42,6 +47,15 @@ public class RateLimitFilter implements Filter {
         // /payments/webhook in both dev and prod.
         if ("POST".equalsIgnoreCase(httpRequest.getMethod())
                 && "/payments/webhook".equals(httpRequest.getServletPath())) {
+            // Rate-limit-exempt, so guard against a large-body flood: reject an oversized declared
+            // Content-Length before Spring buffers the body or Stripe's HMAC runs. A chunked request
+            // with no length (-1) is left to Spring/Tomcat's own limits.
+            long declaredLength = httpRequest.getContentLengthLong();
+            if (declaredLength > MAX_WEBHOOK_BODY_BYTES) {
+                httpResponse.setStatus(413);
+                httpResponse.getWriter().write("Payload Too Large");
+                return;
+            }
             chain.doFilter(request, response);
             return;
         }

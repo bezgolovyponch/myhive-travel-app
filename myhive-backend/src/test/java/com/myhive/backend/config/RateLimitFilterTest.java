@@ -130,6 +130,47 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void doFilter_webhookUnderBodyCap_passesThroughWithoutRateLimiting() throws Exception {
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getServletPath()).thenReturn("/payments/webhook");
+        when(request.getContentLengthLong()).thenReturn(4_096L);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        verify(response, never()).setStatus(anyInt());
+        // Webhook path must never consult the per-IP rate-limit machinery.
+        verify(request, never()).getHeader("CF-Connecting-IP");
+    }
+
+    @Test
+    void doFilter_webhookWithoutContentLength_passesThrough() throws Exception {
+        // A chunked request reports length -1; leave it to Spring/Tomcat's own limits, don't reject.
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getServletPath()).thenReturn("/payments/webhook");
+        when(request.getContentLengthLong()).thenReturn(-1L);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        verify(response, never()).setStatus(anyInt());
+    }
+
+    @Test
+    void doFilter_webhookOverBodyCap_returns413AndDoesNotProcess() throws Exception {
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getServletPath()).thenReturn("/payments/webhook");
+        when(request.getContentLengthLong()).thenReturn(512L * 1024L + 1L);
+        StringWriter sw = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(sw));
+
+        filter.doFilter(request, response, chain);
+
+        verify(response).setStatus(413);
+        verify(chain, never()).doFilter(request, response);
+    }
+
+    @Test
     void getClientIp_ignoresBlankCfConnectingIp() throws Exception {
         String expectedIp = "70.41.3.18";
         when(request.getHeader("CF-Connecting-IP")).thenReturn("   ");
