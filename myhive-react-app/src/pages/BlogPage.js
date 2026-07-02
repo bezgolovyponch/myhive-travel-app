@@ -23,16 +23,11 @@ function BlogPage() {
                 <meta name="description" content="Stories, tips, and inspiration for your next group adventure."/>
                 <link rel="canonical" href={`${SITE_URL}/blog`}/>
             </Helmet>
-            <section className="page-hero">
-                <h1>Blog</h1>
-                <p>Stories, tips, and inspiration for your next group adventure.</p>
-            </section>
-
             <section className="blog-section">
                 {loading ? (
-                    <p style={{textAlign: 'center', color: 'var(--text-muted)'}}>Loading posts...</p>
+                    <p style={{color: 'var(--text-muted)'}}>Loading posts...</p>
                 ) : posts.length === 0 ? (
-                    <p style={{textAlign: 'center', color: 'var(--text-muted)'}}>No blog posts yet. Check back
+                    <p style={{color: 'var(--text-muted)'}}>No blog posts yet. Check back
                         soon!</p>
                 ) : (
                     <div className="blog-grid">

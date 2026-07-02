@@ -1,6 +1,6 @@
 .reviews-section {
     padding: var(--gap-xl) var(--page-padding);
-    background: #14342b;
+    background: #1b1822;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -26,7 +26,7 @@
 }
 
 .review-card {
-    background: rgba(255, 255, 255, 0.08);
+    background: #262430;
     border-radius: 0.75rem;
     padding: var(--gap-lg);
     text-align: left;
@@ -36,29 +36,31 @@
 }
 
 .review-stars {
-    color: #b6e64c;
+    color: var(--star, #f5a623);
+    font-size: 0.875rem;
     letter-spacing: 0.2rem;
 }
 
 .review-quote {
-    color: var(--white);
-    font-style: italic;
-    font-size: 0.9375rem;
+    color: #cfccd6;
+    font-size: 0.8125rem;
+    line-height: 1.5;
     margin: 0;
     flex-grow: 1;
 }
 
 .review-avatar {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.125rem;
+    height: 2.125rem;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--purple, #534AB7);
     color: var(--white);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.875rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    flex-shrink: 0;
 }
 
 .review-author {
@@ -69,13 +71,11 @@
 
 .review-name {
     color: var(--white);
-    font-weight: 700;
-    font-size: 0.875rem;
-    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 0.8125rem;
 }
 
 .review-country {
-    color: var(--white);
-    opacity: 0.7;
-    font-size: 0.75rem;
+    color: var(--hp-muted, #9a96a6);
+    font-size: 0.6875rem;
 }

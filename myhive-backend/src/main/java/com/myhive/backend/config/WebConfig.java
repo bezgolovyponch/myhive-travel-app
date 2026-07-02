@@ -13,13 +13,15 @@ import java.util.List;
 @Configuration
 public class WebConfig {
 
-    @Value("${CORS_ALLOWED_ORIGINS:https://trivlu.com,https://www.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000}")
+    @Value("${CORS_ALLOWED_ORIGINS:https://trivlu.com,https://www.trivlu.com,https://*.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000}")
     private String[] allowedOrigins;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        // Patterns (not exact origins) so wildcard subdomains like
+        // https://prague.trivlu.com match https://*.trivlu.com.
+        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins));
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Content-Disposition"));

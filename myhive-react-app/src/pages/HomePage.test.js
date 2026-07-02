@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -12,8 +12,6 @@ jest.mock('../services/api');
 jest.mock('../utils/analytics', () => ({pushEvent: jest.fn()}));
 
 beforeEach(() => {
-  // jsdom does not implement media playback; the hero video autoplays.
-  jest.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue();
   jest.clearAllMocks();
 });
 
@@ -53,12 +51,13 @@ test('renders all homepage sections', async () => {
   expect(screen.getByText('The Smartest Way to Plan a Stag Do')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
   expect(screen.getByText('View All Activities')).toHaveAttribute('href', '/destination/prague');
-  expect(screen.getByText('How Booking Works')).toBeInTheDocument();
   expect(screen.getByText('What the Lads Say')).toBeInTheDocument();
+  expect(screen.getByText("We're just a message away")).toBeInTheDocument();
 });
 
-test('hides the activities section when no featured activities exist', async () => {
+test('hides the activities section when featured and fallback activities are both empty', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
+  api.getActivities.mockResolvedValue([]);
 
   renderHome();
 
@@ -120,4 +119,20 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   // auto-selected even when the API returns another destination first.
   expect(screen.getByText('Prague')).toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+test('Explore activities CTA scrolls to the activities section', async () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+  renderHome();
+  const section = document.createElement('div');
+  section.id = 'activities';
+  section.scrollIntoView = jest.fn();
+  document.body.appendChild(section);
+
+  const cta = screen.getByRole('link', {name: /Explore activities/i});
+  expect(cta).toHaveAttribute('href', '/#activities');
+  await userEvent.click(cta);
+  await waitFor(() => expect(section.scrollIntoView).toHaveBeenCalled());
+  expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});
+  section.remove();
 });

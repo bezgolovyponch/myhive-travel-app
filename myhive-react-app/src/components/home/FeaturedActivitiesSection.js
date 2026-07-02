@@ -18,13 +18,17 @@ function FeaturedActivitiesSection() {
     useEffect(() => {
         let cancelled = false;
         api.getFeaturedActivities()
+            // Nothing curated as featured (or the fetch failed): fall back to the
+            // regular activities list so the homepage grid is never empty.
+            .catch(() => null)
+            .then(featured => (featured && featured.length > 0 ? featured : api.getActivities()))
             .then(data => {
                 if (!cancelled) {
                     setActivities((data || []).slice(0, MAX_FEATURED));
                 }
             })
             .catch(() => {
-                // The featured grid is optional on the homepage; keep it hidden on fetch failure.
+                // Both fetches failed; keep the section hidden.
             });
         return () => {
             cancelled = true;
@@ -55,7 +59,7 @@ function FeaturedActivitiesSection() {
             {mainDestination && (
                 <Link
                     to={`/destination/${mainDestination.slug}`}
-                    className="btn btn--primary btn--lg"
+                    className="btn btn--lg featured-activities-cta"
                     onClick={() => pushEvent('cta_click', {cta_label: 'View All Activities', block: 'activities'})}
                 >
                     View All Activities

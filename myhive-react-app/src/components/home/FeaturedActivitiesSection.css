@@ -12,10 +12,25 @@
 .featured-activities-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--gap-lg);
+    gap: 1.125rem;
     width: 100%;
-    max-width: 80rem;
+    max-width: 62.5rem;
     text-align: left;
+}
+
+/* "View All Activities" is a secondary action — render it as an outline button
+   to match the homepage redesign (purple border, transparent fill). */
+.featured-activities-cta {
+    background: transparent;
+    color: #fff;
+    border: 2px solid var(--purple);
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.featured-activities-cta:hover {
+    background: var(--purple);
+    color: #fff;
 }
 
 @media (max-width: 1024px) {
@@ -24,15 +39,15 @@
     }
 }
 
+/* Mockup keeps the grid two-up on all mobile widths with compact cards.
+   Phones show only the first 4 cards — "View All Activities" covers the rest. */
 @media (max-width: 768px) {
     .featured-activities-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: var(--gap);
+        gap: 0.875rem;
     }
-}
 
-@media (max-width: 480px) {
-    .featured-activities-grid {
-        grid-template-columns: 1fr;
+    .featured-activities-grid > *:nth-child(n+5) {
+        display: none;
     }
 }

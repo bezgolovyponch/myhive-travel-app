@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  <!-- Google Tag Manager (skipped on localhost: container/CookieYes aren't configured for it and throw a cross-origin "Script error.") -->
+  <script>if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'&&!location.hostname.endsWith('.localhost')){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-KB7BJLDS');</script>
+  })(window,document,'script','dataLayer','GTM-KB7BJLDS');}</script>
   <!-- End Google Tag Manager -->
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Trivlu — Group Travel Made Easy</title>
@@ -45,7 +46,8 @@
     work correctly both with client-side routing and a non-root public URL.
     Learn how to configure a non-root public URL by running `npm run build`.
   -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <!-- Cloudflare Turnstile (skipped on localhost: sitekey isn't valid for it and throws a cross-origin "Script error.") -->
+    <script>if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'&&!location.hostname.endsWith('.localhost')){var t=document.createElement('script');t.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';t.async=true;t.defer=true;document.head.appendChild(t);}</script>
 </head>
 <body>
   <!-- Google Tag Manager (noscript) -->
