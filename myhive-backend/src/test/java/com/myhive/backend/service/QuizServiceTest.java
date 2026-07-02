@@ -10,17 +10,27 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.QuizAnswer;
 import com.myhive.backend.entity.QuizAnswerWeight;
 import com.myhive.backend.entity.QuizQuestion;
+import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
+import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
+import com.myhive.backend.repository.VoteSessionRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +38,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
+// Run against the project's configured H2 datasource (PostgreSQL compat mode) rather than @DataJpaTest's
+// default plain-H2 swap — the same prod-mirroring datasource VoteSessionTablesTest uses. Under the plain-H2
+// swap, persisting a VoteSession spuriously trips its status enum CHECK constraint.
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class QuizServiceTest {
 
     @Autowired
@@ -38,13 +52,19 @@ class QuizServiceTest {
     private CategoryRepository categoryRepository;
     @Autowired
     private QuizAnswerWeightRepository quizAnswerWeightRepository;
+    @Autowired
+    private VoteSessionRepository voteSessionRepository;
+    @Autowired
+    private VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private QuizService quizService;
 
     @BeforeEach
     void setUp() {
         quizService = new QuizService(quizQuestionRepository, destinationRepository,
-                categoryRepository, quizAnswerWeightRepository);
+                categoryRepository, quizAnswerWeightRepository, voteSessionQuizResponseRepository);
     }
 
     @Test
@@ -177,6 +197,43 @@ class QuizServiceTest {
     }
 
     @Test
+    void replaceQuiz_destinationHasQuizResponses_replacesAndWipesStaleResponses() {
+        String expectedPrompt = "NEW QUESTION";
+
+        Destination destination = destinationRepository.save(destination("Prague"));
+        Category category = categoryRepository.save(category("Nightlife", "nightlife"));
+
+        QuizQuestion old = saveQuestion(destination, "OLD QUESTION", 0);
+        QuizAnswer oldAnswer = saveAnswer(old, "old", 0);
+
+        // A participant already answered this quiz — vote_session_quiz_responses references the old answer.
+        VoteSession session = saveActiveSession(destination);
+        VoteSessionQuizResponse response = new VoteSessionQuizResponse();
+        response.setSession(session);
+        response.setVoterToken(UUID.randomUUID());
+        response.setQuestion(old);
+        response.setAnswer(oldAnswer);
+        voteSessionQuizResponseRepository.saveAndFlush(response);
+
+        // The real PUT-quiz request runs in a fresh persistence context with no responses loaded.
+        // Detach everything so replaceQuiz sees only DB state, as it does in production.
+        entityManager.clear();
+
+        QuizAnswerWeightDTO weight = new QuizAnswerWeightDTO(category.getId(), 2);
+        QuizAnswerDTO answer = new QuizAnswerDTO(null, "4am legend", 0, List.of(weight));
+        QuizQuestionDTO question = new QuizQuestionDTO(null, expectedPrompt, 0, List.of(answer));
+        QuizDTO dto = new QuizDTO(List.of(question));
+
+        QuizDTO result = quizService.replaceQuiz(destination.getId(), dto);
+
+        assertThat(result.getQuestions())
+                .extracting(QuizQuestionDTO::getPrompt)
+                .containsExactly(expectedPrompt);
+        // Test-mode decision: editing the quiz discards existing participants' responses.
+        assertThat(voteSessionQuizResponseRepository.findBySessionId(session.getId())).isEmpty();
+    }
+
+    @Test
     void replaceQuiz_emptyQuestions_clearsQuiz() {
         Destination destination = new Destination();
         destination.setName("Prague");
@@ -292,6 +349,20 @@ class QuizServiceTest {
         Destination d = new Destination();
         d.setName(name);
         return d;
+    }
+
+    private VoteSession saveActiveSession(Destination destination) {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setManagerToken(UUID.randomUUID());
+        session.setDestination(destination);
+        session.setInitiatorEmail("test@example.com");
+        session.setNumberOfTravelers(2);
+        session.setStartDate(LocalDate.of(2026, 8, 1));
+        session.setEndDate(LocalDate.of(2026, 8, 10));
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setExpiresAt(LocalDateTime.of(2026, 8, 10, 23, 59));
+        return voteSessionRepository.saveAndFlush(session);
     }
 
     private Category category(String name, String slug) {

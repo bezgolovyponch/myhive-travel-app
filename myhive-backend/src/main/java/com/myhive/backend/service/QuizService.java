@@ -18,7 +18,9 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
+import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class QuizService {
@@ -40,6 +43,7 @@ public class QuizService {
     private final DestinationRepository destinationRepository;
     private final CategoryRepository categoryRepository;
     private final QuizAnswerWeightRepository quizAnswerWeightRepository;
+    private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
 
     public QuizDTO getQuiz(UUID destinationId) {
         if (!destinationRepository.existsById(destinationId)) {
@@ -130,6 +134,15 @@ public class QuizService {
                     }
                 }
             }
+        }
+
+        // Participants' quiz responses reference the old answers via a non-cascading FK. Wipe them first
+        // so the old questions/answers can be deleted. Editing a quiz discards existing responses by design.
+        int discardedResponses = voteSessionQuizResponseRepository.deleteByDestinationId(destinationId);
+        voteSessionQuizResponseRepository.flush();
+        if (discardedResponses > 0) {
+            log.warn("Replacing quiz for destination {} discarded {} existing quiz response(s)",
+                    destinationId, discardedResponses);
         }
 
         quizQuestionRepository.deleteAll(

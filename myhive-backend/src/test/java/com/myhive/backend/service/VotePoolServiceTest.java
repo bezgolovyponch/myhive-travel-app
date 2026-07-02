@@ -15,6 +15,7 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
+import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ class VotePoolServiceTest {
     @Autowired private DestinationRepository destinationRepository;
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private ActivityRepository activityRepository;
+    @Autowired private VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
 
     private QuizService quizService;
     private VotePoolService votePoolService;
@@ -44,7 +46,7 @@ class VotePoolServiceTest {
     @BeforeEach
     void setUp() {
         quizService = new QuizService(quizQuestionRepository, destinationRepository,
-                categoryRepository, quizAnswerWeightRepository);
+                categoryRepository, quizAnswerWeightRepository, voteSessionQuizResponseRepository);
         votePoolService = new VotePoolService(quizService, destinationRepository, activityRepository);
     }
 
