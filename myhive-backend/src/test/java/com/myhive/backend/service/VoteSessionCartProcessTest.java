@@ -3,6 +3,7 @@ package com.myhive.backend.service;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.VoteBatchRequest;
+import com.myhive.backend.dto.VoteResultResponse;
 import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.entity.Activity;
@@ -92,6 +93,31 @@ class VoteSessionCartProcessTest {
 
         assertThat(results).extracting(r -> r.getActivity().getId())
                 .containsExactly(first.getId(), second.getId());
+    }
+
+    @Test
+    void getResult_cart_exposesVoteModeParticipantCountAndNoSuggestions() {
+        long expectedParticipants = 2L;
+
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        VoteSessionResponse created = createCartSession(prague, barCrawl);
+
+        castUpvotes(created.getShareToken(), List.of(barCrawl.getId()));
+        castUpvotes(created.getShareToken(), List.of(barCrawl.getId()));
+
+        VoteSession session = voteSessionRepository.findByShareToken(created.getShareToken()).orElseThrow();
+        voteSessionService.processSession(session);
+
+        VoteResultResponse result = voteSessionService.getResult(created.getShareToken());
+
+        assertThat(result.getVoteMode()).isEqualTo("CART");
+        assertThat(result.getParticipantCount()).isEqualTo(expectedParticipants);
+        assertThat(result.getSuggestions()).isEmpty();
+        assertThat(result.getBudget()).isNull();
+        assertThat(result.getResult()).hasSize(1);
+        assertThat(result.getResult().get(0).getLikeCount()).isEqualTo(2);
     }
 
     private void castUpvotes(UUID shareToken, List<UUID> activityIds) {

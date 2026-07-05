@@ -461,12 +461,18 @@ public class VoteSessionService {
         BigDecimal budget = session.getBudget();
         BigDecimal remaining = budget == null ? null : budget.subtract(totalPrice);
 
-        List<SuggestionDTO> suggestions = voteSuggestionsService.buildSuggestions(session);
+        List<SuggestionDTO> suggestions = session.getVoteMode() == VoteMode.CART
+                ? List.of()
+                : voteSuggestionsService.buildSuggestions(session);
+
+        long participantCount = voteActivityLikeRepository
+                .countDistinctVoterTokensBySessionId(session.getId());
 
         return new VoteResultResponse(result, suggestions, session.getNumberOfTravelers(),
                 totalPrice, budget, remaining,
                 session.getDestination().getName(), session.getDestination().getSlug(),
-                session.getStartDate(), session.getEndDate());
+                session.getStartDate(), session.getEndDate(),
+                session.getVoteMode().name(), participantCount);
     }
 
     public VoteSession requireManager(UUID shareToken, UUID managerToken) {

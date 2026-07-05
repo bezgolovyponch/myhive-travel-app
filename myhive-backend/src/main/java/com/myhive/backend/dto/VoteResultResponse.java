@@ -23,4 +23,6 @@ public class VoteResultResponse {
     private String destinationSlug;
     private LocalDate startDate;
     private LocalDate endDate;
+    private String voteMode;
+    private long participantCount;
 }
