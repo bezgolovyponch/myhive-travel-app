@@ -2,6 +2,7 @@ package com.myhive.backend.controller;
 
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.VoteSessionResponse;
+import com.myhive.backend.dto.VoteTallyResponse;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.SessionFullException;
 import com.myhive.backend.service.VoteSessionService;
@@ -217,5 +218,23 @@ class VoteSessionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void getTally_returns200WithRows() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        VoteTallyResponse tally = new VoteTallyResponse("ACTIVE",
+                java.time.Instant.now().plus(12, java.time.temporal.ChronoUnit.HOURS), 3L,
+                List.of(new VoteTallyResponse.TallyRow(
+                        UUID.randomUUID(), "Bar Crawl", new java.math.BigDecimal("45.00"), 2L)));
+
+        when(voteSessionService.getTally(any(), any(), any())).thenReturn(tally);
+
+        mockMvc.perform(get("/vote/sessions/{shareToken}/tally", shareToken)
+                        .param("voterToken", UUID.randomUUID().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.participantCount").value(3))
+                .andExpect(jsonPath("$.rows[0].name").value("Bar Crawl"))
+                .andExpect(jsonPath("$.rows[0].likeCount").value(2));
     }
 }

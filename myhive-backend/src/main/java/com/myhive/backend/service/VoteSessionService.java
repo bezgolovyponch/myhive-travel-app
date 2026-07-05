@@ -12,6 +12,7 @@ import com.myhive.backend.dto.VoteResultResponse;
 import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
+import com.myhive.backend.dto.VoteTallyResponse;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
@@ -475,6 +476,49 @@ public class VoteSessionService {
                 session.getVoteMode().name(), participantCount);
     }
 
+    /**
+     * Live tally for a CART vote session, visible only to the session manager or a voter who
+     * has already cast a vote — strangers get a 403 so results stay a surprise until they
+     * participate. QUIZ sessions have no live tally (409): their winners depend on quiz-weighted
+     * scoring and budget trimming, not a simple like count.
+     */
+    public VoteTallyResponse getTally(UUID shareToken, UUID voterToken, UUID managerToken) {
+        VoteSession session = findByShareToken(shareToken);
+        if (session.getVoteMode() != VoteMode.CART) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Live tally is not available for this session");
+        }
+
+        boolean isManager = managerToken != null && managerToken.equals(session.getManagerToken());
+        boolean hasVoted = voterToken != null && voteActivityLikeRepository
+                .existsBySessionIdAndVoterToken(session.getId(), voterToken);
+        if (!isManager && !hasVoted) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Cast your vote to see the live tally");
+        }
+
+        List<VoteSessionActivity> curated = voteSessionActivityRepository
+                .findBySessionIdOrderBySortOrder(session.getId());
+        Map<UUID, ActivityVoteCount> counts = voteActivityLikeRepository
+                .findVoteCountsBySessionId(session.getId()).stream()
+                .collect(Collectors.toMap(ActivityVoteCount::getActivityId, c -> c));
+
+        List<VoteTallyResponse.TallyRow> rows = curated.stream()
+                .sorted(cartRankingOrder(counts))
+                .map(row -> new VoteTallyResponse.TallyRow(
+                        row.getActivity().getId(),
+                        row.getActivityName(),
+                        row.getPrice(),
+                        likeCountOf(counts, row)))
+                .toList();
+
+        long participantCount = voteActivityLikeRepository
+                .countDistinctVoterTokensBySessionId(session.getId());
+
+        return new VoteTallyResponse(session.getStatus().name(),
+                session.getExpiresAt().toInstant(ZoneOffset.UTC), participantCount, rows);
+    }
+
     public VoteSession requireManager(UUID shareToken, UUID managerToken) {
         VoteSession session = findByShareToken(shareToken);
         if (!session.getManagerToken().equals(managerToken)) {
@@ -553,15 +597,24 @@ public class VoteSessionService {
         // Advisory ranking: every ballot activity is kept, ordered by like count;
         // ties resolve to the initiator's original cart order.
         List<VoteSessionActivity> ranked = curated.stream()
-                .sorted(Comparator
-                        .comparingLong((VoteSessionActivity row) -> likeCountOf(counts, row)).reversed()
-                        .thenComparingInt(VoteSessionActivity::getSortOrder))
+                .sorted(cartRankingOrder(counts))
                 .toList();
         int sortOrder = 0;
         for (VoteSessionActivity row : ranked) {
             saveResultRow(session, row.getActivity(), sortOrder++);
         }
         log.info("Processed cart vote session {} — {} activities ranked", session.getId(), sortOrder);
+    }
+
+    /**
+     * CART ranking order shared by the frozen result ({@link #freezeCartRanking}) and the live
+     * tally ({@link #getTally}): like count descending, ties broken by the initiator's original
+     * cart order.
+     */
+    private Comparator<VoteSessionActivity> cartRankingOrder(Map<UUID, ActivityVoteCount> counts) {
+        return Comparator
+                .comparingLong((VoteSessionActivity row) -> likeCountOf(counts, row)).reversed()
+                .thenComparingInt(VoteSessionActivity::getSortOrder);
     }
 
     private long likeCountOf(Map<UUID, ActivityVoteCount> counts, VoteSessionActivity row) {

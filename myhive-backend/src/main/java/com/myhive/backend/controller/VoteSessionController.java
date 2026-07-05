@@ -9,6 +9,7 @@ import com.myhive.backend.dto.VoteResultResponse;
 import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
+import com.myhive.backend.dto.VoteTallyResponse;
 import com.myhive.backend.service.VoteSessionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -81,6 +82,13 @@ public class VoteSessionController {
     @GetMapping("/{shareToken}/result")
     public VoteResultResponse getResult(@PathVariable UUID shareToken) {
         return voteSessionService.getResult(shareToken);
+    }
+
+    @GetMapping("/{shareToken}/tally")
+    public VoteTallyResponse getTally(@PathVariable UUID shareToken,
+                                      @RequestParam(required = false) UUID voterToken,
+                                      @RequestParam(required = false) UUID managerToken) {
+        return voteSessionService.getTally(shareToken, voterToken, managerToken);
     }
 
     @GetMapping("/{shareToken}/quiz")
