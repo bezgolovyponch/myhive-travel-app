@@ -1,0 +1,33 @@
+.start-vote-modal label {
+    display: block;
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.start-vote-modal input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.start-vote-modal input.error {
+    border-color: #d33;
+}
+
+.start-vote-modal-sub {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.start-vote-modal-dates {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.start-vote-modal .error-message {
+    color: #d33;
+    font-size: 0.85rem;
+}
