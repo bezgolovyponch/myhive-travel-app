@@ -21,6 +21,7 @@ jest.mock('../services/voteApi', () => ({
     __esModule: true,
     default: {
         getResult: jest.fn(),
+        getSession: jest.fn(),
     },
 }));
 
@@ -656,6 +657,58 @@ describe('Let your mates vote button', () => {
             'title',
             'Group voting works for one destination at a time — remove activities from other destinations first.'
         );
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Active vote guard — block starting a new vote while one is already running
+// ---------------------------------------------------------------------------
+
+describe('active vote guard', () => {
+    test('an ACTIVE CART session blocks the create-modal and shows the active-vote modal instead', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getSession.mockResolvedValue({ status: 'ACTIVE', voteMode: 'CART' });
+        const user = userEvent.setup();
+        renderTripBuilder();
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
+        expect(screen.queryByLabelText('Your email')).not.toBeInTheDocument();
+    });
+
+    test('a COMPLETED session lets the create-modal open as usual', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getSession.mockResolvedValue({ status: 'COMPLETED', voteMode: 'CART' });
+        const user = userEvent.setup();
+        renderTripBuilder();
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(screen.queryByText('A vote is already running')).not.toBeInTheDocument();
+    });
+
+    test('a rejected session lookup self-heals: the stored key is dropped and the create-modal opens', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getSession.mockRejectedValue(new Error('Failed to fetch vote session'));
+        const user = userEvent.setup();
+        renderTripBuilder();
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
+    });
+
+    test('no stored session opens the create-modal directly without calling getSession', async () => {
+        const user = userEvent.setup();
+        renderTripBuilder();
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(voteApi.getSession).not.toHaveBeenCalled();
     });
 });
 

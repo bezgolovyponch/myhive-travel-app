@@ -12,6 +12,7 @@ import {generateUuid} from '../utils/uuid';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
+import ActiveVoteModal from './vote/ActiveVoteModal';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
@@ -43,6 +44,8 @@ function TripBuilder({ destinationId, destinationSlug }) {
   const [voteResult, setVoteResult] = useState(null);
   const [voteError, setVoteError] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
+  const [activeVoteToken, setActiveVoteToken] = useState(null);
+  const [checkingVote, setCheckingVote] = useState(false);
 
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -206,6 +209,37 @@ function TripBuilder({ destinationId, destinationSlug }) {
 
   const handleAddActivity = (activity) => {
       dispatch({type: 'ADD_TO_TRIP', activity, silent: true});
+  };
+
+  // Guard against starting a second vote while one this browser started is
+  // still ACTIVE — reads localStorage fresh (not the stale mount-time
+  // storedVoteSession) since a vote may have been created/ended since mount.
+  const handleStartVoteClick = async () => {
+    if (checkingVote) {
+      return;
+    }
+    const token = localStorage.getItem('myhive-trip-vote-session');
+    if (!token) {
+      setShowVoteModal(true);
+      return;
+    }
+    setCheckingVote(true);
+    try {
+      const session = await voteApi.getSession(token);
+      if (session.status === 'ACTIVE' && session.voteMode === 'CART') {
+        setActiveVoteToken(token);
+      } else {
+        setShowVoteModal(true);
+      }
+    } catch (e) {
+      // Session deleted/404 or a transient network error — self-heal by
+      // dropping the stale key and falling through to the create-modal,
+      // whose own create call will surface any real error.
+      localStorage.removeItem('myhive-trip-vote-session');
+      setShowVoteModal(true);
+    } finally {
+      setCheckingVote(false);
+    }
   };
 
   const handleConfirmTrip = () => {
@@ -501,8 +535,8 @@ function TripBuilder({ destinationId, destinationSlug }) {
                   <button
                       type="button"
                       className="btn btn--full-width start-vote-btn"
-                      onClick={() => setShowVoteModal(true)}
-                      disabled={!canStartVote}
+                      onClick={handleStartVoteClick}
+                      disabled={!canStartVote || checkingVote}
                       title={hasForeignStandalone
                           ? 'Group voting works for one destination at a time — remove activities from other destinations first.'
                           : undefined}
@@ -645,6 +679,12 @@ function TripBuilder({ destinationId, destinationSlug }) {
           numberOfTravelers={travelers}
           startDate={state.tripStartDate}
           endDate={state.tripEndDate}
+      />
+
+      <ActiveVoteModal
+          isOpen={!!activeVoteToken}
+          onClose={() => setActiveVoteToken(null)}
+          shareToken={activeVoteToken}
       />
 
       <SuccessModal
