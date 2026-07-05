@@ -106,6 +106,39 @@ const voteApi = {
     if (!response.ok) throw new Error('Failed to fetch vote result');
     return response.json();
   },
+
+  // Cart-seeded session creation (no quiz) — the ballot is the initiator's cart.
+  async createCartSession({ destinationId, initiatorEmail, numberOfTravelers,
+                            startDate, endDate, activityIds }) {
+    const response = await fetch(`${API_BASE_URL}/vote/sessions/cart`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, activityIds,
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.message || 'Failed to create vote session');
+    }
+    return response.json();
+  },
+
+  // Live tally (CART sessions): server requires that voterToken has voted, or a managerToken.
+  async getTally(shareToken, { voterToken, managerToken } = {}) {
+    const params = new URLSearchParams();
+    if (voterToken) {
+      params.set('voterToken', voterToken);
+    }
+    if (managerToken) {
+      params.set('managerToken', managerToken);
+    }
+    const response = await fetch(
+        `${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/tally?${params}`);
+    if (response.status === 403) throw new Error('Vote first to see the live tally');
+    if (!response.ok) throw new Error('Failed to fetch tally');
+    return response.json();
+  },
 };
 
 export default voteApi;
