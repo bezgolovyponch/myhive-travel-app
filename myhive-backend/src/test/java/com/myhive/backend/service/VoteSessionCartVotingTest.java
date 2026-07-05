@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,8 +37,9 @@ class VoteSessionCartVotingTest {
 
     @Test
     void castVote_rejectsDownvoteOnCartSession_400() {
-        Destination prague = newDestination("Prague");
-        Activity barCrawl = newActivity(prague, "Bar Crawl");
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
         VoteSessionResponse session = createCartSession(prague, barCrawl);
 
         VoteRequest downvote = new VoteRequest();
@@ -53,9 +54,11 @@ class VoteSessionCartVotingTest {
 
     @Test
     void castVotes_rejectsBatchContainingDownvote_400() {
-        Destination prague = newDestination("Prague");
-        Activity barCrawl = newActivity(prague, "Bar Crawl");
-        Activity karting = newActivity(prague, "Karting");
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        Activity karting = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Karting", new BigDecimal("45.00")));
         VoteSessionResponse session = createCartSession(prague, barCrawl, karting);
 
         VoteBatchRequest batch = batch(UUID.randomUUID(),
@@ -70,8 +73,9 @@ class VoteSessionCartVotingTest {
     void castVotes_acceptsUpvoteBatchOnCartSession() {
         long expectedParticipants = 1L;
 
-        Destination prague = newDestination("Prague");
-        Activity barCrawl = newActivity(prague, "Bar Crawl");
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
         VoteSessionResponse session = createCartSession(prague, barCrawl);
 
         VoteBatchRequest batch = batch(UUID.randomUUID(), vote(barCrawl.getId(), true));
@@ -105,20 +109,5 @@ class VoteSessionCartVotingTest {
         item.setActivityId(activityId);
         item.setLiked(liked);
         return item;
-    }
-
-    private Destination newDestination(String name) {
-        Destination destination = new Destination();
-        destination.setName(name);
-        return destinationRepository.save(destination);
-    }
-
-    private Activity newActivity(Destination destination, String name) {
-        Activity activity = new Activity();
-        activity.setDestination(destination);
-        activity.setName(name);
-        activity.setPrice(new BigDecimal("45.00"));
-        activity.setCategories(new HashSet<>());
-        return activityRepository.saveAndFlush(activity);
     }
 }

@@ -18,6 +18,7 @@ import com.myhive.backend.model.BookingStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,6 +60,16 @@ public final class TestDataFactory {
         return d;
     }
 
+    /**
+     * Unsaved destination with only {@code name} set — for vote-flow tests that persist it
+     * themselves via {@code destinationRepository.save(...)} and let JPA assign the id.
+     */
+    public static Destination destination(String name) {
+        Destination d = new Destination();
+        d.setName(name);
+        return d;
+    }
+
     public static Activity activity(Destination destination) {
         Activity a = new Activity();
         a.setId(UUID.randomUUID());
@@ -77,6 +88,20 @@ public final class TestDataFactory {
     public static Activity activity(Destination destination, Category... categories) {
         Activity a = activity(destination);
         a.setCategories(new java.util.HashSet<>(java.util.Arrays.asList(categories)));
+        return a;
+    }
+
+    /**
+     * Unsaved activity with only {@code destination}/{@code name}/{@code price} set (empty
+     * category set) — for vote-flow tests that persist it themselves via
+     * {@code activityRepository.saveAndFlush(...)} and let JPA assign the id.
+     */
+    public static Activity activity(Destination destination, String name, BigDecimal price) {
+        Activity a = new Activity();
+        a.setDestination(destination);
+        a.setName(name);
+        a.setPrice(price);
+        a.setCategories(new HashSet<>());
         return a;
     }
 

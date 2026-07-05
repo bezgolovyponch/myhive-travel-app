@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
@@ -22,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,9 +46,11 @@ class VoteSessionCartCreateTest {
         String expectedSecondName = "Karting";
         BigDecimal expectedFirstPrice = new BigDecimal("45.00");
 
-        Destination prague = newDestination("Prague");
-        Activity barCrawl = newActivity(prague, expectedFirstName, expectedFirstPrice);
-        Activity karting = newActivity(prague, expectedSecondName, new BigDecimal("60.00"));
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, expectedFirstName, expectedFirstPrice));
+        Activity karting = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, expectedSecondName, new BigDecimal("60.00")));
 
         VoteSessionCartCreateRequest request =
                 cartRequest(prague.getId(), List.of(barCrawl.getId(), karting.getId()));
@@ -73,8 +75,9 @@ class VoteSessionCartCreateTest {
     @Test
     void createCartSession_allowsActivityWithoutCategories() {
         // Unlike the quiz flow there is no quiz-category eligibility check.
-        Destination prague = newDestination("Prague");
-        Activity uncategorised = newActivity(prague, "Mystery Tour", new BigDecimal("30.00"));
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity uncategorised = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Mystery Tour", new BigDecimal("30.00")));
 
         VoteSessionResponse response = voteSessionService.createCartSession(
                 cartRequest(prague.getId(), List.of(uncategorised.getId())));
@@ -84,8 +87,9 @@ class VoteSessionCartCreateTest {
 
     @Test
     void createCartSession_dedupesRepeatedActivityIds() {
-        Destination prague = newDestination("Prague");
-        Activity barCrawl = newActivity(prague, "Bar Crawl", new BigDecimal("45.00"));
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
 
         VoteSessionResponse response = voteSessionService.createCartSession(
                 cartRequest(prague.getId(), List.of(barCrawl.getId(), barCrawl.getId())));
@@ -96,9 +100,10 @@ class VoteSessionCartCreateTest {
 
     @Test
     void createCartSession_rejectsActivityFromOtherDestination_400() {
-        Destination prague = newDestination("Prague");
-        Destination berlin = newDestination("Berlin");
-        Activity berlinActivity = newActivity(berlin, "Techno Tour", new BigDecimal("50.00"));
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Destination berlin = destinationRepository.save(TestDataFactory.destination("Berlin"));
+        Activity berlinActivity = activityRepository.saveAndFlush(
+                TestDataFactory.activity(berlin, "Techno Tour", new BigDecimal("50.00")));
 
         VoteSessionCartCreateRequest request =
                 cartRequest(prague.getId(), List.of(berlinActivity.getId()));
@@ -110,7 +115,7 @@ class VoteSessionCartCreateTest {
 
     @Test
     void createCartSession_rejectsUnknownActivity_400() {
-        Destination prague = newDestination("Prague");
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
         UUID unknownId = UUID.randomUUID();
 
         VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(unknownId));
@@ -122,8 +127,9 @@ class VoteSessionCartCreateTest {
 
     @Test
     void createCartSession_rejectsEndDateBeforeStartDate_400() {
-        Destination prague = newDestination("Prague");
-        Activity barCrawl = newActivity(prague, "Bar Crawl", new BigDecimal("45.00"));
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
 
         VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
         request.setStartDate(LocalDate.of(2026, 8, 10));
@@ -143,20 +149,5 @@ class VoteSessionCartCreateTest {
         request.setEndDate(LocalDate.of(2026, 8, 3));
         request.setActivityIds(activityIds);
         return request;
-    }
-
-    private Destination newDestination(String name) {
-        Destination destination = new Destination();
-        destination.setName(name);
-        return destinationRepository.save(destination);
-    }
-
-    private Activity newActivity(Destination destination, String name, BigDecimal price) {
-        Activity activity = new Activity();
-        activity.setDestination(destination);
-        activity.setName(name);
-        activity.setPrice(price);
-        activity.setCategories(new HashSet<>());
-        return activityRepository.saveAndFlush(activity);
     }
 }
