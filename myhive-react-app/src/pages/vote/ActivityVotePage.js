@@ -2,6 +2,7 @@ import { useMemo, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
+import CartVoteList from '../../components/vote/CartVoteList';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
 import { pushEvent } from '../../utils/analytics';
 import VoteMeta from './VoteMeta';
@@ -19,6 +20,8 @@ function ActivityVoteContent() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [session, setSession] = useState(null);
+    const [sessionLoaded, setSessionLoaded] = useState(false);
     const votesRef = useRef([]);
     const submittingRef = useRef(false);
     const voteOpenedFiredRef = useRef(new Set());
@@ -40,6 +43,16 @@ function ActivityVoteContent() {
             .catch(e => setError(e.message))
             .finally(() => setLoading(false));
     }, [shareToken, navigate]);
+
+    useEffect(() => {
+        voteApi.getSession(shareToken)
+            .then(setSession)
+            .catch(() => {
+                // The activities fetch surfaces load errors; a session-meta failure
+                // just falls back to the default swipe UI.
+            })
+            .finally(() => setSessionLoaded(true));
+    }, [shareToken]);
 
     const handleSwipe = (direction, activityId) => {
         if (submittingRef.current) return;
@@ -84,7 +97,7 @@ function ActivityVoteContent() {
         }
     };
 
-    if (loading) return (
+    if (loading || !sessionLoaded) return (
         <div className="vote-state">Loading activities...</div>
     );
     if (submitting) return (
@@ -113,6 +126,16 @@ function ActivityVoteContent() {
         if (!activity || !activity.slug || !activity.destinationSlug) return null;
         return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
     };
+
+    if (session?.voteMode === 'CART') {
+        return (
+            <CartVoteList
+                shareToken={shareToken}
+                activities={activities}
+                voterToken={voterToken}
+            />
+        );
+    }
 
     return (
         <SwipeCard

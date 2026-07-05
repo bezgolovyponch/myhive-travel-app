@@ -27,6 +27,7 @@ function renderAt(entry) {
 beforeEach(() => {
     localStorage.clear();
     pushEvent.mockClear();
+    voteApi.getSession.mockResolvedValue({ voteMode: 'QUIZ' });
 });
 
 test('shows a friendly message when the vote session is not found', async () => {
@@ -184,4 +185,17 @@ test('A15: vote_completed does NOT fire if castVotes rejects', async () => {
     await screen.findByText(/failed to submit votes/i);
 
     expect(pushEvent).not.toHaveBeenCalledWith('vote_completed', expect.anything());
+});
+
+// --- CART voteMode branch ---
+
+test('renders the list voting UI for CART sessions', async () => {
+    voteApi.getSession.mockResolvedValue({ voteMode: 'CART', status: 'ACTIVE' });
+    voteApi.getActivities.mockResolvedValue([
+        { id: 'a-1', name: 'Bar Crawl', price: 45 },
+    ]);
+
+    renderAt('/vote/tok-abc/activities');
+
+    expect(await screen.findByRole('button', { name: /Submit vote/ })).toBeInTheDocument();
 });
