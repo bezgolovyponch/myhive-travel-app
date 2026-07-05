@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import VoteMeta from './VoteMeta';
 import { copyToClipboard } from '../../utils/clipboard';
+import { votedKey } from '../../utils/voterToken';
 import './VoteWaitingPage.css';
 
 function VoteWaitingContent() {
@@ -14,7 +15,7 @@ function VoteWaitingContent() {
     const [managerToken, setManagerToken] = useState(
         () => localStorage.getItem(`myhive-manager-${shareToken}`));
     const [hasVoted] = useState(
-        () => !!localStorage.getItem(`myhive-voted-${shareToken}`));
+        () => !!localStorage.getItem(votedKey(shareToken)));
 
     const [session, setSession] = useState(null);
     const [participantCount, setParticipantCount] = useState(0);

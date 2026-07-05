@@ -47,6 +47,16 @@ test('shows the generic error message on other failures', async () => {
     expect(await screen.findByText(/failed to fetch vote activities/i)).toBeInTheDocument();
 });
 
+test('a getSession failure blocks the voting UI instead of falling back to swipe', async () => {
+    voteApi.getSession.mockRejectedValue(new Error('Failed to fetch vote session'));
+    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
+
+    renderAt('/vote/tok-session-fail/activities');
+
+    expect(await screen.findByText(/failed to fetch vote session/i)).toBeInTheDocument();
+    expect(screen.queryByText(/which activities are you up for/i)).not.toBeInTheDocument();
+});
+
 // --- A14: vote_opened ---
 
 test('A14: vote_opened fires once on mount with correct params', async () => {

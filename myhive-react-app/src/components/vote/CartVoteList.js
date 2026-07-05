@@ -4,9 +4,8 @@ import voteApi from '../../services/voteApi';
 import ActivityPreviewModal from '../ActivityPreviewModal';
 import {formatPricePerPerson} from '../../utils/format';
 import {pushEvent} from '../../utils/analytics';
+import {votedKey} from '../../utils/voterToken';
 import './CartVoteList.css';
-
-const VOTED_KEY = (shareToken) => `myhive-voted-${shareToken}`;
 
 // Upvote-only list ballot for CART sessions: tap ♥ on any activities you're up
 // for (one vote each), then submit once. Details open in the preview modal —
@@ -35,7 +34,7 @@ function CartVoteList({shareToken, activities, voterToken}) {
             voterToken,
             votes: [...selected].map(activityId => ({activityId, liked: true})),
         });
-        localStorage.setItem(VOTED_KEY(shareToken), 'true');
+        localStorage.setItem(votedKey(shareToken), 'true');
         pushEvent('vote_completed', {trip_id: shareToken, user_role: 'participant'});
         navigate(`/vote/${shareToken}/waiting`);
     };

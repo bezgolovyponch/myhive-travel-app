@@ -10,3 +10,9 @@ export function getOrCreateVoterToken() {
   }
   return token;
 }
+
+// localStorage key recording that this browser already voted in a given
+// session, used to short-circuit/redirect repeat visits to the same link.
+export function votedKey(shareToken) {
+  return `myhive-voted-${shareToken}`;
+}

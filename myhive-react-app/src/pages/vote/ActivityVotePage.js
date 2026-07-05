@@ -3,12 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
 import CartVoteList from '../../components/vote/CartVoteList';
-import { getOrCreateVoterToken } from '../../utils/voterToken';
+import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
 import { pushEvent } from '../../utils/analytics';
 import VoteMeta from './VoteMeta';
 import './ActivityVotePage.css';
-
-const VOTED_KEY = (shareToken) => `myhive-voted-${shareToken}`;
 
 function ActivityVoteContent() {
     const { shareToken } = useParams();
@@ -34,7 +32,7 @@ function ActivityVoteContent() {
     }, [shareToken]);
 
     useEffect(() => {
-        if (localStorage.getItem(VOTED_KEY(shareToken))) {
+        if (localStorage.getItem(votedKey(shareToken))) {
             navigate(`/vote/${shareToken}/waiting`, { replace: true });
             return;
         }
@@ -45,11 +43,21 @@ function ActivityVoteContent() {
     }, [shareToken, navigate]);
 
     useEffect(() => {
+        // Already-voted visitors are redirected by the effect above — skip the
+        // session request entirely for them.
+        if (localStorage.getItem(votedKey(shareToken))) {
+            return;
+        }
         voteApi.getSession(shareToken)
             .then(setSession)
-            .catch(() => {
-                // The activities fetch surfaces load errors; a session-meta failure
-                // just falls back to the default swipe UI.
+            .catch(e => {
+                // A failed session fetch must block the voting UI, not fall back to
+                // the swipe deck: for a CART session that fallback would let the
+                // participant submit liked:false votes, which the backend rejects
+                // with 400 ("This vote session accepts upvotes only"), stranding
+                // them on a terminal error screen. Reuse the same error state the
+                // activities fetch uses so the existing error UI renders instead.
+                setError(e.message);
             })
             .finally(() => setSessionLoaded(true));
     }, [shareToken]);
@@ -83,7 +91,7 @@ function ActivityVoteContent() {
                 voterToken,
                 votes: deduped.map(v => ({ activityId: v.activityId, liked: v.liked })),
             });
-            localStorage.setItem(VOTED_KEY(shareToken), 'true');
+            localStorage.setItem(votedKey(shareToken), 'true');
             pushEvent('vote_completed', { trip_id: shareToken, user_role: 'participant' });
             navigate(`/vote/${shareToken}/waiting`);
         } catch (e) {
