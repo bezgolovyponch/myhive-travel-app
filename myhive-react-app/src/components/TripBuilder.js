@@ -16,6 +16,17 @@ import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
 
+// Cart vote results carry per-activity like counts instead of a single winner —
+// reduce them into a lookup keyed by activityId, alongside the participant
+// count needed to size each item's mini progress bar.
+function buildVoteAnnotation(result) {
+  const counts = {};
+  (result.result || []).forEach(row => {
+    counts[row.activityId] = row.likeCount;
+  });
+  return {counts, participantCount: result.participantCount};
+}
+
 function TripBuilder({ destinationId, destinationSlug }) {
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
@@ -81,14 +92,29 @@ function TripBuilder({ destinationId, destinationSlug }) {
   // changes on every navigation (e.g. ?tab= switches) and re-running this
   // effect would re-seed travelers/dates/budget over the user's edits.
   const voteSession = searchParams.get('voteSession');
+  // Annotation token: an explicit URL param (shared link) takes priority, else
+  // fall back to the vote session this browser itself started (read once on
+  // mount — StartGroupVoteModal writes it, handleContactSubmit clears it).
+  const [storedVoteSession] = useState(() => localStorage.getItem('myhive-trip-vote-session'));
+  const annotationToken = voteSession || storedVoteSession;
+  // Cart vote annotation (counts + participantCount) — display-only, never
+  // mutates tripItems/localStorage. Set for CART sessions; QUIZ sessions
+  // instead hydrate the cart itself via voteResult/dispatch below.
+  const [voteAnnotation, setVoteAnnotation] = useState(null);
 
   useEffect(() => {
-    if (!voteSession) return;
+    if (!annotationToken) return;
     let cancelled = false;
     setVoteError(false);
-    voteApi.getResult(voteSession)
+    voteApi.getResult(annotationToken)
         .then(result => {
             if (cancelled) return;
+            if (result.voteMode === 'CART') {
+                // Cart votes annotate the initiator's existing cart — they never seed items.
+                setVoteAnnotation(buildVoteAnnotation(result));
+                return;
+            }
+            if (!voteSession) return; // QUIZ hydration only ever runs from an explicit URL param
             setVoteResult(result);
             // Seed trip travelers + dates from the result so callers (email link,
             // End-voting button, etc.) don't need to dispatch these separately.
@@ -124,15 +150,19 @@ function TripBuilder({ destinationId, destinationSlug }) {
                 });
             });
         })
-        .catch(() => {
-            if (!cancelled) {
+        .catch(e => {
+            if (cancelled) return;
+            if (e.message === 'Result not available yet') {
+                return; // vote still running — nothing to annotate yet
+            }
+            if (voteSession) {
                 setVoteError(true);
             }
         });
     return () => {
         cancelled = true;
     };
-  }, [voteSession, dispatch]);
+  }, [annotationToken, voteSession, dispatch]);
 
   // A16b: fire trip_builder_viewed (→ Meta InitiateCheckout) once the user lands
   // on the trip-builder/checkout screen with a non-empty trip — one funnel step
@@ -271,6 +301,8 @@ function TripBuilder({ destinationId, destinationSlug }) {
       dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
       dispatch({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
       dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
+      localStorage.removeItem('myhive-trip-vote-session');
+      setVoteAnnotation(null);
       setShowContactForm(false);
       setSuccessContactData(contactData);
       setShowSuccessModal(true);
@@ -306,6 +338,13 @@ function TripBuilder({ destinationId, destinationSlug }) {
   const travelers = state.tripTravelers || 1;
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
+  // Display-only ranking for a completed cart vote — ties/unballoted items keep
+  // cart order (stable sort), unballoted land last via the `?? -1` fallback.
+  // tripItems state/localStorage are never reordered.
+  const sortedStandalone = voteAnnotation
+      ? [...standalone].sort((a, b) =>
+          (voteAnnotation.counts[b.id] ?? -1) - (voteAnnotation.counts[a.id] ?? -1))
+      : standalone;
   const hasForeignStandalone = !!destinationSlug
       && standalone.some(item => item.destinationSlug && item.destinationSlug !== destinationSlug);
   const canStartVote = standalone.length > 0 && !hasForeignStandalone;
@@ -384,7 +423,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
                   </div>
                 </div>
               ))}
-              {standalone.map(item => (
+              {sortedStandalone.map(item => (
                 <div key={item.id} className="itinerary-item">
                   <img src={item.imageUrl} alt={item.name} className="itinerary-item-image"
                        loading="lazy"/>
@@ -395,6 +434,19 @@ function TripBuilder({ destinationId, destinationSlug }) {
                           ? `${formatPrice(item.price)} × ${travelers} = ${formatPrice(item.price * travelers)}`
                           : formatPricePerPerson(item.price)}
                     </div>
+                    {voteAnnotation && voteAnnotation.counts[item.id] != null && (
+                        <div className="itinerary-item-votes">
+                          <span className="itinerary-item-votes-count">♥ {voteAnnotation.counts[item.id]}</span>
+                          <span className="itinerary-item-votes-bar">
+                            <span
+                                className="itinerary-item-votes-fill"
+                                style={{width: `${Math.min(100,
+                                    (voteAnnotation.counts[item.id]
+                                        / Math.max(1, voteAnnotation.participantCount)) * 100)}%`}}
+                            />
+                          </span>
+                        </div>
+                    )}
                   </div>
                   <button
                     type="button"

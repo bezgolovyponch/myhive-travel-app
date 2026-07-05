@@ -446,3 +446,34 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* Cart vote annotation badge — ♥ count + mini progress bar on standalone items */
+.itinerary-item-votes {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.itinerary-item-votes-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #7c6cf5;
+    white-space: nowrap;
+}
+
+.itinerary-item-votes-bar {
+    display: block;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(124, 108, 245, 0.18);
+    overflow: hidden;
+}
+
+.itinerary-item-votes-fill {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: #7c6cf5;
+}

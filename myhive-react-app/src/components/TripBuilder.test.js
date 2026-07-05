@@ -122,6 +122,28 @@ function renderTripBuilder(tripState = buildTripState(), route = '/', dispatchMo
     return { ...result, dispatchMock };
 }
 
+// Minimal render helper for the cart-annotation tests: a plain tripItems array
+// plus a dispatch spy so tests can assert no hydration dispatch was fired.
+function renderTripBuilderWithDispatch(tripItems, dispatch, { route = '/' } = {}) {
+    const state = {
+        tripId: null,
+        tripItems,
+        tripTravelers: 4,
+        tripStartDate: '2026-08-01',
+        tripEndDate: '2026-08-03',
+        tripBudget: null,
+        tripSetupModalOpen: false,
+        tripBuilderModalOpen: false,
+    };
+    return render(
+        <MemoryRouter initialEntries={[route]}>
+            <TripContext.Provider value={{ state, dispatch }}>
+                <TripBuilder destinationId="d-1" destinationSlug="prague" />
+            </TripContext.Provider>
+        </MemoryRouter>,
+    );
+}
+
 // ---------------------------------------------------------------------------
 // Fill the ContactForm with valid data and submit
 // ---------------------------------------------------------------------------
@@ -172,6 +194,10 @@ beforeEach(() => {
         observe: jest.fn(),
         disconnect: jest.fn(),
     }));
+});
+
+afterEach(() => {
+    localStorage.clear();
 });
 
 // ---------------------------------------------------------------------------
@@ -629,6 +655,54 @@ describe('Let your mates vote button', () => {
         expect(voteButton).toHaveAttribute(
             'title',
             'Group voting works for one destination at a time — remove activities from other destinations first.'
+        );
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Cart vote annotation — badges, vote-descending sort, no-hydration guard
+// ---------------------------------------------------------------------------
+
+describe('cart vote annotation', () => {
+    const cartResult = {
+        voteMode: 'CART',
+        participantCount: 9,
+        result: [
+            { activityId: 'a-low', name: 'Tiki Boat', price: 60, likeCount: 2 },
+            { activityId: 'a-high', name: 'Bar Crawl', price: 45, likeCount: 8 },
+        ],
+    };
+
+    test('badges standalone items and sorts them by votes descending', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getResult.mockResolvedValue(cartResult);
+
+        renderTripBuilder(buildTripState({
+            tripItems: [
+                { id: 'a-low', name: 'Tiki Boat', price: 60, destinationSlug: 'prague' },
+                { id: 'a-high', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' },
+            ],
+        }));
+
+        expect(await screen.findByText('♥ 8')).toBeInTheDocument();
+        const titles = document.querySelectorAll('.itinerary-item .itinerary-item-title');
+        expect(titles[0]).toHaveTextContent('Bar Crawl');
+        expect(titles[1]).toHaveTextContent('Tiki Boat');
+    });
+
+    test('CART result never dispatches ADD_TO_TRIP (no cart hydration)', async () => {
+        voteApi.getResult.mockResolvedValue(cartResult);
+        const dispatch = jest.fn();
+        // Render with ?voteSession=t-1 in the router entry and the dispatch spy:
+        renderTripBuilderWithDispatch(
+            [{ id: 'a-high', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' }],
+            dispatch,
+            { route: '/?voteSession=t-1' },
+        );
+
+        expect(await screen.findByText('♥ 8')).toBeInTheDocument();
+        expect(dispatch).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'ADD_TO_TRIP' }),
         );
     });
 });
