@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import VoteMeta from './VoteMeta';
+import VoteTallyCard from '../../components/vote/VoteTallyCard';
 import { copyToClipboard } from '../../utils/clipboard';
-import { votedKey } from '../../utils/voterToken';
+import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
 import './VoteWaitingPage.css';
 
 function VoteWaitingContent() {
@@ -16,6 +17,7 @@ function VoteWaitingContent() {
         () => localStorage.getItem(`myhive-manager-${shareToken}`));
     const [hasVoted] = useState(
         () => !!localStorage.getItem(votedKey(shareToken)));
+    const voterToken = useMemo(() => getOrCreateVoterToken(), []);
 
     const [session, setSession] = useState(null);
     const [participantCount, setParticipantCount] = useState(0);
@@ -23,6 +25,7 @@ function VoteWaitingContent() {
     const [copied, setCopied] = useState(false);
     const [sessionError, setSessionError] = useState(null);
     const [closing, setClosing] = useState(false);
+    const [tally, setTally] = useState(null);
 
     // Adopt a managerToken arriving via the email dashboard link (?manager=...),
     // persist it, then strip it from the URL so the secret isn't left in history.
@@ -52,7 +55,11 @@ function VoteWaitingContent() {
                 // A later successful poll recovers from a transient initial failure.
                 setSessionError(null);
                 if (s.status === 'COMPLETED') {
-                    if (s.destinationSlug) {
+                    if (s.voteMode === 'CART') {
+                        // Cart votes never hydrate the Trip Builder — everyone sees
+                        // the ranked results page instead.
+                        navigate(`/vote/${shareToken}/result`, { replace: true });
+                    } else if (s.destinationSlug) {
                         navigate(`/destination/${s.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`,
                             { replace: true });
                     } else {
@@ -79,6 +86,32 @@ function VoteWaitingContent() {
         };
     }, [shareToken, navigate]);
 
+    // Live tally (CART only): visible once you've voted, or to the initiator via
+    // the manager token — they authored the list, so seeing votes can't bias them.
+    const voteMode = session?.voteMode;
+    useEffect(() => {
+        if (voteMode !== 'CART' || (!hasVoted && !managerToken)) {
+            return undefined;
+        }
+        let cancelled = false;
+        const load = () => voteApi.getTally(shareToken, {
+            voterToken: hasVoted ? voterToken : null,
+            managerToken,
+        }).then(t => {
+            if (!cancelled) {
+                setTally(t);
+            }
+        }).catch(() => {
+            // Transient tally failure — keep the last tally, retry next tick.
+        });
+        load();
+        const id = setInterval(load, 30_000);
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+        };
+    }, [voteMode, hasVoted, managerToken, shareToken, voterToken]);
+
     // Keyed on expiresAt (a stable string), not the session object — the 30s
     // poll stores a fresh object each tick and would needlessly restart the
     // countdown interval.
@@ -103,6 +136,10 @@ function VoteWaitingContent() {
         voteApi.closeSession(shareToken, managerToken)
             .catch(() => {})
             .finally(() => {
+                if (session?.voteMode === 'CART') {
+                    navigate(`/vote/${shareToken}/result`);
+                    return;
+                }
                 const destinationSlug = session?.destinationSlug;
                 if (destinationSlug) {
                     navigate(`/destination/${destinationSlug}?tab=trip-builder&voteSession=${shareToken}`);
@@ -110,7 +147,7 @@ function VoteWaitingContent() {
                     navigate(`/vote/${shareToken}/result`);
                 }
             });
-    }, [closing, managerToken, shareToken, navigate, session?.destinationSlug]);
+    }, [closing, managerToken, shareToken, navigate, session?.destinationSlug, session?.voteMode]);
 
     // Session closes manually (organizer's "End voting early" button) or
     // automatically when expiresAt hits (24h scheduler). No auto-close on
@@ -181,6 +218,14 @@ function VoteWaitingContent() {
                     {session?.numberOfTravelers > 0 && ` of ${session.numberOfTravelers}`}
                 </div>
             </div>
+
+            {tally && tally.rows.length > 0 && (
+                <VoteTallyCard
+                    title="Live results"
+                    participantCount={tally.participantCount}
+                    rows={tally.rows}
+                />
+            )}
 
             {/* Primary CTA: sharing the invite link is the main thing to do here */}
             <p className="vote-waiting-share-label">Share with friends:</p>

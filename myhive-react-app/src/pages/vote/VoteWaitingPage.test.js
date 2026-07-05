@@ -33,6 +33,9 @@ beforeEach(() => {
     participantCount: 0,
     numberOfTravelers: 2,
   });
+  // Safe default so any CART-mode test that forgets to stub this doesn't hang
+  // on an unresolved promise; individual tests override with their own tally.
+  voteApi.getTally.mockResolvedValue({ participantCount: 0, rows: [] });
 });
 
 test('adopts managerToken from ?manager=, shows End voting early, strips token from URL', async () => {
@@ -87,6 +90,42 @@ test('redirects to the trip builder when the session reports COMPLETED', async (
   );
 
   expect(await screen.findByTestId('dest-page')).toBeInTheDocument();
+});
+
+test('CART session: shows the live tally to a voter', async () => {
+  localStorage.setItem('myhive-voted-tok-8', 'true');
+  voteApi.getSession.mockResolvedValue({
+    voteMode: 'CART', status: 'ACTIVE', destinationName: 'Prague', destinationSlug: 'prague',
+    participantCount: 3, numberOfTravelers: 8,
+    expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+  });
+  voteApi.getTally.mockResolvedValue({
+    status: 'ACTIVE', participantCount: 3,
+    rows: [{ activityId: 'a-1', name: 'Bar Crawl', price: 45, likeCount: 3 }],
+  });
+
+  renderAt('/vote/tok-8/waiting');
+
+  expect(await screen.findByText('Bar Crawl')).toBeInTheDocument();
+  expect(screen.getByText('3 mates have voted')).toBeInTheDocument();
+});
+
+test('CART session: completed poll navigates to the result page', async () => {
+  voteApi.getSession.mockResolvedValue({
+    voteMode: 'CART', status: 'COMPLETED', destinationSlug: 'prague',
+    participantCount: 5, expiresAt: new Date().toISOString(),
+  });
+
+  render(
+    <MemoryRouter initialEntries={['/vote/tok-9/waiting']}>
+      <Routes>
+        <Route path="/vote/:shareToken/waiting" element={<VoteWaitingPage />} />
+        <Route path="/vote/:shareToken/result" element={<div data-testid="result-page" />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+  expect(await screen.findByTestId('result-page')).toBeInTheDocument();
 });
 
 test('invite link displayed to the organiser contains ?ref=invite', async () => {
