@@ -88,6 +88,36 @@ class VoteSessionControllerTest {
     }
 
     @Test
+    void createCartSession_returns201WithManagerToken() throws Exception {
+        UUID expectedToken = UUID.randomUUID();
+        UUID expectedManagerToken = UUID.randomUUID();
+        VoteSessionResponse response = new VoteSessionResponse(
+                expectedToken, "Prague", "prague", "ACTIVE",
+                java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 4,
+                expectedManagerToken, "CART");
+
+        when(voteSessionService.createCartSession(any())).thenReturn(response);
+
+        String requestJson = """
+                {
+                    "destinationId": "%s",
+                    "initiatorEmail": "alice@example.com",
+                    "numberOfTravelers": 4,
+                    "startDate": "2026-08-01",
+                    "endDate": "2026-08-03",
+                    "activityIds": ["%s"]
+                }
+                """.formatted(UUID.randomUUID(), UUID.randomUUID());
+
+        mockMvc.perform(post("/vote/sessions/cart")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.managerToken").value(expectedManagerToken.toString()))
+                .andExpect(jsonPath("$.voteMode").value("CART"));
+    }
+
+    @Test
     void getResult_returns404WhenActive() throws Exception {
         UUID shareToken = UUID.randomUUID();
         when(voteSessionService.getResult(shareToken))

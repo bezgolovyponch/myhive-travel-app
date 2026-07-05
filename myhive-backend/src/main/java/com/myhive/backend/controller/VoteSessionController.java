@@ -6,6 +6,7 @@ import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
 import com.myhive.backend.dto.VoteResultResponse;
+import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.service.VoteSessionService;
@@ -36,6 +37,12 @@ public class VoteSessionController {
     @ResponseStatus(HttpStatus.CREATED)
     public VoteSessionResponse createSession(@Valid @RequestBody VoteSessionCreateRequest request) {
         return voteSessionService.createSession(request);
+    }
+
+    @PostMapping("/cart")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VoteSessionResponse createCartSession(@Valid @RequestBody VoteSessionCartCreateRequest request) {
+        return voteSessionService.createCartSession(request);
     }
 
     @GetMapping("/{shareToken}")

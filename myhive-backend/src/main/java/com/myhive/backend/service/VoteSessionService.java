@@ -9,6 +9,7 @@ import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
 import com.myhive.backend.dto.VoteResultResponse;
+import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.entity.Activity;
@@ -26,6 +27,7 @@ import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
+import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.ActivityVoteCount;
@@ -49,6 +51,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -106,30 +109,10 @@ public class VoteSessionService {
         Map<UUID, Activity> activitiesById = loadAndValidateCuratedActivities(
                 destination, organizerCats, request.getActivityIds());
 
-        VoteSession session = new VoteSession();
-        session.setShareToken(UUID.randomUUID());
-        session.setManagerToken(UUID.randomUUID());
-        session.setDestination(destination);
-        session.setInitiatorEmail(request.getInitiatorEmail());
-        session.setNumberOfTravelers(request.getNumberOfTravelers());
-        session.setStartDate(request.getStartDate());
-        session.setEndDate(request.getEndDate());
-        session.setStatus(VoteSessionStatus.ACTIVE);
-        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
-        session.setBudget(request.getBudget());
-        session = voteSessionRepository.save(session);
+        VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
+                request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget());
 
-        int sortOrder = 0;
-        for (UUID activityId : request.getActivityIds()) {
-            Activity activity = activitiesById.get(activityId);
-            VoteSessionActivity row = new VoteSessionActivity();
-            row.setSession(session);
-            row.setActivity(activity);
-            row.setActivityName(activity.getName());
-            row.setPrice(activity.getPrice());
-            row.setSortOrder(sortOrder++);
-            voteSessionActivityRepository.save(row);
-        }
+        persistBallot(session, request.getActivityIds(), activitiesById);
 
         for (QuizResponseDTO response : quizResponses) {
             QuizQuestion question = quizQuestionRepository.findById(response.getQuestionId()).orElseThrow();
@@ -142,19 +125,51 @@ public class VoteSessionService {
             voteSessionQuizResponseRepository.save(row);
         }
 
-        if (emailEnabled) {
-            try {
-                emailService.sendVoteCreatedConfirmation(session, frontendUrl);
-            } catch (EmailSendException e) {
-                // A failed confirmation email must never fail session creation — log and move on.
-                log.error("Failed to send vote-created confirmation for session {}: {}",
-                        session.getId(), e.getMessage(), e);
-            }
-        }
+        sendVoteCreatedConfirmationQuietly(session);
 
         long participantCount = voteActivityLikeRepository
                 .countDistinctVoterTokensBySessionId(session.getId());
         return toResponse(session, participantCount, session.getManagerToken());
+    }
+
+    @Transactional
+    public VoteSessionResponse createCartSession(VoteSessionCartCreateRequest request) {
+        Destination destination = destinationRepository.findById(request.getDestinationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Destination not found"));
+
+        if (request.getEndDate().isBefore(request.getStartDate())) {
+            throw new BadRequestException("endDate must be on or after startDate");
+        }
+
+        List<UUID> activityIds = new ArrayList<>(new LinkedHashSet<>(request.getActivityIds()));
+        Map<UUID, Activity> activitiesById = loadAndValidateDestinationActivities(destination, activityIds);
+
+        VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
+                request.getStartDate(), request.getEndDate(), VoteMode.CART, null);
+
+        persistBallot(session, activityIds, activitiesById);
+        sendVoteCreatedConfirmationQuietly(session);
+
+        // A brand-new session has no voters yet.
+        return toResponse(session, 0, session.getManagerToken());
+    }
+
+    private VoteSession newSession(Destination destination, String initiatorEmail, Integer numberOfTravelers,
+                                   LocalDate startDate, LocalDate endDate,
+                                   VoteMode voteMode, BigDecimal budget) {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setManagerToken(UUID.randomUUID());
+        session.setDestination(destination);
+        session.setInitiatorEmail(initiatorEmail);
+        session.setNumberOfTravelers(numberOfTravelers);
+        session.setStartDate(startDate);
+        session.setEndDate(endDate);
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setVoteMode(voteMode);
+        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
+        session.setBudget(budget);
+        return voteSessionRepository.save(session);
     }
 
     private void validateQuizResponses(Destination destination, List<QuizResponseDTO> responses) {
@@ -206,6 +221,22 @@ public class VoteSessionService {
                                                                  List<UUID> organizerCats,
                                                                  List<UUID> activityIds) {
         Set<UUID> organizerCatSet = new HashSet<>(organizerCats);
+        Map<UUID, Activity> byId = loadAndValidateDestinationActivities(destination, activityIds);
+        for (UUID id : activityIds) {
+            Activity activity = byId.get(id);
+            boolean hasEligibleCategory = activity.getCategories().stream()
+                    .map(Category::getId)
+                    .anyMatch(organizerCatSet::contains);
+            if (!hasEligibleCategory) {
+                throw new BadRequestException(
+                        "activityId " + id + " is not in any of the organizer's quiz categories");
+            }
+        }
+        return byId;
+    }
+
+    private Map<UUID, Activity> loadAndValidateDestinationActivities(Destination destination,
+                                                                     List<UUID> activityIds) {
         Map<UUID, Activity> byId = activityRepository.findAllById(activityIds).stream()
                 .collect(Collectors.toMap(Activity::getId, a -> a));
         for (UUID id : activityIds) {
@@ -217,15 +248,36 @@ public class VoteSessionService {
                 throw new BadRequestException(
                         "activityId " + id + " does not belong to destination " + destination.getId());
             }
-            boolean hasEligibleCategory = activity.getCategories().stream()
-                    .map(Category::getId)
-                    .anyMatch(organizerCatSet::contains);
-            if (!hasEligibleCategory) {
-                throw new BadRequestException(
-                        "activityId " + id + " is not in any of the organizer's quiz categories");
-            }
         }
         return byId;
+    }
+
+    private void persistBallot(VoteSession session, List<UUID> activityIds,
+                               Map<UUID, Activity> activitiesById) {
+        int sortOrder = 0;
+        for (UUID activityId : activityIds) {
+            Activity activity = activitiesById.get(activityId);
+            VoteSessionActivity row = new VoteSessionActivity();
+            row.setSession(session);
+            row.setActivity(activity);
+            row.setActivityName(activity.getName());
+            row.setPrice(activity.getPrice());
+            row.setSortOrder(sortOrder++);
+            voteSessionActivityRepository.save(row);
+        }
+    }
+
+    private void sendVoteCreatedConfirmationQuietly(VoteSession session) {
+        if (!emailEnabled) {
+            return;
+        }
+        try {
+            emailService.sendVoteCreatedConfirmation(session, frontendUrl);
+        } catch (EmailSendException e) {
+            // A failed confirmation email must never fail session creation — log and move on.
+            log.error("Failed to send vote-created confirmation for session {}: {}",
+                    session.getId(), e.getMessage(), e);
+        }
     }
 
     public VoteSessionResponse getSession(UUID shareToken) {
