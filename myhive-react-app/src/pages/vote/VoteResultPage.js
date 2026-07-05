@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import ActivityCard from '../../components/ActivityCard';
+import VoteTallyCard from '../../components/vote/VoteTallyCard';
 import {useTrip} from '../../context/TripContext';
 import { formatPrice, formatPricePerPerson } from '../../utils/format';
 import { pushEvent } from '../../utils/analytics';
@@ -126,6 +127,36 @@ function VoteResultContent() {
     }
     if (!data) {
         return <div className="result-page-loading">Loading result...</div>;
+    }
+
+    if (data.voteMode === 'CART') {
+        return (
+            <div className="result-page">
+                <div className="result-page-inner">
+                    <h1>The votes are in!</h1>
+                    <VoteTallyCard
+                        participantCount={data.participantCount}
+                        rows={data.result.map(row => ({
+                            activityId: row.activityId,
+                            name: row.name,
+                            price: row.price,
+                            likeCount: row.likeCount,
+                        }))}
+                        showPrices
+                    />
+                    {isInitiator && data.destinationSlug && (
+                        <button
+                            type="button"
+                            className="result-open-trip-btn"
+                            onClick={() => navigate(
+                                `/destination/${data.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`)}
+                        >
+                            Back to Trip Builder
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
     }
 
     return (

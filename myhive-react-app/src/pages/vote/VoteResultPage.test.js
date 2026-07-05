@@ -186,6 +186,54 @@ test('consultation-lead payload carries campaign attribution (utm_*, ref)', asyn
     );
 });
 
+// --- CART branch: ranked tally result (no budget, no payments) ---
+
+const CART_RESULT = {
+    voteMode: 'CART',
+    participantCount: 9,
+    numberOfTravelers: 8,
+    totalPrice: 105,
+    budget: null,
+    remaining: null,
+    destinationName: 'Prague',
+    destinationSlug: 'prague',
+    suggestions: [],
+    result: [
+        { activityId: 'a-1', name: 'Bar Crawl', price: 45, likeCount: 8, skipCount: 0 },
+        { activityId: 'a-2', name: 'Karting', price: 60, likeCount: 4, skipCount: 0 },
+    ],
+};
+
+test('CART result renders the ranked tally without budget or payments', async () => {
+    voteApi.getResult.mockResolvedValue(CART_RESULT);
+
+    renderAt('/vote/t-1/result');
+
+    expect(await screen.findByText('Bar Crawl')).toBeInTheDocument();
+    expect(screen.getByText('9 mates have voted')).toBeInTheDocument();
+    expect(screen.queryByText('Budget')).not.toBeInTheDocument();
+    expect(screen.queryByText(/prepayment/i)).not.toBeInTheDocument();
+});
+
+test('CART result shows Back to Trip Builder only for the initiator', async () => {
+    voteApi.getResult.mockResolvedValue(CART_RESULT);
+    localStorage.setItem('myhive-manager-t-1', 'm-1');
+    localStorage.setItem('myhive-initiator-t-1', 'true');
+
+    renderAt('/vote/t-1/result');
+
+    expect(await screen.findByRole('button', { name: 'Back to Trip Builder' })).toBeInTheDocument();
+});
+
+test('CART result hides Back to Trip Builder for a non-initiator', async () => {
+    voteApi.getResult.mockResolvedValue(CART_RESULT);
+
+    renderAt('/vote/t-1/result');
+
+    expect(await screen.findByText('Bar Crawl')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back to Trip Builder' })).not.toBeInTheDocument();
+});
+
 // --- Option B: a self-added activity is bookable even with an empty voted result ---
 
 test('B: deposit CTA shows on empty result when the initiator added an activity, and the payload includes it', async () => {
