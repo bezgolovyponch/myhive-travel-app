@@ -430,3 +430,19 @@
     max-height: clamp(11rem, 42%, 20rem);
   }
 }
+
+.start-vote-btn {
+    margin-top: 0.5rem;
+    background: transparent;
+    border: 1px solid #7c6cf5;
+    color: #7c6cf5;
+}
+
+.start-vote-btn:hover:not(:disabled) {
+    background: rgba(124, 108, 245, 0.08);
+}
+
+.start-vote-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

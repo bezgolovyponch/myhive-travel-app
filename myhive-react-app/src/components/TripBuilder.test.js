@@ -111,11 +111,11 @@ function buildTripState(overrides = {}) {
     };
 }
 
-function renderTripBuilder(tripState = buildTripState(), route = '/', dispatchMock = jest.fn()) {
+function renderTripBuilder(tripState = buildTripState(), route = '/', dispatchMock = jest.fn(), destinationSlug = 'prague') {
     const result = render(
         <MemoryRouter initialEntries={[route]}>
             <TripContext.Provider value={{ state: tripState, dispatch: dispatchMock }}>
-                <TripBuilder destinationId="dest-1" />
+                <TripBuilder destinationId="dest-1" destinationSlug={destinationSlug} />
             </TripContext.Provider>
         </MemoryRouter>
     );
@@ -593,4 +593,42 @@ test('deposit: solving Turnstile enables the deposit button, which opens Stripe 
     expect(assign).toHaveBeenCalledWith('https://checkout/cs_dep');
     // The lead endpoint must NOT be called for a deposit checkout.
     expect(api.createBookingFromTrip).not.toHaveBeenCalled();
+});
+
+// ---------------------------------------------------------------------------
+// "Let your mates vote" button — visibility + enabled/disabled state
+// ---------------------------------------------------------------------------
+
+describe('Let your mates vote button', () => {
+    test('shows an enabled button when the cart has standalone activities', () => {
+        renderTripBuilder(buildTripState({ tripItems: [activity1] }));
+
+        expect(screen.getByRole('button', { name: 'Let your mates vote' })).toBeEnabled();
+    });
+
+    test('hides the button when the cart only contains package items', () => {
+        renderTripBuilder(buildTripState({
+            tripItems: [
+                { id: 'a-1', name: 'Karting', price: 50, packageId: 'p-1', packageName: 'Mayhem', packageDiscountPct: 10 },
+            ],
+        }));
+
+        expect(screen.queryByRole('button', { name: 'Let your mates vote' })).not.toBeInTheDocument();
+    });
+
+    test('disables the button when standalone items span another destination', () => {
+        renderTripBuilder(buildTripState({
+            tripItems: [
+                activity1,
+                { id: 'a-2', name: 'Techno Tour', price: 50, destinationSlug: 'berlin' },
+            ],
+        }));
+
+        const voteButton = screen.getByRole('button', { name: 'Let your mates vote' });
+        expect(voteButton).toBeDisabled();
+        expect(voteButton).toHaveAttribute(
+            'title',
+            'Group voting works for one destination at a time — remove activities from other destinations first.'
+        );
+    });
 });

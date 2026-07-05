@@ -11,11 +11,12 @@ import {getAttribution, getRef} from '../utils/attribution';
 import {generateUuid} from '../utils/uuid';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
+import StartGroupVoteModal from './vote/StartGroupVoteModal';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
 
-function TripBuilder({ destinationId }) {
+function TripBuilder({ destinationId, destinationSlug }) {
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
@@ -30,6 +31,7 @@ function TripBuilder({ destinationId }) {
   const [successContactData, setSuccessContactData] = useState(null);
   const [voteResult, setVoteResult] = useState(null);
   const [voteError, setVoteError] = useState(false);
+  const [showVoteModal, setShowVoteModal] = useState(false);
 
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -304,6 +306,9 @@ function TripBuilder({ destinationId }) {
   const travelers = state.tripTravelers || 1;
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
+  const hasForeignStandalone = !!destinationSlug
+      && standalone.some(item => item.destinationSlug && item.destinationSlug !== destinationSlug);
+  const canStartVote = standalone.length > 0 && !hasForeignStandalone;
   const totalPrice = computeTripTotal(state.tripItems, travelers);
 
   const filteredBrowseActivities = browseFilter === 'all'
@@ -433,6 +438,19 @@ function TripBuilder({ destinationId }) {
             <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>
               Complete Booking
             </button>
+              {standalone.length > 0 && (
+                  <button
+                      type="button"
+                      className="btn btn--full-width start-vote-btn"
+                      onClick={() => setShowVoteModal(true)}
+                      disabled={!canStartVote}
+                      title={hasForeignStandalone
+                          ? 'Group voting works for one destination at a time — remove activities from other destinations first.'
+                          : undefined}
+                  >
+                    Let your mates vote
+                  </button>
+              )}
               {submitError && (
                   <div className="export-error">
                     <p>{submitError}</p>
@@ -558,6 +576,16 @@ function TripBuilder({ destinationId }) {
           }}
           isSubmitting={isSubmitting}
           submitError={submitError}
+      />
+
+      <StartGroupVoteModal
+          isOpen={showVoteModal}
+          onClose={() => setShowVoteModal(false)}
+          destinationId={destinationId}
+          activityIds={standalone.map(item => item.id)}
+          numberOfTravelers={travelers}
+          startDate={state.tripStartDate}
+          endDate={state.tripEndDate}
       />
 
       <SuccessModal
