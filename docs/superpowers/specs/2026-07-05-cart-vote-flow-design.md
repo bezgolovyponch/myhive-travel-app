@@ -1,7 +1,7 @@
 # Cart Vote Flow ("Let your mates vote") — Design Spec
 
 **Date:** 2026-07-05
-**Status:** Draft — awaiting user review
+**Status:** Implemented (2026-07-05, feat/cart-vote-flow)
 **Related:** [2026-05-11-quiz-driven-voting-design.md](2026-05-11-quiz-driven-voting-design.md) (the existing QUIZ mode this feature extends)
 
 ---

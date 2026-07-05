@@ -52,6 +52,13 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 - **Vote sessions** (share-token based, no auth): `POST /vote/sessions`, `GET /vote/sessions/{shareToken}`
   (+ `/activities`, `/votes`, `/votes/batch`, `/participant-count`, `/close`, `/result`, `/quiz`),
   `GET /vote/destinations/{destinationId}/quiz`, `POST /vote/pool`
+  - `POST /vote/sessions/cart` — create a cart-seeded, upvote-only vote session (no quiz); body
+    `{destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, activityIds}`.
+  - `GET /vote/sessions/{shareToken}/tally?voterToken=&managerToken=` — live tally for CART sessions;
+    requires having voted (`voterToken`) or the `managerToken`.
+  - Sessions carry a `voteMode`: `QUIZ` (default) runs the existing quiz + score-cutoff + budget-knapsack
+    flow; `CART` is an advisory upvote-only ranking of the traveler's own cart with no score cutoff and no
+    budget knapsack — results annotate the Trip Builder itinerary and never replace the cart.
 - **Payments** (Stripe; public but gated per-endpoint): `POST /payments/deposit-session` (vote deposit —
   requires `X-Vote-Share-Token` + `X-Manager-Token`), `POST /payments/trip-deposit-session` (Trip Builder
   deposit — Turnstile-gated via `X-Turnstile-Token`), `POST /payments/consultation-lead`,
