@@ -526,6 +526,45 @@ public class VoteSessionService {
                 voteActivityLikeRepository.findVoteCountsBySessionId(session.getId()).stream()
                         .collect(Collectors.toMap(ActivityVoteCount::getActivityId, c -> c));
 
+        if (session.getVoteMode() == VoteMode.CART) {
+            freezeCartRanking(session, curated, counts);
+        } else {
+            freezeQuizWinners(session, curated, counts);
+        }
+
+        session.setStatus(VoteSessionStatus.COMPLETED);
+        voteSessionRepository.save(session);
+
+        if (emailEnabled) {
+            List<VoteSessionResultActivity> results =
+                    resultActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
+            emailService.sendVoteResult(session, results, frontendUrl);
+        }
+    }
+
+    private void freezeCartRanking(VoteSession session, List<VoteSessionActivity> curated,
+                                   Map<UUID, ActivityVoteCount> counts) {
+        // Advisory ranking: every ballot activity is kept, ordered by like count;
+        // ties resolve to the initiator's original cart order.
+        List<VoteSessionActivity> ranked = curated.stream()
+                .sorted(Comparator
+                        .comparingLong((VoteSessionActivity row) -> likeCountOf(counts, row)).reversed()
+                        .thenComparingInt(VoteSessionActivity::getSortOrder))
+                .toList();
+        int sortOrder = 0;
+        for (VoteSessionActivity row : ranked) {
+            saveResultRow(session, row.getActivity(), sortOrder++);
+        }
+        log.info("Processed cart vote session {} — {} activities ranked", session.getId(), sortOrder);
+    }
+
+    private long likeCountOf(Map<UUID, ActivityVoteCount> counts, VoteSessionActivity row) {
+        ActivityVoteCount count = counts.get(row.getActivity().getId());
+        return count == null ? 0 : count.getLikeCount();
+    }
+
+    private void freezeQuizWinners(VoteSession session, List<VoteSessionActivity> curated,
+                                   Map<UUID, ActivityVoteCount> counts) {
         record Ranked(VoteSessionActivity row, long score, int featuredWeight) {}
 
         List<Ranked> ranked = curated.stream()
@@ -551,23 +590,18 @@ public class VoteSessionService {
             if (budget != null && running.add(groupCost).compareTo(budget) > 0) {
                 continue;   // skip-and-continue
             }
-            VoteSessionResultActivity resultRow = new VoteSessionResultActivity();
-            resultRow.setSession(session);
-            resultRow.setActivity(r.row().getActivity());
-            resultRow.setSortOrder(sortOrder++);
-            resultActivityRepository.save(resultRow);
+            saveResultRow(session, r.row().getActivity(), sortOrder++);
             running = running.add(groupCost);
         }
-
-        session.setStatus(VoteSessionStatus.COMPLETED);
-        voteSessionRepository.save(session);
         log.info("Processed vote session {} — {} activities selected", session.getId(), sortOrder);
+    }
 
-        if (emailEnabled) {
-            List<VoteSessionResultActivity> results =
-                    resultActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
-            emailService.sendVoteResult(session, results, frontendUrl);
-        }
+    private void saveResultRow(VoteSession session, Activity activity, int sortOrder) {
+        VoteSessionResultActivity resultRow = new VoteSessionResultActivity();
+        resultRow.setSession(session);
+        resultRow.setActivity(activity);
+        resultRow.setSortOrder(sortOrder);
+        resultActivityRepository.save(resultRow);
     }
 
     private void assertUpvoteOnly(VoteSession session, boolean downvoteRequested) {
