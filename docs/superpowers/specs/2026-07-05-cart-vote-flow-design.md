@@ -103,16 +103,16 @@ Implementation approach (user-approved): **extend the existing `VoteSession` wit
 - `getTally(shareToken, voterToken, managerToken)` — access rules above; aggregates like counts.
 - `getResult` — CART: rows expose `likeCount` (skipCount is always 0), skip the suggestions computation (empty list) and the budget fields (null).
 - `VoteSessionScheduler` — unchanged; both modes expire and clean up identically.
-- `EmailService` — invite URL branches on `voteMode` (list page vs quiz page); templates otherwise reused.
+- `EmailService` — the invite URL is the same `/vote/{shareToken}/activities` for both modes (the page branches on `voteMode` internally); the **result**-email URL branches on `voteMode` (CART → `/vote/{shareToken}/result`, since CART never seeds a cart cross-device); the vote-created template branches its copy for CART.
 
 ## Frontend design
 
 | File | Change |
 |---|---|
 | `services/voteApi.js` | + `createCartSession(payload)`, + `getTally(shareToken, voterToken)` (manager variant accepts managerToken). |
-| `components/TripBuilder.js` | Vote button (visibility/disable rules above); email mini-modal (`AppModal` + shared `validators`); on success store tokens + cart↔session link, navigate to waiting. Post-vote annotation mode: badge + display-sort of standalone items; never hydrate cart from CART sessions. |
+| `components/TripBuilder.js` | Vote button (visibility/disable rules above); email mini-modal (`AppModal` + a local pure `validate()` — `utils/validators.js` has no email validator to share); on success store tokens + cart↔session link, navigate to waiting. Post-vote annotation mode: badge + display-sort of standalone items; never hydrate cart from CART sessions. |
 | `pages/vote/ActivityVotePage.js` | Branch on `session.voteMode`: CART → `CartVoteList`, QUIZ → existing swipe deck. Route unchanged. |
-| **New** `components/vote/CartVoteList.js` | Voting list: image, name, price, info → `ActivityPreviewModal`, ♥ toggle, single **Submit vote** batch call. Guards: already-voted → redirect to waiting; session full → existing UX. |
+| **New** `components/vote/CartVoteList.js` | Voting list: image, name, price, info → `ActivityPreviewModal`, ♥ toggle, single **Submit vote** batch call. Guards: session full → existing UX (the already-voted → waiting redirect lives once in `ActivityVotePage`, shared by both modes). |
 | **New** `components/vote/VoteTallyCard.js` | Shared ranking card (header, "{n} mates have voted", rows: name + count + progress bar; optional price column for the result page). Own CSS, visually derived from the homepage `.vote-card` (those styles are scoped under `.homepage` and are not directly reusable). |
 | `pages/vote/VoteWaitingPage.js` | CART: render `VoteTallyCard` when the visitor has voted (voterToken) **or** is the initiator (managerToken — the manager sees the live tally without voting; they authored the list, so bias isn't a concern). Poll `getTally` with the session poll (30 s). Existing countdown/share/early-close untouched. |
 | `pages/vote/VoteResultPage.js` | CART branch: `VoteTallyCard` with prices; hide budget block, suggestions grid, and `PaymentActions`; initiator CTA **Back to Trip Builder** (with `?voteSession=` for annotation). |
