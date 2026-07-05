@@ -7,6 +7,7 @@ import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.model.VoteMode;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -195,6 +196,58 @@ class EmailServiceTest {
 
         // The blocking SMTP send is delegated to the async sender, not invoked inline.
         verify(asyncMailSender).send(eq(mimeMessage), anyString());
+    }
+
+    @Test
+    void sendVoteResult_cartSession_linksToResultPageNotTripBuilder() throws Exception {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setVoteMode(VoteMode.CART);
+
+        Destination destination = new Destination();
+        destination.setName("Prague");
+        destination.setSlug("prague");
+        session.setDestination(destination);
+        session.setInitiatorEmail("alice@example.com");
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-result"), contextCaptor.capture())).thenReturn("<html>test</html>");
+
+        emailService.sendVoteResult(session, List.of(), "https://trivlu.com");
+
+        // CART annotates the initiator's own cart — it never seeds one — so another
+        // device following the Trip Builder deep link would land on an empty cart.
+        // The email must point CART results at the read-only result page instead.
+        String resultUrl = (String) contextCaptor.getValue().getVariable("resultUrl");
+        assertThat(resultUrl).isEqualTo("https://trivlu.com/vote/" + session.getShareToken() + "/result");
+    }
+
+    @Test
+    void sendVoteResult_quizSession_stillLinksToTripBuilderTab() throws Exception {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        // voteMode defaults to QUIZ (not set explicitly).
+
+        Destination destination = new Destination();
+        destination.setName("Prague");
+        destination.setSlug("prague");
+        session.setDestination(destination);
+        session.setInitiatorEmail("alice@example.com");
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-result"), contextCaptor.capture())).thenReturn("<html>test</html>");
+
+        emailService.sendVoteResult(session, List.of(), "https://trivlu.com");
+
+        String resultUrl = (String) contextCaptor.getValue().getVariable("resultUrl");
+        assertThat(resultUrl)
+                .contains("/destination/prague")
+                .contains("tab=trip-builder")
+                .contains("voteSession=" + session.getShareToken());
     }
 
     @Test

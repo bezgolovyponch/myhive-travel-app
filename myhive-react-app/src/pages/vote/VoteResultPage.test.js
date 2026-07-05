@@ -215,6 +215,15 @@ test('CART result renders the ranked tally without budget or payments', async ()
     expect(screen.queryByText(/prepayment/i)).not.toBeInTheDocument();
 });
 
+test('CART result does NOT fire checkout_viewed (its real checkout funnel event fires in Trip Builder)', async () => {
+    voteApi.getResult.mockResolvedValue(CART_RESULT);
+
+    renderAt('/vote/t-1/result');
+
+    expect(await screen.findByText('Bar Crawl')).toBeInTheDocument();
+    expect(pushEvent).not.toHaveBeenCalledWith('checkout_viewed', expect.anything());
+});
+
 test('CART result shows Back to Trip Builder only for the initiator', async () => {
     voteApi.getResult.mockResolvedValue(CART_RESULT);
     localStorage.setItem('myhive-manager-t-1', 'm-1');

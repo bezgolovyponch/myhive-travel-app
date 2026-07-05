@@ -100,7 +100,10 @@ function VoteResultContent() {
             .then(response => {
                 if (!cancelled) {
                     setData(response);
-                    if (!checkoutFiredRef.current) {
+                    // CART results have their own real checkout-funnel event fired from
+                    // Trip Builder (trip_builder_viewed) — this page is just a read-only
+                    // tally for them, so don't double-count it as checkout_viewed.
+                    if (!checkoutFiredRef.current && response.voteMode !== 'CART') {
                         checkoutFiredRef.current = true;
                         pushEvent('checkout_viewed', {
                             trip_id: shareToken,

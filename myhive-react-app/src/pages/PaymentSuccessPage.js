@@ -24,6 +24,10 @@ function PaymentSuccessPage() {
         dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: 1});
         dispatch({type: 'UPDATE_TRIP_DATES', startDate: '', endDate: ''});
         dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
+        // The paid-for trip may have come from a group vote session — clear the
+        // stored token too, so a later visit to the Trip Builder doesn't try to
+        // re-annotate a vote that's already been paid for.
+        localStorage.removeItem('myhive-trip-vote-session');
     }, [dispatch, booking]);
 
     return (

@@ -705,4 +705,20 @@ describe('cart vote annotation', () => {
             expect.objectContaining({ type: 'ADD_TO_TRIP' }),
         );
     });
+
+    test('self-heals a stale stored vote session (backend 7-day cleanup) without showing an error', async () => {
+        // Storage-only token (no ?voteSession= URL param) whose session the backend
+        // has already cleaned up — getResult now reports it as gone.
+        localStorage.setItem('myhive-trip-vote-session', 't-stale');
+        voteApi.getResult.mockRejectedValue(new Error('Vote session not found'));
+
+        renderTripBuilder(buildTripState({
+            tripItems: [{ id: 'a-1', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' }],
+        }));
+
+        await waitFor(() => {
+            expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
+        });
+        expect(screen.queryByText(/Couldn't load your group's vote results/i)).not.toBeInTheDocument();
+    });
 });

@@ -102,6 +102,7 @@ const voteApi = {
 
   async getResult(shareToken) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/result`);
+    if (response.status === 404) throw new Error('Vote session not found');
     if (response.status === 409) throw new Error('Result not available yet');
     if (!response.ok) throw new Error('Failed to fetch vote result');
     return response.json();

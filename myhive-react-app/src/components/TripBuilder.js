@@ -155,6 +155,13 @@ function TripBuilder({ destinationId, destinationSlug }) {
             if (e.message === 'Result not available yet') {
                 return; // vote still running — nothing to annotate yet
             }
+            if (e.message === 'Vote session not found' && !voteSession) {
+                // Storage-only token (no URL param): the backend's 7-day session
+                // cleanup already removed this session. Self-heal by dropping the
+                // stale key so future mounts stop re-fetching a session that's gone.
+                localStorage.removeItem('myhive-trip-vote-session');
+                return;
+            }
             if (voteSession) {
                 setVoteError(true);
             }

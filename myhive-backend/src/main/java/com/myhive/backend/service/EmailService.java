@@ -6,6 +6,7 @@ import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.EmailSendException;
+import com.myhive.backend.model.VoteMode;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -204,13 +205,22 @@ public class EmailService {
             helper.setTo(session.getInitiatorEmail());
             helper.setSubject("Your group trip to " + session.getDestination().getName() + " is ready!");
 
-            // Email link goes straight to the destination's Trip Builder tab with
-            // the vote session id — TripBuilder will fetch the result and seed the
-            // itinerary, budget panel, and suggestions.
+            // QUIZ results deep-link straight to the destination's Trip Builder tab with
+            // the vote session id — TripBuilder fetches the result and seeds the
+            // itinerary, budget panel, and suggestions server-side.
+            // CART results only ever annotate the initiator's own cart (the annotation
+            // effect never seeds items), so that deep link would land any other device
+            // on an empty Trip Builder. Send CART results to the read-only result page
+            // instead, which works cross-device.
             String destinationSlug = session.getDestination().getSlug();
-            String resultUrl = destinationSlug != null
-                    ? frontendUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken()
-                    : frontendUrl + "/vote/" + session.getShareToken() + "/result";
+            String resultUrl;
+            if (session.getVoteMode() == VoteMode.CART) {
+                resultUrl = frontendUrl + "/vote/" + session.getShareToken() + "/result";
+            } else if (destinationSlug != null) {
+                resultUrl = frontendUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken();
+            } else {
+                resultUrl = frontendUrl + "/vote/" + session.getShareToken() + "/result";
+            }
 
             Context context = new Context();
             context.setVariable("session", session);
