@@ -352,6 +352,10 @@ public class VoteSessionService {
             throw new BadRequestException("Session is no longer active");
         }
 
+        if (session.getVoteMode() == VoteMode.CART && !request.getLiked()) {
+            throw new BadRequestException("This vote session accepts upvotes only");
+        }
+
         assertVoterAllowed(session, request.getVoterToken());
 
         Activity activity = activityRepository.findById(request.getActivityId())
@@ -379,6 +383,11 @@ public class VoteSessionService {
 
         if (session.getStatus() != VoteSessionStatus.ACTIVE) {
             throw new BadRequestException("Session is no longer active");
+        }
+
+        if (session.getVoteMode() == VoteMode.CART
+                && request.getVotes().stream().anyMatch(item -> !item.getLiked())) {
+            throw new BadRequestException("This vote session accepts upvotes only");
         }
 
         assertVoterAllowed(session, request.getVoterToken());
