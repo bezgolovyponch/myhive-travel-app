@@ -1,5 +1,6 @@
 package com.myhive.backend.entity;
 
+import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.model.VoteSessionStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -84,6 +85,14 @@ public class VoteSession {
 
     @Column(name = "budget", precision = 10, scale = 2)
     private BigDecimal budget;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    // columnDefinition carries a DEFAULT so ddl-auto=update can add this NOT NULL column to the
+    // already-populated vote_sessions table in prod; every pre-existing session is quiz-driven.
+    @Column(name = "vote_mode", nullable = false, length = 20,
+            columnDefinition = "varchar(20) not null default 'QUIZ'")
+    private VoteMode voteMode = VoteMode.QUIZ;
 
     @PrePersist
     private void prePersist() {

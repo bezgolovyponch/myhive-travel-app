@@ -546,7 +546,8 @@ public class VoteSessionService {
                 expiresAt,
                 participantCount,
                 travelers,
-                managerToken);
+                managerToken,
+                session.getVoteMode().name());
     }
 
     private Set<UUID> resolveDestinationCategoryIds(Destination destination) {

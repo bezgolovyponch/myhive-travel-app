@@ -17,4 +17,5 @@ public class VoteSessionResponse {
     private long participantCount;
     private int numberOfTravelers;
     private UUID managerToken;
+    private String voteMode;
 }

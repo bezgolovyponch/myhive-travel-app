@@ -64,7 +64,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 expectedToken, "Bali", "bali", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 2,
-                expectedManagerToken);
+                expectedManagerToken, "QUIZ");
 
         when(voteSessionService.createSession(any())).thenReturn(response);
 
@@ -115,7 +115,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 shareToken, "Bali", "bali", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 5L, 3,
-                null);
+                null, "QUIZ");
 
         when(voteSessionService.getSession(shareToken)).thenReturn(response);
 
