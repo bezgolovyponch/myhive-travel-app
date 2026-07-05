@@ -127,6 +127,7 @@ localStorage: reuse `myhive-manager-{shareToken}`, `myhive-initiator-{shareToken
 - Double vote: client blocks via `myhive-voted-*`; server upsert is idempotent per (voter, activity).
 - Tally requested by a non-voter without manager token → 403; the UI never requests it pre-vote.
 - The initiator may also vote through the share link — allowed, nothing special.
+- Starting a second vote while one is ACTIVE (added 2026-07-05, user decision): the vote button first checks the stored `myhive-trip-vote-session` via `getSession`; an ACTIVE CART session opens `ActiveVoteModal` ("A vote is already running") with an **Open the vote dashboard** CTA to `/vote/{token}/waiting` (where the manager can end it early) instead of the create-modal. COMPLETED/deleted sessions fall through to normal creation (deleted → key self-heals).
 - Zero-vote activities stay in the ranking (bottom) and in the cart; nothing is auto-removed.
 - Result before completion → existing 409 `ResultNotReadyException` handling.
 - CART sessions with quiz endpoints: `GET /{shareToken}/quiz` and `POST /{shareToken}/quiz` are not part of the CART flow; participants are never routed there. (No server-side block needed — submitting quiz answers to a CART session is harmless and unreachable through the UI.)
