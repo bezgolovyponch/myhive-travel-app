@@ -698,7 +698,7 @@ describe('Let your mates vote button', () => {
 // ---------------------------------------------------------------------------
 
 describe('cta_click on "Let your mates vote"', () => {
-    test('fires cta_click with cta_label, block and items_count on every click', async () => {
+    test('fires cta_click with cta_label and block on every click', async () => {
         const user = userEvent.setup();
         renderTripBuilder(buildTripState({ tripItems: [activity1, activity2] }));
 
@@ -707,7 +707,6 @@ describe('cta_click on "Let your mates vote"', () => {
         expect(pushEvent).toHaveBeenCalledWith('cta_click', {
             cta_label: 'Let your mates vote',
             block: 'trip_builder',
-            items_count: 2,
         });
     });
 });
@@ -731,7 +730,6 @@ describe('active vote guard', () => {
         expect(pushEvent).toHaveBeenCalledWith('cta_click', {
             cta_label: 'Let your mates vote',
             block: 'trip_builder',
-            items_count: 1,
         });
     });
 

@@ -234,7 +234,6 @@ function TripBuilder({ destinationId, destinationSlug }) {
     pushEvent('cta_click', {
       cta_label: 'Let your mates vote',
       block: 'trip_builder',
-      items_count: standalone.length,
     });
     if (checkingVote) {
       return;
