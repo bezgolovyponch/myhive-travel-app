@@ -7,6 +7,7 @@ import {paymentApi} from '../services/paymentApi';
 import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
 import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
+import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
 import {generateUuid} from '../utils/uuid';
 import ContactForm from './ContactForm';
@@ -100,6 +101,11 @@ function TripBuilder({ destinationId, destinationSlug }) {
   // mount — StartGroupVoteModal writes it, handleContactSubmit clears it).
   const [storedVoteSession] = useState(() => localStorage.getItem('myhive-trip-vote-session'));
   const annotationToken = voteSession || storedVoteSession;
+  // Adds user_role to a funnel-event payload when a vote token is involved;
+  // plain trips (no annotationToken) get no user_role field at all.
+  const withUserRole = (payload) => (annotationToken
+      ? { ...payload, user_role: resolveUserRole(annotationToken) }
+      : payload);
   // Cart vote annotation (counts + participantCount) — display-only, never
   // mutates tripItems/localStorage. Set for CART sessions; QUIZ sessions
   // instead hydrate the cart itself via voteResult/dispatch below.
@@ -184,7 +190,10 @@ function TripBuilder({ destinationId, destinationSlug }) {
     if (checkoutViewedRef.current || state.tripItems.length === 0) {
       return;
     }
-    let tripId = voteSession || state.tripId;
+    // Resolve the trip_id: the full annotation token (URL param or stored CART
+    // session — see annotationToken above) takes priority, then the client-minted
+    // id from TripContext, then mint a fresh one as a last resort.
+    let tripId = annotationToken || state.tripId;
     if (!tripId) {
       tripId = generateUuid();
       dispatch({ type: 'SET_TRIP_ID', tripId });
@@ -195,13 +204,16 @@ function TripBuilder({ destinationId, destinationSlug }) {
       return;
     }
     sessionStorage.setItem(viewedKey, '1');
-    pushEvent('trip_builder_viewed', {
+    pushEvent('trip_builder_viewed', withUserRole({
       trip_id: tripId,
       value: computeTripTotal(state.tripItems, state.tripTravelers || 1),
       currency: 'EUR',
       items_count: state.tripItems.length,
-    });
-  }, [state.tripItems, state.tripId, state.tripTravelers, voteSession, dispatch]);
+    }));
+    // withUserRole is derived solely from annotationToken (already a dep below)
+    // and the stable resolveUserRole import, so it's safe to omit here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.tripItems, state.tripId, state.tripTravelers, annotationToken, dispatch]);
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
@@ -215,6 +227,15 @@ function TripBuilder({ destinationId, destinationSlug }) {
   // still ACTIVE — reads localStorage fresh (not the stale mount-time
   // storedVoteSession) since a vote may have been created/ended since mount.
   const handleStartVoteClick = async () => {
+    // Fires on every click regardless of which modal ends up opening — this is
+    // the intent signal; vote_launched (on actual session creation) is the
+    // conversion. cta_label/block mirror the taxonomy HomePage/HowItWorksSection
+    // already use for cta_click.
+    pushEvent('cta_click', {
+      cta_label: 'Let your mates vote',
+      block: 'trip_builder',
+      items_count: standalone.length,
+    });
     if (checkingVote) {
       return;
     }
@@ -243,9 +264,10 @@ function TripBuilder({ destinationId, destinationSlug }) {
   };
 
   const handleConfirmTrip = () => {
-    // Resolve the trip_id: voteSession (share token) takes priority, then the
-    // client-minted id from TripContext, then mint a fresh one as a last resort.
-    let tripId = voteSession || state.tripId;
+    // Resolve the trip_id: the full annotation token (URL param or stored CART
+    // session — see annotationToken above) takes priority, then the client-minted
+    // id from TripContext, then mint a fresh one as a last resort.
+    let tripId = annotationToken || state.tripId;
     if (!tripId) {
       tripId = generateUuid();
       dispatch({ type: 'SET_TRIP_ID', tripId });
@@ -258,7 +280,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
     if (!sessionStorage.getItem(formViewedKey)) {
       sessionStorage.setItem(formViewedKey, '1');
       const tripTotal = computeTripTotal(state.tripItems, travelers);
-      pushEvent('booking_form_viewed', { trip_id: tripId, value: tripTotal, currency: 'EUR' });
+      pushEvent('booking_form_viewed', withUserRole({ trip_id: tripId, value: tripTotal, currency: 'EUR' }));
     }
 
     setShowContactForm(true);
@@ -326,7 +348,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
       if (!sessionStorage.getItem(dedupKey)) {
         sessionStorage.setItem(dedupKey, '1');
         const destinationSlug = state.tripItems[0]?.destinationSlug || '';
-        pushEvent('booking_submitted', {
+        pushEvent('booking_submitted', withUserRole({
           trip_id: effectiveTripId,
           value: computeTripTotal(state.tripItems, submittedTravelers),
           currency: 'EUR',
@@ -335,7 +357,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
           group_size: submittedTravelers,
           ...getAttribution(),
           ref: getRef(),
-        });
+        }));
       }
 
       dispatch({ type: 'CANCEL_TRIP_SETUP' });

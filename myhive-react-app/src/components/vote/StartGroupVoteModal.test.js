@@ -3,11 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import StartGroupVoteModal from './StartGroupVoteModal';
 import voteApi from '../../services/voteApi';
+import { pushEvent } from '../../utils/analytics';
 
 jest.mock('../../services/voteApi', () => ({
   __esModule: true,
   default: { createCartSession: jest.fn() },
 }));
+
+jest.mock('../../utils/analytics', () => ({ pushEvent: jest.fn() }));
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -63,6 +66,22 @@ test('creates the session, stores tokens and navigates to waiting', async () => 
   expect(localStorage.getItem('myhive-manager-t-1')).toBe('m-1');
   expect(localStorage.getItem('myhive-initiator-t-1')).toBe('true');
   expect(localStorage.getItem('myhive-trip-vote-session')).toBe('t-1');
+  expect(pushEvent).toHaveBeenCalledWith('vote_launched', {
+    trip_id: 't-1',
+    user_role: 'organizer',
+    selected_count: 2,
+  });
+});
+
+test('does not fire vote_launched when createCartSession rejects', async () => {
+  voteApi.createCartSession.mockRejectedValue(new Error('activityId x does not exist'));
+  renderModal();
+
+  await userEvent.type(screen.getByLabelText('Your email'), 'stag@example.com');
+  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
+
+  await screen.findByText('activityId x does not exist');
+  expect(pushEvent).not.toHaveBeenCalledWith('vote_launched', expect.anything());
 });
 
 test('shows date inputs when the trip has no dates yet and requires them', async () => {

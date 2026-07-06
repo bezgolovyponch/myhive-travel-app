@@ -36,6 +36,8 @@ let turnstileCallback;
 
 jest.mock('../utils/analytics', () => ({ pushEvent: jest.fn() }));
 
+jest.mock('../utils/userRole', () => ({ resolveUserRole: jest.fn() }));
+
 jest.mock('../utils/attribution', () => ({
     getAttribution: jest.fn(),
     getRef: jest.fn(),
@@ -69,6 +71,7 @@ jest.mock('./DateRangePicker', () =>
 
 const api = require('../services/api').default;
 const { pushEvent } = require('../utils/analytics');
+const { resolveUserRole } = require('../utils/userRole');
 const { getAttribution, getRef } = require('../utils/attribution');
 const { generateUuid } = require('../utils/uuid');
 
@@ -174,6 +177,7 @@ beforeEach(() => {
     getAttribution.mockReturnValue({ utm_source: 'facebook', utm_medium: 'cpc' });
     getRef.mockReturnValue('ref-abc');
     generateUuid.mockReturnValue('fresh-uuid');
+    resolveUserRole.mockReturnValue('organizer');
 
     // Turnstile is available immediately; capture its success callback so tests can solve the captcha.
     turnstileCallback = undefined;
@@ -220,6 +224,9 @@ test('A16b: trip_builder_viewed fires once on mount when the trip has items', as
     expect(params.value).toBe(120); // 60 * 2 travelers
     expect(params.currency).toBe('EUR');
     expect(params.items_count).toBe(1);
+    // Plain trip — no vote token involved, so no user_role field at all.
+    expect(params).not.toHaveProperty('user_role');
+    expect(resolveUserRole).not.toHaveBeenCalled();
 });
 
 test('A16b: trip_builder_viewed does NOT fire when the trip is empty', async () => {
@@ -242,6 +249,24 @@ test('A16b: trip_builder_viewed uses voteSession as trip_id when present', async
 
     const [, params] = pushEvent.mock.calls.find(([event]) => event === 'trip_builder_viewed');
     expect(params.trip_id).toBe('vote-tok-xyz');
+    expect(params.user_role).toBe('organizer');
+    expect(resolveUserRole).toHaveBeenCalledWith('vote-tok-xyz');
+});
+
+test('A16b: trip_builder_viewed uses the stored CART vote session as trip_id when there is no ?voteSession param', async () => {
+    localStorage.setItem('myhive-trip-vote-session', 'stored-tok');
+    resolveUserRole.mockReturnValue('participant');
+    renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }), '/');
+
+    await waitFor(() => {
+        const calls = pushEvent.mock.calls.filter(([event]) => event === 'trip_builder_viewed');
+        expect(calls).toHaveLength(1);
+    });
+
+    const [, params] = pushEvent.mock.calls.find(([event]) => event === 'trip_builder_viewed');
+    expect(params.trip_id).toBe('stored-tok');
+    expect(params.user_role).toBe('participant');
+    expect(resolveUserRole).toHaveBeenCalledWith('stored-tok');
 });
 
 test('A16b: trip_builder_viewed mints a trip_id when none exists', async () => {
@@ -338,6 +363,8 @@ test('A17: booking_form_viewed includes trip_id from context when no voteSession
     const viewedCalls = pushEvent.mock.calls.filter(([event]) => event === 'booking_form_viewed');
     expect(viewedCalls).toHaveLength(1);
     expect(viewedCalls[0][1].trip_id).toBe('ctx-trip-id');
+    // Plain trip — no vote token involved, so no user_role field at all.
+    expect(viewedCalls[0][1]).not.toHaveProperty('user_role');
 });
 
 test('A17: booking_form_viewed uses voteSession as trip_id when param is present', async () => {
@@ -349,6 +376,8 @@ test('A17: booking_form_viewed uses voteSession as trip_id when param is present
     const viewedCalls = pushEvent.mock.calls.filter(([event]) => event === 'booking_form_viewed');
     expect(viewedCalls).toHaveLength(1);
     expect(viewedCalls[0][1].trip_id).toBe('vote-tok-xyz');
+    expect(viewedCalls[0][1].user_role).toBe('organizer');
+    expect(resolveUserRole).toHaveBeenCalledWith('vote-tok-xyz');
 });
 
 test('A17: booking_form_viewed does not fire a second time on rapid double-click (sessionStorage dedup)', async () => {
@@ -426,6 +455,8 @@ test('A18: booking_submitted uses voteSession as trip_id when param is present',
 
     const [, params] = pushEvent.mock.calls.find(([event]) => event === 'booking_submitted');
     expect(params.trip_id).toBe('vote-tok-xyz');
+    expect(params.user_role).toBe('organizer');
+    expect(resolveUserRole).toHaveBeenCalledWith('vote-tok-xyz');
 });
 
 test('A18: booking_submitted uses context tripId when no voteSession', async () => {
@@ -442,6 +473,8 @@ test('A18: booking_submitted uses context tripId when no voteSession', async () 
 
     const [, params] = pushEvent.mock.calls.find(([event]) => event === 'booking_submitted');
     expect(params.trip_id).toBe('ctx-trip-id');
+    // Plain trip — no vote token involved, so no user_role field at all.
+    expect(params).not.toHaveProperty('user_role');
 });
 
 test('A18: booking_submitted mints a fresh uuid and dispatches SET_TRIP_ID when both voteSession and context tripId are absent', async () => {
@@ -661,11 +694,30 @@ describe('Let your mates vote button', () => {
 });
 
 // ---------------------------------------------------------------------------
+// cta_click on the "Let your mates vote" button
+// ---------------------------------------------------------------------------
+
+describe('cta_click on "Let your mates vote"', () => {
+    test('fires cta_click with cta_label, block and items_count on every click', async () => {
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({ tripItems: [activity1, activity2] }));
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(pushEvent).toHaveBeenCalledWith('cta_click', {
+            cta_label: 'Let your mates vote',
+            block: 'trip_builder',
+            items_count: 2,
+        });
+    });
+});
+
+// ---------------------------------------------------------------------------
 // Active vote guard — block starting a new vote while one is already running
 // ---------------------------------------------------------------------------
 
 describe('active vote guard', () => {
-    test('an ACTIVE CART session blocks the create-modal and shows the active-vote modal instead', async () => {
+    test('an ACTIVE CART session blocks the create-modal and shows the active-vote modal instead (still firing cta_click)', async () => {
         localStorage.setItem('myhive-trip-vote-session', 't-1');
         voteApi.getSession.mockResolvedValue({ status: 'ACTIVE', voteMode: 'CART' });
         const user = userEvent.setup();
@@ -675,6 +727,12 @@ describe('active vote guard', () => {
 
         expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
         expect(screen.queryByLabelText('Your email')).not.toBeInTheDocument();
+        // cta_click fires on every click regardless of which modal ends up opening.
+        expect(pushEvent).toHaveBeenCalledWith('cta_click', {
+            cta_label: 'Let your mates vote',
+            block: 'trip_builder',
+            items_count: 1,
+        });
     });
 
     test('a COMPLETED session lets the create-modal open as usual', async () => {

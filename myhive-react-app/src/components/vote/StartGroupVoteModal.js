@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppModal from '../AppModal';
 import voteApi from '../../services/voteApi';
+import { pushEvent } from '../../utils/analytics';
 import './StartGroupVoteModal.css';
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
@@ -69,6 +70,13 @@ function StartGroupVoteModal({
             localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
             localStorage.setItem('myhive-trip-vote-session', session.shareToken);
+            // Mirrors CuratePage's A12 vote_launched (QUIZ) — same field names,
+            // shareToken as trip_id, organizer is always the creator here.
+            pushEvent('vote_launched', {
+                trip_id: session.shareToken,
+                user_role: 'organizer',
+                selected_count: activityIds.length,
+            });
             navigate(`/vote/${session.shareToken}/waiting`);
         } catch (e) {
             setApiError(e.message || 'Failed to create the vote. Please try again.');
