@@ -99,16 +99,11 @@ public class CategoryService {
 
     @Transactional
     public void deleteCategory(UUID id) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category", id));
-        for (Activity activity : activityRepository.findByCategoriesId(id)) {
-            activity.getCategories().remove(category);
-            activityRepository.save(activity);
+        if (!categoryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Category", id);
         }
-        for (Package pkg : packageRepository.findByCategoriesId(id)) {
-            pkg.getCategories().remove(category);
-            packageRepository.save(pkg);
-        }
+        activityRepository.deleteCategoryLinks(id);
+        packageRepository.deleteCategoryLinks(id);
         quizAnswerWeightRepository.deleteAllByCategoryId(id);
         destinationRepository.deleteCategoryLinks(id);
         voteSessionRepository.deleteLikedCategoryLinks(id);

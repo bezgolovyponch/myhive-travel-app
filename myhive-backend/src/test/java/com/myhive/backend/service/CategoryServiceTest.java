@@ -21,10 +21,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -227,24 +225,13 @@ class CategoryServiceTest {
     }
 
     @Test
-    void deleteCategory_noActivities_deletes() {
-        Category category = TestDataFactory.category();
-        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
-        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
-
-        categoryService.deleteCategory(category.getId());
-
-        verify(categoryRepository).deleteById(category.getId());
-    }
-
-    @Test
     void deleteCategory_notFound_throwsResourceNotFound() {
         UUID id = UUID.randomUUID();
-        when(categoryRepository.findById(id)).thenReturn(Optional.empty());
+        when(categoryRepository.existsById(id)).thenReturn(false);
 
         assertThatThrownBy(() -> categoryService.deleteCategory(id))
                 .isInstanceOf(ResourceNotFoundException.class);
+        verify(categoryRepository, never()).deleteById(any());
     }
 
     @Test
@@ -280,64 +267,17 @@ class CategoryServiceTest {
     }
 
     @Test
-    void deleteCategory_withActivities_removesFromActivitiesAndDeletes() {
-        Category category = TestDataFactory.category();
-        Destination dest = TestDataFactory.destination();
-        Activity activity = TestDataFactory.activity(dest);
-        activity.setCategories(new HashSet<>(Set.of(category)));
+    void deleteCategory_removesAllCategoryLinksAndDeletes() {
+        UUID id = UUID.randomUUID();
+        when(categoryRepository.existsById(id)).thenReturn(true);
 
-        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of(activity));
-        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+        categoryService.deleteCategory(id);
 
-        categoryService.deleteCategory(category.getId());
-
-        assertThat(activity.getCategories()).doesNotContain(category);
-        verify(activityRepository).save(activity);
-        verify(categoryRepository).deleteById(category.getId());
-    }
-
-    @Test
-    void deleteCategory_withPackages_removesFromPackagesAndDeletes() {
-        Category category = TestDataFactory.category();
-        Package pkg = new Package();
-        pkg.setCategories(new HashSet<>(Set.of(category)));
-
-        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
-        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of(pkg));
-
-        categoryService.deleteCategory(category.getId());
-
-        assertThat(pkg.getCategories()).doesNotContain(category);
-        verify(packageRepository).save(pkg);
-        verify(categoryRepository).deleteById(category.getId());
-    }
-
-    @Test
-    void deleteCategory_removesQuizAnswerWeights() {
-        Category category = TestDataFactory.category();
-        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
-        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
-
-        categoryService.deleteCategory(category.getId());
-
-        verify(quizAnswerWeightRepository).deleteAllByCategoryId(category.getId());
-        verify(categoryRepository).deleteById(category.getId());
-    }
-
-    @Test
-    void deleteCategory_removesDestinationAndVoteSessionLinks() {
-        Category category = TestDataFactory.category();
-        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
-        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
-        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
-
-        categoryService.deleteCategory(category.getId());
-
-        verify(destinationRepository).deleteCategoryLinks(category.getId());
-        verify(voteSessionRepository).deleteLikedCategoryLinks(category.getId());
-        verify(categoryRepository).deleteById(category.getId());
+        verify(activityRepository).deleteCategoryLinks(id);
+        verify(packageRepository).deleteCategoryLinks(id);
+        verify(quizAnswerWeightRepository).deleteAllByCategoryId(id);
+        verify(destinationRepository).deleteCategoryLinks(id);
+        verify(voteSessionRepository).deleteLikedCategoryLinks(id);
+        verify(categoryRepository).deleteById(id);
     }
 }

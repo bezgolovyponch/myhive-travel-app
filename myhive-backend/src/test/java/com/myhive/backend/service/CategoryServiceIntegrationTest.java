@@ -1,12 +1,16 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.config.TestSecurityConfig;
+import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.Package;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.model.VoteSessionStatus;
+import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -15,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -37,6 +42,12 @@ class CategoryServiceIntegrationTest {
 
     @Autowired
     private VoteSessionRepository voteSessionRepository;
+
+    @Autowired
+    private ActivityRepository activityRepository;
+
+    @Autowired
+    private PackageRepository packageRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -74,6 +85,48 @@ class CategoryServiceIntegrationTest {
         assertThat(categoryRepository.findById(category.getId())).isEmpty();
         VoteSession reloaded = voteSessionRepository.findById(expectedSessionId).orElseThrow();
         assertThat(reloaded.getLikedCategories()).isEmpty();
+    }
+
+    @Test
+    void deleteCategory_assignedToActivity_removesLinkAndCategory() {
+        Category category = saveCategory("Nightlife", "nightlife");
+        Destination destination = destinationRepository.saveAndFlush(newDestination());
+        Activity activity = new Activity();
+        activity.setDestination(destination);
+        activity.setName("Pub Crawl");
+        activity.setPrice(new BigDecimal("25.00"));
+        activity.getCategories().add(category);
+        UUID expectedActivityId = activityRepository.saveAndFlush(activity).getId();
+        entityManager.clear();
+
+        categoryService.deleteCategory(category.getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(categoryRepository.findById(category.getId())).isEmpty();
+        Activity reloaded = activityRepository.findById(expectedActivityId).orElseThrow();
+        assertThat(reloaded.getCategories()).isEmpty();
+    }
+
+    @Test
+    void deleteCategory_assignedToPackage_removesLinkAndCategory() {
+        Category category = saveCategory("Adventure", "adventure");
+        Destination destination = destinationRepository.saveAndFlush(newDestination());
+        Package pkg = new Package();
+        pkg.setDestination(destination);
+        pkg.setName("Explorer Pack");
+        pkg.setDiscountPct(new BigDecimal("10.00"));
+        pkg.getCategories().add(category);
+        UUID expectedPackageId = packageRepository.saveAndFlush(pkg).getId();
+        entityManager.clear();
+
+        categoryService.deleteCategory(category.getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(categoryRepository.findById(category.getId())).isEmpty();
+        Package reloaded = packageRepository.findById(expectedPackageId).orElseThrow();
+        assertThat(reloaded.getCategories()).isEmpty();
     }
 
     private Category saveCategory(String name, String slug) {

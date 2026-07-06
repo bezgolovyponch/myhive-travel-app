@@ -3,6 +3,7 @@ package com.myhive.backend.repository;
 import com.myhive.backend.entity.Activity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +13,11 @@ import java.util.Set;
 import java.util.UUID;
 
 public interface ActivityRepository extends SluggedRepository<Activity> {
+
+    /** Bulk-removes join rows; the join table has no entity, so a native query is required. */
+    @Modifying
+    @Query(value = "DELETE FROM activity_categories WHERE category_id = :categoryId", nativeQuery = true)
+    void deleteCategoryLinks(@Param("categoryId") UUID categoryId);
 
     List<Activity> findByDestinationId(UUID destinationId);
 
