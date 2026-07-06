@@ -17,11 +17,11 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.util.EmailMasker;
 import com.myhive.backend.util.MoneyMath;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,9 +47,6 @@ public class BookingService {
     private final PackageRepository packageRepository;
     private final EmailService emailService;
     private final BookingPaymentShareRepository shareRepository;
-
-    @Value("${app.email.enabled:false}")
-    private boolean emailEnabled;
 
     @Transactional
     public BookingDTO createBooking(CreateBookingRequest request) {
@@ -207,7 +204,7 @@ public class BookingService {
         Booking saved = bookingRepository.save(booking);
         // Mask the customer email — PII must not land in logs unmasked (consistent with EmailService).
         log.info("Booking created successfully: id={}, email={}, items={}, total={}",
-                saved.getId(), com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()),
+                saved.getId(), EmailMasker.mask(saved.getUserEmail()),
                 saved.getBookingItems().size(), saved.getTotalAmount());
         return saved;
     }
@@ -263,25 +260,18 @@ public class BookingService {
     public BookingDTO createBookingFromExport(TripExportRequest request) {
         Booking saved = createBookingEntity(request);
 
-        if (emailEnabled) {
-            try {
-                log.info("Email sending is enabled, attempting to send confirmation to: {}", com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()));
-                emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request, saved.getTripId());
-                log.info("Confirmation email sent successfully to: {}", com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()));
-            } catch (Exception e) {
-                log.error("Failed to send confirmation email to: {}. Error: {}", com.myhive.backend.util.EmailMasker.mask(saved.getUserEmail()), e.getMessage(), e);
-            }
+        try {
+            emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request, saved.getTripId());
+        } catch (Exception e) {
+            log.error("Failed to send confirmation email to: {}. Error: {}", EmailMasker.mask(saved.getUserEmail()), e.getMessage(), e);
+        }
 
-            // Internal heads-up to the bookings inbox. Kept in its own try/catch so a failure here
-            // never suppresses the customer confirmation above, nor fails the booking.
-            try {
-                emailService.sendBookingNotification(saved, request);
-                log.info("Booking notification sent for booking: {}", saved.getId());
-            } catch (Exception e) {
-                log.error("Failed to send booking notification for booking: {}. Error: {}", saved.getId(), e.getMessage(), e);
-            }
-        } else {
-            log.info("Email sending is disabled (app.email.enabled=false), skipping booking emails");
+        // Internal heads-up to the bookings inbox. Kept in its own try/catch so a failure here
+        // never suppresses the customer confirmation above, nor fails the booking.
+        try {
+            emailService.sendBookingNotification(saved, request);
+        } catch (Exception e) {
+            log.error("Failed to send booking notification for booking: {}. Error: {}", saved.getId(), e.getMessage(), e);
         }
 
         return convertToDTO(saved);

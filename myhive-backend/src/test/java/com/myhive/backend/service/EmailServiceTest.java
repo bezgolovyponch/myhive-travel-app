@@ -6,6 +6,7 @@ import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.VoteMode;
 import jakarta.mail.Session;
@@ -31,6 +32,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -59,6 +61,48 @@ class EmailServiceTest {
         ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@trivlu.com");
         ReflectionTestUtils.setField(emailService, "contactToEmail", "info@trivlu.com");
         ReflectionTestUtils.setField(emailService, "bookingsToEmail", "booking@trivlu.com");
+        ReflectionTestUtils.setField(emailService, "emailEnabled", true);
+    }
+
+    @Test
+    void sendContactNotification_whenEmailDisabled_throwsSoTheUserSeesTheFailure() {
+        ReflectionTestUtils.setField(emailService, "emailEnabled", false);
+        ContactRequest request = new ContactRequest();
+        request.setName("Bob");
+        request.setEmail("bob@example.com");
+        request.setSubject("Hi");
+        request.setMessage("Hello there");
+
+        // A contact submission has no durable record behind it — a silent skip would discard
+        // the message while the controller reports success. Disabled email must fail loudly here.
+        assertThatThrownBy(() -> emailService.sendContactNotification(request))
+                .isInstanceOf(EmailSendException.class)
+                .hasMessageContaining("disabled");
+
+        verifyNoInteractions(mailSender, asyncMailSender, templateEngine);
+    }
+
+    @Test
+    void sendItineraryConfirmation_whenEmailDisabled_skipsSendWithoutError() {
+        ReflectionTestUtils.setField(emailService, "emailEnabled", false);
+        TripExportRequest request = new TripExportRequest();
+        request.setDestinations(List.of());
+
+        assertThatCode(() -> emailService.sendItineraryConfirmation("customer@example.com", "Alice", request, "TRV-1"))
+                .doesNotThrowAnyException();
+
+        verifyNoInteractions(mailSender, asyncMailSender, templateEngine);
+    }
+
+    @Test
+    void sendPaymentReceived_whenEmailDisabled_skipsSendWithoutError() {
+        ReflectionTestUtils.setField(emailService, "emailEnabled", false);
+
+        assertThatCode(() -> emailService.sendPaymentReceived("payer@example.com", "Alice", "TRV-1",
+                new BigDecimal("30.00"), new BigDecimal("100.00"), false))
+                .doesNotThrowAnyException();
+
+        verifyNoInteractions(mailSender, asyncMailSender, templateEngine);
     }
 
     @Test

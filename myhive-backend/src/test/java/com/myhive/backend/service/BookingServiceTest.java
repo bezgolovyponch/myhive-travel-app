@@ -25,7 +25,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -64,7 +63,6 @@ class BookingServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(bookingService, "emailEnabled", false);
         destination = TestDataFactory.destination();
         activity = TestDataFactory.activity(destination);
     }
@@ -282,8 +280,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void createBookingFromExport_withEmailEnabled_sendsEmail() {
-        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
+    void createBookingFromExport_sendsConfirmationEmail() {
         TripExportRequest request = TestDataFactory.tripExportRequest();
         UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
@@ -299,24 +296,7 @@ class BookingServiceTest {
     }
 
     @Test
-    void createBookingFromExport_withEmailDisabled_doesNotSendEmail() {
-        TripExportRequest request = TestDataFactory.tripExportRequest();
-        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
-        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
-        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
-            Booking b = inv.getArgument(0);
-            b.setId(UUID.randomUUID());
-            return b;
-        });
-
-        bookingService.createBookingFromExport(request);
-
-        verifyNoInteractions(emailService);
-    }
-
-    @Test
-    void createBookingFromExport_withEmailEnabled_sendsBookingNotification() {
-        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
+    void createBookingFromExport_sendsBookingNotification() {
         TripExportRequest request = TestDataFactory.tripExportRequest();
         UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
@@ -335,7 +315,6 @@ class BookingServiceTest {
 
     @Test
     void createBookingFromExport_withBookingNotificationFailure_stillReturnsBooking() {
-        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
         TripExportRequest request = TestDataFactory.tripExportRequest();
         UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
@@ -355,7 +334,6 @@ class BookingServiceTest {
 
     @Test
     void createBookingFromExport_withEmailFailure_stillReturnsBooking() {
-        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
         TripExportRequest request = TestDataFactory.tripExportRequest();
         UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
@@ -438,7 +416,6 @@ class BookingServiceTest {
 
     @Test
     void createBookingEntity_buildsPendingEntityWithTotal_andSendsNoEmail() {
-        ReflectionTestUtils.setField(bookingService, "emailEnabled", true);
         TripExportRequest request = TestDataFactory.tripExportRequest();
         // SEC-1: price is taken from the looked-up activity, not the request body.
         activity.setPrice(new BigDecimal("75.00"));

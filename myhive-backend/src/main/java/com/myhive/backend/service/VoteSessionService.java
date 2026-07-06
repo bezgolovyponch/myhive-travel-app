@@ -24,7 +24,6 @@ import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
-import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
@@ -85,9 +84,6 @@ public class VoteSessionService {
     private final VoteSessionActivityRepository voteSessionActivityRepository;
     private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
     private final VoteSuggestionsService voteSuggestionsService;
-
-    @Value("${app.email.enabled:false}")
-    private boolean emailEnabled;
 
     @Value("${app.frontend.url:https://trivlu.com}")
     private String frontendUrl;
@@ -269,12 +265,9 @@ public class VoteSessionService {
     }
 
     private void sendVoteCreatedConfirmationQuietly(VoteSession session) {
-        if (!emailEnabled) {
-            return;
-        }
         try {
             emailService.sendVoteCreatedConfirmation(session, frontendUrl);
-        } catch (EmailSendException e) {
+        } catch (Exception e) {
             // A failed confirmation email must never fail session creation — log and move on.
             log.error("Failed to send vote-created confirmation for session {}: {}",
                     session.getId(), e.getMessage(), e);
@@ -585,10 +578,15 @@ public class VoteSessionService {
         session.setStatus(VoteSessionStatus.COMPLETED);
         voteSessionRepository.save(session);
 
-        if (emailEnabled) {
+        // The ranked results are frozen above — a failed notification must never roll back
+        // COMPLETED, or the scheduler would re-process the same failing session every tick.
+        try {
             List<VoteSessionResultActivity> results =
                     resultActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
             emailService.sendVoteResult(session, results, frontendUrl);
+        } catch (Exception e) {
+            log.error("Failed to send vote result email for session {}: {}",
+                    session.getId(), e.getMessage(), e);
         }
     }
 

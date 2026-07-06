@@ -9,6 +9,7 @@ import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.util.MoneyMath;
 import jakarta.mail.internet.MimeMessage;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Builds and dispatches all outbound email. Template variables are assembled in the public
+ * methods (outside the send try-block), so best-effort callers must catch {@code Exception},
+ * not just {@link EmailSendException}. When {@code app.email.enabled=false}, async emails are
+ * skipped quietly; synchronous ones (contact form) fail loudly instead — see {@link #send}.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -55,9 +62,24 @@ public class EmailService {
         public List<TripExportRequest.ActivityExport> activities = new ArrayList<>();
     }
 
+    /** Everything that varies between the outbound emails; {@link #send(EmailSpec)} does the rest. */
+    @Builder
+    private record EmailSpec(
+            String to,
+            String replyTo,
+            String subject,
+            String template,
+            Map<String, Object> variables,
+            String description,
+            boolean synchronous) {
+    }
+
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final AsyncMailSender asyncMailSender;
+
+    @Value("${app.email.enabled:false}")
+    private boolean emailEnabled;
 
     @Value("${app.email.from}")
     private String fromEmail;
@@ -75,41 +97,28 @@ public class EmailService {
     /** Overload that also renders a payment summary (deposit paid / balance due) — used by the deposit flow. */
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData,
             String tripId, BigDecimal amountPaid, BigDecimal totalAmount) {
-        log.info("Preparing itinerary confirmation email: from={}, to={}", fromEmail, maskEmail(toEmail));
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail);
-            helper.setTo(toEmail);
-            helper.setSubject("Your Trivlu Travel Itinerary Confirmation");
-
-            Context context = new Context();
-            context.setVariable("customerName", customerName);
-            context.setVariable("tripData", tripData);
-            context.setVariable("destinationViews", buildDestinationViews(tripData));
-            context.setVariable("bookingDate", LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
-            context.setVariable("tripId", tripId);
-            // Payment status — only present when a deposit has actually been collected (not for leads).
-            boolean depositPaid = amountPaid != null && amountPaid.signum() > 0;
-            context.setVariable("depositPaid", depositPaid);
-            context.setVariable("amountPaid", amountPaid);
-            context.setVariable("totalAmount", totalAmount);
-            if (depositPaid && totalAmount != null) {
-                context.setVariable("balanceDue", totalAmount.subtract(amountPaid));
-            }
-
-            log.debug("Processing email template: email/itinerary-confirmation");
-            String htmlContent = templateEngine.process("itinerary-confirmation", context);
-            helper.setText(htmlContent, true);
-
-            log.info("Queueing itinerary confirmation email to: {}", maskEmail(toEmail));
-            asyncMailSender.send(message, "itinerary confirmation to " + maskEmail(toEmail));
-
-        } catch (Exception e) {
-            log.error("Failed to build itinerary confirmation email to: {}. Cause: {}", maskEmail(toEmail), e.getMessage(), e);
-            throw new EmailSendException("Failed to send confirmation email", e);
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("customerName", customerName);
+        variables.put("tripData", tripData);
+        variables.put("destinationViews", buildDestinationViews(tripData));
+        variables.put("bookingDate", LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
+        variables.put("tripId", tripId);
+        // Payment status — only present when a deposit has actually been collected (not for leads).
+        boolean depositPaid = amountPaid != null && amountPaid.signum() > 0;
+        variables.put("depositPaid", depositPaid);
+        variables.put("amountPaid", amountPaid);
+        variables.put("totalAmount", totalAmount);
+        if (depositPaid && totalAmount != null) {
+            variables.put("balanceDue", totalAmount.subtract(amountPaid));
         }
+
+        send(EmailSpec.builder()
+                .to(toEmail)
+                .subject("Your Trivlu Travel Itinerary Confirmation")
+                .template("itinerary-confirmation")
+                .variables(variables)
+                .description("itinerary confirmation to " + maskEmail(toEmail))
+                .build());
     }
 
     /**
@@ -119,219 +128,175 @@ public class EmailService {
      * is the customer-facing confirmation.
      */
     public void sendBookingNotification(Booking booking, TripExportRequest tripData) {
-        log.info("Preparing booking notification for booking {} to: {}", booking.getId(), bookingsToEmail);
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail);
-            helper.setTo(bookingsToEmail);
-            if (booking.getUserEmail() != null) {
-                helper.setReplyTo(booking.getUserEmail());
-            }
-            helper.setSubject("New booking — " + booking.getTripId());
-
-            Context context = new Context();
-            context.setVariable("customerName", booking.getCustomerName());
-            context.setVariable("userEmail", booking.getUserEmail());
-            context.setVariable("phone", booking.getPhone());
-            context.setVariable("tripId", booking.getTripId());
-            context.setVariable("totalAmount", booking.getTotalAmount());
-            context.setVariable("tripName", tripData.getTripName());
-            context.setVariable("destinationViews", buildDestinationViews(tripData));
-            // Payment status — present only once a deposit has been collected (paid deposit vs. a lead).
-            BigDecimal amountPaid = booking.getAmountPaid();
-            boolean depositPaid = amountPaid != null && amountPaid.signum() > 0;
-            context.setVariable("depositPaid", depositPaid);
-            context.setVariable("amountPaid", amountPaid);
-            if (depositPaid && booking.getTotalAmount() != null) {
-                context.setVariable("balanceDue", booking.getTotalAmount().subtract(amountPaid));
-            }
-
-            log.debug("Processing email template: email/booking-notification");
-            String htmlContent = templateEngine.process("booking-notification", context);
-            helper.setText(htmlContent, true);
-
-            asyncMailSender.send(message, "booking notification for booking " + booking.getId());
-
-        } catch (Exception e) {
-            log.error("Failed to build booking notification for booking {}. Cause: {}", booking.getId(), e.getMessage(), e);
-            throw new EmailSendException("Failed to send booking notification", e);
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("customerName", booking.getCustomerName());
+        variables.put("userEmail", booking.getUserEmail());
+        variables.put("phone", booking.getPhone());
+        variables.put("tripId", booking.getTripId());
+        variables.put("totalAmount", booking.getTotalAmount());
+        variables.put("tripName", tripData.getTripName());
+        variables.put("destinationViews", buildDestinationViews(tripData));
+        // Payment status — present only once a deposit has been collected (paid deposit vs. a lead).
+        BigDecimal amountPaid = booking.getAmountPaid();
+        boolean depositPaid = amountPaid != null && amountPaid.signum() > 0;
+        variables.put("depositPaid", depositPaid);
+        variables.put("amountPaid", amountPaid);
+        if (depositPaid && booking.getTotalAmount() != null) {
+            variables.put("balanceDue", booking.getTotalAmount().subtract(amountPaid));
         }
+
+        send(EmailSpec.builder()
+                .to(bookingsToEmail)
+                .replyTo(booking.getUserEmail())
+                .subject("New booking — " + booking.getTripId())
+                .template("booking-notification")
+                .variables(variables)
+                .description("booking notification for booking " + booking.getId())
+                .build());
     }
 
     public void sendContactNotification(ContactRequest request) {
-        // PII/log-forging guard: mask the sender address and keep the user-controlled subject out of logs
-        // (same treatment as customerName in the itinerary emails).
-        log.info("Sending contact form notification: from={}", maskEmail(request.getEmail()));
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("name", request.getName());
+        variables.put("email", request.getEmail());
+        variables.put("subject", request.getSubject());
+        variables.put("message", request.getMessage());
 
-            helper.setFrom(fromEmail);
-            helper.setTo(contactToEmail);
-            helper.setReplyTo(request.getEmail());
-            helper.setSubject("Contact Form: " + request.getSubject());
-
-            Context context = new Context();
-            context.setVariable("name", request.getName());
-            context.setVariable("email", request.getEmail());
-            context.setVariable("subject", request.getSubject());
-            context.setVariable("message", request.getMessage());
-
-            String htmlContent = templateEngine.process("contact-notification", context);
-            helper.setText(htmlContent, true);
-
-            // Sent synchronously (unlike the other emails): a contact submission has no durable
-            // record behind it, so a delivery failure must surface to the user rather than being
-            // swallowed by the fire-and-forget async sender.
-            log.info("Sending contact form notification via SMTP to: {}", contactToEmail);
-            mailSender.send(message);
-            log.info("Contact form notification sent successfully to: {}", contactToEmail);
-
-        } catch (Exception e) {
-            log.error("Failed to send contact notification. Cause: {}", e.getMessage(), e);
-            throw new EmailSendException("Failed to send contact notification", e);
-        }
+        send(EmailSpec.builder()
+                .to(contactToEmail)
+                .replyTo(request.getEmail())
+                // PII/log-forging guard: the user-controlled subject stays out of the description/logs.
+                .subject("Contact Form: " + request.getSubject())
+                .template("contact-notification")
+                .variables(variables)
+                .description("contact notification from " + maskEmail(request.getEmail()))
+                // A contact submission has no durable record behind it, so a delivery failure must
+                // surface to the user rather than being swallowed by the fire-and-forget async sender.
+                .synchronous(true)
+                .build());
     }
 
     public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String frontendUrl) {
-        log.info("Preparing vote result email: from={}, to={}, destination={}", fromEmail, maskEmail(session.getInitiatorEmail()), session.getDestination().getName());
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("session", session);
+        variables.put("resultActivities", resultActivities);
+        variables.put("resultUrl", resultUrlFor(session, frontendUrl));
 
-            helper.setFrom(fromEmail);
-            helper.setTo(session.getInitiatorEmail());
-            helper.setSubject("Your group trip to " + session.getDestination().getName() + " is ready!");
-
-            // QUIZ results deep-link straight to the destination's Trip Builder tab with
-            // the vote session id — TripBuilder fetches the result and seeds the
-            // itinerary, budget panel, and suggestions server-side.
-            // CART results only ever annotate the initiator's own cart (the annotation
-            // effect never seeds items), so that deep link would land any other device
-            // on an empty Trip Builder. Send CART results to the read-only result page
-            // instead, which works cross-device.
-            String destinationSlug = session.getDestination().getSlug();
-            String resultUrl;
-            if (session.getVoteMode() == VoteMode.CART) {
-                resultUrl = frontendUrl + "/vote/" + session.getShareToken() + "/result";
-            } else if (destinationSlug != null) {
-                resultUrl = frontendUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken();
-            } else {
-                resultUrl = frontendUrl + "/vote/" + session.getShareToken() + "/result";
-            }
-
-            Context context = new Context();
-            context.setVariable("session", session);
-            context.setVariable("resultActivities", resultActivities);
-            context.setVariable("resultUrl", resultUrl);
-
-            log.debug("Processing email template: vote-result");
-            String htmlContent = templateEngine.process("vote-result", context);
-            helper.setText(htmlContent, true);
-
-            log.info("Queueing vote result email to: {}", maskEmail(session.getInitiatorEmail()));
-            asyncMailSender.send(message, "vote result to " + maskEmail(session.getInitiatorEmail()));
-
-        } catch (Exception e) {
-            log.error("Failed to build vote result email to: {}. Cause: {}", maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
-            throw new EmailSendException("Failed to send vote result email", e);
-        }
+        send(EmailSpec.builder()
+                .to(session.getInitiatorEmail())
+                .subject("Your group trip to " + session.getDestination().getName() + " is ready!")
+                .template("vote-result")
+                .variables(variables)
+                .description("vote result to " + maskEmail(session.getInitiatorEmail()))
+                .build());
     }
 
     public void sendVoteCreatedConfirmation(VoteSession session, String frontendUrl) {
-        log.info("Preparing vote-created confirmation email: from={}, to={}, destination={}",
-                fromEmail, maskEmail(session.getInitiatorEmail()), session.getDestination().getName());
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        String shareToken = session.getShareToken().toString();
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("session", session);
+        variables.put("inviteUrl", frontendUrl + "/vote/" + shareToken + "/activities?ref=invite");
+        variables.put("dashboardUrl", frontendUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken());
+        variables.put("supportEmail", SUPPORT_EMAIL);
+        variables.put("startDate", session.getStartDate().format(DATE_FORMAT));
+        variables.put("endDate", session.getEndDate().format(DATE_FORMAT));
+        variables.put("expiresAt", session.getExpiresAt().format(DATE_TIME_FORMAT));
 
-            helper.setFrom(fromEmail);
-            helper.setTo(session.getInitiatorEmail());
-            helper.setSubject("Your group vote for " + session.getDestination().getName() + " is live");
-
-            String shareToken = session.getShareToken().toString();
-            String inviteUrl = frontendUrl + "/vote/" + shareToken + "/activities?ref=invite";
-            String dashboardUrl = frontendUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken();
-
-            Context context = new Context();
-            context.setVariable("session", session);
-            context.setVariable("inviteUrl", inviteUrl);
-            context.setVariable("dashboardUrl", dashboardUrl);
-            context.setVariable("supportEmail", SUPPORT_EMAIL);
-            context.setVariable("startDate", session.getStartDate().format(DATE_FORMAT));
-            context.setVariable("endDate", session.getEndDate().format(DATE_FORMAT));
-            context.setVariable("expiresAt", session.getExpiresAt().format(DATE_TIME_FORMAT));
-
-            log.debug("Processing email template: vote-created");
-            String htmlContent = templateEngine.process("vote-created", context);
-            helper.setText(htmlContent, true);
-
-            log.info("Queueing vote-created confirmation email to: {}", maskEmail(session.getInitiatorEmail()));
-            asyncMailSender.send(message, "vote-created confirmation to " + maskEmail(session.getInitiatorEmail()));
-
-        } catch (Exception e) {
-            log.error("Failed to build vote-created confirmation email to: {}. Cause: {}",
-                    maskEmail(session.getInitiatorEmail()), e.getMessage(), e);
-            throw new EmailSendException("Failed to send vote-created confirmation email", e);
-        }
+        send(EmailSpec.builder()
+                .to(session.getInitiatorEmail())
+                .subject("Your group vote for " + session.getDestination().getName() + " is live")
+                .template("vote-created")
+                .variables(variables)
+                .description("vote-created confirmation to " + maskEmail(session.getInitiatorEmail()))
+                .build());
     }
 
     public void sendPaymentReceived(String toEmail, String customerName, String tripId,
             BigDecimal amountPaid, BigDecimal totalAmount, boolean fullyPaid) {
-        log.info("Preparing payment-received email: to={}, tripId={}, fullyPaid={}", maskEmail(toEmail), tripId, fullyPaid);
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail);
-            helper.setTo(toEmail);
-            helper.setSubject(fullyPaid ? "Your trip is fully paid 🎉" : "We received your payment");
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("customerName", customerName);
+        variables.put("tripId", tripId);
+        variables.put("amountPaid", amountPaid);
+        variables.put("totalAmount", totalAmount);
+        variables.put("fullyPaid", fullyPaid);
 
-            Context context = new Context();
-            context.setVariable("customerName", customerName);
-            context.setVariable("tripId", tripId);
-            context.setVariable("amountPaid", amountPaid);
-            context.setVariable("totalAmount", totalAmount);
-            context.setVariable("fullyPaid", fullyPaid);
-
-            String htmlContent = templateEngine.process("payment-received", context);
-            helper.setText(htmlContent, true);
-
-            asyncMailSender.send(message, "payment received to " + maskEmail(toEmail));
-        } catch (Exception e) {
-            log.error("Failed to build payment-received email to: {}. Cause: {}", maskEmail(toEmail), e.getMessage(), e);
-            throw new EmailSendException("Failed to send payment-received email", e);
-        }
+        send(EmailSpec.builder()
+                .to(toEmail)
+                .subject(fullyPaid ? "Your trip is fully paid 🎉" : "We received your payment")
+                .template("payment-received")
+                .variables(variables)
+                .description("payment received to " + maskEmail(toEmail))
+                .build());
     }
 
     public void sendConsultationLead(Booking booking) {
-        log.info("Preparing consultation-lead notification for booking {}", booking.getId());
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("customerName", booking.getCustomerName());
+        variables.put("userEmail", booking.getUserEmail());
+        variables.put("phone", booking.getPhone());
+        variables.put("tripId", booking.getTripId());
+        variables.put("totalAmount", booking.getTotalAmount());
+
+        send(EmailSpec.builder()
+                .to(contactToEmail)
+                .replyTo(booking.getUserEmail())
+                .subject("New consultation request — " + booking.getTripId())
+                .template("consultation-lead")
+                .variables(variables)
+                .description("consultation lead for booking " + booking.getId())
+                .build());
+    }
+
+    private void send(EmailSpec spec) {
+        if (!emailEnabled) {
+            if (spec.synchronous()) {
+                // A synchronous send is a fail-loud contract: nothing durable backs the message
+                // (contact form), so a silent skip would discard it behind a success response.
+                throw new EmailSendException("Email sending is disabled (app.email.enabled=false)", null);
+            }
+            log.info("Email sending is disabled (app.email.enabled=false), skipping {}", spec.description());
+            return;
+        }
+        log.info("Preparing {} (from={}, to={})", spec.description(), fromEmail, maskEmail(spec.to()));
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(fromEmail);
-            helper.setTo(contactToEmail);
-            if (booking.getUserEmail() != null) {
-                helper.setReplyTo(booking.getUserEmail());
+            helper.setTo(spec.to());
+            if (spec.replyTo() != null) {
+                helper.setReplyTo(spec.replyTo());
             }
-            helper.setSubject("New consultation request — " + booking.getTripId());
+            helper.setSubject(spec.subject());
 
             Context context = new Context();
-            context.setVariable("customerName", booking.getCustomerName());
-            context.setVariable("userEmail", booking.getUserEmail());
-            context.setVariable("phone", booking.getPhone());
-            context.setVariable("tripId", booking.getTripId());
-            context.setVariable("totalAmount", booking.getTotalAmount());
+            spec.variables().forEach(context::setVariable);
+            helper.setText(templateEngine.process(spec.template(), context), true);
 
-            String htmlContent = templateEngine.process("consultation-lead", context);
-            helper.setText(htmlContent, true);
-
-            asyncMailSender.send(message, "consultation lead for booking " + booking.getId());
+            if (spec.synchronous()) {
+                mailSender.send(message);
+                log.info("Email sent successfully: {}", spec.description());
+            } else {
+                asyncMailSender.send(message, spec.description());
+            }
         } catch (Exception e) {
-            log.error("Failed to build consultation-lead email for booking {}. Cause: {}", booking.getId(), e.getMessage(), e);
-            throw new EmailSendException("Failed to send consultation-lead email", e);
+            log.error("Failed to send {}. Cause: {}", spec.description(), e.getMessage(), e);
+            throw new EmailSendException("Failed to send " + spec.description(), e);
         }
+    }
+
+    /**
+     * QUIZ results deep-link straight to the destination's Trip Builder tab with the vote session id —
+     * TripBuilder fetches the result and seeds the itinerary, budget panel, and suggestions server-side.
+     * CART results only ever annotate the initiator's own cart (the annotation effect never seeds items),
+     * so that deep link would land any other device on an empty Trip Builder. Send CART results to the
+     * read-only result page instead, which works cross-device.
+     */
+    private static String resultUrlFor(VoteSession session, String frontendUrl) {
+        String destinationSlug = session.getDestination().getSlug();
+        if (session.getVoteMode() == VoteMode.CART || destinationSlug == null) {
+            return frontendUrl + "/vote/" + session.getShareToken() + "/result";
+        }
+        return frontendUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken();
     }
 
     private String maskEmail(String email) {

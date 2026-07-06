@@ -9,9 +9,11 @@ import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.exception.SessionFullException;
+import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
@@ -34,11 +36,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +58,7 @@ class VoteSessionServiceTest {
     @Mock private com.myhive.backend.repository.QuizAnswerRepository quizAnswerRepository;
     @Mock private com.myhive.backend.repository.VoteSessionActivityRepository voteSessionActivityRepository;
     @Mock private com.myhive.backend.repository.VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
+    @Mock private com.myhive.backend.repository.VoteSessionResultActivityRepository resultActivityRepository;
 
     @InjectMocks
     private VoteSessionService voteSessionService;
@@ -317,6 +320,41 @@ class VoteSessionServiceTest {
                 .hasMessageContaining("Invalid manager token");
     }
 
+    @Test
+    void processSession_completesSessionEvenWhenResultEmailFails() {
+        ReflectionTestUtils.setField(voteSessionService, "frontendUrl", "https://trivlu.com");
+
+        Destination destination = new Destination();
+        destination.setName("Bali");
+
+        VoteSession session = new VoteSession();
+        session.setId(UUID.randomUUID());
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setVoteMode(VoteMode.CART);
+        session.setDestination(destination);
+        session.setInitiatorEmail("alice@example.com");
+
+        Activity activity = new Activity();
+        activity.setId(UUID.randomUUID());
+        VoteSessionActivity curatedRow = new VoteSessionActivity();
+        curatedRow.setActivity(activity);
+        curatedRow.setSortOrder(0);
+
+        when(voteSessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId()))
+                .thenReturn(List.of(curatedRow));
+        when(voteActivityLikeRepository.findVoteCountsBySessionId(session.getId())).thenReturn(List.of());
+        doThrow(new RuntimeException("template rendering failed"))
+                .when(emailService).sendVoteResult(any(), any(), any());
+
+        // The ranked results are already frozen at this point — a failed notification must not
+        // roll back COMPLETED, or the scheduler would retry the same failing session forever.
+        assertThatCode(() -> voteSessionService.processSession(session)).doesNotThrowAnyException();
+
+        assertThat(session.getStatus()).isEqualTo(VoteSessionStatus.COMPLETED);
+        verify(voteSessionRepository).save(session);
+    }
+
     private VoteSessionCreateRequest happyPathCreateSetup() {
         UUID destId = UUID.randomUUID();
         UUID catId = UUID.randomUUID();
@@ -363,8 +401,7 @@ class VoteSessionServiceTest {
     }
 
     @Test
-    void createSession_sendsConfirmationEmailWhenEnabled() {
-        ReflectionTestUtils.setField(voteSessionService, "emailEnabled", true);
+    void createSession_sendsConfirmationEmail() {
         ReflectionTestUtils.setField(voteSessionService, "frontendUrl", "https://trivlu.com");
         VoteSessionCreateRequest request = happyPathCreateSetup();
 
@@ -375,18 +412,7 @@ class VoteSessionServiceTest {
     }
 
     @Test
-    void createSession_doesNotSendEmailWhenDisabled() {
-        ReflectionTestUtils.setField(voteSessionService, "emailEnabled", false);
-        VoteSessionCreateRequest request = happyPathCreateSetup();
-
-        voteSessionService.createSession(request);
-
-        verify(emailService, never()).sendVoteCreatedConfirmation(any(), any());
-    }
-
-    @Test
     void createSession_succeedsEvenWhenConfirmationEmailFails() {
-        ReflectionTestUtils.setField(voteSessionService, "emailEnabled", true);
         ReflectionTestUtils.setField(voteSessionService, "frontendUrl", "https://trivlu.com");
         VoteSessionCreateRequest request = happyPathCreateSetup();
         doThrow(new EmailSendException("smtp down", null))
