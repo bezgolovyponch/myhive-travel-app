@@ -17,6 +17,7 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.util.MoneyMath;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -25,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
@@ -41,8 +41,6 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 @Slf4j
 public class BookingService {
-
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     private final BookingRepository bookingRepository;
     private final ActivityRepository activityRepository;
@@ -402,12 +400,8 @@ public class BookingService {
             groupTotal = groupTotal.add(it.getPrice().multiply(qty));
         }
         if (entry.getKey() != null) {
-            BigDecimal pct = entry.getValue().getFirst().getPackageDiscountPct();
-            if (pct == null) {
-                pct = BigDecimal.ZERO;
-            }
-            groupTotal = groupTotal.multiply(HUNDRED.subtract(pct))
-                    .divide(HUNDRED, 2, RoundingMode.HALF_UP);
+            groupTotal = MoneyMath.applyDiscountPct(groupTotal,
+                    entry.getValue().getFirst().getPackageDiscountPct());
         }
         return groupTotal;
     }

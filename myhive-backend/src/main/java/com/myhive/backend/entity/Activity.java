@@ -33,7 +33,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
 @ToString(exclude = {"destination", "categories"})
-public class Activity {
+public class Activity implements Slugged {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

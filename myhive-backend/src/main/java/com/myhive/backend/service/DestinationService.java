@@ -9,9 +9,7 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
-import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -65,27 +63,16 @@ public class DestinationService {
     public DestinationDTO createDestination(DestinationDTO dto) {
         Destination destination = new Destination();
         applyDtoToEntity(dto, destination);
-        destination.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), destinationRepository::existsBySlug));
-        try {
-            return convertToDTO(destinationRepository.save(destination));
-        } catch (DataIntegrityViolationException e) {
-            destination.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), destinationRepository::existsBySlug));
-            return convertToDTO(destinationRepository.save(destination));
-        }
+        SlugAssigner.assignOnCreate(destination, dto.getSlug(), dto.getName(), destinationRepository);
+        return convertToDTO(destinationRepository.save(destination));
     }
 
     @Transactional
     public DestinationDTO updateDestination(UUID id, DestinationDTO dto) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
-        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), destination.getSlug(), dto.getName(), destination.getName());
+        SlugAssigner.assignOnUpdate(destination, dto.getSlug(), dto.getName(), destination.getName(), destinationRepository);
         applyDtoToEntity(dto, destination);
-        if (updateSlug) {
-            destination.setSlug(SlugUtils.resolveForUpdate(dto.getSlug(), dto.getName(), destination.getSlug(),
-                    slug -> destinationRepository.findBySlug(slug)
-                            .filter(d -> !d.getId().equals(id))
-                            .isPresent()));
-        }
         return convertToDTO(destinationRepository.save(destination));
     }
 

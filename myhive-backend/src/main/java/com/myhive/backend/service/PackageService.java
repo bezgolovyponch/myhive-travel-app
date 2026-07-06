@@ -13,9 +13,8 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
-import com.myhive.backend.util.SlugUtils;
+import com.myhive.backend.util.MoneyMath;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,8 +33,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PackageService {
-
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     private final PackageRepository packageRepository;
     private final DestinationRepository destinationRepository;
@@ -103,9 +100,7 @@ public class PackageService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal discounted = original
-                .multiply(HUNDRED.subtract(p.getDiscountPct()))
-                .divide(HUNDRED, 2, RoundingMode.HALF_UP);
+        BigDecimal discounted = MoneyMath.applyDiscountPct(original, p.getDiscountPct());
         BigDecimal savings = original.subtract(discounted);
         dto.setOriginalPrice(original);
         dto.setDiscountedPrice(discounted);
@@ -124,13 +119,8 @@ public class PackageService {
         Package p = new Package();
         p.setDestination(destination);
         applyDtoToEntity(dto, p);
-        p.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), packageRepository::existsBySlug));
-        try {
-            return toDTO(packageRepository.save(p));
-        } catch (DataIntegrityViolationException e) {
-            p.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), packageRepository::existsBySlug));
-            return toDTO(packageRepository.save(p));
-        }
+        SlugAssigner.assignOnCreate(p, dto.getSlug(), dto.getName(), packageRepository);
+        return toDTO(packageRepository.save(p));
     }
 
     @Transactional
@@ -142,15 +132,8 @@ public class PackageService {
                     .orElseThrow(() -> new ResourceNotFoundException("Destination", dto.getDestinationId()));
             p.setDestination(destination);
         }
-        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), p.getSlug(), dto.getName(), p.getName());
+        SlugAssigner.assignOnUpdate(p, dto.getSlug(), dto.getName(), p.getName(), packageRepository);
         applyDtoToEntity(dto, p);
-        if (updateSlug) {
-            p.setSlug(SlugUtils.resolveForUpdate(
-                    dto.getSlug(), dto.getName(), p.getSlug(),
-                    slug -> packageRepository.findBySlug(slug)
-                            .filter(x -> !x.getId().equals(id))
-                            .isPresent()));
-        }
         return toDTO(packageRepository.save(p));
     }
 

@@ -4,9 +4,7 @@ import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.entity.BlogPost;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.BlogPostRepository;
-import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,14 +47,8 @@ public class BlogPostService {
     public BlogPostDTO createBlogPost(BlogPostDTO dto) {
         BlogPost blogPost = new BlogPost();
         applyDtoToEntity(dto, blogPost);
-        blogPost.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getTitle(), blogPostRepository::existsBySlug));
-
-        try {
-            return convertToDTO(blogPostRepository.save(blogPost));
-        } catch (DataIntegrityViolationException e) {
-            blogPost.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getTitle(), blogPostRepository::existsBySlug));
-            return convertToDTO(blogPostRepository.save(blogPost));
-        }
+        SlugAssigner.assignOnCreate(blogPost, dto.getSlug(), dto.getTitle(), blogPostRepository);
+        return convertToDTO(blogPostRepository.save(blogPost));
     }
 
     @Transactional
@@ -64,14 +56,8 @@ public class BlogPostService {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BlogPost", id));
 
-        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), blogPost.getSlug(), dto.getTitle(), blogPost.getTitle());
+        SlugAssigner.assignOnUpdate(blogPost, dto.getSlug(), dto.getTitle(), blogPost.getTitle(), blogPostRepository);
         applyDtoToEntity(dto, blogPost);
-        if (updateSlug) {
-            blogPost.setSlug(SlugUtils.resolveForUpdate(dto.getSlug(), dto.getTitle(), blogPost.getSlug(),
-                    slug -> blogPostRepository.findBySlug(slug)
-                            .filter(b -> !b.getId().equals(id))
-                            .isPresent()));
-        }
 
         return convertToDTO(blogPostRepository.save(blogPost));
     }

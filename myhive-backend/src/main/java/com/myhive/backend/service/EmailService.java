@@ -7,6 +7,7 @@ import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.model.VoteMode;
+import com.myhive.backend.util.MoneyMath;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,6 @@ import java.util.UUID;
 @Slf4j
 public class EmailService {
 
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy");
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm 'UTC'");
     private static final String SUPPORT_EMAIL = "support@trivlu.com";
@@ -376,10 +376,7 @@ public class EmailService {
                         subtotal = subtotal.add(activityPrice);
                     }
                     group.subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal discountPct = group.discountPct != null ? group.discountPct : BigDecimal.ZERO;
-                    BigDecimal multiplier = HUNDRED.subtract(discountPct)
-                            .divide(HUNDRED, 10, RoundingMode.HALF_UP);
-                    group.discounted = subtotal.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
+                    group.discounted = MoneyMath.applyDiscountPct(subtotal, group.discountPct);
                     view.packageGroups.add(group);
                 }
             }

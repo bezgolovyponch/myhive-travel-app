@@ -9,11 +9,11 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.repository.QuizAnswerWeightRepository;
-import com.myhive.backend.util.SlugUtils;
+import com.myhive.backend.repository.VoteSessionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +32,8 @@ public class CategoryService {
     private final ActivityRepository activityRepository;
     private final PackageRepository packageRepository;
     private final QuizAnswerWeightRepository quizAnswerWeightRepository;
+    private final DestinationRepository destinationRepository;
+    private final VoteSessionRepository voteSessionRepository;
 
     public List<CategoryDTO> getAllCategories() {
         return categoryRepository.findAll().stream()
@@ -76,13 +78,8 @@ public class CategoryService {
         }
         Category category = new Category();
         category.setName(dto.getName());
-        category.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), categoryRepository::existsBySlug));
-        try {
-            return convertToDTO(categoryRepository.save(category));
-        } catch (DataIntegrityViolationException e) {
-            category.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), categoryRepository::existsBySlug));
-            return convertToDTO(categoryRepository.save(category));
-        }
+        SlugAssigner.assignOnCreate(category, dto.getSlug(), dto.getName(), categoryRepository);
+        return convertToDTO(categoryRepository.save(category));
     }
 
     @Transactional
@@ -95,14 +92,8 @@ public class CategoryService {
             throw new BadRequestException("Category with name '" + dto.getName() + "' already exists");
         }
 
-        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), category.getSlug(), dto.getName(), category.getName());
+        SlugAssigner.assignOnUpdate(category, dto.getSlug(), dto.getName(), category.getName(), categoryRepository);
         category.setName(dto.getName());
-        if (updateSlug) {
-            category.setSlug(SlugUtils.resolveForUpdate(dto.getSlug(), dto.getName(), category.getSlug(),
-                    slug -> categoryRepository.findBySlug(slug)
-                            .filter(c -> !c.getId().equals(id))
-                            .isPresent()));
-        }
         return convertToDTO(categoryRepository.save(category));
     }
 
@@ -119,6 +110,8 @@ public class CategoryService {
             packageRepository.save(pkg);
         }
         quizAnswerWeightRepository.deleteAllByCategoryId(id);
+        destinationRepository.deleteCategoryLinks(id);
+        voteSessionRepository.deleteLikedCategoryLinks(id);
         categoryRepository.deleteById(id);
     }
 

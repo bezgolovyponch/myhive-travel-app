@@ -13,9 +13,7 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
-import com.myhive.backend.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -104,14 +102,8 @@ public class ActivityService {
         Activity activity = new Activity();
         activity.setDestination(destination);
         applyDtoToEntity(dto, activity);
-        activity.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), activityRepository::existsBySlug));
-
-        try {
-            return convertToDTO(activityRepository.save(activity));
-        } catch (DataIntegrityViolationException e) {
-            activity.setSlug(SlugUtils.resolveSlug(dto.getSlug(), dto.getName(), activityRepository::existsBySlug));
-            return convertToDTO(activityRepository.save(activity));
-        }
+        SlugAssigner.assignOnCreate(activity, dto.getSlug(), dto.getName(), activityRepository);
+        return convertToDTO(activityRepository.save(activity));
     }
 
     @Transactional
@@ -125,14 +117,8 @@ public class ActivityService {
             activity.setDestination(destination);
         }
 
-        boolean updateSlug = SlugUtils.needsUpdate(dto.getSlug(), activity.getSlug(), dto.getName(), activity.getName());
+        SlugAssigner.assignOnUpdate(activity, dto.getSlug(), dto.getName(), activity.getName(), activityRepository);
         applyDtoToEntity(dto, activity);
-        if (updateSlug) {
-            activity.setSlug(SlugUtils.resolveForUpdate(dto.getSlug(), dto.getName(), activity.getSlug(),
-                    slug -> activityRepository.findBySlug(slug)
-                            .filter(a -> !a.getId().equals(id))
-                            .isPresent()));
-        }
 
         return convertToDTO(activityRepository.save(activity));
     }

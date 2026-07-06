@@ -33,4 +33,9 @@ public interface VoteSessionRepository extends JpaRepository<VoteSession, UUID> 
     int deleteByStatusAndExpiresAtBefore(
             @Param("status") VoteSessionStatus status,
             @Param("cutoff") LocalDateTime cutoff);
+
+    /** Bulk-removes join rows; the join table has no entity, so a native query is required. */
+    @Modifying
+    @Query(value = "DELETE FROM vote_session_liked_categories WHERE category_id = :categoryId", nativeQuery = true)
+    void deleteLikedCategoryLinks(@Param("categoryId") UUID categoryId);
 }

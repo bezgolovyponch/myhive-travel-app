@@ -15,7 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-public class BlogPost {
+public class BlogPost implements Slugged {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

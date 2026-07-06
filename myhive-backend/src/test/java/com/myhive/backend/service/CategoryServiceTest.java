@@ -11,8 +11,10 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.repository.QuizAnswerWeightRepository;
+import com.myhive.backend.repository.VoteSessionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -46,6 +48,12 @@ class CategoryServiceTest {
 
     @Mock
     private QuizAnswerWeightRepository quizAnswerWeightRepository;
+
+    @Mock
+    private DestinationRepository destinationRepository;
+
+    @Mock
+    private VoteSessionRepository voteSessionRepository;
 
     @InjectMocks
     private CategoryService categoryService;
@@ -316,6 +324,20 @@ class CategoryServiceTest {
         categoryService.deleteCategory(category.getId());
 
         verify(quizAnswerWeightRepository).deleteAllByCategoryId(category.getId());
+        verify(categoryRepository).deleteById(category.getId());
+    }
+
+    @Test
+    void deleteCategory_removesDestinationAndVoteSessionLinks() {
+        Category category = TestDataFactory.category();
+        when(categoryRepository.findById(category.getId())).thenReturn(Optional.of(category));
+        when(activityRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+        when(packageRepository.findByCategoriesId(category.getId())).thenReturn(List.of());
+
+        categoryService.deleteCategory(category.getId());
+
+        verify(destinationRepository).deleteCategoryLinks(category.getId());
+        verify(voteSessionRepository).deleteLikedCategoryLinks(category.getId());
         verify(categoryRepository).deleteById(category.getId());
     }
 }
