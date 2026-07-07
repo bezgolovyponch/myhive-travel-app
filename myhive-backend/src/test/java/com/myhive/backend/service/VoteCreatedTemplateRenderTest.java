@@ -86,8 +86,8 @@ class VoteCreatedTemplateRenderTest {
 
         assertThat(html)
                 .contains("Prague")
-                .contains("they pick their favourites from your shortlist")
-                .doesNotContain("they swipe to vote on the activities")
+                .contains("they swipe to vote on the activities")
+                .doesNotContain("they pick their favourites from your shortlist")
                 .doesNotContain("final itinerary to open in Trip Builder");
     }
 }

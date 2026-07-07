@@ -41,8 +41,7 @@
         <div class="section">
             <h2>How it works</h2>
             <ol class="steps">
-                <li th:if="${session.voteMode.name() == 'CART'}">Share the invite link below with your group &mdash; they pick their favourites from your shortlist, one tap per activity.</li>
-                <li th:unless="${session.voteMode.name() == 'CART'}">Share the invite link below with your group &mdash; they swipe to vote on the activities.</li>
+                <li>Share the invite link below with your group &mdash; they swipe to vote on the activities.</li>
                 <li>Track progress any time on your vote dashboard (live count + countdown).</li>
                 <li th:if="${session.voteMode.name() == 'CART'}">When the timer ends &mdash; or you end it early &mdash; we tally the votes and email you the results.</li>
                 <li th:unless="${session.voteMode.name() == 'CART'}">When the timer ends &mdash; or you end it early &mdash; we tally the votes and email you the final itinerary to open in Trip Builder.</li>
