@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -96,6 +97,36 @@ class VoteSessionCartProcessTest {
     }
 
     @Test
+    void processSession_cart_skipsDoNotAffectRankingButShowInResult() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity first = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));   // 0 likes, 2 skips
+        Activity second = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Karting", new BigDecimal("45.00")));     // 1 like, 1 skip
+        VoteSessionResponse created = createCartSession(prague, first, second);
+
+        castBallot(created.getShareToken(), List.of(second.getId()), List.of(first.getId()));
+        castBallot(created.getShareToken(), List.of(), List.of(first.getId(), second.getId()));
+
+        VoteSession session = voteSessionRepository.findByShareToken(created.getShareToken()).orElseThrow();
+        voteSessionService.processSession(session);
+
+        List<VoteSessionResultActivity> results = resultActivityRepository
+                .findBySessionIdOrderBySortOrder(
+                        voteSessionRepository.findByShareToken(created.getShareToken()).orElseThrow().getId());
+
+        // Karting holds the only like; Bar Crawl's two skips must not count as votes.
+        assertThat(results).extracting(r -> r.getActivity().getId())
+                .containsExactly(second.getId(), first.getId());
+
+        VoteResultResponse result = voteSessionService.getResult(created.getShareToken());
+        assertThat(result.getResult().get(0).getLikeCount()).isEqualTo(1);
+        assertThat(result.getResult().get(0).getSkipCount()).isEqualTo(1);
+        assertThat(result.getResult().get(1).getLikeCount()).isZero();
+        assertThat(result.getResult().get(1).getSkipCount()).isEqualTo(2);
+    }
+
+    @Test
     void getResult_cart_exposesVoteModeParticipantCountAndNoSuggestions() {
         long expectedParticipants = 2L;
 
@@ -121,15 +152,24 @@ class VoteSessionCartProcessTest {
     }
 
     private void castUpvotes(UUID shareToken, List<UUID> activityIds) {
+        castBallot(shareToken, activityIds, List.of());
+    }
+
+    private void castBallot(UUID shareToken, List<UUID> likedIds, List<UUID> skippedIds) {
         VoteBatchRequest batch = new VoteBatchRequest();
         batch.setVoterToken(UUID.randomUUID());
-        batch.setVotes(activityIds.stream().map(id -> {
-            VoteBatchRequest.VoteItem item = new VoteBatchRequest.VoteItem();
-            item.setActivityId(id);
-            item.setLiked(true);
-            return item;
-        }).toList());
+        List<VoteBatchRequest.VoteItem> items = new ArrayList<>();
+        likedIds.forEach(id -> items.add(voteItem(id, true)));
+        skippedIds.forEach(id -> items.add(voteItem(id, false)));
+        batch.setVotes(items);
         voteSessionService.castVotes(shareToken, batch);
+    }
+
+    private VoteBatchRequest.VoteItem voteItem(UUID activityId, boolean liked) {
+        VoteBatchRequest.VoteItem item = new VoteBatchRequest.VoteItem();
+        item.setActivityId(activityId);
+        item.setLiked(liked);
+        return item;
     }
 
     private VoteSessionResponse createCartSession(Destination destination, Activity... activities) {
