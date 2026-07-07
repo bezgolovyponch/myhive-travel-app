@@ -91,15 +91,16 @@ function TripBuilder({ destinationId, destinationSlug }) {
     };
   }, [destinationId]);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Depend on the token string, not the searchParams object — its identity
   // changes on every navigation (e.g. ?tab= switches) and re-running this
   // effect would re-seed travelers/dates/budget over the user's edits.
   const voteSession = searchParams.get('voteSession');
   // Annotation token: an explicit URL param (shared link) takes priority, else
   // fall back to the vote session this browser itself started (read once on
-  // mount — StartGroupVoteModal writes it, handleContactSubmit clears it).
-  const [storedVoteSession] = useState(() => localStorage.getItem('myhive-trip-vote-session'));
+  // mount — StartGroupVoteModal writes it, handleContactSubmit and the
+  // emptied-cart reset below clear it).
+  const [storedVoteSession, setStoredVoteSession] = useState(() => localStorage.getItem('myhive-trip-vote-session'));
   const annotationToken = voteSession || storedVoteSession;
   // Adds user_role to a funnel-event payload when a vote token is involved;
   // plain trips (no annotationToken) get no user_role field at all.
@@ -179,6 +180,26 @@ function TripBuilder({ destinationId, destinationSlug }) {
         cancelled = true;
     };
   }, [annotationToken, voteSession, dispatch]);
+
+  // A finished cart vote parks the vote button (see voteEnded below) until the
+  // trip is booked or the initiator empties the cart. Emptying the cart is the
+  // reset: drop the finished session everywhere it's remembered (storage,
+  // state, URL param) so the next itinerary can start a fresh vote — and so a
+  // page refresh doesn't resurrect the parked state.
+  useEffect(() => {
+    if (!voteAnnotation || state.tripItems.length > 0) {
+      return;
+    }
+    localStorage.removeItem('myhive-trip-vote-session');
+    setStoredVoteSession(null);
+    setVoteAnnotation(null);
+    if (voteSession) {
+      setSearchParams(params => {
+        params.delete('voteSession');
+        return params;
+      }, {replace: true});
+    }
+  }, [voteAnnotation, state.tripItems.length, voteSession, setSearchParams]);
 
   // A16b: fire trip_builder_viewed (→ Meta InitiateCheckout) once the user lands
   // on the trip-builder/checkout screen with a non-empty trip — one funnel step
@@ -409,7 +430,17 @@ function TripBuilder({ destinationId, destinationSlug }) {
       : standalone;
   const hasForeignStandalone = !!destinationSlug
       && standalone.some(item => item.destinationSlug && item.destinationSlug !== destinationSlug);
-  const canStartVote = standalone.length > 0 && !hasForeignStandalone;
+  // A loaded annotation means this trip's cart vote has completed — keep the
+  // vote button parked until booking clears the session (handleContactSubmit /
+  // PaymentSuccessPage) or the emptied-cart reset effect above fires.
+  const voteEnded = voteAnnotation != null;
+  const canStartVote = standalone.length > 0 && !hasForeignStandalone && !voteEnded;
+  let voteButtonTitle;
+  if (hasForeignStandalone) {
+    voteButtonTitle = 'Group voting works for one destination at a time — remove activities from other destinations first.';
+  } else if (voteEnded) {
+    voteButtonTitle = 'Voting has ended — complete your booking or clear your trip to start a new vote.';
+  }
   const totalPrice = computeTripTotal(state.tripItems, travelers);
 
   const filteredBrowseActivities = browseFilter === 'all'
@@ -558,9 +589,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
                       className="btn btn--full-width start-vote-btn"
                       onClick={handleStartVoteClick}
                       disabled={!canStartVote || checkingVote}
-                      title={hasForeignStandalone
-                          ? 'Group voting works for one destination at a time — remove activities from other destinations first.'
-                          : undefined}
+                      title={voteButtonTitle}
                   >
                     Let your mates vote
                   </button>

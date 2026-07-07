@@ -1,6 +1,6 @@
 import {act, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter, useLocation} from 'react-router-dom';
 import TripBuilder from './TripBuilder';
 import {TripContext} from '../context/TripContext';
 
@@ -829,5 +829,91 @@ describe('cart vote annotation', () => {
             expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
         });
         expect(screen.queryByText(/Couldn't load your group's vote results/i)).not.toBeInTheDocument();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Completed cart vote parks the vote button until booking or an emptied cart
+// ---------------------------------------------------------------------------
+
+describe('vote button after a completed cart vote', () => {
+    const cartResult = {
+        voteMode: 'CART',
+        participantCount: 9,
+        result: [{ activityId: 'a-high', name: 'Bar Crawl', price: 45, likeCount: 8 }],
+    };
+    const cartItem = { id: 'a-high', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' };
+    const expectedEndedTitle =
+        'Voting has ended — complete your booking or clear your trip to start a new vote.';
+
+    function LocationProbe() {
+        const location = useLocation();
+        return <div data-testid="location">{location.pathname + location.search}</div>;
+    }
+
+    // Tree builder (not a render helper) so tests can rerender with a changed
+    // cart while MemoryRouter keeps its history across the rerender.
+    function buildTree(tripItems, dispatch, route = '/') {
+        const state = {
+            tripId: null,
+            tripItems,
+            tripTravelers: 2,
+            tripStartDate: '',
+            tripEndDate: '',
+            tripBudget: null,
+            tripSetupModalOpen: false,
+            tripBuilderModalOpen: false,
+        };
+        return (
+            <MemoryRouter initialEntries={[route]}>
+                <TripContext.Provider value={{ state, dispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                    <LocationProbe />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+    }
+
+    test('stays disabled with an explanatory tooltip once the completed vote result is annotated', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getResult.mockResolvedValue(cartResult);
+
+        renderTripBuilder(buildTripState({ tripItems: [cartItem] }));
+
+        expect(await screen.findByText('♥ 8')).toBeInTheDocument();
+        const voteButton = screen.getByRole('button', { name: 'Let your mates vote' });
+        expect(voteButton).toBeDisabled();
+        expect(voteButton).toHaveAttribute('title', expectedEndedTitle);
+    });
+
+    test('emptying the cart drops the finished session and re-enables voting for the next trip', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getResult.mockResolvedValue(cartResult);
+        const dispatch = jest.fn();
+        const { rerender } = render(buildTree([cartItem], dispatch));
+        expect(await screen.findByText('♥ 8')).toBeInTheDocument();
+
+        rerender(buildTree([], dispatch));
+
+        await waitFor(() => {
+            expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
+        });
+
+        rerender(buildTree([cartItem], dispatch));
+        expect(screen.getByRole('button', { name: 'Let your mates vote' })).toBeEnabled();
+    });
+
+    test('emptying the cart strips the voteSession URL param so a refresh stays reset', async () => {
+        voteApi.getResult.mockResolvedValue(cartResult);
+        const dispatch = jest.fn();
+        const { rerender } = render(buildTree([cartItem], dispatch, '/?voteSession=t-1'));
+        expect(await screen.findByText('♥ 8')).toBeInTheDocument();
+        expect(screen.getByTestId('location').textContent).toBe('/?voteSession=t-1');
+
+        rerender(buildTree([], dispatch, '/?voteSession=t-1'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('location').textContent).toBe('/');
+        });
     });
 });
