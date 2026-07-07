@@ -8,9 +8,11 @@ import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
-import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.repository.VoteActivityLikeRepository;
+import com.myhive.backend.repository.VoteSessionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,7 +26,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -34,39 +35,48 @@ class VoteSessionCartVotingTest {
     @Autowired private VoteSessionService voteSessionService;
     @Autowired private DestinationRepository destinationRepository;
     @Autowired private ActivityRepository activityRepository;
+    @Autowired private VoteActivityLikeRepository voteActivityLikeRepository;
+    @Autowired private VoteSessionRepository voteSessionRepository;
 
     @Test
-    void castVote_rejectsDownvoteOnCartSession_400() {
+    void castVote_recordsSkipOnCartSession() {
         Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
         Activity barCrawl = activityRepository.saveAndFlush(
                 TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
         VoteSessionResponse session = createCartSession(prague, barCrawl);
+        UUID expectedVoterToken = UUID.randomUUID();
 
-        VoteRequest downvote = new VoteRequest();
-        downvote.setVoterToken(UUID.randomUUID());
-        downvote.setActivityId(barCrawl.getId());
-        downvote.setLiked(false);
+        VoteRequest skip = new VoteRequest();
+        skip.setVoterToken(expectedVoterToken);
+        skip.setActivityId(barCrawl.getId());
+        skip.setLiked(false);
 
-        assertThatThrownBy(() -> voteSessionService.castVote(session.getShareToken(), downvote))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("upvotes only");
+        voteSessionService.castVote(session.getShareToken(), skip);
+
+        VoteActivityLike recorded =
+                recordedVote(session.getShareToken(), expectedVoterToken, barCrawl.getId());
+        assertThat(recorded.getLiked()).isFalse();
     }
 
     @Test
-    void castVotes_rejectsBatchContainingDownvote_400() {
+    void castVotes_recordsSkipsInMixedBatchOnCartSession() {
         Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
         Activity barCrawl = activityRepository.saveAndFlush(
                 TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
         Activity karting = activityRepository.saveAndFlush(
                 TestDataFactory.activity(prague, "Karting", new BigDecimal("45.00")));
         VoteSessionResponse session = createCartSession(prague, barCrawl, karting);
+        UUID expectedVoterToken = UUID.randomUUID();
 
-        VoteBatchRequest batch = batch(UUID.randomUUID(),
+        VoteBatchRequest batch = batch(expectedVoterToken,
                 vote(barCrawl.getId(), true), vote(karting.getId(), false));
 
-        assertThatThrownBy(() -> voteSessionService.castVotes(session.getShareToken(), batch))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("upvotes only");
+        voteSessionService.castVotes(session.getShareToken(), batch);
+
+        assertThat(recordedVote(session.getShareToken(), expectedVoterToken, barCrawl.getId())
+                .getLiked()).isTrue();
+        assertThat(recordedVote(session.getShareToken(), expectedVoterToken, karting.getId())
+                .getLiked()).isFalse();
     }
 
     @Test
@@ -109,5 +119,12 @@ class VoteSessionCartVotingTest {
         item.setActivityId(activityId);
         item.setLiked(liked);
         return item;
+    }
+
+    private VoteActivityLike recordedVote(UUID shareToken, UUID voterToken, UUID activityId) {
+        UUID sessionId = voteSessionRepository.findByShareToken(shareToken).orElseThrow().getId();
+        return voteActivityLikeRepository
+                .findBySessionIdAndVoterTokenAndActivityId(sessionId, voterToken, activityId)
+                .orElseThrow();
     }
 }
