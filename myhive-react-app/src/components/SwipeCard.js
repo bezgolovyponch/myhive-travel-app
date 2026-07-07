@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './SwipeCard.css';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import { copyToClipboard } from '../utils/clipboard';
@@ -10,6 +10,16 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
     const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
     const [copied, setCopied] = useState(false);
     const [infoCard, setInfoCard] = useState(null);
+
+    // Warm the browser cache a few cards ahead so a swipe reveals an already-loaded
+    // photo instead of the previous card's image lingering while the next downloads.
+    useEffect(() => {
+        cards.slice(currentIndex + 1, currentIndex + 4).forEach(upcoming => {
+            if (upcoming.imageUrl) {
+                new Image().src = upcoming.imageUrl;
+            }
+        });
+    }, [cards, currentIndex]);
 
     const handleCopy = useCallback(() => {
         copyToClipboard(shareUrl).then(ok => {
@@ -89,12 +99,17 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
             </div>
 
             <div className="swipe-card-stack">
+                {/* Both stack layers are keyed by activity id: after a swipe React promotes the
+                    already-rendered (and already-loaded) underlay to the top instead of reusing
+                    the top <img> with a swapped src — which kept showing the previous photo
+                    until the new one finished downloading. */}
                 {nextCard && (
-                    <div className="swipe-tinder-card" style={{ transform: 'scale(0.95)', zIndex: 0 }}>
+                    <div key={nextCard.id} className="swipe-tinder-card" style={{ transform: 'scale(0.95)', zIndex: 0 }}>
                         <div className="swipe-card">
                             {nextCard.imageUrl
                                 ? <>
-                                    <img src={nextCard.imageUrl} alt={nextCard.name} className="swipe-card-image" draggable={false} />
+                                    <img src={nextCard.imageUrl} alt={nextCard.name} className="swipe-card-image"
+                                         draggable={false} decoding="async" />
                                     <div className="swipe-card-info">
                                         <div className="swipe-card-name">{nextCard.name}</div>
                                     </div>
@@ -108,6 +123,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                 )}
 
                 <div
+                    key={card.id}
                     className="swipe-tinder-card"
                     style={{
                         transform: `translateX(${drag.offsetX}px) rotate(${rotate}deg)`,
@@ -122,7 +138,8 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                     <div className="swipe-card">
                         {card.imageUrl
                             ? <>
-                                <img src={card.imageUrl} alt={card.name} className="swipe-card-image" draggable={false} />
+                                <img src={card.imageUrl} alt={card.name} className="swipe-card-image"
+                                     draggable={false} decoding="async" />
                                 <div className="swipe-card-info">
                                     <div className="swipe-card-name">{renderName(card.name)}</div>
                                     <div className="swipe-card-meta">

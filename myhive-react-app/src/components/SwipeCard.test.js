@@ -46,6 +46,28 @@ test('shows the copied confirmation only when the clipboard write succeeds', asy
   expect(await screen.findByRole('button', { name: /Link Copied/i })).toBeInTheDocument();
 });
 
+test('preloads the next few card images so a swipe reveals a ready photo', () => {
+    const preloadedUrls = [];
+    const OriginalImage = window.Image;
+    window.Image = class {
+        set src(value) {
+            preloadedUrls.push(value);
+        }
+    };
+    const deck = [
+        { id: 'a1', name: 'One', imageUrl: 'http://img/1.jpg' },
+        { id: 'a2', name: 'Two', imageUrl: 'http://img/2.jpg' },
+        { id: 'a3', name: 'Three', imageUrl: 'http://img/3.jpg' },
+        { id: 'a4', name: 'Four', imageUrl: 'http://img/4.jpg' },
+        { id: 'a5', name: 'Five', imageUrl: 'http://img/5.jpg' },
+    ];
+
+    render(<SwipeCard cards={deck} currentIndex={0} onSwipe={jest.fn()} />);
+
+    expect(preloadedUrls).toEqual(['http://img/2.jpg', 'http://img/3.jpg', 'http://img/4.jpg']);
+    window.Image = OriginalImage;
+});
+
 test('keeps the default label when the clipboard write fails', async () => {
   copyToClipboard.mockResolvedValue(false);
   render(

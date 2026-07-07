@@ -328,6 +328,19 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("url", url));
     }
 
+    /**
+     * One-off maintenance: recompress oversized images already in the R2 bucket in place (same keys,
+     * URLs keep working). Batched — repeat the call while the response reports {@code truncated=true}.
+     */
+    @PostMapping("/images/recompress")
+    public ResponseEntity<?> recompressImages(@RequestParam(defaultValue = "25") int limit) {
+        if (imageUploadService.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Image upload is not configured"));
+        }
+        return ResponseEntity.ok(imageUploadService.get().recompressExistingImages(limit));
+    }
+
     @GetMapping("/destinations/{destinationId}/quiz")
     public ResponseEntity<QuizDTO> getQuiz(@PathVariable UUID destinationId) {
         return ResponseEntity.ok(quizService.getQuiz(destinationId));

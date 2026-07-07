@@ -77,6 +77,8 @@
     width: 100%;
     height: 62%;
     object-fit: cover;
+    /* Neutral placeholder while the photo streams in — avoids a transparent hole. */
+    background: var(--bg, #1f2121);
 }
 
 .swipe-card-text-only {

@@ -39,6 +39,9 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.31.8')
     implementation 'software.amazon.awssdk:s3'
 
+    // Image downscaling/recompression before upload (2MB originals -> ~150KB web JPEGs)
+    implementation 'net.coobird:thumbnailator:0.4.20'
+
     // CSV parsing for activities import/export
     implementation 'com.opencsv:opencsv:5.11'
 
