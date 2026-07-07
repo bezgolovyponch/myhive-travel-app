@@ -16,12 +16,21 @@ function FeaturedActivitiesSection() {
     const [activities, setActivities] = useState([]);
 
     useEffect(() => {
+        // The fallback must be scoped to the default destination, so wait for
+        // the catalog instead of fetching on mount.
+        if (catalog.loading) {
+            return undefined;
+        }
+        const defaultDestinationId = getDefaultDestination(catalog.destinations)?.id ?? null;
         let cancelled = false;
         api.getFeaturedActivities()
             // Nothing curated as featured (or the fetch failed): fall back to the
-            // regular activities list so the homepage grid is never empty.
+            // default destination's activities so the homepage grid is never
+            // empty — and never shows another destination's activities.
             .catch(() => null)
-            .then(featured => (featured && featured.length > 0 ? featured : api.getActivities()))
+            .then(featured => (featured && featured.length > 0
+                ? featured
+                : api.getActivities(defaultDestinationId)))
             .then(data => {
                 if (!cancelled) {
                     setActivities((data || []).slice(0, MAX_FEATURED));
@@ -33,7 +42,7 @@ function FeaturedActivitiesSection() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [catalog.loading, catalog.destinations]);
 
     if (activities.length === 0) {
         return null;

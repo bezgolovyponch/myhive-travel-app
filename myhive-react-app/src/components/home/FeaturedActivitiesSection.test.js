@@ -1,4 +1,4 @@
-import {render, screen} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import FeaturedActivitiesSection from './FeaturedActivitiesSection';
@@ -24,8 +24,8 @@ const baseTripState = {
     tripItems: [],
 };
 
-function renderSection(catalogState = baseCatalogState, tripState = baseTripState) {
-    return render(
+function sectionTree(catalogState = baseCatalogState, tripState = baseTripState) {
+    return (
         <CatalogContext.Provider value={{state: catalogState, dispatch: jest.fn()}}>
             <TripContext.Provider value={{state: tripState, dispatch: jest.fn()}}>
                 <MemoryRouter>
@@ -34,6 +34,10 @@ function renderSection(catalogState = baseCatalogState, tripState = baseTripStat
             </TripContext.Provider>
         </CatalogContext.Provider>
     );
+}
+
+function renderSection(catalogState = baseCatalogState, tripState = baseTripState) {
+    return render(sectionTree(catalogState, tripState));
 }
 
 test('clicking "View All Activities" fires cta_click with block activities', async () => {
@@ -51,7 +55,7 @@ test('clicking "View All Activities" fires cta_click with block activities', asy
     expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'View All Activities', block: 'activities'});
 });
 
-test('falls back to regular activities when nothing is featured', async () => {
+test('falls back to the default destination activities when nothing is featured', async () => {
     api.getFeaturedActivities.mockResolvedValue([]);
     api.getActivities.mockResolvedValue([
         {id: 'a2', name: 'Shooting', price: 80, slug: 'shooting', destinationSlug: 'prague', categories: []},
@@ -61,9 +65,10 @@ test('falls back to regular activities when nothing is featured', async () => {
 
     expect(await screen.findByText('Shooting')).toBeInTheDocument();
     expect(api.getActivities).toHaveBeenCalledTimes(1);
+    expect(api.getActivities).toHaveBeenCalledWith('d1');
 });
 
-test('falls back to regular activities when the featured fetch fails', async () => {
+test('falls back to the default destination activities when the featured fetch fails', async () => {
     api.getFeaturedActivities.mockRejectedValue(new Error('boom'));
     api.getActivities.mockResolvedValue([
         {id: 'a2', name: 'Shooting', price: 80, slug: 'shooting', destinationSlug: 'prague', categories: []},
@@ -72,6 +77,46 @@ test('falls back to regular activities when the featured fetch fails', async () 
     renderSection();
 
     expect(await screen.findByText('Shooting')).toBeInTheDocument();
+    expect(api.getActivities).toHaveBeenCalledWith('d1');
+});
+
+test('waits for the catalog before fetching so the fallback can be scoped', async () => {
+    api.getFeaturedActivities.mockResolvedValue([]);
+    api.getActivities.mockResolvedValue([
+        {id: 'a2', name: 'Shooting', price: 80, slug: 'shooting', destinationSlug: 'prague', categories: []},
+    ]);
+
+    const {rerender} = render(sectionTree({destinations: [], loading: true, error: null}));
+
+    expect(api.getFeaturedActivities).not.toHaveBeenCalled();
+    expect(api.getActivities).not.toHaveBeenCalled();
+
+    rerender(sectionTree(baseCatalogState));
+
+    expect(await screen.findByText('Shooting')).toBeInTheDocument();
+    expect(api.getActivities).toHaveBeenCalledWith('d1');
+});
+
+test('falls back unscoped when the catalog failed to load', async () => {
+    api.getFeaturedActivities.mockResolvedValue([]);
+    api.getActivities.mockResolvedValue([
+        {id: 'a2', name: 'Shooting', price: 80, slug: 'shooting', destinationSlug: 'prague', categories: []},
+    ]);
+
+    renderSection({destinations: [], loading: false, error: 'network down'});
+
+    expect(await screen.findByText('Shooting')).toBeInTheDocument();
+    expect(api.getActivities).toHaveBeenCalledWith(null);
+});
+
+test('hides the section when both fetches fail', async () => {
+    api.getFeaturedActivities.mockRejectedValue(new Error('boom'));
+    api.getActivities.mockRejectedValue(new Error('boom'));
+
+    const {container} = renderSection();
+
+    await waitFor(() => expect(api.getActivities).toHaveBeenCalled());
+    expect(container.firstChild).toBeNull();
 });
 
 test('does not fetch the fallback when featured activities exist', async () => {
