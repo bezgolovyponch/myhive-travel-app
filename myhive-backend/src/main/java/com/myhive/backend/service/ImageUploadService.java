@@ -1,13 +1,19 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ImageRecompressResult;
+import com.myhive.backend.exception.BadRequestException;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.UUID;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
@@ -37,6 +43,12 @@ public class ImageUploadService {
     /** Objects at or below this size are already cheap to serve — recompression skips them. */
     private static final long RECOMPRESS_THRESHOLD_BYTES = 300L * 1024L;
 
+    /**
+     * Decoding needs ~4 bytes of heap per pixel; ~24MP (≈96MB of raster) is the most the 512MB
+     * prod instance can afford in one decode. Checked via a header-only probe before any decode.
+     */
+    private static final long MAX_PIXELS = 24_000_000L;
+
     private final S3Client s3Client;
 
     @Value("${r2.bucket-name}")
@@ -47,15 +59,19 @@ public class ImageUploadService {
 
     public String uploadImage(MultipartFile file) throws IOException {
         byte[] originalBytes = file.getBytes();
-        BufferedImage decoded = decodeImage(originalBytes);
-        if (decoded == null) {
+        Dimension size = probeDimensions(originalBytes);
+        if (size == null) {
             // A format ImageIO cannot decode (e.g. SVG) — store the original untouched.
             String key = UUID.randomUUID() + extensionOf(file.getOriginalFilename());
             putObject(key, file.getContentType(), originalBytes);
             return publicUrl + "/" + key;
         }
+        if ((long) size.width * size.height > MAX_PIXELS) {
+            throw new BadRequestException(
+                    "Image is too large to process — please resize it below 24 megapixels and retry");
+        }
         String key = UUID.randomUUID() + ".jpg";
-        putObject(key, "image/jpeg", compressForWeb(decoded));
+        putObject(key, "image/jpeg", compressForWeb(originalBytes, size));
         return publicUrl + "/" + key;
     }
 
@@ -106,11 +122,11 @@ public class ImageUploadService {
                     .bucket(bucketName)
                     .key(object.key())
                     .build()).asByteArray();
-            BufferedImage decoded = decodeImage(stored);
-            if (decoded == null) {
-                return null; // not a decodable image (e.g. SVG) — leave untouched
+            Dimension size = probeDimensions(stored);
+            if (size == null || (long) size.width * size.height > MAX_PIXELS) {
+                return null; // undecodable (e.g. SVG) or too big to decode safely on this instance
             }
-            byte[] compressed = compressForWeb(decoded);
+            byte[] compressed = compressForWeb(stored, size);
             if (compressed.length >= object.size()) {
                 return null; // rewriting with a bigger body would defeat the point
             }
@@ -123,22 +139,39 @@ public class ImageUploadService {
     }
 
     /**
-     * Decodes via Thumbnailator (not raw ImageIO) so EXIF orientation is applied — portrait phone
-     * photos keep their rotation. Returns null for formats it cannot decode (e.g. SVG).
+     * Header-only dimension probe — reads a few KB regardless of image size, no pixel decode.
+     * Returns null for formats ImageIO cannot read (e.g. SVG).
      */
-    private static BufferedImage decodeImage(byte[] bytes) {
-        try {
-            return Thumbnails.of(new ByteArrayInputStream(bytes)).scale(1.0).asBufferedImage();
-        } catch (Exception e) {
+    private static Dimension probeDimensions(byte[] bytes) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                return null;
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input);
+                return new Dimension(reader.getWidth(0), reader.getHeight(0));
+            } finally {
+                reader.dispose();
+            }
+        } catch (IOException e) {
             return null;
         }
     }
 
-    private static byte[] compressForWeb(BufferedImage source) throws IOException {
-        BufferedImage rgb = flattenToRgb(source);
+    /**
+     * Single-pass pipeline sized for the 512MB prod instance: ONE full decode (Thumbnailator —
+     * EXIF orientation applied, so phone photos keep their rotation), resize to fit the
+     * {@value #MAX_WIDTH}px box (never upscaling), alpha flattened AFTER the resize (cheap, the
+     * image is small by then), JPEG q{@value #JPEG_QUALITY}.
+     */
+    private static byte[] compressForWeb(byte[] bytes, Dimension size) throws IOException {
+        int boundingBox = (int) Math.min(MAX_WIDTH, Math.max(size.width, size.height));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Thumbnails.of(rgb)
-                .width(Math.min(rgb.getWidth(), MAX_WIDTH))
+        Thumbnails.of(new ByteArrayInputStream(bytes))
+                .size(boundingBox, boundingBox)
+                .addFilter(ImageUploadService::flattenToRgb)
                 .outputFormat("jpg")
                 .outputQuality(JPEG_QUALITY)
                 .toOutputStream(out);

@@ -122,6 +122,31 @@ class ImageUploadServiceTest {
     }
 
     @Test
+    void uploadImage_rejectsImagesAboveTheMegapixelCap() throws IOException {
+        // Decoding a >24MP photo needs ~100MB+ of raster — more than the prod instance can afford.
+        MockMultipartFile file = new MockMultipartFile("file", "huge.jpg", "image/jpeg", jpegBytes(5100, 4800));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> imageUploadService.uploadImage(file))
+                .isInstanceOf(com.myhive.backend.exception.BadRequestException.class);
+        verify(s3Client, org.mockito.Mockito.never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
+    void recompressExistingImages_skipsObjectsAboveTheMegapixelCap() throws IOException {
+        S3Object huge = S3Object.builder().key("huge.jpg").size(2_000_000L).build();
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(
+                ListObjectsV2Response.builder().contents(List.of(huge)).isTruncated(false).build());
+        when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
+                .thenReturn(ResponseBytes.fromByteArray(GetObjectResponse.builder().build(), jpegBytes(5100, 4800)));
+
+        ImageRecompressResult result = imageUploadService.recompressExistingImages(25);
+
+        assertThat(result.processed()).isZero();
+        assertThat(result.skipped()).isEqualTo(1);
+        verify(s3Client, org.mockito.Mockito.never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+    }
+
+    @Test
     void uploadImage_storesUndecodableFilesUntouched() throws IOException {
         byte[] expectedBytes = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".getBytes();
         MockMultipartFile file = new MockMultipartFile("file", "icon.svg", "image/svg+xml", expectedBytes);
