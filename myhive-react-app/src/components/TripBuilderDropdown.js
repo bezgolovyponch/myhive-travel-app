@@ -87,19 +87,8 @@ function TripBuilderDropdown() {
                             <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
                         </div>
                         <button className="trip-builder-complete-btn" onClick={handleComplete}>
-                            Complete Booking
+                            Continue
                         </button>
-                        <button className="trip-builder-vote-btn" onClick={openVoteSetup}>
-                            Vote together &amp; build a trip
-                        </button>
-
-                        <TripSetupModal
-                            isVoteMode={true}
-                            voteOpen={voteSetupOpen}
-                            onVoteConfirm={handleVoteConfirm}
-                            onVoteCancel={closeVoteSetup}
-                            preselectedDestination={preselectedDestination}
-                        />
                     </>
                 ) : (
                     <div className="empty-trip-state">
