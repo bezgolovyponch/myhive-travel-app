@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TripSetupModal from './TripSetupModal';
 import {CatalogContext} from '../context/CatalogContext';
-import {TripContext} from '../context/TripContext';
+import {TripContext, initialState as tripInitialState} from '../context/TripContext';
 
 // The flag is off in real config while Prague is the only live destination;
 // these tests cover the picker logic that comes back once it is re-enabled.
@@ -57,9 +57,19 @@ const singleDestCatalogState = {
   error: null,
 };
 
-const baseTripState = {
-  tripSetupModalOpen: false,
-};
+// Mirror the real TripContext contract so fallback branches aren't the only
+// thing under test.
+const baseTripState = {...tripInitialState};
+
+// Prefill tests need dates that stay in the future no matter when the suite
+// runs — past dates are deliberately dropped by the seeding logic.
+function isoDaysFromNow(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
 
 function renderVoteModal(catalogState = baseCatalogState, tripState = baseTripState, props = {}) {
   const mockDispatch = jest.fn();
@@ -79,9 +89,9 @@ function renderVoteModal(catalogState = baseCatalogState, tripState = baseTripSt
   return { ...result, mockDispatch };
 }
 
-function renderTripModal(catalogState = singleDestCatalogState) {
+function renderTripModal(catalogState = singleDestCatalogState, tripStateOverrides = {}) {
   const mockDispatch = jest.fn();
-  const tripState = { tripSetupModalOpen: true };
+  const tripState = {...tripInitialState, tripSetupModalOpen: true, ...tripStateOverrides};
   const result = render(
     <CatalogContext.Provider value={{ state: catalogState, dispatch: jest.fn() }}>
       <TripContext.Provider value={{ state: tripState, dispatch: mockDispatch }}>
@@ -119,6 +129,97 @@ test('auto-selects the only destination even with the picker enabled', () => {
 
   expect(screen.getByText('Prague')).toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+// ---------------------------------------------------------------------------
+// Prefill from trip state (dates chosen when the first activity was added)
+// ---------------------------------------------------------------------------
+
+test('vote mode prefills travelers, dates and budget from trip state', () => {
+  const expectedStart = isoDaysFromNow(30);
+  const expectedEnd = isoDaysFromNow(37);
+  renderVoteModal(singleDestCatalogState, {
+    ...baseTripState,
+    tripTravelers: 4,
+    tripStartDate: expectedStart,
+    tripEndDate: expectedEnd,
+    tripBudget: 3000,
+  });
+
+  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByTestId('date-from')).toHaveValue(expectedStart);
+  expect(screen.getByTestId('date-to')).toHaveValue(expectedEnd);
+  expect(screen.getByLabelText(/group budget/i)).toHaveValue(3000);
+});
+
+test('vote mode leaves fields at defaults when no trip setup exists', () => {
+  renderVoteModal(singleDestCatalogState, baseTripState);
+
+  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(1);
+  expect(screen.getByTestId('date-from')).toHaveValue('');
+  expect(screen.getByTestId('date-to')).toHaveValue('');
+  expect(screen.getByLabelText(/group budget/i)).toHaveValue(null);
+});
+
+test('vote mode drops a stale date range but keeps travelers', () => {
+  renderVoteModal(singleDestCatalogState, {
+    ...baseTripState,
+    tripTravelers: 4,
+    tripStartDate: '2020-01-01',
+    tripEndDate: '2020-01-07',
+  });
+
+  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByTestId('date-from')).toHaveValue('');
+  expect(screen.getByTestId('date-to')).toHaveValue('');
+});
+
+test('vote mode with prefilled setup needs only an email before continuing', async () => {
+  const expectedStart = isoDaysFromNow(30);
+  const expectedEnd = isoDaysFromNow(37);
+  const onVoteConfirm = jest.fn();
+  renderVoteModal(
+    singleDestCatalogState,
+    {
+      ...baseTripState,
+      tripTravelers: 4,
+      tripStartDate: expectedStart,
+      tripEndDate: expectedEnd,
+    },
+    { onVoteConfirm }
+  );
+
+  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
+  await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({
+    travelers: 4,
+    startDate: expectedStart,
+    endDate: expectedEnd,
+  }));
+});
+
+test('trip/direct mode prefills from trip state and confirms with those values', async () => {
+  const expectedStart = isoDaysFromNow(30);
+  const expectedEnd = isoDaysFromNow(37);
+  const { mockDispatch } = renderTripModal(singleDestCatalogState, {
+    tripTravelers: 4,
+    tripStartDate: expectedStart,
+    tripEndDate: expectedEnd,
+  });
+
+  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByTestId('date-from')).toHaveValue(expectedStart);
+  expect(screen.getByTestId('date-to')).toHaveValue(expectedEnd);
+
+  await userEvent.click(screen.getByRole('button', { name: /confirm/i }));
+
+  expect(mockDispatch).toHaveBeenCalledWith({
+    type: 'SET_TRIP_SETUP',
+    travelers: 4,
+    startDate: expectedStart,
+    endDate: expectedEnd,
+  });
 });
 
 // ---------------------------------------------------------------------------

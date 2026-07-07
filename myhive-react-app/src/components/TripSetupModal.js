@@ -11,6 +11,13 @@ import {generateUuid} from '../utils/uuid';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 
+function todayLocalIso() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
+}
+
 function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null }) {
     const {state: catalog} = useCatalog();
     const {state, dispatch} = useTrip();
@@ -30,14 +37,21 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
 
     useEffect(() => {
         if (isOpen) {
-            setTravelers('1');
-            setStartDate('');
-            setEndDate('');
+            // Seed from trip state: the user may have already set travelers/dates
+            // when the first activity was added to the cart — don't ask twice.
+            // The setup persists in localStorage across visits, so a range that
+            // has already started is dropped: past dates must not flow into a
+            // new booking or vote session.
+            const datesAreCurrent = Boolean(state.tripStartDate) && state.tripStartDate >= todayLocalIso();
+            setTravelers(String(state.tripTravelers || 1));
+            setStartDate(datesAreCurrent ? state.tripStartDate : '');
+            setEndDate(datesAreCurrent ? state.tripEndDate : '');
             setEmail('');
             setSelectedDestinationId('');
-            setBudget('');
+            setBudget(state.tripBudget > 0 ? String(state.tripBudget) : '');
             setBudgetError('');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     // A8: fire tb_start once per open transition in vote mode.
