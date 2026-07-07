@@ -94,7 +94,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                         <div className="swipe-card">
                             {nextCard.imageUrl
                                 ? <>
-                                    <img src={nextCard.imageUrl} alt={nextCard.name} className="swipe-card-image" />
+                                    <img src={nextCard.imageUrl} alt={nextCard.name} className="swipe-card-image" draggable={false} />
                                     <div className="swipe-card-info">
                                         <div className="swipe-card-name">{nextCard.name}</div>
                                     </div>
@@ -122,7 +122,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                     <div className="swipe-card">
                         {card.imageUrl
                             ? <>
-                                <img src={card.imageUrl} alt={card.name} className="swipe-card-image" />
+                                <img src={card.imageUrl} alt={card.name} className="swipe-card-image" draggable={false} />
                                 <div className="swipe-card-info">
                                     <div className="swipe-card-name">{renderName(card.name)}</div>
                                     <div className="swipe-card-meta">
