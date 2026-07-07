@@ -28,7 +28,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/actuator/health || exit 1
 
 # Run the application with the specified profile.
-# MaxRAMPercentage=70: the default (25% => ~128MB heap on the 512MB instance) is too small for
-# image decoding — a single 20MP photo needs ~80MB of raster. 70% leaves ~150MB for metaspace,
-# thread stacks and other native memory.
-ENTRYPOINT ["sh", "-c", "java -XX:MaxRAMPercentage=70.0 -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+# MaxRAMPercentage=55: the default (25% => ~128MB heap on the 512MB instance) is too small for
+# image work, but 70% got the CONTAINER OOM-killed (heap + metaspace + threads + native > 512MB).
+# 55% (~280MB heap) plus the bounded image decode keeps the whole process inside the instance.
+ENTRYPOINT ["sh", "-c", "java -XX:MaxRAMPercentage=55.0 -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]

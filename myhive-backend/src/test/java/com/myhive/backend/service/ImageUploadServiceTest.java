@@ -122,28 +122,16 @@ class ImageUploadServiceTest {
     }
 
     @Test
-    void uploadImage_rejectsImagesAboveTheMegapixelCap() throws IOException {
-        // Decoding a >24MP photo needs ~100MB+ of raster — more than the prod instance can afford.
-        MockMultipartFile file = new MockMultipartFile("file", "huge.jpg", "image/jpeg", jpegBytes(5100, 4800));
+    void uploadImage_handlesLargePhotosViaSubsampledDecode() throws IOException {
+        // A ~24MP DSLR photo must be processable within the small prod heap: the decode is
+        // subsampled (bounded raster) and the output still lands in the 1600px box.
+        MockMultipartFile file = new MockMultipartFile("file", "dslr.jpg", "image/jpeg", jpegBytes(5100, 4800));
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> imageUploadService.uploadImage(file))
-                .isInstanceOf(com.myhive.backend.exception.BadRequestException.class);
-        verify(s3Client, org.mockito.Mockito.never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
-    }
+        String url = imageUploadService.uploadImage(file);
 
-    @Test
-    void recompressExistingImages_skipsObjectsAboveTheMegapixelCap() throws IOException {
-        S3Object huge = S3Object.builder().key("huge.jpg").size(2_000_000L).build();
-        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(
-                ListObjectsV2Response.builder().contents(List.of(huge)).isTruncated(false).build());
-        when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
-                .thenReturn(ResponseBytes.fromByteArray(GetObjectResponse.builder().build(), jpegBytes(5100, 4800)));
-
-        ImageRecompressResult result = imageUploadService.recompressExistingImages(25);
-
-        assertThat(result.processed()).isZero();
-        assertThat(result.skipped()).isEqualTo(1);
-        verify(s3Client, org.mockito.Mockito.never()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+        assertThat(url).endsWith(".jpg");
+        BufferedImage stored = ImageIO.read(new ByteArrayInputStream(capturedBody()));
+        assertThat(stored.getWidth()).isEqualTo(1600);
     }
 
     @Test

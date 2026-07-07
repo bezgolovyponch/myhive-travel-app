@@ -12,11 +12,15 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.UUID;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
+import net.coobird.thumbnailator.util.exif.ExifFilterUtils;
+import net.coobird.thumbnailator.util.exif.ExifUtils;
+import net.coobird.thumbnailator.util.exif.Orientation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
@@ -44,10 +48,14 @@ public class ImageUploadService {
     private static final long RECOMPRESS_THRESHOLD_BYTES = 300L * 1024L;
 
     /**
-     * Decoding needs ~4 bytes of heap per pixel; ~24MP (≈96MB of raster) is the most the 512MB
-     * prod instance can afford in one decode. Checked via a header-only probe before any decode.
+     * The decode is subsampled so its raster never exceeds roughly this many pixels on the longest
+     * side (≈{@code 3200²×4B ≈ 41MB} worst case) — memory stays bounded no matter how many
+     * megapixels the source has. 2× the output size keeps enough detail for the final resize.
      */
-    private static final long MAX_PIXELS = 24_000_000L;
+    private static final int DECODE_BOUND = 2 * MAX_WIDTH;
+
+    /** Header-sanity guard against pathological files; ordinary camera photos are far below it. */
+    private static final long MAX_PIXELS = 100_000_000L;
 
     private final S3Client s3Client;
 
@@ -67,11 +75,14 @@ public class ImageUploadService {
             return publicUrl + "/" + key;
         }
         if ((long) size.width * size.height > MAX_PIXELS) {
-            throw new BadRequestException(
-                    "Image is too large to process — please resize it below 24 megapixels and retry");
+            throw new BadRequestException("Image is too large to process — please resize it and retry");
+        }
+        BufferedImage decoded = decodeBounded(originalBytes);
+        if (decoded == null) {
+            throw new BadRequestException("Could not read the image file — please re-export it and retry");
         }
         String key = UUID.randomUUID() + ".jpg";
-        putObject(key, "image/jpeg", compressForWeb(originalBytes, size));
+        putObject(key, "image/jpeg", compressForWeb(decoded));
         return publicUrl + "/" + key;
     }
 
@@ -124,9 +135,13 @@ public class ImageUploadService {
                     .build()).asByteArray();
             Dimension size = probeDimensions(stored);
             if (size == null || (long) size.width * size.height > MAX_PIXELS) {
-                return null; // undecodable (e.g. SVG) or too big to decode safely on this instance
+                return null; // undecodable (e.g. SVG) or pathologically large — leave untouched
             }
-            byte[] compressed = compressForWeb(stored, size);
+            BufferedImage decoded = decodeBounded(stored);
+            if (decoded == null) {
+                return null; // corrupt image — leave untouched
+            }
+            byte[] compressed = compressForWeb(decoded);
             if (compressed.length >= object.size()) {
                 return null; // rewriting with a bigger body would defeat the point
             }
@@ -161,15 +176,55 @@ public class ImageUploadService {
     }
 
     /**
-     * Single-pass pipeline sized for the 512MB prod instance: ONE full decode (Thumbnailator —
-     * EXIF orientation applied, so phone photos keep their rotation), resize to fit the
-     * {@value #MAX_WIDTH}px box (never upscaling), alpha flattened AFTER the resize (cheap, the
-     * image is small by then), JPEG q{@value #JPEG_QUALITY}.
+     * Memory-bounded decode for the 512MB prod instance: large photos are read with source
+     * subsampling so the decoded raster never exceeds ~{@code DECODE_BOUND}px on the longest side
+     * (≈41MB) regardless of the source's megapixels — a full 24MP decode (~96MB raster) previously
+     * got the container OOM-killed. EXIF orientation is applied to the already-small image so
+     * portrait phone photos keep their rotation. Returns null when the image cannot be decoded.
      */
-    private static byte[] compressForWeb(byte[] bytes, Dimension size) throws IOException {
-        int boundingBox = (int) Math.min(MAX_WIDTH, Math.max(size.width, size.height));
+    private static BufferedImage decodeBounded(byte[] bytes) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                return null;
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input);
+                int longestSide = Math.max(reader.getWidth(0), reader.getHeight(0));
+                int subsampling = Math.max(1, (int) Math.ceil(longestSide / (double) DECODE_BOUND));
+                ImageReadParam param = reader.getDefaultReadParam();
+                param.setSourceSubsampling(subsampling, subsampling, 0, 0);
+                BufferedImage decoded = reader.read(0, param);
+                return applyExifOrientation(reader, decoded);
+            } finally {
+                reader.dispose();
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static BufferedImage applyExifOrientation(ImageReader reader, BufferedImage decoded) {
+        try {
+            Orientation orientation = ExifUtils.getExifOrientation(reader, 0);
+            if (orientation != null && orientation != Orientation.TOP_LEFT) {
+                return ExifFilterUtils.getFilterForOrientation(orientation).apply(decoded);
+            }
+        } catch (Exception e) {
+            // No EXIF metadata (PNG etc.) or unreadable tags — keep the image as decoded.
+        }
+        return decoded;
+    }
+
+    /**
+     * Resize into the {@value #MAX_WIDTH}px box (never upscaling), flatten alpha AFTER the resize
+     * (cheap — the image is small by then), encode as JPEG q{@value #JPEG_QUALITY}.
+     */
+    private static byte[] compressForWeb(BufferedImage decoded) throws IOException {
+        int boundingBox = Math.min(MAX_WIDTH, Math.max(decoded.getWidth(), decoded.getHeight()));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Thumbnails.of(new ByteArrayInputStream(bytes))
+        Thumbnails.of(decoded)
                 .size(boundingBox, boundingBox)
                 .addFilter(ImageUploadService::flattenToRgb)
                 .outputFormat("jpg")
