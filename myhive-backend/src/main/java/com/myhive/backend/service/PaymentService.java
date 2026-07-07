@@ -108,12 +108,29 @@ public class PaymentService {
     }
 
     /**
-     * A direct 30% deposit for a self-curated Trip Builder trip — no vote session. Turnstile is verified
-     * at the controller (public endpoint). Pricing is catalog-trusted (C1) exactly like the vote deposit.
+     * A 30% deposit checkout for an EXISTING Trip Builder booking — created moments earlier by the
+     * lead submit ({@code POST /bookings/trip}) and offered as a follow-up on the success screen.
+     * Turnstile is verified at the controller (public endpoint). Unlike the vote deposit no new
+     * booking is created here, so the persisted (lenient-flow) pricing is re-verified against the
+     * catalog before any money is charged (C1).
      */
     @Transactional
-    public DepositSessionResponse createTripDepositSession(TripExportRequest request, String originHeader) {
-        Booking booking = bookingService.createBookingEntity(request, true);
+    public DepositSessionResponse createBookingDepositSession(UUID bookingId, String originHeader) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new ConflictException("This booking can no longer be paid online");
+        }
+        // Double-click / back-button dedup: reuse a deposit checkout that already exists for this booking.
+        String existingUrl = shareRepository.findByBookingId(booking.getId()).stream()
+                .filter(s -> s.getType() == PaymentShareType.DEPOSIT)
+                .map(BookingPaymentShare::getPaymentUrl)
+                .filter(Objects::nonNull)
+                .findFirst().orElse(null);
+        if (existingUrl != null) {
+            return new DepositSessionResponse(booking.getId(), existingUrl);
+        }
+        bookingService.verifyChargeablePricing(booking);
         return createDepositCheckout(booking, originHeader);
     }
 
@@ -295,6 +312,12 @@ public class PaymentService {
                         booking.getTripId(), paidSum, booking.getTotalAmount(), fullyPaid);
             } catch (Exception e) {
                 log.error("Payment-received email failed for booking {}: {}", booking.getId(), e.getMessage(), e);
+            }
+            // A Trip Builder lead booking (no vote session) already sent the itinerary confirmation +
+            // inbox notification when it was created — its success-screen deposit must not repeat them.
+            // Vote bookings are created silently, so their deposit still triggers the deferred pair.
+            if (share.getType() == PaymentShareType.DEPOSIT && booking.getVoteSessionId() == null) {
+                return;
             }
             // The booking is now confirmed by payment, so send the customer's itinerary confirmation and
             // alert the bookings inbox — the same pair a normal booking sends, deferred until money is in.

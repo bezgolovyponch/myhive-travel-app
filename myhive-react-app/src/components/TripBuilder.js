@@ -3,7 +3,6 @@ import {useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
-import {paymentApi} from '../services/paymentApi';
 import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
 import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
@@ -42,6 +41,8 @@ function TripBuilder({ destinationId, destinationSlug }) {
   const [effectiveTripId, setEffectiveTripId] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successContactData, setSuccessContactData] = useState(null);
+  // Id of the booking just created by the lead submit — anchors the success screen's deposit CTA.
+  const [successBookingId, setSuccessBookingId] = useState(null);
   const [voteResult, setVoteResult] = useState(null);
   const [voteError, setVoteError] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
@@ -72,6 +73,24 @@ function TripBuilder({ destinationId, destinationSlug }) {
       mql.removeEventListener('change', sync);
     };
   }, []);
+
+  // On mobile the columns stack, so the booking form (which replaces the browse
+  // column) opens below the fold — scroll it to sit exactly below the fixed
+  // header (main bar + breadcrumbs row; measured, since its height varies).
+  // Called from every "Complete Booking" click, not from an on-open effect:
+  // a repeat click while the form is already open must scroll back down too.
+  const scrollBookingFormIntoView = () => {
+    if (!window.matchMedia('(max-width: 768px)').matches) {
+      return; // desktop shows both columns side by side — nothing to scroll
+    }
+    const right = rightRef.current;
+    if (!right) {
+      return;
+    }
+    const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
+    const top = right.getBoundingClientRect().top + window.scrollY - headerHeight;
+    window.scrollTo({top, behavior: 'smooth'});
+  };
 
   useEffect(() => {
     if (!destinationId) return;
@@ -304,6 +323,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
     }
 
     setShowContactForm(true);
+    scrollBookingFormIntoView();
   };
 
   // Shared trip → booking payload, used by both the lead ("Submit Booking") and the 30% deposit flow.
@@ -358,7 +378,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
     try {
       const bookingData = buildBookingData(contactData);
 
-      await api.createBookingFromTrip(bookingData);
+      const booking = await api.createBookingFromTrip(bookingData);
 
       // A18: fire booking_submitted exactly once per trip_id (sessionStorage dedup
       // prevents re-firing on re-render or accidental double-submit).
@@ -388,32 +408,13 @@ function TripBuilder({ destinationId, destinationSlug }) {
       setVoteAnnotation(null);
       setShowContactForm(false);
       setSuccessContactData(contactData);
+      // The success screen offers a 30% deposit checkout anchored to this booking.
+      setSuccessBookingId(booking?.id || null);
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Booking submission error:', error);
       setSubmitError(error.message || 'Failed to submit booking. Please try again.');
     } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDepositSubmit = async (contactData, turnstileToken) => {
-    if (state.tripItems.length === 0) {
-      alert('Please add some activities to your trip before submitting.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const bookingData = buildBookingData(contactData);
-      const {checkoutUrl} = await paymentApi.createTripDepositSession(bookingData, turnstileToken);
-      // Hand off to Stripe Checkout; keep isSubmitting true through the redirect so the modal stays locked.
-      window.location.assign(checkoutUrl);
-    } catch (error) {
-      console.error('Deposit checkout error:', error);
-      setSubmitError(error.message || 'Failed to start payment. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -603,6 +604,26 @@ function TripBuilder({ destinationId, destinationSlug }) {
         )}
       </div>
       <div className="trip-builder-right" ref={rightRef}>
+        {showContactForm ? (
+            // Booking takes over the browse column: suggestions and Browse More
+            // Activities give way to the inline form until it is confirmed or cancelled.
+            <ContactForm
+                inline
+                isOpen
+                onClose={() => setShowContactForm(false)}
+                onSubmit={handleContactSubmit}
+                submitLabel="Confirm"
+                tripData={{tripItems: state.tripItems, travelers}}
+                initialValues={{
+                  numberOfTravelers: travelers,
+                  startDate: state.tripStartDate,
+                  endDate: state.tripEndDate
+                }}
+                isSubmitting={isSubmitting}
+                submitError={submitError}
+            />
+        ) : (
+        <>
         {voteError && (
             <p className="text-error">
               Couldn't load your group's vote results. Refresh the page to try again.
@@ -702,24 +723,9 @@ function TripBuilder({ destinationId, destinationSlug }) {
             );
           })}
         </div>
+        </>
+        )}
       </div>
-
-      <ContactForm
-          isOpen={showContactForm}
-          onClose={() => setShowContactForm(false)}
-          onSubmit={handleContactSubmit}
-          submitLabel="Complete booking — we'll call you"
-          onDepositSubmit={handleDepositSubmit}
-          depositLabel="Complete booking & pay 30% deposit"
-          tripData={{tripItems: state.tripItems, travelers}}
-          initialValues={{
-            numberOfTravelers: travelers,
-            startDate: state.tripStartDate,
-            endDate: state.tripEndDate
-          }}
-          isSubmitting={isSubmitting}
-          submitError={submitError}
-      />
 
       <StartGroupVoteModal
           isOpen={showVoteModal}
@@ -742,6 +748,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
           onClose={() => setShowSuccessModal(false)}
           userName={successContactData?.fullName || 'Traveler'}
           userEmail={successContactData?.email || ''}
+          bookingId={successBookingId}
       />
     </div>
   );

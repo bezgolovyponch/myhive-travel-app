@@ -1,7 +1,29 @@
+import {useState} from 'react';
 import AppModal from './AppModal';
 import {WHATSAPP_URL} from '../services/config';
+import {paymentApi} from '../services/paymentApi';
+import {useTurnstileWidget} from '../hooks/useTurnstileWidget';
 
-function SuccessModal({isOpen, onClose, userName, userEmail}) {
+function SuccessModal({isOpen, onClose, userName, userEmail, bookingId}) {
+    // The 30% deposit is a real charge, so it is Turnstile-gated; the widget only renders
+    // when this success screen belongs to a booking that can still be paid (bookingId set).
+    const {token: turnstileToken, containerRef} = useTurnstileWidget(isOpen && !!bookingId);
+    const [isRedirecting, setIsRedirecting] = useState(false);
+    const [depositError, setDepositError] = useState(null);
+
+    const handleDepositClick = async () => {
+        setIsRedirecting(true);
+        setDepositError(null);
+        try {
+            const {checkoutUrl} = await paymentApi.createBookingDepositSession(bookingId, turnstileToken);
+            // Hand off to Stripe Checkout; keep isRedirecting true through the redirect.
+            window.location.assign(checkoutUrl);
+        } catch (error) {
+            setDepositError(error.message || 'Failed to start payment. Please try again.');
+            setIsRedirecting(false);
+        }
+    };
+
     return (
         <AppModal
             isOpen={isOpen}
@@ -28,6 +50,22 @@ function SuccessModal({isOpen, onClose, userName, userEmail}) {
                     <li>We'll finalize your travel itinerary</li>
                 </ul>
             </div>
+
+            {bookingId && (
+                <div className="success-deposit">
+                    <div ref={containerRef} className="turnstile-widget"/>
+                    <h5>Want to lock your trip in right away?</h5>
+                    <button
+                        type="button"
+                        className="btn btn--primary success-deposit-btn"
+                        onClick={handleDepositClick}
+                        disabled={!turnstileToken || isRedirecting}
+                    >
+                        {isRedirecting ? 'Redirecting…' : 'Pay 30% deposit now'}
+                    </button>
+                    {depositError && <div className="form-error">{depositError}</div>}
+                </div>
+            )}
 
             <div className="success-whatsapp">
                 <h5>Contact us to get details about your trip</h5>

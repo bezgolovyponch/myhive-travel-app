@@ -228,7 +228,7 @@
     width: 100%;
     padding: 10px;
     background: transparent;
-    color: #6A1B9A;
+    color: var(--white);
     border: 2px solid #6A1B9A;
     border-radius: 8px;
     font-weight: 600;

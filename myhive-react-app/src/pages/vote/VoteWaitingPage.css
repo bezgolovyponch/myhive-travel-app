@@ -99,7 +99,7 @@
     padding: 10px 0;
     margin-bottom: 16px;
     background: rgba(119, 124, 124, 0.12);
-    color: var(--brand, #6A1B9A);
+    color: var(--white, #fff);
     border: 1px solid var(--brand, #6A1B9A);
     border-radius: 8px;
     font-size: 14px;

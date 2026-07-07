@@ -1,10 +1,6 @@
-import {act, render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ContactForm from './ContactForm';
-
-afterEach(() => {
-    delete window.turnstile;
-});
 
 function renderForm(props = {}) {
     const onSubmit = jest.fn();
@@ -69,55 +65,42 @@ test('Cancel respects the in-flight submit guard', async () => {
     expect(onClose).not.toHaveBeenCalled();
 });
 
-test('no deposit button when onDepositSubmit is not provided', () => {
+test('modal mode renders inside a dialog with the trip summary', () => {
     renderForm();
-    expect(screen.queryByRole('button', {name: /Complete and pay 30% deposit/i})).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Trip Summary')).toBeInTheDocument();
 });
 
-test('renders the Turnstile widget with the Cloudflare test sitekey on localhost', () => {
-    // jsdom serves the app from http://localhost, so the deposit widget must use the "always passes"
-    // test sitekey (not the production key, which Cloudflare rejects on localhost).
-    let renderedSitekey;
-    window.turnstile = {
-        render: (el, opts) => {
-            renderedSitekey = opts.sitekey;
-            return 'widget-1';
-        },
-        remove: jest.fn(),
-    };
-    renderForm({onDepositSubmit: jest.fn()});
-
-    expect(renderedSitekey).toBe('1x00000000000000000000AA');
-});
-
-test('deposit button is disabled until Turnstile is solved, then submits with the token', async () => {
+test('inline mode renders a panel (no dialog) and submits via Confirm', async () => {
     const user = userEvent.setup();
-    let turnstileCallback;
-    window.turnstile = {
-        render: (el, opts) => {
-            turnstileCallback = opts.callback;
-            return 'widget-1';
-        },
-        remove: jest.fn(),
-    };
-    const onDepositSubmit = jest.fn();
-    renderForm({onDepositSubmit});
+    const {onSubmit} = renderForm({inline: true, submitLabel: 'Confirm'});
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Compact panel: no duplicate trip summary (it's visible in the itinerary column)
+    // and the calendar stays folded while the pre-seeded date range is complete.
+    expect(screen.queryByText('Trip Summary')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('grid')).toHaveLength(0);
 
     await fillRequired(user);
+    await user.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    const depositBtn = screen.getByRole('button', {name: /Complete and pay 30% deposit/i});
-    // No captcha token yet → the real-charge action stays locked.
-    expect(depositBtn).toBeDisabled();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        fullName: 'John Doe',
+        email: 'john@example.com',
+    }));
+});
 
-    // Simulate the user solving the captcha.
-    act(() => {
-        turnstileCallback('turnstile-tok');
-    });
-    expect(depositBtn).toBeEnabled();
+test('inline mode Cancel closes the form', async () => {
+    const user = userEvent.setup();
+    const {onClose} = renderForm({inline: true, submitLabel: 'Confirm'});
 
-    await user.click(depositBtn);
-    expect(onDepositSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({fullName: 'John Doe', email: 'john@example.com'}),
-        'turnstile-tok',
-    );
+    await user.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test('never renders a deposit action — the deposit moved to the booking-confirmation screen', () => {
+    renderForm();
+    expect(screen.queryByRole('button', {name: /deposit/i})).not.toBeInTheDocument();
 });

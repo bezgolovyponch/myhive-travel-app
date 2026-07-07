@@ -128,6 +128,7 @@
     border-radius: var(--radius);
     object-fit: cover;
     flex-shrink: 0;
+    background: var(--bg);
 }
 
 .itinerary-item-content {
@@ -223,6 +224,7 @@
     border-radius: var(--radius);
     object-fit: cover;
     flex-shrink: 0;
+    background: var(--bg);
 }
 
 .browse-activity-content {
@@ -435,7 +437,7 @@
     margin-top: 0.5rem;
     background: transparent;
     border: 1px solid #7c6cf5;
-    color: #7c6cf5;
+    color: var(--white);
 }
 
 .start-vote-btn:hover:not(:disabled) {

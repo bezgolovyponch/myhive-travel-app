@@ -3,6 +3,53 @@
     max-width: 37.5rem;
 }
 
+/* Inline panel — replaces the Trip Builder browse column while booking.
+   flex:1 + min-height:0 pin it to the column's (JS-synced) height on desktop
+   so the body scrolls and the Cancel/Confirm footer stays visible. */
+.contact-form-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    flex: 1;
+    min-height: 0;
+}
+
+.contact-form-panel__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.contact-form-panel__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.contact-form-panel__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--gap-sm);
+    padding-top: var(--gap-sm);
+    border-top: 1px solid var(--card-border);
+}
+
+/* Compact density inside the panel so the whole form fits the column without scrolling */
+.contact-form-panel .contact-form input,
+.contact-form-panel .contact-form select,
+.contact-form-panel .contact-form textarea {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.875rem;
+}
+
+.contact-form-panel .form-group {
+    margin-bottom: var(--gap-sm);
+}
+
+.contact-form-panel .contact-form label {
+    margin-bottom: 0.25rem;
+}
+
 .trip-summary {
     background: var(--bg);
     border-radius: var(--radius);

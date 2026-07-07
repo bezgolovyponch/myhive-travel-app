@@ -2,6 +2,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import DateRangePicker from './DateRangePicker';
 
 describe('DateRangePicker', () => {
+  beforeEach(() => {
+    // jsdom does not implement scrollIntoView — the collapsible calendar calls it on reopen.
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+  });
+
   describe('date fields display', () => {
     it('shows placeholder in both fields when no dates selected', () => {
       render(<DateRangePicker from="" to="" onChange={() => {}} />);
@@ -44,6 +49,47 @@ describe('DateRangePicker', () => {
       const fields = container.querySelectorAll('.drp-field');
       expect(fields[0]).not.toHaveClass('drp-field--active');
       expect(fields[1]).not.toHaveClass('drp-field--active');
+    });
+  });
+
+  describe('collapsible mode (inline booking panel)', () => {
+    it('hides the calendar once the range is complete', () => {
+      render(<DateRangePicker collapsible from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
+      expect(screen.queryAllByRole('grid')).toHaveLength(0);
+    });
+
+    it('shows the calendar while the range is incomplete', () => {
+      render(<DateRangePicker collapsible from="2026-06-12" to="" onChange={() => {}} />);
+      expect(screen.queryAllByRole('grid').length).toBeGreaterThan(0);
+    });
+
+    it('clicking a filled field reopens the calendar', () => {
+      render(<DateRangePicker collapsible from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
+      fireEvent.click(screen.getByText('Start'));
+      expect(screen.queryAllByRole('grid').length).toBeGreaterThan(0);
+    });
+
+    it('default mode keeps the calendar always visible even with a complete range', () => {
+      render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
+      expect(screen.queryAllByRole('grid').length).toBeGreaterThan(0);
+    });
+
+    it('scrolls the calendar fully into view when a field click reopens it', () => {
+      const scrollIntoView = jest.fn();
+      window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+      render(<DateRangePicker collapsible from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
+
+      fireEvent.click(screen.getByText('Start'));
+
+      expect(scrollIntoView).toHaveBeenCalledWith({behavior: 'smooth', block: 'nearest'});
+    });
+
+    it('does not scroll on initial render when the calendar starts visible', () => {
+      const scrollIntoView = jest.fn();
+      window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+      render(<DateRangePicker collapsible from="" to="" onChange={() => {}} />);
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
     });
   });
 

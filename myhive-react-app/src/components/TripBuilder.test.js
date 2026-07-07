@@ -26,7 +26,7 @@ jest.mock('../services/voteApi', () => ({
 }));
 
 jest.mock('../services/paymentApi', () => ({
-    paymentApi: { createTripDepositSession: jest.fn() },
+    paymentApi: { createBookingDepositSession: jest.fn() },
 }));
 
 const voteApi = require('../services/voteApi').default;
@@ -159,8 +159,7 @@ async function fillAndSubmitContactForm(user) {
     // Dates (mocked DateRangePicker exposes two testid inputs)
     await user.type(screen.getByTestId('date-from'), '2026-08-01');
     await user.type(screen.getByTestId('date-to'), '2026-08-07');
-    // Lead path ("we'll call you") — distinct from the deposit button which also says "Complete booking".
-    await user.click(screen.getByRole('button', {name: /call you/i}));
+    await user.click(screen.getByRole('button', {name: 'Confirm'}));
 }
 
 // ---------------------------------------------------------------------------
@@ -618,26 +617,101 @@ test('A18+A19: multi-activity trip computes correct value and activities_count',
 });
 
 // ---------------------------------------------------------------------------
-// Trip Builder 30% deposit — Stripe Checkout (Turnstile-gated)
+// Inline booking form — replaces the browse column (was a popup modal)
 // ---------------------------------------------------------------------------
 
-test('deposit: solving Turnstile enables the deposit button, which opens Stripe Checkout with the booking + token', async () => {
+describe('inline booking form in the browse column', () => {
+    test('Complete Booking swaps Browse More Activities for the form; Cancel restores it', async () => {
+        const user = userEvent.setup();
+        renderTripBuilder();
+
+        expect(screen.getByText('Browse More Activities')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+
+        expect(screen.queryByText('Browse More Activities')).not.toBeInTheDocument();
+        expect(screen.getByText('Complete Your Booking')).toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); // inline panel, not a popup
+
+        await user.click(screen.getByRole('button', {name: 'Cancel'}));
+
+        expect(screen.getByText('Browse More Activities')).toBeInTheDocument();
+        expect(screen.queryByText('Complete Your Booking')).not.toBeInTheDocument();
+    });
+
+    test('opening the form on mobile scrolls it to sit right below the fixed header', async () => {
+        const user = userEvent.setup();
+        window.matchMedia = jest.fn().mockReturnValue({
+            matches: true, // stacked mobile layout
+            addEventListener: jest.fn(),
+            removeEventListener: jest.fn(),
+        });
+        window.scrollTo = jest.fn();
+        // Fixed site header (main bar + breadcrumbs row) — its real height must be
+        // subtracted so the section top lands exactly below it, not underneath it.
+        const expectedHeaderHeight = 93;
+        const header = document.createElement('header');
+        header.className = 'header';
+        Object.defineProperty(header, 'offsetHeight', {value: expectedHeaderHeight});
+        document.body.appendChild(header);
+
+        renderTripBuilder();
+        await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+
+        // jsdom geometry: column top = 0, scrollY = 0 → target = 0 - headerHeight.
+        expect(window.scrollTo).toHaveBeenCalledWith({top: -expectedHeaderHeight, behavior: 'smooth'});
+        header.remove();
+    });
+
+    test('every Complete Booking click re-scrolls on mobile, even while the form is already open', async () => {
+        const user = userEvent.setup();
+        window.matchMedia = jest.fn().mockReturnValue({
+            matches: true,
+            addEventListener: jest.fn(),
+            removeEventListener: jest.fn(),
+        });
+        window.scrollTo = jest.fn();
+
+        renderTripBuilder();
+
+        await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        expect(window.scrollTo).toHaveBeenCalledTimes(1);
+
+        // The form stays open; a second click must scroll back down to it again.
+        await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        expect(window.scrollTo).toHaveBeenCalledTimes(2);
+    });
+
+    test('desktop does not auto-scroll — the form is already visible in the right column', async () => {
+        const user = userEvent.setup();
+        window.scrollTo = jest.fn();
+
+        renderTripBuilder(); // default matchMedia mock: matches=false (desktop)
+        await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+
+        expect(window.scrollTo).not.toHaveBeenCalled();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Trip Builder 30% deposit — offered on the success screen after the lead submit
+// ---------------------------------------------------------------------------
+
+test('deposit: the success screen offers a Turnstile-gated 30% deposit for the created booking', async () => {
     const user = userEvent.setup();
-    paymentApi.createTripDepositSession.mockResolvedValue({ bookingId: 'dep-1', checkoutUrl: 'https://checkout/cs_dep' });
+    paymentApi.createBookingDepositSession.mockResolvedValue({ bookingId: 'booking-123', checkoutUrl: 'https://checkout/cs_dep' });
     const assign = jest.fn();
-    Object.defineProperty(window, 'location', { configurable: true, value: { assign, href: '' } });
+    Object.defineProperty(window, 'location', { configurable: true, value: { assign, href: '', hostname: 'localhost' } });
 
     renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }), '/');
 
     await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
-    // Fill the contact fields (without submitting the lead).
-    await user.type(screen.getByLabelText(/Full Name/i), 'Jane Smith');
-    await user.type(screen.getByLabelText(/Email Address/i), 'jane@example.com');
-    await user.type(screen.getByLabelText(/Phone Number/i), '+1 555 000 1111');
-    await user.type(screen.getByTestId('date-from'), '2026-08-01');
-    await user.type(screen.getByTestId('date-to'), '2026-08-07');
+    await fillAndSubmitContactForm(user);
 
-    const depositBtn = screen.getByRole('button', {name: /pay 30% deposit/i});
+    // The lead is created first; its id anchors the deposit checkout.
+    await waitFor(() => expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1));
+
+    const depositBtn = await screen.findByRole('button', {name: /pay 30% deposit/i});
     expect(depositBtn).toBeDisabled(); // no captcha yet
 
     act(() => { turnstileCallback('tok-xyz'); });
@@ -645,14 +719,8 @@ test('deposit: solving Turnstile enables the deposit button, which opens Stripe 
 
     await user.click(depositBtn);
 
-    await waitFor(() => expect(paymentApi.createTripDepositSession).toHaveBeenCalledTimes(1));
-    const [bookingData, token] = paymentApi.createTripDepositSession.mock.calls[0];
-    expect(token).toBe('tok-xyz');
-    expect(bookingData.tripId).toBe('ctx-trip-id');
-    expect(bookingData.destinations[0].activities[0].activityId).toBe('act-1');
+    await waitFor(() => expect(paymentApi.createBookingDepositSession).toHaveBeenCalledWith('booking-123', 'tok-xyz'));
     expect(assign).toHaveBeenCalledWith('https://checkout/cs_dep');
-    // The lead endpoint must NOT be called for a deposit checkout.
-    expect(api.createBookingFromTrip).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------

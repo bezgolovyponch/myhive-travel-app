@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
 import './DateRangePicker.css';
 
@@ -60,9 +60,22 @@ const CAL_CLASSES = {
   hidden: 'drp-hidden',
 };
 
-function DateRangePicker({ from, to, onChange }) {
+function DateRangePicker({ from, to, onChange, collapsible = false }) {
   const [numMonths, setNumMonths] = useState(() => window.innerWidth >= 640 ? 2 : 1);
   const [hoveredDay, setHoveredDay] = useState(null);
+  // Collapsible mode (inline booking panel): the calendar folds away once the range is
+  // complete so the panel fits without scrolling; clicking a field brings it back.
+  const [reopened, setReopened] = useState(false);
+  const calWrapRef = useRef(null);
+
+  // A field click unfolds the calendar below the fold of its scroll container
+  // (panel body on desktop, page on mobile) — bring the whole calendar into view.
+  // Only for click-opens: an initially visible calendar must not steal the scroll.
+  useEffect(() => {
+    if (reopened) {
+      calWrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [reopened]);
 
   useEffect(() => {
     const handler = () => setNumMonths(window.innerWidth >= 640 ? 2 : 1);
@@ -79,12 +92,23 @@ function DateRangePicker({ from, to, onChange }) {
     ? Math.round((toDateObj - fromDate) / (1000 * 60 * 60 * 24))
     : 0;
 
+  const calendarVisible = !collapsible || !(from && to) || reopened;
+
+  const handleFieldClick = () => {
+    if (collapsible) {
+      setReopened(true);
+    }
+  };
+
   const handleSelect = (range) => {
     const newFrom = toISO(range?.from);
     const newTo = toISO(range?.to);
     if (newFrom && newTo && newFrom === newTo) {
       onChange(newFrom, '');
       return;
+    }
+    if (newFrom && newTo) {
+      setReopened(false); // range complete — fold the calendar away again (collapsible mode)
     }
     onChange(newFrom, newTo);
   };
@@ -112,7 +136,8 @@ function DateRangePicker({ from, to, onChange }) {
   return (
     <div className="drp">
       <div className="drp-fields">
-        <div className={`drp-field${activeField === 'from' ? ' drp-field--active' : ''}`}>
+        <div className={`drp-field${activeField === 'from' ? ' drp-field--active' : ''}`}
+             onClick={handleFieldClick}>
           <div className="drp-field-label">Start</div>
           <div className="drp-field-row">
             <span className={`drp-field-value${!from ? ' drp-field-value--empty' : ''}`}>
@@ -128,7 +153,8 @@ function DateRangePicker({ from, to, onChange }) {
             )}
           </div>
         </div>
-        <div className={`drp-field${activeField === 'to' ? ' drp-field--active' : ''}`}>
+        <div className={`drp-field${activeField === 'to' ? ' drp-field--active' : ''}`}
+             onClick={handleFieldClick}>
           <div className="drp-field-label">End</div>
           <div className="drp-field-row">
             <span className={`drp-field-value${!to ? ' drp-field-value--empty' : ''}`}>
@@ -146,20 +172,22 @@ function DateRangePicker({ from, to, onChange }) {
         </div>
       </div>
 
-      <div className="drp-cal-wrap">
-        <DayPicker
-          mode="range"
-          numberOfMonths={numMonths}
-          selected={{ from: fromDate, to: toDateObj }}
-          onSelect={handleSelect}
-          onDayMouseEnter={handleDayMouseEnter}
-          onDayMouseLeave={handleDayMouseLeave}
-          modifiers={hoverModifiers}
-          modifiersClassNames={hoverModifierClassNames}
-          disabled={{ before: TODAY }}
-          classNames={CAL_CLASSES}
-        />
-      </div>
+      {calendarVisible && (
+        <div className="drp-cal-wrap" ref={calWrapRef}>
+          <DayPicker
+            mode="range"
+            numberOfMonths={numMonths}
+            selected={{ from: fromDate, to: toDateObj }}
+            onSelect={handleSelect}
+            onDayMouseEnter={handleDayMouseEnter}
+            onDayMouseLeave={handleDayMouseLeave}
+            modifiers={hoverModifiers}
+            modifiersClassNames={hoverModifierClassNames}
+            disabled={{ before: TODAY }}
+            classNames={CAL_CLASSES}
+          />
+        </div>
+      )}
 
       {from && to && (
         <div className="drp-footer">

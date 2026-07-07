@@ -613,4 +613,100 @@ class BookingServiceTest {
 
         assertThat(saved.getTotalAmount()).isEqualByComparingTo(new BigDecimal("100.00")); // 50 * 2 travelers
     }
+
+    // -----------------------------------------------------------------------
+    // verifyChargeablePricing — C1 guard for charging an EXISTING lead booking
+    // (success-screen deposit): every line must be catalog-anchored.
+    // -----------------------------------------------------------------------
+
+    private static BookingItem chargeableItem(Activity act, BigDecimal price, int quantity) {
+        BookingItem item = new BookingItem();
+        item.setActivity(act);
+        item.setPrice(price);
+        item.setQuantity(quantity);
+        return item;
+    }
+
+    @Test
+    void verifyChargeablePricing_passes_forCatalogAnchoredBooking() {
+        Booking booking = new Booking();
+        booking.setBookingItems(List.of(
+                chargeableItem(activity, new BigDecimal("50.00"), 2),
+                chargeableItem(TestDataFactory.activity(destination), new BigDecimal("25.00"), 2)));
+        booking.setTotalAmount(new BigDecimal("150.00"));
+
+        bookingService.verifyChargeablePricing(booking); // must not throw
+    }
+
+    @Test
+    void verifyChargeablePricing_passes_forPackageBookingMatchingCatalog() {
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination); // catalog discount 15%
+        com.myhive.backend.entity.PackageActivity pa = new com.myhive.backend.entity.PackageActivity();
+        pa.setActivity(activity);
+        pkg.setPackageActivities(List.of(pa));
+        BookingItem item = chargeableItem(activity, new BigDecimal("100.00"), 1);
+        item.setPkg(pkg);
+        item.setPackageDiscountPct(pkg.getDiscountPct());
+        Booking booking = new Booking();
+        booking.setBookingItems(List.of(item));
+        booking.setTotalAmount(new BigDecimal("85.00")); // 100 − 15%
+
+        bookingService.verifyChargeablePricing(booking); // must not throw
+    }
+
+    @Test
+    void verifyChargeablePricing_rejectsItemWithoutCatalogActivity() {
+        // A line without an activity FK was priced from the request body (lenient flow) — not chargeable.
+        BookingItem foreign = chargeableItem(null, new BigDecimal("0.01"), 1);
+        Booking booking = new Booking();
+        booking.setBookingItems(List.of(foreign));
+        booking.setTotalAmount(new BigDecimal("0.01"));
+
+        assertThatThrownBy(() -> bookingService.verifyChargeablePricing(booking))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void verifyChargeablePricing_rejectsDiscountSnapshotMismatch() {
+        // C1: a crafted lead booking with packageDiscountPct=99 while the catalog says 15 must not be charged.
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        com.myhive.backend.entity.PackageActivity pa = new com.myhive.backend.entity.PackageActivity();
+        pa.setActivity(activity);
+        pkg.setPackageActivities(List.of(pa));
+        BookingItem item = chargeableItem(activity, new BigDecimal("100.00"), 1);
+        item.setPkg(pkg);
+        item.setPackageDiscountPct(new BigDecimal("99.00"));
+        Booking booking = new Booking();
+        booking.setBookingItems(List.of(item));
+        booking.setTotalAmount(new BigDecimal("1.00"));
+
+        assertThatThrownBy(() -> bookingService.verifyChargeablePricing(booking))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void verifyChargeablePricing_rejectsActivityNotInPackage() {
+        // C1: an activity cannot borrow another package's discount — membership is re-verified.
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination); // empty packageActivities
+        BookingItem item = chargeableItem(activity, new BigDecimal("100.00"), 1);
+        item.setPkg(pkg);
+        item.setPackageDiscountPct(pkg.getDiscountPct());
+        Booking booking = new Booking();
+        booking.setBookingItems(List.of(item));
+        booking.setTotalAmount(new BigDecimal("85.00"));
+
+        assertThatThrownBy(() -> bookingService.verifyChargeablePricing(booking))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void verifyChargeablePricing_rejectsStoredTotalMismatch() {
+        // Integrity: the persisted total must equal the total recomputed from the line items.
+        Booking booking = new Booking();
+        booking.setBookingItems(List.of(chargeableItem(activity, new BigDecimal("50.00"), 2)));
+        booking.setTotalAmount(new BigDecimal("40.00"));
+
+        assertThatThrownBy(() -> bookingService.verifyChargeablePricing(booking))
+                .isInstanceOf(BadRequestException.class);
+    }
 }

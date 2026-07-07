@@ -36,7 +36,7 @@
 }
 
 .tab-btn.active {
-    color: var(--brand);
+    color: var(--white);
     border-bottom-color: var(--brand);
 }
 
@@ -96,7 +96,7 @@
 
 .filter-toggle {
     background: transparent;
-    color: var(--brand);
+    color: var(--white);
     border: none;
     font-size: 0.8125rem;
     font-weight: 500;

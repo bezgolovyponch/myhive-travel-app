@@ -21,6 +21,8 @@ import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.ConflictException;
+import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.payment.StripeGateway;
@@ -175,13 +177,16 @@ class PaymentServiceTest {
     }
 
     @Test
-    void createTripDepositSession_computesDepositAndReturnsUrl_withoutVoteSession() {
-        // Trip Builder direct deposit: catalog-trusted pricing (C1), 30% deposit, NO vote session.
+    void createBookingDepositSession_computesDepositAndReturnsUrl_forExistingPendingBooking() {
+        // Success-screen deposit: charges an EXISTING lead booking — re-verifies pricing (C1)
+        // and must NOT create a second booking.
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setTripId("TRV-DIRECT1");
+        booking.setStatus(BookingStatus.PENDING);
         booking.setTotalAmount(new BigDecimal("100.00"));
-        when(bookingService.createBookingEntity(any(TripExportRequest.class), eq(true))).thenReturn(booking);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of());
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
         when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
             BookingPaymentShare s = inv.getArgument(0);
@@ -197,7 +202,7 @@ class PaymentServiceTest {
                 anyString(), anyString(), anyString()))
                 .thenReturn(new CheckoutSessionRef("cs_direct", "https://checkout/cs_direct"));
 
-        DepositSessionResponse response = paymentService.createTripDepositSession(new TripExportRequest(), null);
+        DepositSessionResponse response = paymentService.createBookingDepositSession(booking.getId(), null);
 
         assertThat(response.getCheckoutUrl()).isEqualTo("https://checkout/cs_direct");
         assertThat(response.getBookingId()).isEqualTo(booking.getId());
@@ -205,20 +210,69 @@ class PaymentServiceTest {
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.PENDING);
         assertThat(booking.getVoteSessionId()).isNull();
         assertThat(amount.getValue()).isEqualTo(3000L);
-        verify(bookingService).createBookingEntity(any(TripExportRequest.class), eq(true));
+        // C1: money is charged against a booking persisted by the lenient lead flow —
+        // its pricing must be re-verified against the catalog first.
+        verify(bookingService).verifyChargeablePricing(booking);
+        verify(bookingService, never()).createBookingEntity(any(TripExportRequest.class), eq(true));
         verifyNoInteractions(voteSessionService);
     }
 
     @Test
-    void createTripDepositSession_usesBuyerOriginForReturnUrls_whenOriginAllowed() {
+    void createBookingDepositSession_returnsExistingDepositUrl_withoutSecondCheckout() {
+        // Double-click / back-button dedup: a DEPOSIT share with a live checkout URL is reused.
+        String expectedUrl = "https://checkout/cs_existing";
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setStatus(BookingStatus.PENDING);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        BookingPaymentShare deposit = new BookingPaymentShare();
+        deposit.setId(UUID.randomUUID());
+        deposit.setType(PaymentShareType.DEPOSIT);
+        deposit.setPaymentUrl(expectedUrl);
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of(deposit));
+
+        DepositSessionResponse response = paymentService.createBookingDepositSession(booking.getId(), null);
+
+        assertThat(response.getBookingId()).isEqualTo(booking.getId());
+        assertThat(response.getCheckoutUrl()).isEqualTo(expectedUrl);
+        verifyNoInteractions(stripeGateway);
+    }
+
+    @Test
+    void createBookingDepositSession_rejectsBookingThatIsNotPending() {
+        // A paid/cancelled booking must not get a second deposit checkout.
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setStatus(BookingStatus.DEPOSIT_PAID);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> paymentService.createBookingDepositSession(booking.getId(), null))
+                .isInstanceOf(ConflictException.class);
+        verifyNoInteractions(stripeGateway);
+    }
+
+    @Test
+    void createBookingDepositSession_throwsNotFound_forUnknownBooking() {
+        UUID unknownId = UUID.randomUUID();
+        when(bookingRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> paymentService.createBookingDepositSession(unknownId, null))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(stripeGateway);
+    }
+
+    @Test
+    void createBookingDepositSession_usesBuyerOriginForReturnUrls_whenOriginAllowed() {
         // Multidomain: a buyer on prague.trivlu.com must be sent back there after Checkout —
         // their trip state lives in that origin's localStorage.
         String expectedOrigin = "https://prague.trivlu.com";
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setTripId("TRV-SUBDOM1");
+        booking.setStatus(BookingStatus.PENDING);
         booking.setTotalAmount(new BigDecimal("100.00"));
-        when(bookingService.createBookingEntity(any(TripExportRequest.class), eq(true))).thenReturn(booking);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of());
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
         when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
             BookingPaymentShare s = inv.getArgument(0);
@@ -235,7 +289,7 @@ class PaymentServiceTest {
                 successUrl.capture(), cancelUrl.capture(), anyString()))
                 .thenReturn(new CheckoutSessionRef("cs_sub", "https://checkout/cs_sub"));
 
-        paymentService.createTripDepositSession(new TripExportRequest(), expectedOrigin);
+        paymentService.createBookingDepositSession(booking.getId(), expectedOrigin);
 
         assertThat(successUrl.getValue())
                 .isEqualTo(expectedOrigin + "/payment/success?booking=" + booking.getId());
@@ -243,14 +297,16 @@ class PaymentServiceTest {
     }
 
     @Test
-    void createTripDepositSession_fallsBackToDefaultUrl_whenOriginNotAllowed() {
+    void createBookingDepositSession_fallsBackToDefaultUrl_whenOriginNotAllowed() {
         // Open-redirect guard: a forged Origin header must never become the Stripe return URL.
         String expectedFallback = "http://localhost:3000";
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setTripId("TRV-EVIL0001");
+        booking.setStatus(BookingStatus.PENDING);
         booking.setTotalAmount(new BigDecimal("100.00"));
-        when(bookingService.createBookingEntity(any(TripExportRequest.class), eq(true))).thenReturn(booking);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of());
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
         when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
             BookingPaymentShare s = inv.getArgument(0);
@@ -267,7 +323,7 @@ class PaymentServiceTest {
                 successUrl.capture(), cancelUrl.capture(), anyString()))
                 .thenReturn(new CheckoutSessionRef("cs_evil", "https://checkout/cs_evil"));
 
-        paymentService.createTripDepositSession(new TripExportRequest(), "https://prague.trivlu.com.evil.com");
+        paymentService.createBookingDepositSession(booking.getId(), "https://prague.trivlu.com.evil.com");
 
         assertThat(successUrl.getValue())
                 .isEqualTo(expectedFallback + "/payment/success?booking=" + booking.getId());
@@ -288,7 +344,8 @@ class PaymentServiceTest {
     }
 
     @Test
-    void handleStripeEvent_depositPaid_transitionsToDepositPaidAndEmails() {
+    void handleStripeEvent_voteDepositPaid_transitionsToDepositPaidAndEmails() {
+        // Vote bookings are created silently, so the itinerary pair is deferred to the webhook.
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setTripId("TRV-1");
@@ -297,6 +354,7 @@ class PaymentServiceTest {
         booking.setStatus(BookingStatus.PENDING);
         booking.setTotalAmount(new BigDecimal("100.00"));
         booking.setAmountPaid(BigDecimal.ZERO);
+        booking.setVoteSessionId(UUID.randomUUID());
 
         BookingPaymentShare deposit = new BookingPaymentShare();
         deposit.setId(UUID.randomUUID());
@@ -327,6 +385,45 @@ class PaymentServiceTest {
                 any(java.math.BigDecimal.class), any(java.math.BigDecimal.class));
         verify(emailService).sendBookingNotification(eq(booking), any(TripExportRequest.class));
         verify(processedEventRepository).save(any());
+    }
+
+    @Test
+    void handleStripeEvent_leadBookingDepositPaid_skipsItineraryPairAlreadySentAtCreation() {
+        // A Trip Builder lead booking (no vote session) already sent the itinerary confirmation +
+        // inbox notification when it was created — its success-screen deposit must not repeat them.
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-LEAD1");
+        booking.setUserEmail("buyer@test.com");
+        booking.setCustomerName("Buyer");
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setTotalAmount(new BigDecimal("100.00"));
+        booking.setAmountPaid(BigDecimal.ZERO);
+
+        BookingPaymentShare deposit = new BookingPaymentShare();
+        deposit.setId(UUID.randomUUID());
+        deposit.setBooking(booking);
+        deposit.setType(PaymentShareType.DEPOSIT);
+        deposit.setAmount(new BigDecimal("30.00"));
+        deposit.setPaid(false);
+
+        when(processedEventRepository.existsById("evt_lead")).thenReturn(false);
+        when(stripeGateway.constructEvent("body", "sig"))
+                .thenReturn(paidEvent("evt_lead", deposit.getId().toString(), 3000L));
+        when(shareRepository.findById(deposit.getId())).thenReturn(java.util.Optional.of(deposit));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of(deposit));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        paymentService.handleStripeEvent("body", "sig");
+
+        assertThat(deposit.isPaid()).isTrue();
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.DEPOSIT_PAID);
+        verify(emailService).sendPaymentReceived(eq("buyer@test.com"), eq("Buyer"), eq("TRV-LEAD1"),
+                any(BigDecimal.class), any(BigDecimal.class), eq(false));
+        verify(emailService, never()).sendItineraryConfirmation(anyString(), anyString(),
+                any(TripExportRequest.class), anyString(),
+                any(java.math.BigDecimal.class), any(java.math.BigDecimal.class));
+        verify(emailService, never()).sendBookingNotification(any(Booking.class), any(TripExportRequest.class));
     }
 
     @Test

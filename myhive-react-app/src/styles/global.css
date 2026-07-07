@@ -20,7 +20,8 @@
     --primary: #32b8c6;
     --primary-hover: #2da6b2;
     --primary-active: #2996a1;
-    --primary-text: #13343b;
+    /* Text on teal buttons — white for readability on the dark theme. */
+    --primary-text: #fff;
     --focus-ring: 0 0 0 3px rgba(50, 184, 198, 0.4);
 
     /* Subtle tints */
@@ -358,6 +359,26 @@ textarea {
 @font-face {
     font-family: 'FKGroteskNeue';
     src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2') format('woff2');
+}
+
+.success-deposit {
+    margin-top: var(--gap-lg);
+    text-align: center;
+}
+
+.success-deposit h5 {
+    margin-bottom: var(--gap);
+}
+
+.success-deposit .turnstile-widget {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--gap-sm);
+}
+
+.success-deposit .form-error {
+    margin-top: var(--gap-sm);
+    margin-bottom: 0;
 }
 
 .success-whatsapp {

@@ -11,6 +11,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -36,17 +37,20 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** Direct 30% deposit for a self-curated Trip Builder trip (no vote). Public but Turnstile-gated. */
-    @PostMapping("/trip-deposit-session")
-    public ResponseEntity<DepositSessionResponse> createTripDepositSession(
+    /**
+     * 30% deposit for an EXISTING Trip Builder booking (created by the lead submit) — offered on the
+     * booking-confirmation screen. Public but Turnstile-gated.
+     */
+    @PostMapping("/bookings/{bookingId}/deposit-session")
+    public ResponseEntity<DepositSessionResponse> createBookingDepositSession(
+            @PathVariable UUID bookingId,
             @RequestHeader("X-Turnstile-Token") String turnstileToken,
-            @RequestHeader(value = "Origin", required = false) String origin,
-            @Valid @RequestBody TripExportRequest request) {
+            @RequestHeader(value = "Origin", required = false) String origin) {
         if (!turnstileService.verifyToken(turnstileToken)) {
             throw new BadRequestException("Captcha verification failed");
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(paymentService.createTripDepositSession(request, origin));
+                .body(paymentService.createBookingDepositSession(bookingId, origin));
     }
 
     @PostMapping("/webhook")

@@ -14,7 +14,6 @@ import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.DepositSessionResponse;
 import com.myhive.backend.service.PaymentService;
 import com.myhive.backend.service.TurnstileService;
-import java.util.Collections;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,114 +115,45 @@ class PaymentControllerTest {
     }
 
     @Test
-    void tripDepositSession_returns201AndUrl_whenTurnstileValid() throws Exception {
+    void bookingDepositSession_returns201AndUrl_whenTurnstileValid() throws Exception {
         UUID bookingId = UUID.randomUUID();
         when(turnstileService.verifyToken(any())).thenReturn(true);
-        when(paymentService.createTripDepositSession(any(), any()))
+        when(paymentService.createBookingDepositSession(any(), any()))
                 .thenReturn(new DepositSessionResponse(bookingId, "https://checkout.stripe.com/cs_direct"));
 
-        mockMvc.perform(post("/payments/trip-deposit-session")
-                        .header("X-Turnstile-Token", "tok-ok")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "tripName": "Booking",
-                                  "userEmail": "buyer@test.com",
-                                  "customerName": "Buyer",
-                                  "numberOfTravelers": 2,
-                                  "destinations": [
-                                    {"destinationName": "Prague", "activities": [
-                                      {"activityName": "Beer Tour", "price": 25.0}
-                                    ]}
-                                  ]
-                                }
-                                """))
+        mockMvc.perform(post("/payments/bookings/{bookingId}/deposit-session", bookingId)
+                        .header("X-Turnstile-Token", "tok-ok"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.checkoutUrl").value("https://checkout.stripe.com/cs_direct"));
     }
 
     @Test
-    void tripDepositSession_returns400_whenTurnstileInvalid() throws Exception {
-        // A bad/absent captcha must be rejected before any booking or Stripe session is created.
+    void bookingDepositSession_returns400_whenTurnstileInvalid() throws Exception {
+        // A bad/absent captcha must be rejected before any Stripe session is created.
         when(turnstileService.verifyToken(any())).thenReturn(false);
 
-        mockMvc.perform(post("/payments/trip-deposit-session")
-                        .header("X-Turnstile-Token", "tok-bad")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "tripName": "Booking",
-                                  "userEmail": "buyer@test.com",
-                                  "customerName": "Buyer",
-                                  "numberOfTravelers": 2,
-                                  "destinations": [
-                                    {"destinationName": "Prague", "activities": [
-                                      {"activityName": "Beer Tour", "price": 25.0}
-                                    ]}
-                                  ]
-                                }
-                                """))
+        mockMvc.perform(post("/payments/bookings/{bookingId}/deposit-session", UUID.randomUUID())
+                        .header("X-Turnstile-Token", "tok-bad"))
                 .andExpect(status().isBadRequest());
-        org.mockito.Mockito.verify(paymentService, org.mockito.Mockito.never()).createTripDepositSession(any(), any());
+        org.mockito.Mockito.verify(paymentService, org.mockito.Mockito.never()).createBookingDepositSession(any(), any());
     }
 
     @Test
-    void tripDepositSession_forwardsOriginHeaderToService() throws Exception {
+    void bookingDepositSession_forwardsBookingIdAndOriginToService() throws Exception {
         // Multidomain: the buyer's Origin must reach the service so Stripe return URLs point back
         // at the subdomain the payment started on.
         String expectedOrigin = "https://prague.trivlu.com";
+        UUID expectedBookingId = UUID.randomUUID();
         when(turnstileService.verifyToken(any())).thenReturn(true);
-        when(paymentService.createTripDepositSession(any(), any()))
-                .thenReturn(new DepositSessionResponse(UUID.randomUUID(), "https://checkout.stripe.com/cs_sub"));
+        when(paymentService.createBookingDepositSession(any(), any()))
+                .thenReturn(new DepositSessionResponse(expectedBookingId, "https://checkout.stripe.com/cs_sub"));
 
-        mockMvc.perform(post("/payments/trip-deposit-session")
+        mockMvc.perform(post("/payments/bookings/{bookingId}/deposit-session", expectedBookingId)
                         .header("X-Turnstile-Token", "tok-ok")
-                        .header("Origin", expectedOrigin)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "tripName": "Booking",
-                                  "userEmail": "buyer@test.com",
-                                  "customerName": "Buyer",
-                                  "numberOfTravelers": 2,
-                                  "destinations": [
-                                    {"destinationName": "Prague", "activities": [
-                                      {"activityName": "Beer Tour", "price": 25.0}
-                                    ]}
-                                  ]
-                                }
-                                """))
+                        .header("Origin", expectedOrigin))
                 .andExpect(status().isCreated());
 
-        verify(paymentService).createTripDepositSession(any(), eq(expectedOrigin));
-    }
-
-    @Test
-    void tripDepositSession_returns400_whenActivitiesListExceedsMax() throws Exception {
-        // DoS guard: a single destination with 101 activities (> max 100) must be rejected
-        // by Bean Validation before reaching the service layer.
-        when(turnstileService.verifyToken(any())).thenReturn(true);
-
-        String activityEntry = "{\"activityName\": \"Tour\", \"price\": 10.0}";
-        String activities = String.join(", ", Collections.nCopies(101, activityEntry));
-        String body = """
-                {
-                  "tripName": "Big Trip",
-                  "userEmail": "buyer@test.com",
-                  "customerName": "Buyer",
-                  "numberOfTravelers": 2,
-                  "destinations": [
-                    {"destinationName": "Prague", "activities": [%s]}
-                  ]
-                }
-                """.formatted(activities);
-
-        mockMvc.perform(post("/payments/trip-deposit-session")
-                        .header("X-Turnstile-Token", "tok-ok")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isBadRequest());
-        org.mockito.Mockito.verify(paymentService, org.mockito.Mockito.never()).createTripDepositSession(any(), any());
+        verify(paymentService).createBookingDepositSession(eq(expectedBookingId), eq(expectedOrigin));
     }
 
     @Test

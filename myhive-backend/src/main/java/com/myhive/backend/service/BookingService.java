@@ -210,6 +210,39 @@ public class BookingService {
     }
 
     /**
+     * C1 guard for charging money against a booking persisted by the lenient lead flow (the
+     * success-screen deposit): every line must be catalog-anchored — an {@link Activity} FK whose
+     * price was copied from the catalog at creation (SEC-1), a package discount snapshot that still
+     * matches the persisted {@link Package}, actual package membership — and the stored total must
+     * equal the total recomputed from those lines. Rejects hand-crafted bookings whose prices or
+     * discounts came from the request body.
+     */
+    public void verifyChargeablePricing(Booking booking) {
+        for (BookingItem item : booking.getBookingItems()) {
+            if (item.getActivity() == null) {
+                throw new BadRequestException("This booking cannot be paid online — please contact us");
+            }
+            if (item.getPkg() != null) {
+                if (!packageContainsActivity(item.getPkg(), item.getActivity().getId())
+                        || !discountMatchesCatalog(item.getPackageDiscountPct(), item.getPkg().getDiscountPct())) {
+                    throw new BadRequestException("This booking cannot be paid online — please contact us");
+                }
+            }
+        }
+        BigDecimal recomputed = calculateTotal(booking.getBookingItems());
+        if (booking.getTotalAmount() == null || recomputed.compareTo(booking.getTotalAmount()) != 0) {
+            throw new BadRequestException("This booking cannot be paid online — please contact us");
+        }
+    }
+
+    private static boolean discountMatchesCatalog(BigDecimal snapshot, BigDecimal catalog) {
+        if (snapshot == null || catalog == null) {
+            return snapshot == null && catalog == null;
+        }
+        return snapshot.compareTo(catalog) == 0;
+    }
+
+    /**
      * Rebuild a {@link TripExportRequest} from a persisted booking. The deposit flow persists the booking
      * up front but only sends the itinerary confirmation / inbox notification once the deposit is paid —
      * and at that point (the Stripe webhook) only the Booking entity is on hand, not the original request.
