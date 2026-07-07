@@ -27,7 +27,6 @@ function renderAt(entry) {
 beforeEach(() => {
     localStorage.clear();
     pushEvent.mockClear();
-    voteApi.getSession.mockResolvedValue({ voteMode: 'QUIZ' });
 });
 
 test('shows a friendly message when the vote session is not found', async () => {
@@ -45,16 +44,6 @@ test('shows the generic error message on other failures', async () => {
     renderAt('/vote/tok-500/activities');
 
     expect(await screen.findByText(/failed to fetch vote activities/i)).toBeInTheDocument();
-});
-
-test('a getSession failure blocks the voting UI instead of falling back to swipe', async () => {
-    voteApi.getSession.mockRejectedValue(new Error('Failed to fetch vote session'));
-    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
-
-    renderAt('/vote/tok-session-fail/activities');
-
-    expect(await screen.findByText(/failed to fetch vote session/i)).toBeInTheDocument();
-    expect(screen.queryByText(/which activities are you up for/i)).not.toBeInTheDocument();
 });
 
 // --- A14: vote_opened ---
@@ -197,15 +186,35 @@ test('A15: vote_completed does NOT fire if castVotes rejects', async () => {
     expect(pushEvent).not.toHaveBeenCalledWith('vote_completed', expect.anything());
 });
 
-// --- CART voteMode branch ---
+// --- CART unification: one swipe deck for both modes ---
 
-test('renders the list voting UI for CART sessions', async () => {
-    voteApi.getSession.mockResolvedValue({ voteMode: 'CART', status: 'ACTIVE' });
-    voteApi.getActivities.mockResolvedValue([
-        { id: 'a-1', name: 'Bar Crawl', price: 45 },
-    ]);
+test('renders the swipe deck without fetching the session', async () => {
+    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
+
+    renderAt('/vote/tok-cart/activities');
+
+    expect(await screen.findByText(/which activities are you up for/i)).toBeInTheDocument();
+    expect(voteApi.getSession).not.toHaveBeenCalled();
+});
+
+test('left swipes are submitted as liked:false alongside right swipes', async () => {
+    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
+    voteApi.castVotes.mockResolvedValue({});
 
     renderAt('/vote/tok-abc/activities');
 
-    expect(await screen.findByRole('button', { name: /Submit vote/ })).toBeInTheDocument();
+    expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Like'));    // act1 → right
+    await userEvent.click(screen.getByLabelText('Dislike')); // act2 → left (last card)
+
+    await screen.findByText('waiting page');
+
+    expect(voteApi.castVotes).toHaveBeenCalledWith('tok-abc', {
+        voterToken: expect.any(String),
+        votes: [
+            { activityId: 'act1', liked: true },
+            { activityId: 'act2', liked: false },
+        ],
+    });
 });
