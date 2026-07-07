@@ -224,23 +224,23 @@ test('CART result does NOT fire checkout_viewed (its real checkout funnel event 
     expect(pushEvent).not.toHaveBeenCalledWith('checkout_viewed', expect.anything());
 });
 
-test('CART result shows Back to Trip Builder only for the initiator', async () => {
+test('CART result shows Proceed to Checkout only for the initiator', async () => {
     voteApi.getResult.mockResolvedValue(CART_RESULT);
     localStorage.setItem('myhive-manager-t-1', 'm-1');
     localStorage.setItem('myhive-initiator-t-1', 'true');
 
     renderAt('/vote/t-1/result');
 
-    expect(await screen.findByRole('button', { name: 'Back to Trip Builder' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Proceed to Checkout' })).toBeInTheDocument();
 });
 
-test('CART result hides Back to Trip Builder for a non-initiator', async () => {
+test('CART result hides Proceed to Checkout for a non-initiator', async () => {
     voteApi.getResult.mockResolvedValue(CART_RESULT);
 
     renderAt('/vote/t-1/result');
 
     expect(await screen.findByText('Bar Crawl')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Back to Trip Builder' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Proceed to Checkout' })).not.toBeInTheDocument();
 });
 
 // --- Option B: a self-added activity is bookable even with an empty voted result ---

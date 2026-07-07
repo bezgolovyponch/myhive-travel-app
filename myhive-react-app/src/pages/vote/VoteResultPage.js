@@ -154,7 +154,7 @@ function VoteResultContent() {
                             onClick={() => navigate(
                                 `/destination/${data.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`)}
                         >
-                            Back to Trip Builder
+                            Proceed to Checkout
                         </button>
                     )}
                 </div>
