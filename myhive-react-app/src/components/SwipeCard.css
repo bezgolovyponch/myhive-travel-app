@@ -190,6 +190,21 @@
     color: #28a745;
 }
 
+/* Undo: visually secondary — smaller, neutral, between the two vote buttons. */
+.swipe-btn-undo {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: transparent;
+}
+
+.swipe-btn-undo:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 .swipe-done {
     text-align: center;
     padding: 40px;
