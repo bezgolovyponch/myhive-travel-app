@@ -220,6 +220,11 @@
     display: block;
 }
 
+/* Placeholder main image (no photos): not clickable, no lightbox. */
+.ag-main--placeholder {
+    cursor: default;
+}
+
 .ag-lb-strip button:hover {
     opacity: 0.8;
 }

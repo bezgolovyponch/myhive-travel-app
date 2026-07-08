@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useModalA11y} from '../hooks/useModalA11y';
+import {DEFAULT_ACTIVITY_IMAGE} from '../utils/format';
 import './ActivityGallery.css';
 
 const MAX_THUMBS = 4;
@@ -37,7 +38,14 @@ function ActivityGallery({images, title}) {
     }, [isOpen, photos.length]);
 
     if (photos.length === 0) {
-        return null;
+        // Mockup data-count="0": single full-width image, no thumbnail grid, no lightbox.
+        return (
+            <div className="activity-gallery" data-count="0">
+                <div className="ag-main ag-main--placeholder">
+                    <img src={DEFAULT_ACTIVITY_IMAGE} alt={title}/>
+                </div>
+            </div>
+        );
     }
 
     const step = (delta) => {

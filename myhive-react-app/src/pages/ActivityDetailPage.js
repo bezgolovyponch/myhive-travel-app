@@ -6,6 +6,7 @@ import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL, WHATSAPP_URL} from '../services/config';
 import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
+import {parseDescriptionBlocks} from '../utils/descriptionBlocks';
 import ActivityGallery from '../components/ActivityGallery';
 import ActivityCard from '../components/ActivityCard';
 import './ActivityDetailPage.css';
@@ -88,10 +89,7 @@ function ActivityDetailPage() {
         .split(/[,;\n]+/)
         .map(item => item.trim())
         .filter(Boolean);
-    const descriptionParagraphs = (activity.description || '')
-        .split(/\n+/)
-        .map(p => p.trim())
-        .filter(Boolean);
+    const descriptionBlocks = parseDescriptionBlocks(activity.description);
 
     const handleAddToTrip = () => {
         dispatch({type: 'ADD_TO_TRIP', activity});
@@ -156,14 +154,15 @@ function ActivityDetailPage() {
                             </ul>
                         </section>
                     )}
-                    {descriptionParagraphs.length > 0 && (
+                    {descriptionBlocks.length > 0 && (
                         <section className="activity-detail-blk">
                             <h2 className="activity-detail-blk-title">
                                 <i className="ph ph-note" aria-hidden="true"/> About this activity
                             </h2>
-                            {descriptionParagraphs.map(paragraph => (
-                                <p className="activity-detail-desc" key={paragraph}>{paragraph}</p>
-                            ))}
+                            {descriptionBlocks.map(block => block.type === 'heading'
+                                ? <h3 className="activity-detail-subhead" key={block.text}>{block.text}</h3>
+                                : <p className="activity-detail-desc" key={block.text}>{block.text}</p>
+                            )}
                         </section>
                     )}
                 </div>
