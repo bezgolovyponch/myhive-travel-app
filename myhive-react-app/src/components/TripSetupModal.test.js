@@ -135,7 +135,7 @@ test('auto-selects the only destination even with the picker enabled', () => {
 // Prefill from trip state (dates chosen when the first activity was added)
 // ---------------------------------------------------------------------------
 
-test('vote mode prefills travelers, dates and budget from trip state', () => {
+test('vote mode prefills travelers and dates from trip state', () => {
   const expectedStart = isoDaysFromNow(30);
   const expectedEnd = isoDaysFromNow(37);
   renderVoteModal(singleDestCatalogState, {
@@ -143,13 +143,11 @@ test('vote mode prefills travelers, dates and budget from trip state', () => {
     tripTravelers: 4,
     tripStartDate: expectedStart,
     tripEndDate: expectedEnd,
-    tripBudget: 3000,
   });
 
   expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
   expect(screen.getByTestId('date-from')).toHaveValue(expectedStart);
   expect(screen.getByTestId('date-to')).toHaveValue(expectedEnd);
-  expect(screen.getByLabelText(/group budget/i)).toHaveValue(3000);
 });
 
 test('vote mode leaves fields at defaults when no trip setup exists', () => {
@@ -158,7 +156,6 @@ test('vote mode leaves fields at defaults when no trip setup exists', () => {
   expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(1);
   expect(screen.getByTestId('date-from')).toHaveValue('');
   expect(screen.getByTestId('date-to')).toHaveValue('');
-  expect(screen.getByLabelText(/group budget/i)).toHaveValue(null);
 });
 
 test('vote mode drops a stale date range but keeps travelers', () => {
@@ -296,23 +293,6 @@ test('A9: tb_group_submitted does NOT fire when vote form is invalid (missing da
   expect(submittedCalls).toHaveLength(0);
 });
 
-test('A9: tb_group_submitted does NOT fire when budget is invalid (negative)', async () => {
-  // All required fields valid, but a negative budget hits the second early return.
-  renderVoteModal(singleDestCatalogState);
-
-  await userEvent.type(screen.getByTestId('date-from'), '2026-08-01');
-  await userEvent.type(screen.getByTestId('date-to'), '2026-08-07');
-  await userEvent.clear(screen.getByLabelText(/your email/i));
-  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
-  await userEvent.type(screen.getByLabelText(/group budget/i), '-100');
-
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
-  await userEvent.click(submitBtn);
-
-  const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
-  expect(submittedCalls).toHaveLength(0);
-});
-
 // ---------------------------------------------------------------------------
 // A9 — tb_group_submitted — vote mode, valid submit
 // ---------------------------------------------------------------------------
@@ -368,22 +348,22 @@ test('A9: vote mode OMITS email when hasConsent("ad_storage") is false', async (
   expect(submittedCalls[0][1].email).toBeUndefined();
 });
 
-test('A9: vote mode sets has_budget true when budget is entered', async () => {
-  hasConsent.mockReturnValue(false);
+// ---------------------------------------------------------------------------
+// Budget question removed from the vote setup
+// ---------------------------------------------------------------------------
+
+test('vote setup has no budget field', () => {
   renderVoteModal(singleDestCatalogState);
+  expect(screen.queryByLabelText(/budget/i)).not.toBeInTheDocument();
+});
 
-  await userEvent.type(screen.getByTestId('date-from'), '2026-08-01');
-  await userEvent.type(screen.getByTestId('date-to'), '2026-08-07');
-  await userEvent.clear(screen.getByLabelText(/your email/i));
-  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
-  await userEvent.type(screen.getByLabelText(/group budget/i), '3000');
+test('confirm sends budget: null in the vote payload', async () => {
+  const onVoteConfirm = jest.fn();
+  renderVoteModal(singleDestCatalogState, baseTripState, { onVoteConfirm });
 
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
-  await userEvent.click(submitBtn);
+  await fillVoteFormAndSubmit();
 
-  const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
-  expect(submittedCalls).toHaveLength(1);
-  expect(submittedCalls[0][1].has_budget).toBe(true);
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ budget: null }));
 });
 
 // ---------------------------------------------------------------------------

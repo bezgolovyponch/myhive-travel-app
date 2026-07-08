@@ -26,8 +26,6 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     const [endDate, setEndDate] = useState('');
     const [email, setEmail] = useState('');
     const [selectedDestinationId, setSelectedDestinationId] = useState('');
-    const [budget, setBudget] = useState('');
-    const [budgetError, setBudgetError] = useState('');
     // Unique per instance: this modal is mounted in several places (Header,
     // TripBuilderDropdown, vote flow) and a duplicate id would make the footer
     // submit button target the wrong form.
@@ -48,8 +46,6 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             setEndDate(datesAreCurrent ? state.tripEndDate : '');
             setEmail('');
             setSelectedDestinationId('');
-            setBudget(state.tripBudget > 0 ? String(state.tripBudget) : '');
-            setBudgetError('');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
@@ -92,23 +88,18 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         const travelersNum = Math.max(1, parseInt(travelers, 10) || 1);
         if (isVoteMode) {
             if (!voteFormValid) return;
-            const budgetValue = budget.trim() === '' ? null : Number(budget);
-            if (budgetValue !== null && (!Number.isFinite(budgetValue) || budgetValue <= 0)) {
-                setBudgetError('Budget must be a positive number.');
-                return;
-            }
-            setBudgetError('');
             // A9: tb_group_submitted — vote mode (no trip_id; email gated by ad_storage consent).
             const voteEventParams = {
                 destination: destination ? destination.slug : undefined,
                 group_size: travelersNum,
-                has_budget: budget.trim() !== '',
+                has_budget: false,
             };
             if (email && hasConsent('ad_storage')) {
                 voteEventParams.email = email;
             }
             pushEvent('tb_group_submitted', voteEventParams);
-            onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination, budget: budgetValue });
+            // budget stays in the payload as null so session seeding keeps working unchanged.
+            onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination, budget: null });
         } else {
             // A9: tb_group_submitted — trip/direct mode (mint trip_id; no email collected).
             const tripId = generateUuid();
@@ -116,7 +107,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             pushEvent('tb_group_submitted', {
                 destination: destination ? destination.slug : undefined,
                 group_size: travelersNum,
-                has_budget: budget.trim() !== '',
+                has_budget: false,
                 trip_id: tripId,
             });
             dispatch({
@@ -215,33 +206,6 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                     required
                                     placeholder="you@example.com"
                                 />
-                            </div>
-                        )}
-                        {isVoteMode && (
-                            <div className="form-group">
-                                <label htmlFor="voteBudget">Group budget (€, optional)</label>
-                                <div style={{ position: 'relative' }}>
-                                    <span
-                                        aria-hidden="true"
-                                        style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted, #6c757d)', pointerEvents: 'none', fontSize: '1rem' }}
-                                    >
-                                        €
-                                    </span>
-                                    <input
-                                        id="voteBudget"
-                                        type="number"
-                                        min="0"
-                                        step="100"
-                                        value={budget}
-                                        onChange={e => {
-                                            setBudget(e.target.value);
-                                            setBudgetError('');
-                                        }}
-                                        placeholder="3000"
-                                        style={{ paddingLeft: '1.6rem' }}
-                                    />
-                                </div>
-                                {budgetError && <p className="text-error">{budgetError}</p>}
                             </div>
                         )}
                     </form>
