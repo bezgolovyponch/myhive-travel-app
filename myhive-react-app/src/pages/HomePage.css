@@ -41,7 +41,7 @@
     color: var(--white);
     overflow: hidden;
     --primary-text: var(--white);
-    background: url('/hero-stag-do-prague.jpg') center 20% / cover no-repeat var(--bg);
+    background: url('../assets/hero-stag-do-prague.jpg') center 20% / cover no-repeat var(--bg);
 }
 
 .hero-overlay {
@@ -278,7 +278,7 @@
 @media (max-width: 768px) {
     .hero {
         min-height: 41.25rem;
-        background-image: url('/hero-stag-do-prague.jpg');
+        background-image: url('../assets/hero-stag-do-prague.jpg');
         background-position: 42% 25%;
     }
 
