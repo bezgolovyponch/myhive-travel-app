@@ -99,6 +99,25 @@
     color: white;
 }
 
+/* The headline itself is a CTA: inherits the h1 look, underline signals the link. */
+.hero-title-link {
+    all: unset;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.45);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+}
+
+.hero-title-link:hover {
+    text-decoration-color: #fff;
+}
+
+.hero-title-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+}
+
 .hero-subtitle {
     font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
     color: white;
