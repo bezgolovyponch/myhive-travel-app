@@ -436,12 +436,12 @@
 .start-vote-btn {
     margin-top: 0.5rem;
     background: transparent;
-    border: 1px solid #7c6cf5;
-    color: var(--white);
+    border: 1.5px solid #E24A33;
+    color: #E24A33;
 }
 
 .start-vote-btn:hover:not(:disabled) {
-    background: rgba(124, 108, 245, 0.08);
+    background: rgba(226, 74, 51, 0.12);
 }
 
 .start-vote-btn:disabled {
