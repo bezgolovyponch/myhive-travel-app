@@ -42,10 +42,10 @@ function HomePage() {
                             </div>
                             <div className="vc-sub">9 of 11 lads voted</div>
                             {[
-                                {icon: 'ph-beer-stein', name: 'Bar Crawl', num: 8, pct: 89, fill: 'var(--purple-ll)'},
-                                {icon: 'ph-steering-wheel', name: 'Karting', num: 6, pct: 67, fill: 'var(--purple-l)'},
-                                {icon: 'ph-target', name: 'Shooting', num: 5, pct: 56, fill: 'var(--purple-l)'},
-                                {icon: 'ph-boat', name: 'Tiki Boat', num: 4, pct: 44, fill: 'var(--purple-l)'},
+                                {icon: 'ph-beer-stein', name: 'Bar Crawl', num: 8, pct: 89, fill: 'rgba(255,255,255,0.92)'},
+                                {icon: 'ph-steering-wheel', name: 'Karting', num: 6, pct: 67, fill: 'rgba(255,255,255,0.65)'},
+                                {icon: 'ph-target', name: 'Shooting', num: 5, pct: 56, fill: 'rgba(255,255,255,0.65)'},
+                                {icon: 'ph-boat', name: 'Tiki Boat', num: 4, pct: 44, fill: 'rgba(255,255,255,0.65)'},
                             ].map((row) => (
                                 <div className="vc-row" key={row.name}>
                                     <div className="vc-row-top">

@@ -72,7 +72,7 @@
 }
 
 .activity-detail-chip i {
-    color: var(--brand);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 1.125rem;
 }
 
@@ -112,7 +112,7 @@
 }
 
 .activity-detail-blk-title i {
-    color: var(--brand);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 1.5rem;
 }
 
@@ -136,7 +136,7 @@
 
 .activity-detail-inc-list li::before {
     content: "✓";
-    color: var(--brand);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 1rem;
     font-weight: 700;
     flex-shrink: 0;
@@ -195,8 +195,8 @@
 }
 
 .activity-detail-add-btn {
-    background: var(--brand);
-    color: var(--white);
+    background: #fff;
+    color: #16131c;
     border: none;
     font-size: 1rem;
     font-weight: 500;
@@ -211,11 +211,12 @@
 }
 
 .activity-detail-add-btn:hover {
-    background: var(--brand-dark);
+    background: rgba(255, 255, 255, 0.85);
 }
 
 .activity-detail-add-btn:disabled {
-    background: var(--gray);
+    background: #E8852B;
+    color: #fff;
     cursor: not-allowed;
 }
 
@@ -243,7 +244,7 @@
 }
 
 .activity-detail-panel-meta li i {
-    color: var(--brand);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 1.0625rem;
 }
 
