@@ -41,7 +41,7 @@
     color: var(--white);
     overflow: hidden;
     --primary-text: var(--white);
-    background: url('https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/af982ae2-c47d-40d8-af16-d6ec14713544.jpg') center 0 / cover no-repeat var(--bg);
+    background: url('/hero-stag-do-prague.jpg') center 20% / cover no-repeat var(--bg);
 }
 
 .hero-overlay {
@@ -259,8 +259,8 @@
 @media (max-width: 768px) {
     .hero {
         min-height: 41.25rem;
-        background-image: url('https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/hero_mobile2.png');
-        background-position: center 55%;
+        background-image: url('/hero-stag-do-prague.jpg');
+        background-position: 42% 25%;
     }
 
     .hero-fade {
