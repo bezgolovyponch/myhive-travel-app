@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TripSetupModal from './TripSetupModal';
 import {CatalogContext} from '../context/CatalogContext';
@@ -145,7 +145,7 @@ test('vote mode prefills travelers and dates from trip state', () => {
     tripEndDate: expectedEnd,
   });
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(4);
   expect(screen.getByTestId('date-from')).toHaveValue(expectedStart);
   expect(screen.getByTestId('date-to')).toHaveValue(expectedEnd);
 });
@@ -153,7 +153,7 @@ test('vote mode prefills travelers and dates from trip state', () => {
 test('vote mode leaves fields at defaults when no trip setup exists', () => {
   renderVoteModal(singleDestCatalogState, baseTripState);
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(1);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(1);
   expect(screen.getByTestId('date-from')).toHaveValue('');
   expect(screen.getByTestId('date-to')).toHaveValue('');
 });
@@ -166,7 +166,7 @@ test('vote mode drops a stale date range but keeps travelers', () => {
     tripEndDate: '2020-01-07',
   });
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(4);
   expect(screen.getByTestId('date-from')).toHaveValue('');
   expect(screen.getByTestId('date-to')).toHaveValue('');
 });
@@ -205,7 +205,7 @@ test('trip/direct mode prefills from trip state and confirms with those values',
     tripEndDate: expectedEnd,
   });
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(4);
   expect(screen.getByTestId('date-from')).toHaveValue(expectedStart);
   expect(screen.getByTestId('date-to')).toHaveValue(expectedEnd);
 
@@ -364,6 +364,26 @@ test('confirm sends budget: null in the vote payload', async () => {
   await fillVoteFormAndSubmit();
 
   expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ budget: null }));
+});
+
+// ---------------------------------------------------------------------------
+// Traveler count — slider synced with number input
+// ---------------------------------------------------------------------------
+
+test('travelers is a slider synced with a number input', () => {
+  renderVoteModal(singleDestCatalogState, { ...baseTripState, tripTravelers: 4 });
+  const slider = screen.getByRole('slider', { name: /number of travelers/i });
+  const num = screen.getByRole('spinbutton', { name: /number of travelers/i });
+  expect(slider).toHaveValue('4'); // seeded from tripTravelers: 4
+  expect(num).toHaveValue(4);
+});
+
+test('moving the slider updates the number input', () => {
+  renderVoteModal(singleDestCatalogState, { ...baseTripState, tripTravelers: 4 });
+  const slider = screen.getByRole('slider', { name: /number of travelers/i });
+  // fireEvent, not userEvent: range inputs don't support typing.
+  fireEvent.change(slider, { target: { value: '12' } });
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(12);
 });
 
 // ---------------------------------------------------------------------------
