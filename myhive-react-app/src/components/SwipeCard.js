@@ -6,7 +6,7 @@ import { formatPricePerPerson } from '../utils/format';
 
 const SWIPE_THRESHOLD = 80;
 
-function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, getCardLink }) {
+function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subtitle, shareUrl, getCardLink }) {
     const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
     const [copied, setCopied] = useState(false);
     const [infoCard, setInfoCard] = useState(null);
@@ -171,6 +171,14 @@ function SwipeCard({ cards, currentIndex, onSwipe, title, subtitle, shareUrl, ge
                     onClick={() => handleButtonSwipe('left')}
                     aria-label="Dislike"
                 >✕</button>
+                {onUndo && (
+                    <button
+                        className="swipe-btn swipe-btn-undo"
+                        onClick={onUndo}
+                        disabled={!canUndo}
+                        aria-label="Undo last swipe"
+                    >↩</button>
+                )}
                 <button
                     className="swipe-btn swipe-btn-like"
                     onClick={() => handleButtonSwipe('right')}

@@ -22,13 +22,13 @@
 /* Section CTAs use the global .btn--primary; repaint it purple only inside the
    homepage so the rest of the app keeps the brand button. */
 .homepage .btn--primary {
-    background: var(--purple);
-    color: #fff;
-    box-shadow: 0 0.5rem 1.5rem rgba(83, 74, 183, 0.4);
+    background: #fff;
+    color: #16131c;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
 }
 
 .homepage .btn--primary:hover {
-    background: var(--purple-l);
+    background: rgba(255, 255, 255, 0.85);
 }
 
 /* Hero Section */
@@ -41,7 +41,7 @@
     color: var(--white);
     overflow: hidden;
     --primary-text: var(--white);
-    background: url('https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/af982ae2-c47d-40d8-af16-d6ec14713544.jpg') center 0 / cover no-repeat var(--bg);
+    background: url('https://img.trivlu.com/hero_stag_do_prague.png') center 20% / cover no-repeat var(--bg);
 }
 
 .hero-overlay {
@@ -99,6 +99,25 @@
     color: white;
 }
 
+/* The headline itself is a CTA: inherits the h1 look, underline signals the link. */
+.hero-title-link {
+    all: unset;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.45);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+}
+
+.hero-title-link:hover {
+    text-decoration-color: #fff;
+}
+
+.hero-title-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+}
+
 .hero-subtitle {
     font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
     color: white;
@@ -107,8 +126,8 @@
 }
 
 .hp-btn-primary {
-    background: var(--purple);
-    color: #fff;
+    background: #fff;
+    color: #16131c;
     border: none;
     font-size: 1rem;
     font-weight: 500;
@@ -118,11 +137,11 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 0.5rem 1.5rem rgba(83, 74, 183, 0.5);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
 }
 
 .hp-btn-primary:hover {
-    background: var(--purple-l);
+    background: rgba(255, 255, 255, 0.85);
 }
 
 .hero-cta-group {
@@ -191,10 +210,10 @@
     width: 1.75rem;
     height: 1.75rem;
     border-radius: 0.5rem;
-    background: var(--purple);
+    background: #fff;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: #16131c;
 }
 
 .vc-title {
@@ -236,7 +255,7 @@
 
 .vc-name i {
     font-size: 0.9375rem;
-    color: var(--purple-ic);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .vc-num {
@@ -259,8 +278,8 @@
 @media (max-width: 768px) {
     .hero {
         min-height: 41.25rem;
-        background-image: url('https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/hero_mobile2.png');
-        background-position: center 55%;
+        background-image: url('https://img.trivlu.com/hero_stag_do_prague.png');
+        background-position: 42% 25%;
     }
 
     .hero-fade {

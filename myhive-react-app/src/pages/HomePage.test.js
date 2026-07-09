@@ -46,7 +46,7 @@ test('renders all homepage sections', async () => {
 
   renderHome();
 
-  expect(screen.getByText('The Easiest Stag Do Decision. All Sorted For You.')).toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'The smartest way to plan a stag do'})).toBeInTheDocument();
   expect(screen.getByText('Stag Do Specialists')).toBeInTheDocument();
   expect(screen.getByText('The Smartest Way to Plan a Stag Do')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
@@ -119,6 +119,20 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   // auto-selected even when the API returns another destination first.
   expect(screen.getByText('Prague')).toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+test('hero headline is clickable and opens the group vote setup', async () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+
+  renderHome();
+
+  await screen.findByText('What the Lads Say');
+
+  await userEvent.click(screen.getByRole('button', {name: /the smartest way to plan a stag do/i}));
+
+  // The headline CTA fires cta_click first; opening the modal then fires tb_start.
+  expect(pushEvent.mock.calls[0]).toEqual(['cta_click', {cta_label: 'Hero headline', block: 'hero'}]);
+  expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
 });
 
 test('Explore activities CTA scrolls to the activities section', async () => {

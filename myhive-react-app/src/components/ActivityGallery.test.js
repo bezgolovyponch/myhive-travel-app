@@ -1,6 +1,7 @@
 import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActivityGallery from './ActivityGallery';
+import {DEFAULT_ACTIVITY_IMAGE} from '../utils/format';
 
 const sixPhotos = [
   'https://x/p1.jpg',
@@ -10,6 +11,12 @@ const sixPhotos = [
   'https://x/p5.jpg',
   'https://x/p6.jpg',
 ];
+
+test('renders a full-width fallback image when there are no photos', () => {
+  render(<ActivityGallery images={[]} title="Karting"/>);
+  const img = screen.getByAltText('Karting');
+  expect(img).toHaveAttribute('src', DEFAULT_ACTIVITY_IMAGE);
+});
 
 test('a single photo renders without thumbnails or see-all badge', () => {
   const {container} = render(<ActivityGallery images={[sixPhotos[0]]} title="Karting" />);

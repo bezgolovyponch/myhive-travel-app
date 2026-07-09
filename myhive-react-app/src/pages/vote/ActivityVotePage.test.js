@@ -197,6 +197,40 @@ test('renders the swipe deck without fetching the session', async () => {
     expect(voteApi.getSession).not.toHaveBeenCalled();
 });
 
+// --- Undo last swipe ---
+
+test('undo restores the previous card and drops the recorded vote', async () => {
+    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
+    voteApi.castVotes.mockResolvedValue({});
+
+    renderAt('/vote/tok-abc/activities');
+
+    expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+
+    // Undo starts disabled.
+    expect(screen.getByRole('button', { name: /undo last swipe/i })).toBeDisabled();
+
+    // Like Tank Driving -> card 2 of 2.
+    await userEvent.click(screen.getByLabelText('Like'));
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+
+    // Undo -> back to card 1.
+    await userEvent.click(screen.getByRole('button', { name: /undo last swipe/i }));
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+
+    // Re-vote: dislike Tank Driving, like Spa Day -> deck ends, votes submitted.
+    await userEvent.click(screen.getByLabelText('Dislike'));
+    await userEvent.click(screen.getByLabelText('Like'));
+
+    await waitFor(() => expect(voteApi.castVotes).toHaveBeenCalledTimes(1));
+    expect(voteApi.castVotes).toHaveBeenCalledWith('tok-abc', expect.objectContaining({
+        votes: [
+            { activityId: 'act1', liked: false },
+            { activityId: 'act2', liked: true },
+        ],
+    }));
+});
+
 test('left swipes are submitted as liked:false alongside right swipes', async () => {
     voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
     voteApi.castVotes.mockResolvedValue({});

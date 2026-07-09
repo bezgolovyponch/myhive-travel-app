@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TripSetupModal from './TripSetupModal';
 import {CatalogContext} from '../context/CatalogContext';
@@ -135,7 +135,7 @@ test('auto-selects the only destination even with the picker enabled', () => {
 // Prefill from trip state (dates chosen when the first activity was added)
 // ---------------------------------------------------------------------------
 
-test('vote mode prefills travelers, dates and budget from trip state', () => {
+test('vote mode prefills travelers and dates from trip state', () => {
   const expectedStart = isoDaysFromNow(30);
   const expectedEnd = isoDaysFromNow(37);
   renderVoteModal(singleDestCatalogState, {
@@ -143,22 +143,19 @@ test('vote mode prefills travelers, dates and budget from trip state', () => {
     tripTravelers: 4,
     tripStartDate: expectedStart,
     tripEndDate: expectedEnd,
-    tripBudget: 3000,
   });
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(4);
   expect(screen.getByTestId('date-from')).toHaveValue(expectedStart);
   expect(screen.getByTestId('date-to')).toHaveValue(expectedEnd);
-  expect(screen.getByLabelText(/group budget/i)).toHaveValue(3000);
 });
 
 test('vote mode leaves fields at defaults when no trip setup exists', () => {
   renderVoteModal(singleDestCatalogState, baseTripState);
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(1);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(1);
   expect(screen.getByTestId('date-from')).toHaveValue('');
   expect(screen.getByTestId('date-to')).toHaveValue('');
-  expect(screen.getByLabelText(/group budget/i)).toHaveValue(null);
 });
 
 test('vote mode drops a stale date range but keeps travelers', () => {
@@ -169,7 +166,7 @@ test('vote mode drops a stale date range but keeps travelers', () => {
     tripEndDate: '2020-01-07',
   });
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(4);
   expect(screen.getByTestId('date-from')).toHaveValue('');
   expect(screen.getByTestId('date-to')).toHaveValue('');
 });
@@ -208,7 +205,7 @@ test('trip/direct mode prefills from trip state and confirms with those values',
     tripEndDate: expectedEnd,
   });
 
-  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(4);
+  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(4);
   expect(screen.getByTestId('date-from')).toHaveValue(expectedStart);
   expect(screen.getByTestId('date-to')).toHaveValue(expectedEnd);
 
@@ -296,23 +293,6 @@ test('A9: tb_group_submitted does NOT fire when vote form is invalid (missing da
   expect(submittedCalls).toHaveLength(0);
 });
 
-test('A9: tb_group_submitted does NOT fire when budget is invalid (negative)', async () => {
-  // All required fields valid, but a negative budget hits the second early return.
-  renderVoteModal(singleDestCatalogState);
-
-  await userEvent.type(screen.getByTestId('date-from'), '2026-08-01');
-  await userEvent.type(screen.getByTestId('date-to'), '2026-08-07');
-  await userEvent.clear(screen.getByLabelText(/your email/i));
-  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
-  await userEvent.type(screen.getByLabelText(/group budget/i), '-100');
-
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
-  await userEvent.click(submitBtn);
-
-  const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
-  expect(submittedCalls).toHaveLength(0);
-});
-
 // ---------------------------------------------------------------------------
 // A9 — tb_group_submitted — vote mode, valid submit
 // ---------------------------------------------------------------------------
@@ -368,22 +348,64 @@ test('A9: vote mode OMITS email when hasConsent("ad_storage") is false', async (
   expect(submittedCalls[0][1].email).toBeUndefined();
 });
 
-test('A9: vote mode sets has_budget true when budget is entered', async () => {
-  hasConsent.mockReturnValue(false);
+// ---------------------------------------------------------------------------
+// Budget question removed from the vote setup
+// ---------------------------------------------------------------------------
+
+test('vote setup has no budget field', () => {
   renderVoteModal(singleDestCatalogState);
+  expect(screen.queryByLabelText(/budget/i)).not.toBeInTheDocument();
+});
 
-  await userEvent.type(screen.getByTestId('date-from'), '2026-08-01');
-  await userEvent.type(screen.getByTestId('date-to'), '2026-08-07');
-  await userEvent.clear(screen.getByLabelText(/your email/i));
-  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
-  await userEvent.type(screen.getByLabelText(/group budget/i), '3000');
+test('confirm sends budget: null in the vote payload', async () => {
+  const onVoteConfirm = jest.fn();
+  renderVoteModal(singleDestCatalogState, baseTripState, { onVoteConfirm });
 
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
-  await userEvent.click(submitBtn);
+  await fillVoteFormAndSubmit();
 
-  const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
-  expect(submittedCalls).toHaveLength(1);
-  expect(submittedCalls[0][1].has_budget).toBe(true);
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ budget: null }));
+});
+
+// ---------------------------------------------------------------------------
+// Traveler count — stepper (− / editable number / +)
+// ---------------------------------------------------------------------------
+
+test('travelers stepper: plus/minus adjust the count and minus disables at 1', async () => {
+  renderVoteModal(singleDestCatalogState, { ...baseTripState, tripTravelers: 3 });
+  const num = screen.getByRole('spinbutton', { name: /number of travelers/i });
+  expect(num).toHaveValue(3); // seeded from tripTravelers
+
+  await userEvent.click(screen.getByRole('button', { name: /increase travelers/i }));
+  expect(num).toHaveValue(4);
+
+  const minus = screen.getByRole('button', { name: /decrease travelers/i });
+  await userEvent.click(minus);
+  await userEvent.click(minus);
+  await userEvent.click(minus);
+  expect(num).toHaveValue(1);
+  expect(minus).toBeDisabled(); // can't go below one traveler
+});
+
+test('typing a large group size is kept, not clamped', async () => {
+  const expectedStart = isoDaysFromNow(30);
+  const expectedEnd = isoDaysFromNow(37);
+  const onVoteConfirm = jest.fn();
+  renderVoteModal(
+    singleDestCatalogState,
+    { ...baseTripState, tripStartDate: expectedStart, tripEndDate: expectedEnd },
+    { onVoteConfirm }
+  );
+
+  const num = screen.getByRole('spinbutton', { name: /number of travelers/i });
+  await userEvent.clear(num);
+  await userEvent.type(num, '35');
+  fireEvent.blur(num);
+  expect(num).toHaveValue(35);
+
+  await userEvent.type(screen.getByLabelText(/your email/i), 'org@example.com');
+  await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ travelers: 35 }));
 });
 
 // ---------------------------------------------------------------------------

@@ -161,3 +161,54 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Travelers stepper: round − / + buttons around an editable count. */
+.travelers-control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.travelers-step {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 150ms, border-color 150ms;
+}
+
+.travelers-step:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.travelers-step:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* input.travelers-count: must out-rank the generic `.contact-form input`
+   rule above, which would otherwise blow the count to full width. */
+.contact-form input.travelers-count {
+    width: 4.5rem;
+    text-align: center;
+    flex-shrink: 0;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* The native spinner arrows duplicate the − / + buttons — hide them. */
+.contact-form input.travelers-count::-webkit-outer-spin-button,
+.contact-form input.travelers-count::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

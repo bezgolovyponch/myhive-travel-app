@@ -50,6 +50,12 @@ function ActivityVoteContent() {
         }
     };
 
+    const handleUndo = () => {
+        if (votesRef.current.length === 0 || submittingRef.current) return;
+        votesRef.current.pop();
+        setCurrentIndex(i => Math.max(0, i - 1));
+    };
+
     const submitVotes = async (votes) => {
         if (submittingRef.current) return;
         submittingRef.current = true;
@@ -117,6 +123,8 @@ function ActivityVoteContent() {
             cards={activities}
             currentIndex={currentIndex}
             onSwipe={handleSwipe}
+            onUndo={handleUndo}
+            canUndo={currentIndex > 0}
             title="Which activities are you up for?"
             subtitle="Swipe right to vote yes, left to skip"
             shareUrl={shareUrl}
