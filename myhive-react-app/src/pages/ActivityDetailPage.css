@@ -284,6 +284,16 @@
     display: none;
 }
 
+/* The sticky bar is position:fixed at z-index 50 in the root stacking context,
+   but app modals (e.g. "Set Up Your Trip", opened by the first Add to trip)
+   render inside the fixed header's own z-index 50 stacking context. Equal
+   z-index means DOM order wins, and the bar comes after the header — so it
+   paints over the modal's footer and swallows taps on Cancel/Confirm. Hide the
+   bar whenever a modal dialog is open. */
+.app-container:has(.app-modal) .activity-detail-add-bar {
+    display: none;
+}
+
 /* ===================== Mobile ===================== */
 @media (max-width: 860px) {
     .activity-detail-page {
