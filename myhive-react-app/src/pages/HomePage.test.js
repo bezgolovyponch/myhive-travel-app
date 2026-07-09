@@ -46,7 +46,7 @@ test('renders all homepage sections', async () => {
 
   renderHome();
 
-  expect(screen.getByRole('heading', {level: 1, name: 'The smartest way to plan a stag do'})).toBeInTheDocument();
+  expect(screen.getByRole('heading', {level: 1, name: 'The Easiest Stag Do Decision. All Sorted For You.'})).toBeInTheDocument();
   expect(screen.getByText('Stag Do Specialists')).toBeInTheDocument();
   expect(screen.getByText('The Smartest Way to Plan a Stag Do')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
@@ -128,7 +128,7 @@ test('hero headline is plain text, not a link or button', async () => {
 
   await screen.findByText('What the Lads Say');
 
-  const headline = screen.getByRole('heading', {level: 1, name: /the smartest way to plan a stag do/i});
+  const headline = screen.getByRole('heading', {level: 1, name: /the easiest stag do decision/i});
   expect(headline.querySelector('button')).toBeNull();
   expect(headline.querySelector('a')).toBeNull();
 });

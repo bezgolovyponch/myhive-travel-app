@@ -30,7 +30,7 @@ function HomePage() {
                 <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">The smartest way to plan a stag do</h1>
+                        <h1 className="hero-title">The Easiest Stag Do Decision. All Sorted For You.</h1>
                         <p className="hero-subtitle">
                             Your mates vote in 10 minutes. We deliver the perfect weekend.
                         </p>
