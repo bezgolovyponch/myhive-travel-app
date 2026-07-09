@@ -177,28 +177,31 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                         )}
                         <div className="form-group">
                             <label htmlFor="tripTravelers">Number of Travelers *</label>
+                            {/* Stepper: − / editable number / +. No upper cap — big groups
+                                are typed directly. */}
                             <div className="travelers-control">
-                                <input
-                                    type="range"
-                                    id="tripTravelers"
-                                    className="travelers-range"
-                                    min="1"
-                                    max="20"
-                                    step="1"
-                                    value={Math.min(20, Math.max(1, parseInt(travelers, 10) || 1))}
-                                    onChange={e => setTravelers(e.target.value)}
-                                />
-                                {/* No max: bigger groups are typed here; the slider (1-20)
-                                    is only a shortcut for common sizes and pins at 20. */}
+                                <button
+                                    type="button"
+                                    className="travelers-step"
+                                    aria-label="Decrease travelers"
+                                    disabled={(parseInt(travelers, 10) || 1) <= 1}
+                                    onClick={() => setTravelers(String(Math.max(1, (parseInt(travelers, 10) || 1) - 1)))}
+                                >−</button>
                                 <input
                                     type="number"
+                                    id="tripTravelers"
                                     className="travelers-count"
-                                    aria-label="Number of Travelers"
                                     min="1"
                                     value={travelers}
                                     onChange={e => setTravelers(e.target.value)}
                                     onBlur={e => setTravelers(String(Math.max(1, parseInt(e.target.value, 10) || 1)))}
                                 />
+                                <button
+                                    type="button"
+                                    className="travelers-step"
+                                    aria-label="Increase travelers"
+                                    onClick={() => setTravelers(String(Math.max(1, (parseInt(travelers, 10) || 1) + 1)))}
+                                >+</button>
                             </div>
                         </div>
                         <DateRangePicker

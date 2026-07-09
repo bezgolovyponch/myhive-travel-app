@@ -367,26 +367,26 @@ test('confirm sends budget: null in the vote payload', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Traveler count — slider synced with number input
+// Traveler count — stepper (− / editable number / +)
 // ---------------------------------------------------------------------------
 
-test('travelers is a slider synced with a number input', () => {
-  renderVoteModal(singleDestCatalogState, { ...baseTripState, tripTravelers: 4 });
-  const slider = screen.getByRole('slider', { name: /number of travelers/i });
+test('travelers stepper: plus/minus adjust the count and minus disables at 1', async () => {
+  renderVoteModal(singleDestCatalogState, { ...baseTripState, tripTravelers: 3 });
   const num = screen.getByRole('spinbutton', { name: /number of travelers/i });
-  expect(slider).toHaveValue('4'); // seeded from tripTravelers: 4
+  expect(num).toHaveValue(3); // seeded from tripTravelers
+
+  await userEvent.click(screen.getByRole('button', { name: /increase travelers/i }));
   expect(num).toHaveValue(4);
+
+  const minus = screen.getByRole('button', { name: /decrease travelers/i });
+  await userEvent.click(minus);
+  await userEvent.click(minus);
+  await userEvent.click(minus);
+  expect(num).toHaveValue(1);
+  expect(minus).toBeDisabled(); // can't go below one traveler
 });
 
-test('moving the slider updates the number input', () => {
-  renderVoteModal(singleDestCatalogState, { ...baseTripState, tripTravelers: 4 });
-  const slider = screen.getByRole('slider', { name: /number of travelers/i });
-  // fireEvent, not userEvent: range inputs don't support typing.
-  fireEvent.change(slider, { target: { value: '12' } });
-  expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(12);
-});
-
-test('typing a group size above the slider range is kept, not clamped to 20', async () => {
+test('typing a large group size is kept, not clamped', async () => {
   const expectedStart = isoDaysFromNow(30);
   const expectedEnd = isoDaysFromNow(37);
   const onVoteConfirm = jest.fn();
@@ -401,8 +401,6 @@ test('typing a group size above the slider range is kept, not clamped to 20', as
   await userEvent.type(num, '35');
   fireEvent.blur(num);
   expect(num).toHaveValue(35);
-  // The slider just pins at its max; it must not pull the typed value down.
-  expect(screen.getByRole('slider', { name: /number of travelers/i })).toHaveValue('20');
 
   await userEvent.type(screen.getByLabelText(/your email/i), 'org@example.com');
   await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));

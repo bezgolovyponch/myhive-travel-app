@@ -162,53 +162,53 @@
     }
 }
 
-/* Travelers slider: gray bar + large white dot, thumb-friendly on mobile. */
+/* Travelers stepper: round − / + buttons around an editable count. */
 .travelers-control {
     display: flex;
     align-items: center;
-    gap: 0.875rem;
+    gap: 0.75rem;
 }
 
-/* input.travelers-* selectors: must out-rank the generic `.contact-form input`
-   rule above (width: 100%, padding, border, background), which otherwise turns
-   the range into a bordered text-box and blows the number input to full width. */
-.contact-form input.travelers-range {
-    flex: 1;
-    width: auto;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 6px;
-    border-radius: 3px;
-    background: rgba(153, 153, 153, 0.45);
-    outline: none;
-    padding: 0;
-    border: none;
-}
-
-.contact-form input.travelers-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 28px;
-    height: 28px;
+.travelers-step {
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
-    background: #fff;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 1.25rem;
+    line-height: 1;
     cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 150ms, border-color 150ms;
 }
 
-.contact-form input.travelers-range::-moz-range-thumb {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #fff;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-    cursor: pointer;
+.travelers-step:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
+.travelers-step:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* input.travelers-count: must out-rank the generic `.contact-form input`
+   rule above, which would otherwise blow the count to full width. */
 .contact-form input.travelers-count {
-    width: 4.25rem;
+    width: 4.5rem;
     text-align: center;
     flex-shrink: 0;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* The native spinner arrows duplicate the − / + buttons — hide them. */
+.contact-form input.travelers-count::-webkit-outer-spin-button,
+.contact-form input.travelers-count::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
