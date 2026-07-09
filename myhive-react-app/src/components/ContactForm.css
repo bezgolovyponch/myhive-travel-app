@@ -169,8 +169,12 @@
     gap: 0.875rem;
 }
 
-.travelers-range {
+/* input.travelers-* selectors: must out-rank the generic `.contact-form input`
+   rule above (width: 100%, padding, border, background), which otherwise turns
+   the range into a bordered text-box and blows the number input to full width. */
+.contact-form input.travelers-range {
     flex: 1;
+    width: auto;
     -webkit-appearance: none;
     appearance: none;
     height: 6px;
@@ -181,7 +185,7 @@
     border: none;
 }
 
-.travelers-range::-webkit-slider-thumb {
+.contact-form input.travelers-range::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 28px;
@@ -193,7 +197,7 @@
     cursor: pointer;
 }
 
-.travelers-range::-moz-range-thumb {
+.contact-form input.travelers-range::-moz-range-thumb {
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -203,7 +207,7 @@
     cursor: pointer;
 }
 
-.travelers-count {
+.contact-form input.travelers-count {
     width: 4.25rem;
     text-align: center;
     flex-shrink: 0;
