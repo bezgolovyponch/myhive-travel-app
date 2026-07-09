@@ -22,14 +22,15 @@
 /* Section CTAs use the global .btn--primary; repaint it purple only inside the
    homepage so the rest of the app keeps the brand button. */
 .homepage .btn--primary {
-    background: #fff;
-    color: #16131c;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+    background: var(--purple);
+    color: #fff;
+    box-shadow: 0 0.5rem 1.5rem rgba(83, 74, 183, 0.4);
 }
 
 .homepage .btn--primary:hover {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--purple-l);
 }
+
 
 /* Hero Section */
 .hero {
@@ -99,25 +100,6 @@
     color: white;
 }
 
-/* The headline itself is a CTA: inherits the h1 look, underline signals the link. */
-.hero-title-link {
-    all: unset;
-    cursor: pointer;
-    text-decoration: underline;
-    text-decoration-color: rgba(255, 255, 255, 0.45);
-    text-decoration-thickness: 2px;
-    text-underline-offset: 6px;
-}
-
-.hero-title-link:hover {
-    text-decoration-color: #fff;
-}
-
-.hero-title-link:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 4px;
-}
-
 .hero-subtitle {
     font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
     color: white;
@@ -126,8 +108,8 @@
 }
 
 .hp-btn-primary {
-    background: #fff;
-    color: #16131c;
+    background: var(--purple);
+    color: #fff;
     border: none;
     font-size: 1rem;
     font-weight: 500;
@@ -137,11 +119,11 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0.5rem 1.5rem rgba(83, 74, 183, 0.5);
 }
 
 .hp-btn-primary:hover {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--purple-l);
 }
 
 .hero-cta-group {
@@ -210,10 +192,10 @@
     width: 1.75rem;
     height: 1.75rem;
     border-radius: 0.5rem;
-    background: #fff;
+    background: var(--purple);
     align-items: center;
     justify-content: center;
-    color: #16131c;
+    color: #fff;
 }
 
 .vc-title {
@@ -255,7 +237,7 @@
 
 .vc-name i {
     font-size: 0.9375rem;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--purple-ic);
 }
 
 .vc-num {

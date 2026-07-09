@@ -1,5 +1,6 @@
 import {API_BASE_URL} from './config';
 import {parseApiError} from './httpError';
+import {compressImage} from '../utils/compressImage';
 
 function parseContentDispositionFilename(header) {
     if (!header) {
@@ -163,9 +164,12 @@ export function createAdminApi(getAccessToken) {
         },
 
         async uploadImage(file) {
+            // Shrink camera originals client-side so mobile uploads are fast;
+            // falls back to the raw file if the browser can't decode it.
+            const upload = await compressImage(file);
             const token = await getAccessToken();
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', upload, upload.name);
             const response = await fetch(`${API_BASE_URL}/admin/upload`, {
                 method: 'POST',
                 headers: {Authorization: `Bearer ${token}`},

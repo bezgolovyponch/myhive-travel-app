@@ -2,6 +2,10 @@
     /* Brand */
     --brand: #6A1B9A;
     --brand-dark: #4A148C;
+    /* Homepage-redesign purple, promoted to a global token: activity CTAs across
+       the catalog and detail pages use it so all pages match the main page. */
+    --purple: #534AB7;
+    --purple-l: #7F77DD;
     --accent: #FF5722;
     --green: #4CAF50;
     --gray: #999;

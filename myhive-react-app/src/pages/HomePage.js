@@ -30,18 +30,7 @@ function HomePage() {
                 <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">
-                            <button
-                                type="button"
-                                className="hero-title-link"
-                                onClick={() => {
-                                    pushEvent('cta_click', {cta_label: 'Hero headline', block: 'hero'});
-                                    openVoteSetup();
-                                }}
-                            >
-                                The smartest way to plan a stag do
-                            </button>
-                        </h1>
+                        <h1 className="hero-title">The smartest way to plan a stag do</h1>
                         <p className="hero-subtitle">
                             Your mates vote in 10 minutes. We deliver the perfect weekend.
                         </p>
@@ -53,10 +42,10 @@ function HomePage() {
                             </div>
                             <div className="vc-sub">9 of 11 lads voted</div>
                             {[
-                                {icon: 'ph-beer-stein', name: 'Bar Crawl', num: 8, pct: 89, fill: 'rgba(255,255,255,0.92)'},
-                                {icon: 'ph-steering-wheel', name: 'Karting', num: 6, pct: 67, fill: 'rgba(255,255,255,0.65)'},
-                                {icon: 'ph-target', name: 'Shooting', num: 5, pct: 56, fill: 'rgba(255,255,255,0.65)'},
-                                {icon: 'ph-boat', name: 'Tiki Boat', num: 4, pct: 44, fill: 'rgba(255,255,255,0.65)'},
+                                {icon: 'ph-beer-stein', name: 'Bar Crawl', num: 8, pct: 89, fill: 'var(--purple-ll)'},
+                                {icon: 'ph-steering-wheel', name: 'Karting', num: 6, pct: 67, fill: 'var(--purple-l)'},
+                                {icon: 'ph-target', name: 'Shooting', num: 5, pct: 56, fill: 'var(--purple-l)'},
+                                {icon: 'ph-boat', name: 'Tiki Boat', num: 4, pct: 44, fill: 'var(--purple-l)'},
                             ].map((row) => (
                                 <div className="vc-row" key={row.name}>
                                     <div className="vc-row-top">

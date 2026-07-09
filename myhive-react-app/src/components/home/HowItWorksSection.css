@@ -77,6 +77,16 @@
     margin: 0 0 0 2rem;
 }
 
+/* .btn is inline-flex without a gap, so the whitespace between the check icon
+   and the label collapses — give the pair the same spacing as the hero CTA. */
+.how-it-works .btn--primary {
+    gap: 0.5rem;
+}
+
+.how-it-works .btn--primary i {
+    line-height: 1;
+}
+
 @media (max-width: 768px) {
     .how-it-works-steps {
         gap: 0.875rem;

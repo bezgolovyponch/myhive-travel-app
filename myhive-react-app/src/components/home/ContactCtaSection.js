@@ -11,7 +11,7 @@ function ContactCtaSection() {
                     <p className="contact-cta-sub">
                         Chat with our team on WhatsApp — ask anything, we'll help plan the perfect stag do.
                     </p>
-                    <div>
+                    <div className="contact-cta-wa-wrap">
                         <a
                             className="contact-cta-wa"
                             href={WHATSAPP_URL}

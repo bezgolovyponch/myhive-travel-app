@@ -50,8 +50,8 @@
 
 .more-info-btn {
     background: transparent;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    color: var(--purple-l);
+    border: 1px solid var(--purple-l);
     padding: var(--gap-sm) var(--gap);
     border-radius: var(--radius);
     font-size: 0.75rem;
@@ -61,7 +61,7 @@
 }
 
 .more-info-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(83, 74, 183, 0.12);
 }
 
 /* Stacked footer: price on its own line, actions row pinned to the card bottom.
@@ -81,8 +81,8 @@
 }
 
 .add-to-trip-btn {
-    background: #fff;
-    color: #16131c;
+    background: var(--purple);
+    color: #fff;
     padding: var(--gap-sm) var(--gap);
     border-radius: var(--radius);
     border: none;
@@ -93,13 +93,12 @@
 }
 
 .add-to-trip-btn:hover {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--purple-l);
     transform: translateY(-1px);
 }
 
 .add-to-trip-btn:disabled {
-    background: #E8852B;
-    color: #fff;
+    background: var(--gray);
     cursor: not-allowed;
     transform: none;
 }
