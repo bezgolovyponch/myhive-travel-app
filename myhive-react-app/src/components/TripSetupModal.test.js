@@ -386,6 +386,30 @@ test('moving the slider updates the number input', () => {
   expect(screen.getByRole('spinbutton', { name: /number of travelers/i })).toHaveValue(12);
 });
 
+test('typing a group size above the slider range is kept, not clamped to 20', async () => {
+  const expectedStart = isoDaysFromNow(30);
+  const expectedEnd = isoDaysFromNow(37);
+  const onVoteConfirm = jest.fn();
+  renderVoteModal(
+    singleDestCatalogState,
+    { ...baseTripState, tripStartDate: expectedStart, tripEndDate: expectedEnd },
+    { onVoteConfirm }
+  );
+
+  const num = screen.getByRole('spinbutton', { name: /number of travelers/i });
+  await userEvent.clear(num);
+  await userEvent.type(num, '35');
+  fireEvent.blur(num);
+  expect(num).toHaveValue(35);
+  // The slider just pins at its max; it must not pull the typed value down.
+  expect(screen.getByRole('slider', { name: /number of travelers/i })).toHaveValue('20');
+
+  await userEvent.type(screen.getByLabelText(/your email/i), 'org@example.com');
+  await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ travelers: 35 }));
+});
+
 // ---------------------------------------------------------------------------
 // A9 — tb_group_submitted — trip/direct mode
 // ---------------------------------------------------------------------------

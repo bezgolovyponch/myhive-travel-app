@@ -188,15 +188,16 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                     value={Math.min(20, Math.max(1, parseInt(travelers, 10) || 1))}
                                     onChange={e => setTravelers(e.target.value)}
                                 />
+                                {/* No max: bigger groups are typed here; the slider (1-20)
+                                    is only a shortcut for common sizes and pins at 20. */}
                                 <input
                                     type="number"
                                     className="travelers-count"
                                     aria-label="Number of Travelers"
                                     min="1"
-                                    max="20"
                                     value={travelers}
                                     onChange={e => setTravelers(e.target.value)}
-                                    onBlur={e => setTravelers(String(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1))))}
+                                    onBlur={e => setTravelers(String(Math.max(1, parseInt(e.target.value, 10) || 1)))}
                                 />
                             </div>
                         </div>
