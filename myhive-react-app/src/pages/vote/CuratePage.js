@@ -102,6 +102,15 @@ function CurateContent() {
     setCurrentIndex(prev => prev + 1);
   };
 
+  const handleUndo = () => {
+    if (currentIndex === 0) {
+      return;
+    }
+    const prevId = pool[currentIndex - 1].id;
+    pickedRef.current = pickedRef.current.filter(id => id !== prevId);
+    setCurrentIndex(prev => prev - 1);
+  };
+
   const handleStartOver = () => {
     pickedRef.current = [];
     setCurrentIndex(0);
@@ -279,6 +288,8 @@ function CurateContent() {
       cards={pool}
       currentIndex={currentIndex}
       onSwipe={handleSwipe}
+      onUndo={handleUndo}
+      canUndo={currentIndex > 0}
       title="Pick activities for the group to vote on"
       subtitle="Swipe right to include, left to skip"
       getCardLink={getCardLink}

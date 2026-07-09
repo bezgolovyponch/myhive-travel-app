@@ -81,6 +81,39 @@ test('swipe-right one card, swipe-left one card, then create session', async () 
   expect(await screen.findByText('waiting page')).toBeInTheDocument();
 });
 
+test('undo restores the previous card and drops it from the picked list', async () => {
+  voteApi.buildPool.mockResolvedValue({
+    pool: [
+      { activityId: 'act1', name: 'Tank Driving', price: 150, imageUrl: null, categories: ['Extreme'] },
+      { activityId: 'act2', name: 'Spa Day', price: 80, imageUrl: null, categories: ['Chillout'] },
+    ],
+  });
+  voteApi.createSession.mockResolvedValue({ shareToken: 'tok-abc', managerToken: 'mgr-xyz' });
+
+  renderWith({ setup, responses: [] });
+
+  expect(await screen.findByLabelText('Like')).toBeInTheDocument();
+  // Nothing to undo on the first card.
+  expect(screen.getByLabelText('Undo last swipe')).toBeDisabled();
+
+  await userEvent.click(screen.getByLabelText('Like'));      // accidentally include act1
+  expect(screen.getByText('2 / 2')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByLabelText('Undo last swipe'));
+  // Back on the first card, not on the quiz / start screen.
+  expect(screen.getByText('1 / 2')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByLabelText('Dislike'));   // skip act1 this time
+  await userEvent.click(screen.getByLabelText('Like'));      // include act2
+
+  expect(await screen.findByText(/Your voting list \(1\)/i)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: /Create & get link/i }));
+  await waitFor(() => expect(voteApi.createSession).toHaveBeenCalled());
+  // The undone act1 pick is gone; only act2 remains.
+  expect(voteApi.createSession.mock.calls[0][0].activityIds).toEqual(['act2']);
+});
+
 test('start over resets the picked list', async () => {
   voteApi.buildPool.mockResolvedValue({
     pool: [
