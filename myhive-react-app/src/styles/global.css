@@ -68,6 +68,10 @@ html {
     scroll-behavior: smooth;
     overflow-x: hidden;
     touch-action: pan-y;
+    /* Kill the browser's horizontal-swipe history navigation (trackpad
+       two-finger swipe / touch overscroll): a drag on the vote swipe-cards
+       otherwise triggers Back and dumps the user out to the quiz. */
+    overscroll-behavior-x: none;
 }
 
 body {
@@ -77,6 +81,7 @@ body {
     line-height: 1.6;
     overflow-x: hidden;
     touch-action: pan-y;
+    overscroll-behavior-x: none;
 }
 
 h1, h2, h3, h4 {
