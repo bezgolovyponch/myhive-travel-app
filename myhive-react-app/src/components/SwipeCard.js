@@ -177,7 +177,10 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
                         onClick={onUndo}
                         disabled={!canUndo}
                         aria-label="Undo last swipe"
-                    >↩</button>
+                    >
+                        {/* Phosphor icon, not unicode ↩ — iOS renders that codepoint as the emoji arrow */}
+                        <i className="ph ph-arrow-counter-clockwise" aria-hidden="true"/>
+                    </button>
                 )}
                 <button
                     className="swipe-btn swipe-btn-like"
