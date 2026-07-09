@@ -39,9 +39,7 @@ function Header() {
     <header className="header header--transparent">
       <div className="header-content">
         <Link to="/" className="logo">
-          {/* PNG spliced from the original logo-white.png wordmark (original letterforms)
-              with the orange triangle in the v slot. New filename also busts browser cache. */}
-          <img src="/logo-trivlu.png" alt="Trivlu" className="logo-img"/>
+          <img src="/logo-trivlu.svg?v=3" alt="Trivlu" className="logo-img"/>
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a
