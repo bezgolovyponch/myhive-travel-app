@@ -39,7 +39,8 @@ function Header() {
     <header className="header header--transparent">
       <div className="header-content">
         <Link to="/" className="logo">
-          <img src="/logo-trivlu.svg" alt="Trivlu" className="logo-img"/>
+          {/* ?v=2 busts the 4h browser cache from before the i/v spacing fix */}
+          <img src="/logo-trivlu.svg?v=2" alt="Trivlu" className="logo-img"/>
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a
