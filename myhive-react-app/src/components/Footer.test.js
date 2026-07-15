@@ -10,9 +10,11 @@ function renderFooter() {
     );
 }
 
-test('links to the cookie and privacy policy pages', () => {
+test('links to the legal policy pages', () => {
     renderFooter();
 
+    expect(screen.getByRole('link', {name: /^terms$/i})).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', {name: /refund policy/i})).toHaveAttribute('href', '/refund-policy');
     expect(screen.getByRole('link', {name: /cookie policy/i})).toHaveAttribute('href', '/cookie-policy');
     expect(screen.getByRole('link', {name: /privacy policy/i})).toHaveAttribute('href', '/privacy-policy');
 });

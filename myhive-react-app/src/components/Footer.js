@@ -21,6 +21,8 @@ function Footer() {
 
             <div className="footer-bottom">
                 <nav className="footer-legal">
+                    <Link to="/terms">Terms</Link>
+                    <Link to="/refund-policy">Refund Policy</Link>
                     <Link to="/cookie-policy">Cookie Policy</Link>
                     <Link to="/privacy-policy">Privacy Policy</Link>
                     {/* CookieYes binds the click handler to .cky-banner-element to reopen

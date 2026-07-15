@@ -12,6 +12,8 @@ import BlogPostPage from '../pages/BlogPostPage';
 import ContactPage from '../pages/ContactPage';
 import CookiePolicyPage from '../pages/CookiePolicyPage';
 import PrivacyPolicyPage from '../pages/PrivacyPolicyPage';
+import TermsPage from '../pages/TermsPage';
+import RefundPolicyPage from '../pages/RefundPolicyPage';
 import QuizPage from '../pages/vote/QuizPage';
 import CuratePage from '../pages/vote/CuratePage';
 import ActivityVotePage from '../pages/vote/ActivityVotePage';
@@ -42,6 +44,8 @@ function Layout() {
             <Route path="/contact" element={<ContactPage/>}/>
             <Route path="/cookie-policy" element={<CookiePolicyPage/>}/>
             <Route path="/privacy-policy" element={<PrivacyPolicyPage/>}/>
+            <Route path="/terms" element={<TermsPage/>}/>
+            <Route path="/refund-policy" element={<RefundPolicyPage/>}/>
             <Route path="/vote/new/quiz" element={<QuizPage />} />
             <Route path="/vote/new/curate" element={<CuratePage />} />
             <Route path="/vote/:shareToken/quiz" element={<QuizPage />} />
