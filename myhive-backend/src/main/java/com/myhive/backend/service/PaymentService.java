@@ -23,8 +23,11 @@ import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.ProcessedStripeEventRepository;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -198,7 +201,12 @@ public class PaymentService {
         // Multidomain: return the buyer to the origin they paid from (prague.trivlu.com, ...) so their
         // localStorage trip state is reachable; foreign/absent origins fall back to the apex.
         String frontendBase = frontendUrlResolver.resolve(originHeader);
-        String successUrl = frontendBase + "/payment/success?booking=" + booking.getId();
+        // Purchase params for the payment_completed analytics event on the return page — value +
+        // currency are server-authoritative (not client-computed), trip_id joins the funnel.
+        String successUrl = frontendBase + "/payment/success?booking=" + booking.getId()
+                + "&value=" + centsToBig(depositCents).toPlainString()
+                + "&currency=" + stripeProperties.getCurrency().toUpperCase(Locale.ROOT)
+                + "&trip_id=" + encode(booking.getTripId());
         String cancelUrl = frontendBase + "/payment/cancelled";
         CheckoutSessionRef ref = stripeGateway.createCheckoutSession(depositCents, stripeProperties.getCurrency(),
                 "Deposit for trip " + booking.getTripId(), metadata, successUrl, cancelUrl,
@@ -438,5 +446,10 @@ public class PaymentService {
 
     private BigDecimal centsToBig(long cents) {
         return BigDecimal.valueOf(cents).movePointLeft(2);
+    }
+
+    /** URL-encode a return-URL query value (trip_id can be a TRV code, client UUID, or vote token). */
+    private static String encode(String value) {
+        return value == null ? "" : URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

@@ -291,8 +291,11 @@ class PaymentServiceTest {
 
         paymentService.createBookingDepositSession(booking.getId(), expectedOrigin);
 
+        // Return URL carries the purchase params so PaymentSuccessPage can fire the
+        // payment_completed analytics event with real revenue (value/currency) + trip_id.
         assertThat(successUrl.getValue())
-                .isEqualTo(expectedOrigin + "/payment/success?booking=" + booking.getId());
+                .isEqualTo(expectedOrigin + "/payment/success?booking=" + booking.getId()
+                        + "&value=30.00&currency=EUR&trip_id=TRV-SUBDOM1");
         assertThat(cancelUrl.getValue()).isEqualTo(expectedOrigin + "/payment/cancelled");
     }
 
@@ -326,7 +329,8 @@ class PaymentServiceTest {
         paymentService.createBookingDepositSession(booking.getId(), "https://prague.trivlu.com.evil.com");
 
         assertThat(successUrl.getValue())
-                .isEqualTo(expectedFallback + "/payment/success?booking=" + booking.getId());
+                .isEqualTo(expectedFallback + "/payment/success?booking=" + booking.getId()
+                        + "&value=30.00&currency=EUR&trip_id=TRV-EVIL0001");
         assertThat(cancelUrl.getValue()).isEqualTo(expectedFallback + "/payment/cancelled");
     }
 

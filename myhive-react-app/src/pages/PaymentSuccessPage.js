@@ -2,12 +2,38 @@ import {useEffect} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import {WHATSAPP_URL} from '../services/config';
+import {pushEvent} from '../utils/analytics';
 import './PaymentReturnPages.css';
 
 function PaymentSuccessPage() {
     const [params] = useSearchParams();
     const booking = params.get('booking');
     const {dispatch} = useTrip();
+
+    // Card-only checkout: reaching this return URL means the charge succeeded, so fire the
+    // payment_completed conversion (→ GA4 purchase / Meta Purchase). value/currency/trip_id are
+    // server-authoritative params on the URL (see PaymentService success_url). sessionStorage keyed
+    // by booking id dedups a refresh / back-forward re-open; the webhook remains the money source
+    // of truth, this is the client-side analytics signal.
+    useEffect(() => {
+        if (!booking) {
+            return;
+        }
+        const dedupKey = `myhive-paid-${booking}`;
+        if (sessionStorage.getItem(dedupKey)) {
+            return;
+        }
+        sessionStorage.setItem(dedupKey, '1');
+        const value = parseFloat(params.get('value'));
+        pushEvent('payment_completed', {
+            transaction_id: booking,
+            value: Number.isFinite(value) ? value : undefined,
+            currency: params.get('currency') || undefined,
+            trip_id: params.get('trip_id') || undefined,
+        });
+        // params is derived from the URL, stable for this mount; booking is the meaningful trigger.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [booking]);
 
     useEffect(() => {
         // The paid-for activities are booked now — clear the builder the same way the lead flow

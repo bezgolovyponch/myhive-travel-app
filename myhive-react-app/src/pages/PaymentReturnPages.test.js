@@ -5,9 +5,12 @@ import PaymentCancelledPage from './PaymentCancelledPage';
 import {TripProvider} from '../context/TripContext';
 import {WHATSAPP_URL} from '../services/config';
 
-function renderSuccessPage() {
+jest.mock('../utils/analytics', () => ({pushEvent: jest.fn()}));
+const {pushEvent} = require('../utils/analytics');
+
+function renderSuccessPage(route = '/payment/success?booking=b1') {
     return render(
-        <MemoryRouter initialEntries={['/payment/success?booking=b1']}>
+        <MemoryRouter initialEntries={[route]}>
             <TripProvider>
                 <PaymentSuccessPage />
             </TripProvider>
@@ -17,6 +20,7 @@ function renderSuccessPage() {
 
 afterEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
 });
 
 test('success page confirms the payment is being processed', () => {
@@ -65,6 +69,31 @@ test('success page offers the WhatsApp follow-up contact', () => {
     const link = screen.getByRole('link', {name: /whatsapp/i});
     expect(link).toHaveAttribute('href', WHATSAPP_URL);
     expect(link).toHaveAttribute('target', '_blank');
+});
+
+test('success page fires payment_completed with revenue params from the return URL', () => {
+    renderSuccessPage('/payment/success?booking=b1&value=30.00&currency=EUR&trip_id=TRV-ABC123');
+
+    expect(pushEvent).toHaveBeenCalledWith('payment_completed', {
+        transaction_id: 'b1',
+        value: 30,
+        currency: 'EUR',
+        trip_id: 'TRV-ABC123',
+    });
+});
+
+test('payment_completed fires at most once per booking across re-mounts', () => {
+    renderSuccessPage('/payment/success?booking=b1&value=30.00&currency=EUR');
+    renderSuccessPage('/payment/success?booking=b1&value=30.00&currency=EUR');
+
+    const paymentCalls = pushEvent.mock.calls.filter(([event]) => event === 'payment_completed');
+    expect(paymentCalls).toHaveLength(1);
+});
+
+test('no payment_completed without a booking reference (bare success URL is not proof of payment)', () => {
+    renderSuccessPage('/payment/success');
+
+    expect(pushEvent).not.toHaveBeenCalledWith('payment_completed', expect.anything());
 });
 
 test('cancelled page shows a cancellation notice and keeps the trip intact', () => {
