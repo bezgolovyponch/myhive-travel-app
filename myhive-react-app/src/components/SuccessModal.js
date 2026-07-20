@@ -1,13 +1,14 @@
 import {useState} from 'react';
 import AppModal from './AppModal';
-import {WHATSAPP_URL} from '../services/config';
+import {WHATSAPP_URL, PAYMENTS_ENABLED} from '../services/config';
 import {paymentApi} from '../services/paymentApi';
 import {useTurnstileWidget} from '../hooks/useTurnstileWidget';
 
 function SuccessModal({isOpen, onClose, userName, userEmail, bookingId}) {
     // The 30% deposit is a real charge, so it is Turnstile-gated; the widget only renders
-    // when this success screen belongs to a booking that can still be paid (bookingId set).
-    const {token: turnstileToken, containerRef} = useTurnstileWidget(isOpen && !!bookingId);
+    // when this success screen belongs to a booking that can still be paid (bookingId set)
+    // and online payment is enabled.
+    const {token: turnstileToken, containerRef} = useTurnstileWidget(PAYMENTS_ENABLED && isOpen && !!bookingId);
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [depositError, setDepositError] = useState(null);
 
@@ -51,7 +52,7 @@ function SuccessModal({isOpen, onClose, userName, userEmail, bookingId}) {
                 </ul>
             </div>
 
-            {bookingId && (
+            {PAYMENTS_ENABLED && bookingId && (
                 <div className="success-deposit">
                     <div ref={containerRef} className="turnstile-widget"/>
                     <h5>Want to lock your trip in right away?</h5>

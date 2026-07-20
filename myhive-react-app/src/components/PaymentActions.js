@@ -2,6 +2,7 @@ import {useState} from 'react';
 import ContactForm from './ContactForm';
 import AppModal from './AppModal';
 import {paymentApi} from '../services/paymentApi';
+import {PAYMENTS_ENABLED} from '../services/config';
 
 function PaymentActions({voteShareToken, managerToken, tripData, initialValues, makeBookingPayload}) {
     const [mode, setMode] = useState(null);
@@ -43,13 +44,15 @@ function PaymentActions({voteShareToken, managerToken, tripData, initialValues, 
 
     return (
         <div className="payment-actions">
-            <button
-                type="button"
-                className="btn btn--primary payment-actions__deposit"
-                onClick={() => open('deposit')}
-            >
-                Book &amp; pay 30% prepayment
-            </button>
+            {PAYMENTS_ENABLED && (
+                <button
+                    type="button"
+                    className="btn btn--primary payment-actions__deposit"
+                    onClick={() => open('deposit')}
+                >
+                    Book &amp; pay 30% prepayment
+                </button>
+            )}
             <button
                 type="button"
                 className="btn btn--secondary payment-actions__consult"
