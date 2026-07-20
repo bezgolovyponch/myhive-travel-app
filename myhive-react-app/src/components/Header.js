@@ -39,7 +39,7 @@ function Header() {
     <header className="header header--transparent">
       <div className="header-content">
         <Link to="/" className="logo">
-          <img src="/logo-trivlu.svg?v=3" alt="Trivlu" className="logo-img"/>
+          <img src="/logo-trivlu.svg?v=4" alt="Trivlu" className="logo-img"/>
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a
