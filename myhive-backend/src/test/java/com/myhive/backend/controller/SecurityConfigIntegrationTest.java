@@ -81,10 +81,23 @@ class SecurityConfigIntegrationTest {
     void bookingStatusPatch_withoutAuth_returnsUnauthorized() throws Exception {
         UUID fakeId = UUID.randomUUID();
 
-        mockMvc.perform(patch("/bookings/" + fakeId + "/status")
+        mockMvc.perform(patch("/admin/bookings/" + fakeId + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\": \"PAID\"}"))
+                        .content("{\"status\": \"CONFIRMED\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void bookingStatusPatch_withManagerAuth_returnsForbidden() throws Exception {
+        UUID fakeId = UUID.randomUUID();
+
+        // The status matcher narrows /admin/bookings/*/status to ADMIN before the
+        // ADMIN|MANAGER rule for /admin/bookings/**.
+        mockMvc.perform(patch("/admin/bookings/" + fakeId + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(managerJwt())
+                        .content("{\"status\": \"CONFIRMED\"}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -92,10 +105,10 @@ class SecurityConfigIntegrationTest {
         UUID fakeId = UUID.randomUUID();
 
         // Will get 404 (booking not found) but NOT 401/403 — proves security passes
-        mockMvc.perform(patch("/bookings/" + fakeId + "/status")
+        mockMvc.perform(patch("/admin/bookings/" + fakeId + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .with(adminJwt())
-                        .content("{\"status\": \"PAID\"}"))
+                        .content("{\"status\": \"CONFIRMED\"}"))
                 .andExpect(status().isNotFound());
     }
 }

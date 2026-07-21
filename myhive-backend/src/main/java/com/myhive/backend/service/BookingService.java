@@ -8,11 +8,13 @@ import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
+import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.PaymentShareType;
+import com.myhive.backend.payment.StripeGateway;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
@@ -27,12 +29,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -42,11 +45,16 @@ import java.util.UUID;
 @Slf4j
 public class BookingService {
 
+    // The only statuses an admin may set by hand; payment statuses are webhook-owned.
+    private static final Set<BookingStatus> ADMIN_SETTABLE_STATUSES =
+            EnumSet.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.CANCELLED);
+
     private final BookingRepository bookingRepository;
     private final ActivityRepository activityRepository;
     private final PackageRepository packageRepository;
     private final EmailService emailService;
     private final BookingPaymentShareRepository shareRepository;
+    private final StripeGateway stripeGateway;
 
     @Transactional
     public BookingDTO createBooking(CreateBookingRequest request) {
@@ -328,27 +336,53 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingDTO updateBookingStatus(UUID id, String status, String stripeSessionId) {
+    public BookingDTO updateBookingStatus(UUID id, String status) {
         BookingStatus bookingStatus;
         try {
             bookingStatus = BookingStatus.valueOf(status);
         } catch (IllegalArgumentException e) {
             throw new BadRequestException("Invalid booking status: " + status);
         }
+        // Payment statuses are owned by the Stripe webhook (PaymentService); setting them
+        // here would desync the booking from its payment-share bookkeeping.
+        if (!ADMIN_SETTABLE_STATUSES.contains(bookingStatus)) {
+            throw new BadRequestException(
+                    "Status " + bookingStatus + " is managed by the Stripe webhook and cannot be set manually");
+        }
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", id));
 
+        // Once money is in (DEPOSIT_PAID/PARTIALLY_PAID/PAID/REFUNDED), the only legal manual
+        // exit is cancellation — moving to PENDING/CONFIRMED would hide the collected payment.
+        BookingStatus currentStatus = booking.getStatus();
+        boolean leavingPaymentStatus = currentStatus != null && !ADMIN_SETTABLE_STATUSES.contains(currentStatus);
+        if (leavingPaymentStatus && BookingStatus.CANCELLED != bookingStatus) {
+            throw new BadRequestException(
+                    "A booking in status " + currentStatus + " can only be cancelled manually");
+        }
+
+        if (BookingStatus.CANCELLED == bookingStatus) {
+            deactivateOpenPaymentLinks(booking);
+        }
         booking.setStatus(bookingStatus);
-        if (stripeSessionId != null) {
-            booking.setStripeSessionId(stripeSessionId);
-        }
-        if (BookingStatus.PAID == bookingStatus) {
-            booking.setPaidAt(LocalDateTime.now());
-        }
 
         Booking updatedBooking = bookingRepository.save(booking);
         return convertToDTO(updatedBooking);
+    }
+
+    /**
+     * A cancelled booking must not remain payable: deactivate every unpaid Payment Link so a
+     * customer holding an old URL cannot pay (the webhook would resurrect the booking).
+     * Fails loud (before the status write) — a still-payable link on a cancelled booking is
+     * worse than a failed cancel the admin can retry.
+     */
+    private void deactivateOpenPaymentLinks(Booking booking) {
+        for (BookingPaymentShare share : shareRepository.findByBookingId(booking.getId())) {
+            if (share.getStripePaymentLinkId() != null && !share.isPaid()) {
+                stripeGateway.deactivatePaymentLink(share.getStripePaymentLinkId());
+            }
+        }
     }
 
     private BookingDTO convertToDTO(Booking booking) {

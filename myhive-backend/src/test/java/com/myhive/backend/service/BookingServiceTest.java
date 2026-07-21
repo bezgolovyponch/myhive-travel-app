@@ -11,9 +11,11 @@ import com.myhive.backend.entity.BookingItem;
 import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.PaymentGatewayException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.PaymentShareType;
+import com.myhive.backend.payment.StripeGateway;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
@@ -55,6 +57,9 @@ class BookingServiceTest {
 
     @Mock
     private BookingPaymentShareRepository shareRepository;
+
+    @Mock
+    private StripeGateway stripeGateway;
 
     @InjectMocks
     private BookingService bookingService;
@@ -221,47 +226,113 @@ class BookingServiceTest {
     }
 
     @Test
-    void updateBookingStatus_validStatus_updatesAndSaves() {
-        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
-        booking.setBookingItems(List.of());
-        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
-        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+    void updateBookingStatus_operationalStatuses_updateAndSave() {
+        for (String expectedStatus : List.of("PENDING", "CONFIRMED", "CANCELLED")) {
+            Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+            booking.setBookingItems(List.of());
+            when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "CONFIRMED", null);
+            BookingDTO result = bookingService.updateBookingStatus(booking.getId(), expectedStatus);
 
-        assertThat(result.getStatus()).isEqualTo("CONFIRMED");
+            assertThat(result.getStatus()).isEqualTo(expectedStatus);
+        }
     }
 
     @Test
-    void updateBookingStatus_toPAID_setsPaidAt() {
-        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
-        booking.setBookingItems(List.of());
-        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
-        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "PAID", "sess_123");
-
-        assertThat(result.getStatus()).isEqualTo("PAID");
-        assertThat(result.getPaidAt()).isNotNull();
-        assertThat(result.getStripeSessionId()).isEqualTo("sess_123");
+    void updateBookingStatus_paymentStatus_throwsBadRequest() {
+        // Payment statuses are owned by the Stripe webhook; setting them manually would
+        // desync the booking from its payment-share bookkeeping.
+        for (String paymentStatus : List.of("DEPOSIT_PAID", "PARTIALLY_PAID", "PAID", "REFUNDED")) {
+            assertThatThrownBy(() -> bookingService.updateBookingStatus(UUID.randomUUID(), paymentStatus))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("Stripe webhook");
+        }
+        verify(bookingRepository, never()).save(any(Booking.class));
     }
 
     @Test
-    void updateBookingStatus_withNullStripeSessionId_doesNotOverwrite() {
+    void updateBookingStatus_fromPaymentStatus_allowsOnlyCancellation() {
+        Booking booking = TestDataFactory.booking(BookingStatus.DEPOSIT_PAID);
+        booking.setBookingItems(List.of());
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+
+        // Leaving a payment status for PENDING/CONFIRMED would hide collected money.
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(booking.getId(), "CONFIRMED"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("can only be cancelled");
+        verify(bookingRepository, never()).save(any(Booking.class));
+
+        // Cancelling is the one legal manual exit.
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "CANCELLED");
+        assertThat(result.getStatus()).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void updateBookingStatus_cancelDeactivatesUnpaidPaymentLinks() {
+        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+        booking.setBookingItems(List.of());
+
+        BookingPaymentShare openLink = new BookingPaymentShare();
+        openLink.setStripePaymentLinkId("plink_open");
+        openLink.setPaid(false);
+
+        BookingPaymentShare paidLink = new BookingPaymentShare();
+        paidLink.setStripePaymentLinkId("plink_paid");
+        paidLink.setPaid(true);
+
+        BookingPaymentShare depositSession = new BookingPaymentShare();
+        depositSession.setPaid(false); // Checkout Session share — no payment link to deactivate
+
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(shareRepository.findByBookingId(booking.getId()))
+                .thenReturn(List.of(openLink, paidLink, depositSession));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "CANCELLED");
+
+        assertThat(result.getStatus()).isEqualTo("CANCELLED");
+        verify(stripeGateway).deactivatePaymentLink("plink_open");
+        verify(stripeGateway, never()).deactivatePaymentLink("plink_paid");
+    }
+
+    @Test
+    void updateBookingStatus_cancelFailsLoudWhenDeactivationFails() {
+        Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
+        booking.setBookingItems(List.of());
+
+        BookingPaymentShare openLink = new BookingPaymentShare();
+        openLink.setStripePaymentLinkId("plink_open");
+        openLink.setPaid(false);
+
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(List.of(openLink));
+        doThrow(new PaymentGatewayException("Unable to deactivate payment link."))
+                .when(stripeGateway).deactivatePaymentLink("plink_open");
+
+        // Fail loud: a still-payable link on a cancelled booking is worse than a failed cancel.
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(booking.getId(), "CANCELLED"))
+                .isInstanceOf(PaymentGatewayException.class);
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
+    void updateBookingStatus_doesNotTouchStripeSessionId() {
         Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
         booking.setStripeSessionId("existing_session");
         booking.setBookingItems(List.of());
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "CONFIRMED", null);
+        BookingDTO result = bookingService.updateBookingStatus(booking.getId(), "CONFIRMED");
 
         assertThat(result.getStripeSessionId()).isEqualTo("existing_session");
     }
 
     @Test
     void updateBookingStatus_invalidStatus_throwsBadRequest() {
-        assertThatThrownBy(() -> bookingService.updateBookingStatus(UUID.randomUUID(), "INVALID", null))
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(UUID.randomUUID(), "INVALID"))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Invalid booking status");
     }
@@ -271,7 +342,7 @@ class BookingServiceTest {
         UUID id = UUID.randomUUID();
         when(bookingRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookingService.updateBookingStatus(id, "PAID", null))
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(id, "CONFIRMED"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 

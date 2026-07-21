@@ -56,7 +56,6 @@ public class SecurityConfig {
                         .requestMatchers("/packages/**").permitAll()
                         .requestMatchers("/categories/**").permitAll()
                         .requestMatchers("/blog/**").permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/bookings/*/status").hasRole("ADMIN")
                         .requestMatchers("/bookings/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/contact").permitAll()
                         // Vote Together
@@ -77,6 +76,8 @@ public class SecurityConfig {
                         .requestMatchers("/admin/activities/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/admin/blog/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/admin/upload").hasAnyRole("ADMIN", "MANAGER")
+                        // Booking status changes: ADMIN only (must come before /admin/bookings/**)
+                        .requestMatchers(HttpMethod.PATCH, "/admin/bookings/*/status").hasRole("ADMIN")
                         // Bookings (view + create a payment link): ADMIN or MANAGER
                         .requestMatchers("/admin/bookings/**").hasAnyRole("ADMIN", "MANAGER")
                         // Admin endpoints — everything else: ADMIN only
