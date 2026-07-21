@@ -15,6 +15,7 @@ import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
 import ActiveVoteModal from './vote/ActiveVoteModal';
+import ActivityPreviewModal from './ActivityPreviewModal';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
@@ -56,7 +57,30 @@ function TripBuilder({ destinationId, destinationSlug }) {
   // destination the quiz ran for — other destinations get the plain builder.
   const [quizFlow, setQuizFlow] = useState(() => readQuizFlow());
   const quizMode = quizFlow != null && quizFlow.setup?.destination?.id === destinationId;
+  const [recommended, setRecommended] = useState([]);
+  const [previewActivity, setPreviewActivity] = useState(null);
   const navigate = useNavigate();
+
+  // Quiz-flow recommendations: the quiz-matched pool for this destination,
+  // left-swiped cards included on purpose (second look). In-cart items render
+  // as a disabled "Added". Failures are silent — the browse column still works.
+  useEffect(() => {
+    if (!quizMode) {
+      setRecommended([]);
+      return;
+    }
+    let cancelled = false;
+    voteApi.buildPool({ destinationId, responses: quizFlow.responses })
+        .then(data => {
+          if (!cancelled) {
+            setRecommended((data.pool || []).map(a => ({ ...a, id: a.activityId })));
+          }
+        })
+        .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [quizMode, quizFlow, destinationId]);
 
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -270,6 +294,13 @@ function TripBuilder({ destinationId, destinationSlug }) {
 
   const handleAddActivity = (activity) => {
       dispatch({type: 'ADD_TO_TRIP', activity, silent: true});
+  };
+
+  const getPreviewLink = (activity) => {
+    if (!activity || !activity.slug || !activity.destinationSlug) {
+      return null;
+    }
+    return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
   };
 
   // Guard against starting a second vote while one this browser started is
@@ -724,6 +755,53 @@ function TripBuilder({ destinationId, destinationSlug }) {
               Couldn't load your group's vote results. Refresh the page to try again.
             </p>
         )}
+        {quizMode && recommended.length > 0 && (
+            <div className="trip-vote-suggestions">
+              <h3>Recommended for you</h3>
+              <p className="trip-vote-suggestions-sub">Based on your quiz answers</p>
+              <div className="browse-activities">
+                {recommended.map(a => {
+                    const isAdded = state.tripItems.some(item => item.id === a.id);
+                    return (
+                        <div key={a.id} className="browse-activity-item">
+                          {a.imageUrl && (
+                              <img src={a.imageUrl} alt={a.name}
+                                   className="browse-activity-image" loading="lazy"/>
+                          )}
+                          <div className="browse-activity-content">
+                            <button
+                                type="button"
+                                className="browse-activity-title browse-activity-link"
+                                aria-haspopup="dialog"
+                                onClick={() => setPreviewActivity(a)}
+                            >
+                              {a.name}
+                            </button>
+                            <div className="browse-activity-price">{formatPricePerPerson(a.price)}</div>
+                          </div>
+                          <button
+                              className="browse-add-btn"
+                              onClick={() => handleAddActivity({
+                                  id: a.id,
+                                  name: a.name,
+                                  price: a.price,
+                                  slug: a.slug,
+                                  destinationSlug: a.destinationSlug,
+                                  imageUrl: a.imageUrl,
+                                  description: a.description,
+                                  includes: a.includes,
+                                  categories: (a.categories || []).map(name => ({ name })),
+                              })}
+                              disabled={isAdded}
+                          >
+                            {isAdded ? 'Added' : 'Add'}
+                          </button>
+                        </div>
+                    );
+                })}
+              </div>
+            </div>
+        )}
         {voteResult && voteResult.suggestions && voteResult.suggestions.length > 0 && (
             <div className="trip-vote-suggestions">
               <h3>Group suggestions</h3>
@@ -844,6 +922,12 @@ function TripBuilder({ destinationId, destinationSlug }) {
           userName={successContactData?.fullName || 'Traveler'}
           userEmail={successContactData?.email || ''}
           bookingId={successBookingId}
+      />
+
+      <ActivityPreviewModal
+          activity={previewActivity}
+          link={previewActivity ? getPreviewLink(previewActivity) : null}
+          onClose={() => setPreviewActivity(null)}
       />
     </div>
   );

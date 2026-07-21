@@ -1048,10 +1048,13 @@ describe('quiz mode: Start Over', () => {
         expect(screen.queryByRole('button', { name: 'Start Over' })).not.toBeInTheDocument();
     });
 
-    test('Start Over still shows when the cart is empty in quiz mode', () => {
+    test('Start Over still shows when the cart is empty in quiz mode', async () => {
         seedQuizFlow();
         renderQuizTripBuilder(buildTripState({ tripItems: [] }));
-        expect(screen.getByRole('button', { name: 'Start Over' })).toBeInTheDocument();
+        // findByRole (not getByRole): quiz mode now also kicks off the
+        // Recommended-for-you pool fetch on mount — await it settling so the
+        // effect's state update lands inside act() like the other quiz-mode tests.
+        expect(await screen.findByRole('button', { name: 'Start Over' })).toBeInTheDocument();
     });
 });
 
@@ -1232,5 +1235,92 @@ describe('quiz mode: vote_skipped on Complete Booking', () => {
         await waitFor(() => {
             expect(sessionStorage.getItem('myhive-quiz-flow')).toBeNull();
         });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Quiz mode — Recommended for you (quiz-matched pool above Browse)
+// ---------------------------------------------------------------------------
+
+describe('quiz mode: Recommended for you', () => {
+    const quizResponses = [{ questionId: 'q1', answerId: 'a1' }];
+
+    function seedQuizFlow() {
+        sessionStorage.setItem('myhive-quiz-flow', JSON.stringify({
+            setup: {
+                destination: { id: 'dest-1', slug: 'prague' },
+                travelers: 4,
+                startDate: '2026-09-01',
+                endDate: '2026-09-05',
+                email: 'organizer@example.com',
+                budget: 2000,
+            },
+            responses: quizResponses,
+        }));
+    }
+
+    const recommendedPool = [
+        // Already in the default cart (activity1 = act-1 "Kayaking") → Added state.
+        { activityId: 'act-1', name: 'Kayaking', price: 60, imageUrl: null, slug: 'kayak', destinationSlug: 'prague', categories: ['Water'] },
+        { activityId: 'rec-9', name: 'Beer Spa', price: 90, imageUrl: null, slug: 'beer-spa', destinationSlug: 'prague', description: 'Bathe in beer.', categories: ['Chillout'] },
+    ];
+
+    test('renders the quiz-matched pool with Add / Added states', async () => {
+        seedQuizFlow();
+        voteApi.buildPool.mockResolvedValue({ pool: recommendedPool });
+        renderTripBuilder();
+
+        expect(await screen.findByText('Recommended for you')).toBeInTheDocument();
+        expect(voteApi.buildPool).toHaveBeenCalledWith({
+            destinationId: 'dest-1',
+            responses: quizResponses,
+        });
+
+        expect(screen.getByRole('button', { name: 'Beer Spa' })).toBeInTheDocument();
+        const addButtons = screen.getAllByRole('button', { name: 'Add' });
+        expect(addButtons).toHaveLength(1); // rec-9 only
+        expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled(); // act-1 is in the cart
+    });
+
+    test('Add dispatches a silent ADD_TO_TRIP with mapped categories', async () => {
+        seedQuizFlow();
+        voteApi.buildPool.mockResolvedValue({ pool: recommendedPool });
+        const user = userEvent.setup();
+        const { dispatchMock } = renderTripBuilder();
+
+        await screen.findByText('Recommended for you');
+        await user.click(screen.getByRole('button', { name: 'Add' }));
+
+        expect(dispatchMock).toHaveBeenCalledWith({
+            type: 'ADD_TO_TRIP',
+            silent: true,
+            activity: expect.objectContaining({
+                id: 'rec-9',
+                name: 'Beer Spa',
+                categories: [{ name: 'Chillout' }],
+            }),
+        });
+    });
+
+    test('clicking a recommendation name opens the preview modal instead of navigating', async () => {
+        seedQuizFlow();
+        voteApi.buildPool.mockResolvedValue({ pool: recommendedPool });
+        const user = userEvent.setup();
+        renderTripBuilder();
+
+        await screen.findByText('Recommended for you');
+        await user.click(screen.getByRole('button', { name: 'Beer Spa' }));
+
+        expect(screen.getByText('Bathe in beer.')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /View full page/i }))
+            .toHaveAttribute('href', '/destination/prague/activity/beer-spa');
+    });
+
+    test('no section and no pool fetch outside quiz mode', async () => {
+        renderTripBuilder();
+
+        await waitFor(() => expect(api.getActivities).toHaveBeenCalled());
+        expect(screen.queryByText('Recommended for you')).not.toBeInTheDocument();
+        expect(voteApi.buildPool).not.toHaveBeenCalled();
     });
 });

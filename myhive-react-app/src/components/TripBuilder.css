@@ -449,6 +449,25 @@
     cursor: not-allowed;
 }
 
+/* Recommended-for-you names are buttons (open the preview modal) — strip the
+   native button chrome so they render like the plain titles around them. */
+.browse-activity-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+.browse-activity-link:hover {
+    color: var(--primary, #32b8c6);
+}
+
 /* Cart vote annotation badge — ♥ count + mini progress bar on standalone items */
 .itinerary-item-votes {
     display: flex;
