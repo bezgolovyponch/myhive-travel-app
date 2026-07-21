@@ -303,6 +303,26 @@ function TripBuilder({ destinationId, destinationSlug }) {
     return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
   };
 
+  // Shared by handleStartVoteClick (CART modal) and handleQuizVoteCreate
+  // (quiz one-click): true — and pops the "vote already running" modal — if
+  // `token` points at a CART vote that's still ACTIVE. A failed lookup
+  // (session deleted/404 or a transient network error) self-heals by
+  // dropping the stale key and returns false so the caller falls through to
+  // its own create flow, whose own create call will surface any real error.
+  const isActiveCartVoteSession = async (token) => {
+    try {
+      const session = await voteApi.getSession(token);
+      if (session.status === 'ACTIVE' && session.voteMode === 'CART') {
+        setActiveVoteToken(token);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      localStorage.removeItem('myhive-trip-vote-session');
+      return false;
+    }
+  };
+
   // Guard against starting a second vote while one this browser started is
   // still ACTIVE — reads localStorage fresh (not the stale mount-time
   // storedVoteSession) since a vote may have been created/ended since mount.
@@ -325,18 +345,9 @@ function TripBuilder({ destinationId, destinationSlug }) {
     }
     setCheckingVote(true);
     try {
-      const session = await voteApi.getSession(token);
-      if (session.status === 'ACTIVE' && session.voteMode === 'CART') {
-        setActiveVoteToken(token);
-      } else {
+      if (!(await isActiveCartVoteSession(token))) {
         setShowVoteModal(true);
       }
-    } catch (e) {
-      // Session deleted/404 or a transient network error — self-heal by
-      // dropping the stale key and falling through to the create-modal,
-      // whose own create call will surface any real error.
-      localStorage.removeItem('myhive-trip-vote-session');
-      setShowVoteModal(true);
     } finally {
       setCheckingVote(false);
     }
@@ -385,11 +396,16 @@ function TripBuilder({ destinationId, destinationSlug }) {
     // A13 — vote_skipped: in the quiz flow, heading into booking without
     // having launched a vote is the moment the organizer skips voting
     // (launching a vote clears quizFlow, so quizMode implies "no vote yet").
+    // selected_count mirrors vote_launched's standalone.length — package
+    // items aren't individually selectable, so they must not skew the count.
+    // (standalone is declared later in this component body, but this handler
+    // only runs from the "Complete Booking" onClick, after render has already
+    // assigned it for this closure.)
     if (quizMode) {
       const skipKey = `myhive-vote-skipped-${tripId}`;
       if (!sessionStorage.getItem(skipKey)) {
         sessionStorage.setItem(skipKey, '1');
-        pushEvent('vote_skipped', { trip_id: tripId, selected_count: state.tripItems.length });
+        pushEvent('vote_skipped', { trip_id: tripId, selected_count: standalone.length });
       }
     }
 
@@ -530,6 +546,17 @@ function TripBuilder({ destinationId, destinationSlug }) {
       return;
     }
     setCreatingVote(true);
+
+    // Active-CART-vote guard, mirroring handleStartVoteClick: a CART vote
+    // this browser already has running must block quiz mode from launching a
+    // second concurrent vote. Leaves the quiz context intact so the button
+    // just becomes clickable again once the running vote ends.
+    const activeToken = localStorage.getItem('myhive-trip-vote-session');
+    if (activeToken && await isActiveCartVoteSession(activeToken)) {
+      setCreatingVote(false);
+      return;
+    }
+
     setVoteCreateError(null);
     try {
       const session = await voteApi.createSession({
@@ -554,10 +581,12 @@ function TripBuilder({ destinationId, destinationSlug }) {
         selected_count: standalone.length,
       });
       clearQuizFlow();
+      setQuizFlow(null);
       navigate(`/vote/${session.shareToken}/waiting`, {
         state: { managerToken: session.managerToken },
       });
     } catch (e) {
+      console.error('Vote creation error:', e);
       setVoteCreateError(e.message || 'Failed to create the vote. Please try again.');
       setCreatingVote(false);
     }

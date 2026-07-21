@@ -1147,6 +1147,10 @@ describe('quiz mode: one-click vote', () => {
     });
 
     test('createSession failure surfaces the error and keeps the quiz context', async () => {
+        // console.error now fires on this path (parity with handleContactSubmit) —
+        // expected noise for this failure-path test, silenced like other tests
+        // that deliberately exercise a logged error branch.
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         seedQuizFlow();
         voteApi.createSession.mockRejectedValue(new Error('Server exploded'));
         const user = userEvent.setup();
@@ -1158,6 +1162,8 @@ describe('quiz mode: one-click vote', () => {
         expect(pushEvent).not.toHaveBeenCalledWith('vote_launched', expect.anything());
         expect(sessionStorage.getItem('myhive-quiz-flow')).not.toBeNull();
         expect(screen.getByTestId('vote-location')).toHaveTextContent('/');
+
+        consoleErrorSpy.mockRestore();
     });
 
     test('outside quiz mode the button still opens the CART modal', async () => {
@@ -1168,6 +1174,33 @@ describe('quiz mode: one-click vote', () => {
 
         expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
+    });
+
+    test('an ACTIVE CART session blocks quiz-mode vote creation and shows the active-vote modal instead', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getSession.mockResolvedValue({ status: 'ACTIVE', voteMode: 'CART' });
+        seedQuizFlow();
+        const user = userEvent.setup();
+        renderQuizTripBuilder(buildTripState());
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
+        expect(voteApi.createSession).not.toHaveBeenCalled();
+        expect(sessionStorage.getItem('myhive-quiz-flow')).not.toBeNull();
+    });
+
+    test('a stored token whose session lookup fails self-heals: stale key dropped, quiz creation proceeds', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getSession.mockRejectedValue(new Error('Failed to fetch vote session'));
+        seedQuizFlow();
+        const user = userEvent.setup();
+        renderQuizTripBuilder(buildTripState());
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        await waitFor(() => expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull());
+        await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledTimes(1));
     });
 });
 
@@ -1234,6 +1267,30 @@ describe('quiz mode: vote_skipped on Complete Booking', () => {
 
         await waitFor(() => {
             expect(sessionStorage.getItem('myhive-quiz-flow')).toBeNull();
+        });
+    });
+
+    test('A13: selected_count counts standalone picks only — package items do not skew it', async () => {
+        seedQuizFlow();
+        const user = userEvent.setup();
+        const packageItem = {
+            id: 'p-a',
+            name: 'Pkg Act',
+            price: 50,
+            packageId: 'p-1',
+            packageName: 'Mayhem',
+            packageDiscountPct: 10,
+        };
+        renderTripBuilder(buildTripState({
+            tripId: 'ctx-trip-id',
+            tripItems: [activity1, packageItem],
+        }));
+
+        await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
+
+        expect(pushEvent).toHaveBeenCalledWith('vote_skipped', {
+            trip_id: 'ctx-trip-id',
+            selected_count: 1,
         });
     });
 });

@@ -13,9 +13,21 @@ export function readQuizFlow() {
 }
 
 export function writeQuizFlow(context) {
-  sessionStorage.setItem(QUIZ_FLOW_KEY, JSON.stringify(context));
+  try {
+    sessionStorage.setItem(QUIZ_FLOW_KEY, JSON.stringify(context));
+  } catch (e) {
+    // A blocked sessionStorage (quota exceeded, private-mode restrictions,
+    // storage disabled, etc.) must not crash the handoff effect — there is no
+    // app error boundary here, so the organizer would otherwise see a blank
+    // screen. Swallow it: they just land in a plain non-quiz Trip Builder.
+  }
 }
 
 export function clearQuizFlow() {
-  sessionStorage.removeItem(QUIZ_FLOW_KEY);
+  try {
+    sessionStorage.removeItem(QUIZ_FLOW_KEY);
+  } catch (e) {
+    // Same rationale as writeQuizFlow above — never let a storage failure
+    // propagate out of this handoff util.
+  }
 }

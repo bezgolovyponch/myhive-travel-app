@@ -35,3 +35,13 @@ test('read tolerates malformed JSON', () => {
   sessionStorage.setItem('myhive-quiz-flow', '{not json');
   expect(readQuizFlow()).toBeNull();
 });
+
+test('writeQuizFlow does not throw when storage is blocked', () => {
+  const setItemSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    throw new Error('quota');
+  });
+
+  expect(() => writeQuizFlow(context)).not.toThrow();
+
+  setItemSpy.mockRestore();
+});
