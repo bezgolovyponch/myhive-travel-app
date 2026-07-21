@@ -63,10 +63,12 @@ New `min_price` column, same snapshot pattern as `price` and `package_discount_p
 
 ## Emails
 
-`EmailService.buildDestinationViews` lists per-person line prices. When a line's floor
-binds (`price × travelers < minPrice`), append a "Group minimum €X applies" note to that
-line so the email math visibly reconciles with the charged total. Package group subtotals
-in the email use the floored lines (before discount), mirroring the cart.
+`EmailService.buildDestinationViews` lists per-person line prices and per-person package
+subtotals; those stay exactly as they are (the floor is a per-group concept and cannot be
+applied to per-person numbers). The only change: when a line's floor binds
+(`price × numberOfTravelers < minPrice`, travelers taken from the `TripExportRequest`),
+append a "Group minimum €X applies" note to that line so the reader understands why the
+charged total exceeds the naive per-person math.
 
 ## Frontend — Cart Math
 
