@@ -9,6 +9,21 @@ function priceOf(item) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// Same hardening as priceOf: old localStorage carts have no minPrice.
+function minPriceOf(item) {
+    const n = Number(item.minPrice);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// The group-minimum floor: a line never totals below the activity's minPrice.
+export function lineTotal(item, travelers) {
+    return Math.max(priceOf(item) * travelers, minPriceOf(item));
+}
+
+export function groupMinApplied(item, travelers) {
+    return lineTotal(item, travelers) > priceOf(item) * travelers;
+}
+
 export function groupTripItems(tripItems) {
     const standalone = tripItems.filter(i => !i.packageId);
     const packageGroups = tripItems.reduce((acc, item) => {
@@ -34,10 +49,11 @@ export function computeTripTotal(tripItems, travelers) {
     const {standalone, groups} = groupTripItems(tripItems);
     let total = 0;
     standalone.forEach(it => {
-        total += priceOf(it) * travelers;
+        total += lineTotal(it, travelers);
     });
     groups.forEach(g => {
-        const sub = g.items.reduce((s, it) => s + priceOf(it) * travelers, 0);
+        // Floor each line first, then discount the group sum (floor-before-discount).
+        const sub = g.items.reduce((s, it) => s + lineTotal(it, travelers), 0);
         total += sub * (100 - g.packageDiscountPct) / 100;
     });
     return Math.round(total * 100) / 100;

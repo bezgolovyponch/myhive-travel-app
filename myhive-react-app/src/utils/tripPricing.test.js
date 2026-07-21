@@ -1,4 +1,4 @@
-import {computeTripTotal, groupTripItems} from './tripPricing';
+import {computeTripTotal, groupTripItems, lineTotal, groupMinApplied} from './tripPricing';
 
 describe('groupTripItems', () => {
     test('splits standalone items from package groups', () => {
@@ -13,6 +13,45 @@ describe('groupTripItems', () => {
         expect(groups[0].packageName).toBe('Combo');
         expect(groups[0].packageDiscountPct).toBe(10);
         expect(groups[0].items).toHaveLength(2);
+    });
+});
+
+describe('lineTotal', () => {
+    test('floors a line to the group minimum', () => {
+        expect(lineTotal({id: 'a1', price: 50, minPrice: 300}, 4)).toBe(300);
+    });
+
+    test('uses regular math once travelers clear the minimum', () => {
+        expect(lineTotal({id: 'a1', price: 50, minPrice: 300}, 7)).toBe(350);
+    });
+
+    test('missing minPrice keeps legacy behavior (old localStorage carts)', () => {
+        expect(lineTotal({id: 'a1', price: 50}, 2)).toBe(100);
+    });
+});
+
+describe('groupMinApplied', () => {
+    test('true only while the floor binds', () => {
+        expect(groupMinApplied({id: 'a1', price: 50, minPrice: 300}, 4)).toBe(true);
+        expect(groupMinApplied({id: 'a1', price: 50, minPrice: 300}, 7)).toBe(false);
+        expect(groupMinApplied({id: 'a1', price: 50}, 2)).toBe(false);
+    });
+});
+
+describe('computeTripTotal with group minimums', () => {
+    test('floors a standalone line to the minimum', () => {
+        const expectedTotal = 300;
+        expect(computeTripTotal([{id: 'a1', price: 50, minPrice: 300}], 4)).toBe(expectedTotal);
+    });
+
+    test('floors package lines before the discount', () => {
+        const items = [
+            {id: 'a1', price: 50, minPrice: 300, packageId: 'p1', packageDiscountPct: 10},
+            {id: 'a2', price: 40, packageId: 'p1', packageDiscountPct: 10},
+        ];
+        // max(2×50, 300) + 2×40 = 380, minus 10% = 342
+        const expectedTotal = 342;
+        expect(computeTripTotal(items, 2)).toBe(expectedTotal);
     });
 });
 
