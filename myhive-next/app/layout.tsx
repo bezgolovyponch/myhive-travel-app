@@ -82,6 +82,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             style={{ display: 'none', visibility: 'hidden' }}
           />
         </noscript>
+        {/* Until Ф1 SSR lands, every page is the client-only legacy SPA */}
+        <noscript>You need to enable JavaScript to run this app.</noscript>
         {children}
       </body>
     </html>

@@ -4,7 +4,10 @@ import type { NextConfig } from 'next';
 // root (http://localhost:8080), prod behind the container that strips /api
 // (https://myhive-backend.onrender.com/api). The browser only ever talks
 // same-origin /api/* — no public env var carries the backend URL.
+// Read at BUILD time: the rewrite destination is serialized into the build
+// output, so changing BACKEND_URL requires a rebuild, not just a restart.
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080';
+console.log(`[next.config] /api rewrite target: ${BACKEND_URL}`);
 
 const nextConfig: NextConfig = {
   async rewrites() {
