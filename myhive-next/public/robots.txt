@@ -1,0 +1,5 @@
+# TEMPORARY (Ф0): this service runs on a preview URL only — block indexing so
+# the preview never competes with the live CRA site. Ф1/Ф2 replace this file
+# with app/robots.ts (spec §9 Ф2: explicit disallow list /admin/ /vote/ /payment/).
+User-agent: *
+Disallow: /
