@@ -9,10 +9,10 @@ export const MESSENGER_URL = 'https://m.me/trivlu';
 // default destination is used. Flip to true when new destinations open.
 export const DESTINATION_PICKER_ENABLED = false;
 
-// Online payment temporarily disabled — hides the customer-facing deposit CTAs
-// (Trip Builder success screen + vote result page). Backend /payments endpoints
-// stay live. Flip back to true to restore online payment.
-export const PAYMENTS_ENABLED = false;
+// Kill-switch for customer-facing online payment — gates the deposit CTAs
+// (Trip Builder success screen + vote result page) and the success-screen
+// Turnstile widget. Backend /payments endpoints stay live either way.
+export const PAYMENTS_ENABLED = true;
 
 // Hard fallback when the host carries no destination subdomain (apex, www,
 // localhost, *.onrender.com).

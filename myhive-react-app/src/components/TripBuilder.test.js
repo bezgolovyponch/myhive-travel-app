@@ -701,21 +701,30 @@ describe('inline booking form in the browse column', () => {
 // Trip Builder 30% deposit — offered on the success screen after the lead submit
 // ---------------------------------------------------------------------------
 
-test('deposit: the success screen hides the 30% deposit CTA while payment is disabled', async () => {
+test('deposit: the success screen offers a Turnstile-gated 30% deposit for the created booking', async () => {
     const user = userEvent.setup();
+    paymentApi.createBookingDepositSession.mockResolvedValue({ bookingId: 'booking-123', checkoutUrl: 'https://checkout/cs_dep' });
+    const assign = jest.fn();
+    Object.defineProperty(window, 'location', { configurable: true, value: { assign, href: '', hostname: 'localhost' } });
 
     renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }), '/');
 
     await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
     await fillAndSubmitContactForm(user);
 
-    // The lead is still created on submit...
+    // The lead is created first; its id anchors the deposit checkout.
     await waitFor(() => expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1));
 
-    // ...but online payment is temporarily disabled, so the success screen offers no deposit CTA.
-    expect(await screen.findByText(/What happens next/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: /pay 30% deposit/i})).not.toBeInTheDocument();
-    expect(paymentApi.createBookingDepositSession).not.toHaveBeenCalled();
+    const depositBtn = await screen.findByRole('button', {name: /pay 30% deposit/i});
+    expect(depositBtn).toBeDisabled(); // no captcha yet
+
+    act(() => { turnstileCallback('tok-xyz'); });
+    expect(depositBtn).toBeEnabled();
+
+    await user.click(depositBtn);
+
+    await waitFor(() => expect(paymentApi.createBookingDepositSession).toHaveBeenCalledWith('booking-123', 'tok-xyz'));
+    expect(assign).toHaveBeenCalledWith('https://checkout/cs_dep');
 });
 
 // ---------------------------------------------------------------------------

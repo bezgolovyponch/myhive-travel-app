@@ -5,6 +5,7 @@ import {paymentApi} from '../services/paymentApi';
 
 jest.mock('../services/paymentApi', () => ({
     paymentApi: {
+        createDepositSession: jest.fn(),
         createConsultationLead: jest.fn(),
     },
 }));
@@ -40,16 +41,21 @@ beforeAll(() => {
 
 beforeEach(() => {
     mockAssign.mockReset();
+    paymentApi.createDepositSession.mockResolvedValue({bookingId: 'b1', checkoutUrl: 'https://checkout/cs_1'});
     paymentApi.createConsultationLead.mockResolvedValue({bookingId: 'b1', message: 'ok'});
 });
 
-// Online payment is temporarily disabled (PAYMENTS_ENABLED=false), so the deposit
-// CTA must not render — only the consultant action remains.
-test('does not render the deposit CTA while payment is disabled', () => {
+test('deposit flow starts a checkout session and redirects', async () => {
+    const user = userEvent.setup();
     renderActions();
 
-    expect(screen.queryByRole('button', {name: /Book & pay 30% prepayment/i})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: /Contact our consultant/i})).toBeInTheDocument();
+    await user.click(screen.getByRole('button', {name: /Book & pay 30% prepayment/i}));
+    await fillContact(user);
+    await user.click(screen.getByRole('button', {name: /Submit Booking/i}));
+
+    expect(paymentApi.createDepositSession).toHaveBeenCalledWith(
+        'share-1', 'mgr-1', expect.objectContaining({userEmail: 'jane@example.com'}));
+    expect(mockAssign).toHaveBeenCalledWith('https://checkout/cs_1');
 });
 
 test('consultant flow creates a lead and shows confirmation', async () => {
