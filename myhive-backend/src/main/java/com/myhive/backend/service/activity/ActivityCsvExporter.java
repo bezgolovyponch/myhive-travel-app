@@ -24,7 +24,7 @@ public class ActivityCsvExporter {
 
     static final String[] HEADER = {
             "id", "slug", "destination_slug", "name", "description",
-            "price", "duration", "category_slugs", "image_url", "includes",
+            "price", "min_price", "duration", "category_slugs", "image_url", "includes",
             "featured_weight"
     };
 
@@ -68,6 +68,7 @@ public class ActivityCsvExporter {
                 sanitize(nullSafe(a.getName())),
                 sanitize(nullSafe(a.getDescription())),
                 formatPrice(a.getPrice()),
+                formatPrice(a.getMinPrice()),
                 a.getDuration() == null ? "" : a.getDuration().toString(),
                 joinCategorySlugs(a),
                 nullSafe(a.getImageUrl()),

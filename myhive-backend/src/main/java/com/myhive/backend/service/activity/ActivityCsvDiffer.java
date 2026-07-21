@@ -108,6 +108,16 @@ final class ActivityCsvDiffer {
             changes.put("featured_weight", new ActivityImportPreviewDTO.FieldChange(
                     db.getFeaturedWeight(), v.featuredWeight()));
         }
+        // Optional column: only diff when the CSV provided a value (column present).
+        // Null and 0 both mean "no minimum" — normalize before comparing so
+        // export->import roundtrips produce no phantom diffs.
+        if (v.minPrice() != null) {
+            BigDecimal dbMin = normalizeMinPrice(db.getMinPrice());
+            BigDecimal csvMin = normalizeMinPrice(v.minPrice());
+            if (dbMin.compareTo(csvMin) != 0) {
+                changes.put("min_price", new ActivityImportPreviewDTO.FieldChange(dbMin, csvMin));
+            }
+        }
         if (!Objects.equals(nullToEmpty(db.getIncludes()), v.includes())) {
             changes.put("includes", new ActivityImportPreviewDTO.FieldChange(nullToEmpty(db.getIncludes()), v.includes()));
         }
@@ -125,5 +135,11 @@ final class ActivityCsvDiffer {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    /** Null and 0 both mean "no minimum" — normalize so they never diff against each other. */
+    private BigDecimal normalizeMinPrice(BigDecimal value) {
+        BigDecimal base = value == null ? BigDecimal.ZERO : value;
+        return base.setScale(2, RoundingMode.HALF_UP);
     }
 }

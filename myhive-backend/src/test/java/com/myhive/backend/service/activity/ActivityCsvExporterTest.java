@@ -48,7 +48,21 @@ class ActivityCsvExporterTest {
         assertThat(csv).startsWith("\uFEFF");
         String firstLine = csv.substring(1).split("\r?\n", 2)[0];
         assertThat(firstLine).isEqualTo(
-                "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes,featured_weight");
+                "id,slug,destination_slug,name,description,price,min_price,duration,category_slugs,image_url,includes,featured_weight");
+    }
+
+    @Test
+    void export_writesMinPriceAndBlankWhenNull() {
+        Activity withMin = TestDataFactory.activity(destination);
+        withMin.setMinPrice(new BigDecimal("300.00"));
+        Activity withoutMin = TestDataFactory.activity(destination);
+        when(activityRepository.findAll()).thenReturn(List.of(withMin, withoutMin));
+
+        String csv = exporter.exportAll();
+
+        String[] lines = csv.split("\r?\n");
+        assertThat(lines[1]).contains(",300.00,");
+        assertThat(lines[2]).doesNotContain("300.00");
     }
 
     @Test
@@ -116,7 +130,7 @@ class ActivityCsvExporterTest {
         // duration column must be empty (two consecutive commas around it)
         String dataLine = csv.split("\r?\n")[1];
         String[] columns = dataLine.split(",", -1);
-        assertThat(columns[6]).isEmpty();
+        assertThat(columns[7]).isEmpty();
     }
 
     @Test

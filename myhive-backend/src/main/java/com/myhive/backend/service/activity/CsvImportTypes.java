@@ -41,6 +41,9 @@ record ValidatedRow(
         // Optional mutable field: null means "column absent from CSV; do not update".
         // Non-null means "update featured_weight to this value" (0 when cell is blank).
         Integer featuredWeight,
+        // Optional mutable field: null means "column absent from CSV; do not update".
+        // BigDecimal.ZERO means "blank cell -> clear the minimum". Otherwise the new value.
+        BigDecimal minPrice,
         // read-only fields captured for warning comparison:
         String csvSlug,
         String csvDestinationSlug,

@@ -31,7 +31,7 @@ final class ActivityCsvParser {
             "id", "slug", "destination_slug", "name", "description",
             "price", "duration", "category_slugs", "image_url", "includes"
     };
-    static final Set<String> OPTIONAL_COLUMNS = Set.of("featured_weight");
+    static final Set<String> OPTIONAL_COLUMNS = Set.of("featured_weight", "min_price");
 
     record Result(
             List<RawRow> rows,

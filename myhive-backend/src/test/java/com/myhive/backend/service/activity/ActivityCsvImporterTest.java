@@ -612,6 +612,126 @@ class ActivityCsvImporterTest {
         assertThat(existing.getFeaturedWeight()).isZero();
     }
 
+    private String headerWithMinPrice() {
+        return "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes,min_price\n";
+    }
+
+    private String rowWithMinPrice(String id, String slug, String destSlug, String name,
+                                   String desc, String price, String duration,
+                                   String categorySlugs, String imageUrl, String includes,
+                                   String minPrice) {
+        return id + "," + slug + "," + destSlug + ",\"" + name + "\",\"" + desc + "\",\""
+                + price + "\"," + duration + "," + categorySlugs + ","
+                + imageUrl + ",\"" + includes + "\"," + minPrice + "\n";
+    }
+
+    @Test
+    void minPrice_updatedWhenColumnPresent() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        existing.setMinPrice(null);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        BigDecimal expectedMinPrice = new BigDecimal("250.00");
+        String csv = headerWithMinPrice() + rowWithMinPrice(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                existing.getName(), existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes(),
+                expectedMinPrice.toPlainString());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.rowsToUpdate()).isEqualTo(1);
+        ActivityImportPreviewDTO.RowDiff diff = preview.changes().getFirst();
+        assertThat(diff.fieldChanges()).containsKey("min_price");
+        assertThat(diff.fieldChanges().get("min_price").newValue()).isEqualTo(expectedMinPrice);
+
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getMinPrice()).isEqualByComparingTo(expectedMinPrice);
+    }
+
+    @Test
+    void minPrice_blankCellClearsMinimum() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        BigDecimal expectedOldMinPrice = new BigDecimal("300.00");
+        existing.setMinPrice(expectedOldMinPrice);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String csv = headerWithMinPrice() + rowWithMinPrice(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                existing.getName(), existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes(),
+                "");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.rowsToUpdate()).isEqualTo(1);
+        ActivityImportPreviewDTO.RowDiff diff = preview.changes().getFirst();
+        assertThat(diff.fieldChanges()).containsKey("min_price");
+        assertThat(diff.fieldChanges().get("min_price").oldValue()).isEqualTo(expectedOldMinPrice);
+        assertThat(diff.fieldChanges().get("min_price").newValue()).isEqualTo(new BigDecimal("0.00"));
+
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getMinPrice()).isNull();
+    }
+
+    @Test
+    void minPrice_absentColumnLeavesValueUntouched() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        BigDecimal expectedMinPrice = new BigDecimal("300.00");
+        existing.setMinPrice(expectedMinPrice);
+        when(activityRepository.findAllById(List.of(existing.getId())))
+                .thenReturn(List.of(existing));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Legacy CSV: header omits min_price entirely. Use a row change (name)
+        // so apply() runs and we can verify minPrice is preserved.
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                "Renamed", existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.changes().getFirst().fieldChanges()).doesNotContainKey("min_price");
+
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getMinPrice()).isEqualByComparingTo(expectedMinPrice);
+    }
+
+    @Test
+    void minPrice_negative_isRejected() {
+        UUID id = UUID.randomUUID();
+        String csv = headerWithMinPrice() + rowWithMinPrice(
+                id.toString(), "", "", "N", "", "1.00", "", "", "", "", "-5");
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .contains(ImportErrorCode.INVALID_DECIMAL);
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::field)
+                .contains("min_price");
+    }
+
     @Test
     void apply_onlyChangedRowsAreWritten_unchangedRowsAreSkipped() {
         Destination dest = TestDataFactory.destination();

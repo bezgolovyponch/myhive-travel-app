@@ -50,6 +50,7 @@ final class ActivityCsvRowValidator {
             Integer duration = parseDuration(raw, errors);
             List<String> categorySlugs = parseCategories(raw, errors);
             Integer featuredWeight = parseFeaturedWeight(raw, errors);
+            BigDecimal minPrice = parseMinPrice(raw, errors);
 
             if (errors.size() == errorsAtStart) {
                 validated.add(new ValidatedRow(
@@ -57,6 +58,7 @@ final class ActivityCsvRowValidator {
                         id, name, description, price, duration,
                         categorySlugs, includes,
                         featuredWeight,
+                        minPrice,
                         raw.get("slug"),
                         raw.get("destination_slug"),
                         raw.get("image_url")
@@ -213,6 +215,46 @@ final class ActivityCsvRowValidator {
             return null;
         }
         return featuredWeight;
+    }
+
+    /**
+     * Optional column (same convention as featured_weight): null = column absent -> do not
+     * update; BigDecimal.ZERO = blank cell -> clear the minimum; otherwise the parsed value.
+     */
+    private BigDecimal parseMinPrice(RawRow raw, List<ActivityImportPreviewDTO.RowError> errors) {
+        if (!raw.hasColumn("min_price")) {
+            return null;
+        }
+        String rawValue = raw.get("min_price");
+        if (rawValue.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        if (rawValue.contains(",")) {
+            errors.add(new ActivityImportPreviewDTO.RowError(
+                    raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                    "min_price must use '.' as decimal separator: " + rawValue, "min_price"));
+            return null;
+        }
+        BigDecimal minPrice;
+        try {
+            minPrice = new BigDecimal(rawValue);
+        } catch (NumberFormatException e) {
+            errors.add(new ActivityImportPreviewDTO.RowError(
+                    raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                    "min_price is not a valid decimal: " + rawValue, "min_price"));
+            return null;
+        }
+        if (minPrice.scale() > 2) {
+            errors.add(new ActivityImportPreviewDTO.RowError(
+                    raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                    "min_price has more than 2 decimal places: " + rawValue, "min_price"));
+        }
+        if (minPrice.signum() < 0) {
+            errors.add(new ActivityImportPreviewDTO.RowError(
+                    raw.csvRowNumber(), ImportErrorCode.INVALID_DECIMAL,
+                    "min_price must be non-negative: " + rawValue, "min_price"));
+        }
+        return minPrice;
     }
 
     private List<String> parseCategories(RawRow raw,

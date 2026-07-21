@@ -152,6 +152,10 @@ public class ActivityCsvImporter {
             if (v.featuredWeight() != null) {
                 activity.setFeaturedWeight(v.featuredWeight());
             }
+            // Optional column: null means "column absent from CSV — do not touch".
+            if (v.minPrice() != null) {
+                activity.setMinPrice(v.minPrice().signum() == 0 ? null : v.minPrice());
+            }
             activityRepository.save(activity);
             updated++;
         }
