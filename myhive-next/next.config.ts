@@ -1,10 +1,24 @@
 import type { NextConfig } from 'next';
 
+// Server-only backend base, INCLUDING its path prefix: local Spring serves at
+// root (http://localhost:8080), prod behind the container that strips /api
+// (https://myhive-backend.onrender.com/api). The browser only ever talks
+// same-origin /api/* — no public env var carries the backend URL.
+const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080';
+
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${BACKEND_URL}/:path*`,
+      },
+    ];
+  },
   // Legacy CRA code reads process.env.REACT_APP_* (inlined at build). Bridge the
   // Next-side env contract (NEXT_PUBLIC_* for browser-visible values, spec §8)
   // onto those names so legacy-src is never edited. REACT_APP_API_URL is pinned
-  // to same-origin '/api' — served by the rewrite added in Task 4.
+  // to same-origin '/api' — served by the rewrite above.
   env: {
     REACT_APP_API_URL: '/api',
     REACT_APP_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? '',
