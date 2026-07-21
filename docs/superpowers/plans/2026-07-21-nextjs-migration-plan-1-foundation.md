@@ -674,7 +674,7 @@ On the **backend** Render service set `CORS_ALLOWED_ORIGINS`. ⚠️ The env var
 CORS_ALLOWED_ORIGINS=https://trivlu.com,https://www.trivlu.com,https://*.trivlu.com,https://myhive-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000,https://myhive-next.onrender.com
 ```
 
-Note: with the `/api` rewrite, browser CORS barely applies (calls are same-origin, proxied by Next) — but `FrontendUrlResolver` uses this same list to honor the `Origin` header for **Stripe return URLs**. Without the preview origin listed, a payment started on preview would return the user to prod CRA.
+⚠️ This step is a **hard prerequisite of Task 8**, not a nicety: browsers attach `Origin` to same-origin POST/PUT/DELETE fetches, the Next rewrite forwards it, and Spring's `CorsFilter` (on `/**`) rejects requests whose `Origin` isn't allow-listed with 403 "Invalid CORS request". Until this list includes the preview origin, **every write from the preview fails** — vote creation, contact form, admin saves, payments (GETs still work). Additionally, `FrontendUrlResolver` uses this same list to honor `Origin` for **Stripe return URLs** — without it, a payment started on preview would return the user to prod CRA.
 
 - [ ] **Step 4: Auth0 application settings** — add to the existing SPA application:
 - Allowed Callback URLs: `https://myhive-next.onrender.com/admin`
@@ -712,5 +712,6 @@ Trigger deploy, then:
 ## Out of scope for this plan (later plans)
 
 - **Plan 2 (Ф1):** public pages as Server Components on current URLs — per-page metadata/canonical/OG, JSON-LD (Organization/Article/BreadcrumbList), breadcrumbs, `notFound()` 404s incl. the city-mismatch guard, `app/sitemap.ts` + `app/robots.ts`, Header/Footer port, ISR.
-- **Plan 3 (Ф2):** cutover — DNS, Cloudflare robots.txt un-hijack, canonical host, GSC verification + sitemap submission, live-response acceptance checks.
+- **Plan 3 (Ф2):** cutover — DNS, Cloudflare robots.txt un-hijack, canonical host, GSC verification + sitemap submission, live-response acceptance checks. Two "preview config must not leak into prod" items recorded during Ф0 review: set `NEXT_PUBLIC_SITE_URL=https://www.trivlu.com` in the production env (the env var overrides the correct code fallback), and replace the disallow-all `public/robots.txt` with `app/robots.ts`.
+- **Follow-ups from Ф0 final review (non-blocking):** guard against empty `NEXT_PUBLIC_OIDC_*` at production build (warn/throw in `next.config.ts`); set `outputFileTracingRoot` to silence the monorepo lockfile-inference warning; re-run `npm audit` before Ф2 (2 moderate transitive advisories); verify the rewrite against a locally running Spring backend (root-prefix path) when a JDK is available; consider GTM `beforeInteractive` if analytics timing parity matters at cutover; consider self-hosting the phosphor-icons CSS (unpkg is a runtime SPOF) in Ф1.
 - **Ф3/Ф4** per spec §9.
