@@ -431,3 +431,5 @@ UPDATE activities SET featured = TRUE WHERE slug IN (
 UPDATE activities SET min_price = 600.00 WHERE slug = 'sunset-boat-party';
 UPDATE activities SET min_price = 200.00 WHERE slug = 'jet-ski-adventure';
 UPDATE activities SET min_price = 400.00 WHERE slug = 'vltava-river-cruise';
+UPDATE activities SET min_price = 300.00 WHERE slug = 'beer-tasting-experience';
+UPDATE activities SET min_price = 150.00 WHERE slug = 'prague-castle-tour';
