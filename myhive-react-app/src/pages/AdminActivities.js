@@ -15,6 +15,7 @@ const EMPTY_FORM = {
     slug: '',
     description: '',
     price: '',
+    minPrice: '',
     duration: '',
     featuredWeight: 0,
     featured: false,
@@ -30,6 +31,7 @@ const COLUMNS = [
     {key: 'destination', label: 'Destination'},
     {key: 'categories', label: 'Categories'},
     {key: 'price', label: 'Price'},
+    {key: 'minPrice', label: 'Min price'},
     {key: 'duration', label: 'Duration'},
     {key: 'featuredWeight', label: 'Weight'},
     {key: 'featured', label: 'Featured'},
@@ -72,6 +74,9 @@ function AdminActivities() {
             if (destinationId) errors.destinationId = destinationId;
             const price = required(form.price, 'Price is required.');
             if (price) errors.price = price;
+            if (form.minPrice !== '' && Number(form.minPrice) < 0) {
+                errors.minPrice = 'Min price must be 0 or more.';
+            }
             const slug = slugFormat(form.slug);
             if (slug) errors.slug = slug;
             return errors;
@@ -81,6 +86,7 @@ function AdminActivities() {
             slug: a.slug || '',
             description: a.description || '',
             price: a.price ?? '',
+            minPrice: a.minPrice ?? '',
             duration: a.duration ?? '',
             featuredWeight: a.featuredWeight ?? 0,
             featured: a.featured ?? false,
@@ -92,6 +98,7 @@ function AdminActivities() {
         buildPayload: (form) => ({
             ...form,
             price: form.price !== '' ? Number(form.price) : null,
+            minPrice: form.minPrice !== '' ? Number(form.minPrice) : null,
             duration: form.duration !== '' ? Number(form.duration) : null,
             featuredWeight: form.featuredWeight !== '' && form.featuredWeight !== null
                 ? Number(form.featuredWeight) : 0,
@@ -200,6 +207,7 @@ function AdminActivities() {
                                     ) : '—'}
                                 </td>
                                 <td className="small fw-semibold">{formatAmount(activity.price)}</td>
+                                <td className="small">{Number(activity.minPrice) > 0 ? formatAmount(activity.minPrice) : '—'}</td>
                                 <td className="small">
                                     {activity.duration ? `${activity.duration} min` : '—'}
                                 </td>
@@ -297,6 +305,21 @@ function AdminActivities() {
                                     onChange={e => setForm({...form, duration: e.target.value})}
                                     placeholder="60"
                                 />
+                            </Col>
+                        </Row>
+                        <Row className="g-3 mb-3">
+                            <Col sm={6}>
+                                <Form.Label className="small fw-semibold text-white">Minimum price per group (€)</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={form.minPrice}
+                                    onChange={e => updateField('minPrice', e.target.value)}
+                                    isInvalid={!!fieldErrors.minPrice}
+                                    placeholder="No minimum"
+                                />
+                                <Form.Control.Feedback type="invalid">{fieldErrors.minPrice}</Form.Control.Feedback>
                             </Col>
                         </Row>
                         <Form.Group className="mb-3">
