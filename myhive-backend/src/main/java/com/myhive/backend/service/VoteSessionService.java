@@ -101,10 +101,11 @@ public class VoteSessionService {
                 ? List.of() : request.getQuizResponses();
         validateQuizResponses(destination, quizResponses);
 
-        List<UUID> organizerCats = computeOrganizerCategories(destination, quizResponses);
-
-        Map<UUID, Activity> activitiesById = loadAndValidateCuratedActivities(
-                destination, organizerCats, request.getActivityIds());
+        // The ballot is the organizer's Trip Builder cart, which may hold any
+        // activity of the destination — not only quiz-matched ones — so this
+        // validates destination membership only, same as the CART flow.
+        Map<UUID, Activity> activitiesById =
+                loadAndValidateDestinationActivities(destination, request.getActivityIds());
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget());
@@ -200,36 +201,6 @@ public class VoteSessionService {
         if (!destinationQuiz.isEmpty() && seenQuestions.size() != destinationQuestionIds.size()) {
             throw new BadRequestException("quizResponses is incomplete — every destination question must be answered");
         }
-    }
-
-    private List<UUID> computeOrganizerCategories(Destination destination, List<QuizResponseDTO> responses) {
-        List<UUID> answerIds = responses.stream().map(QuizResponseDTO::getAnswerId).toList();
-        List<UUID> snapshot = quizService.snapshot(answerIds);
-        if (!snapshot.isEmpty()) {
-            return snapshot;
-        }
-        return destination.getCategories().stream()
-                .filter(Category::isVotable)
-                .map(Category::getId)
-                .toList();
-    }
-
-    private Map<UUID, Activity> loadAndValidateCuratedActivities(Destination destination,
-                                                                 List<UUID> organizerCats,
-                                                                 List<UUID> activityIds) {
-        Set<UUID> organizerCatSet = new HashSet<>(organizerCats);
-        Map<UUID, Activity> byId = loadAndValidateDestinationActivities(destination, activityIds);
-        for (UUID id : activityIds) {
-            Activity activity = byId.get(id);
-            boolean hasEligibleCategory = activity.getCategories().stream()
-                    .map(Category::getId)
-                    .anyMatch(organizerCatSet::contains);
-            if (!hasEligibleCategory) {
-                throw new BadRequestException(
-                        "activityId " + id + " is not in any of the organizer's quiz categories");
-            }
-        }
-        return byId;
     }
 
     private Map<UUID, Activity> loadAndValidateDestinationActivities(Destination destination,

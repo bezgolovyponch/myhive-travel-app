@@ -139,12 +139,14 @@ class VoteSessionCreateSessionTest {
     }
 
     @Test
-    void createSession_rejectsActivityNotInOrganizerCategories_400() {
+    void createSession_acceptsActivityOutsideOrganizerQuizCategories() {
+        String expectedName = "Spa";
+
         Destination destination = newDestination("Prague");
         Category nightlife = newCategory("Nightlife", "nightlife");
         Category chillout = newCategory("Chillout", "chillout");
         attachCategory(destination, nightlife, chillout);
-        Activity inChillout = newActivity(destination, "Spa", new BigDecimal("60"), Set.of(chillout));
+        Activity inChillout = newActivity(destination, expectedName, new BigDecimal("60"), Set.of(chillout));
 
         QuizQuestion question = newQuestion(destination, "Vibe?");
         QuizAnswer answer = newAnswer(question, "Wild", nightlife, 2);
@@ -153,8 +155,15 @@ class VoteSessionCreateSessionTest {
         request.setActivityIds(List.of(inChillout.getId()));
         request.setQuizResponses(List.of(new QuizResponseDTO(question.getId(), answer.getId())));
 
-        assertThatThrownBy(() -> voteSessionService.createSession(request))
-                .isInstanceOf(BadRequestException.class);
+        // The ballot now comes from the Trip Builder cart, which may hold any
+        // activity of the destination — not only quiz-matched ones.
+        VoteSessionResponse response = voteSessionService.createSession(request);
+
+        VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        List<VoteSessionActivity> curated =
+                voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
+        assertThat(curated).hasSize(1);
+        assertThat(curated.get(0).getActivityName()).isEqualTo(expectedName);
     }
 
     @Test
