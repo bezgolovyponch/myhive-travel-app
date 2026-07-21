@@ -719,6 +719,33 @@ test('deposit: the success screen hides the 30% deposit CTA while payment is dis
 });
 
 // ---------------------------------------------------------------------------
+// Group minimum — floored itinerary line display
+// ---------------------------------------------------------------------------
+
+describe('itinerary line price label', () => {
+    test('floored line shows the group minimum total with a marker', async () => {
+        renderTripBuilder(buildTripState({
+            tripItems: [{id: 'a1', name: 'Boat Rental', price: 50, minPrice: 300, destinationSlug: 'tenerife'}],
+            tripTravelers: 4,
+            tripBuilderModalOpen: true,
+        }));
+
+        // 4 × €50 = €200 -> floored to €300
+        expect(await screen.findByText('€50 × 4 = €300 (group min)')).toBeInTheDocument();
+    });
+
+    test('regular line keeps the per-person math', async () => {
+        renderTripBuilder(buildTripState({
+            tripItems: [{id: 'a1', name: 'Bar Crawl', price: 40, destinationSlug: 'tenerife'}],
+            tripTravelers: 2,
+            tripBuilderModalOpen: true,
+        }));
+
+        expect(await screen.findByText('€40 × 2 = €80')).toBeInTheDocument();
+    });
+});
+
+// ---------------------------------------------------------------------------
 // "Let your mates vote" button — visibility + enabled/disabled state
 // ---------------------------------------------------------------------------
 

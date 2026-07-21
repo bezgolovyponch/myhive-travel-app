@@ -4,7 +4,7 @@ import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
-import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
+import {computeTripTotal, groupMinApplied, groupTripItems, lineTotal} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
@@ -202,6 +202,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
                         id: row.activityId,
                         name: row.name,
                         price: row.price,
+                        minPrice: row.minPrice,
                         slug: row.slug,
                         destinationSlug: row.destinationSlug,
                         imageUrl: row.imageUrl,
@@ -439,6 +440,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
               : 'General',
           description: item.description || '',
           price: item.price || 0,
+          minPrice: item.minPrice ?? null,
           duration: item.duration || 0,
           timeOfDay: item.timeOfDay || 'Any',
           packageId: item.packageId || null,
@@ -512,6 +514,17 @@ function TripBuilder({ destinationId, destinationSlug }) {
   };
 
   const travelers = state.tripTravelers || 1;
+
+  // One price label for both standalone and package lines; shows the floored
+  // total with a marker whenever the group minimum binds — including travelers = 1.
+  const itemPriceLabel = (item) => {
+    if (groupMinApplied(item, travelers)) {
+      return `${formatPrice(item.price)} × ${travelers} = ${formatPrice(lineTotal(item, travelers))} (group min)`;
+    }
+    return travelers > 1
+        ? `${formatPrice(item.price)} × ${travelers} = ${formatPrice(item.price * travelers)}`
+        : formatPricePerPerson(item.price);
+  };
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
   // Display-only ranking for a completed cart vote — ties/unballoted items keep
@@ -657,9 +670,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
                         <div className="itinerary-item-content">
                           <div className="itinerary-item-title">{item.name}</div>
                           <div className="itinerary-item-price">
-                            {travelers > 1
-                                ? `${formatPrice(item.price)} × ${travelers} = ${formatPrice(item.price * travelers)}`
-                                : formatPricePerPerson(item.price)}
+                            {itemPriceLabel(item)}
                           </div>
                         </div>
                       </div>
@@ -674,9 +685,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
                   <div className="itinerary-item-content">
                     <div className="itinerary-item-title">{item.name}</div>
                     <div className="itinerary-item-price">
-                      {travelers > 1
-                          ? `${formatPrice(item.price)} × ${travelers} = ${formatPrice(item.price * travelers)}`
-                          : formatPricePerPerson(item.price)}
+                      {itemPriceLabel(item)}
                     </div>
                     {voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
