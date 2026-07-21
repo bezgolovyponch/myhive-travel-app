@@ -66,6 +66,7 @@ public class BookingService {
             bookingItem.setActivityName(activity.getName());
             bookingItem.setDestinationName(activity.getDestination().getName());
             bookingItem.setPrice(activity.getPrice());
+            bookingItem.setMinPrice(activity.getMinPrice());
             bookingItem.setQuantity(item.getQuantity());
 
             items.add(bookingItem);

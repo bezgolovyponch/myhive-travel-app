@@ -93,6 +93,32 @@ class BookingServiceTest {
     }
 
     @Test
+    void createBooking_withGroupMinimum_flooredTotalAndSnapshot() {
+        // 2 travelers x EUR50.00 = EUR100.00 < EUR300.00 group minimum -> the line bills EUR300.00,
+        // and the legacy request-based path must snapshot minPrice just like the export path does.
+        BigDecimal expectedTotal = new BigDecimal("300.00");
+        BigDecimal expectedMinPrice = new BigDecimal("300.00");
+        activity.setPrice(new BigDecimal("50.00"));
+        activity.setMinPrice(expectedMinPrice);
+
+        CreateBookingRequest request = TestDataFactory.createBookingRequest(activity.getId());
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        BookingDTO result = bookingService.createBooking(request);
+
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(expectedTotal);
+        ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(captor.capture());
+        assertThat(captor.getValue().getBookingItems().getFirst().getMinPrice())
+                .isEqualByComparingTo(expectedMinPrice);
+    }
+
+    @Test
     void toExportRequest_rebuildsItineraryFromBooking_groupingByDestination() {
         Booking booking = new Booking();
         booking.setUserEmail("buyer@test.com");
@@ -767,6 +793,22 @@ class BookingServiceTest {
         Booking result = bookingService.createBookingEntity(request);
 
         assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
+    }
+
+    @Test
+    void createBookingEntity_zeroMinimum_meansNoFloor() {
+        // 2 travelers x EUR50.00 = EUR100.00; minPrice of ZERO must not act as a floor.
+        BigDecimal expectedTotal = new BigDecimal("100.00");
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        activity.setPrice(new BigDecimal("50.00"));
+        activity.setMinPrice(BigDecimal.ZERO);
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.createBookingEntity(request);
+
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(expectedTotal);
     }
 
     @Test
