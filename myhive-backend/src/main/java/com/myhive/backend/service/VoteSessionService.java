@@ -409,14 +409,14 @@ public class VoteSessionService {
             String destinationSlug = activity.getDestination() == null
                     ? null : activity.getDestination().getSlug();
             return new ResultActivityDTO(activityId, curated.getActivityName(),
-                    curated.getPrice(), like, skip,
+                    curated.getPrice(), activity.getMinPrice(), like, skip,
                     activity.getSlug(), destinationSlug, activity.getImageUrl(),
                     activity.getDuration(), activity.getDescription(), activity.getIncludes());
         }).toList();
 
         BigDecimal travelers = BigDecimal.valueOf(session.getNumberOfTravelers());
         BigDecimal totalPrice = result.stream()
-                .map(r -> r.getPrice().multiply(travelers))
+                .map(r -> flooredLine(r.getPrice(), r.getMinPrice(), travelers))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal budget = session.getBudget();
@@ -679,12 +679,22 @@ public class VoteSessionService {
                 .collect(Collectors.toSet());
     }
 
+    /** Group-minimum floor for the result estimate: mirrors BookingService.lineTotal. */
+    private static BigDecimal flooredLine(BigDecimal price, BigDecimal minPrice, BigDecimal travelers) {
+        BigDecimal line = price.multiply(travelers);
+        if (minPrice != null && line.compareTo(minPrice) < 0) {
+            return minPrice;
+        }
+        return line;
+    }
+
     private VoteActivityResponse toActivityResponse(Activity activity, String destinationSlug) {
         return new VoteActivityResponse(
                 activity.getId(),
                 activity.getName(),
                 activity.getDescription(),
                 activity.getPrice(),
+                activity.getMinPrice(),
                 activity.getDuration(),
                 activity.getImageUrl(),
                 activity.getSlug(),

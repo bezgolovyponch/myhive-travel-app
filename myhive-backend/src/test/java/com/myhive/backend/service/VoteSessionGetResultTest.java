@@ -121,6 +121,28 @@ class VoteSessionGetResultTest {
                 .containsExactly(suggested.getId());
     }
 
+    @Test
+    void getResult_groupMinimum_floorsTotalAndExposesMinPrice() {
+        Destination destination = saveDest();
+        Category nightlife = saveCat("Nightlife", "nightlife", true);
+        attachCat(destination, nightlife);
+        Activity activity = saveAct(destination, "Boat Rental", new BigDecimal("50.00"), 5, Set.of(nightlife));
+        activity.setMinPrice(new BigDecimal("300.00"));
+        activityRepository.save(activity);
+
+        VoteSession session = createAndPopulate(destination, null,
+                List.of(activity.getId()), List.of(), 2);
+        like(session, activity, true);
+
+        voteSessionService.closeSession(session.getShareToken(), session.getManagerToken());
+        VoteResultResponse response = voteSessionService.getResult(session.getShareToken());
+
+        assertThat(response.getResult().getFirst().getMinPrice()).isEqualByComparingTo("300.00");
+        // 2 travelers × €50 = €100 < €300 -> the estimate uses the group minimum,
+        // matching what the Trip Builder will compute after hydration.
+        assertThat(response.getTotalPrice()).isEqualByComparingTo("300.00");
+    }
+
     // ---- helpers ----
 
     private VoteSession createMinimalActiveSession() {

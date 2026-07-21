@@ -15,6 +15,9 @@ public class ResultActivityDTO {
     private UUID activityId;
     private String name;          // snapshot
     private BigDecimal price;     // snapshot, per-person
+    // Live catalog value (like slug/imageUrl below): the floor that will apply at booking
+    // time comes from the catalog anyway, so the result mirrors it rather than snapshotting.
+    private BigDecimal minPrice;
     private long likeCount;
     private long skipCount;
     // Live presentation fields (slug, imageUrl, etc.) — safe to read live because the

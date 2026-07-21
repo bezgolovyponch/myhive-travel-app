@@ -13,6 +13,7 @@ public class VoteActivityResponse {
     private String name;
     private String description;
     private BigDecimal price;
+    private BigDecimal minPrice;
     private Integer duration;
     private String imageUrl;
     private String slug;
