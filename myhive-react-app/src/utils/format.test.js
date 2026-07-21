@@ -1,4 +1,4 @@
-import {formatPrice, formatAmount, formatPricePerPerson} from './format';
+import {formatPrice, formatAmount, formatPricePerPerson, hasGroupMin, groupMinNote} from './format';
 
 describe('formatPrice', () => {
     it('renders numbers with the same two-decimal shape as formatAmount', () => {
@@ -63,5 +63,21 @@ describe('formatPricePerPerson', () => {
     it('returns nullish input as-is without the suffix', () => {
         expect(formatPricePerPerson(null)).toBeNull();
         expect(formatPricePerPerson(undefined)).toBeUndefined();
+    });
+});
+
+describe('group minimum helpers', () => {
+    test('hasGroupMin true only for a positive minPrice', () => {
+        expect(hasGroupMin({minPrice: 300})).toBe(true);
+        expect(hasGroupMin({minPrice: 0})).toBe(false);
+        expect(hasGroupMin({minPrice: null})).toBe(false);
+        expect(hasGroupMin({})).toBe(false);
+        expect(hasGroupMin(undefined)).toBe(false);
+    });
+
+    test('groupMinNote renders the canonical copy', () => {
+        expect(groupMinNote({minPrice: 300})).toBe('Group minimum €300');
+        expect(groupMinNote({minPrice: 299.5})).toBe('Group minimum €299.50');
+        expect(groupMinNote({minPrice: 0})).toBeNull();
     });
 });

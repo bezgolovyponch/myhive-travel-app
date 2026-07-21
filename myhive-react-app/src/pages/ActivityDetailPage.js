@@ -5,7 +5,7 @@ import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL, WHATSAPP_URL} from '../services/config';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPrice, groupMinNote, hasGroupMin} from '../utils/format';
 import {parseDescriptionBlocks} from '../utils/descriptionBlocks';
 import ActivityGallery from '../components/ActivityGallery';
 import ActivityCard from '../components/ActivityCard';
@@ -170,10 +170,13 @@ function ActivityDetailPage() {
                 <aside className="activity-detail-add-col">
                     <div className="activity-detail-add-panel">
                         <div className="activity-detail-price-line">
+                            {hasGroupMin(activity) && <span className="per">from </span>}
                             <span className="amt">{formattedPrice}</span>
                             <span className="per">/ person</span>
                         </div>
-                        <span className="activity-detail-price-from">Group price · from</span>
+                        <span className="activity-detail-price-from">
+                            {hasGroupMin(activity) ? groupMinNote(activity) : 'Group price · from'}
+                        </span>
                         {addButton}
                         {durationText && (
                             <ul className="activity-detail-panel-meta">

@@ -80,6 +80,13 @@
     color: var(--accent);
 }
 
+.activity-min-note {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted, #6c757d);
+}
+
 .add-to-trip-btn {
     background: var(--purple);
     color: #fff;

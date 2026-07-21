@@ -38,6 +38,15 @@ export function formatPricePerPerson(price) {
     return `${base} / person`;
 }
 
+export function hasGroupMin(activity) {
+    return Number(activity?.minPrice) > 0;
+}
+
+export function groupMinNote(activity) {
+    if (!hasGroupMin(activity)) return null;
+    return `Group minimum ${formatAmount(Number(activity.minPrice))}`;
+}
+
 export function capitalizeFirst(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);

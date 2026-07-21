@@ -1,5 +1,5 @@
 import AppModal from './AppModal';
-import { formatPricePerPerson } from '../utils/format';
+import { formatPricePerPerson, groupMinNote, hasGroupMin } from '../utils/format';
 import './ActivityPreviewModal.css';
 
 function ActivityPreviewModal({ activity, link, onClose }) {
@@ -9,7 +9,12 @@ function ActivityPreviewModal({ activity, link, onClose }) {
 
     const meta = [];
     if (activity.price != null) {
-        meta.push(formatPricePerPerson(activity.price));
+        meta.push(hasGroupMin(activity)
+            ? `from ${formatPricePerPerson(activity.price)}`
+            : formatPricePerPerson(activity.price));
+    }
+    if (hasGroupMin(activity)) {
+        meta.push(groupMinNote(activity));
     }
     if (activity.duration != null) {
         meta.push(`${Math.round(activity.duration / 60)}h`);

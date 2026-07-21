@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import './SwipeCard.css';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import { copyToClipboard } from '../utils/clipboard';
-import { formatPricePerPerson } from '../utils/format';
+import { formatPricePerPerson, groupMinNote, hasGroupMin } from '../utils/format';
 
 const SWIPE_THRESHOLD = 80;
 
@@ -145,7 +145,16 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
                                     <div className="swipe-card-meta">
                                         {card.duration && <span>{Math.round(card.duration / 60)}h</span>}
                                         {card.duration && card.price && <span> · </span>}
-                                        {card.price && <span>{formatPricePerPerson(card.price)}</span>}
+                                        {card.price && (
+                                            <span>
+                                                {hasGroupMin(card)
+                                                    ? `from ${formatPricePerPerson(card.price)}`
+                                                    : formatPricePerPerson(card.price)}
+                                            </span>
+                                        )}
+                                        {card.price && hasGroupMin(card) && (
+                                            <span> · {groupMinNote(card)}</span>
+                                        )}
                                     </div>
                                 </div>
                             </>

@@ -15,11 +15,11 @@ const activity = {
   categories: [{name: 'Adrenaline'}],
 };
 
-function renderCard() {
+function renderCard(activityOverride) {
   return render(
     <MemoryRouter>
       <TripProvider>
-        <ActivityCard activity={activity} />
+        <ActivityCard activity={activityOverride || activity} />
       </TripProvider>
     </MemoryRouter>
   );
@@ -78,4 +78,16 @@ test('closing the preview via backdrop does not navigate to the detail page', as
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryByText('Detail page')).toBeNull();
   expect(screen.getByRole('button', {name: /More info/i})).toBeInTheDocument();
+});
+
+test('shows from-price and group minimum note when minPrice is set', () => {
+  renderCard({id: 'a1', name: 'Boat Rental', price: 50, minPrice: 300});
+  expect(screen.getByText(/from €50 \/ person/)).toBeInTheDocument();
+  expect(screen.getByText('Group minimum €300')).toBeInTheDocument();
+});
+
+test('no from-prefix or note without minPrice', () => {
+  renderCard({id: 'a1', name: 'Bar Crawl', price: 40});
+  expect(screen.getByText('€40 / person')).toBeInTheDocument();
+  expect(screen.queryByText(/Group minimum/)).not.toBeInTheDocument();
 });

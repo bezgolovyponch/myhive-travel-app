@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson} from '../utils/format';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson, groupMinNote, hasGroupMin} from '../utils/format';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import './ActivityCard.css';
 
@@ -40,7 +40,9 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
 
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const title = activity.name || activity.title;
-    const formattedPrice = formatPricePerPerson(activity.price);
+    const formattedPrice = hasGroupMin(activity)
+        ? `from ${formatPricePerPerson(activity.price)}`
+        : formatPricePerPerson(activity.price);
     const primaryCategory = activity.categories && activity.categories.length > 0
         ? activity.categories[0].name
         : null;
@@ -74,7 +76,12 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
         </span>
                 <h3 className="activity-title">{title}</h3>
                 <div className="activity-footer">
-                    <span className="activity-price">{formattedPrice}</span>
+                    <span className="activity-price">
+                        {formattedPrice}
+                        {hasGroupMin(activity) && (
+                            <span className="activity-min-note">{groupMinNote(activity)}</span>
+                        )}
+                    </span>
                     <div className="activity-actions">
                         <button
                             className="more-info-btn"
