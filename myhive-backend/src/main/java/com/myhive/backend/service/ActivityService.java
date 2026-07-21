@@ -145,6 +145,7 @@ public class ActivityService {
         activity.setName(dto.getName());
         activity.setDescription(dto.getDescription());
         activity.setPrice(dto.getPrice());
+        activity.setMinPrice(dto.getMinPrice());
         activity.setDuration(dto.getDuration());
         activity.setImageUrl(dto.getImageUrl());
         activity.setIncludes(dto.getIncludes());
@@ -163,6 +164,7 @@ public class ActivityService {
         dto.setName(activity.getName());
         dto.setDescription(activity.getDescription());
         dto.setPrice(activity.getPrice());
+        dto.setMinPrice(activity.getMinPrice());
         dto.setDuration(activity.getDuration());
         dto.setImageUrl(activity.getImageUrl());
         dto.setIncludes(activity.getIncludes());

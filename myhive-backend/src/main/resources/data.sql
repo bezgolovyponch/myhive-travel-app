@@ -426,3 +426,6 @@ UPDATE activities SET featured = TRUE WHERE slug IN (
     'e-scooter-adventure', 'kayaking-on-the-vltava', 'underground-bunker-tour',
     'hot-air-balloon-ride', 'jet-ski-adventure', 'sunset-boat-party'
 );
+
+-- Group-minimum example: sunset-boat-party requires a €600 minimum order
+UPDATE activities SET min_price = 600.00 WHERE slug = 'sunset-boat-party';

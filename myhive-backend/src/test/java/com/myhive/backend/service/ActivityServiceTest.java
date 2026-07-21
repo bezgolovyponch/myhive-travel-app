@@ -422,4 +422,31 @@ class ActivityServiceTest {
         assertThat(result).hasSize(1);
         verify(activityRepository).findByFeaturedTrueAndCategoriesSlugOrderByNameAsc(expectedCategorySlug);
     }
+
+    @Test
+    void getActivityById_mapsMinPrice() {
+        BigDecimal expectedMinPrice = new BigDecimal("300.00");
+        activity.setMinPrice(expectedMinPrice);
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+
+        ActivityDTO result = activityService.getActivityById(activity.getId());
+
+        assertThat(result.getMinPrice()).isEqualByComparingTo(expectedMinPrice);
+    }
+
+    @Test
+    void createActivity_appliesMinPriceToEntity() {
+        BigDecimal expectedMinPrice = new BigDecimal("250.00");
+        ActivityDTO dto = new ActivityDTO();
+        dto.setDestinationId(destination.getId());
+        dto.setName("Quad Safari");
+        dto.setPrice(new BigDecimal("50.00"));
+        dto.setMinPrice(expectedMinPrice);
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityDTO result = activityService.createActivity(dto);
+
+        assertThat(result.getMinPrice()).isEqualByComparingTo(expectedMinPrice);
+    }
 }

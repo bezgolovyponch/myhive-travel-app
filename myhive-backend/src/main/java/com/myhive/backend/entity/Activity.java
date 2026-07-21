@@ -55,6 +55,10 @@ public class Activity implements Slugged {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    /** Group minimum for one booking line: the line never bills below this. Null or 0 = no minimum. */
+    @Column(name = "min_price", precision = 10, scale = 2)
+    private BigDecimal minPrice;
+
     private Integer duration;
 
     @Column(name = "featured_weight", nullable = false, columnDefinition = "integer default 0")
