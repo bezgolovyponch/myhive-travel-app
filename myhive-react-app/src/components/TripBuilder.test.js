@@ -1167,3 +1167,70 @@ describe('quiz mode: one-click vote', () => {
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 });
+
+// ---------------------------------------------------------------------------
+// Quiz mode — A13 vote_skipped moves to the Complete Booking click
+// ---------------------------------------------------------------------------
+
+describe('quiz mode: vote_skipped on Complete Booking', () => {
+    function seedQuizFlow() {
+        sessionStorage.setItem('myhive-quiz-flow', JSON.stringify({
+            setup: {
+                destination: { id: 'dest-1', slug: 'prague' },
+                travelers: 4,
+                startDate: '2026-09-01',
+                endDate: '2026-09-05',
+                email: 'organizer@example.com',
+                budget: 2000,
+            },
+            responses: [{ questionId: 'q1', answerId: 'a1' }],
+        }));
+    }
+
+    test('A13: fires with trip_id and selected_count when quiz mode is active', async () => {
+        seedQuizFlow();
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id', tripItems: [activity1, activity2] }));
+
+        await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
+
+        expect(pushEvent).toHaveBeenCalledWith('vote_skipped', {
+            trip_id: 'ctx-trip-id',
+            selected_count: 2,
+        });
+    });
+
+    test('A13: dedups per trip_id across repeat clicks', async () => {
+        seedQuizFlow();
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }));
+
+        await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
+        await user.keyboard('{Escape}');
+        await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
+
+        expect(pushEvent.mock.calls.filter(([e]) => e === 'vote_skipped')).toHaveLength(1);
+    });
+
+    test('A13: does not fire outside quiz mode', async () => {
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }));
+
+        await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
+
+        expect(pushEvent).not.toHaveBeenCalledWith('vote_skipped', expect.anything());
+    });
+
+    test('booking submit clears the quiz-flow context', async () => {
+        seedQuizFlow();
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({ tripId: 'ctx-trip-id' }));
+
+        await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
+        await fillAndSubmitContactForm(user);
+
+        await waitFor(() => {
+            expect(sessionStorage.getItem('myhive-quiz-flow')).toBeNull();
+        });
+    });
+});

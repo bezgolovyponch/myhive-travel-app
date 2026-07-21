@@ -351,6 +351,17 @@ function TripBuilder({ destinationId, destinationSlug }) {
       pushEvent('booking_form_viewed', withUserRole({ trip_id: tripId, value: tripTotal, currency: 'EUR' }));
     }
 
+    // A13 — vote_skipped: in the quiz flow, heading into booking without
+    // having launched a vote is the moment the organizer skips voting
+    // (launching a vote clears quizFlow, so quizMode implies "no vote yet").
+    if (quizMode) {
+      const skipKey = `myhive-vote-skipped-${tripId}`;
+      if (!sessionStorage.getItem(skipKey)) {
+        sessionStorage.setItem(skipKey, '1');
+        pushEvent('vote_skipped', { trip_id: tripId, selected_count: state.tripItems.length });
+      }
+    }
+
     setShowContactForm(true);
     scrollBookingFormIntoView();
   };
