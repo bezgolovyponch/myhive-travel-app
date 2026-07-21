@@ -6,7 +6,10 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "sync-legacy": "node scripts/sync-legacy.mjs",
+    "predev": "node scripts/sync-legacy.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-legacy.mjs",
     "build": "next build",
     "start": "next start"
   },
