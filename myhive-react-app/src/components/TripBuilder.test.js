@@ -976,3 +976,77 @@ describe('vote button after a completed cart vote', () => {
         });
     });
 });
+
+// ---------------------------------------------------------------------------
+// Quiz mode — Start Over (organizer arrived from the quiz/swipe flow)
+// ---------------------------------------------------------------------------
+
+describe('quiz mode: Start Over', () => {
+    const quizSetup = {
+        destination: { id: 'dest-1', slug: 'prague' },
+        travelers: 4,
+        startDate: '2026-09-01',
+        endDate: '2026-09-05',
+        email: 'organizer@example.com',
+        budget: 2000,
+    };
+
+    function seedQuizFlow(setupOverrides = {}) {
+        sessionStorage.setItem('myhive-quiz-flow', JSON.stringify({
+            setup: { ...quizSetup, ...setupOverrides },
+            responses: [{ questionId: 'q1', answerId: 'a1' }],
+        }));
+    }
+
+    function QuizLocationProbe() {
+        const location = useLocation();
+        return <div data-testid="quiz-location">{location.pathname}</div>;
+    }
+
+    function renderQuizTripBuilder(tripState = buildTripState(), dispatch = jest.fn()) {
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <TripContext.Provider value={{ state: tripState, dispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                    <QuizLocationProbe />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+        return dispatch;
+    }
+
+    test('Start Over shows in quiz mode, clears the trip, and restarts the quiz', async () => {
+        seedQuizFlow();
+        const user = userEvent.setup();
+        const dispatch = renderQuizTripBuilder();
+
+        await user.click(screen.getByRole('button', { name: 'Start Over' }));
+
+        expect(pushEvent).toHaveBeenCalledWith('cta_click', {
+            cta_label: 'Start Over',
+            block: 'trip_builder',
+        });
+        expect(dispatch).toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
+        expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
+        expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
+        expect(sessionStorage.getItem('myhive-quiz-flow')).toBeNull();
+        expect(screen.getByTestId('quiz-location')).toHaveTextContent('/vote/new/quiz');
+    });
+
+    test('Start Over is absent without a stored quiz flow', () => {
+        renderQuizTripBuilder();
+        expect(screen.queryByRole('button', { name: 'Start Over' })).not.toBeInTheDocument();
+    });
+
+    test('Start Over is absent when the stored quiz flow is for another destination', () => {
+        seedQuizFlow({ destination: { id: 'other-dest', slug: 'berlin' } });
+        renderQuizTripBuilder();
+        expect(screen.queryByRole('button', { name: 'Start Over' })).not.toBeInTheDocument();
+    });
+
+    test('Start Over still shows when the cart is empty in quiz mode', () => {
+        seedQuizFlow();
+        renderQuizTripBuilder(buildTripState({ tripItems: [] }));
+        expect(screen.getByRole('button', { name: 'Start Over' })).toBeInTheDocument();
+    });
+});

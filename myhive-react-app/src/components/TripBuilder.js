@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useNavigate, useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
@@ -9,6 +9,7 @@ import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
 import {generateUuid} from '../utils/uuid';
+import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
@@ -48,6 +49,11 @@ function TripBuilder({ destinationId, destinationSlug }) {
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [activeVoteToken, setActiveVoteToken] = useState(null);
   const [checkingVote, setCheckingVote] = useState(false);
+  // Organizer quiz-flow handoff (CuratePage writes it): active only for the
+  // destination the quiz ran for — other destinations get the plain builder.
+  const [quizFlow, setQuizFlow] = useState(() => readQuizFlow());
+  const quizMode = quizFlow != null && quizFlow.setup?.destination?.id === destinationId;
+  const navigate = useNavigate();
 
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -300,6 +306,16 @@ function TripBuilder({ destinationId, destinationSlug }) {
     } finally {
       setCheckingVote(false);
     }
+  };
+
+  const handleQuizStartOver = () => {
+    pushEvent('cta_click', { cta_label: 'Start Over', block: 'trip_builder' });
+    dispatch({ type: 'CANCEL_TRIP_SETUP' });
+    dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
+    dispatch({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
+    clearQuizFlow();
+    setQuizFlow(null);
+    navigate('/vote/new/quiz', { state: { setup: quizFlow.setup } });
   };
 
   const handleConfirmTrip = () => {
@@ -556,6 +572,15 @@ function TripBuilder({ destinationId, destinationSlug }) {
           ) : (
             <div className="empty-state">
               <p>Start building your trip by adding activities!</p>
+              {quizMode && (
+                  <button
+                      type="button"
+                      className="btn btn--full-width start-vote-btn"
+                      onClick={handleQuizStartOver}
+                  >
+                    Start Over
+                  </button>
+              )}
             </div>
           )}
         </div>
@@ -593,6 +618,15 @@ function TripBuilder({ destinationId, destinationSlug }) {
                       title={voteButtonTitle}
                   >
                     Let your mates vote
+                  </button>
+              )}
+              {quizMode && (
+                  <button
+                      type="button"
+                      className="btn btn--full-width start-vote-btn"
+                      onClick={handleQuizStartOver}
+                  >
+                    Start Over
                   </button>
               )}
               {submitError && (
