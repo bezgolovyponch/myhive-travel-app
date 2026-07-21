@@ -318,6 +318,16 @@ function TripBuilder({ destinationId, destinationSlug }) {
     navigate('/vote/new/quiz', { state: { setup: quizFlow.setup } });
   };
 
+  const startOverButton = (
+    <button
+      type="button"
+      className="btn btn--full-width start-vote-btn"
+      onClick={handleQuizStartOver}
+    >
+      Start Over
+    </button>
+  );
+
   const handleConfirmTrip = () => {
     // Resolve the trip_id: the full annotation token (URL param or stored CART
     // session — see annotationToken above) takes priority, then the client-minted
@@ -572,15 +582,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
           ) : (
             <div className="empty-state">
               <p>Start building your trip by adding activities!</p>
-              {quizMode && (
-                  <button
-                      type="button"
-                      className="btn btn--full-width start-vote-btn"
-                      onClick={handleQuizStartOver}
-                  >
-                    Start Over
-                  </button>
-              )}
+              {quizMode && startOverButton}
             </div>
           )}
         </div>
@@ -620,15 +622,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
                     Let your mates vote
                   </button>
               )}
-              {quizMode && (
-                  <button
-                      type="button"
-                      className="btn btn--full-width start-vote-btn"
-                      onClick={handleQuizStartOver}
-                  >
-                    Start Over
-                  </button>
-              )}
+              {quizMode && startOverButton}
               {submitError && (
                   <div className="export-error">
                     <p>{submitError}</p>
