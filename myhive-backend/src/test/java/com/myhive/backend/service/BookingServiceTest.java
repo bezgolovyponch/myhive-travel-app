@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -708,5 +709,92 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> bookingService.verifyChargeablePricing(booking))
                 .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void createBookingEntity_groupMinimum_floorsLineTotal() {
+        // 2 travelers × €50 = €100 < €300 group minimum -> the line bills €300.
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        activity.setPrice(new BigDecimal("50.00"));
+        activity.setMinPrice(new BigDecimal("300.00"));
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        Booking result = bookingService.createBookingEntity(request);
+
+        BigDecimal expectedTotal = new BigDecimal("300.00");
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(expectedTotal);
+        // SEC-1: the snapshot comes from the catalog entity, not the request body.
+        assertThat(result.getBookingItems().getFirst().getMinPrice()).isEqualByComparingTo("300.00");
+    }
+
+    @Test
+    void createBookingEntity_groupMinimumBelowLineTotal_keepsRegularPricing() {
+        // 2 travelers × €50 = €100 >= €80 minimum -> per-person math unchanged.
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        activity.setPrice(new BigDecimal("50.00"));
+        activity.setMinPrice(new BigDecimal("80.00"));
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.createBookingEntity(request);
+
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
+    }
+
+    @Test
+    void createBookingEntity_packageGroup_floorsLinesBeforeDiscount() {
+        // Line A: max(2×€50, €300) = 300; line B: 2×€40 = 80. (300+80) − 10% = 342.00
+        Activity floored = TestDataFactory.activity(destination);
+        floored.setPrice(new BigDecimal("50.00"));
+        floored.setMinPrice(new BigDecimal("300.00"));
+        Activity regular = TestDataFactory.activity(destination);
+        regular.setPrice(new BigDecimal("40.00"));
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        TripExportRequest.ActivityExport ae1 = new TripExportRequest.ActivityExport();
+        ae1.setActivityId(floored.getId());
+        ae1.setActivityName("Boat Rental");
+        ae1.setPackageId(pkg.getId());
+        ae1.setPackageDiscountPct(new BigDecimal("10.00"));
+        TripExportRequest.ActivityExport ae2 = new TripExportRequest.ActivityExport();
+        ae2.setActivityId(regular.getId());
+        ae2.setActivityName("Bar Crawl");
+        ae2.setPackageId(pkg.getId());
+        ae2.setPackageDiscountPct(new BigDecimal("10.00"));
+        request.getDestinations().getFirst().setActivities(List.of(ae1, ae2));
+
+        when(activityRepository.findById(floored.getId())).thenReturn(Optional.of(floored));
+        when(activityRepository.findById(regular.getId())).thenReturn(Optional.of(regular));
+        when(packageRepository.findById(pkg.getId())).thenReturn(Optional.of(pkg));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.createBookingEntity(request);
+
+        BigDecimal expectedTotal = new BigDecimal("342.00");
+        assertThat(result.getTotalAmount()).isEqualByComparingTo(expectedTotal);
+    }
+
+    @Test
+    void verifyChargeablePricing_flooredStoredTotal_passes() {
+        // A booking whose stored total came from a floored line must recompute identically.
+        Booking booking = new Booking();
+        BookingItem item = new BookingItem();
+        item.setActivity(activity);
+        item.setPrice(new BigDecimal("50.00"));
+        item.setQuantity(2);
+        item.setMinPrice(new BigDecimal("300.00"));
+        booking.setBookingItems(List.of(item));
+        booking.setTotalAmount(new BigDecimal("300.00"));
+
+        assertThatCode(() -> bookingService.verifyChargeablePricing(booking))
+                .doesNotThrowAnyException();
     }
 }

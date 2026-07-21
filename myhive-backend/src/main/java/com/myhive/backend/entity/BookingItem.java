@@ -37,6 +37,10 @@ public class BookingItem {
     @Column(precision = 10, scale = 2)
     private BigDecimal price;
 
+    /** Snapshot of the activity's group minimum at booking time (same pattern as {@link #price}). */
+    @Column(name = "min_price", precision = 10, scale = 2)
+    private BigDecimal minPrice;
+
     private Integer quantity;
 
     @ManyToOne(fetch = FetchType.LAZY)

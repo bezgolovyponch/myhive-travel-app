@@ -143,6 +143,7 @@ public class BookingService {
                             .orElseThrow(() -> new ResourceNotFoundException("Activity", act.getActivityId()));
                     item.setActivity(activity);
                     item.setPrice(activity.getPrice());           // trusted server-side price (SEC-1)
+                    item.setMinPrice(activity.getMinPrice()); // trusted server-side floor (SEC-1)
                 } else if (enforceTrustedPricing) {
                     // C1: a charged booking must price every line from the catalog, never the request body.
                     throw new BadRequestException(
@@ -419,13 +420,23 @@ public class BookingService {
     private static @NonNull BigDecimal getGroupTotal(Map.Entry<UUID, List<BookingItem>> entry) {
         BigDecimal groupTotal = BigDecimal.ZERO;
         for (BookingItem it : entry.getValue()) {
-            BigDecimal qty = BigDecimal.valueOf(it.getQuantity() == null ? 1 : it.getQuantity());
-            groupTotal = groupTotal.add(it.getPrice().multiply(qty));
+            groupTotal = groupTotal.add(lineTotal(it));
         }
         if (entry.getKey() != null) {
             groupTotal = MoneyMath.applyDiscountPct(groupTotal,
                     entry.getValue().getFirst().getPackageDiscountPct());
         }
         return groupTotal;
+    }
+
+    /** Group-minimum floor: a line never bills below the activity's minPrice snapshot. */
+    private static BigDecimal lineTotal(BookingItem it) {
+        BigDecimal qty = BigDecimal.valueOf(it.getQuantity() == null ? 1 : it.getQuantity());
+        BigDecimal line = it.getPrice().multiply(qty);
+        BigDecimal minPrice = it.getMinPrice();
+        if (minPrice != null && line.compareTo(minPrice) < 0) {
+            return minPrice;
+        }
+        return line;
     }
 }
