@@ -173,7 +173,31 @@ class EmailServiceTest {
         assertThat(group.discounted).isEqualByComparingTo(new BigDecimal("270.00"));
         assertThat(group.activities).hasSize(2);
         assertThat(view.standaloneActivities).hasSize(1);
-        assertThat(view.standaloneActivities.getFirst().getActivityName()).isEqualTo("Standalone");
+        assertThat(view.standaloneActivities.getFirst().activity.getActivityName()).isEqualTo("Standalone");
+    }
+
+    @Test
+    void buildDestinationViews_flagsGroupMinimumOnlyWhenFloorBinds() {
+        TripExportRequest.ActivityExport floored = new TripExportRequest.ActivityExport();
+        floored.setActivityName("Boat Rental");
+        floored.setPrice(50.0);
+        floored.setMinPrice(new BigDecimal("300.00"));
+        TripExportRequest.ActivityExport regular = new TripExportRequest.ActivityExport();
+        regular.setActivityName("Bar Crawl");
+        regular.setPrice(40.0);
+
+        TripExportRequest.DestinationExport dest = new TripExportRequest.DestinationExport();
+        dest.setDestinationName("Tenerife");
+        dest.setActivities(List.of(floored, regular));
+        TripExportRequest req = new TripExportRequest();
+        req.setNumberOfTravelers(2);
+        req.setDestinations(List.of(dest));
+
+        List<EmailService.DestinationView> views = emailService.buildDestinationViews(req);
+
+        List<EmailService.ActivityLineView> lines = views.getFirst().standaloneActivities;
+        assertThat(lines.getFirst().groupMinApplies).isTrue();  // 2 × €50 = €100 < €300
+        assertThat(lines.get(1).groupMinApplies).isFalse();     // no minimum set
     }
 
     @Test

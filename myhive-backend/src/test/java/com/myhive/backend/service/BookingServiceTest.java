@@ -141,6 +141,27 @@ class BookingServiceTest {
     }
 
     @Test
+    void toExportRequest_carriesMinPriceSnapshot() {
+        Booking booking = new Booking();
+        booking.setUserEmail("u@example.com");
+        booking.setCustomerName("User");
+        BookingItem item = new BookingItem();
+        item.setActivity(activity);
+        item.setActivityName("Boat Rental");
+        item.setDestinationName("Tenerife");
+        item.setPrice(new BigDecimal("50.00"));
+        item.setQuantity(2);
+        item.setMinPrice(new BigDecimal("300.00"));
+        booking.setBookingItems(List.of(item));
+
+        TripExportRequest result = bookingService.toExportRequest(booking);
+
+        TripExportRequest.ActivityExport exported =
+                result.getDestinations().getFirst().getActivities().getFirst();
+        assertThat(exported.getMinPrice()).isEqualByComparingTo("300.00");
+    }
+
+    @Test
     void createBooking_withNonexistentActivity_throwsResourceNotFound() {
         UUID fakeId = UUID.randomUUID();
         CreateBookingRequest request = TestDataFactory.createBookingRequest(fakeId);

@@ -156,12 +156,14 @@
                 <!-- Package groups -->
                 <div th:each="packageGroup : ${destinationView.packageGroups}">
                     <h3>Package: <span th:text="${packageGroup.packageName}">Package Name</span></h3>
-                    <div th:each="activity : ${packageGroup.activities}" class="activity">
-                        <h4 th:text="${activity.activityName}">Activity Name</h4>
-                        <p><strong>Category:</strong> <span th:text="${activity.category}">Category</span></p>
-                        <p><strong>Description:</strong> <span th:text="${activity.description ?: 'No description available'}">Description</span></p>
-                        <p><strong>Duration:</strong> <span th:text="${activity.duration ?: 0}">0</span> hours</p>
-                        <p><strong>Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                    <div th:each="line : ${packageGroup.activities}" class="activity">
+                        <h4 th:text="${line.activity.activityName}">Activity Name</h4>
+                        <p><strong>Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
+                        <p><strong>Description:</strong> <span th:text="${line.activity.description ?: 'No description available'}">Description</span></p>
+                        <p><strong>Duration:</strong> <span th:text="${line.activity.duration ?: 0}">0</span> hours</p>
+                        <p><strong>Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                        <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
+                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> applies</p>
                     </div>
                     <p><strong>Subtotal:</strong> €<span th:text="${#numbers.formatDecimal(packageGroup.subtotal, 1, 2)}">0.00</span></p>
                     <p class="discount"><strong>Package discount (−<span th:text="${packageGroup.discountPct}">0</span>%):</strong>
@@ -173,12 +175,14 @@
                 <!-- Standalone activities -->
                 <div th:if="${not #lists.isEmpty(destinationView.standaloneActivities)}">
                     <h3>Standalone Activities</h3>
-                    <div th:each="activity : ${destinationView.standaloneActivities}" class="activity">
-                        <h4 th:text="${activity.activityName}">Activity Name</h4>
-                        <p><strong>Category:</strong> <span th:text="${activity.category}">Category</span></p>
-                        <p><strong>Description:</strong> <span th:text="${activity.description ?: 'No description available'}">Description</span></p>
-                        <p><strong>Duration:</strong> <span th:text="${activity.duration ?: 0}">0</span> hours</p>
-                        <p><strong>Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                    <div th:each="line : ${destinationView.standaloneActivities}" class="activity">
+                        <h4 th:text="${line.activity.activityName}">Activity Name</h4>
+                        <p><strong>Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
+                        <p><strong>Description:</strong> <span th:text="${line.activity.description ?: 'No description available'}">Description</span></p>
+                        <p><strong>Duration:</strong> <span th:text="${line.activity.duration ?: 0}">0</span> hours</p>
+                        <p><strong>Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                        <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
+                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> applies</p>
                     </div>
                 </div>
             </div>

@@ -279,6 +279,7 @@ public class BookingService {
             activity.setActivityId(item.getActivity() != null ? item.getActivity().getId() : null);
             activity.setActivityName(item.getActivityName());
             activity.setPrice(item.getPrice() != null ? item.getPrice().doubleValue() : null);
+            activity.setMinPrice(item.getMinPrice());
             if (item.getPkg() != null) {
                 activity.setPackageId(item.getPkg().getId());
                 activity.setPackageName(item.getPackageName());

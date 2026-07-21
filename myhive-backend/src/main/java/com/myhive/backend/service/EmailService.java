@@ -51,7 +51,7 @@ public class EmailService {
         public String startDate;
         public String endDate;
         public List<PackageGroup> packageGroups = new ArrayList<>();
-        public List<TripExportRequest.ActivityExport> standaloneActivities = new ArrayList<>();
+        public List<ActivityLineView> standaloneActivities = new ArrayList<>();
     }
 
     public static class PackageGroup {
@@ -59,7 +59,18 @@ public class EmailService {
         public BigDecimal discountPct;
         public BigDecimal subtotal;
         public BigDecimal discounted;
-        public List<TripExportRequest.ActivityExport> activities = new ArrayList<>();
+        public List<ActivityLineView> activities = new ArrayList<>();
+    }
+
+    /** One itinerary line: the exported activity plus whether its group minimum binds. */
+    public static class ActivityLineView {
+        public TripExportRequest.ActivityExport activity;
+        public boolean groupMinApplies;
+
+        ActivityLineView(TripExportRequest.ActivityExport activity, boolean groupMinApplies) {
+            this.activity = activity;
+            this.groupMinApplies = groupMinApplies;
+        }
     }
 
     /** Everything that varies between the outbound emails; {@link #send(EmailSpec)} does the rest. */
@@ -308,6 +319,8 @@ public class EmailService {
         if (tripData.getDestinations() == null) {
             return views;
         }
+        int travelers = tripData.getNumberOfTravelers() != null && tripData.getNumberOfTravelers() > 0
+                ? tripData.getNumberOfTravelers() : 1;
         for (TripExportRequest.DestinationExport dest : tripData.getDestinations()) {
             DestinationView view = new DestinationView();
             view.destinationName = dest.getDestinationName();
@@ -319,9 +332,10 @@ public class EmailService {
             if (dest.getActivities() != null) {
                 Map<UUID, PackageGroup> groupMap = new LinkedHashMap<>();
                 for (TripExportRequest.ActivityExport activity : dest.getActivities()) {
+                    ActivityLineView line = new ActivityLineView(activity, groupMinApplies(activity, travelers));
                     UUID packageId = activity.getPackageId();
                     if (packageId == null) {
-                        view.standaloneActivities.add(activity);
+                        view.standaloneActivities.add(line);
                     } else {
                         PackageGroup group = groupMap.computeIfAbsent(packageId, id -> {
                             PackageGroup g = new PackageGroup();
@@ -329,14 +343,14 @@ public class EmailService {
                             g.discountPct = activity.getPackageDiscountPct();
                             return g;
                         });
-                        group.activities.add(activity);
+                        group.activities.add(line);
                     }
                 }
                 for (PackageGroup group : groupMap.values()) {
                     BigDecimal subtotal = BigDecimal.ZERO;
-                    for (TripExportRequest.ActivityExport activity : group.activities) {
-                        BigDecimal activityPrice = activity.getPrice() != null
-                                ? BigDecimal.valueOf(activity.getPrice())
+                    for (ActivityLineView line : group.activities) {
+                        BigDecimal activityPrice = line.activity.getPrice() != null
+                                ? BigDecimal.valueOf(line.activity.getPrice())
                                 : BigDecimal.ZERO;
                         subtotal = subtotal.add(activityPrice);
                     }
@@ -348,5 +362,15 @@ public class EmailService {
             views.add(view);
         }
         return views;
+    }
+
+    /** True when price × travelers < minPrice — the booked total for this line is the group minimum. */
+    private static boolean groupMinApplies(TripExportRequest.ActivityExport activity, int travelers) {
+        if (activity.getMinPrice() == null || activity.getPrice() == null) {
+            return false;
+        }
+        BigDecimal line = BigDecimal.valueOf(activity.getPrice())
+                .multiply(BigDecimal.valueOf(travelers));
+        return line.compareTo(activity.getMinPrice()) < 0;
     }
 }

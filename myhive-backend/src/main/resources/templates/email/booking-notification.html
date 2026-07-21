@@ -43,9 +43,11 @@
     <!-- Package groups -->
     <div th:each="packageGroup : ${destinationView.packageGroups}">
         <h3>Package: <span th:text="${packageGroup.packageName}">Package</span></h3>
-        <div th:each="activity : ${packageGroup.activities}" class="activity">
-            <h4 th:text="${activity.activityName}">Activity</h4>
-            <p class="price">€<span th:text="${#numbers.formatDecimal(activity.price ?: 0, 1, 2)}">0.00</span></p>
+        <div th:each="line : ${packageGroup.activities}" class="activity">
+            <h4 th:text="${line.activity.activityName}">Activity</h4>
+            <p class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></p>
+            <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
+                €<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span> applies</p>
         </div>
         <p class="discount"><strong>Package discount (−<span th:text="${packageGroup.discountPct}">0</span>%):</strong>
             −€<span th:text="${#numbers.formatDecimal(packageGroup.subtotal - packageGroup.discounted, 1, 2)}">0.00</span>
@@ -56,9 +58,11 @@
     <!-- Standalone activities -->
     <div th:if="${not #lists.isEmpty(destinationView.standaloneActivities)}">
         <h3>Activities</h3>
-        <div th:each="activity : ${destinationView.standaloneActivities}" class="activity">
-            <h4 th:text="${activity.activityName}">Activity</h4>
-            <p class="price">€<span th:text="${#numbers.formatDecimal(activity.price ?: 0, 1, 2)}">0.00</span></p>
+        <div th:each="line : ${destinationView.standaloneActivities}" class="activity">
+            <h4 th:text="${line.activity.activityName}">Activity</h4>
+            <p class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></p>
+            <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
+                €<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span> applies</p>
         </div>
     </div>
 </div>

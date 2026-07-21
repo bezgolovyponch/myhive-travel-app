@@ -105,6 +105,9 @@ public class TripExportRequest {
         private String description;
         @PositiveOrZero(message = "Activity price must not be negative")
         private Double price;
+        // Display-only in emails; pricing always uses the server-side snapshot (SEC-1).
+        @PositiveOrZero(message = "Activity minimum price must not be negative")
+        private BigDecimal minPrice;
         private Integer duration;
         private String timeOfDay;
         private UUID packageId;
