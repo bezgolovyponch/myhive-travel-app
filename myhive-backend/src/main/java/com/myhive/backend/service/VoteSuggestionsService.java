@@ -66,7 +66,7 @@ public class VoteSuggestionsService {
         String destinationSlug = activity.getDestination() == null
                 ? null : activity.getDestination().getSlug();
         return new SuggestionDTO(activity.getId(), activity.getName(),
-                activity.getPrice(), activity.getImageUrl(),
+                activity.getPrice(), activity.getMinPrice(), activity.getImageUrl(),
                 activity.getSlug(), destinationSlug,
                 activity.getDescription(), activity.getIncludes(),
                 categories);

@@ -54,6 +54,9 @@ class VoteSuggestionsServiceTest {
         Activity curated = newActivity(destination, "curated", 5, Set.of(nightlife));
         Activity hi = newActivity(destination, "hi", 10, Set.of(nightlife));
         Activity lo = newActivity(destination, "lo", 1, Set.of(nightlife));
+        BigDecimal expectedMinPrice = new BigDecimal("300.00");
+        hi.setMinPrice(expectedMinPrice);
+        activityRepository.saveAndFlush(hi);
 
         QuizQuestion question = newQuestion(destination, "Vibe?");
         QuizAnswer answer = newAnswer(question, "Wild", nightlife, 2);
@@ -66,6 +69,7 @@ class VoteSuggestionsServiceTest {
 
         assertThat(suggestions).extracting(SuggestionDTO::getActivityId)
                 .containsExactly(hi.getId(), lo.getId());
+        assertThat(suggestions.getFirst().getMinPrice()).isEqualByComparingTo(expectedMinPrice);
     }
 
     @Test

@@ -16,6 +16,7 @@ public class SuggestionDTO {
     private UUID activityId;
     private String name;          // live
     private BigDecimal price;     // live, per-person
+    private BigDecimal minPrice;  // live, group-minimum floor
     private String imageUrl;
     private String slug;
     private String destinationSlug;

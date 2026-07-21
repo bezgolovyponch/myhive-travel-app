@@ -1342,7 +1342,7 @@ describe('quiz mode: Recommended for you', () => {
     const recommendedPool = [
         // Already in the default cart (activity1 = act-1 "Kayaking") → Added state.
         { activityId: 'act-1', name: 'Kayaking', price: 60, imageUrl: null, slug: 'kayak', destinationSlug: 'prague', categories: ['Water'] },
-        { activityId: 'rec-9', name: 'Beer Spa', price: 90, imageUrl: null, slug: 'beer-spa', destinationSlug: 'prague', description: 'Bathe in beer.', categories: ['Chillout'] },
+        { activityId: 'rec-9', name: 'Beer Spa', price: 90, minPrice: 250, imageUrl: null, slug: 'beer-spa', destinationSlug: 'prague', description: 'Bathe in beer.', categories: ['Chillout'] },
     ];
 
     test('renders the quiz-matched pool with Add / Added states', async () => {
@@ -1377,6 +1377,7 @@ describe('quiz mode: Recommended for you', () => {
             activity: expect.objectContaining({
                 id: 'rec-9',
                 name: 'Beer Spa',
+                minPrice: 250,
                 categories: [{ name: 'Chillout' }],
             }),
         });
@@ -1402,6 +1403,44 @@ describe('quiz mode: Recommended for you', () => {
         await waitFor(() => expect(api.getActivities).toHaveBeenCalled());
         expect(screen.queryByText('Recommended for you')).not.toBeInTheDocument();
         expect(voteApi.buildPool).not.toHaveBeenCalled();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Group suggestions (from a completed vote's voteResult.suggestions)
+// ---------------------------------------------------------------------------
+
+describe('Group suggestions', () => {
+    const suggestionsResult = {
+        result: [],
+        suggestions: [
+            { activityId: 'sug-1', name: 'Sunset Cruise', price: 70, minPrice: 280, imageUrl: null, slug: 'sunset-cruise', destinationSlug: 'prague', description: 'Evening boat trip.', categories: ['Chillout'] },
+        ],
+    };
+    // A non-empty cart — matching real usage where the vote result has already
+    // hydrated the cart. An empty cart here would trip the "emptied cart"
+    // reset effect, which immediately clears voteResult (and the section).
+    const cartItem = { id: 'existing-item', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' };
+
+    test('Add dispatches a silent ADD_TO_TRIP carrying minPrice', async () => {
+        voteApi.getResult.mockResolvedValue(suggestionsResult);
+        const dispatch = jest.fn();
+        const user = userEvent.setup();
+        renderTripBuilderWithDispatch([cartItem], dispatch, { route: '/?voteSession=t-1' });
+
+        await screen.findByText('Group suggestions');
+        await user.click(screen.getByRole('button', { name: 'Add' }));
+
+        expect(dispatch).toHaveBeenCalledWith({
+            type: 'ADD_TO_TRIP',
+            silent: true,
+            activity: expect.objectContaining({
+                id: 'sug-1',
+                name: 'Sunset Cruise',
+                minPrice: 280,
+                categories: [{ name: 'Chillout' }],
+            }),
+        });
     });
 });
 

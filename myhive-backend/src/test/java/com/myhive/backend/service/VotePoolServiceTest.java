@@ -127,9 +127,11 @@ class VotePoolServiceTest {
 
         String expectedDescription = "All-night guided club crawl.";
         Integer expectedDuration = 240;
+        BigDecimal expectedMinPrice = new BigDecimal("300.00");
         Activity activity = saveActivity(destination, "Club Crawl", new BigDecimal("100"), 5, Set.of(nightlife));
         activity.setDescription(expectedDescription);
         activity.setDuration(expectedDuration);
+        activity.setMinPrice(expectedMinPrice);
         activityRepository.saveAndFlush(activity);
 
         VotePoolResponse response = votePoolService.buildPool(
@@ -139,6 +141,7 @@ class VotePoolServiceTest {
                 .satisfies(dto -> {
                     assertThat(dto.getDescription()).isEqualTo(expectedDescription);
                     assertThat(dto.getDuration()).isEqualTo(expectedDuration);
+                    assertThat(dto.getMinPrice()).isEqualByComparingTo(expectedMinPrice);
                 });
     }
 

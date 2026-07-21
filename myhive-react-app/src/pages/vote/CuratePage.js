@@ -92,6 +92,7 @@ function CurateContent() {
           id: a.id,
           name: a.name,
           price: a.price,
+          minPrice: a.minPrice,
           slug: a.slug,
           destinationSlug: a.destinationSlug,
           imageUrl: a.imageUrl,

@@ -9,7 +9,7 @@ function priceOf(item) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
-// Same hardening as priceOf: old localStorage carts have no minPrice.
+// Old localStorage carts have no minPrice — treat missing/invalid values as 0 (no floor).
 function minPriceOf(item) {
     const n = Number(item.minPrice);
     return Number.isFinite(n) && n > 0 ? n : 0;

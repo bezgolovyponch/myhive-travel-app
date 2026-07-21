@@ -16,6 +16,7 @@ public class VotePoolActivityDTO {
     private UUID activityId;
     private String name;
     private BigDecimal price;
+    private BigDecimal minPrice;
     private String imageUrl;
     private String slug;
     private String destinationSlug;
