@@ -37,94 +37,12 @@
   z-index: 30;
 }
 
-.curate-finalize h2 {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin-bottom: 16px;
-  text-align: center;
-  color: var(--text, #f5f5f5);
-}
-
 .curate-finalize-empty {
   color: var(--text-muted, rgba(167, 169, 169, 0.7));
   font-style: italic;
   margin-bottom: 24px;
   text-align: center;
   max-width: 480px;
-}
-
-.curate-finalize-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  width: min(1000px, calc(100vw - 32px));
-  margin: 0 0 24px 0;
-}
-
-.curate-finalize-card {
-  background: var(--surface, #262828);
-  border: 1px solid var(--card-border, rgba(119, 124, 124, 0.15));
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  overflow: hidden;
-  color: var(--text, #f5f5f5);
-}
-
-.curate-finalize-card-image {
-  width: 100%;
-  height: 140px;
-  object-fit: cover;
-  display: block;
-}
-
-.curate-finalize-card-body {
-  padding: 12px 14px;
-}
-
-.curate-finalize-card-name {
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 4px;
-}
-
-.curate-finalize-card-link {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-
-.curate-finalize-card-link:hover {
-  color: var(--primary, #32b8c6);
-}
-
-.curate-finalize-card-price {
-  color: var(--text-muted, rgba(167, 169, 169, 0.7));
-  font-size: 0.875rem;
-}
-
-.curate-finalize-card-cats {
-  margin-top: 6px;
-  font-size: 0.75rem;
-  color: var(--text-muted, rgba(167, 169, 169, 0.7));
-}
-
-.curate-finalize-error {
-  color: #dc3545;
-  margin-bottom: 16px;
-}
-
-.curate-finalize-actions {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
 }
 
 .curate-finalize-reset {
@@ -139,38 +57,4 @@
 
 .curate-finalize-reset:hover {
   border-color: var(--text-muted, rgba(167, 169, 169, 0.5));
-}
-
-.curate-finalize-create {
-  padding: 12px 24px;
-  background: var(--brand, #6A1B9A);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.curate-finalize-create:hover {
-  background: var(--brand-dark, #4A148C);
-}
-
-.curate-finalize-create:disabled {
-  background: #555;
-  cursor: not-allowed;
-}
-
-.curate-finalize-build {
-  padding: 12px 24px;
-  background: var(--accent, #FF5722);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.curate-finalize-build:disabled {
-  background: #555;
-  cursor: not-allowed;
 }
