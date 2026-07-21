@@ -906,8 +906,6 @@ describe('vote button after a completed cart vote', () => {
         result: [{ activityId: 'a-high', name: 'Bar Crawl', price: 45, likeCount: 8 }],
     };
     const cartItem = { id: 'a-high', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' };
-    const expectedEndedTitle =
-        'Voting has ended — complete your booking or clear your trip to start a new vote.';
 
     function LocationProbe() {
         const location = useLocation();
@@ -937,16 +935,14 @@ describe('vote button after a completed cart vote', () => {
         );
     }
 
-    test('stays disabled with an explanatory tooltip once the completed vote result is annotated', async () => {
+    test('is hidden once the completed vote result is annotated', async () => {
         localStorage.setItem('myhive-trip-vote-session', 't-1');
         voteApi.getResult.mockResolvedValue(cartResult);
 
         renderTripBuilder(buildTripState({ tripItems: [cartItem] }));
 
         expect(await screen.findByText('♥ 8')).toBeInTheDocument();
-        const voteButton = screen.getByRole('button', { name: 'Let your mates vote' });
-        expect(voteButton).toBeDisabled();
-        expect(voteButton).toHaveAttribute('title', expectedEndedTitle);
+        expect(screen.queryByRole('button', { name: 'Let your mates vote' })).not.toBeInTheDocument();
     });
 
     test('emptying the cart drops the finished session and re-enables voting for the next trip', async () => {
@@ -1379,5 +1375,77 @@ describe('quiz mode: Recommended for you', () => {
         await waitFor(() => expect(api.getActivities).toHaveBeenCalled());
         expect(screen.queryByText('Recommended for you')).not.toBeInTheDocument();
         expect(voteApi.buildPool).not.toHaveBeenCalled();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Vote button after a completed QUIZ vote — hidden until booking or empty cart
+// ---------------------------------------------------------------------------
+
+describe('vote button after a completed QUIZ vote', () => {
+    const quizResult = {
+        voteMode: 'QUIZ',
+        participantCount: 3,
+        numberOfTravelers: 2,
+        result: [{ activityId: 'a-1', name: 'Bar Crawl', price: 45, slug: 'bar', destinationSlug: 'prague' }],
+        suggestions: [],
+    };
+    const cartItem = { id: 'a-1', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' };
+
+    function QuizEndedLocationProbe() {
+        const location = useLocation();
+        return <div data-testid="quiz-ended-location">{location.pathname + location.search}</div>;
+    }
+
+    // Tree builder (not a render helper) so tests can rerender with a changed
+    // cart while MemoryRouter keeps its history across the rerender.
+    function buildTree(tripItems, dispatch, route = '/?voteSession=q-1') {
+        const state = {
+            tripId: null,
+            tripItems,
+            tripTravelers: 2,
+            tripStartDate: '',
+            tripEndDate: '',
+            tripBudget: null,
+            tripSetupModalOpen: false,
+            tripBuilderModalOpen: false,
+        };
+        return (
+            <MemoryRouter initialEntries={[route]}>
+                <TripContext.Provider value={{ state, dispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                    <QuizEndedLocationProbe />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+    }
+
+    test('is hidden while the finished vote result is loaded', async () => {
+        voteApi.getResult.mockResolvedValue(quizResult);
+        const dispatch = jest.fn();
+        render(buildTree([cartItem], dispatch));
+
+        // QUIZ hydration ran (result rows seed the cart via ADD_TO_TRIP).
+        await waitFor(() => {
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_TO_TRIP' }));
+        });
+        expect(screen.queryByRole('button', { name: 'Let your mates vote' })).not.toBeInTheDocument();
+    });
+
+    test('emptying the cart strips the param and restores the button for the next trip', async () => {
+        voteApi.getResult.mockResolvedValue(quizResult);
+        const dispatch = jest.fn();
+        const { rerender } = render(buildTree([cartItem], dispatch));
+        await waitFor(() => {
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_TO_TRIP' }));
+        });
+
+        rerender(buildTree([], dispatch));
+        await waitFor(() => {
+            expect(screen.getByTestId('quiz-ended-location').textContent).toBe('/');
+        });
+
+        rerender(buildTree([cartItem], dispatch));
+        expect(screen.getByRole('button', { name: 'Let your mates vote' })).toBeEnabled();
     });
 });

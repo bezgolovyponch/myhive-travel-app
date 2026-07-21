@@ -233,25 +233,27 @@ function TripBuilder({ destinationId, destinationSlug }) {
     };
   }, [annotationToken, voteSession, dispatch]);
 
-  // A finished cart vote parks the vote button (see voteEnded below) until the
-  // trip is booked or the initiator empties the cart. Emptying the cart is the
-  // reset: drop the finished session everywhere it's remembered (storage,
-  // state, URL param) so the next itinerary can start a fresh vote — and so a
-  // page refresh doesn't resurrect the parked state.
+  // A finished vote (CART annotation or hydrated QUIZ result) hides the vote
+  // button (see voteEnded below) until the trip is booked or the initiator
+  // empties the cart. Emptying the cart is the reset: drop the finished
+  // session everywhere it's remembered (storage, state, URL param) so the
+  // next itinerary can start a fresh vote — and so a page refresh doesn't
+  // resurrect the parked state.
   useEffect(() => {
-    if (!voteAnnotation || state.tripItems.length > 0) {
+    if ((!voteAnnotation && !voteResult) || state.tripItems.length > 0) {
       return;
     }
     localStorage.removeItem('myhive-trip-vote-session');
     setStoredVoteSession(null);
     setVoteAnnotation(null);
+    setVoteResult(null);
     if (voteSession) {
       setSearchParams(params => {
         params.delete('voteSession');
         return params;
       }, {replace: true});
     }
-  }, [voteAnnotation, state.tripItems.length, voteSession, setSearchParams]);
+  }, [voteAnnotation, voteResult, state.tripItems.length, voteSession, setSearchParams]);
 
   // A16b: fire trip_builder_viewed (→ Meta InitiateCheckout) once the user lands
   // on the trip-builder/checkout screen with a non-empty trip — one funnel step
@@ -495,6 +497,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
       clearQuizFlow();
       setQuizFlow(null);
       setVoteAnnotation(null);
+      setVoteResult(null);
       setShowContactForm(false);
       setSuccessContactData(contactData);
       // The success screen offers a 30% deposit checkout anchored to this booking.
@@ -520,16 +523,15 @@ function TripBuilder({ destinationId, destinationSlug }) {
       : standalone;
   const hasForeignStandalone = !!destinationSlug
       && standalone.some(item => item.destinationSlug && item.destinationSlug !== destinationSlug);
-  // A loaded annotation means this trip's cart vote has completed — keep the
-  // vote button parked until booking clears the session (handleContactSubmit /
-  // PaymentSuccessPage) or the emptied-cart reset effect above fires.
-  const voteEnded = voteAnnotation != null;
-  const canStartVote = standalone.length > 0 && !hasForeignStandalone && !voteEnded;
+  // A loaded annotation (CART) or hydrated result (QUIZ) means this trip's
+  // vote has completed — hide the vote button until booking clears the
+  // session (handleContactSubmit) or the emptied-cart reset effect above
+  // fires.
+  const voteEnded = voteAnnotation != null || voteResult != null;
+  const canStartVote = standalone.length > 0 && !hasForeignStandalone;
   let voteButtonTitle;
   if (hasForeignStandalone) {
     voteButtonTitle = 'Group voting works for one destination at a time — remove activities from other destinations first.';
-  } else if (voteEnded) {
-    voteButtonTitle = 'Voting has ended — complete your booking or clear your trip to start a new vote.';
   }
   const totalPrice = computeTripTotal(state.tripItems, travelers);
 
@@ -733,7 +735,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
             <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>
               Complete Booking
             </button>
-              {standalone.length > 0 && (
+              {standalone.length > 0 && !voteEnded && (
                   <button
                       type="button"
                       className="btn btn--full-width start-vote-btn"
