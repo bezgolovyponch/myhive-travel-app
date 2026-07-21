@@ -22,6 +22,8 @@ jest.mock('../services/voteApi', () => ({
     default: {
         getResult: jest.fn(),
         getSession: jest.fn(),
+        createSession: jest.fn(),
+        buildPool: jest.fn(),
     },
 }));
 
@@ -173,6 +175,8 @@ beforeEach(() => {
     // voteApi.getResult is called when ?voteSession= is in the URL; resolve to empty
     // result so the voteSession-based tests don't throw from the effect.
     voteApi.getResult.mockResolvedValue({ result: [], suggestions: [] });
+    voteApi.createSession.mockResolvedValue({ shareToken: 'quiz-tok-1', managerToken: 'mgr-1' });
+    voteApi.buildPool.mockResolvedValue({ pool: [] });
     getAttribution.mockReturnValue({ utm_source: 'facebook', utm_medium: 'cpc' });
     getRef.mockReturnValue('ref-abc');
     generateUuid.mockReturnValue('fresh-uuid');
@@ -1048,5 +1052,118 @@ describe('quiz mode: Start Over', () => {
         seedQuizFlow();
         renderQuizTripBuilder(buildTripState({ tripItems: [] }));
         expect(screen.getByRole('button', { name: 'Start Over' })).toBeInTheDocument();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Quiz mode — one-click vote creation (no modal; QUIZ session from the cart)
+// ---------------------------------------------------------------------------
+
+describe('quiz mode: one-click vote', () => {
+    const quizSetup = {
+        destination: { id: 'dest-1', slug: 'prague' },
+        travelers: 4,
+        startDate: '2026-09-01',
+        endDate: '2026-09-05',
+        email: 'organizer@example.com',
+        budget: 2000,
+    };
+    const quizResponses = [{ questionId: 'q1', answerId: 'a1' }];
+
+    function seedQuizFlow() {
+        sessionStorage.setItem('myhive-quiz-flow', JSON.stringify({
+            setup: quizSetup,
+            responses: quizResponses,
+        }));
+    }
+
+    function VoteLocationProbe() {
+        const location = useLocation();
+        return <div data-testid="vote-location">{location.pathname}</div>;
+    }
+
+    function renderQuizTripBuilder(tripState, dispatch = jest.fn()) {
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <TripContext.Provider value={{ state: tripState, dispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                    <VoteLocationProbe />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+    }
+
+    test('creates a QUIZ session from the current cart without a modal', async () => {
+        seedQuizFlow();
+        const user = userEvent.setup();
+        renderQuizTripBuilder(buildTripState({
+            tripItems: [activity1, activity2],
+            tripTravelers: 3,
+            tripStartDate: '2026-09-01',
+            tripEndDate: '2026-09-05',
+            tripBudget: 2000,
+        }));
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        // No email modal — the session is created directly.
+        expect(screen.queryByLabelText('Your email')).not.toBeInTheDocument();
+        await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledTimes(1));
+
+        const arg = voteApi.createSession.mock.calls[0][0];
+        expect(arg).toMatchObject({
+            destinationId: 'dest-1',
+            initiatorEmail: 'organizer@example.com',
+            numberOfTravelers: 3,
+            startDate: '2026-09-01',
+            endDate: '2026-09-05',
+            budget: 2000,
+            quizResponses,
+            activityIds: ['act-1', 'act-2'],
+        });
+        expect(typeof arg.voterToken).toBe('string');
+
+        // cta_click intent + A12 vote_launched conversion, same payloads as before.
+        expect(pushEvent).toHaveBeenCalledWith('cta_click', {
+            cta_label: 'Let your mates vote',
+            block: 'trip_builder',
+        });
+        expect(pushEvent).toHaveBeenCalledWith('vote_launched', {
+            trip_id: 'quiz-tok-1',
+            user_role: 'organizer',
+            selected_count: 2,
+        });
+
+        // Organizer markers + context cleanup + waiting-page navigation.
+        expect(localStorage.getItem('myhive-initiator-quiz-tok-1')).toBe('true');
+        expect(localStorage.getItem('myhive-manager-quiz-tok-1')).toBe('mgr-1');
+        expect(sessionStorage.getItem('myhive-quiz-flow')).toBeNull();
+        await waitFor(() => {
+            expect(screen.getByTestId('vote-location')).toHaveTextContent('/vote/quiz-tok-1/waiting');
+        });
+    });
+
+    test('createSession failure surfaces the error and keeps the quiz context', async () => {
+        seedQuizFlow();
+        voteApi.createSession.mockRejectedValue(new Error('Server exploded'));
+        const user = userEvent.setup();
+        renderQuizTripBuilder(buildTripState());
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(await screen.findByText('Server exploded')).toBeInTheDocument();
+        expect(pushEvent).not.toHaveBeenCalledWith('vote_launched', expect.anything());
+        expect(sessionStorage.getItem('myhive-quiz-flow')).not.toBeNull();
+        expect(screen.getByTestId('vote-location')).toHaveTextContent('/');
+    });
+
+    test('outside quiz mode the button still opens the CART modal', async () => {
+        const user = userEvent.setup();
+        renderQuizTripBuilder(buildTripState());
+
+        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+
+        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 });

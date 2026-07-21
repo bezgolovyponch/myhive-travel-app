@@ -10,6 +10,7 @@ import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
 import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
+import {getOrCreateVoterToken} from '../utils/voterToken';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
@@ -49,6 +50,8 @@ function TripBuilder({ destinationId, destinationSlug }) {
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [activeVoteToken, setActiveVoteToken] = useState(null);
   const [checkingVote, setCheckingVote] = useState(false);
+  const [creatingVote, setCreatingVote] = useState(false);
+  const [voteCreateError, setVoteCreateError] = useState(null);
   // Organizer quiz-flow handoff (CuratePage writes it): active only for the
   // destination the quiz ran for — other destinations get the plain builder.
   const [quizFlow, setQuizFlow] = useState(() => readQuizFlow());
@@ -431,6 +434,8 @@ function TripBuilder({ destinationId, destinationSlug }) {
       dispatch({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
       dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
       localStorage.removeItem('myhive-trip-vote-session');
+      clearQuizFlow();
+      setQuizFlow(null);
       setVoteAnnotation(null);
       setShowContactForm(false);
       setSuccessContactData(contactData);
@@ -469,6 +474,52 @@ function TripBuilder({ destinationId, destinationSlug }) {
     voteButtonTitle = 'Voting has ended — complete your booking or clear your trip to start a new vote.';
   }
   const totalPrice = computeTripTotal(state.tripItems, travelers);
+
+  // Quiz-flow one-click vote: email and quiz answers were captured before the
+  // quiz, so no modal — create the QUIZ session from the current cart and go
+  // straight to the waiting page. QUIZ sessions intentionally do not set
+  // myhive-trip-vote-session (parity with the old curate-screen flow).
+  const handleQuizVoteCreate = async () => {
+    pushEvent('cta_click', {
+      cta_label: 'Let your mates vote',
+      block: 'trip_builder',
+    });
+    if (creatingVote) {
+      return;
+    }
+    setCreatingVote(true);
+    setVoteCreateError(null);
+    try {
+      const session = await voteApi.createSession({
+        destinationId,
+        initiatorEmail: quizFlow.setup.email,
+        numberOfTravelers: travelers,
+        startDate: state.tripStartDate || quizFlow.setup.startDate,
+        endDate: state.tripEndDate || quizFlow.setup.endDate,
+        budget: state.tripBudget,
+        voterToken: getOrCreateVoterToken(),
+        quizResponses: quizFlow.responses,
+        activityIds: standalone.map(item => item.id),
+      });
+      localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
+      if (session.managerToken) {
+        localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
+      }
+      // A12 — vote_launched: same field names as the CART path; shareToken is the trip_id.
+      pushEvent('vote_launched', {
+        trip_id: session.shareToken,
+        user_role: 'organizer',
+        selected_count: standalone.length,
+      });
+      clearQuizFlow();
+      navigate(`/vote/${session.shareToken}/waiting`, {
+        state: { managerToken: session.managerToken },
+      });
+    } catch (e) {
+      setVoteCreateError(e.message || 'Failed to create the vote. Please try again.');
+      setCreatingVote(false);
+    }
+  };
 
   const filteredBrowseActivities = browseFilter === 'all'
       ? browseActivities
@@ -615,17 +666,22 @@ function TripBuilder({ destinationId, destinationSlug }) {
                   <button
                       type="button"
                       className="btn btn--full-width start-vote-btn"
-                      onClick={handleStartVoteClick}
-                      disabled={!canStartVote || checkingVote}
+                      onClick={quizMode ? handleQuizVoteCreate : handleStartVoteClick}
+                      disabled={!canStartVote || checkingVote || creatingVote}
                       title={voteButtonTitle}
                   >
-                    Let your mates vote
+                    {creatingVote ? 'Creating…' : 'Let your mates vote'}
                   </button>
               )}
               {quizMode && startOverButton}
               {submitError && (
                   <div className="export-error">
                     <p>{submitError}</p>
+                  </div>
+              )}
+              {voteCreateError && (
+                  <div className="export-error">
+                    <p>{voteCreateError}</p>
                   </div>
               )}
             </div>
