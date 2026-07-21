@@ -16,13 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @Import(TestSecurityConfig.class)
-class LegacyBookingVersionBackfillTest {
+class LegacyBookingDataRepairTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private LegacyBookingVersionBackfill backfill;
+    private LegacyBookingDataRepair repair;
 
     @Test
     void backfillsOnlyNullVersions() {
@@ -35,7 +35,7 @@ class LegacyBookingVersionBackfillTest {
                 "INSERT INTO bookings (id, user_email, status, version) VALUES (?, 'modern@x.y', 'PENDING', 5)",
                 modernId);
 
-        backfill.run(null);
+        repair.run(null);
 
         Long expectedBackfilledVersion = 0L;
         Long expectedUntouchedVersion = 5L;
@@ -43,5 +43,42 @@ class LegacyBookingVersionBackfillTest {
                 .isEqualTo(expectedBackfilledVersion);
         assertThat(jdbcTemplate.queryForObject("SELECT version FROM bookings WHERE id = ?", Long.class, modernId))
                 .isEqualTo(expectedUntouchedVersion);
+    }
+
+    @Test
+    void repairsPlaceholderDestinationFromCatalog() {
+        String expectedDestinationName = "Prague";
+        UUID destinationId = UUID.randomUUID();
+        UUID activityId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
+        UUID itemWithActivityId = UUID.randomUUID();
+        UUID itemWithoutActivityId = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO destinations (id, name) VALUES (?, ?)",
+                destinationId, expectedDestinationName);
+        jdbcTemplate.update(
+                "INSERT INTO activities (id, name, price, destination_id) VALUES (?, 'Tottie Tour', 10.00, ?)",
+                activityId, destinationId);
+        jdbcTemplate.update(
+                "INSERT INTO bookings (id, user_email, status, version) VALUES (?, 'x@y.z', 'PENDING', 0)",
+                bookingId);
+        jdbcTemplate.update(
+                "INSERT INTO booking_items (id, booking_id, activity_id, destination_name) "
+                        + "VALUES (?, ?, ?, 'Custom Travel Package')",
+                itemWithActivityId, bookingId, activityId);
+        // No catalog reference — the placeholder cannot be resolved and must stay untouched.
+        jdbcTemplate.update(
+                "INSERT INTO booking_items (id, booking_id, destination_name) "
+                        + "VALUES (?, ?, 'Custom Travel Package')",
+                itemWithoutActivityId, bookingId);
+
+        repair.run(null);
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT destination_name FROM booking_items WHERE id = ?", String.class, itemWithActivityId))
+                .isEqualTo(expectedDestinationName);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT destination_name FROM booking_items WHERE id = ?", String.class, itemWithoutActivityId))
+                .isEqualTo("Custom Travel Package");
     }
 }

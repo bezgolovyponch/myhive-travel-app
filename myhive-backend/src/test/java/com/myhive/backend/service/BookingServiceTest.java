@@ -589,6 +589,35 @@ class BookingServiceTest {
     }
 
     @Test
+    void createBookingFromExport_snapshotsDestinationFromCatalogNotClientLabel() {
+        // The Trip Builder sends a placeholder destination label ("Custom Travel Package");
+        // the catalog is the authority on where an activity belongs — the admin bookings
+        // filter groups by this snapshot.
+        Activity a1 = TestDataFactory.activity(destination);
+        when(activityRepository.findById(a1.getId())).thenReturn(Optional.of(a1));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TripExportRequest req = new TripExportRequest();
+        req.setUserEmail("a@b.com");
+        req.setNumberOfTravelers(1);
+        TripExportRequest.DestinationExport de = new TripExportRequest.DestinationExport();
+        de.setDestinationName("Custom Travel Package");
+        TripExportRequest.ActivityExport ae = new TripExportRequest.ActivityExport();
+        ae.setActivityId(a1.getId());
+        ae.setActivityName(a1.getName());
+        ae.setPrice(50.0);
+        de.setActivities(List.of(ae));
+        req.setDestinations(List.of(de));
+
+        BookingDTO dto = bookingService.createBookingFromExport(req);
+
+        String expectedDestinationName = destination.getName();
+        assertThat(dto.getItems())
+                .isNotEmpty()
+                .allMatch(i -> expectedDestinationName.equals(i.getDestinationName()));
+    }
+
+    @Test
     void createBookingEntity_paidFlow_usesCatalogDiscountNotClientValue() {
         // C1: a malicious initiator sends the real activity + real package but packageDiscountPct=99.
         // The paid flow must apply the persisted catalog discount (10%), never the request value.

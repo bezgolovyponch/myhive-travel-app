@@ -161,7 +161,12 @@ public class BookingService {
                     item.setPrice(act.getPrice() != null ? BigDecimal.valueOf(act.getPrice()) : BigDecimal.ZERO);
                 }
                 item.setActivityName(act.getActivityName());
-                item.setDestinationName(dest.getDestinationName());
+                // The catalog is the authority on where an activity belongs; the request's
+                // destination grouping is a client-side display label (the Trip Builder sends
+                // a "Custom Travel Package" placeholder).
+                item.setDestinationName(activity != null
+                        ? activity.getDestination().getName()
+                        : dest.getDestinationName());
 
                 int travelers = request.getNumberOfTravelers() != null ? request.getNumberOfTravelers() : 1;
                 item.setQuantity(travelers);
