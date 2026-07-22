@@ -26,13 +26,17 @@
      - `NEXT_PUBLIC_TURNSTILE_SITE_KEY=<боевой ключ>`
      - `ALLOW_INDEXING` — **НЕ ставить** на preview (robots по умолчанию
        Disallow-all; включается только на проде при cutover)
-2. **Backend Render: `CORS_ALLOWED_ORIGINS` + preview-origin.**
+2. **Backend: задеплоить ветку `fix/vote-suggestions-null-bind`** (мердж в main
+   → деплой Render-бэкенда). Фикс 500 на `/vote/sessions/{token}/result` —
+   воспроизводится на проде, когда группа налайкала всё, что предлагал квиз
+   (боевой CRA-сайт подвержен так же).
+3. **Backend Render: `CORS_ALLOWED_ORIGINS` + preview-origin.**
    Браузер шлёт свой Origin даже через same-origin `/api`-rewrite; Spring
    отдаёт 403 на все write-запросы с неизвестного origin (проверено локально —
    это единственный жёсткий блокер смоук-тестов). Переменная **замещает**
    дефолтный список — перечислить все нужные origin'ы целиком.
-3. **Auth0**: preview-URL в Allowed Callback (`…/admin`), Logout URLs, Web Origins.
-4. Смоук на preview: `node myhive-next/scripts/smoke.mjs <preview-url>` +
+4. **Auth0**: preview-URL в Allowed Callback (`…/admin`), Logout URLs, Web Origins.
+5. Смоук на preview: `node myhive-next/scripts/smoke.mjs <preview-url>` +
    ручное: админ-логин, vote-флоу, Stripe test payment, контакт-форма
    (боевой Turnstile).
 
