@@ -1,7 +1,8 @@
 # Чеклист: инфра (cutover) + статус SEO-v3
 
-**Дата:** 2026-07-23. Ф0+Ф1 реализованы и проверены локально
-(ветка `feat/nextjs-foundation`, коммиты `f678db9`, `aa77182`).
+**Дата:** 2026-07-23. Ф0+Ф1 реализованы, проверены локально (включая
+админ-логин, полный vote-флоу и букинг против докер-бэкенда).
+Ветка `feat/nextjs-foundation` (head `66fa978`) — готова к деплою как есть.
 Спека: `docs/superpowers/specs/2026-07-20-nextjs-migration-design.md`.
 
 ---
@@ -14,6 +15,7 @@
    - Root directory: `myhive-next`
    - Build: `npm ci && npm run build` · Start: `npm run start`
    - Node: из `.node-version` (20.20.0)
+   - Health check path (опционально): `/robots.txt` — лёгкий, без похода в бэкенд
    - Env vars:
      - `BACKEND_URL=https://myhive-backend.onrender.com/api` — **обязательная**,
        билд намеренно падает без неё (защита от «тихого» localhost-фоллбэка)
