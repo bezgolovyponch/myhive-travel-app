@@ -8,7 +8,7 @@
   "scripts": {
     "sync-legacy": "node scripts/sync-legacy.mjs",
     "predev": "node scripts/sync-legacy.mjs",
-    "dev": "next dev",
+    "dev": "node scripts/dev.mjs",
     "prebuild": "node scripts/sync-legacy.mjs",
     "build": "next build",
     "start": "next start"

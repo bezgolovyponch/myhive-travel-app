@@ -41,14 +41,17 @@ export const viewport: Viewport = {
   themeColor: '#000000',
 };
 
-// GTM is skipped on localhost: the container/CookieYes aren't configured for it
-// and throw a cross-origin "Script error." — same guard the CRA index.html used.
-// Consent Mode v2 / CookieYes load through the GTM container itself.
-const GTM_SNIPPET = `if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'&&!location.hostname.endsWith('.localhost')){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+const GTM_ID = 'GTM-KB7BJLDS';
+
+// GTM runs ONLY on the canonical domain (allowlist, not the CRA's localhost
+// blocklist): the Ф0 preview URL must not pump QA traffic into the production
+// container/ad audiences, and localhost still throws a cross-origin "Script
+// error." — Consent Mode v2 / CookieYes load through the GTM container itself.
+const GTM_SNIPPET = `if(/(^|\\.)trivlu\\.com$/.test(location.hostname)){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-KB7BJLDS');}`;
+})(window,document,'script','dataLayer','${GTM_ID}');}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -65,18 +68,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"
           precedence="default"
         />
-        <Script id="gtm" strategy="afterInteractive">
-          {GTM_SNIPPET}
-        </Script>
-        {/* Turnstile loader (render=explicit) — safe on localhost: ContactForm
-            uses Cloudflare's "always passes" test sitekey there. */}
+        {/* Plain synchronous script, first in body: GTM + the consent stack it
+            loads must start at parse time, before any content — the CRA served
+            this from <head>, and afterInteractive would undercount bounces and
+            delay the consent banner until after hydration. */}
+        <script dangerouslySetInnerHTML={{ __html: GTM_SNIPPET }} />
+        {/* Turnstile loader (render=explicit) — beforeInteractive so the
+            download starts from the initial HTML like CRA's head injection,
+            not after the client-only SPA hydrates. Safe on localhost:
+            ContactForm uses Cloudflare's "always passes" test sitekey there. */}
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
         />
         <noscript>
           <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-KB7BJLDS"
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
             height="0"
             width="0"
             style={{ display: 'none', visibility: 'hidden' }}

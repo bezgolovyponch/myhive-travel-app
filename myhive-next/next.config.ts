@@ -6,7 +6,18 @@ import type { NextConfig } from 'next';
 // same-origin /api/* — no public env var carries the backend URL.
 // Read at BUILD time: the rewrite destination is serialized into the build
 // output, so changing BACKEND_URL requires a rebuild, not just a restart.
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080';
+// The localhost fallback exists for `next dev` only: a production build that
+// forgot the env var would otherwise ship with every /api call proxying to a
+// localhost where nothing listens — a fully broken deploy that builds green.
+if (!process.env.BACKEND_URL && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'BACKEND_URL is not set. Production builds refuse the localhost fallback — ' +
+      'set it in the deploy environment (e.g. https://myhive-backend.onrender.com/api).'
+  );
+}
+// Strip trailing slashes: `${url}/:path*` with a trailing slash produces
+// double-slash paths that Spring's path matching 404s.
+const BACKEND_URL = (process.env.BACKEND_URL ?? 'http://localhost:8080').replace(/\/+$/, '');
 console.log(`[next.config] /api rewrite target: ${BACKEND_URL}`);
 
 const nextConfig: NextConfig = {

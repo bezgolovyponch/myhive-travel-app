@@ -4,3 +4,4 @@ out/
 legacy-src/
 .env*.local
 *.tsbuildinfo
+public/
