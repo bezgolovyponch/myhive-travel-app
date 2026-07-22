@@ -1,9 +1,16 @@
 // Ф1 SSR smoke checks (spec §11 + SEO-v3 метатеги table).
-// Usage: node scripts/smoke.mjs [base-url]   (default http://localhost:3100)
+// Usage: node scripts/smoke.mjs [base-url]   (default http://localhost:3000)
 // Verifies per page: HTTP 200, exactly one <h1>, content present in RAW HTML,
 // expected <title> (where SEO-v3 fixes it), title ≤60 chars / description ≤155,
 // canonical present. Plus: true 404s, robots.txt, sitemap.xml, legacy fallback.
-const BASE = process.argv[2] ?? 'http://localhost:3100';
+const BASE = process.argv[2] ?? 'http://localhost:3000';
+
+try {
+  await fetch(BASE + '/robots.txt');
+} catch {
+  console.error(`Cannot reach ${BASE} — is the server running? (npm run start, or pass a URL: node scripts/smoke.mjs <url>)`);
+  process.exit(2);
+}
 const fails = [];
 
 async function fetchPage(path) {
