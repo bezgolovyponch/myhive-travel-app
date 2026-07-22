@@ -56,7 +56,7 @@ public interface ActivityRepository extends SluggedRepository<Activity> {
             JOIN a.categories c
             WHERE a.destination.id = :destinationId
               AND c.votable = true
-              AND (:categoryIds IS NULL OR c.id IN :categoryIds)
+              AND c.id IN :categoryIds
               AND a.id NOT IN :excludedActivityIds
             ORDER BY a.featuredWeight DESC, a.id ASC
             """)
@@ -64,4 +64,18 @@ public interface ActivityRepository extends SluggedRepository<Activity> {
                                             @Param("categoryIds") Collection<UUID> categoryIds,
                                             @Param("excludedActivityIds") Collection<UUID> excludedActivityIds,
                                             Pageable pageable);
+
+    /** Category-agnostic fallback: a null Collection bound into "(:ids IS NULL OR ... IN :ids)"
+     *  fails on Postgres with "Unknown Types value" (Hibernate can't type the bind). */
+    @Query("""
+            SELECT DISTINCT a FROM Activity a
+            JOIN a.categories c
+            WHERE a.destination.id = :destinationId
+              AND c.votable = true
+              AND a.id NOT IN :excludedActivityIds
+            ORDER BY a.featuredWeight DESC, a.id ASC
+            """)
+    List<Activity> findSuggestionCandidatesAnyCategory(@Param("destinationId") UUID destinationId,
+                                                       @Param("excludedActivityIds") Collection<UUID> excludedActivityIds,
+                                                       Pageable pageable);
 }
