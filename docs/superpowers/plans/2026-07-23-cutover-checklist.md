@@ -30,7 +30,7 @@
    это единственный жёсткий блокер смоук-тестов). Переменная **замещает**
    дефолтный список — перечислить все нужные origin'ы целиком.
 3. **Auth0**: preview-URL в Allowed Callback (`…/admin`), Logout URLs, Web Origins.
-4. Смоук на preview: `python3 myhive-next/scripts/smoke.py <preview-url>` +
+4. Смоук на preview: `node myhive-next/scripts/smoke.mjs <preview-url>` +
    ручное: админ-логин, vote-флоу, Stripe test payment, контакт-форма
    (боевой Turnstile).
 

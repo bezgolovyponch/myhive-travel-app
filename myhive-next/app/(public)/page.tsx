@@ -15,9 +15,11 @@ import '../../legacy-src/components/home/FeaturedActivitiesSection.css';
 
 export const revalidate = 3600;
 
-const TITLE = 'Trivlu — The Easiest Stag Do Decision. All Sorted For You.';
+// Title/description from SEO план v3 (метатеги table); the visible H1 stays
+// the designed hero copy — same meaning, brand tone (doc: «заготовки»).
+const TITLE = 'Trivlu — Stag Do Trips, Sorted in Minutes';
 const DESCRIPTION =
-  'Your mates vote in 10 minutes. We deliver the perfect stag do weekend — activities, booking and logistics all sorted for you.';
+  'Plan a stag weekend the whole group agrees on. Vote on activities, get a price for the group, book with a 30% deposit.';
 
 export const metadata: Metadata = {
   title: TITLE,
