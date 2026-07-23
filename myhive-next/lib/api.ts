@@ -7,8 +7,12 @@ const BACKEND = (process.env.BACKEND_URL ?? 'http://localhost:8080').replace(/\/
 export const REVALIDATE_SECONDS = 3600;
 
 async function get<T>(path: string): Promise<T | null> {
+  // Rate-limit exemption for server-to-server traffic (cold ISR fills render
+  // the whole catalog from one egress IP). Read per-request like BACKEND.
+  const token = process.env.INTERNAL_API_TOKEN;
   const res = await fetch(`${BACKEND}${path}`, {
     next: { revalidate: REVALIDATE_SECONDS },
+    ...(token ? { headers: { 'X-Internal-Token': token } } : {}),
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Backend ${res.status} on ${path}`);
@@ -25,6 +29,7 @@ export interface Destination {
   imageUrl: string;
   rating: number;
   activityCount: number;
+  seoIndexable?: boolean | null;
 }
 
 export interface Category {
@@ -46,6 +51,7 @@ export interface Activity {
   destinationSlug?: string | null;
   destinationId?: string | null;
   categories?: ({ name: string; slug?: string } | string)[] | null;
+  seoIndexable?: boolean | null;
 }
 
 export interface TripPackage {
@@ -53,10 +59,14 @@ export interface TripPackage {
   slug: string;
   name: string;
   description: string;
-  price: number;
+  discountPct?: number | null;
+  originalPrice: number;
+  discountedPrice: number;
+  savings: number;
   imageUrl: string;
   destinationSlug?: string | null;
   activities?: Activity[] | null;
+  seoIndexable?: boolean | null;
 }
 
 export interface BlogPost {
@@ -69,6 +79,7 @@ export interface BlogPost {
   category?: string | null;
   publishedAt?: string | null;
   createdAt?: string | null;
+  seoIndexable?: boolean | null;
 }
 
 export const api = {
