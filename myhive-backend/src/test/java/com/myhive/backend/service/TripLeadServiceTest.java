@@ -109,6 +109,25 @@ class TripLeadServiceTest {
     }
 
     @Test
+    void sync_dedupesDuplicateActivityIds() {
+        TripLeadCreateResponse lead = tripLeadService.create(createRequest("dupitems@example.com"));
+
+        TripLeadSyncRequest.SyncItem first = new TripLeadSyncRequest.SyncItem();
+        first.setActivityId(karting.getId());
+        first.setSortOrder(0);
+        TripLeadSyncRequest.SyncItem duplicate = new TripLeadSyncRequest.SyncItem();
+        duplicate.setActivityId(karting.getId());
+        duplicate.setSortOrder(1);
+        TripLeadSyncRequest request = new TripLeadSyncRequest();
+        request.setRestoreToken(lead.restoreToken());
+        request.setItems(List.of(first, duplicate));
+
+        tripLeadService.sync(lead.id(), request);
+
+        assertThat(tripLeadActivityRepository.findByLeadIdOrderBySortOrder(lead.id())).hasSize(1);
+    }
+
+    @Test
     void sync_rejectsWrongToken() {
         TripLeadCreateResponse lead = tripLeadService.create(createRequest("token@example.com"));
         TripLeadSyncRequest request = new TripLeadSyncRequest();

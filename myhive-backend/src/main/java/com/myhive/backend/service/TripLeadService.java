@@ -27,9 +27,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -122,11 +124,15 @@ public class TripLeadService {
                 .findAllById(ordered.stream().map(TripLeadSyncRequest.SyncItem::getActivityId).toList())
                 .stream()
                 .collect(Collectors.toMap(Activity::getId, a -> a));
+        Set<UUID> seenActivityIds = new HashSet<>();
         int sortOrder = 0;
         for (TripLeadSyncRequest.SyncItem item : ordered) {
             Activity activity = activitiesById.get(item.getActivityId());
             if (activity == null) {
                 continue; // stale cart entry — the activity is no longer in the catalog
+            }
+            if (!seenActivityIds.add(item.getActivityId())) {
+                continue; // duplicate id in the payload — first occurrence wins
             }
             saveItemSnapshot(lead, activity, sortOrder++);
         }
