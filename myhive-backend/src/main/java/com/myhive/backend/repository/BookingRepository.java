@@ -35,8 +35,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     Optional<Booking> findByIdForUpdate(@Param("id") UUID id);
 
     /** Trip-lead reminder stop condition: any booking by this email since the lead was captured. */
-    @Query("select count(b) > 0 from Booking b where lower(b.userEmail) = lower(:userEmail) and b.createdAt > :createdAt")
-    boolean existsByUserEmailIgnoreCaseAndCreatedAtAfter(@Param("userEmail") String userEmail, @Param("createdAt") LocalDateTime createdAt);
+    boolean existsByUserEmailIgnoreCaseAndCreatedAtAfter(String userEmail, LocalDateTime createdAt);
 
     /** Trip-lead reminder stop condition: any booking (incl. consultation) from this vote session. */
     boolean existsByVoteSessionId(UUID voteSessionId);

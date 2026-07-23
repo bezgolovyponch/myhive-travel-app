@@ -79,5 +79,7 @@ class TripLeadConversionQueriesTest {
                 .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("bob@example.com", persistedAt.minusHours(1))).isTrue();
         assertThat(voteSessionRepository
                 .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("nobody@example.com", persistedAt.minusHours(1))).isFalse();
+        assertThat(voteSessionRepository
+                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("bob@example.com", persistedAt.plusHours(1))).isFalse();
     }
 }
