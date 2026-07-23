@@ -174,7 +174,7 @@ export default async function ActivityDetailPage({ params }: PageParams) {
               </a>
               <a
                 className="activity-detail-add-btn"
-                href={`/destination/${slug}?tab=trip-builder`}
+                href={`/destination/${slug}?tab=trip-builder&add=${activity.slug}`}
                 style={{ background: 'transparent', border: '1px solid var(--border)' }}
               >
                 <i className="ph ph-plus-circle" aria-hidden="true" /> Add to trip

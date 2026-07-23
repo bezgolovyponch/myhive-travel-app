@@ -146,7 +146,7 @@ export default async function PackageDetailPage({ params }: PageParams) {
             </div>
             <a
               className="add-to-trip-btn package-detail-add-btn"
-              href={`/destination/${slug}?tab=trip-builder`}
+              href={`/destination/${slug}?tab=trip-builder&addPackage=${pkg.slug}`}
             >
               Add to Trip
             </a>

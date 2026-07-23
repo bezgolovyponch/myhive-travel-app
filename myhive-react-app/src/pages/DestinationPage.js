@@ -8,6 +8,7 @@ import PackageCard from '../components/PackageCard';
 import api from '../services/api';
 import {SITE_URL} from '../services/config';
 import {capitalizeFirst} from '../utils/format';
+import useTripDeepLink from '../hooks/useTripDeepLink';
 import './DestinationPage.css';
 
 const PAGE_SIZE = 12;
@@ -18,6 +19,7 @@ function DestinationPage() {
     const {state: trip} = useTrip();
   const location = useLocation();
   const navigate = useNavigate();
+    useTripDeepLink();
     const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
     // Mount TripBuilder only once its tab has been opened — it fetches the
     // destination's activity catalog on mount, which is wasted on visitors
