@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, type BlogPost } from '../../../../lib/api';
-import { SITE_URL, canonical, breadcrumbJsonLd } from '../../../../lib/seo';
+import { SITE_URL, canonical, breadcrumbJsonLd, jsonLd } from '../../../../lib/seo';
 import '../../../../legacy-src/pages/BlogPostPage.css';
 
 export const revalidate = 3600;
@@ -30,7 +30,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await api.getBlogPostBySlug(slug).catch(() => null);
+  const post = await api.getBlogPostBySlug(slug);
   if (!post) return {};
 
   const title = `${post.title} | Trivlu Blog`;
@@ -57,7 +57,7 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = await api.getBlogPostBySlug(slug).catch(() => null);
+  const post = await api.getBlogPostBySlug(slug);
   if (!post) notFound();
 
   const date = displayDate(post);
@@ -90,11 +90,11 @@ export default async function BlogPostPage({
     <div className="blog-post-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(articleJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbs) }}
       />
 
       {post.imageUrl && (
