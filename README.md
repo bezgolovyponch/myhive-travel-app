@@ -67,6 +67,12 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
   Both deposit endpoints read the `Origin` header to build same-origin Stripe return URLs (validated
   against `CORS_ALLOWED_ORIGINS`, falls back to `FRONTEND_URL`).
 - `GET /auth/me` — current user info from JWT (permitAll; returns roles when a token is present)
+- **Trip lead reminders**: `POST /leads` (create/dedup by normalized email), `PATCH /leads/{id}` (debounced sync
+  of travelers/dates/budget/quiz answers/cart items — requires the lead's `restoreToken`), `GET /leads/restore/{token}`
+  (cross-device cart restore), `POST /leads/unsubscribe` + `POST /leads/unsubscribe/one-click?token=` (RFC 8058
+  one-click, headers only emitted when `API_PUBLIC_URL` is set). Reminder emails sent by `TripLeadReminderScheduler`
+  on a 10-minute tick (QUIZ 1h/24h/72h, VOTE 24h/72h from last activity); stops on booking, new vote, or suppression;
+  leads deleted 30 days after last touch. Kill switch: `REMINDERS_ENABLED`.
 
 **Admin** (Auth0 JWT, ADMIN/MANAGER role; categories require ADMIN):
 
@@ -120,6 +126,8 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `AUTH0_AUDIENCE`         | yes         | `https://api.trivlu.com` |
 | `AUTH0_ROLES_CLAIM`      | no          | `https://trivlu.com/roles` |
 | `FRONTEND_URL`           | for sitemap | `https://trivlu.com` (also the Stripe return-URL fallback when the request Origin is absent/untrusted) |
+| `REMINDERS_ENABLED`      | no          | `true` (kill switch for the trip-lead reminder scheduler) |
+| `API_PUBLIC_URL`         | no          | empty (set to enable RFC 8058 one-click unsubscribe headers on reminder emails) |
 
 ### Frontend (build-time `REACT_APP_*`)
 
