@@ -42,7 +42,7 @@ class VoteSessionLeadCaptureFailureTest {
         @Primary
         public TripLeadService tripLeadService() {
             TripLeadService broken = mock(TripLeadService.class);
-            doThrow(new RuntimeException("lead capture down")).when(broken).createFromVoteSession(any());
+            doThrow(new RuntimeException("lead capture down")).when(broken).createFromVoteSession(any(), any());
             return broken;
         }
     }

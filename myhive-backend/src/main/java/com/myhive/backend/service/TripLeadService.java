@@ -11,7 +11,6 @@ import com.myhive.backend.entity.TripLead;
 import com.myhive.backend.entity.TripLeadActivity;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
-import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.TripLeadStatus;
@@ -22,7 +21,7 @@ import com.myhive.backend.repository.EmailSuppressionRepository;
 import com.myhive.backend.repository.TripLeadActivityRepository;
 import com.myhive.backend.repository.TripLeadRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
-import com.myhive.backend.repository.VoteSessionResultActivityRepository;
+import com.myhive.backend.repository.VoteSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -55,7 +55,7 @@ public class TripLeadService {
     private final ActivityRepository activityRepository;
     private final BookingRepository bookingRepository;
     private final VoteSessionActivityRepository voteSessionActivityRepository;
-    private final VoteSessionResultActivityRepository resultActivityRepository;
+    private final VoteSessionRepository voteSessionRepository;
 
     static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
@@ -162,9 +162,16 @@ public class TripLeadService {
     /**
      * Captures a reminder lead when a vote session completes without a booking. REQUIRES_NEW so a
      * failure here can be swallowed by the caller without poisoning the vote-completion transaction.
+     * Takes ids, not entities: the caller's transaction is still uncommitted, so this method must
+     * load everything it needs through its own persistence context — rankedActivityIds carries the
+     * frozen ranking that is not yet visible to this transaction.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void createFromVoteSession(VoteSession session) {
+    public void createFromVoteSession(UUID sessionId, List<UUID> rankedActivityIds) {
+        VoteSession session = voteSessionRepository.findById(sessionId).orElse(null);
+        if (session == null) {
+            return;
+        }
         String email = normalizeEmail(session.getInitiatorEmail());
         if (bookingRepository.existsByVoteSessionId(session.getId())) {
             return; // already booked from this vote — nothing to remind about
@@ -185,21 +192,25 @@ public class TripLeadService {
         lead.setReminderStage(0);
         lead.setLastActivityAt(LocalDateTime.now(ZoneOffset.UTC));
         lead = tripLeadRepository.save(lead);
-        replaceItemsFromVoteResult(lead, session);
+        replaceItemsFromVoteResult(lead, session, rankedActivityIds);
     }
 
-    private void replaceItemsFromVoteResult(TripLead lead, VoteSession session) {
+    private void replaceItemsFromVoteResult(TripLead lead, VoteSession session, List<UUID> rankedActivityIds) {
         tripLeadActivityRepository.deleteByLeadId(lead.getId());
-        List<VoteSessionResultActivity> results = resultActivityRepository
-                .findBySessionIdOrderBySortOrder(session.getId());
         // Winners in ranked order when the vote produced results; the full ballot otherwise.
-        List<Activity> ordered = results.isEmpty()
-                ? voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId()).stream()
-                        .map(VoteSessionActivity::getActivity)
-                        .toList()
-                : results.stream()
-                        .map(VoteSessionResultActivity::getActivity)
-                        .toList();
+        List<Activity> ordered;
+        if (rankedActivityIds.isEmpty()) {
+            ordered = voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId()).stream()
+                    .map(VoteSessionActivity::getActivity)
+                    .toList();
+        } else {
+            Map<UUID, Activity> activitiesById = activityRepository.findAllById(rankedActivityIds).stream()
+                    .collect(Collectors.toMap(Activity::getId, a -> a));
+            ordered = rankedActivityIds.stream()
+                    .map(activitiesById::get)
+                    .filter(Objects::nonNull)
+                    .toList();
+        }
         int sortOrder = 0;
         for (Activity activity : ordered) {
             saveItemSnapshot(lead, activity, sortOrder++);

@@ -558,7 +558,11 @@ public class VoteSessionService {
         }
 
         try {
-            tripLeadService.createFromVoteSession(session);
+            List<UUID> rankedActivityIds = resultActivityRepository
+                    .findBySessionIdOrderBySortOrder(session.getId()).stream()
+                    .map(row -> row.getActivity().getId())
+                    .toList();
+            tripLeadService.createFromVoteSession(session.getId(), rankedActivityIds);
         } catch (Exception e) {
             // A failed lead capture must never fail vote completion — log and move on.
             log.error("Failed to create trip lead for session {}: {}", session.getId(), e.getMessage(), e);

@@ -7,6 +7,8 @@ import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.EmailSuppression;
 import com.myhive.backend.entity.TripLead;
+import com.myhive.backend.entity.TripLeadActivity;
+import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.model.BookingStatus;
@@ -20,6 +22,7 @@ import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.EmailSuppressionRepository;
 import com.myhive.backend.repository.TripLeadActivityRepository;
 import com.myhive.backend.repository.TripLeadRepository;
+import com.myhive.backend.repository.VoteActivityLikeRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,9 +52,11 @@ class TripLeadFromVoteSessionTest {
     @Autowired private EmailSuppressionRepository emailSuppressionRepository;
     @Autowired private VoteSessionRepository voteSessionRepository;
     @Autowired private VoteSessionActivityRepository voteSessionActivityRepository;
+    @Autowired private VoteActivityLikeRepository voteActivityLikeRepository;
     @Autowired private DestinationRepository destinationRepository;
     @Autowired private ActivityRepository activityRepository;
     @Autowired private BookingRepository bookingRepository;
+    @Autowired private VoteSessionService voteSessionService;
 
     private Destination destination;
     private Activity karting;
@@ -93,7 +98,7 @@ class TripLeadFromVoteSessionTest {
     void createFromVoteSession_createsVoteLeadWithBallotSnapshot() {
         VoteSession session = completedSession("Organizer@Example.com");
 
-        tripLeadService.createFromVoteSession(session);
+        tripLeadService.createFromVoteSession(session.getId(), List.of());
 
         List<TripLead> leads = tripLeadRepository
                 .findAllByEmailAndStatus("organizer@example.com", TripLeadStatus.ACTIVE);
@@ -113,7 +118,7 @@ class TripLeadFromVoteSessionTest {
         booking.setVoteSessionId(session.getId());
         bookingRepository.saveAndFlush(booking);
 
-        tripLeadService.createFromVoteSession(session);
+        tripLeadService.createFromVoteSession(session.getId(), List.of());
 
         assertThat(tripLeadRepository.findAllByEmailAndStatus("booked@example.com", TripLeadStatus.ACTIVE))
                 .isEmpty();
@@ -126,7 +131,7 @@ class TripLeadFromVoteSessionTest {
         suppression.setEmail("optout@example.com");
         emailSuppressionRepository.saveAndFlush(suppression);
 
-        tripLeadService.createFromVoteSession(session);
+        tripLeadService.createFromVoteSession(session.getId(), List.of());
 
         assertThat(tripLeadRepository.findAllByEmailAndStatus("optout@example.com", TripLeadStatus.ACTIVE))
                 .isEmpty();
@@ -140,7 +145,7 @@ class TripLeadFromVoteSessionTest {
         quizLead.setLastActivityAt(LocalDateTime.now(ZoneOffset.UTC).minusDays(1));
         tripLeadRepository.saveAndFlush(quizLead);
 
-        tripLeadService.createFromVoteSession(session);
+        tripLeadService.createFromVoteSession(session.getId(), List.of());
 
         List<TripLead> leads = tripLeadRepository
                 .findAllByEmailAndStatus("existing@example.com", TripLeadStatus.ACTIVE);
@@ -148,5 +153,81 @@ class TripLeadFromVoteSessionTest {
         assertThat(leads.get(0).getId()).isEqualTo(quizLead.getId());
         assertThat(leads.get(0).getSource()).isEqualTo(TripLeadSource.VOTE);
         assertThat(leads.get(0).getReminderStage()).isZero();
+    }
+
+    @Test
+    void createFromVoteSession_usesRankedIdsWhenPresent() {
+        VoteSession session = completedSession("ranked@example.com");
+        Activity beerBike = activityRepository.saveAndFlush(
+                TestDataFactory.activity(destination, "Beer Bike", new BigDecimal("35.00")));
+        VoteSessionActivity beerBikeRow = new VoteSessionActivity();
+        beerBikeRow.setSession(session);
+        beerBikeRow.setActivity(beerBike);
+        beerBikeRow.setActivityName("Beer Bike");
+        beerBikeRow.setPrice(new BigDecimal("35.00"));
+        beerBikeRow.setSortOrder(1);
+        voteSessionActivityRepository.saveAndFlush(beerBikeRow);
+
+        tripLeadService.createFromVoteSession(session.getId(), List.of(beerBike.getId()));
+
+        List<TripLead> leads = tripLeadRepository
+                .findAllByEmailAndStatus("ranked@example.com", TripLeadStatus.ACTIVE);
+        assertThat(leads).hasSize(1);
+        List<TripLeadActivity> items =
+                tripLeadActivityRepository.findByLeadIdOrderBySortOrder(leads.get(0).getId());
+        assertThat(items).hasSize(1);
+        assertThat(items.get(0).getActivityName()).isEqualTo("Beer Bike");
+    }
+
+    @Test
+    void processSession_snapshotsRankedWinnersIntoLead() {
+        Activity beerBike = activityRepository.saveAndFlush(
+                TestDataFactory.activity(destination, "Beer Bike", new BigDecimal("35.00")));
+
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setManagerToken(UUID.randomUUID());
+        session.setDestination(destination);
+        session.setInitiatorEmail("voter-winner@example.com");
+        session.setNumberOfTravelers(4);
+        session.setStartDate(LocalDate.now().plusDays(15));
+        session.setEndDate(LocalDate.now().plusDays(17));
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setVoteMode(VoteMode.CART);
+        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC));
+        session = voteSessionRepository.saveAndFlush(session);
+
+        VoteSessionActivity kartingRow = new VoteSessionActivity();
+        kartingRow.setSession(session);
+        kartingRow.setActivity(karting);
+        kartingRow.setActivityName("Karting");
+        kartingRow.setPrice(new BigDecimal("50.00"));
+        kartingRow.setSortOrder(0);
+        voteSessionActivityRepository.saveAndFlush(kartingRow);
+
+        VoteSessionActivity beerBikeRow = new VoteSessionActivity();
+        beerBikeRow.setSession(session);
+        beerBikeRow.setActivity(beerBike);
+        beerBikeRow.setActivityName("Beer Bike");
+        beerBikeRow.setPrice(new BigDecimal("35.00"));
+        beerBikeRow.setSortOrder(1);
+        voteSessionActivityRepository.saveAndFlush(beerBikeRow);
+
+        VoteActivityLike like = new VoteActivityLike();
+        like.setSession(session);
+        like.setVoterToken(UUID.randomUUID());
+        like.setActivity(beerBike);
+        like.setLiked(true);
+        voteActivityLikeRepository.saveAndFlush(like);
+
+        voteSessionService.processSession(session);
+
+        List<TripLead> leads = tripLeadRepository
+                .findAllByEmailAndStatus("voter-winner@example.com", TripLeadStatus.ACTIVE);
+        assertThat(leads).hasSize(1);
+        List<TripLeadActivity> items =
+                tripLeadActivityRepository.findByLeadIdOrderBySortOrder(leads.get(0).getId());
+        assertThat(items).extracting(TripLeadActivity::getActivityName)
+                .containsExactly("Beer Bike", "Karting");
     }
 }
