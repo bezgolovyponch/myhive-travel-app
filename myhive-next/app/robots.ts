@@ -15,7 +15,7 @@ export default function robots(): MetadataRoute.Robots {
   // Next owns the sitemap (app/sitemap.ts) — single implementation, spec §2.
   const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trivlu.com';
   return {
-    rules: { userAgent: '*', disallow: ['/admin/', '/vote/', '/payment/'] },
+    rules: { userAgent: '*', disallow: ['/admin', '/vote', '/payment'] },
     sitemap: `${site}/sitemap.xml`,
   };
 }
