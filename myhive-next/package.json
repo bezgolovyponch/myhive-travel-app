@@ -25,8 +25,10 @@
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.3",
     "react-helmet-async": "^3.0.0",
+    "react-markdown": "^9.1.0",
     "react-oidc-context": "^3.3.1",
-    "react-router-dom": "^7.10.1"
+    "react-router-dom": "^7.10.1",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/node": "^20",

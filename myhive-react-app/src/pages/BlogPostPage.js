@@ -3,6 +3,7 @@ import {Link, useParams} from 'react-router-dom';
 import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
+import MarkdownContent from '../components/MarkdownContent';
 import './BlogPostPage.css';
 
 function BlogPostPage() {
@@ -30,8 +31,6 @@ function BlogPostPage() {
         );
     }
 
-    const paragraphs = post.content ? post.content.split('\n').filter(p => p.trim()) : [];
-
     return (
         <div className="blog-post-page">
             <Helmet>
@@ -57,9 +56,7 @@ function BlogPostPage() {
                         {post.date && <span className="blog-post-date">{post.date}</span>}
                     </>
                 )}
-                {paragraphs.map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                ))}
+                <MarkdownContent>{post.content}</MarkdownContent>
 
                 <div className="blog-post-back">
                     <Link to="/blog" className="btn btn--primary">Back to Blog</Link>

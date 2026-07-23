@@ -1,11 +1,14 @@
 // SSR blog post — content parity with legacy-src/pages/BlogPostPage.js. Legacy
-// renders post.content as plain text split on newlines into <p> blocks (NOT
-// HTML), so we mirror that exactly — no dangerouslySetInnerHTML.
+// renders post.content as GFM markdown via the shared MarkdownContent
+// renderer (react-markdown + remark-gfm), NOT dangerouslySetInnerHTML — raw
+// HTML in content is not rendered, and URLs go through react-markdown's
+// default sanitizer.
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, type BlogPost } from '../../../../lib/api';
 import { SITE_URL, canonical, breadcrumbJsonLd, jsonLd, pageMetadata } from '../../../../lib/seo';
+import MarkdownContent from '../../../../legacy-src/components/MarkdownContent';
 import '../../../../legacy-src/pages/BlogPostPage.css';
 
 export const revalidate = 3600;
@@ -20,7 +23,11 @@ function displayDate(post: BlogPost) {
 
 function summarize(post: BlogPost) {
   if (post.excerpt) return post.excerpt;
-  const text = (post.content || '').replace(/\s+/g, ' ').trim();
+  const text = (post.content || '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // keep link text, drop URL
+    .replace(/[#*_>|`]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   return text.length > 155 ? `${text.slice(0, 152).trimEnd()}...` : text;
 }
 
@@ -56,9 +63,6 @@ export default async function BlogPostPage({
   if (!post) notFound();
 
   const date = displayDate(post);
-  const paragraphs = post.content
-    ? post.content.split('\n').filter((p) => p.trim())
-    : [];
 
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -113,9 +117,7 @@ export default async function BlogPostPage({
             {date && <span className="blog-post-date">{date}</span>}
           </>
         )}
-        {paragraphs.map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
+        <MarkdownContent>{post.content}</MarkdownContent>
 
         <div className="blog-post-back">
           <Link href="/blog" className="btn btn--primary">

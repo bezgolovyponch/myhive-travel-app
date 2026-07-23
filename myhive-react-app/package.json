@@ -13,9 +13,11 @@
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.3",
     "react-helmet-async": "^3.0.0",
+    "react-markdown": "^9.1.0",
     "react-oidc-context": "^3.3.1",
     "react-router-dom": "^7.10.1",
     "react-scripts": "5.0.1",
+    "remark-gfm": "^4.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -32,13 +34,17 @@
   },
   "jest": {
     "transformIgnorePatterns": [
-      "[/\\\\]node_modules[/\\\\](?!(react-day-picker|date-fns)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
+      "[/\\\\]node_modules[/\\\\](?!(react-day-picker|date-fns|react-markdown|remark-.*|rehype-.*|micromark.*|mdast-.*|unist-.*|unified|bail|is-plain-obj|trough|vfile.*|hast-.*|property-information|html-url-attributes|space-separated-tokens|comma-separated-tokens|devlop|estree-util-is-identifier-name|ccount|escape-string-regexp|markdown-table|trim-lines|decode-named-character-reference|character-entities.*|longest-streak|zwitch)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
       "^.+\\.module\\.(css|sass|scss)$"
     ],
     "moduleNameMapper": {
       "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
       "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js",
-      "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js"
+      "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js",
+      "^unist-util-visit-parents/do-not-use-color$": "<rootDir>/node_modules/unist-util-visit-parents/lib/color.js",
+      "^#minpath$": "<rootDir>/node_modules/vfile/lib/minpath.js",
+      "^#minproc$": "<rootDir>/node_modules/vfile/lib/minproc.js",
+      "^#minurl$": "<rootDir>/node_modules/vfile/lib/minurl.js"
     }
   },
   "browserslist": {
