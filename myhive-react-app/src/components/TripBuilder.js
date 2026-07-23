@@ -10,6 +10,7 @@ import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
 import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
+import {clearTripLead} from '../utils/tripLead';
 import {getOrCreateVoterToken} from '../utils/voterToken';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
@@ -497,6 +498,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
       dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
       localStorage.removeItem('myhive-trip-vote-session');
       clearQuizFlow();
+      clearTripLead();
       setQuizFlow(null);
       setVoteAnnotation(null);
       setVoteResult(null);
@@ -596,6 +598,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
         selected_count: standalone.length,
       });
       clearQuizFlow();
+      clearTripLead();
       setQuizFlow(null);
       navigate(`/vote/${session.shareToken}/waiting`, {
         state: { managerToken: session.managerToken },

@@ -2,6 +2,7 @@ import {useEffect, useId, useRef, useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
 import AppModal from './AppModal';
+import EmailConsentNote from './EmailConsentNote';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
@@ -223,6 +224,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                     required
                                     placeholder="you@example.com"
                                 />
+                                <EmailConsentNote />
                             </div>
                         )}
                     </form>

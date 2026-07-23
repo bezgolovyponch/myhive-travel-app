@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppModal from '../AppModal';
+import EmailConsentNote from '../EmailConsentNote';
 import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
+import { clearTripLead } from '../../utils/tripLead';
 import './StartGroupVoteModal.css';
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
@@ -70,6 +72,7 @@ function StartGroupVoteModal({
             localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
             localStorage.setItem('myhive-trip-vote-session', session.shareToken);
+            clearTripLead();
             // Mirrors CuratePage's A12 vote_launched (QUIZ) — same field names,
             // shareToken as trip_id, organizer is always the creator here.
             pushEvent('vote_launched', {
@@ -114,6 +117,7 @@ function StartGroupVoteModal({
                 className={errors.email ? 'error' : ''}
             />
             {errors.email && <span className="error-message">{errors.email}</span>}
+            <EmailConsentNote />
             {needsDates && (
                 <>
                     <label htmlFor="start-vote-start-date">Trip dates</label>
