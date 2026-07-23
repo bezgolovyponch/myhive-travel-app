@@ -30,7 +30,7 @@ class TripLeadConversionQueriesTest {
     @Autowired private DestinationRepository destinationRepository;
 
     @Test
-    void existsByUserEmailIgnoreCaseAndCreatedAtAfter_matchesCaseInsensitively() {
+    void existsByUserEmailIgnoreCaseAndCreatedAtGreaterThanEqual_matchesCaseInsensitively() {
         Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
         booking.setId(null);
         booking.setUserEmail("Alice@Example.COM");
@@ -38,11 +38,15 @@ class TripLeadConversionQueriesTest {
 
         LocalDateTime persistedAt = booking.getCreatedAt();
         assertThat(bookingRepository
-                .existsByUserEmailIgnoreCaseAndCreatedAtAfter("alice@example.com", persistedAt.minusHours(1))).isTrue();
+                .existsByUserEmailIgnoreCaseAndCreatedAtGreaterThanEqual("alice@example.com", persistedAt.minusHours(1)))
+                .isTrue();
         assertThat(bookingRepository
-                .existsByUserEmailIgnoreCaseAndCreatedAtAfter("other@example.com", persistedAt.minusHours(1))).isFalse();
-        assertThat(bookingRepository.existsByUserEmailIgnoreCaseAndCreatedAtAfter(
+                .existsByUserEmailIgnoreCaseAndCreatedAtGreaterThanEqual("other@example.com", persistedAt.minusHours(1)))
+                .isFalse();
+        assertThat(bookingRepository.existsByUserEmailIgnoreCaseAndCreatedAtGreaterThanEqual(
                 "alice@example.com", persistedAt.plusHours(1))).isFalse();
+        assertThat(bookingRepository.existsByUserEmailIgnoreCaseAndCreatedAtGreaterThanEqual(
+                "alice@example.com", persistedAt)).isTrue();
     }
 
     @Test
@@ -58,7 +62,7 @@ class TripLeadConversionQueriesTest {
     }
 
     @Test
-    void existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter_matchesSessions() {
+    void existsByInitiatorEmailIgnoreCaseAndCreatedAtGreaterThanEqual_matchesSessions() {
         Destination destination = destinationRepository.saveAndFlush(TestDataFactory.destination("Prague"));
 
         VoteSession session = new VoteSession();
@@ -76,10 +80,13 @@ class TripLeadConversionQueriesTest {
 
         LocalDateTime persistedAt = session.getCreatedAt();
         assertThat(voteSessionRepository
-                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("bob@example.com", persistedAt.minusHours(1))).isTrue();
+                .existsByInitiatorEmailIgnoreCaseAndCreatedAtGreaterThanEqual("bob@example.com", persistedAt.minusHours(1)))
+                .isTrue();
         assertThat(voteSessionRepository
-                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("nobody@example.com", persistedAt.minusHours(1))).isFalse();
+                .existsByInitiatorEmailIgnoreCaseAndCreatedAtGreaterThanEqual("nobody@example.com", persistedAt.minusHours(1)))
+                .isFalse();
         assertThat(voteSessionRepository
-                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("bob@example.com", persistedAt.plusHours(1))).isFalse();
+                .existsByInitiatorEmailIgnoreCaseAndCreatedAtGreaterThanEqual("bob@example.com", persistedAt.plusHours(1)))
+                .isFalse();
     }
 }

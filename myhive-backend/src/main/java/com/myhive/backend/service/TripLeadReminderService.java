@@ -88,7 +88,7 @@ public class TripLeadReminderService {
     }
 
     private boolean hasConverted(TripLead lead) {
-        if (bookingRepository.existsByUserEmailIgnoreCaseAndCreatedAtAfter(
+        if (bookingRepository.existsByUserEmailIgnoreCaseAndCreatedAtGreaterThanEqual(
                 lead.getEmail(), lead.getCreatedAt())) {
             return true;
         }
@@ -97,7 +97,7 @@ public class TripLeadReminderService {
             return true;
         }
         return lead.getSource() == TripLeadSource.QUIZ
-                && voteSessionRepository.existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter(
+                && voteSessionRepository.existsByInitiatorEmailIgnoreCaseAndCreatedAtGreaterThanEqual(
                         lead.getEmail(), lead.getCreatedAt());
     }
 

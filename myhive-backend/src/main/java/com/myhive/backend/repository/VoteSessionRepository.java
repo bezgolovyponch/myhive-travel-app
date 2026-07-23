@@ -39,6 +39,6 @@ public interface VoteSessionRepository extends JpaRepository<VoteSession, UUID> 
     @Query(value = "DELETE FROM vote_session_liked_categories WHERE category_id = :categoryId", nativeQuery = true)
     void deleteLikedCategoryLinks(@Param("categoryId") UUID categoryId);
 
-    /** Trip-lead reminder stop condition: the lead started a vote after being captured. */
-    boolean existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter(String initiatorEmail, LocalDateTime createdAt);
+    /** Trip-lead reminder stop condition: the lead started a vote at or after being captured. */
+    boolean existsByInitiatorEmailIgnoreCaseAndCreatedAtGreaterThanEqual(String initiatorEmail, LocalDateTime createdAt);
 }
