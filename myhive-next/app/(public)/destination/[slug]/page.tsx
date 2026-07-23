@@ -146,7 +146,7 @@ export default async function DestinationPage({ params, searchParams }: PagePara
                 <div className="activity-content">
                   <h3 className="activity-title">{pkg.name}</h3>
                   <div className="activity-footer">
-                    <span className="activity-price">€{Math.round(pkg.price)}</span>
+                    <span className="activity-price">€{Math.round(pkg.discountedPrice)}</span>
                   </div>
                 </div>
               </Link>

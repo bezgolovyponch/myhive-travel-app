@@ -142,7 +142,12 @@ export default async function PackageDetailPage({ params }: PageParams) {
 
         <aside className="package-detail-price-card">
           <div className="package-detail-price-card-inner">
-            <div className="package-detail-discounted">€{Math.round(pkg.price)}</div>
+            <div className="package-detail-original">€{Math.round(pkg.originalPrice)}</div>
+            <div className="package-detail-discounted">€{Math.round(pkg.discountedPrice)}</div>
+            <div className="package-detail-savings">
+              You save €{Math.round(pkg.savings)}
+              {pkg.discountPct ? ` (${Math.round(pkg.discountPct)}% off)` : ''}
+            </div>
             <a
               className="add-to-trip-btn package-detail-add-btn"
               href={`/destination/${slug}?tab=trip-builder`}
