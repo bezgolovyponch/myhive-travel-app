@@ -85,7 +85,10 @@ console.log(`== /robots.txt [${rc}]: ${robots.trim().split('\n').slice(0, 2).joi
 const { code: sc, html: sm } = await fetchPage('/sitemap.xml');
 const urls = (sm.match(/<url>/g) ?? []).length;
 console.log(`== /sitemap.xml [${sc}]: ${urls} urls`);
-if (sc !== 200 || urls < 10) fails.push(`sitemap: HTTP ${sc}, ${urls} urls`);
+// 8 = the static pages, always present. Catalog/blog URLs join only for
+// records with seoIndexable=true (per-record gate) — against a backend
+// without the flag columns (or before editorial flagging) 8 is correct.
+if (sc !== 200 || urls < 8) fails.push(`sitemap: HTTP ${sc}, ${urls} urls`);
 
 for (const p of ['/admin', '/vote/new']) {
   const { code, html } = await fetchPage(p);
