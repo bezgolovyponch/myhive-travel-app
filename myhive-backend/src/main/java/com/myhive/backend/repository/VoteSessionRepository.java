@@ -38,4 +38,8 @@ public interface VoteSessionRepository extends JpaRepository<VoteSession, UUID> 
     @Modifying
     @Query(value = "DELETE FROM vote_session_liked_categories WHERE category_id = :categoryId", nativeQuery = true)
     void deleteLikedCategoryLinks(@Param("categoryId") UUID categoryId);
+
+    /** Trip-lead reminder stop condition: the lead started a vote after being captured. */
+    @Query("select count(v) > 0 from VoteSession v where lower(v.initiatorEmail) = lower(:initiatorEmail) and v.createdAt > :createdAt")
+    boolean existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter(@Param("initiatorEmail") String initiatorEmail, @Param("createdAt") LocalDateTime createdAt);
 }

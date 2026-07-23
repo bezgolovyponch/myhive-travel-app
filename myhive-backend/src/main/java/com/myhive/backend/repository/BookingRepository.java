@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -32,4 +33,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select b from Booking b where b.id = :id")
     Optional<Booking> findByIdForUpdate(@Param("id") UUID id);
+
+    /** Trip-lead reminder stop condition: any booking by this email since the lead was captured. */
+    @Query("select count(b) > 0 from Booking b where lower(b.userEmail) = lower(:userEmail) and b.createdAt > :createdAt")
+    boolean existsByUserEmailIgnoreCaseAndCreatedAtAfter(@Param("userEmail") String userEmail, @Param("createdAt") LocalDateTime createdAt);
+
+    /** Trip-lead reminder stop condition: any booking (incl. consultation) from this vote session. */
+    boolean existsByVoteSessionId(UUID voteSessionId);
 }
