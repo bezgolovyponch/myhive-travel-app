@@ -9,17 +9,24 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.EmailSuppression;
 import com.myhive.backend.entity.TripLead;
 import com.myhive.backend.entity.TripLeadActivity;
+import com.myhive.backend.entity.VoteSession;
+import com.myhive.backend.entity.VoteSessionActivity;
+import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.TripLeadStatus;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.EmailSuppressionRepository;
 import com.myhive.backend.repository.TripLeadActivityRepository;
 import com.myhive.backend.repository.TripLeadRepository;
+import com.myhive.backend.repository.VoteSessionActivityRepository;
+import com.myhive.backend.repository.VoteSessionResultActivityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -46,6 +53,9 @@ public class TripLeadService {
     private final EmailSuppressionRepository emailSuppressionRepository;
     private final DestinationRepository destinationRepository;
     private final ActivityRepository activityRepository;
+    private final BookingRepository bookingRepository;
+    private final VoteSessionActivityRepository voteSessionActivityRepository;
+    private final VoteSessionResultActivityRepository resultActivityRepository;
 
     static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
@@ -147,6 +157,53 @@ public class TripLeadService {
         row.setMinPrice(activity.getMinPrice());
         row.setSortOrder(sortOrder);
         tripLeadActivityRepository.save(row);
+    }
+
+    /**
+     * Captures a reminder lead when a vote session completes without a booking. REQUIRES_NEW so a
+     * failure here can be swallowed by the caller without poisoning the vote-completion transaction.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createFromVoteSession(VoteSession session) {
+        String email = normalizeEmail(session.getInitiatorEmail());
+        if (bookingRepository.existsByVoteSessionId(session.getId())) {
+            return; // already booked from this vote — nothing to remind about
+        }
+        if (emailSuppressionRepository.existsByEmail(email)) {
+            return;
+        }
+        TripLead lead = tripLeadRepository.findFirstByEmailAndStatus(email, TripLeadStatus.ACTIVE)
+                .orElseGet(() -> newLead(email));
+        lead.setSource(TripLeadSource.VOTE);
+        lead.setVoteSessionId(session.getId());
+        lead.setDestination(session.getDestination());
+        lead.setNumberOfTravelers(session.getNumberOfTravelers());
+        lead.setStartDate(session.getStartDate());
+        lead.setEndDate(session.getEndDate());
+        lead.setBudget(session.getBudget());
+        // The vote result is a fresh trigger: the VOTE cadence (24h/72h) starts over.
+        lead.setReminderStage(0);
+        lead.setLastActivityAt(LocalDateTime.now(ZoneOffset.UTC));
+        lead = tripLeadRepository.save(lead);
+        replaceItemsFromVoteResult(lead, session);
+    }
+
+    private void replaceItemsFromVoteResult(TripLead lead, VoteSession session) {
+        tripLeadActivityRepository.deleteByLeadId(lead.getId());
+        List<VoteSessionResultActivity> results = resultActivityRepository
+                .findBySessionIdOrderBySortOrder(session.getId());
+        // Winners in ranked order when the vote produced results; the full ballot otherwise.
+        List<Activity> ordered = results.isEmpty()
+                ? voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId()).stream()
+                        .map(VoteSessionActivity::getActivity)
+                        .toList()
+                : results.stream()
+                        .map(VoteSessionResultActivity::getActivity)
+                        .toList();
+        int sortOrder = 0;
+        for (Activity activity : ordered) {
+            saveItemSnapshot(lead, activity, sortOrder++);
+        }
     }
 
     public TripLeadRestoreResponse restore(UUID restoreToken) {

@@ -84,6 +84,7 @@ public class VoteSessionService {
     private final VoteSessionActivityRepository voteSessionActivityRepository;
     private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
     private final VoteSuggestionsService voteSuggestionsService;
+    private final TripLeadService tripLeadService;
 
     @Value("${app.frontend.url:https://trivlu.com}")
     private String frontendUrl;
@@ -554,6 +555,13 @@ public class VoteSessionService {
         } catch (Exception e) {
             log.error("Failed to send vote result email for session {}: {}",
                     session.getId(), e.getMessage(), e);
+        }
+
+        try {
+            tripLeadService.createFromVoteSession(session);
+        } catch (Exception e) {
+            // A failed lead capture must never fail vote completion — log and move on.
+            log.error("Failed to create trip lead for session {}: {}", session.getId(), e.getMessage(), e);
         }
     }
 
