@@ -60,6 +60,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/contact").permitAll()
                         // Vote Together
                         .requestMatchers("/vote/**").permitAll()
+                        // Trip lead capture / restore / unsubscribe (token-authorized, never JWT)
+                        .requestMatchers("/leads/**").permitAll()
                         // Payments — public (manager-token / Stripe-signature authorized, never JWT)
                         .requestMatchers("/payments/**").permitAll()
                         // Sitemap
