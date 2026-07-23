@@ -1,19 +1,18 @@
 // SSR Cookie Policy — content parity with legacy-src/pages/CookiePolicyPage.js.
 // The "Consent Preferences" control reuses CookieYes' .cky-banner-element hook to
 // reopen the consent banner (button is inert without the CookieYes script present).
-import type { Metadata } from 'next';
-import { canonical } from '../../../lib/seo';
+import { pageMetadata } from '../../../lib/seo';
 import '../../../legacy-src/pages/PolicyPage.css';
 
 const TITLE = 'Cookie Policy | Trivlu';
 const DESCRIPTION =
   'Learn how Trivlu uses cookies and how to manage your cookie preferences.';
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: canonical('/cookie-policy') },
-};
+  path: '/cookie-policy',
+});
 
 export default function CookiePolicyPage() {
   return (

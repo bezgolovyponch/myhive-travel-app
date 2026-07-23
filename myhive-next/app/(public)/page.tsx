@@ -1,10 +1,9 @@
 // SSR homepage — content parity with legacy-src/pages/HomePage.js (+ sections),
 // rendered as a Server Component so crawlers get real HTML. Funnel CTAs
 // full-page-navigate into SPA-owned URLs (/vote/new opens the setup modal).
-import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api, REVALIDATE_SECONDS, type Activity } from '../../lib/api';
-import { SITE_URL, WHATSAPP_URL, DEFAULT_DESTINATION_SLUG, canonical } from '../../lib/seo';
+import { SITE_URL, WHATSAPP_URL, DEFAULT_DESTINATION_SLUG, pageMetadata, jsonLd } from '../../lib/seo';
 import ActivityCardStatic from '../../components/site/ActivityCardStatic';
 import '../../legacy-src/pages/HomePage.css';
 import '../../legacy-src/components/home/TrustBar.css';
@@ -21,12 +20,11 @@ const TITLE = 'Trivlu — Stag Do Trips, Sorted in Minutes';
 const DESCRIPTION =
   'Plan a stag weekend the whole group agrees on. Vote on activities, get a price for the group, book with a 30% deposit.';
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: canonical('/') },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: canonical('/') },
-};
+  path: '/',
+});
 
 const VOTE_ROWS = [
   { icon: 'ph-beer-stein', name: 'Bar Crawl', num: 8, pct: 89, fill: 'var(--purple-ll)' },
@@ -89,7 +87,7 @@ export default async function HomePage() {
     <div className="homepage">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(organizationJsonLd) }}
       />
 
       <section className="hero">

@@ -1,9 +1,8 @@
 // SSR blog hub — content parity with legacy-src/pages/BlogPage.js markup/classes,
 // rendered as a Server Component so crawlers get the post list as real HTML.
-import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
-import { canonical } from '../../../lib/seo';
+import { pageMetadata } from '../../../lib/seo';
 import '../../../legacy-src/pages/BlogPage.css';
 
 export const revalidate = 3600;
@@ -12,12 +11,11 @@ const TITLE = 'Stag Do Planning Guides & Ideas | Trivlu Blog';
 const DESCRIPTION =
   'Guides, ideas and destination tips for planning the perfect stag do — from budgeting to the best cities in Europe.';
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: canonical('/blog') },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: canonical('/blog') },
-};
+  path: '/blog',
+});
 
 function displayDate(post: { publishedAt?: string | null; createdAt?: string | null }) {
   const raw = post.publishedAt || post.createdAt;

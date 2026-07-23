@@ -2,9 +2,8 @@
 // for the static parts (hero, info card, contact details). The interactive form
 // (fields + Turnstile + submit) is a client island loaded via next/dynamic so the
 // page shell stays a Server Component with real HTML for crawlers.
-import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
-import { WHATSAPP_URL, canonical } from '../../../lib/seo';
+import { WHATSAPP_URL, pageMetadata } from '../../../lib/seo';
 import '../../../legacy-src/pages/ContactPage.css';
 
 const ContactFormIsland = dynamic(() => import('../../../components/site/ContactFormIsland'));
@@ -13,12 +12,11 @@ const TITLE = 'Contact Trivlu — Talk to the Team';
 const DESCRIPTION =
   "Questions about your stag do or booking? Reach the Trivlu team by WhatsApp, Messenger or email — we're quick to reply.";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: canonical('/contact') },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: canonical('/contact') },
-};
+  path: '/contact',
+});
 
 export default function ContactPage() {
   return (

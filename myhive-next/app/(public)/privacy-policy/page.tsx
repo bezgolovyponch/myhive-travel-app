@@ -1,9 +1,8 @@
 // SSR Privacy Policy — content parity with legacy-src/pages/PrivacyPolicyPage.js.
 // COMPANY / POLICY_EFFECTIVE_DATE inlined from legacy-src/legal/companyInfo.js
 // (that tree is generated and excluded from tsconfig, so we don't import from it).
-import type { Metadata } from 'next';
 import Link from 'next/link';
-import { canonical } from '../../../lib/seo';
+import { pageMetadata } from '../../../lib/seo';
 import '../../../legacy-src/pages/PolicyPage.css';
 
 const COMPANY = {
@@ -23,11 +22,11 @@ const TITLE = 'Privacy Policy | Trivlu';
 const DESCRIPTION =
   'How Trivlu collects, uses, and protects your personal data under the GDPR.';
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: canonical('/privacy-policy') },
-};
+  path: '/privacy-policy',
+});
 
 export default function PrivacyPolicyPage() {
   return (

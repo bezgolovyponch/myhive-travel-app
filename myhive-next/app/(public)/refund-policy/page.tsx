@@ -2,9 +2,8 @@
 // legacy-src/pages/RefundPolicyPage.js. COMPANY / POLICY_EFFECTIVE_DATE inlined
 // from legacy-src/legal/companyInfo.js (that tree is generated and excluded from
 // tsconfig, so we don't import from it).
-import type { Metadata } from 'next';
 import Link from 'next/link';
-import { canonical } from '../../../lib/seo';
+import { pageMetadata } from '../../../lib/seo';
 import '../../../legacy-src/pages/PolicyPage.css';
 
 const COMPANY = {
@@ -24,11 +23,11 @@ const TITLE = 'Refund Policy | Trivlu';
 const DESCRIPTION =
   "Trivlu's cancellation and refund terms for tours, activities, and packages.";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: canonical('/refund-policy') },
-};
+  path: '/refund-policy',
+});
 
 export default function RefundPolicyPage() {
   return (

@@ -1,19 +1,17 @@
 // SSR About page — content ported verbatim from legacy-src/pages/AboutPage.js
 // as a static Server Component.
-import type { Metadata } from 'next';
-import { canonical } from '../../../lib/seo';
+import { pageMetadata } from '../../../lib/seo';
 import '../../../legacy-src/pages/AboutPage.css';
 
 const TITLE = 'About Trivlu — Group Travel Made Easy';
 const DESCRIPTION =
   "We built Trivlu so best men can plan a stag the whole group actually agrees on. Here's who we are and why.";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: canonical('/about') },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: canonical('/about') },
-};
+  path: '/about',
+});
 
 export default function AboutPage() {
   return (
