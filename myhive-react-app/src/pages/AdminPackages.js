@@ -21,6 +21,7 @@ const EMPTY_FORM = {
     imageUrl: '',
     includes: '',
     activities: [],
+    seoIndexable: false,
 };
 
 const COLUMNS = [
@@ -68,6 +69,7 @@ function AdminPackages() {
                 imageUrl: a.imageUrl,
                 duration: a.duration,
             })),
+            seoIndexable: !!p.seoIndexable,
         }),
         validate: (form) => {
             const errors = {};
@@ -348,6 +350,16 @@ function AdminPackages() {
                                 value={form.includes}
                                 onChange={e => setForm({...form, includes: e.target.value})}
                                 placeholder="e.g. Transport, guide, lunch, tickets"
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Check
+                                type="switch"
+                                id="package-seo-indexable"
+                                label="Indexable by Google (SEO-ready content)"
+                                className="text-white"
+                                checked={!!form.seoIndexable}
+                                onChange={e => updateField('seoIndexable', e.target.checked)}
                             />
                         </Form.Group>
                         <ImageUploadField
