@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,18 +31,18 @@ class TripLeadConversionQueriesTest {
 
     @Test
     void existsByUserEmailIgnoreCaseAndCreatedAtAfter_matchesCaseInsensitively() {
-        LocalDateTime past = LocalDateTime.now(ZoneOffset.UTC).minusHours(2);
         Booking booking = TestDataFactory.booking(BookingStatus.PENDING);
         booking.setId(null);
         booking.setUserEmail("Alice@Example.COM");
         bookingRepository.saveAndFlush(booking);
 
+        LocalDateTime persistedAt = booking.getCreatedAt();
         assertThat(bookingRepository
-                .existsByUserEmailIgnoreCaseAndCreatedAtAfter("alice@example.com", past)).isTrue();
+                .existsByUserEmailIgnoreCaseAndCreatedAtAfter("alice@example.com", persistedAt.minusHours(1))).isTrue();
         assertThat(bookingRepository
-                .existsByUserEmailIgnoreCaseAndCreatedAtAfter("other@example.com", past)).isFalse();
+                .existsByUserEmailIgnoreCaseAndCreatedAtAfter("other@example.com", persistedAt.minusHours(1))).isFalse();
         assertThat(bookingRepository.existsByUserEmailIgnoreCaseAndCreatedAtAfter(
-                "alice@example.com", LocalDateTime.now(ZoneOffset.UTC).plusHours(1))).isFalse();
+                "alice@example.com", persistedAt.plusHours(1))).isFalse();
     }
 
     @Test
@@ -60,7 +59,6 @@ class TripLeadConversionQueriesTest {
 
     @Test
     void existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter_matchesSessions() {
-        LocalDateTime past = LocalDateTime.now(ZoneOffset.UTC).minusHours(2);
         Destination destination = destinationRepository.saveAndFlush(TestDataFactory.destination("Prague"));
 
         VoteSession session = new VoteSession();
@@ -73,12 +71,13 @@ class TripLeadConversionQueriesTest {
         session.setEndDate(LocalDate.now().plusDays(9));
         session.setStatus(VoteSessionStatus.ACTIVE);
         session.setVoteMode(VoteMode.CART);
-        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
+        session.setExpiresAt(LocalDateTime.now().plusHours(24));
         voteSessionRepository.saveAndFlush(session);
 
+        LocalDateTime persistedAt = session.getCreatedAt();
         assertThat(voteSessionRepository
-                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("bob@example.com", past)).isTrue();
+                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("bob@example.com", persistedAt.minusHours(1))).isTrue();
         assertThat(voteSessionRepository
-                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("nobody@example.com", past)).isFalse();
+                .existsByInitiatorEmailIgnoreCaseAndCreatedAtAfter("nobody@example.com", persistedAt.minusHours(1))).isFalse();
     }
 }
