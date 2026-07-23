@@ -22,9 +22,11 @@ import VoteResultPage from '../pages/vote/VoteResultPage';
 import PaymentSuccessPage from '../pages/PaymentSuccessPage';
 import PaymentCancelledPage from '../pages/PaymentCancelledPage';
 import {useDestinationModal} from '../context/DestinationModalContext';
+import {useTripLeadSync} from '../hooks/useTripLeadSync';
 import AppModal from './AppModal';
 
 function Layout() {
+  useTripLeadSync();
   const {state, dispatch} = useDestinationModal();
   const closeDestinationModal = () => dispatch({type: 'CLOSE_DESTINATION_MODAL'});
 
