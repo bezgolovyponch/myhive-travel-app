@@ -2,10 +2,14 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
+import com.myhive.backend.dto.VotePoolActivityDTO;
 import com.myhive.backend.entity.Booking;
+import com.myhive.backend.entity.TripLead;
+import com.myhive.backend.entity.TripLeadActivity;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.EmailSendException;
+import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.util.MoneyMath;
 import jakarta.mail.internet.MimeMessage;
@@ -81,6 +85,7 @@ public class EmailService {
             String subject,
             String template,
             Map<String, Object> variables,
+            Map<String, String> headers,
             String description,
             boolean synchronous) {
     }
@@ -100,6 +105,10 @@ public class EmailService {
 
     @Value("${app.email.bookings-to}")
     private String bookingsToEmail;
+
+    /** Public base URL of this API (RFC 8058 one-click unsubscribe target); blank = headers omitted. */
+    @Value("${app.api.public-url:}")
+    private String apiPublicUrl;
 
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData, String tripId) {
         sendItineraryConfirmation(toEmail, customerName, tripData, tripId, null, null);
@@ -258,6 +267,99 @@ public class EmailService {
                 .build());
     }
 
+    /** One reminder itinerary line: snapshot name/price plus the floored group total. */
+    public static class ReminderLineView {
+        public String name;
+        public BigDecimal price;
+        public BigDecimal lineTotal;
+        public boolean groupMinApplies;
+    }
+
+    public void sendTripReminder(TripLead lead, int stage, List<TripLeadActivity> items,
+            List<VotePoolActivityDTO> recommendations, String frontendUrl) {
+        String destinationName = lead.getDestination() == null
+                ? "your trip" : lead.getDestination().getName();
+        int travelers = lead.getNumberOfTravelers() == null || lead.getNumberOfTravelers() < 1
+                ? 1 : lead.getNumberOfTravelers();
+        List<ReminderLineView> lines = items.stream()
+                .map(item -> toReminderLine(item, travelers))
+                .toList();
+        BigDecimal totalPrice = lines.stream()
+                .map(line -> line.lineTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        boolean lastTouch = lead.getSource() == TripLeadSource.VOTE ? stage >= 2 : stage >= 3;
+        boolean showConsultation = lead.getSource() == TripLeadSource.VOTE ? stage == 1 : stage == 2;
+
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("source", lead.getSource().name());
+        variables.put("stage", stage);
+        variables.put("lastTouch", lastTouch);
+        variables.put("showConsultation", showConsultation);
+        variables.put("destinationName", destinationName);
+        variables.put("travelers", travelers);
+        variables.put("hasItems", !lines.isEmpty());
+        variables.put("lines", lines);
+        variables.put("totalPrice", totalPrice);
+        variables.put("recommendations", recommendations);
+        variables.put("restoreUrl", restoreUrlFor(lead, frontendUrl));
+        variables.put("contactUrl", frontendUrl + "/contact");
+        variables.put("unsubscribeUrl", frontendUrl + "/unsubscribe?token=" + lead.getUnsubscribeToken());
+        variables.put("supportEmail", SUPPORT_EMAIL);
+
+        send(EmailSpec.builder()
+                .to(lead.getEmail())
+                .subject(reminderSubject(lead.getSource(), stage, destinationName))
+                .template("trip-reminder")
+                .variables(variables)
+                .headers(unsubscribeHeaders(lead))
+                .description("trip reminder (stage " + stage + ") to " + maskEmail(lead.getEmail()))
+                .build());
+    }
+
+    private static ReminderLineView toReminderLine(TripLeadActivity item, int travelers) {
+        ReminderLineView line = new ReminderLineView();
+        line.name = item.getActivityName();
+        line.price = item.getPrice();
+        BigDecimal groupTotal = item.getPrice().multiply(BigDecimal.valueOf(travelers));
+        boolean floored = item.getMinPrice() != null && groupTotal.compareTo(item.getMinPrice()) < 0;
+        line.groupMinApplies = floored;
+        line.lineTotal = floored ? item.getMinPrice() : groupTotal;
+        return line;
+    }
+
+    /** Mirrors resultUrlFor: the Trip Builder tab deep link, restore token appended. */
+    private static String restoreUrlFor(TripLead lead, String frontendUrl) {
+        String destinationSlug = lead.getDestination() == null ? null : lead.getDestination().getSlug();
+        if (destinationSlug == null) {
+            return frontendUrl;
+        }
+        return frontendUrl + "/destination/" + destinationSlug
+                + "?tab=trip-builder&restore=" + lead.getRestoreToken();
+    }
+
+    private static String reminderSubject(TripLeadSource source, int stage, String destinationName) {
+        if (source == TripLeadSource.VOTE) {
+            return stage == 1
+                    ? "Your group voted — ready to book " + destinationName + "?"
+                    : "Still thinking it over? Your " + destinationName + " trip is saved";
+        }
+        return switch (stage) {
+            case 1 -> "Your " + destinationName + " trip is waiting";
+            case 2 -> "Need a hand planning " + destinationName + "?";
+            default -> "Last call — your saved " + destinationName + " trip";
+        };
+    }
+
+    private Map<String, String> unsubscribeHeaders(TripLead lead) {
+        if (apiPublicUrl == null || apiPublicUrl.isBlank()) {
+            return Map.of();
+        }
+        String oneClickUrl = apiPublicUrl + "/leads/unsubscribe/one-click?token=" + lead.getUnsubscribeToken();
+        return Map.of(
+                "List-Unsubscribe", "<" + oneClickUrl + ">",
+                "List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+    }
+
     private void send(EmailSpec spec) {
         if (!emailEnabled) {
             if (spec.synchronous()) {
@@ -278,6 +380,11 @@ public class EmailService {
                 helper.setReplyTo(spec.replyTo());
             }
             helper.setSubject(spec.subject());
+            if (spec.headers() != null) {
+                for (Map.Entry<String, String> header : spec.headers().entrySet()) {
+                    message.setHeader(header.getKey(), header.getValue());
+                }
+            }
 
             Context context = new Context();
             spec.variables().forEach(context::setVariable);

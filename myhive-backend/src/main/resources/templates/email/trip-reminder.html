@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Trip Is Waiting</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f0f0f0; margin: 0; padding: 20px 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
+        .header { background: #6A1B9A; color: white; padding: 32px 30px; text-align: center; border-bottom: 3px solid #4A148C; }
+        .header h1 { margin: 12px 0 8px; font-size: 22px; font-weight: 700; color: #f5f5f5; }
+        .content { padding: 30px; }
+        .item-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        .item-table td { padding: 8px 4px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .item-table .price-cell { text-align: right; white-space: nowrap; }
+        .total-row td { font-weight: 700; border-bottom: none; }
+        .group-min-note { color: #666; font-size: 12px; }
+        .section { margin: 20px 0; padding: 18px 20px; border-left: 4px solid #6A1B9A; background: #f8f9fa; border-radius: 0 6px 6px 0; }
+        .section h2 { margin: 0 0 12px; font-size: 16px; color: #1f2121; }
+        .cta-button { display: block; width: fit-content; margin: 30px auto; padding: 14px 32px; background: #6A1B9A; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; text-align: center; }
+        .muted { color: #666; font-size: 14px; }
+        .footer { background: #4A148C; padding: 24px 20px; text-align: center; border-top: 3px solid #6A1B9A; }
+        .footer p { color: rgba(245,245,245,0.6); font-size: 12px; margin: 4px 0; }
+        .footer a { color: rgba(245,245,245,0.85); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 56px;">
+        <h1 th:if="${source == 'VOTE'}">Your group has voted!</h1>
+        <h1 th:unless="${source == 'VOTE'}" th:text="'Your ' + ${destinationName} + ' trip is waiting'">Your Prague trip is waiting</h1>
+        <p th:if="${source == 'VOTE'}" th:text="'Trip to ' + ${destinationName}" style="margin: 0; color: rgba(245,245,245,0.75); font-size: 14px;">Trip to Prague</p>
+    </div>
+    <div class="content">
+        <p th:if="${source == 'VOTE'}">
+            The votes are in for your <strong th:text="${destinationName}">Prague</strong> trip —
+            the winning activities are saved and ready to book whenever you are.
+        </p>
+        <p th:unless="${source == 'VOTE'}">
+            You started planning a trip to <strong th:text="${destinationName}">Prague</strong>
+            for <span th:text="${travelers}">6</span> people — we saved everything so you can pick up
+            right where you left off.
+        </p>
+
+        <!-- Saved cart -->
+        <div th:if="${hasItems}">
+            <h2 style="font-size: 16px;">Your saved itinerary</h2>
+            <table class="item-table">
+                <tr th:each="line : ${lines}">
+                    <td>
+                        <span th:text="${line.name}">Karting</span>
+                        <span class="group-min-note" th:if="${line.groupMinApplies}">(group minimum applies)</span>
+                    </td>
+                    <td class="price-cell">
+                        <span th:text="'€' + ${line.price} + ' / person'">€50.00 / person</span>
+                    </td>
+                </tr>
+                <tr class="total-row">
+                    <td th:text="'Total for ' + ${travelers} + ' people'">Total for 6 people</td>
+                    <td class="price-cell" th:text="'€' + ${totalPrice}">€700.00</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- No cart yet: quiz-based recommendations -->
+        <div th:if="${!hasItems and !recommendations.isEmpty()}" class="section">
+            <h2>A few activities we picked for your group</h2>
+            <table class="item-table">
+                <tr th:each="rec : ${recommendations}">
+                    <td th:text="${rec.name}">Beer Bike</td>
+                    <td class="price-cell" th:text="'€' + ${rec.price} + ' / person'">€35.00 / person</td>
+                </tr>
+            </table>
+        </div>
+
+        <p th:if="${!hasItems and recommendations.isEmpty()}" class="muted">
+            Your trip details are saved — jump back in and pick the activities your group will love.
+        </p>
+
+        <!-- Stage 2 (QUIZ) / stage 1 (VOTE): reassurance + consultation -->
+        <div th:if="${showConsultation}" class="section">
+            <h2>Need a hand?</h2>
+            <p style="margin: 0; font-size: 14px;">
+                Planning for a group can be a lot. Tell us what you have in mind and we'll put the
+                itinerary together with you — no strings attached.
+                <a th:href="${contactUrl}">Get in touch</a>.
+            </p>
+        </div>
+
+        <!-- Final touch: honest urgency -->
+        <p th:if="${lastTouch}">
+            One last nudge from us — popular dates and time slots fill up early, so booking ahead
+            keeps your group's first choices available. This is the last reminder we'll send.
+        </p>
+
+        <a th:href="${restoreUrl}" class="cta-button" style="color: #ffffff !important;"
+           th:text="${source == 'VOTE'} ? 'Book the winning trip' : 'Continue planning your trip'">Continue planning your trip</a>
+
+        <p class="muted">
+            This link opens your saved trip on any device.
+            Questions? Email us at
+            <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@trivlu.com</a>.
+        </p>
+    </div>
+    <div class="footer">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 36px; margin-bottom: 10px;">
+        <p>Creating unforgettable travel experiences</p>
+        <p>You're getting this because you saved a trip on trivlu.com.</p>
+        <p><a th:href="${unsubscribeUrl}">Unsubscribe from trip reminders</a></p>
+        <p>For support, contact us at support@trivlu.com</p>
+    </div>
+</div>
+</body>
+</html>
