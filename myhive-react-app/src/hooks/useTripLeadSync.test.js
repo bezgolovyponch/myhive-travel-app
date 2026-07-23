@@ -78,4 +78,68 @@ describe('useTripLeadSync', () => {
 
         expect(localStorage.getItem('myhive-trip-lead')).toBeNull();
     });
+
+    test('does not fire before the debounce window elapses', () => {
+        localStorage.setItem('myhive-trip-lead', JSON.stringify({ id: 'lead-1', restoreToken: 'tok-1' }));
+        renderHarness();
+
+        act(() => {
+            tripDispatch({ type: 'ADD_TO_TRIP', silent: true, activity: { id: 'act-1', name: 'Karting', price: 50 } });
+        });
+        act(() => {
+            jest.advanceTimersByTime(1999);
+        });
+        expect(leadApi.syncLead).not.toHaveBeenCalled();
+
+        act(() => {
+            jest.advanceTimersByTime(1);
+        });
+        expect(leadApi.syncLead).toHaveBeenCalledTimes(1);
+    });
+
+    test('resets the timer on rapid changes and sends one PATCH with the latest snapshot', () => {
+        localStorage.setItem('myhive-trip-lead', JSON.stringify({ id: 'lead-1', restoreToken: 'tok-1' }));
+        renderHarness();
+
+        act(() => {
+            tripDispatch({ type: 'ADD_TO_TRIP', silent: true, activity: { id: 'act-1', name: 'Karting', price: 50 } });
+        });
+        act(() => {
+            jest.advanceTimersByTime(1000);
+        });
+        act(() => {
+            tripDispatch({ type: 'ADD_TO_TRIP', silent: true, activity: { id: 'act-2', name: 'Rafting', price: 30 } });
+        });
+        act(() => {
+            jest.advanceTimersByTime(1999);
+        });
+        expect(leadApi.syncLead).not.toHaveBeenCalled();
+
+        act(() => {
+            jest.advanceTimersByTime(1);
+        });
+        expect(leadApi.syncLead).toHaveBeenCalledTimes(1);
+        expect(leadApi.syncLead).toHaveBeenCalledWith('lead-1', expect.objectContaining({
+            items: [
+                { activityId: 'act-1', sortOrder: 0 },
+                { activityId: 'act-2', sortOrder: 1 },
+            ],
+        }));
+    });
+
+    test('keeps the stored lead on non-LEAD_GONE failures', async () => {
+        const storedLead = JSON.stringify({ id: 'lead-1', restoreToken: 'tok-1' });
+        localStorage.setItem('myhive-trip-lead', storedLead);
+        leadApi.syncLead.mockRejectedValue(new Error('Failed to sync trip lead'));
+        renderHarness();
+
+        act(() => {
+            tripDispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 4 });
+        });
+        await act(async () => {
+            jest.advanceTimersByTime(2000);
+        });
+
+        expect(localStorage.getItem('myhive-trip-lead')).toBe(storedLead);
+    });
 });
