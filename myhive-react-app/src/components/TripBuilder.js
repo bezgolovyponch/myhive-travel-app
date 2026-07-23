@@ -12,11 +12,13 @@ import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
 import {clearTripLead} from '../utils/tripLead';
 import {getOrCreateVoterToken} from '../utils/voterToken';
+import {useTripLeadRestore} from '../hooks/useTripLeadRestore';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
 import ActiveVoteModal from './vote/ActiveVoteModal';
 import ActivityPreviewModal from './ActivityPreviewModal';
+import AppModal from './AppModal';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
@@ -57,6 +59,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
   // Organizer quiz-flow handoff (CuratePage writes it): active only for the
   // destination the quiz ran for — other destinations get the plain builder.
   const [quizFlow, setQuizFlow] = useState(() => readQuizFlow());
+  const {pendingRestore, confirmRestore, cancelRestore} = useTripLeadRestore(flow => setQuizFlow(flow));
   const quizMode = quizFlow != null && quizFlow.setup?.destination?.id === destinationId;
   const [recommended, setRecommended] = useState([]);
   const [previewActivity, setPreviewActivity] = useState(null);
@@ -954,6 +957,20 @@ function TripBuilder({ destinationId, destinationSlug }) {
           startDate={state.tripStartDate}
           endDate={state.tripEndDate}
       />
+
+      <AppModal
+        isOpen={pendingRestore != null}
+        onClose={cancelRestore}
+        title="Replace your current trip?"
+        footer={(
+          <>
+            <button type="button" className="btn btn--secondary" onClick={cancelRestore}>Keep current</button>
+            <button type="button" className="btn btn--primary" onClick={confirmRestore}>Open saved trip</button>
+          </>
+        )}
+      >
+        <p>Opening your saved trip will replace the activities currently in your itinerary.</p>
+      </AppModal>
 
       <ActiveVoteModal
           isOpen={!!activeVoteToken}

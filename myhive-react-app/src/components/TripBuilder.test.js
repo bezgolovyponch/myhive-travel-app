@@ -47,6 +47,15 @@ jest.mock('../utils/attribution', () => ({
 
 jest.mock('../utils/uuid', () => ({ generateUuid: jest.fn() }));
 
+// useTripLeadRestore (mounted inside TripBuilder) needs a CatalogContext
+// ancestor for its useCatalog() call. Production always nests TripBuilder
+// under CatalogProvider (see AppProviders); these tests render TripBuilder
+// in isolation, so the context is mocked rather than wrapping every render
+// call site in this file with a provider.
+jest.mock('../context/CatalogContext', () => ({
+    useCatalog: () => ({ state: { destinations: [], loading: false, error: null } }),
+}));
+
 // Replace DayPicker-based DateRangePicker with simple inputs.
 jest.mock('./DateRangePicker', () =>
     function MockDateRangePicker({ from, to, onChange }) {
