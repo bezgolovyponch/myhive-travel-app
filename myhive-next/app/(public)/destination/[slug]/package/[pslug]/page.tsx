@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, type TripPackage } from '../../../../../../lib/api';
-import { canonical, breadcrumbJsonLd, formatPricePerPerson } from '../../../../../../lib/seo';
+import { breadcrumbJsonLd, formatPricePerPerson, pageMetadata, jsonLd } from '../../../../../../lib/seo';
 import '../../../../../../legacy-src/pages/PackageDetailPage.css';
 
 export const revalidate = 3600;
@@ -33,29 +33,25 @@ function truncate(text: string, limit = 160) {
 
 export async function generateMetadata({ params }: PageParams): Promise<Metadata> {
   const { slug, pslug } = await params;
-  const pkg = await api.getPackageBySlug(pslug);
+  const [pkg, dest] = await Promise.all([
+    api.getPackageBySlug(pslug),
+    api.getDestinationBySlug(slug),
+  ]);
   if (!pkg) {
     return { title: 'Package not found | Trivlu' };
   }
 
   const destinationName = destinationNameFromSlug(slug);
   const title = `${pkg.name} — ${destinationName} Package | Trivlu`;
-  const description = pkg.description
-    ? truncate(pkg.description)
-    : `${pkg.name} package in ${destinationName}.`;
-  const url = canonical(`/destination/${slug}/package/${pkg.slug}`);
-
-  return {
+  return pageMetadata({
     title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      ...(pkg.imageUrl ? { images: [{ url: pkg.imageUrl }] } : {}),
-    },
-  };
+    description: pkg.description
+      ? truncate(pkg.description)
+      : `${pkg.name} package in ${destinationName}.`,
+    path: `/destination/${slug}/package/${pkg.slug}`,
+    image: pkg.imageUrl || undefined,
+    noindex: !(pkg.seoIndexable && dest?.seoIndexable),
+  });
 }
 
 export default async function PackageDetailPage({ params }: PageParams) {
@@ -84,7 +80,7 @@ export default async function PackageDetailPage({ params }: PageParams) {
     <div className="package-detail-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }}
       />
 
       <nav className="package-detail-breadcrumbs">

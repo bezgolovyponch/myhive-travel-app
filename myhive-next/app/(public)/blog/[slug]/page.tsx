@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, type BlogPost } from '../../../../lib/api';
-import { SITE_URL, canonical, breadcrumbJsonLd, jsonLd } from '../../../../lib/seo';
+import { SITE_URL, canonical, breadcrumbJsonLd, jsonLd, pageMetadata } from '../../../../lib/seo';
 import '../../../../legacy-src/pages/BlogPostPage.css';
 
 export const revalidate = 3600;
@@ -35,20 +35,15 @@ export async function generateMetadata({
 
   const title = `${post.title} | Trivlu Blog`;
   const description = summarize(post);
-  const url = canonical(`/blog/${post.slug || slug}`);
 
-  return {
+  return pageMetadata({
     title,
     description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      type: 'article',
-      images: post.imageUrl ? [{ url: post.imageUrl }] : undefined,
-    },
-  };
+    path: `/blog/${post.slug || slug}`,
+    image: post.imageUrl || undefined,
+    ogType: 'article',
+    noindex: !post.seoIndexable,
+  });
 }
 
 export default async function BlogPostPage({

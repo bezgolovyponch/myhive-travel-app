@@ -4,7 +4,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { api, type Activity } from '../../../../../../lib/api';
-import { canonical, breadcrumbJsonLd, formatPricePerPerson, WHATSAPP_URL } from '../../../../../../lib/seo';
+import { breadcrumbJsonLd, formatPricePerPerson, pageMetadata, jsonLd, WHATSAPP_URL } from '../../../../../../lib/seo';
 import '../../../../../../legacy-src/pages/ActivityDetailPage.css';
 
 export const revalidate = 3600;
@@ -47,29 +47,24 @@ function truncate(text: string, limit = 155) {
 
 export async function generateMetadata({ params }: PageParams): Promise<Metadata> {
   const { slug, aslug } = await params;
-  const activity = await api.getActivityBySlug(aslug);
+  const [activity, dest] = await Promise.all([
+    api.getActivityBySlug(aslug),
+    api.getDestinationBySlug(slug),
+  ]);
   if (!activity) {
     return { title: 'Activity not found | Trivlu' };
   }
-
   const destinationName = destinationNameFromSlug(slug);
   const title = `${activity.name} in ${destinationName} | Trivlu`;
-  const description = activity.description
-    ? truncate(activity.description)
-    : `${activity.name} in ${destinationName}.`;
-  const url = canonical(`/destination/${slug}/activity/${activity.slug}`);
-
-  return {
+  return pageMetadata({
     title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      ...(activity.imageUrl ? { images: [{ url: activity.imageUrl }] } : {}),
-    },
-  };
+    description: activity.description
+      ? truncate(activity.description)
+      : `${activity.name} in ${destinationName}.`,
+    path: `/destination/${slug}/activity/${activity.slug}`,
+    image: activity.imageUrl || undefined,
+    noindex: !(activity.seoIndexable && dest?.seoIndexable),
+  });
 }
 
 export default async function ActivityDetailPage({ params }: PageParams) {
@@ -106,7 +101,7 @@ export default async function ActivityDetailPage({ params }: PageParams) {
     <div className="activity-detail-page">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }}
       />
 
       <nav className="activity-detail-breadcrumbs">

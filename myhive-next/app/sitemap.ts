@@ -23,20 +23,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const destinations = (await api.getDestinations()) ?? [];
     for (const dest of destinations) {
+      // Per-record SEO gate: unready records are excluded, and a destination
+      // that is not indexable excludes ALL of its children (parent rule).
+      if (!dest.seoIndexable) continue;
       urls.push({ url: `${SITE_URL}/destination/${dest.slug}`, priority: 0.9 });
       const [activities, packages] = await Promise.all([
         api.getActivities(dest.id).catch(() => null),
         api.getPackages(dest.id).catch(() => null),
       ]);
       for (const a of activities ?? []) {
+        if (!a.seoIndexable) continue;
         urls.push({ url: `${SITE_URL}/destination/${dest.slug}/activity/${a.slug}`, priority: 0.7 });
       }
       for (const p of packages ?? []) {
+        if (!p.seoIndexable) continue;
         urls.push({ url: `${SITE_URL}/destination/${dest.slug}/package/${p.slug}`, priority: 0.6 });
       }
     }
     const posts = (await api.getBlogPosts()) ?? [];
-    for (const post of posts) {
+    for (const post of posts.filter((p) => p.seoIndexable)) {
       urls.push({
         url: `${SITE_URL}/blog/${post.slug}`,
         priority: 0.7,
