@@ -18,7 +18,11 @@ export default async function CatchAllPage({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
-  if (!SPA_PREFIXES.has(slug[0])) {
+  // Bare /vote and /payment are not react-router routes — the SPA would render
+  // empty chrome at HTTP 200 (a soft 404). Only /admin is a real bare route.
+  const ownsUrl =
+    slug[0] === 'admin' || (SPA_PREFIXES.has(slug[0]) && slug.length > 1);
+  if (!ownsUrl) {
     notFound();
   }
   return <LegacyAppShim />;
