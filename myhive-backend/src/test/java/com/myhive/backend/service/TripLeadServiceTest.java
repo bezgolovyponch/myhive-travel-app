@@ -76,14 +76,18 @@ class TripLeadServiceTest {
     }
 
     @Test
-    void create_reusesActiveLeadForSameEmail() {
+    void create_supersedesExistingActiveLeadForSameEmail() {
         TripLeadCreateResponse first = tripLeadService.create(createRequest("dup@example.com"));
         TripLeadCreateResponse second = tripLeadService.create(createRequest("DUP@example.com"));
 
-        assertThat(second.id()).isEqualTo(first.id());
-        assertThat(second.restoreToken()).isEqualTo(first.restoreToken());
-        assertThat(tripLeadRepository.findAllByEmailAndStatus("dup@example.com", TripLeadStatus.ACTIVE))
-                .hasSize(1);
+        assertThat(second.id()).isNotEqualTo(first.id());
+        assertThat(second.restoreToken()).isNotEqualTo(first.restoreToken());
+        List<TripLead> activeLeads =
+                tripLeadRepository.findAllByEmailAndStatus("dup@example.com", TripLeadStatus.ACTIVE);
+        assertThat(activeLeads).hasSize(1);
+        assertThat(activeLeads.get(0).getId()).isEqualTo(second.id());
+        assertThat(tripLeadRepository.findById(first.id()).orElseThrow().getStatus())
+                .isEqualTo(TripLeadStatus.COMPLETED);
     }
 
     @Test

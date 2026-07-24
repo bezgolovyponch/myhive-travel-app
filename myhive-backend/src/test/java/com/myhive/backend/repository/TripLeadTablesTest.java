@@ -100,6 +100,29 @@ class TripLeadTablesTest {
     }
 
     @Test
+    void deletingLeadCascadesItsActivityRows() {
+        Destination destination = destinationRepository.saveAndFlush(
+                com.myhive.backend.TestDataFactory.destination("Prague"));
+        Activity activity = activityRepository.saveAndFlush(
+                com.myhive.backend.TestDataFactory.activity(destination, "Karting", new BigDecimal("50.00")));
+        TripLead lead = newLead("cascade@test.com");
+
+        TripLeadActivity row = new TripLeadActivity();
+        row.setLead(lead);
+        row.setActivity(activity);
+        row.setActivityName("Karting");
+        row.setPrice(new BigDecimal("50.00"));
+        row.setSortOrder(0);
+        tripLeadActivityRepository.saveAndFlush(row);
+
+        UUID leadId = lead.getId();
+        tripLeadRepository.deleteById(leadId);
+        tripLeadRepository.flush();
+
+        assertThat(tripLeadActivityRepository.findByLeadIdOrderBySortOrder(leadId)).isEmpty();
+    }
+
+    @Test
     void emailSuppression_existsByEmail() {
         EmailSuppression suppression = new EmailSuppression();
         suppression.setEmail("gone@test.com");

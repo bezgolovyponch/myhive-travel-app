@@ -87,6 +87,14 @@ class TripLeadControllerTest {
     }
 
     @Test
+    void create_rejectsBlankEmail() throws Exception {
+        mockMvc.perform(post("/leads")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void sync_returns204() throws Exception {
         UUID leadId = UUID.randomUUID();
         String requestJson = """

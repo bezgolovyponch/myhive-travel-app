@@ -64,8 +64,18 @@ public class TripLeadService {
     @Transactional
     public TripLeadCreateResponse create(TripLeadCreateRequest request) {
         String email = normalizeEmail(request.getEmail());
-        TripLead lead = tripLeadRepository.findFirstByEmailAndStatus(email, TripLeadStatus.ACTIVE)
-                .orElseGet(() -> newLead(email));
+        // Dedup must never hand out an existing lead's restore token: that token grants
+        // GET /leads/restore (destination, dates, travelers, budget, quiz answers, cart — all PII)
+        // and PATCH (overwrite), so returning it to anyone who merely knows the email would let
+        // a stranger read and edit someone else's in-progress trip. Instead, retire every ACTIVE
+        // lead for this email and always mint a fresh one: this preserves the one-ACTIVE-per-email
+        // invariant, and previously emailed restore links keep working (restore() ignores status)
+        // until the 30-day cleanup removes the superseded row.
+        for (TripLead active : tripLeadRepository.findAllByEmailAndStatus(email, TripLeadStatus.ACTIVE)) {
+            active.setStatus(TripLeadStatus.COMPLETED);
+            tripLeadRepository.save(active);
+        }
+        TripLead lead = newLead(email);
         applySetup(lead, request.getDestinationId(), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), request.getBudget());
         lead.setLastActivityAt(LocalDateTime.now(ZoneOffset.UTC));
