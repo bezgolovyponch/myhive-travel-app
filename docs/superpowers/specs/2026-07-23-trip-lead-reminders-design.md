@@ -58,7 +58,7 @@ Capture these emails server-side, and send an abandoned-trip reminder series wit
 | `last_activity_at` | timestamp, not null | series anchor; refreshed on every capture/sync |
 | `created_at` / `updated_at` | timestamps | `@CreationTimestamp` / `@UpdateTimestamp` |
 
-**One ACTIVE lead per email** — an application-level invariant enforced in the service (no DB partial index; consistent with other app-level invariants under `ddl-auto=update`): `POST /leads` with an email that already has an ACTIVE lead updates that lead (and refreshes `last_activity_at`) instead of creating a new row.
+**One ACTIVE lead per email** — an application-level invariant enforced in the service (no DB partial index; consistent with other app-level invariants under `ddl-auto=update`): `POST /leads` with an email that already has an ACTIVE lead **supersedes** it — the existing lead is marked `COMPLETED` and a brand-new lead (new id, new `restore_token`) is minted and returned. The service never hands back an existing lead's tokens from `create()`: a caller who only knows the email must not be able to read (`GET /leads/restore/{token}`) or overwrite (`PATCH /leads/{id}`) someone else's in-progress trip. Any restore link already emailed for the superseded lead keeps working (`restore()` does not filter by status) until the 30-day cleanup removes the row.
 
 ### `trip_lead_activities`
 
@@ -104,6 +104,7 @@ No frontend changes for this flow.
   - `VOTE`: stage 1 at +24h, stage 2 at +72h.
 - A lead is due when `status=ACTIVE`, `reminder_stage < maxStages(source)`, and `last_activity_at + threshold[reminder_stage + 1] <= now`.
 - If the user comes back mid-series (PATCH refreshes `last_activity_at`), remaining stages re-count from the new anchor. `reminder_stage` never resets — **max 3 (QUIZ) / 2 (VOTE) reminder emails per lead, ever.**
+  - **Deliberate exception:** a QUIZ lead that gets repurposed by `createFromVoteSession` (the user later starts and completes a vote from the same email) has its `source` switched to `VOTE` and `reminder_stage` explicitly reset to 0, starting the VOTE cadence fresh. This is intentional — the vote completion is a new, more-committed signal than the original quiz abandonment — but it means the same lead can receive up to 3 QUIZ emails followed by up to 2 more VOTE emails (5 total across the two series) in the worst case.
 - **Stop conditions checked immediately before every send** (authoritative, DB-based):
   - a `Booking` exists with the same normalized email created after the lead's `created_at`, or (VOTE leads) any booking with the lead's `vote_session_id` → mark `CONVERTED`, skip;
   - (QUIZ leads) a `VoteSession` exists with the same `initiatorEmail` created after the lead's `created_at` → `CONVERTED`, skip;
@@ -152,7 +153,7 @@ Small muted line under the email input in **both** `TripSetupModal` (vote mode) 
 | `POST /leads/unsubscribe` | body `{token}` — suppress + confirm |
 | `POST /leads/unsubscribe/one-click` | RFC 8058 target, `token` as query param |
 
-Abuse note: `POST /leads` lets anyone enter a third-party email — the exposure is equivalent to today's vote-session flow (which emails immediately); mitigations: rate limit, email dedup (one ACTIVE lead per address), max 3 sends ever, suppression honored across leads.
+Abuse note: `POST /leads` lets anyone enter a third-party email — the exposure is equivalent to today's vote-session flow (which emails immediately); mitigations: rate limit, email dedup (one ACTIVE lead per address, enforced by **superseding** — see above), max 3 sends ever, suppression honored across leads. Superseding also closes a token-leak path: without it, a second `POST /leads` for an email that already has an ACTIVE lead would hand that lead's live `restore_token` (PII read + overwrite) to whoever merely typed the email.
 
 ## Testing
 

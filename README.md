@@ -127,7 +127,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `AUTH0_ROLES_CLAIM`      | no          | `https://trivlu.com/roles` |
 | `FRONTEND_URL`           | for sitemap | `https://trivlu.com` (also the Stripe return-URL fallback when the request Origin is absent/untrusted) |
 | `REMINDERS_ENABLED`      | no          | `true` (kill switch for the trip-lead reminder scheduler) |
-| `API_PUBLIC_URL`         | no          | empty (set to enable RFC 8058 one-click unsubscribe headers on reminder emails) |
+| `API_PUBLIC_URL`         | no          | empty — set to the backend's public base URL **including the prod context path**, e.g. `https://<backend-host>/api`, to enable RFC 8058 `List-Unsubscribe`/`List-Unsubscribe-Post` headers on reminder emails. Left empty, reminder emails still send but ship **without** those one-click headers, which Gmail/Yahoo require of bulk senders. |
 
 ### Frontend (build-time `REACT_APP_*`)
 
