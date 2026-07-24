@@ -121,6 +121,13 @@ test('shows the destination picker when enabled and several destinations exist',
   expect(screen.getByRole('option', { name: 'Budapest' })).toBeInTheDocument();
 });
 
+test('vote mode shows the email consent notice (GDPR soft opt-in basis)', () => {
+  renderVoteModal();
+
+  expect(screen.getByText(/We['’]ll email you a link to your trip and a couple of reminders\. Unsubscribe anytime\./))
+    .toBeInTheDocument();
+});
+
 test('auto-selects the only destination even with the picker enabled', () => {
   renderVoteModal({
     ...baseCatalogState,

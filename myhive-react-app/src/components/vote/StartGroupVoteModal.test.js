@@ -99,3 +99,10 @@ test('shows the API error message on failure', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
   expect(await screen.findByText('activityId x does not exist')).toBeInTheDocument();
 });
+
+test('shows the email consent notice (GDPR soft opt-in basis)', () => {
+  renderModal();
+
+  expect(screen.getByText(/We['’]ll email you a link to your trip and a couple of reminders\. Unsubscribe anytime\./))
+    .toBeInTheDocument();
+});
