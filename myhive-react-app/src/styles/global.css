@@ -178,6 +178,17 @@ a:hover {
     opacity: 0.9;
 }
 
+.btn--ghost {
+    background: transparent;
+    color: var(--text-muted, #6c757d);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.18));
+}
+
+.btn--ghost:hover {
+    color: var(--text, inherit);
+    border-color: var(--text-muted, #6c757d);
+}
+
 .btn--lg {
     padding: 0.625rem 1.25rem;
     font-size: 1rem;

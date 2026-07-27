@@ -447,3 +447,14 @@ test('A9: trip/direct mode destination param is the default destination slug', a
   expect(submittedCalls).toHaveLength(1);
   expect(submittedCalls[0][1].destination).toBe('prague');
 });
+
+// ---------------------------------------------------------------------------
+// Ghost button style for Cancel
+// ---------------------------------------------------------------------------
+
+test('Cancel uses the neutral ghost style, not the teal secondary', () => {
+  renderVoteModal();
+  const cancel = screen.getByRole('button', {name: /cancel/i});
+  expect(cancel).toHaveClass('btn--ghost');
+  expect(cancel).not.toHaveClass('btn--secondary');
+});

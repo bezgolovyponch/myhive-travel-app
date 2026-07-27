@@ -132,7 +132,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             title="Set Up Your Trip"
             footer={
                 <>
-                    <button className="btn btn--secondary" onClick={handleCancel}>Cancel</button>
+                    <button className="btn btn--ghost" onClick={handleCancel}>Cancel</button>
                     {/* type=submit + form attr: routes the click through the form so
                         native constraint validation (email format, budget min) runs. */}
                     <button
