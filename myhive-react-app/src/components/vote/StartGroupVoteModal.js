@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppModal from '../AppModal';
 import EmailConsentNote from '../EmailConsentNote';
 import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
 import { clearTripLead } from '../../utils/tripLead';
+import { useEmailLeadCapture } from '../../hooks/useEmailLeadCapture';
+import { getOrCreateVoterToken } from '../../utils/voterToken';
 import './StartGroupVoteModal.css';
 
 const EMAIL_RE = /\S+@\S+\.\S+/;
@@ -36,6 +38,7 @@ function validate({ email, needsDates, voteStartDate, voteEndDate }) {
 // vote_sessions table requires them).
 function StartGroupVoteModal({
     isOpen, onClose, destinationId, activityIds, numberOfTravelers, startDate, endDate,
+    voteMode = 'CART', quizResponses = null, budget = null, onLaunched,
 }) {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
@@ -44,8 +47,28 @@ function StartGroupVoteModal({
     const [errors, setErrors] = useState({});
     const [apiError, setApiError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const launchedRef = useRef(false);
 
     const needsDates = !startDate || !endDate;
+
+    const captureEmail = useEmailLeadCapture({
+        destinationId, numberOfTravelers,
+        startDate: startDate || null, endDate: endDate || null, budget,
+    });
+
+    const handleEmailChange = (value) => {
+        setEmail(value);
+        captureEmail(value);
+    };
+
+    const handleClose = () => {
+        if (!launchedRef.current) {
+            pushEvent('modal_abandoned', {
+                modal: 'start_vote', vote_mode: voteMode, has_email: EMAIL_RE.test(email.trim()),
+            });
+        }
+        onClose();
+    };
 
     const handleCreate = async () => {
         if (submitting) {
@@ -61,17 +84,36 @@ function StartGroupVoteModal({
         setSubmitting(true);
         setApiError(null);
         try {
-            const session = await voteApi.createCartSession({
-                destinationId,
-                initiatorEmail: email.trim(),
-                numberOfTravelers,
-                startDate: needsDates ? voteStartDate : startDate,
-                endDate: needsDates ? voteEndDate : endDate,
-                activityIds,
-            });
-            localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
+            const resolvedStart = needsDates ? voteStartDate : startDate;
+            const resolvedEnd = needsDates ? voteEndDate : endDate;
+            const session = voteMode === 'QUIZ'
+                ? await voteApi.createSession({
+                    destinationId,
+                    initiatorEmail: email.trim(),
+                    numberOfTravelers,
+                    startDate: resolvedStart,
+                    endDate: resolvedEnd,
+                    budget,
+                    voterToken: getOrCreateVoterToken(),
+                    quizResponses,
+                    activityIds,
+                })
+                : await voteApi.createCartSession({
+                    destinationId,
+                    initiatorEmail: email.trim(),
+                    numberOfTravelers,
+                    startDate: resolvedStart,
+                    endDate: resolvedEnd,
+                    activityIds,
+                });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
-            localStorage.setItem('myhive-trip-vote-session', session.shareToken);
+            if (session.managerToken) {
+                localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
+            }
+            if (voteMode === 'CART') {
+                // QUIZ parity: quiz sessions intentionally do not set this key.
+                localStorage.setItem('myhive-trip-vote-session', session.shareToken);
+            }
             clearTripLead();
             // Mirrors CuratePage's A12 vote_launched (QUIZ) — same field names,
             // shareToken as trip_id, organizer is always the creator here.
@@ -80,7 +122,13 @@ function StartGroupVoteModal({
                 user_role: 'organizer',
                 selected_count: activityIds.length,
             });
-            navigate(`/vote/${session.shareToken}/waiting`);
+            launchedRef.current = true;
+            if (onLaunched) onLaunched();
+            if (voteMode === 'QUIZ') {
+                navigate(`/vote/${session.shareToken}/waiting`, { state: { managerToken: session.managerToken } });
+            } else {
+                navigate(`/vote/${session.shareToken}/waiting`);
+            }
         } catch (e) {
             setApiError(e.message || 'Failed to create the vote. Please try again.');
             setSubmitting(false);
@@ -90,7 +138,8 @@ function StartGroupVoteModal({
     return (
         <AppModal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
+            closeOnBackdrop
             title="Let your mates vote"
             contentClassName="start-vote-modal"
             footer={(
@@ -105,7 +154,7 @@ function StartGroupVoteModal({
             )}
         >
             <p className="start-vote-modal-sub">
-                We&apos;ll email you a private link to manage the vote.
+                We&apos;ll send you the live vote results and your saved shortlist.
                 Voting closes automatically after 24 hours.
             </p>
             <label htmlFor="start-vote-email">Your email</label>
@@ -113,7 +162,7 @@ function StartGroupVoteModal({
                 id="start-vote-email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => handleEmailChange(e.target.value)}
                 className={errors.email ? 'error' : ''}
             />
             {errors.email && <span className="error-message">{errors.email}</span>}

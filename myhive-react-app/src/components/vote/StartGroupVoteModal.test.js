@@ -1,13 +1,19 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import StartGroupVoteModal from './StartGroupVoteModal';
 import voteApi from '../../services/voteApi';
+import leadApi from '../../services/leadApi';
 import { pushEvent } from '../../utils/analytics';
 
 jest.mock('../../services/voteApi', () => ({
   __esModule: true,
-  default: { createCartSession: jest.fn() },
+  default: { createCartSession: jest.fn(), createSession: jest.fn() },
+}));
+
+jest.mock('../../services/leadApi', () => ({
+  __esModule: true,
+  default: { createLead: jest.fn() },
 }));
 
 jest.mock('../../utils/analytics', () => ({ pushEvent: jest.fn() }));
@@ -105,4 +111,79 @@ test('shows the email consent notice (GDPR soft opt-in basis)', () => {
 
   expect(screen.getByText(/We['’]ll email you a link to your trip and a couple of reminders\. Unsubscribe anytime\./))
     .toBeInTheDocument();
+});
+
+test('QUIZ mode creates a QUIZ session with quiz payload and calls onLaunched', async () => {
+  voteApi.createSession.mockResolvedValue({ shareToken: 'tok1', managerToken: 'mgr1' });
+  const onLaunched = jest.fn();
+  renderModal({
+    voteMode: 'QUIZ', quizResponses: [{ questionId: 'q1', answerId: 'a1' }], budget: null, onLaunched,
+  });
+
+  await userEvent.type(screen.getByLabelText('Your email'), 'sam@example.com');
+  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
+
+  await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledWith(
+    expect.objectContaining({ initiatorEmail: 'sam@example.com', quizResponses: [{ questionId: 'q1', answerId: 'a1' }] }),
+  ));
+  expect(voteApi.createCartSession).not.toHaveBeenCalled();
+  expect(onLaunched).toHaveBeenCalled();
+  expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
+  expect(mockNavigate).toHaveBeenCalledWith('/vote/tok1/waiting', { state: { managerToken: 'mgr1' } });
+});
+
+test('typing a valid email captures a lead after the debounce', async () => {
+  jest.useFakeTimers();
+  leadApi.createLead.mockResolvedValue({ id: 'l1', restoreToken: 't1' });
+  renderModal();
+
+  fireEvent.change(screen.getByLabelText('Your email'), { target: { value: 'sam@example.com' } });
+  await act(async () => jest.advanceTimersByTime(2000));
+
+  expect(leadApi.createLead).toHaveBeenCalledWith(expect.objectContaining({ email: 'sam@example.com' }));
+  jest.useRealTimers();
+});
+
+test('value-promise microcopy is shown', () => {
+  renderModal();
+  expect(screen.getByText(/live vote results and your saved shortlist/i)).toBeInTheDocument();
+});
+
+test('closing without launching fires modal_abandoned with has_email', async () => {
+  const onClose = jest.fn();
+  renderModal({ onClose });
+
+  await userEvent.type(screen.getByLabelText('Your email'), 'sam@example.com');
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
+    modal: 'start_vote', vote_mode: 'CART', has_email: true,
+  });
+  expect(onClose).toHaveBeenCalled();
+});
+
+test('closing before entering an email fires modal_abandoned with has_email: false', async () => {
+  const onClose = jest.fn();
+  renderModal({ onClose });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
+    modal: 'start_vote', vote_mode: 'CART', has_email: false,
+  });
+});
+
+test('does not fire modal_abandoned when closed after a successful launch', async () => {
+  voteApi.createCartSession.mockResolvedValue({ shareToken: 't-1', managerToken: 'm-1' });
+  const onClose = jest.fn();
+  renderModal({ onClose });
+
+  await userEvent.type(screen.getByLabelText('Your email'), 'stag@example.com');
+  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+
+  pushEvent.mockClear();
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+  expect(pushEvent).not.toHaveBeenCalledWith('modal_abandoned', expect.anything());
 });
