@@ -43,6 +43,7 @@ function renderModal(props = {}) {
 
 afterEach(() => {
   localStorage.clear();
+  jest.useRealTimers(); // leak-proof: a failing fake-timer test must not stall later tests
 });
 
 test('rejects an invalid email without calling the API', async () => {
@@ -124,7 +125,14 @@ test('QUIZ mode creates a QUIZ session with quiz payload and calls onLaunched', 
   await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
 
   await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledWith(
-    expect.objectContaining({ initiatorEmail: 'sam@example.com', quizResponses: [{ questionId: 'q1', answerId: 'a1' }] }),
+    expect.objectContaining({
+      initiatorEmail: 'sam@example.com',
+      quizResponses: [{ questionId: 'q1', answerId: 'a1' }],
+      numberOfTravelers: 4,
+      startDate: '2026-08-01',
+      endDate: '2026-08-03',
+      activityIds: ['a-1', 'a-2'],
+    }),
   ));
   expect(voteApi.createCartSession).not.toHaveBeenCalled();
   expect(onLaunched).toHaveBeenCalled();
@@ -141,6 +149,22 @@ test('typing a valid email captures a lead after the debounce', async () => {
   await act(async () => jest.advanceTimersByTime(2000));
 
   expect(leadApi.createLead).toHaveBeenCalledWith(expect.objectContaining({ email: 'sam@example.com' }));
+  jest.useRealTimers();
+});
+
+test('captures the typed trip dates when the modal collects them itself', async () => {
+  jest.useFakeTimers();
+  leadApi.createLead.mockResolvedValue({ id: 'l1', restoreToken: 't1' });
+  renderModal({ startDate: '', endDate: '' });
+
+  fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-09-04' } });
+  fireEvent.change(screen.getByLabelText('End date'), { target: { value: '2026-09-06' } });
+  fireEvent.change(screen.getByLabelText('Your email'), { target: { value: 'sam@example.com' } });
+  await act(async () => jest.advanceTimersByTime(2000));
+
+  expect(leadApi.createLead).toHaveBeenCalledWith(expect.objectContaining({
+    email: 'sam@example.com', startDate: '2026-09-04', endDate: '2026-09-06',
+  }));
   jest.useRealTimers();
 });
 

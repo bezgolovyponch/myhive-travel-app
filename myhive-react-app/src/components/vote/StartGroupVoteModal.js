@@ -51,9 +51,13 @@ function StartGroupVoteModal({
 
     const needsDates = !startDate || !endDate;
 
+    // Mirror handleCreate's date resolution so leads captured while the modal
+    // collects its own dates carry whatever the user has typed so far.
     const captureEmail = useEmailLeadCapture({
         destinationId, numberOfTravelers,
-        startDate: startDate || null, endDate: endDate || null, budget,
+        startDate: (needsDates ? voteStartDate : startDate) || null,
+        endDate: (needsDates ? voteEndDate : endDate) || null,
+        budget,
     });
 
     const handleEmailChange = (value) => {
