@@ -1,0 +1,23 @@
+.whatsapp-widget {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 90; /* under .app-modal overlays (check their z-index in AppModal css) */
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #25d366;
+    color: #fff;
+    font-size: 1.75rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.whatsapp-widget:hover { color: #fff; opacity: 0.92; }
+
+/* Sits above the sticky mobile CTA (Task 11) */
+@media (max-width: 767px) {
+    .homepage-has-sticky-cta .whatsapp-widget { bottom: 76px; }
+}
