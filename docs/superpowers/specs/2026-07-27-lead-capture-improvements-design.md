@@ -99,6 +99,20 @@ Floating "Contact us" WhatsApp button on all public pages (not admin):
   swipe controls on vote pages (offset or hide there — judgement call in
   implementation).
 
+### 7. Conversion add-ons (approved 2026-07-27)
+
+- **Sticky mobile CTA:** on the mobile homepage, a bottom-fixed «Start Group
+  Vote» bar appears after the user scrolls past the hero CTA; hidden while any
+  modal is open. WhatsApp FAB offsets above it on mobile.
+- **Endowed progress in the quiz:** the quiz progress bar counts the setup
+  modal as an already-completed first step (starts visibly non-zero).
+- **Email microcopy:** the email fields in `StartGroupVoteModal` and checkout
+  carry a value promise — e.g. «We'll send the live vote results + your saved
+  shortlist» — instead of a bare "results sent here".
+- **`modal_abandoned` event:** fired when `TripSetupModal` or
+  `StartGroupVoteModal` closes without submit, with params for which fields
+  were filled (booleans only, no PII) and the entry point.
+
 ## Error handling
 
 - Lead creation stays fire-and-forget: failures never block quiz, vote link
@@ -121,10 +135,15 @@ Floating "Contact us" WhatsApp button on all public pages (not admin):
   assets, no CDN URLs.
 - WhatsApp widget: rendered on public pages, absent on admin routes, link
   target and analytics event.
+- Add-ons: sticky CTA appears/hides on scroll and modal state; quiz progress
+  starts non-zero; `modal_abandoned` fires with field-fill booleans and no
+  email value.
 
 ## Out of scope
 
-- Email-ask-after-quiz A/B experiment (strongest research bet — separate batch,
-  this batch is its control arm).
 - `myhive-next` migration work; backend changes (lead API already accepts null
   dates).
+
+Note: the "email after the quiz" pattern (strongest evidence in the research
+report) is already realized by this design — the vote flow asks for email at
+the send-the-vote-link step, after the quiz and shortlist.
