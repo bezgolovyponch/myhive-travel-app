@@ -8,7 +8,8 @@ import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSect
 import ReviewsSection from '../components/home/ReviewsSection';
 import ContactCtaSection from '../components/home/ContactCtaSection';
 import VoteDemoCard from '../components/home/VoteDemoCard';
-import {SITE_URL} from '../services/config';
+import StickyVoteCta from '../components/home/StickyVoteCta';
+import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
 import {pushEvent} from '../utils/analytics';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './HomePage.css';
@@ -84,6 +85,8 @@ function HomePage() {
                 onVoteCancel={closeVoteSetup}
                 preselectedDestination={preselectedDestination}
             />
+
+            {STICKY_VOTE_CTA_ENABLED && <StickyVoteCta onStartVote={openVoteSetup} hidden={voteSetupOpen}/>}
         </div>
     );
 }

@@ -156,6 +156,13 @@ test('hero title mentions Prague', () => {
     .toHaveTextContent('The Easiest Prague Stag Do. All Sorted For You.');
 });
 
+test('sticky CTA is feature-flagged off by default', async () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+  renderHome();
+  await screen.findByText('What the Lads Say');
+  expect(document.querySelector('.sticky-vote-cta')).toBeNull();
+});
+
 test('activities section comes directly after the hero', async () => {
   api.getFeaturedActivities.mockResolvedValue([
     { id: 'a1', name: 'Go-Karting', price: 50, slug: 'go-karting', destinationSlug: 'prague', categories: [] },

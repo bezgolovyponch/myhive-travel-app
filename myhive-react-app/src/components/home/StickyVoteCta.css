@@ -1,0 +1,14 @@
+.sticky-vote-cta {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(10, 10, 14, 0.95), rgba(10, 10, 14, 0.75));
+    backdrop-filter: blur(6px);
+}
+
+@media (min-width: 768px) {
+    .sticky-vote-cta { display: none; }
+}

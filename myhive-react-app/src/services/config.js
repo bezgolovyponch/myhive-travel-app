@@ -9,6 +9,10 @@ export const MESSENGER_URL = 'https://m.me/trivlu';
 // default destination is used. Flip to true when new destinations open.
 export const DESTINATION_PICKER_ENABLED = false;
 
+// Sticky mobile "Start Group Vote" bar on the homepage. Ships dark — visual
+// risk; flip to true to trial it.
+export const STICKY_VOTE_CTA_ENABLED = false;
+
 // Kill-switch for customer-facing online payment — gates the deposit CTAs
 // (Trip Builder success screen + vote result page) and the success-screen
 // Turnstile widget. Backend /payments endpoints stay live either way.
