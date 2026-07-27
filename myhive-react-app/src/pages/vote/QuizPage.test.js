@@ -189,3 +189,28 @@ describe('quiz_completed analytics', () => {
     expect(pushEvent).not.toHaveBeenCalledWith('quiz_completed', expect.anything());
   });
 });
+
+// ─── Endowed progress bar tests ────────────────────────────────────────
+
+describe('endowed progress bar', () => {
+  beforeEach(() => {
+    voteApi.getPublicQuizForDestination.mockResolvedValue(FOUR_Q_QUIZ);
+    voteApi.getParticipantQuiz.mockResolvedValue(FOUR_Q_QUIZ);
+  });
+
+  test('organizer sees an endowed progress bar (setup counts as a done step)', async () => {
+    renderOrganizer(ORGANIZER_SETUP);
+
+    await screen.findByText('1 / 4');
+    const fill = document.querySelector('.quiz-progress-fill');
+    // 1 completed (setup) of 5 total steps = 20%
+    expect(fill.style.width).toBe('20%');
+  });
+
+  test('participant progress starts at zero', async () => {
+    renderParticipant('tok-abc');
+
+    await screen.findByText('1 / 4');
+    expect(document.querySelector('.quiz-progress-fill').style.width).toBe('0%');
+  });
+});
