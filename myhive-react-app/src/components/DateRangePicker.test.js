@@ -115,4 +115,59 @@ describe('DateRangePicker', () => {
       expect(onChange).toHaveBeenCalledWith('', '');
     });
   });
+
+  describe('popover mode', () => {
+    it('hides the calendar until a field is clicked', () => {
+      const { container } = render(<DateRangePicker from="" to="" onChange={() => {}} popover />);
+      expect(container.querySelector('.drp-cal-wrap')).toBeNull();
+
+      fireEvent.click(container.querySelector('.drp-field'));
+
+      expect(container.querySelector('.drp-pop .drp-cal-wrap')).toBeInTheDocument();
+    });
+
+    it('renders a single month inside the popover', () => {
+      const { container } = render(<DateRangePicker from="" to="" onChange={() => {}} popover />);
+      fireEvent.click(container.querySelector('.drp-field'));
+
+      expect(container.querySelectorAll('.drp-month')).toHaveLength(1);
+    });
+
+    it('closes the popover when the range is completed', () => {
+      const onChange = jest.fn();
+      const { container, rerender } = render(
+        <DateRangePicker from="2026-06-12" to="" onChange={onChange} popover />
+      );
+      fireEvent.click(container.querySelector('.drp-field'));
+      expect(container.querySelector('.drp-pop')).toBeInTheDocument();
+
+      const grid = container.querySelector('[role="grid"]');
+      const dayButtons = grid.querySelectorAll('.drp-day-btn');
+      fireEvent.click(dayButtons[dayButtons.length - 1]);
+
+      rerender(<DateRangePicker from="2026-06-12" to="2026-06-20" onChange={onChange} popover />);
+      expect(container.querySelector('.drp-pop')).toBeNull();
+    });
+
+    it('closes the popover on outside click', () => {
+      render(
+        <div>
+          <span data-testid="outside">out</span>
+          <DateRangePicker from="" to="" onChange={() => {}} popover />
+        </div>
+      );
+      fireEvent.click(document.querySelector('.drp-field'));
+      expect(document.querySelector('.drp-pop')).toBeInTheDocument();
+
+      fireEvent.mouseDown(screen.getByTestId('outside'));
+
+      expect(document.querySelector('.drp-pop')).toBeNull();
+    });
+
+    it('does not affect default mode calendar visibility', () => {
+      const { container } = render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
+      expect(container.querySelector('.drp-cal-wrap')).toBeInTheDocument();
+      expect(container.querySelector('.drp-pop')).toBeNull();
+    });
+  });
 });

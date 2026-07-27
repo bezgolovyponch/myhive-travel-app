@@ -350,3 +350,26 @@
   padding: 0;
   font-family: inherit;
 }
+
+/* ── Popover mode: small anchored calendar instead of the inline block ── */
+.drp--popover {
+  position: relative;
+}
+
+.drp-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  padding: 8px;
+}
+
+/* Inside the popover the pop itself is the frame — drop the inline wrap's own box. */
+.drp-pop .drp-cal-wrap {
+  border: none;
+  padding: 12px 14px 10px;
+}
