@@ -20,7 +20,10 @@
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: center;
-    padding: 0 var(--gap);
+    /* Match the hero/tab-content horizontal gutter (--page-padding) instead of
+       the fixed --gap, so the tab bar's edges line up with every other block
+       at mobile widths where --page-padding grows past 16px. */
+    padding: 0 var(--page-padding);
 }
 
 .tab-btn {
@@ -91,6 +94,18 @@
     .category-filters {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Chips were ~32px tall at this breakpoint (text + gap-sm padding),
+       under the 40px tap-target minimum. Give every chip an equal, centered
+       min-height so the grid rows stay uniform and touch-friendly without
+       changing the visual gap between chips. */
+    .filter-btn {
+        min-height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
     }
 }
 
