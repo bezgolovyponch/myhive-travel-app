@@ -21,8 +21,12 @@
     display: flex;
     justify-content: center;
     /* Match the hero/tab-content horizontal gutter (--page-padding) instead of
-       the fixed --gap, so the tab bar's edges line up with every other block
-       at mobile widths where --page-padding grows past 16px. */
+       the fixed --gap, so the tab bar's edges line up with every other block.
+       Deliberately unscoped: the padding is only binding at <=768px where the
+       flex-start override below applies (that's the alignment fix); at desktop
+       widths the tabs are centered and far narrower than the viewport, so the
+       larger inset (64-96px at 1280-1920px) is a never-hit minimum and the
+       rendering is unchanged. */
     padding: 0 var(--page-padding);
 }
 
