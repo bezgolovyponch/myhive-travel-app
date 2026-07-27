@@ -7,6 +7,7 @@ import HowItWorksSection from '../components/home/HowItWorksSection';
 import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSection';
 import ReviewsSection from '../components/home/ReviewsSection';
 import ContactCtaSection from '../components/home/ContactCtaSection';
+import VoteDemoCard from '../components/home/VoteDemoCard';
 import {SITE_URL} from '../services/config';
 import {pushEvent} from '../utils/analytics';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
@@ -35,29 +36,7 @@ function HomePage() {
                             Your mates vote in 10 minutes. We deliver the perfect weekend.
                         </p>
 
-                        <aside className="vote-card" aria-hidden="true">
-                            <div className="vc-head">
-                                <span className="vc-badge"><i className="ph ph-check-square"/></span>
-                                <span className="vc-title">Vote on activities</span>
-                            </div>
-                            <div className="vc-sub">9 of 11 lads voted</div>
-                            {[
-                                {icon: 'ph-beer-stein', name: 'Bar Crawl', num: 8, pct: 89, fill: 'var(--purple-ll)'},
-                                {icon: 'ph-steering-wheel', name: 'Karting', num: 6, pct: 67, fill: 'var(--purple-l)'},
-                                {icon: 'ph-target', name: 'Shooting', num: 5, pct: 56, fill: 'var(--purple-l)'},
-                                {icon: 'ph-boat', name: 'Tiki Boat', num: 4, pct: 44, fill: 'var(--purple-l)'},
-                            ].map((row) => (
-                                <div className="vc-row" key={row.name}>
-                                    <div className="vc-row-top">
-                                        <span className="vc-name"><i className={`ph ${row.icon}`}/>{row.name}</span>
-                                        <span className="vc-num">{row.num}</span>
-                                    </div>
-                                    <div className="vc-bar">
-                                        <div className="vc-fill" style={{width: `${row.pct}%`, background: row.fill}}/>
-                                    </div>
-                                </div>
-                            ))}
-                        </aside>
+                        <VoteDemoCard/>
 
                         <div className="hero-cta-group">
                             <button
