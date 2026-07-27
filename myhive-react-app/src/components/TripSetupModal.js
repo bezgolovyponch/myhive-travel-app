@@ -2,12 +2,11 @@ import {useEffect, useId, useRef, useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
 import AppModal from './AppModal';
-import EmailConsentNote from './EmailConsentNote';
 import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
 import {getRef} from '../utils/attribution';
-import {hasConsent} from '../utils/consent';
+import {clearSetupDraft, readSetupDraft, writeSetupDraft} from '../utils/setupDraft';
 import {generateUuid} from '../utils/uuid';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
@@ -25,7 +24,6 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     const [travelers, setTravelers] = useState('1');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [email, setEmail] = useState('');
     const [selectedDestinationId, setSelectedDestinationId] = useState('');
     // Unique per instance: this modal is mounted in several places (Header,
     // TripBuilderDropdown, vote flow) and a duplicate id would make the footer
@@ -36,16 +34,16 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
 
     useEffect(() => {
         if (isOpen) {
-            // Seed from trip state: the user may have already set travelers/dates
-            // when the first activity was added to the cart — don't ask twice.
-            // The setup persists in localStorage across visits, so a range that
-            // has already started is dropped: past dates must not flow into a
-            // new booking or vote session.
+            // Seed from a saved draft first (the user dismissed the modal without
+            // submitting), then trip state (set when the first activity was added
+            // to the cart) — don't ask twice either way. Past dates are dropped
+            // either way: they must not flow into a new booking or vote session.
+            const draft = readSetupDraft();
+            const draftDatesCurrent = Boolean(draft?.startDate) && draft.startDate >= todayLocalIso();
             const datesAreCurrent = Boolean(state.tripStartDate) && state.tripStartDate >= todayLocalIso();
-            setTravelers(String(state.tripTravelers || 1));
-            setStartDate(datesAreCurrent ? state.tripStartDate : '');
-            setEndDate(datesAreCurrent ? state.tripEndDate : '');
-            setEmail('');
+            setTravelers(String(draft?.travelers || state.tripTravelers || 1));
+            setStartDate(draftDatesCurrent ? draft.startDate : (datesAreCurrent ? state.tripStartDate : ''));
+            setEndDate(draftDatesCurrent ? draft.endDate : (datesAreCurrent ? state.tripEndDate : ''));
             setSelectedDestinationId('');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,6 +62,15 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     }, [isOpen, isVoteMode]);
 
     const handleCancel = () => {
+        // Save whatever the user already entered — a dismissed modal never
+        // costs them re-typing travelers/dates on the next open.
+        writeSetupDraft({travelers: parseInt(travelers, 10) || 1, startDate, endDate});
+        pushEvent('modal_abandoned', {
+            modal: 'trip_setup',
+            vote_mode: isVoteMode,
+            has_travelers: (parseInt(travelers, 10) || 1) > 1,
+            has_dates: Boolean(startDate && endDate),
+        });
         if (isVoteMode) {
             onVoteCancel();
         } else {
@@ -83,24 +90,21 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         || catalog.destinations.find(d => d.id === selectedDestinationId)
         || null;
 
-    const voteFormValid = startDate && endDate && email && destination;
+    const voteFormValid = startDate && endDate && destination;
 
     const handleConfirm = () => {
         const travelersNum = Math.max(1, parseInt(travelers, 10) || 1);
         if (isVoteMode) {
             if (!voteFormValid) return;
-            // A9: tb_group_submitted — vote mode (no trip_id; email gated by ad_storage consent).
-            const voteEventParams = {
+            // A9: tb_group_submitted — vote mode (no trip_id; no email collected here).
+            pushEvent('tb_group_submitted', {
                 destination: destination ? destination.slug : undefined,
                 group_size: travelersNum,
                 has_budget: false,
-            };
-            if (email && hasConsent('ad_storage')) {
-                voteEventParams.email = email;
-            }
-            pushEvent('tb_group_submitted', voteEventParams);
+            });
+            clearSetupDraft();
             // budget stays in the payload as null so session seeding keeps working unchanged.
-            onVoteConfirm({ travelers: travelersNum, startDate, endDate, email, destination, budget: null });
+            onVoteConfirm({ travelers: travelersNum, startDate, endDate, destination, budget: null });
         } else {
             // A9: tb_group_submitted — trip/direct mode (mint trip_id; no email collected).
             const tripId = generateUuid();
@@ -111,6 +115,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                 has_budget: false,
                 trip_id: tripId,
             });
+            clearSetupDraft();
             dispatch({
                 type: 'SET_TRIP_SETUP',
                 travelers: travelersNum,
@@ -129,12 +134,13 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         <AppModal
             isOpen
             onClose={handleCancel}
+            closeOnBackdrop
             title="Set Up Your Trip"
             footer={
                 <>
                     <button className="btn btn--ghost" onClick={handleCancel}>Cancel</button>
                     {/* type=submit + form attr: routes the click through the form so
-                        native constraint validation (email format, budget min) runs. */}
+                        native constraint validation runs. */}
                     <button
                         type="submit"
                         form={formId}
@@ -147,7 +153,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             }
         >
                     <p className="trip-setup-description">
-                        Tell us about your group so we can calculate the right price.
+                        Two quick details so we can price your weekend right.
                     </p>
                     <form id={formId} className="contact-form" onSubmit={handleSubmit}>
                         {needsDestinationPicker && (
@@ -212,21 +218,8 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                 setStartDate(from);
                                 setEndDate(to);
                             }}
+                            popover
                         />
-                        {isVoteMode && (
-                            <div className="form-group">
-                                <label htmlFor="voteEmail">Your Email * <span style={{ fontWeight: 400, color: '#6c757d' }}>(results sent here)</span></label>
-                                <input
-                                    type="email"
-                                    id="voteEmail"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    required
-                                    placeholder="you@example.com"
-                                />
-                                <EmailConsentNote />
-                            </div>
-                        )}
                     </form>
         </AppModal>
     );
