@@ -19,9 +19,9 @@ function HomePage() {
     return (
         <div className="homepage">
             <Helmet>
-                <title>Trivlu — The Easiest Stag Do Decision. All Sorted For You.</title>
+                <title>Trivlu — The Easiest Prague Stag Do. All Sorted For You.</title>
                 <meta name="description"
-                      content="Your mates vote in 10 minutes. We deliver the perfect stag do weekend — activities, booking and logistics all sorted for you."/>
+                      content="Your mates vote in 10 minutes. We deliver the perfect Prague stag do weekend — activities, booking and logistics all sorted for you."/>
                 <link rel="canonical" href={`${SITE_URL}/`}/>
             </Helmet>
 
@@ -30,7 +30,7 @@ function HomePage() {
                 <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">The Easiest Stag Do Decision. All Sorted For You.</h1>
+                        <h1 className="hero-title">The Easiest Prague Stag Do. All Sorted For You.</h1>
                         <p className="hero-subtitle">
                             Your mates vote in 10 minutes. We deliver the perfect weekend.
                         </p>
@@ -92,9 +92,9 @@ function HomePage() {
                 </div>
             </section>
 
+            <FeaturedActivitiesSection/>
             <TrustBar/>
             <HowItWorksSection onStartVote={openVoteSetup}/>
-            <FeaturedActivitiesSection/>
             <ReviewsSection onStartVote={openVoteSetup}/>
             <ContactCtaSection/>
 

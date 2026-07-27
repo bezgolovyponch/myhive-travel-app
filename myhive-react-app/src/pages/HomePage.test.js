@@ -46,7 +46,7 @@ test('renders all homepage sections', async () => {
 
   renderHome();
 
-  expect(screen.getByRole('heading', {level: 1, name: 'The Easiest Stag Do Decision. All Sorted For You.'})).toBeInTheDocument();
+  expect(screen.getByRole('heading', {level: 1, name: 'The Easiest Prague Stag Do. All Sorted For You.'})).toBeInTheDocument();
   expect(screen.getByText('Stag Do Specialists')).toBeInTheDocument();
   expect(screen.getByText('The Smartest Way to Plan a Stag Do')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
@@ -128,7 +128,7 @@ test('hero headline is plain text, not a link or button', async () => {
 
   await screen.findByText('What the Lads Say');
 
-  const headline = screen.getByRole('heading', {level: 1, name: /the easiest stag do decision/i});
+  const headline = screen.getByRole('heading', {level: 1, name: /the easiest prague stag do/i});
   expect(headline.querySelector('button')).toBeNull();
   expect(headline.querySelector('a')).toBeNull();
 });
@@ -147,4 +147,26 @@ test('Explore activities CTA scrolls to the activities section', async () => {
   await waitFor(() => expect(section.scrollIntoView).toHaveBeenCalled());
   expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});
   section.remove();
+});
+
+test('hero title mentions Prague', () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+  renderHome();
+  expect(screen.getByRole('heading', {level: 1}))
+    .toHaveTextContent('The Easiest Prague Stag Do. All Sorted For You.');
+});
+
+test('activities section comes directly after the hero', async () => {
+  api.getFeaturedActivities.mockResolvedValue([
+    { id: 'a1', name: 'Go-Karting', price: 50, slug: 'go-karting', destinationSlug: 'prague', categories: [] },
+  ]);
+  renderHome();
+
+  await screen.findByText('Go-Karting');
+
+  const hero = document.querySelector('.hero');
+  const activities = document.querySelector('.featured-activities') || document.querySelector('#activities');
+  const trust = document.querySelector('.trust-bar');
+  expect(hero.compareDocumentPosition(activities) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(activities.compareDocumentPosition(trust) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
