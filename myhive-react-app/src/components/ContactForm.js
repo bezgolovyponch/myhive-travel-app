@@ -2,10 +2,13 @@ import {useEffect, useId, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 import AppModal from './AppModal';
+import EmailConsentNote from './EmailConsentNote';
 import {computeTripTotal} from '../utils/tripPricing';
 import {formatPrice} from '../utils/format';
 
-function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking', inline = false, tripData, initialValues, isSubmitting, submitError}) {
+function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking', inline = false,
+                      tripData, initialValues, isSubmitting, submitError,
+                      onEmailChange, showConsentNote = false}) {
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -83,6 +86,9 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
     const handleInputChange = (e) => {
         const {name, value} = e.target;
         setFormData(prev => ({...prev, [name]: value}));
+        if (name === 'email' && onEmailChange) {
+            onEmailChange(value);
+        }
         if (errors[name]) {
             setErrors(prev => ({...prev, [name]: ''}));
         }
@@ -134,6 +140,14 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                                     placeholder="john@example.com"
                                 />
                                 {errors.email && <span className="error-message">{errors.email}</span>}
+                                {showConsentNote && (
+                                    <>
+                                        <p className="email-value-note">
+                                            We&apos;ll save your trip to this address so you can pick it up anytime.
+                                        </p>
+                                        <EmailConsentNote />
+                                    </>
+                                )}
                             </div>
                         </div>
 

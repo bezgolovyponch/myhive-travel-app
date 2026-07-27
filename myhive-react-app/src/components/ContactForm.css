@@ -116,6 +116,11 @@
     display: block;
 }
 
+.email-value-note {
+    font-size: 0.8rem;
+    margin: 4px 0 0;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;

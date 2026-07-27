@@ -1137,7 +1137,7 @@ describe('quiz mode: one-click vote', () => {
         );
     }
 
-    test('creates a QUIZ session from the current cart without a modal', async () => {
+    test('quiz mode: "Let your mates vote" opens StartGroupVoteModal instead of creating a session directly', async () => {
         seedQuizFlow();
         const user = userEvent.setup();
         renderQuizTripBuilder(buildTripState({
@@ -1150,61 +1150,8 @@ describe('quiz mode: one-click vote', () => {
 
         await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
 
-        // No email modal — the session is created directly.
-        expect(screen.queryByLabelText('Your email')).not.toBeInTheDocument();
-        await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledTimes(1));
-
-        const arg = voteApi.createSession.mock.calls[0][0];
-        expect(arg).toMatchObject({
-            destinationId: 'dest-1',
-            initiatorEmail: 'organizer@example.com',
-            numberOfTravelers: 3,
-            startDate: '2026-09-01',
-            endDate: '2026-09-05',
-            budget: 2000,
-            quizResponses,
-            activityIds: ['act-1', 'act-2'],
-        });
-        expect(typeof arg.voterToken).toBe('string');
-
-        // cta_click intent + A12 vote_launched conversion, same payloads as before.
-        expect(pushEvent).toHaveBeenCalledWith('cta_click', {
-            cta_label: 'Let your mates vote',
-            block: 'trip_builder',
-        });
-        expect(pushEvent).toHaveBeenCalledWith('vote_launched', {
-            trip_id: 'quiz-tok-1',
-            user_role: 'organizer',
-            selected_count: 2,
-        });
-
-        // Organizer markers + context cleanup + waiting-page navigation.
-        expect(localStorage.getItem('myhive-initiator-quiz-tok-1')).toBe('true');
-        expect(localStorage.getItem('myhive-manager-quiz-tok-1')).toBe('mgr-1');
-        expect(sessionStorage.getItem('myhive-quiz-flow')).toBeNull();
-        await waitFor(() => {
-            expect(screen.getByTestId('vote-location')).toHaveTextContent('/vote/quiz-tok-1/waiting');
-        });
-    });
-
-    test('createSession failure surfaces the error and keeps the quiz context', async () => {
-        // console.error now fires on this path (parity with handleContactSubmit) —
-        // expected noise for this failure-path test, silenced like other tests
-        // that deliberately exercise a logged error branch.
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        seedQuizFlow();
-        voteApi.createSession.mockRejectedValue(new Error('Server exploded'));
-        const user = userEvent.setup();
-        renderQuizTripBuilder(buildTripState());
-
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
-
-        expect(await screen.findByText('Server exploded')).toBeInTheDocument();
-        expect(pushEvent).not.toHaveBeenCalledWith('vote_launched', expect.anything());
-        expect(sessionStorage.getItem('myhive-quiz-flow')).not.toBeNull();
-        expect(screen.getByTestId('vote-location')).toHaveTextContent('/');
-
-        consoleErrorSpy.mockRestore();
+        expect(await screen.findByText('Let your mates vote', { selector: '.app-modal-title, h2' })).toBeInTheDocument();
+        expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 
     test('outside quiz mode the button still opens the CART modal', async () => {
@@ -1231,7 +1178,7 @@ describe('quiz mode: one-click vote', () => {
         expect(sessionStorage.getItem('myhive-quiz-flow')).not.toBeNull();
     });
 
-    test('a stored token whose session lookup fails self-heals: stale key dropped, quiz creation proceeds', async () => {
+    test('a stored token whose session lookup fails self-heals: stale key dropped, quiz vote modal opens', async () => {
         localStorage.setItem('myhive-trip-vote-session', 't-1');
         voteApi.getSession.mockRejectedValue(new Error('Failed to fetch vote session'));
         seedQuizFlow();
@@ -1241,7 +1188,8 @@ describe('quiz mode: one-click vote', () => {
         await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
 
         await waitFor(() => expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull());
-        await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledTimes(1));
+        expect(await screen.findByText('Let your mates vote', { selector: '.app-modal-title, h2' })).toBeInTheDocument();
+        expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 });
 
