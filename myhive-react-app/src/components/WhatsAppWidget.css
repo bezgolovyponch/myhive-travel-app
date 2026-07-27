@@ -2,7 +2,7 @@
     position: fixed;
     right: 16px;
     bottom: 16px;
-    z-index: 90; /* under .app-modal overlays (check their z-index in AppModal css) */
+    z-index: 60; /* under .app-modal overlays (z-index: 70 in styles/global.css) */
     width: 52px;
     height: 52px;
     border-radius: 50%;
