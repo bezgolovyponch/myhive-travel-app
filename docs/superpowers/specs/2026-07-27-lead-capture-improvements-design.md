@@ -103,7 +103,9 @@ Floating "Contact us" WhatsApp button on all public pages (not admin):
 
 - **Sticky mobile CTA:** on the mobile homepage, a bottom-fixed «Start Group
   Vote» bar appears after the user scrolls past the hero CTA; hidden while any
-  modal is open. WhatsApp FAB offsets above it on mobile.
+  modal is open. WhatsApp FAB offsets above it on mobile. **Behind a feature
+  flag (`STICKY_VOTE_CTA_ENABLED` in `services/config.js`), default `false`** —
+  visual risk; ships dark until explicitly enabled.
 - **Endowed progress in the quiz:** the quiz progress bar counts the setup
   modal as an already-completed first step (starts visibly non-zero).
 - **Email microcopy:** the email fields in `StartGroupVoteModal` and checkout
