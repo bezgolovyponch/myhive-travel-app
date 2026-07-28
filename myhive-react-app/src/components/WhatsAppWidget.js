@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import {WHATSAPP_URL} from '../services/config';
 import {pushEvent} from '../utils/analytics';
@@ -26,11 +26,33 @@ function WhatsAppWidget() {
     const {pathname} = useLocation();
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useState('');
+    const chatRef = useRef(null);
+
+    // Mobile keyboards shrink only the *visual* viewport — cap the chat card
+    // to it so the header is never pushed off the top of the screen while
+    // typing (the greeting scrolls inside instead).
+    useEffect(() => {
+        const vv = window.visualViewport;
+        if (!open || !vv) return undefined;
+        const apply = () => {
+            if (chatRef.current) {
+                chatRef.current.style.maxHeight = `${Math.max(220, vv.height - 96)}px`;
+            }
+        };
+        apply();
+        vv.addEventListener('resize', apply);
+        return () => vv.removeEventListener('resize', apply);
+    }, [open]);
+
     if (FULL_SCREEN_ROUTES.some(re => re.test(pathname))) {
         return null;
     }
     const aboveAddBar = ADD_BAR_ROUTE.test(pathname);
-    const className = aboveAddBar ? 'whatsapp-widget whatsapp-widget--above-add-bar' : 'whatsapp-widget';
+    const className = [
+        'whatsapp-widget',
+        aboveAddBar && 'whatsapp-widget--above-add-bar',
+        open && 'whatsapp-widget--open',
+    ].filter(Boolean).join(' ');
 
     const handleToggle = () => {
         if (!open) {
@@ -51,7 +73,7 @@ function WhatsAppWidget() {
     return (
         <div className={className}>
             {open && (
-                <div className="wa-chat" role="dialog" aria-label="Chat with us on WhatsApp">
+                <div className="wa-chat" role="dialog" aria-label="Chat with us on WhatsApp" ref={chatRef}>
                     <div className="wa-chat-header">
                         <div className="wa-chat-avatar" aria-hidden="true">
                             M
@@ -80,8 +102,6 @@ function WhatsAppWidget() {
                             onKeyDown={e => {
                                 if (e.key === 'Enter') handleSend();
                             }}
-                            // eslint-disable-next-line jsx-a11y/no-autofocus
-                            autoFocus
                         />
                         <button
                             type="button"

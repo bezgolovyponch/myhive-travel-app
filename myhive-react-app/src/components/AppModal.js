@@ -1,4 +1,4 @@
-import {useId} from 'react';
+import {useEffect, useId, useRef} from 'react';
 import {useModalA11y} from '../hooks/useModalA11y';
 
 // Shared dialog scaffold: focus trap/Escape/focus restore (useModalA11y),
@@ -15,6 +15,30 @@ function AppModal({
                   }) {
     const titleId = useId();
     const contentRef = useModalA11y(isOpen, onClose);
+    const overlayRef = useRef(null);
+
+    // Mobile keyboards and browser toolbars shrink only the *visual* viewport;
+    // a fixed inset-0 overlay keeps its layout size, so the bottom-sheet footer
+    // ends up hidden behind them. Track the visual viewport and size the
+    // overlay to it, so the footer buttons always stay on screen.
+    useEffect(() => {
+        const vv = window.visualViewport;
+        if (!isOpen || !vv) return undefined;
+        const apply = () => {
+            const el = overlayRef.current;
+            if (el) {
+                el.style.top = `${vv.offsetTop}px`;
+                el.style.height = `${vv.height}px`;
+            }
+        };
+        apply();
+        vv.addEventListener('resize', apply);
+        vv.addEventListener('scroll', apply);
+        return () => {
+            vv.removeEventListener('resize', apply);
+            vv.removeEventListener('scroll', apply);
+        };
+    }, [isOpen]);
 
     if (!isOpen) {
         return null;
@@ -26,6 +50,7 @@ function AppModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
+            ref={overlayRef}
             onClick={closeOnBackdrop ? onClose : undefined}
         >
             <div

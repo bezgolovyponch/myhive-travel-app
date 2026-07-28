@@ -389,8 +389,15 @@ body:has(.app-modal) .whatsapp-widget {
     .app-modal-content {
         width: 100%;
         max-width: none;
-        max-height: 92dvh;
+        /* The overlay is sized to the visual viewport (AppModal JS), so the
+           sheet just fills it — never taller than what is actually visible */
+        max-height: 100%;
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    /* Keep the action buttons clear of the home indicator / browser bar */
+    .app-modal-footer {
+        padding-bottom: calc(var(--gap) + env(safe-area-inset-bottom));
     }
 }
 

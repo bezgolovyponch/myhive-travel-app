@@ -178,6 +178,12 @@
 
     .hero-text {
         max-width: none;
+        align-items: center;
+        text-align: center;
+    }
+
+    .hero-subtitle {
+        max-width: none;
     }
 
     /* Mockup mobile overlay: slight darkening at the top for the header, clear
