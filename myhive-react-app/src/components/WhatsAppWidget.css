@@ -21,3 +21,10 @@
 @media (max-width: 767px) {
     .homepage-has-sticky-cta .whatsapp-widget { bottom: 76px; }
 }
+
+/* Sits above the fixed mobile Add-to-Trip bar on activity detail pages
+   (~64px tall incl. safe-area padding) so the FAB never covers that
+   primary CTA. Matches the breakpoint .activity-detail-add-bar appears at. */
+@media (max-width: 860px) {
+    .whatsapp-widget--above-add-bar { bottom: 84px; }
+}

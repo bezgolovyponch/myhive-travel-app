@@ -24,6 +24,28 @@ test('hidden on the participant swipe page', () => {
     expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
 });
 
+test('hidden on the organizer curate page (same full-screen swipe deck)', () => {
+    renderAt('/vote/new/curate');
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
+});
+
+test('hidden on the organizer quiz page (fixed full-screen flow)', () => {
+    renderAt('/vote/new/quiz');
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
+});
+
+test('offset above the mobile Add-to-Trip bar on activity detail pages', () => {
+    renderAt('/destination/prague/activity/pub-crawl');
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).toHaveClass('whatsapp-widget--above-add-bar');
+});
+
+test('not offset on other pages', () => {
+    renderAt('/');
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).not.toHaveClass('whatsapp-widget--above-add-bar');
+});
+
 // CRA's Jest replaces CSS imports with an empty stub, so getComputedStyle can't
 // see stylesheet rules — assert on the declared values in the source CSS instead.
 // The widget must stack BELOW the .app-modal overlay so dialogs cover it.
