@@ -1,4 +1,4 @@
-import {render, screen, fireEvent} from '@testing-library/react';
+import {render, screen, fireEvent, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import WhatsAppWidget from './WhatsAppWidget';
 import {WHATSAPP_URL} from '../services/config';
@@ -44,6 +44,52 @@ test('not offset on other pages', () => {
     renderAt('/');
     const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
     expect(link).not.toHaveClass('trv-chat-fab--above-add-bar');
+});
+
+// Regression: on production the CookieYes consent bar (injected by GTM, which
+// index.html skips on localhost — so it never shows up in local dev) is a fixed
+// z-index 9999999 sheet covering the bottom ~390px of a phone screen. The FAB
+// sat underneath it: invisible and untappable until the visitor consented.
+function fakeConsentBar(height) {
+    const bar = document.createElement('div');
+    bar.className = 'cky-consent-container cky-banner-bottom';
+    // jsdom has no layout engine — declare the box the real banner occupies.
+    bar.getBoundingClientRect = () => ({
+        height, width: 390, top: 664 - height, bottom: 664, left: 0, right: 390, x: 0, y: 664 - height,
+        toJSON() {},
+    });
+    document.body.appendChild(bar);
+    return bar;
+}
+
+test('publishes the consent bar height so the FAB clears it', async () => {
+    const bar = fakeConsentBar(388);
+    renderAt('/');
+
+    await waitFor(() => expect(
+        document.documentElement.style.getPropertyValue('--cky-consent-h'),
+    ).toBe('388px'));
+
+    bar.remove();
+    await waitFor(() => expect(
+        document.documentElement.style.getPropertyValue('--cky-consent-h'),
+    ).toBe('0px'));
+});
+
+test('leaves the offset at zero when no consent bar is present', async () => {
+    renderAt('/');
+    await waitFor(() => expect(
+        document.documentElement.style.getPropertyValue('--cky-consent-h'),
+    ).toBe('0px'));
+});
+
+// The FAB's bottom offset must add that height, or the measurement is inert.
+test('FAB bottom offset adds the consent bar height', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const css = fs.readFileSync(path.join(__dirname, 'WhatsAppWidget.css'), 'utf8');
+    const block = css.match(/\.trv-chat-fab\s*{[^}]*}/)[0];
+    expect(block).toMatch(/bottom:\s*calc\([^;]*var\(--cky-consent-h/);
 });
 
 // CRA's Jest replaces CSS imports with an empty stub, so getComputedStyle can't

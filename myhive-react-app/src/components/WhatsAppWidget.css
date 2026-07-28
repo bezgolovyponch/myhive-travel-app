@@ -1,7 +1,12 @@
 .trv-chat-fab {
     position: fixed;
     right: 16px;
-    bottom: 16px;
+    /* --fab-bottom is the resting offset (raised by the sticky CTA / Add-to-Trip
+       bar below); --cky-consent-h is the live height of the CookieYes consent
+       sheet, published by WhatsAppWidget.js, so the FAB floats clear of it
+       instead of being buried under its z-index 9999999 backdrop. */
+    --fab-bottom: 16px;
+    bottom: calc(var(--fab-bottom) + var(--cky-consent-h, 0px));
     z-index: 60; /* under .app-modal overlays (z-index: 70 in styles/global.css) */
     width: 52px;
     height: 52px;
@@ -19,7 +24,7 @@
 
 /* Sits above the sticky mobile CTA (Task 11) */
 @media (max-width: 767px) {
-    .homepage-has-sticky-cta .trv-chat-fab { bottom: 76px; }
+    .homepage-has-sticky-cta .trv-chat-fab { --fab-bottom: 76px; }
 
     /* Smaller footprint over the content on phones */
     .trv-chat-fab {
@@ -33,5 +38,5 @@
    (~64px tall incl. safe-area padding) so the FAB never covers that
    primary CTA. Matches the breakpoint .activity-detail-add-bar appears at. */
 @media (max-width: 860px) {
-    .trv-chat-fab--above-add-bar { bottom: 84px; }
+    .trv-chat-fab--above-add-bar { --fab-bottom: 84px; }
 }
