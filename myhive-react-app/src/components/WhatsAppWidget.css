@@ -146,7 +146,9 @@
     outline: none;
     background: transparent;
     color: #1f2328;
-    font-size: 0.9375rem;
+    /* Never below 16px: iOS Safari auto-zooms the whole page when focusing a
+       smaller input, which breaks the layout centering */
+    font-size: max(16px, 1rem);
     font-family: inherit;
 }
 
