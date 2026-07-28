@@ -833,7 +833,7 @@ describe('active vote guard', () => {
         await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
 
         expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
-        expect(screen.queryByLabelText('Your email')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Create vote' })).not.toBeInTheDocument();
         // cta_click fires on every click regardless of which modal ends up opening.
         expect(pushEvent).toHaveBeenCalledWith('cta_click', {
             cta_label: 'Let your mates vote',
@@ -849,7 +849,7 @@ describe('active vote guard', () => {
 
         await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
 
-        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(screen.queryByText('A vote is already running')).not.toBeInTheDocument();
     });
 
@@ -861,7 +861,7 @@ describe('active vote guard', () => {
 
         await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
 
-        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
     });
 
@@ -871,7 +871,7 @@ describe('active vote guard', () => {
 
         await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
 
-        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(voteApi.getSession).not.toHaveBeenCalled();
     });
 });
@@ -1160,7 +1160,7 @@ describe('quiz mode: one-click vote', () => {
 
         await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
 
-        expect(await screen.findByLabelText('Your email')).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 

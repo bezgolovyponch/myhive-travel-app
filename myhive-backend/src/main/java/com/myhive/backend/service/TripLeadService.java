@@ -182,6 +182,9 @@ public class TripLeadService {
         if (session == null) {
             return;
         }
+        if (session.getInitiatorEmail() == null || session.getInitiatorEmail().isBlank()) {
+            return; // no organizer email captured at vote creation — nothing to follow up on
+        }
         String email = normalizeEmail(session.getInitiatorEmail());
         if (bookingRepository.existsByVoteSessionId(session.getId())) {
             return; // already booked from this vote — nothing to remind about
