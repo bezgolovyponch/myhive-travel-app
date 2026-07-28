@@ -1,8 +1,14 @@
 /* Destination Page Styles */
 .destination-header {
-    /* Just enough to clear the fixed header — the banner itself stays tight */
-    padding-top: calc(var(--header-height) + var(--gap));
+    /* The banner slides under the fixed header + breadcrumbs (64px + 46px on
+       desktop) — clear them plus the same 24px breathing room as the bottom */
+    padding-top: 8.375rem;
     padding-bottom: var(--gap-lg);
+}
+
+.destination-header p {
+    /* The global p margin would double the bottom spacing */
+    margin-bottom: 0;
 }
 
 .destination-header h1 {
@@ -215,5 +221,12 @@
     .tab-btn {
         white-space: nowrap;
         flex-shrink: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Mobile header row is 52px (+46px breadcrumbs) */
+    .destination-header {
+        padding-top: 7.625rem;
     }
 }
