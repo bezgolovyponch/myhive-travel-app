@@ -1,0 +1,70 @@
+.tinder-moment {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+}
+
+/* Edge of the "next card" peeking out behind the top card */
+.tinder-moment-stack {
+    position: absolute;
+    inset: 12px 4px 4px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.08);
+    transform: rotate(3deg);
+}
+
+.tinder-moment-card {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    transform: rotate(-2deg);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.tinder-moment-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tinder-moment-stamp {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 2px 10px;
+    border: 3px solid #4ade80;
+    border-radius: 8px;
+    color: #4ade80;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    transform: rotate(-12deg);
+}
+
+.tinder-moment-actions {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+.tinder-moment-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+}
+
+.tinder-moment-btn--skip { color: #f87171; }
+.tinder-moment-btn--like { color: #4ade80; }

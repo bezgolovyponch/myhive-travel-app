@@ -9,6 +9,15 @@ beforeEach(() => {
     jest.clearAllMocks();
 });
 
+test('renders the tinder moment, the vote demo card, and no CDN images', () => {
+    render(<HowItWorksSection onStartVote={jest.fn()}/>);
+    expect(document.querySelector('.tinder-moment')).toBeInTheDocument();
+    expect(document.querySelector('.vote-card')).toBeInTheDocument();
+    for (const img of document.querySelectorAll('img')) {
+        expect(img.src).not.toContain('cdn.jsdelivr.net');
+    }
+});
+
 test('clicking "Start Group Vote" fires cta_click with block trip_builder before calling onStartVote', async () => {
     const user = userEvent.setup();
     const onStartVote = jest.fn();

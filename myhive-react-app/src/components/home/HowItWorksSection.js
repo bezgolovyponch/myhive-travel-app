@@ -1,29 +1,35 @@
 import {pushEvent} from '../../utils/analytics';
+import VoteDemoCard from './VoteDemoCard';
+import TinderMomentCard from './TinderMomentCard';
+import stepStyleImg from '../../assets/home/step-style.png';
+// Placeholder until the "Steak & Tits" catalog photo is supplied — the old
+// step-2 swipe screenshot doubles as the tinder-moment photo for now.
+import stepShortlistImg from '../../assets/home/step-shortlist.jpg';
+// Placeholder until the limousine catalog photo is supplied.
+import stepReviewImg from '../../assets/home/step-review.jpg';
 import './HowItWorksSection.css';
 
 const STEPS = [
     {
         title: 'Define your stag style',
         text: 'Wild or classy, chill or adrenaline',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.38.35.png',
+        img: stepStyleImg,
         objectPosition: 'top',
     },
     {
         title: 'Handpick the shortlist',
         text: 'Pick what the group gets to vote on',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.52.51.jpg',
-        objectPosition: 'center',
+        visual: <TinderMomentCard image={stepShortlistImg}/>,
     },
     {
         title: 'Send the vote link',
         text: 'Your mates pick their favourites',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.55.15.png',
-        objectPosition: 'center',
+        visual: <VoteDemoCard/>,
     },
     {
         title: 'Review & confirm',
         text: 'Add, remove or tweak before you book',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.40.55.jpg',
+        img: stepReviewImg,
         objectPosition: 'left top',
     },
 ];
@@ -39,7 +45,10 @@ function HowItWorksSection({onStartVote}) {
                 {STEPS.map((step, index) => (
                     <div key={step.title} className="how-it-works-step">
                         <div className="step-img">
-                            <img src={step.img} alt="" loading="lazy" style={{objectPosition: step.objectPosition}}/>
+                            {step.visual
+                                ? step.visual
+                                : <img src={step.img} alt="" loading="lazy"
+                                       style={{objectPosition: step.objectPosition}}/>}
                         </div>
                         <div className="step-body">
                             <div className="step-head">
