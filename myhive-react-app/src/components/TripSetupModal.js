@@ -67,7 +67,10 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         writeSetupDraft({travelers: parseInt(travelers, 10) || 1, startDate, endDate});
         pushEvent('modal_abandoned', {
             modal: 'trip_setup',
-            vote_mode: isVoteMode,
+            // String, not boolean: the shared modal_abandoned.vote_mode param
+            // also carries StartGroupVoteModal's 'CART'|'QUIZ' values, so one
+            // type with four values {TRIP, VOTE, CART, QUIZ} keeps it sane.
+            vote_mode: isVoteMode ? 'VOTE' : 'TRIP',
             has_travelers: (parseInt(travelers, 10) || 1) > 1,
             has_dates: Boolean(startDate && endDate),
         });

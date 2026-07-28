@@ -480,7 +480,7 @@ test('closing without submit saves a draft, fires modal_abandoned, and reopen re
   fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
   expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', expect.objectContaining({
-    modal: 'trip_setup', vote_mode: true, has_travelers: true,
+    modal: 'trip_setup', vote_mode: 'VOTE', has_travelers: true,
   }));
 
   reopenVoteModal(rerender);
@@ -493,7 +493,7 @@ test('modal_abandoned reflects has_dates and has_travelers correctly', () => {
   fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
   expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
-    modal: 'trip_setup', vote_mode: true, has_travelers: false, has_dates: true,
+    modal: 'trip_setup', vote_mode: 'VOTE', has_travelers: false, has_dates: true,
   });
 });
 
@@ -502,7 +502,7 @@ test('trip/direct mode cancel fires modal_abandoned with vote_mode false and dis
   fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
   expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', expect.objectContaining({
-    modal: 'trip_setup', vote_mode: false,
+    modal: 'trip_setup', vote_mode: 'TRIP',
   }));
   expect(mockDispatch).toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
 });
