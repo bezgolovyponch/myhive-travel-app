@@ -334,7 +334,7 @@ textarea {
 }
 
 /* The floating WhatsApp FAB must never cover modal action buttons */
-body:has(.app-modal) .whatsapp-widget {
+body:has(.app-modal) .trv-chat-fab {
     display: none;
 }
 .app-modal-header {

@@ -37,13 +37,13 @@ test('hidden on the organizer quiz page (fixed full-screen flow)', () => {
 test('offset above the mobile Add-to-Trip bar on activity detail pages', () => {
     renderAt('/destination/prague/activity/pub-crawl');
     const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
-    expect(link).toHaveClass('whatsapp-widget--above-add-bar');
+    expect(link).toHaveClass('trv-chat-fab--above-add-bar');
 });
 
 test('not offset on other pages', () => {
     renderAt('/');
     const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
-    expect(link).not.toHaveClass('whatsapp-widget--above-add-bar');
+    expect(link).not.toHaveClass('trv-chat-fab--above-add-bar');
 });
 
 // CRA's Jest replaces CSS imports with an empty stub, so getComputedStyle can't
@@ -57,7 +57,7 @@ test('widget z-index stays below the app-modal overlay', () => {
 
     // Lazy [^}]*? so we grab the first z-index declaration in the block, not a
     // number mentioned later in a comment.
-    const widgetZ = Number(widgetCss.match(/\.whatsapp-widget\s*{[^}]*?z-index:\s*(\d+)/)[1]);
+    const widgetZ = Number(widgetCss.match(/\.trv-chat-fab\s*{[^}]*?z-index:\s*(\d+)/)[1]);
     const modalZ = Number(globalCss.match(/\.app-modal\s*{[^}]*?z-index:\s*(\d+)/)[1]);
 
     expect(widgetZ).toBeLessThan(modalZ);

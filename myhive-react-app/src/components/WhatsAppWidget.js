@@ -22,7 +22,7 @@ function WhatsAppWidget() {
         return null;
     }
     const aboveAddBar = ADD_BAR_ROUTE.test(pathname);
-    const className = aboveAddBar ? 'whatsapp-widget whatsapp-widget--above-add-bar' : 'whatsapp-widget';
+    const className = aboveAddBar ? 'trv-chat-fab trv-chat-fab--above-add-bar' : 'trv-chat-fab';
     return (
         <a
             className={className}

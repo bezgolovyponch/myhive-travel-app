@@ -1,4 +1,4 @@
-.whatsapp-widget {
+.trv-chat-fab {
     position: fixed;
     right: 16px;
     bottom: 16px;
@@ -15,14 +15,14 @@
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
-.whatsapp-widget:hover { color: #fff; opacity: 0.92; }
+.trv-chat-fab:hover { color: #fff; opacity: 0.92; }
 
 /* Sits above the sticky mobile CTA (Task 11) */
 @media (max-width: 767px) {
-    .homepage-has-sticky-cta .whatsapp-widget { bottom: 76px; }
+    .homepage-has-sticky-cta .trv-chat-fab { bottom: 76px; }
 
     /* Smaller footprint over the content on phones */
-    .whatsapp-widget {
+    .trv-chat-fab {
         width: 46px;
         height: 46px;
         font-size: 1.5rem;
@@ -33,5 +33,5 @@
    (~64px tall incl. safe-area padding) so the FAB never covers that
    primary CTA. Matches the breakpoint .activity-detail-add-bar appears at. */
 @media (max-width: 860px) {
-    .whatsapp-widget--above-add-bar { bottom: 84px; }
+    .trv-chat-fab--above-add-bar { bottom: 84px; }
 }
