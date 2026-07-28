@@ -59,3 +59,27 @@ describe('AppModal', () => {
         expect(onClose).not.toHaveBeenCalled();
     });
 });
+
+// CRA's Jest stubs CSS imports, so assert on the declared rules instead.
+// Regression: on phones the modal is a bottom sheet (align-items: flex-end).
+// `.app-modal` pins to `inset: 0` — the *layout* viewport, which on iOS Safari
+// extends behind the bottom toolbar — while the sheet is capped at 92dvh, the
+// *visible* height. The sheet was therefore anchored ~a toolbar's worth below
+// the screen, hiding its footer (Cancel / Continue) and the date row.
+describe('mobile bottom-sheet anchoring', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const css = fs.readFileSync(path.join(__dirname, '../styles/global.css'), 'utf8');
+    const mobileBlock = css.match(/@media\s*\(max-width:\s*768px\)\s*{[\s\S]*?\n}/)[0];
+    const modalRule = mobileBlock.match(/\.app-modal\s*{[^}]*}/)[0];
+
+    it('anchors the sheet to the dynamic (visible) viewport, not the layout viewport', () => {
+        expect(modalRule).toMatch(/height:\s*100dvh/);
+        // Without bottom:auto the inherited `inset: 0` keeps winning over height.
+        expect(modalRule).toMatch(/bottom:\s*auto/);
+    });
+
+    it('keeps the sheet bottom-aligned', () => {
+        expect(modalRule).toMatch(/align-items:\s*flex-end/);
+    });
+});

@@ -384,6 +384,15 @@ body:has(.app-modal) .trv-chat-fab {
 @media (max-width: 768px) {
     .app-modal {
         align-items: flex-end;
+        /* The sheet is bottom-anchored, so its anchor has to be the *visible*
+           bottom edge. `inset: 0` pins to the layout viewport, which on iOS
+           Safari runs on behind the bottom toolbar — the sheet's footer
+           (Cancel / Continue) and the row above it ended up underneath it,
+           while the content was already sized in dvh. bottom:auto releases
+           the inherited inset so height can take over; 100dvh tracks the
+           toolbar as it shows and hides. */
+        bottom: auto;
+        height: 100dvh;
     }
 
     .app-modal-content {
