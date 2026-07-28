@@ -1,22 +1,11 @@
-/* Wrapper carries the fixed position so the chat card and the FAB move
-   together (and the existing offset/hide rules keep targeting it). */
 .whatsapp-widget {
     position: fixed;
     right: 16px;
     bottom: 16px;
     z-index: 60; /* under .app-modal overlays (z-index: 70 in styles/global.css) */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 12px;
-}
-
-.whatsapp-fab {
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    border: none;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -26,167 +15,17 @@
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
-.whatsapp-fab:hover { color: #fff; opacity: 0.92; }
-
-/* ── Chat teaser card (WhatsApp look) ── */
-.wa-chat {
-    width: min(21.25rem, calc(100vw - 32px));
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-    text-align: left;
-    /* Never taller than the (dynamic) viewport — the greeting scrolls inside
-       instead of the header being pushed off-screen */
-    display: flex;
-    flex-direction: column;
-    max-height: min(30rem, calc(100dvh - 6.5rem));
-}
-
-.wa-chat-header,
-.wa-chat-input-row {
-    flex-shrink: 0;
-}
-
-.wa-chat-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px;
-    background: #128c7e;
-    color: #fff;
-}
-
-.wa-chat-avatar {
-    position: relative;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #6d5fd0, #a34a8c);
-    color: #fff;
-    font-weight: 700;
-    font-size: 1.125rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.wa-chat-online {
-    position: absolute;
-    right: -1px;
-    bottom: -1px;
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    background: #25d366;
-    border: 2px solid #128c7e;
-}
-
-.wa-chat-identity {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.wa-chat-identity strong {
-    font-size: 1.0625rem;
-}
-
-.wa-chat-identity span {
-    font-size: 0.8125rem;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.wa-chat-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 1.375rem;
-    line-height: 1;
-    cursor: pointer;
-    padding: 4px;
-}
-
-.wa-chat-close:hover { color: #fff; }
-
-/* WhatsApp wallpaper beige — intentionally light regardless of app theme */
-.wa-chat-body {
-    background: #ece5dd;
-    padding: 16px;
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-}
-
-.wa-chat-bubble {
-    background: #fff;
-    color: #1f2328;
-    border-radius: 2px 14px 14px 14px;
-    padding: 12px 14px;
-    font-size: 0.9rem;
-    line-height: 1.45;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-    max-width: 90%;
-}
-
-.wa-chat-input-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: #fff;
-}
-
-.wa-chat-input-row input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: #1f2328;
-    /* Never below 16px: iOS Safari auto-zooms the whole page when focusing a
-       smaller input, which breaks the layout centering */
-    font-size: max(16px, 1rem);
-    font-family: inherit;
-}
-
-.wa-chat-input-row input::placeholder {
-    color: #9aa0a6;
-}
-
-.wa-chat-send {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    background: #25d366;
-    color: #fff;
-    font-size: 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.wa-chat-send:hover { opacity: 0.92; }
+.whatsapp-widget:hover { color: #fff; opacity: 0.92; }
 
 /* Sits above the sticky mobile CTA (Task 11) */
 @media (max-width: 767px) {
     .homepage-has-sticky-cta .whatsapp-widget { bottom: 76px; }
 
-    /* Smaller footprint over the content, and no FAB behind the open chat —
-       the chat's own × closes it */
-    .whatsapp-fab {
+    /* Smaller footprint over the content on phones */
+    .whatsapp-widget {
         width: 46px;
         height: 46px;
         font-size: 1.5rem;
-    }
-
-    .whatsapp-widget--open .whatsapp-fab {
-        display: none;
     }
 }
 

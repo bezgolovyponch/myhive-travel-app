@@ -1,5 +1,4 @@
 import {render, screen, fireEvent} from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import WhatsAppWidget from './WhatsAppWidget';
 import {WHATSAPP_URL} from '../services/config';
@@ -8,93 +7,43 @@ function renderAt(path) {
     return render(<MemoryRouter initialEntries={[path]}><WhatsAppWidget/></MemoryRouter>);
 }
 
-afterEach(() => {
-    jest.restoreAllMocks();
-});
-
-test('FAB opens the chat teaser and fires the analytics event', () => {
+test('renders a direct WhatsApp link and fires the analytics event on click', () => {
     window.dataLayer = [];
     renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    expect(screen.getByRole('dialog', {name: /chat with us on whatsapp/i})).toBeInTheDocument();
-    expect(screen.getByText('Maria')).toBeInTheDocument();
-    expect(screen.getByText(/typically replies instantly/i)).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).toHaveAttribute('href', WHATSAPP_URL);
+    expect(link).toHaveAttribute('target', '_blank');
+    fireEvent.click(link);
     expect(window.dataLayer).toContainEqual(expect.objectContaining({
         event: 'cta_click', cta_label: 'whatsapp_widget', page: '/',
     }));
 });
 
-test('send opens WhatsApp with the typed message prefilled', async () => {
-    window.dataLayer = [];
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    await userEvent.type(screen.getByPlaceholderText(/type your destination or dates/i), 'Prague, 12-14 Sep');
-    fireEvent.click(screen.getByRole('button', {name: /send on whatsapp/i}));
-    expect(open).toHaveBeenCalledWith(
-        `${WHATSAPP_URL}?text=${encodeURIComponent('Prague, 12-14 Sep')}`,
-        '_blank',
-        'noopener,noreferrer',
-    );
-    expect(window.dataLayer).toContainEqual(expect.objectContaining({
-        event: 'cta_click', cta_label: 'whatsapp_widget_send', page: '/',
-    }));
-    // The teaser closes once the conversation is handed over to WhatsApp.
-    expect(screen.queryByRole('dialog')).toBeNull();
-});
-
-test('send with an empty input opens the plain WhatsApp link', () => {
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    fireEvent.click(screen.getByRole('button', {name: /send on whatsapp/i}));
-    expect(open).toHaveBeenCalledWith(WHATSAPP_URL, '_blank', 'noopener,noreferrer');
-});
-
-test('Enter in the input sends like the send button', async () => {
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    await userEvent.type(screen.getByPlaceholderText(/type your destination or dates/i), 'Karting?{enter}');
-    expect(open).toHaveBeenCalledWith(
-        `${WHATSAPP_URL}?text=${encodeURIComponent('Karting?')}`,
-        '_blank',
-        'noopener,noreferrer',
-    );
-});
-
-test('close button dismisses the teaser without opening WhatsApp', () => {
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    fireEvent.click(screen.getByRole('button', {name: /close chat/i}));
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(open).not.toHaveBeenCalled();
-});
-
 test('hidden on the participant swipe page', () => {
     renderAt('/vote/tok123/activities');
-    expect(screen.queryByRole('button', {name: /whatsapp/i})).toBeNull();
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
 });
 
 test('hidden on the organizer curate page (same full-screen swipe deck)', () => {
     renderAt('/vote/new/curate');
-    expect(screen.queryByRole('button', {name: /whatsapp/i})).toBeNull();
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
 });
 
 test('hidden on the organizer quiz page (fixed full-screen flow)', () => {
     renderAt('/vote/new/quiz');
-    expect(screen.queryByRole('button', {name: /whatsapp/i})).toBeNull();
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
 });
 
 test('offset above the mobile Add-to-Trip bar on activity detail pages', () => {
-    const {container} = renderAt('/destination/prague/activity/pub-crawl');
-    expect(container.querySelector('.whatsapp-widget')).toHaveClass('whatsapp-widget--above-add-bar');
+    renderAt('/destination/prague/activity/pub-crawl');
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).toHaveClass('whatsapp-widget--above-add-bar');
 });
 
 test('not offset on other pages', () => {
-    const {container} = renderAt('/');
-    expect(container.querySelector('.whatsapp-widget')).not.toHaveClass('whatsapp-widget--above-add-bar');
+    renderAt('/');
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).not.toHaveClass('whatsapp-widget--above-add-bar');
 });
 
 // CRA's Jest replaces CSS imports with an empty stub, so getComputedStyle can't
