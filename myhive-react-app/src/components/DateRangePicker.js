@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useLayoutEffect, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
 import './DateRangePicker.css';
 
@@ -16,14 +16,6 @@ function toISO(date) {
 
 function formatField(date) {
   return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function formatShort(date) {
-  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-}
-
-function nightsLabel(n) {
-  return n === 1 ? '1 night' : `${n} nights`;
 }
 
 function getTodayMidnight() {
@@ -60,13 +52,32 @@ const CAL_CLASSES = {
   hidden: 'drp-hidden',
 };
 
-function DateRangePicker({ from, to, onChange, collapsible = false }) {
+function DateRangePicker({ from, to, onChange, collapsible = false, popover = false }) {
   const [numMonths, setNumMonths] = useState(() => window.innerWidth >= 640 ? 2 : 1);
   const [hoveredDay, setHoveredDay] = useState(null);
   // Collapsible mode (inline booking panel): the calendar folds away once the range is
   // complete so the panel fits without scrolling; clicking a field brings it back.
   const [reopened, setReopened] = useState(false);
+  // Popover mode: the calendar is hidden until a field is clicked, then shown in an
+  // absolutely-positioned dropdown; it closes on range completion or outside click.
+  const [popOpen, setPopOpen] = useState(false);
+  // Fixed-position anchor for the popover: stuck to the fields, opening
+  // upward (or downward when there is no room above).
+  const [popPos, setPopPos] = useState(null);
   const calWrapRef = useRef(null);
+  const rootRef = useRef(null);
+  const fieldsRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!popover || !popOpen || !fieldsRef.current) return;
+    const rect = fieldsRef.current.getBoundingClientRect();
+    const width = Math.min(312, window.innerWidth - 32);
+    const left = Math.min(Math.max(16, rect.left), window.innerWidth - width - 16);
+    const openUp = rect.top > 340; // enough room above for the compact calendar
+    setPopPos(openUp
+      ? { left, top: rect.top - 8, transform: 'translateY(-100%)' }
+      : { left, top: rect.bottom + 8 });
+  }, [popover, popOpen]);
 
   // A field click unfolds the calendar below the fold of its scroll container
   // (panel body on desktop, page on mobile) — bring the whole calendar into view.
@@ -83,18 +94,32 @@ function DateRangePicker({ from, to, onChange, collapsible = false }) {
     return () => window.removeEventListener('resize', handler);
   }, []);
 
+  // Popover mode: clicking anywhere outside the component closes the dropdown.
+  useEffect(() => {
+    if (!popover || !popOpen) return undefined;
+    const onDocMouseDown = (e) => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) {
+        setPopOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [popover, popOpen]);
+
   const fromDate = parseDate(from);
   const toDateObj = parseDate(to);
 
   const activeField = !from ? 'from' : !to ? 'to' : null;
 
-  const nightCount = fromDate && toDateObj
-    ? Math.round((toDateObj - fromDate) / (1000 * 60 * 60 * 24))
-    : 0;
-
-  const calendarVisible = !collapsible || !(from && to) || reopened;
+  const calendarVisible = popover
+    ? popOpen
+    : (!collapsible || !(from && to) || reopened);
 
   const handleFieldClick = () => {
+    if (popover) {
+      setPopOpen(true);
+      return;
+    }
     if (collapsible) {
       setReopened(true);
     }
@@ -109,6 +134,7 @@ function DateRangePicker({ from, to, onChange, collapsible = false }) {
     }
     if (newFrom && newTo) {
       setReopened(false); // range complete — fold the calendar away again (collapsible mode)
+      setPopOpen(false); // popover mode: range complete — close the popup
     }
     onChange(newFrom, newTo);
   };
@@ -134,8 +160,8 @@ function DateRangePicker({ from, to, onChange, collapsible = false }) {
   }, []);
 
   return (
-    <div className="drp">
-      <div className="drp-fields">
+    <div className={`drp${popover ? ' drp--popover' : ''}`} ref={rootRef}>
+      <div className="drp-fields" ref={fieldsRef}>
         <div className={`drp-field${activeField === 'from' ? ' drp-field--active' : ''}`}
              onClick={handleFieldClick}>
           <div className="drp-field-label">Start</div>
@@ -173,37 +199,24 @@ function DateRangePicker({ from, to, onChange, collapsible = false }) {
       </div>
 
       {calendarVisible && (
-        <div className="drp-cal-wrap" ref={calWrapRef}>
-          <DayPicker
-            mode="range"
-            numberOfMonths={numMonths}
-            selected={{ from: fromDate, to: toDateObj }}
-            onSelect={handleSelect}
-            onDayMouseEnter={handleDayMouseEnter}
-            onDayMouseLeave={handleDayMouseLeave}
-            modifiers={hoverModifiers}
-            modifiersClassNames={hoverModifierClassNames}
-            disabled={{ before: TODAY }}
-            classNames={CAL_CLASSES}
-          />
+        <div className={popover ? 'drp-pop' : undefined} style={popover ? popPos : undefined}>
+          <div className="drp-cal-wrap" ref={calWrapRef}>
+            <DayPicker
+              mode="range"
+              numberOfMonths={popover ? 1 : numMonths}
+              selected={{ from: fromDate, to: toDateObj }}
+              onSelect={handleSelect}
+              onDayMouseEnter={handleDayMouseEnter}
+              onDayMouseLeave={handleDayMouseLeave}
+              modifiers={hoverModifiers}
+              modifiersClassNames={hoverModifierClassNames}
+              disabled={{ before: TODAY }}
+              classNames={CAL_CLASSES}
+            />
+          </div>
         </div>
       )}
 
-      {from && to && (
-        <div className="drp-footer">
-          <span className="drp-nights">
-            <strong>{nightsLabel(nightCount)}</strong>
-            {` · ${formatShort(fromDate)} – ${formatShort(toDateObj)}`}
-          </span>
-          <button
-            className="drp-clear"
-            onClick={() => onChange('', '')}
-            type="button"
-          >
-            Clear dates
-          </button>
-        </div>
-      )}
     </div>
   );
 }

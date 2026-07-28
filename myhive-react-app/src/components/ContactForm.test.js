@@ -1,4 +1,4 @@
-import {render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ContactForm from './ContactForm';
 
@@ -103,4 +103,14 @@ test('inline mode Cancel closes the form', async () => {
 test('never renders a deposit action — the deposit moved to the booking-confirmation screen', () => {
     renderForm();
     expect(screen.queryByRole('button', {name: /deposit/i})).not.toBeInTheDocument();
+});
+
+test('reports email input via onEmailChange and shows consent note when asked', () => {
+    const onEmailChange = jest.fn();
+    render(<ContactForm isOpen inline tripData={{tripItems: []}}
+                        onClose={jest.fn()} onSubmit={jest.fn()}
+                        onEmailChange={onEmailChange} showConsentNote />);
+    fireEvent.change(screen.getByLabelText(/email address/i), {target: {value: 'sam@example.com'}});
+    expect(onEmailChange).toHaveBeenCalledWith('sam@example.com');
+    expect(screen.getByText(/reminders\. unsubscribe anytime/i)).toBeInTheDocument();
 });

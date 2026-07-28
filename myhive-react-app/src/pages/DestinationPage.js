@@ -288,7 +288,7 @@ function DestinationPage() {
       {/* Trip Builder Tab */}
         <div id="trip-builder-tab" className="tab-content"
              style={{display: currentTab === 'trip-builder' ? 'flex' : 'none'}}>
-        {tripBuilderActivated && <TripBuilder destinationId={destination?.id} destinationSlug={destination?.slug} />}
+        {tripBuilderActivated && <TripBuilder destinationId={destination?.id} destinationSlug={destination?.slug} destinationName={destination?.name} />}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 :root {
-    /* Brand */
-    --brand: #6A1B9A;
-    --brand-dark: #4A148C;
+    /* Brand = the main button purple (the old aubergine tone is retired) */
+    --brand: #534AB7;
+    --brand-dark: #433B96;
     /* Homepage-redesign purple, promoted to a global token: activity CTAs across
        the catalog and detail pages use it so all pages match the main page. */
     --purple: #534AB7;
@@ -178,6 +178,17 @@ a:hover {
     opacity: 0.9;
 }
 
+/* Outlined cancel/back look, matching the hero "Explore activities" button */
+.btn--ghost {
+    background: transparent;
+    color: var(--white, #fff);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
 .btn--lg {
     padding: 0.625rem 1.25rem;
     font-size: 1rem;
@@ -218,11 +229,11 @@ a:hover {
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
     color: var(--white);
     text-align: center;
-    padding: var(--gap-3xl) var(--page-padding) var(--gap-2xl);
+    padding: var(--gap-xl) var(--page-padding);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--gap);
+    gap: var(--gap-sm);
 }
 
 .page-hero h1 {
@@ -315,16 +326,25 @@ textarea {
     max-width: 720px;
     width: 95%;
     max-height: 90vh;
-    overflow-y: auto;
     box-shadow: var(--shadow-lg);
+    /* Header and footer stay pinned; only the body scrolls, so action
+       buttons are always visible even when the calendar is open */
+    display: flex;
+    flex-direction: column;
+}
+
+/* The floating WhatsApp FAB must never cover modal action buttons */
+body:has(.app-modal) .whatsapp-widget {
+    display: none;
 }
 .app-modal-header {
-    padding: var(--gap-lg);
+    padding: 0.75rem var(--gap-lg);
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--bg);
+    flex-shrink: 0;
 }
 
 .app-modal-header h2 {
@@ -347,6 +367,9 @@ textarea {
 
 .app-modal-body {
     padding: var(--gap-lg);
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 .app-modal-footer {
     padding: var(--gap);
@@ -354,6 +377,21 @@ textarea {
     display: flex;
     justify-content: flex-end;
     gap: var(--gap-sm);
+    flex-shrink: 0;
+}
+
+/* Mobile: bottom sheet so the pinned footer sits at the thumb */
+@media (max-width: 768px) {
+    .app-modal {
+        align-items: flex-end;
+    }
+
+    .app-modal-content {
+        width: 100%;
+        max-width: none;
+        max-height: 92dvh;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
 }
 
 /* Utilities */

@@ -49,6 +49,11 @@ dependencies {
     implementation 'com.github.slugify:slugify:3.0.7'
     implementation 'com.ibm.icu:icu4j:76.1'
 
+    // Flyway schema migrations (runs at startup before Hibernate; ddl-auto=update
+    // cannot relax constraints, so real DDL changes ship as versioned migrations)
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+
     // Security & OAuth2 Resource Server (Auth0 OIDC)
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'

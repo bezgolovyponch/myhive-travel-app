@@ -189,3 +189,60 @@ describe('quiz_completed analytics', () => {
     expect(pushEvent).not.toHaveBeenCalledWith('quiz_completed', expect.anything());
   });
 });
+
+// ─── Endowed progress bar tests ────────────────────────────────────────
+
+describe('endowed progress bar', () => {
+  beforeEach(() => {
+    voteApi.getPublicQuizForDestination.mockResolvedValue(FOUR_Q_QUIZ);
+    voteApi.getParticipantQuiz.mockResolvedValue(FOUR_Q_QUIZ);
+  });
+
+  test('organizer sees an endowed progress bar (setup counts as a done step)', async () => {
+    renderOrganizer(ORGANIZER_SETUP);
+
+    await screen.findByText('1 / 4');
+    const fill = document.querySelector('.quiz-progress-fill');
+    // 1 completed (setup) of 5 total steps = 20%
+    expect(fill.style.width).toBe('20%');
+  });
+
+  test('participant progress starts at zero', async () => {
+    renderParticipant('tok-abc');
+
+    await screen.findByText('1 / 4');
+    expect(document.querySelector('.quiz-progress-fill').style.width).toBe('0%');
+  });
+
+  // Helper: answer the first 3 questions so the last one is displayed.
+  async function advanceToLastQuestion() {
+    expect(await screen.findByText('Daytime activity?')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Beach'));
+
+    expect(await screen.findByText('Adrenaline level?')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('High'));
+
+    expect(await screen.findByText('Food preference?')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('BBQ'));
+
+    // Last question shown, not yet answered.
+    expect(await screen.findByText('Classy or rowdy?')).toBeInTheDocument();
+    expect(screen.getByText('4 / 4')).toBeInTheDocument();
+  }
+
+  test('organizer at the last question: 4 of 5 steps done = 80%', async () => {
+    renderOrganizer(ORGANIZER_SETUP);
+
+    await advanceToLastQuestion();
+    // endow(1) + 3 answered = 4 done of 5 total steps
+    expect(document.querySelector('.quiz-progress-fill').style.width).toBe('80%');
+  });
+
+  test('participant at the last question: 3 of 4 steps done = 75%', async () => {
+    renderParticipant('tok-abc');
+
+    await advanceToLastQuestion();
+    // 3 answered of 4 total steps
+    expect(document.querySelector('.quiz-progress-fill').style.width).toBe('75%');
+  });
+});

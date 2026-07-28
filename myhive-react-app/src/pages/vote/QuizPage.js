@@ -99,7 +99,21 @@ function QuizContent() {
 
   return (
     <div className="quiz-page">
-      <div className="quiz-progress">{stepIndex + 1} / {quiz.questions.length}</div>
+      {(() => {
+        // Endowed progress: the organizer already completed the setup step, so
+        // their bar starts pre-filled — started journeys get finished more.
+        const endow = isOrganizer ? 1 : 0;
+        const total = quiz.questions.length + endow;
+        const done = stepIndex + endow;
+        return (
+          <div className="quiz-progress">
+            <div className="quiz-progress-track">
+              <div className="quiz-progress-fill" style={{width: `${Math.round((done / total) * 100)}%`}}/>
+            </div>
+            <span className="quiz-progress-label">{stepIndex + 1} / {quiz.questions.length}</span>
+          </div>
+        );
+      })()}
       <h2 className="quiz-prompt">{question.prompt}</h2>
       <div className="quiz-answers">
         {question.answers.map((a) => (

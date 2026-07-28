@@ -1,6 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { act, renderHook } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import {CatalogContext} from '../context/CatalogContext';
 import {TripContext} from '../context/TripContext';
 import { useStartGroupVote } from './useStartGroupVote';
@@ -8,106 +7,50 @@ import leadApi from '../services/leadApi';
 
 jest.mock('../services/leadApi');
 
-function QuizStub() {
-  const location = useLocation();
-  return <div data-testid="quiz-setup">{JSON.stringify(location.state?.setup)}</div>;
-}
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
 
-function Harness() {
-  const { voteSetupOpen, openVoteSetup, handleVoteConfirm } = useStartGroupVote();
-  return (
-    <div>
-      <span data-testid="open-state">{voteSetupOpen ? 'open' : 'closed'}</span>
-      <button onClick={openVoteSetup}>open setup</button>
-      <button
-        onClick={() =>
-          handleVoteConfirm({
-            travelers: 4,
-            startDate: '2026-08-01',
-            endDate: '2026-08-03',
-            email: 'a@b.c',
-            destination: { id: 'd1', slug: 'prague' },
-            budget: null,
-          })
-        }
-      >
-        confirm
-      </button>
-    </div>
-  );
-}
-
-function renderHarness(dispatch = jest.fn()) {
+function renderStartGroupVote(dispatch = jest.fn()) {
   const catalogState = { destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }] };
   const tripState = { tripItems: [] };
-  return render(
+  const wrapper = ({ children }) => (
     <CatalogContext.Provider value={{ state: catalogState, dispatch }}>
       <TripContext.Provider value={{ state: tripState, dispatch }}>
-        <MemoryRouter initialEntries={['/']}>
-          <Routes>
-            <Route path="/" element={<Harness />} />
-            <Route path="/vote/new/quiz" element={<QuizStub />} />
-          </Routes>
-        </MemoryRouter>
+        <MemoryRouter initialEntries={['/']}>{children}</MemoryRouter>
       </TripContext.Provider>
     </CatalogContext.Provider>
   );
+  return { ...renderHook(() => useStartGroupVote(), { wrapper }), dispatch };
 }
 
 beforeEach(() => {
-  // CRA sets resetMocks: true — re-establish a working default so tests that
-  // don't care about lead capture aren't tripped up by an unmocked promise.
-  leadApi.createLead.mockResolvedValue({ id: 'lead-default', restoreToken: 'tok-default' });
+  mockNavigate.mockClear();
 });
 
 afterEach(() => {
   localStorage.clear();
 });
 
-test('openVoteSetup flips voteSetupOpen', async () => {
-  renderHarness();
+test('openVoteSetup flips voteSetupOpen', () => {
+  const {result} = renderStartGroupVote();
 
-  expect(screen.getByTestId('open-state')).toHaveTextContent('closed');
-  await userEvent.click(screen.getByText('open setup'));
-  expect(screen.getByTestId('open-state')).toHaveTextContent('open');
+  expect(result.current.voteSetupOpen).toBe(false);
+  act(() => result.current.openVoteSetup());
+  expect(result.current.voteSetupOpen).toBe(true);
 });
 
-test('handleVoteConfirm navigates to the quiz with setup state', async () => {
-  const dispatch = jest.fn();
-  renderHarness(dispatch);
-
-  await userEvent.click(screen.getByText('confirm'));
-
-  const setupNode = await screen.findByTestId('quiz-setup');
-  expect(JSON.parse(setupNode.textContent)).toEqual({
-    travelers: 4,
-    startDate: '2026-08-01',
-    endDate: '2026-08-03',
-    email: 'a@b.c',
-    destination: { id: 'd1', slug: 'prague' },
-    budget: null,
-  });
-  expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
-});
-
-test('captures a trip lead on vote confirm and stores its tokens', async () => {
-  leadApi.createLead.mockResolvedValue({ id: 'lead-1', restoreToken: 'tok-1' });
-  renderHarness();
-
-  await userEvent.click(screen.getByText('confirm'));
-
-  await waitFor(() => expect(leadApi.createLead).toHaveBeenCalledWith(
-    expect.objectContaining({ email: 'a@b.c', destinationId: 'd1' })));
-  await waitFor(() => expect(
-    JSON.parse(localStorage.getItem('myhive-trip-lead'))).toEqual(
-    { id: 'lead-1', restoreToken: 'tok-1' }));
-});
-
-test('a failed lead capture does not block navigation to the quiz', async () => {
-  leadApi.createLead.mockRejectedValue(new Error('down'));
-  renderHarness();
-
-  await userEvent.click(screen.getByText('confirm'));
-
-  expect(await screen.findByTestId('quiz-setup')).toBeInTheDocument();
+test('confirm navigates to the quiz without creating a lead and without email in state', () => {
+    const {result, dispatch} = renderStartGroupVote();
+    act(() => result.current.handleVoteConfirm({
+        travelers: 8, startDate: '2026-09-04', endDate: '2026-09-06',
+        destination: {id: 'd1', slug: 'prague'}, budget: null,
+    }));
+    expect(leadApi.createLead).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/vote/new/quiz', {
+        state: {setup: expect.not.objectContaining({email: expect.anything()})},
+    });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
 });

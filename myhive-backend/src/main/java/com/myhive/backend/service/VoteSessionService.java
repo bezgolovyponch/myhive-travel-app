@@ -237,6 +237,9 @@ public class VoteSessionService {
     }
 
     private void sendVoteCreatedConfirmationQuietly(VoteSession session) {
+        if (session.getInitiatorEmail() == null || session.getInitiatorEmail().isBlank()) {
+            return; // organizer email is collected on the booking page, not at creation
+        }
         try {
             emailService.sendVoteCreatedConfirmation(session, frontendUrl);
         } catch (Exception e) {
@@ -549,9 +552,11 @@ public class VoteSessionService {
         // The ranked results are frozen above — a failed notification must never roll back
         // COMPLETED, or the scheduler would re-process the same failing session every tick.
         try {
-            List<VoteSessionResultActivity> results =
-                    resultActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
-            emailService.sendVoteResult(session, results, frontendUrl);
+            if (session.getInitiatorEmail() != null && !session.getInitiatorEmail().isBlank()) {
+                List<VoteSessionResultActivity> results =
+                        resultActivityRepository.findBySessionIdOrderBySortOrder(session.getId());
+                emailService.sendVoteResult(session, results, frontendUrl);
+            }
         } catch (Exception e) {
             log.error("Failed to send vote result email for session {}: {}",
                     session.getId(), e.getMessage(), e);

@@ -279,7 +279,7 @@ function VoteWaitingContent() {
             )}
 
             <p className="vote-waiting-note">
-                Results will be emailed to the trip organiser after the timer ends.
+                Results will appear on this page after the timer ends.
             </p>
         </div>
     );

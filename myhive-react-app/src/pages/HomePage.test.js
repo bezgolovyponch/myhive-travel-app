@@ -46,9 +46,9 @@ test('renders all homepage sections', async () => {
 
   renderHome();
 
-  expect(screen.getByRole('heading', {level: 1, name: 'The Easiest Stag Do Decision. All Sorted For You.'})).toBeInTheDocument();
+  expect(screen.getByRole('heading', {level: 1, name: 'Prague Stag Do. Planned in 10 minutes.'})).toBeInTheDocument();
   expect(screen.getByText('Stag Do Specialists')).toBeInTheDocument();
-  expect(screen.getByText('The Smartest Way to Plan a Stag Do')).toBeInTheDocument();
+  expect(screen.getByText('Let the group decide. You just book it.')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
   expect(screen.getByText('View All Activities')).toHaveAttribute('href', '/destination/prague');
   expect(screen.getByText('What the Lads Say')).toBeInTheDocument();
@@ -77,8 +77,9 @@ test('Start Group Vote opens the vote setup modal with the only destination pres
 
   // TripSetupModal in vote mode shows the vote-specific confirm button.
   expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
-  // The destination picker is disabled, so the destination is preset read-only.
-  expect(screen.getByText('Prague')).toBeInTheDocument();
+  // The destination is preset silently — no picker and no read-only row; it
+  // only surfaces later on the booking page.
+  expect(screen.queryByText('Prague')).not.toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
 
@@ -115,9 +116,9 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
   await screen.findByText('Continue to Categories');
 
-  // DESTINATION_PICKER_ENABLED is off: the default destination (Prague) is
-  // auto-selected even when the API returns another destination first.
-  expect(screen.getByText('Prague')).toBeInTheDocument();
+  // The destination is resolved silently (default Prague) — the modal never
+  // shows a picker or a read-only destination row.
+  expect(screen.queryByText('Prague')).not.toBeInTheDocument();
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
 
@@ -128,7 +129,7 @@ test('hero headline is plain text, not a link or button', async () => {
 
   await screen.findByText('What the Lads Say');
 
-  const headline = screen.getByRole('heading', {level: 1, name: /the easiest stag do decision/i});
+  const headline = screen.getByRole('heading', {level: 1, name: /prague stag do\. planned in 10 minutes/i});
   expect(headline.querySelector('button')).toBeNull();
   expect(headline.querySelector('a')).toBeNull();
 });
@@ -147,4 +148,33 @@ test('Explore activities CTA scrolls to the activities section', async () => {
   await waitFor(() => expect(section.scrollIntoView).toHaveBeenCalled());
   expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});
   section.remove();
+});
+
+test('hero title mentions Prague', () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+  renderHome();
+  expect(screen.getByRole('heading', {level: 1}))
+    .toHaveTextContent('Prague Stag Do. Planned in 10 minutes.');
+});
+
+test('sticky CTA is feature-flagged off by default', async () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+  renderHome();
+  await screen.findByText('What the Lads Say');
+  expect(document.querySelector('.sticky-vote-cta')).toBeNull();
+});
+
+test('activities section comes directly after the hero', async () => {
+  api.getFeaturedActivities.mockResolvedValue([
+    { id: 'a1', name: 'Go-Karting', price: 50, slug: 'go-karting', destinationSlug: 'prague', categories: [] },
+  ]);
+  renderHome();
+
+  await screen.findByText('Go-Karting');
+
+  const hero = document.querySelector('.hero');
+  const activities = document.querySelector('.featured-activities') || document.querySelector('#activities');
+  const trust = document.querySelector('.trust-bar');
+  expect(hero.compareDocumentPosition(activities) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(activities.compareDocumentPosition(trust) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

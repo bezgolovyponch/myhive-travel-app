@@ -1,0 +1,121 @@
+.tm2 {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    width: 100%;
+    padding: 0.75rem 0.75rem 0.875rem;
+}
+
+.tm2-count {
+    color: var(--text-muted, #a7a9a9b3);
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-align: center;
+}
+
+.tm2-deck {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+}
+
+.tm2-ghost {
+    background: #ffffff0f;
+    border: 1px solid #ffffff1a;
+    border-radius: 14px;
+    position: absolute;
+}
+
+.tm2-ghost--b {
+    inset: 14px 26px 24px;
+}
+
+.tm2-ghost--a {
+    inset: 7px 17px 17px;
+}
+
+.tm2-card {
+    background: var(--surface, #262828);
+    border-radius: 14px;
+    box-shadow: 0 12px 28px #00000073;
+    display: flex;
+    flex-direction: column;
+    inset: 0 8px 10px;
+    overflow: hidden;
+    position: absolute;
+    transform: rotate(4deg);
+}
+
+.tm2-card img {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    object-fit: cover;
+    width: 100%;
+}
+
+.tm2-info {
+    flex: 0 0 auto;
+    padding: 0.5rem 0.625rem 0.625rem;
+}
+
+.tm2-name {
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.tm2-meta {
+    color: var(--text-muted, #a7a9a9b3);
+    font-size: 0.6875rem;
+    margin-top: 2px;
+}
+
+.tm2-stamp {
+    border: 3px solid #4ade80;
+    border-radius: 6px;
+    color: #4ade80;
+    font-size: 0.9rem;
+    font-weight: 800;
+    left: 10px;
+    letter-spacing: 0.08em;
+    padding: 1px 8px;
+    position: absolute;
+    top: 10px;
+    transform: rotate(-14deg);
+}
+
+.tm2-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 1.25rem;
+    justify-content: center;
+}
+
+.tm2-btn {
+    align-items: center;
+    background: transparent;
+    border: 2px solid;
+    border-radius: 50%;
+    display: inline-flex;
+    font-size: 1.05rem;
+    height: 2.125rem;
+    justify-content: center;
+    width: 2.125rem;
+}
+
+.tm2-btn--skip {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.tm2-btn--like {
+    border-color: #28a745;
+    color: #28a745;
+}

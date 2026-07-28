@@ -116,6 +116,11 @@
     display: block;
 }
 
+.email-value-note {
+    font-size: 0.8rem;
+    margin: 4px 0 0;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -163,16 +168,15 @@
 }
 
 /* Travelers stepper: round − / + buttons around an editable count. */
+/* Segmented − / count / + control: one contiguous group, the input ends
+   right at the + button. */
 .travelers-control {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    display: inline-flex;
+    align-items: stretch;
 }
 
 .travelers-step {
     width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text);
@@ -184,6 +188,16 @@
     align-items: center;
     justify-content: center;
     transition: background 150ms, border-color 150ms;
+}
+
+.travelers-step:first-child {
+    border-radius: var(--radius) 0 0 var(--radius);
+    border-right: none;
+}
+
+.travelers-step:last-child {
+    border-radius: 0 var(--radius) var(--radius) 0;
+    border-left: none;
 }
 
 .travelers-step:hover:not(:disabled) {
@@ -199,9 +213,10 @@
 /* input.travelers-count: must out-rank the generic `.contact-form input`
    rule above, which would otherwise blow the count to full width. */
 .contact-form input.travelers-count {
-    width: 4.5rem;
+    width: 3rem;
     text-align: center;
     flex-shrink: 0;
+    border-radius: 0;
     -moz-appearance: textfield;
     appearance: textfield;
 }

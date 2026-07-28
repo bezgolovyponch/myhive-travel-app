@@ -36,7 +36,7 @@
 .vote-waiting-count {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--brand, #6A1B9A);
+    color: var(--brand, #534AB7);
 }
 
 .vote-waiting-participants {
@@ -81,7 +81,7 @@
     justify-content: center;
     gap: 8px;
     padding: 16px 0;
-    background: var(--brand, #6A1B9A);
+    background: var(--brand, #534AB7);
     color: white;
     border: none;
     border-radius: 10px;
@@ -100,7 +100,7 @@
     margin-bottom: 16px;
     background: rgba(119, 124, 124, 0.12);
     color: var(--white, #fff);
-    border: 1px solid var(--brand, #6A1B9A);
+    border: 1px solid var(--brand, #534AB7);
     border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
