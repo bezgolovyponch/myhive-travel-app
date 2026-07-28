@@ -30,6 +30,13 @@
     overflow: hidden;
 }
 
+/* Steps that render a component (tinder moment, vote card) grow with their
+   content instead of clipping it to the fixed photo height */
+.how-it-works-step .step-img--component {
+    height: auto;
+    min-height: 12.5rem;
+}
+
 .how-it-works-step .step-img img {
     width: 100%;
     height: 100%;
@@ -107,6 +114,13 @@
 
     .how-it-works-step .step-img {
         height: 9.375rem;
+    }
+
+    /* Keep component steps auto-sized (this later rule ties the base one on
+       specificity, so it must be restated inside the media query) */
+    .how-it-works-step .step-img--component {
+        height: auto;
+        min-height: 9.375rem;
     }
 
     .step-body {

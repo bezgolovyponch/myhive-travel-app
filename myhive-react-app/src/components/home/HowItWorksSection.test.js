@@ -18,6 +18,16 @@ test('renders the tinder moment, the vote demo card, and no CDN images', () => {
     }
 });
 
+test('component steps get the auto-height step-img modifier; image steps do not', () => {
+    render(<HowItWorksSection onStartVote={jest.fn()}/>);
+    const wrappers = document.querySelectorAll('.step-img');
+    expect(wrappers).toHaveLength(4);
+    expect(wrappers[0]).not.toHaveClass('step-img--component'); // style image
+    expect(wrappers[1]).toHaveClass('step-img--component'); // TinderMomentCard
+    expect(wrappers[2]).toHaveClass('step-img--component'); // VoteDemoCard
+    expect(wrappers[3]).not.toHaveClass('step-img--component'); // review image
+});
+
 test('clicking "Start Group Vote" fires cta_click with block trip_builder before calling onStartVote', async () => {
     const user = userEvent.setup();
     const onStartVote = jest.fn();

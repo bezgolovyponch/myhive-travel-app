@@ -44,7 +44,7 @@ function HowItWorksSection({onStartVote}) {
             <div className="how-it-works-steps">
                 {STEPS.map((step, index) => (
                     <div key={step.title} className="how-it-works-step">
-                        <div className="step-img">
+                        <div className={step.visual ? 'step-img step-img--component' : 'step-img'}>
                             {step.visual
                                 ? step.visual
                                 : <img src={step.img} alt="" loading="lazy"
