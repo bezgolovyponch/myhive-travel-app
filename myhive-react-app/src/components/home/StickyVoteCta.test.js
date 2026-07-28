@@ -68,3 +68,20 @@ test('removes the body class on unmount', () => {
 
     expect(document.body.classList.contains('homepage-has-sticky-cta')).toBe(false);
 });
+
+// CRA's Jest replaces CSS imports with an empty stub, so getComputedStyle can't
+// see stylesheet rules — assert on the declared values in the source CSS instead
+// (mirrors the WhatsAppWidget z-index regression test).
+// The sticky CTA must stack BELOW the .app-modal overlay so any modal covers it —
+// today only the vote setup modal explicitly hides it via the `hidden` prop.
+test('sticky CTA z-index stays below the app-modal overlay', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const ctaCss = fs.readFileSync(path.join(__dirname, 'StickyVoteCta.css'), 'utf8');
+    const globalCss = fs.readFileSync(path.join(__dirname, '../../styles/global.css'), 'utf8');
+
+    const ctaZ = Number(ctaCss.match(/\.sticky-vote-cta\s*{[^}]*?z-index:\s*(\d+)/)[1]);
+    const modalZ = Number(globalCss.match(/\.app-modal\s*{[^}]*?z-index:\s*(\d+)/)[1]);
+
+    expect(ctaZ).toBeLessThan(modalZ);
+});
