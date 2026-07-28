@@ -507,6 +507,10 @@ function TripBuilder({ destinationId, destinationSlug }) {
       localStorage.removeItem('myhive-trip-vote-session');
       clearQuizFlow();
       clearTripLead();
+      // TripBuilder does not unmount on a successful booking, so a debounced
+      // capture armed just before submit could otherwise fire after the
+      // clear above and re-create a lead for a customer who just booked.
+      captureCheckoutEmail.cancel();
       setQuizFlow(null);
       setVoteAnnotation(null);
       setVoteResult(null);

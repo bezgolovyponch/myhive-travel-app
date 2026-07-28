@@ -44,3 +44,11 @@ test('createLead rejection is silent', async () => {
     await act(async () => jest.advanceTimersByTime(2000));
     expect(readTripLead()).toBeNull(); // no lead stored, no throw
 });
+
+test('cancel() stops a pending capture from firing (post-booking resurrection guard)', async () => {
+    const {result} = renderHook(() => useEmailLeadCapture(CTX));
+    act(() => result.current('sam@example.com'));
+    act(() => result.current.cancel());
+    await act(async () => jest.advanceTimersByTime(2000));
+    expect(leadApi.createLead).not.toHaveBeenCalled();
+});

@@ -10,6 +10,12 @@ const EMAIL_RE = /\S+@\S+\.\S+/;
  * unchanged for 2s, create the lead so an abandoner still gets the reminder
  * flow. Fire-and-forget; each distinct address is captured at most once
  * (the server also dedups by email).
+ *
+ * The returned function also carries a `.cancel()` method (call sites that
+ * only invoke it directly are unaffected) — callers that transition to a
+ * state where a just-armed timer must not fire (e.g. a booking just
+ * completed and cleared the lead) call `.cancel()` to stop it, since the
+ * component that armed the timer may not unmount on that transition.
  */
 export function useEmailLeadCapture(context) {
   const timerRef = useRef(null);
@@ -19,7 +25,7 @@ export function useEmailLeadCapture(context) {
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 
-  return (email) => {
+  const capture = (email) => {
     clearTimeout(timerRef.current);
     const trimmed = (email || '').trim();
     if (!EMAIL_RE.test(trimmed) || capturedRef.current === trimmed) {
@@ -34,4 +40,8 @@ export function useEmailLeadCapture(context) {
         });
     }, CAPTURE_DEBOUNCE_MS);
   };
+
+  capture.cancel = () => clearTimeout(timerRef.current);
+
+  return capture;
 }
