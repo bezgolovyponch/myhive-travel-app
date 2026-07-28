@@ -134,11 +134,11 @@ function reopenVoteModal(rerender) {
 // Pre-existing destination picker tests
 // ---------------------------------------------------------------------------
 
-test('shows the destination picker when enabled and several destinations exist', () => {
+test('never shows a destination picker — the destination is decided at booking', () => {
   renderVoteModal();
 
-  expect(screen.getByLabelText('Destination *')).toBeInTheDocument();
-  expect(screen.getByRole('option', { name: 'Budapest' })).toBeInTheDocument();
+  expect(screen.queryByLabelText(/destination/i)).toBeNull();
+  expect(screen.queryByRole('combobox')).toBeNull();
 });
 
 test('vote mode collects no email', () => {
@@ -148,14 +148,14 @@ test('vote mode collects no email', () => {
   expect(screen.queryByText(/reminders\. unsubscribe anytime/i)).toBeNull();
 });
 
-test('auto-selects the only destination even with the picker enabled', () => {
+test('no read-only destination row either — it is not shown in the modal at all', () => {
   renderVoteModal({
     ...baseCatalogState,
     destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }],
   });
 
-  expect(screen.getByText('Prague')).toBeInTheDocument();
-  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  expect(screen.queryByText('Prague')).toBeNull();
+  expect(screen.queryByRole('combobox')).toBeNull();
 });
 
 // ---------------------------------------------------------------------------

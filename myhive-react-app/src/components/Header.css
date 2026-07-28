@@ -144,6 +144,10 @@
     cursor: pointer;
     transition: all 150ms;
     font-size: 0.875rem;
+    /* Center the activity-count badge with the label */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .trip-builder-btn:hover {
@@ -229,7 +233,7 @@
     padding: 10px;
     background: transparent;
     color: var(--white);
-    border: 2px solid #6A1B9A;
+    border: 2px solid var(--purple, #534AB7);
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
@@ -239,7 +243,7 @@
 }
 
 .trip-builder-vote-btn:hover {
-    background: #f3e5f5;
+    background: var(--purple, #534AB7);
 }
 
 /* Trip Builder Modal Items (used in Header dropdown) */

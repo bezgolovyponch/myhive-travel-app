@@ -2,7 +2,6 @@ import {useEffect, useId, useRef, useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
 import AppModal from './AppModal';
-import {DESTINATION_PICKER_ENABLED} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
 import {getRef} from '../utils/attribution';
@@ -24,7 +23,6 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
     const [travelers, setTravelers] = useState('1');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [selectedDestinationId, setSelectedDestinationId] = useState('');
     // Unique per instance: this modal is mounted in several places (Header,
     // TripBuilderDropdown, vote flow) and a duplicate id would make the footer
     // submit button target the wrong form.
@@ -44,7 +42,6 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             setTravelers(String(draft?.travelers || state.tripTravelers || 1));
             setStartDate(draftDatesCurrent ? draft.startDate : (datesAreCurrent ? state.tripStartDate : ''));
             setEndDate(draftDatesCurrent ? draft.endDate : (datesAreCurrent ? state.tripEndDate : ''));
-            setSelectedDestinationId('');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
@@ -83,15 +80,9 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
 
     if (!isOpen) return null;
 
-    // With the picker disabled (or when the API has a single destination anyway)
-    // the default destination is selected automatically and shown as read-only text.
-    const canAutoSelect = !DESTINATION_PICKER_ENABLED || catalog.destinations.length === 1;
-    const autoDestination = canAutoSelect ? getDefaultDestination(catalog.destinations) : null;
-    const effectiveDestination = preselectedDestination || autoDestination;
-    const needsDestinationPicker = isVoteMode && !effectiveDestination;
-    const destination = effectiveDestination
-        || catalog.destinations.find(d => d.id === selectedDestinationId)
-        || null;
+    // The destination is never asked here — it resolves to the preselected or
+    // default one and is only surfaced later, on the booking page.
+    const destination = preselectedDestination || getDefaultDestination(catalog.destinations);
 
     const voteFormValid = startDate && endDate && destination;
 
@@ -155,36 +146,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                 </>
             }
         >
-                    <p className="trip-setup-description">
-                        Two quick details so we can price your weekend right.
-                    </p>
                     <form id={formId} className="contact-form" onSubmit={handleSubmit}>
-                        {needsDestinationPicker && (
-                            <div className="form-group">
-                                <label htmlFor="voteDestination">Destination *</label>
-                                <select
-                                    id="voteDestination"
-                                    value={selectedDestinationId}
-                                    onChange={e => setSelectedDestinationId(e.target.value)}
-                                    disabled={catalog.loading}
-                                    required
-                                >
-                                    <option value="">{catalog.loading ? 'Loading destinations…' : 'Select a destination…'}</option>
-                                    {!catalog.loading && catalog.destinations.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
-                                {catalog.error && !catalog.loading && (
-                                    <p className="text-error">Couldn't load destinations. Please try again later.</p>
-                                )}
-                            </div>
-                        )}
-                        {isVoteMode && effectiveDestination && (
-                            <div className="form-group">
-                                <label>Destination</label>
-                                <p style={{ margin: '4px 0 0', fontWeight: 600 }}>{effectiveDestination.name}</p>
-                            </div>
-                        )}
                         <div className="form-group">
                             <label htmlFor="tripTravelers">Number of Travelers *</label>
                             {/* Stepper: − / editable number / +. No upper cap — big groups

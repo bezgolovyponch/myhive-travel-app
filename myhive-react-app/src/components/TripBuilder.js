@@ -34,7 +34,7 @@ function buildVoteAnnotation(result) {
   return {counts, participantCount: result.participantCount};
 }
 
-function TripBuilder({ destinationId, destinationSlug }) {
+function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
@@ -574,6 +574,12 @@ function TripBuilder({ destinationId, destinationSlug }) {
           <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
           {state.tripItems.length > 0 && (
               <div className="itinerary-trip-info">
+                {destinationName && (
+                    <div className="trip-info-row">
+                      <label>Destination:</label>
+                      <span>{destinationName}</span>
+                    </div>
+                )}
                 <div className="trip-info-row">
                   <label htmlFor="trip-travelers">Travelers:</label>
                   <input
@@ -729,7 +735,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
                 onClose={() => setShowContactForm(false)}
                 onSubmit={handleContactSubmit}
                 submitLabel="Confirm"
-                tripData={{tripItems: state.tripItems, travelers}}
+                tripData={{tripItems: state.tripItems, travelers, destinationName}}
                 initialValues={{
                   numberOfTravelers: travelers,
                   startDate: state.tripStartDate,

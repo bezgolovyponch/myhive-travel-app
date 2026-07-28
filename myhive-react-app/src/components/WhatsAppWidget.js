@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useLocation} from 'react-router-dom';
 import {WHATSAPP_URL} from '../services/config';
 import {pushEvent} from '../utils/analytics';
@@ -15,25 +16,94 @@ const FULL_SCREEN_ROUTES = [
 // offset above it there so it never covers that primary CTA.
 const ADD_BAR_ROUTE = /^\/destination\/[^/]+\/activity\/[^/]+$/;
 
-// Floating "chat with us" FAB.
+const GREETING = 'Ready to give the groom the ultimate send off? 🌍 Send me the '
+    + 'dates or destination you’re thinking of, and I’ll send over a '
+    + 'personalized quote right away! 👇';
+
+// Floating "chat with us" FAB that opens a WhatsApp-style chat teaser; the
+// send button hands the typed message over to the real WhatsApp conversation.
 function WhatsAppWidget() {
     const {pathname} = useLocation();
+    const [open, setOpen] = useState(false);
+    const [message, setMessage] = useState('');
     if (FULL_SCREEN_ROUTES.some(re => re.test(pathname))) {
         return null;
     }
     const aboveAddBar = ADD_BAR_ROUTE.test(pathname);
     const className = aboveAddBar ? 'whatsapp-widget whatsapp-widget--above-add-bar' : 'whatsapp-widget';
+
+    const handleToggle = () => {
+        if (!open) {
+            pushEvent('cta_click', {cta_label: 'whatsapp_widget', page: pathname});
+        }
+        setOpen(o => !o);
+    };
+
+    const handleSend = () => {
+        const text = message.trim();
+        const url = text ? `${WHATSAPP_URL}?text=${encodeURIComponent(text)}` : WHATSAPP_URL;
+        pushEvent('cta_click', {cta_label: 'whatsapp_widget_send', page: pathname});
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setMessage('');
+        setOpen(false);
+    };
+
     return (
-        <a
-            className={className}
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Chat with us on WhatsApp"
-            onClick={() => pushEvent('cta_click', {cta_label: 'whatsapp_widget', page: pathname})}
-        >
-            <i className="ph ph-whatsapp-logo" aria-hidden="true"/>
-        </a>
+        <div className={className}>
+            {open && (
+                <div className="wa-chat" role="dialog" aria-label="Chat with us on WhatsApp">
+                    <div className="wa-chat-header">
+                        <div className="wa-chat-avatar" aria-hidden="true">
+                            M
+                            <span className="wa-chat-online"/>
+                        </div>
+                        <div className="wa-chat-identity">
+                            <strong>Maria</strong>
+                            <span>Typically replies instantly</span>
+                        </div>
+                        <button
+                            type="button"
+                            className="wa-chat-close"
+                            onClick={() => setOpen(false)}
+                            aria-label="Close chat"
+                        >×</button>
+                    </div>
+                    <div className="wa-chat-body">
+                        <div className="wa-chat-bubble">{GREETING}</div>
+                    </div>
+                    <div className="wa-chat-input-row">
+                        <input
+                            type="text"
+                            value={message}
+                            placeholder="Type your destination or dates here…"
+                            onChange={e => setMessage(e.target.value)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') handleSend();
+                            }}
+                            // eslint-disable-next-line jsx-a11y/no-autofocus
+                            autoFocus
+                        />
+                        <button
+                            type="button"
+                            className="wa-chat-send"
+                            onClick={handleSend}
+                            aria-label="Send on WhatsApp"
+                        >
+                            <i className="ph ph-paper-plane-right" aria-hidden="true"/>
+                        </button>
+                    </div>
+                </div>
+            )}
+            <button
+                type="button"
+                className="whatsapp-fab"
+                onClick={handleToggle}
+                aria-expanded={open}
+                aria-label="Chat with us on WhatsApp"
+            >
+                <i className="ph ph-whatsapp-logo" aria-hidden="true"/>
+            </button>
+        </div>
     );
 }
 

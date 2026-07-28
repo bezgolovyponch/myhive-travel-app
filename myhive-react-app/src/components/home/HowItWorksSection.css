@@ -10,10 +10,10 @@
 
 .how-it-works-steps {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
     width: 100%;
-    max-width: 47.5rem;
+    max-width: 64rem;
     text-align: left;
 }
 
@@ -22,19 +22,22 @@
     border-radius: 0.875rem;
     overflow: hidden;
     box-shadow: 0 0.5rem 1.75rem rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
 }
 
+/* Visuals absorb any extra row height so the numbered titles line up
+   across the three cards on desktop */
 .how-it-works-step .step-img {
-    height: 12.5rem;
+    flex: 1 0 auto;
+}
+
+/* Square visual blocks: identical height across the three cards, and the
+   square vote graphic fits without cropping */
+.how-it-works-step .step-img {
+    aspect-ratio: 1 / 1;
     background: var(--card-img, #2e2b3a);
     overflow: hidden;
-}
-
-/* Steps that render a component (tinder moment, vote card) grow with their
-   content instead of clipping it to the fixed photo height */
-.how-it-works-step .step-img--component {
-    height: auto;
-    min-height: 12.5rem;
 }
 
 .how-it-works-step .step-img img {
@@ -44,17 +47,59 @@
     display: block;
 }
 
-/* Embedded visuals (TinderMomentCard, VoteDemoCard) fill the image block */
+/* Embedded visuals (SwipeMomentCard, VoteMomentCard) fill the image block */
 .how-it-works-step .step-img > * {
     width: 100%;
     height: 100%;
 }
 
-/* The vote card keeps its natural height, inset inside the fixed block */
-.how-it-works-step .step-img .vote-card {
-    width: calc(100% - 24px);
+/* Photo step with the "Booking confirmed" chip (how-it-works-v12) */
+.how-it-works-step .step-img--photo {
+    position: relative;
+}
+
+.how-it-works-step .step-img--photo::after {
+    background: linear-gradient(180deg, #16131c73 0, #16131c40 45%, #262430e6 100%);
+    content: "";
+    inset: 0;
+    position: absolute;
+}
+
+.how-it-works-step .step-img--photo > .booked {
+    align-items: center;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    background: #100e15b8;
+    border: 1px solid #ffffff24;
+    border-radius: 10px;
+    bottom: 12px;
+    display: flex;
+    gap: 0.5rem;
     height: auto;
-    margin: 12px;
+    left: 12px;
+    padding: 0.5rem 0.6875rem;
+    position: absolute;
+    width: auto;
+    z-index: 2;
+}
+
+.booked > i {
+    color: #6ee7a8;
+    font-size: 1rem;
+}
+
+.booked-t {
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.booked-s {
+    color: #c8c4d2;
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    margin-top: 1px;
 }
 
 .step-body {
@@ -65,7 +110,6 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.375rem;
 }
 
 .step-number {
@@ -90,13 +134,6 @@
     margin: 0;
 }
 
-.step-text {
-    font-size: 0.8125rem;
-    color: var(--hp-muted, #9a96a6);
-    line-height: 1.4;
-    margin: 0 0 0 2rem;
-}
-
 /* .btn is inline-flex without a gap, so the whitespace between the check icon
    and the label collapses — give the pair the same spacing as the hero CTA. */
 .how-it-works .btn--primary {
@@ -109,26 +146,11 @@
 
 @media (max-width: 768px) {
     .how-it-works-steps {
+        grid-template-columns: 1fr;
         gap: 0.875rem;
-    }
-
-    .how-it-works-step .step-img {
-        height: 9.375rem;
-    }
-
-    /* Keep component steps auto-sized (this later rule ties the base one on
-       specificity, so it must be restated inside the media query) */
-    .how-it-works-step .step-img--component {
-        height: auto;
-        min-height: 9.375rem;
     }
 
     .step-body {
         padding: 0.875rem;
-    }
-
-    .step-text {
-        margin-left: 0;
-        margin-top: 0.25rem;
     }
 }

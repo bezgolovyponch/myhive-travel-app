@@ -9,23 +9,28 @@ beforeEach(() => {
     jest.clearAllMocks();
 });
 
-test('renders the tinder moment, the vote demo card, and no CDN images', () => {
+test('renders the three steps in order with the swipe moment and no CDN images', () => {
     render(<HowItWorksSection onStartVote={jest.fn()}/>);
-    expect(document.querySelector('.tinder-moment')).toBeInTheDocument();
-    expect(document.querySelector('.vote-card')).toBeInTheDocument();
+    expect(document.querySelector('.tm2')).toBeInTheDocument();
+    expect(document.querySelector('.vm')).toBeInTheDocument();
+    expect(document.querySelector('.booked')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', {level: 3}).map(h => h.textContent)).toEqual([
+        'Pick activities to vote on',
+        'Share the vote link',
+        'Book the winners',
+    ]);
     for (const img of document.querySelectorAll('img')) {
         expect(img.src).not.toContain('cdn.jsdelivr.net');
     }
 });
 
-test('component steps get the auto-height step-img modifier; image steps do not', () => {
+test('step visual wrappers carry the v12 modifiers', () => {
     render(<HowItWorksSection onStartVote={jest.fn()}/>);
     const wrappers = document.querySelectorAll('.step-img');
-    expect(wrappers).toHaveLength(4);
-    expect(wrappers[0]).not.toHaveClass('step-img--component'); // style image
-    expect(wrappers[1]).toHaveClass('step-img--component'); // TinderMomentCard
-    expect(wrappers[2]).toHaveClass('step-img--component'); // VoteDemoCard
-    expect(wrappers[3]).not.toHaveClass('step-img--component'); // review image
+    expect(wrappers).toHaveLength(3);
+    expect(wrappers[0]).toHaveClass('step-img--component'); // SwipeMomentCard
+    expect(wrappers[1]).toHaveClass('step-img--component'); // VoteMomentCard
+    expect(wrappers[2]).toHaveClass('step-img--photo'); // limo photo + booked chip
 });
 
 test('clicking "Start Group Vote" fires cta_click with block trip_builder before calling onStartVote', async () => {

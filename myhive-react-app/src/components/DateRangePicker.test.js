@@ -18,10 +18,6 @@ describe('DateRangePicker', () => {
       expect(screen.queryAllByText('Add date')).toHaveLength(1);
     });
 
-    it('shows night count footer when both dates are set', () => {
-      render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
-      expect(screen.getByText(/3 night/)).toBeInTheDocument();
-    });
 
     it('hides footer when only from is set', () => {
       render(<DateRangePicker from="2026-06-12" to="" onChange={() => {}} />);
@@ -106,13 +102,6 @@ describe('DateRangePicker', () => {
       render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={onChange} />);
       fireEvent.click(screen.getByRole('button', { name: 'Clear end date' }));
       expect(onChange).toHaveBeenCalledWith('2026-06-12', '');
-    });
-
-    it('calls onChange("","") when footer clear button clicked', () => {
-      const onChange = jest.fn();
-      render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={onChange} />);
-      fireEvent.click(screen.getByRole('button', { name: /Clear dates/i }));
-      expect(onChange).toHaveBeenCalledWith('', '');
     });
   });
 

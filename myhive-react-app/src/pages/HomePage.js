@@ -21,9 +21,9 @@ function HomePage() {
     return (
         <div className="homepage">
             <Helmet>
-                <title>Trivlu — The Easiest Prague Stag Do. All Sorted For You.</title>
+                <title>Trivlu — Prague Stag Do. Planned in 10 Minutes.</title>
                 <meta name="description"
-                      content="Your mates vote in 10 minutes. We deliver the perfect Prague stag do weekend — activities, booking and logistics all sorted for you."/>
+                      content="Your group votes, we do the rest. The perfect Prague stag do weekend — activities, booking and logistics all sorted for you."/>
                 <link rel="canonical" href={`${SITE_URL}/`}/>
             </Helmet>
 
@@ -32,9 +32,9 @@ function HomePage() {
                 <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">The Easiest Prague Stag Do. All Sorted For You.</h1>
+                        <h1 className="hero-title">Prague Stag Do. Planned in 10 minutes.</h1>
                         <p className="hero-subtitle">
-                            Your mates vote in 10 minutes. We deliver the perfect weekend.
+                            Your group votes, we do the rest.
                         </p>
 
                         <VoteDemoCard/>
@@ -60,13 +60,6 @@ function HomePage() {
                             >
                                 Explore activities
                             </a>
-                        </div>
-                        <div className="hero-trust-line">
-                            <span>You pick the vibe</span>
-                            <span className="dot">·</span>
-                            <span>Lads vote</span>
-                            <span className="dot">·</span>
-                            <span>We organise it</span>
                         </div>
                     </div>
                 </div>

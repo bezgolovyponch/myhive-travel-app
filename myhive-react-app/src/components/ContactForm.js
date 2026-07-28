@@ -110,6 +110,9 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                     {!inline && (
                         <div className="trip-summary">
                             <h4>Trip Summary</h4>
+                            {tripData.destinationName && (
+                                <p><strong>Destination:</strong> {tripData.destinationName}</p>
+                            )}
                             <p><strong>Activities:</strong> {tripData.tripItems.length} selected</p>
                             <p><strong>Estimated Total:</strong> {formatPrice(computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1))}</p>
                         </div>
@@ -164,12 +167,34 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                             </div>
                             <div className="form-group">
                                 <label htmlFor="numberOfTravelers">Number of Travelers *</label>
-                                <input
-                                    type="number" id="numberOfTravelers" name="numberOfTravelers"
-                                    value={formData.numberOfTravelers} onChange={handleInputChange}
-                                    min="1" max="20"
-                                    className={errors.numberOfTravelers ? 'error' : ''}
-                                />
+                                {/* Same compact − / n / + stepper as the trip setup modal */}
+                                <div className="travelers-control">
+                                    <button
+                                        type="button"
+                                        className="travelers-step"
+                                        aria-label="Decrease travelers"
+                                        disabled={(parseInt(formData.numberOfTravelers, 10) || 1) <= 1}
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            numberOfTravelers: Math.max(1, (parseInt(prev.numberOfTravelers, 10) || 1) - 1),
+                                        }))}
+                                    >−</button>
+                                    <input
+                                        type="number" id="numberOfTravelers" name="numberOfTravelers"
+                                        value={formData.numberOfTravelers} onChange={handleInputChange}
+                                        min="1" max="20"
+                                        className={`travelers-count${errors.numberOfTravelers ? ' error' : ''}`}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="travelers-step"
+                                        aria-label="Increase travelers"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            numberOfTravelers: Math.min(20, (parseInt(prev.numberOfTravelers, 10) || 1) + 1),
+                                        }))}
+                                    >+</button>
+                                </div>
                                 {errors.numberOfTravelers &&
                                     <span className="error-message">{errors.numberOfTravelers}</span>}
                             </div>
