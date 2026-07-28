@@ -83,3 +83,47 @@ describe('mobile bottom-sheet anchoring', () => {
         expect(modalRule).toMatch(/align-items:\s*flex-end/);
     });
 });
+
+// The sheet is bottom-anchored, and on iOS the layout viewport it pins to runs
+// on behind the browser UI — 932 vs ~740 on a 14 Pro Max, so 192px of the sheet
+// (footer + the field above it) hangs off screen. The overlay is therefore
+// pinned to the visual viewport too.
+describe('visual viewport pinning', () => {
+    const setViewport = ({height, scale = 1, innerHeight = 932}) => {
+        window.innerHeight = innerHeight;
+        window.visualViewport = {
+            height, scale,
+            addEventListener: jest.fn(),
+            removeEventListener: jest.fn(),
+        };
+    };
+
+    afterEach(() => {
+        delete window.visualViewport;
+    });
+
+    it('pins the overlay to the visible height', () => {
+        setViewport({height: 740});
+        renderModal();
+        expect(screen.getByRole('dialog')).toHaveStyle({height: '740px'});
+    });
+
+    // Regression: pinch-zoom reports a tiny viewport; honouring it collapsed
+    // the sheet to a sliver.
+    it('ignores zoomed states', () => {
+        setViewport({height: 300, scale: 2.5});
+        renderModal();
+        expect(screen.getByRole('dialog').style.height).toBe('');
+    });
+
+    it('ignores a viewport under half the layout height', () => {
+        setViewport({height: 400, innerHeight: 932});
+        renderModal();
+        expect(screen.getByRole('dialog').style.height).toBe('');
+    });
+
+    it('does nothing where visualViewport is unavailable', () => {
+        renderModal();
+        expect(screen.getByRole('dialog').style.height).toBe('');
+    });
+});
