@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import {WHATSAPP_URL} from '../services/config';
 import {pushEvent} from '../utils/analytics';
@@ -16,94 +16,78 @@ const FULL_SCREEN_ROUTES = [
 // offset above it there so it never covers that primary CTA.
 const ADD_BAR_ROUTE = /^\/destination\/[^/]+\/activity\/[^/]+$/;
 
-const GREETING = 'Ready to give the groom the ultimate send off? 🌍 Send me the '
-    + 'dates or destination you’re thinking of, and I’ll send over a '
-    + 'personalized quote right away! 👇';
+// CookieYes' consent bar is a fixed z-index 9999999 sheet anchored to the bottom
+// of the viewport. On a phone it is ~390px tall — full width, over half the
+// screen — so the FAB sat underneath it: invisible and untappable until the
+// visitor consented. It arrives via GTM, which index.html skips on localhost,
+// so it never shows up in local dev; only production has it.
+// We publish its height and the FAB floats clear of it (never over it: the
+// consent controls must stay reachable).
+const CONSENT_BAR = '.cky-consent-container';
+const CONSENT_HEIGHT_VAR = '--cky-consent-h';
 
-// Floating "chat with us" FAB that opens a WhatsApp-style chat teaser; the
-// send button hands the typed message over to the real WhatsApp conversation.
+function useConsentBarClearance() {
+    useEffect(() => {
+        const root = document.documentElement;
+        let barObserver = null;
+
+        const measure = () => {
+            const bar = document.querySelector(CONSENT_BAR);
+            // A dismissed bar often stays in the DOM with a zero-height/hidden
+            // box rather than being removed — height 0 covers both cases.
+            const height = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+            root.style.setProperty(CONSENT_HEIGHT_VAR, `${height}px`);
+        };
+
+        // The bar is injected (and later torn down) asynchronously by GTM, and
+        // resizes when "Customise" expands it — watch both events.
+        const track = () => {
+            barObserver?.disconnect();
+            barObserver = null;
+            const bar = document.querySelector(CONSENT_BAR);
+            if (bar && typeof ResizeObserver === 'function') {
+                barObserver = new ResizeObserver(measure);
+                barObserver.observe(bar);
+            }
+            measure();
+        };
+
+        track();
+        // childList only, on body's direct children: the bar is appended there,
+        // and a deep/attribute observer would force a layout on every render.
+        const bodyObserver = new MutationObserver(track);
+        bodyObserver.observe(document.body, {childList: true});
+        window.addEventListener('resize', measure);
+
+        return () => {
+            bodyObserver.disconnect();
+            barObserver?.disconnect();
+            window.removeEventListener('resize', measure);
+            root.style.removeProperty(CONSENT_HEIGHT_VAR);
+        };
+    }, []);
+}
+
+// Floating "chat with us" FAB — opens the WhatsApp conversation directly.
 function WhatsAppWidget() {
     const {pathname} = useLocation();
-    const [open, setOpen] = useState(false);
-    const [message, setMessage] = useState('');
+    useConsentBarClearance();
     if (FULL_SCREEN_ROUTES.some(re => re.test(pathname))) {
         return null;
     }
     const aboveAddBar = ADD_BAR_ROUTE.test(pathname);
-    const className = aboveAddBar ? 'whatsapp-widget whatsapp-widget--above-add-bar' : 'whatsapp-widget';
-
-    const handleToggle = () => {
-        if (!open) {
-            pushEvent('cta_click', {cta_label: 'whatsapp_widget', page: pathname});
-        }
-        setOpen(o => !o);
-    };
-
-    const handleSend = () => {
-        const text = message.trim();
-        const url = text ? `${WHATSAPP_URL}?text=${encodeURIComponent(text)}` : WHATSAPP_URL;
-        pushEvent('cta_click', {cta_label: 'whatsapp_widget_send', page: pathname});
-        window.open(url, '_blank', 'noopener,noreferrer');
-        setMessage('');
-        setOpen(false);
-    };
-
+    const className = aboveAddBar ? 'trv-chat-fab trv-chat-fab--above-add-bar' : 'trv-chat-fab';
     return (
-        <div className={className}>
-            {open && (
-                <div className="wa-chat" role="dialog" aria-label="Chat with us on WhatsApp">
-                    <div className="wa-chat-header">
-                        <div className="wa-chat-avatar" aria-hidden="true">
-                            M
-                            <span className="wa-chat-online"/>
-                        </div>
-                        <div className="wa-chat-identity">
-                            <strong>Maria</strong>
-                            <span>Typically replies instantly</span>
-                        </div>
-                        <button
-                            type="button"
-                            className="wa-chat-close"
-                            onClick={() => setOpen(false)}
-                            aria-label="Close chat"
-                        >×</button>
-                    </div>
-                    <div className="wa-chat-body">
-                        <div className="wa-chat-bubble">{GREETING}</div>
-                    </div>
-                    <div className="wa-chat-input-row">
-                        <input
-                            type="text"
-                            value={message}
-                            placeholder="Type your destination or dates here…"
-                            onChange={e => setMessage(e.target.value)}
-                            onKeyDown={e => {
-                                if (e.key === 'Enter') handleSend();
-                            }}
-                            // eslint-disable-next-line jsx-a11y/no-autofocus
-                            autoFocus
-                        />
-                        <button
-                            type="button"
-                            className="wa-chat-send"
-                            onClick={handleSend}
-                            aria-label="Send on WhatsApp"
-                        >
-                            <i className="ph ph-paper-plane-right" aria-hidden="true"/>
-                        </button>
-                    </div>
-                </div>
-            )}
-            <button
-                type="button"
-                className="whatsapp-fab"
-                onClick={handleToggle}
-                aria-expanded={open}
-                aria-label="Chat with us on WhatsApp"
-            >
-                <i className="ph ph-whatsapp-logo" aria-hidden="true"/>
-            </button>
-        </div>
+        <a
+            className={className}
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Chat with us on WhatsApp"
+            onClick={() => pushEvent('cta_click', {cta_label: 'whatsapp_widget', page: pathname})}
+        >
+            <i className="ph ph-whatsapp-logo" aria-hidden="true"/>
+        </a>
     );
 }
 

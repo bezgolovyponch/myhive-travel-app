@@ -67,8 +67,10 @@
     background: var(--surface);
     color: var(--text);
     font-size: 0.8125rem;
-    /* Box edge sits in the values column; the number is centered inside it */
+    /* Box edge sits in the values column; the number is centered inside it.
+       16px floor: smaller inputs make iOS Safari zoom the page on focus. */
     text-align: center;
+    font-size: max(16px, 1rem);
 }
 
 .itinerary-total {

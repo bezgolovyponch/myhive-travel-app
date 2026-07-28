@@ -1,5 +1,4 @@
-import {render, screen, fireEvent} from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import {render, screen, fireEvent, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import WhatsAppWidget from './WhatsAppWidget';
 import {WHATSAPP_URL} from '../services/config';
@@ -8,93 +7,89 @@ function renderAt(path) {
     return render(<MemoryRouter initialEntries={[path]}><WhatsAppWidget/></MemoryRouter>);
 }
 
-afterEach(() => {
-    jest.restoreAllMocks();
-});
-
-test('FAB opens the chat teaser and fires the analytics event', () => {
+test('renders a direct WhatsApp link and fires the analytics event on click', () => {
     window.dataLayer = [];
     renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    expect(screen.getByRole('dialog', {name: /chat with us on whatsapp/i})).toBeInTheDocument();
-    expect(screen.getByText('Maria')).toBeInTheDocument();
-    expect(screen.getByText(/typically replies instantly/i)).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).toHaveAttribute('href', WHATSAPP_URL);
+    expect(link).toHaveAttribute('target', '_blank');
+    fireEvent.click(link);
     expect(window.dataLayer).toContainEqual(expect.objectContaining({
         event: 'cta_click', cta_label: 'whatsapp_widget', page: '/',
     }));
 });
 
-test('send opens WhatsApp with the typed message prefilled', async () => {
-    window.dataLayer = [];
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    await userEvent.type(screen.getByPlaceholderText(/type your destination or dates/i), 'Prague, 12-14 Sep');
-    fireEvent.click(screen.getByRole('button', {name: /send on whatsapp/i}));
-    expect(open).toHaveBeenCalledWith(
-        `${WHATSAPP_URL}?text=${encodeURIComponent('Prague, 12-14 Sep')}`,
-        '_blank',
-        'noopener,noreferrer',
-    );
-    expect(window.dataLayer).toContainEqual(expect.objectContaining({
-        event: 'cta_click', cta_label: 'whatsapp_widget_send', page: '/',
-    }));
-    // The teaser closes once the conversation is handed over to WhatsApp.
-    expect(screen.queryByRole('dialog')).toBeNull();
-});
-
-test('send with an empty input opens the plain WhatsApp link', () => {
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    fireEvent.click(screen.getByRole('button', {name: /send on whatsapp/i}));
-    expect(open).toHaveBeenCalledWith(WHATSAPP_URL, '_blank', 'noopener,noreferrer');
-});
-
-test('Enter in the input sends like the send button', async () => {
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    await userEvent.type(screen.getByPlaceholderText(/type your destination or dates/i), 'Karting?{enter}');
-    expect(open).toHaveBeenCalledWith(
-        `${WHATSAPP_URL}?text=${encodeURIComponent('Karting?')}`,
-        '_blank',
-        'noopener,noreferrer',
-    );
-});
-
-test('close button dismisses the teaser without opening WhatsApp', () => {
-    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
-    renderAt('/');
-    fireEvent.click(screen.getByRole('button', {name: /chat with us on whatsapp/i}));
-    fireEvent.click(screen.getByRole('button', {name: /close chat/i}));
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(open).not.toHaveBeenCalled();
-});
-
 test('hidden on the participant swipe page', () => {
     renderAt('/vote/tok123/activities');
-    expect(screen.queryByRole('button', {name: /whatsapp/i})).toBeNull();
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
 });
 
 test('hidden on the organizer curate page (same full-screen swipe deck)', () => {
     renderAt('/vote/new/curate');
-    expect(screen.queryByRole('button', {name: /whatsapp/i})).toBeNull();
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
 });
 
 test('hidden on the organizer quiz page (fixed full-screen flow)', () => {
     renderAt('/vote/new/quiz');
-    expect(screen.queryByRole('button', {name: /whatsapp/i})).toBeNull();
+    expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();
 });
 
 test('offset above the mobile Add-to-Trip bar on activity detail pages', () => {
-    const {container} = renderAt('/destination/prague/activity/pub-crawl');
-    expect(container.querySelector('.whatsapp-widget')).toHaveClass('whatsapp-widget--above-add-bar');
+    renderAt('/destination/prague/activity/pub-crawl');
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).toHaveClass('trv-chat-fab--above-add-bar');
 });
 
 test('not offset on other pages', () => {
-    const {container} = renderAt('/');
-    expect(container.querySelector('.whatsapp-widget')).not.toHaveClass('whatsapp-widget--above-add-bar');
+    renderAt('/');
+    const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+    expect(link).not.toHaveClass('trv-chat-fab--above-add-bar');
+});
+
+// Regression: on production the CookieYes consent bar (injected by GTM, which
+// index.html skips on localhost — so it never shows up in local dev) is a fixed
+// z-index 9999999 sheet covering the bottom ~390px of a phone screen. The FAB
+// sat underneath it: invisible and untappable until the visitor consented.
+function fakeConsentBar(height) {
+    const bar = document.createElement('div');
+    bar.className = 'cky-consent-container cky-banner-bottom';
+    // jsdom has no layout engine — declare the box the real banner occupies.
+    bar.getBoundingClientRect = () => ({
+        height, width: 390, top: 664 - height, bottom: 664, left: 0, right: 390, x: 0, y: 664 - height,
+        toJSON() {},
+    });
+    document.body.appendChild(bar);
+    return bar;
+}
+
+test('publishes the consent bar height so the FAB clears it', async () => {
+    const bar = fakeConsentBar(388);
+    renderAt('/');
+
+    await waitFor(() => expect(
+        document.documentElement.style.getPropertyValue('--cky-consent-h'),
+    ).toBe('388px'));
+
+    bar.remove();
+    await waitFor(() => expect(
+        document.documentElement.style.getPropertyValue('--cky-consent-h'),
+    ).toBe('0px'));
+});
+
+test('leaves the offset at zero when no consent bar is present', async () => {
+    renderAt('/');
+    await waitFor(() => expect(
+        document.documentElement.style.getPropertyValue('--cky-consent-h'),
+    ).toBe('0px'));
+});
+
+// The FAB's bottom offset must add that height, or the measurement is inert.
+test('FAB bottom offset adds the consent bar height', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const css = fs.readFileSync(path.join(__dirname, 'WhatsAppWidget.css'), 'utf8');
+    const block = css.match(/\.trv-chat-fab\s*{[^}]*}/)[0];
+    expect(block).toMatch(/bottom:\s*calc\([^;]*var\(--cky-consent-h/);
 });
 
 // CRA's Jest replaces CSS imports with an empty stub, so getComputedStyle can't
@@ -108,7 +103,7 @@ test('widget z-index stays below the app-modal overlay', () => {
 
     // Lazy [^}]*? so we grab the first z-index declaration in the block, not a
     // number mentioned later in a comment.
-    const widgetZ = Number(widgetCss.match(/\.whatsapp-widget\s*{[^}]*?z-index:\s*(\d+)/)[1]);
+    const widgetZ = Number(widgetCss.match(/\.trv-chat-fab\s*{[^}]*?z-index:\s*(\d+)/)[1]);
     const modalZ = Number(globalCss.match(/\.app-modal\s*{[^}]*?z-index:\s*(\d+)/)[1]);
 
     expect(widgetZ).toBeLessThan(modalZ);

@@ -334,7 +334,7 @@ textarea {
 }
 
 /* The floating WhatsApp FAB must never cover modal action buttons */
-body:has(.app-modal) .whatsapp-widget {
+body:has(.app-modal) .trv-chat-fab {
     display: none;
 }
 .app-modal-header {
@@ -384,6 +384,15 @@ body:has(.app-modal) .whatsapp-widget {
 @media (max-width: 768px) {
     .app-modal {
         align-items: flex-end;
+        /* The sheet is bottom-anchored, so its anchor has to be the *visible*
+           bottom edge. `inset: 0` pins to the layout viewport, which on iOS
+           Safari runs on behind the bottom toolbar — the sheet's footer
+           (Cancel / Continue) and the row above it ended up underneath it,
+           while the content was already sized in dvh. bottom:auto releases
+           the inherited inset so height can take over; 100dvh tracks the
+           toolbar as it shows and hides. */
+        bottom: auto;
+        height: 100dvh;
     }
 
     .app-modal-content {
@@ -391,6 +400,11 @@ body:has(.app-modal) .whatsapp-widget {
         max-width: none;
         max-height: 92dvh;
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    /* Keep the action buttons clear of the home indicator / browser bar */
+    .app-modal-footer {
+        padding-bottom: calc(var(--gap) + env(safe-area-inset-bottom));
     }
 }
 
