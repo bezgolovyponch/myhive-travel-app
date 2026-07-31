@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -134,20 +134,16 @@ test('hero headline is plain text, not a link or button', async () => {
   expect(headline.querySelector('a')).toBeNull();
 });
 
-test('Explore activities CTA scrolls to the activities section', async () => {
+test('Explore activities CTA links to the destination activities catalog', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
   renderHome();
-  const section = document.createElement('div');
-  section.id = 'activities';
-  section.scrollIntoView = jest.fn();
-  document.body.appendChild(section);
 
   const cta = screen.getByRole('link', {name: /Explore activities/i});
-  expect(cta).toHaveAttribute('href', '/#activities');
+  // Routes to the default destination's activities tab (the catalog page),
+  // not an on-page anchor scroll.
+  expect(cta).toHaveAttribute('href', '/destination/prague?tab=activities');
   await userEvent.click(cta);
-  await waitFor(() => expect(section.scrollIntoView).toHaveBeenCalled());
   expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});
-  section.remove();
 });
 
 test('hero title mentions Prague', () => {

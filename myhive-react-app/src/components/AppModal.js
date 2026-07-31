@@ -27,13 +27,16 @@ function useVisualViewportHeight(isOpen, ref) {
             const usable = vv.scale === 1 && height >= window.innerHeight * MIN_VIEWPORT_RATIO;
             el.style.height = usable ? `${height}px` : '';
         };
+        // Snapshot the node the effect ran against so the cleanup resets that
+        // same element even if the ref has since been repointed.
+        const el = ref.current;
         apply();
         vv.addEventListener('resize', apply);
         vv.addEventListener('scroll', apply);
         return () => {
             vv.removeEventListener('resize', apply);
             vv.removeEventListener('scroll', apply);
-            if (ref.current) ref.current.style.height = '';
+            if (el) el.style.height = '';
         };
     }, [isOpen, ref]);
 }

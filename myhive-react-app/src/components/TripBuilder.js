@@ -70,6 +70,14 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const [previewActivity, setPreviewActivity] = useState(null);
   const navigate = useNavigate();
 
+  // Publish whether the inline Complete Booking form is open so the destination
+  // chrome (global header, hero, tabs) collapses into a focused checkout view.
+  // Reset on unmount so leaving the page never leaves the header hidden.
+  useEffect(() => {
+    dispatch({type: 'SET_CHECKOUT_OPEN', open: showContactForm});
+    return () => dispatch({type: 'SET_CHECKOUT_OPEN', open: false});
+  }, [showContactForm, dispatch]);
+
   // Quiz-flow recommendations: the quiz-matched pool for this destination,
   // left-swiped cards included on purpose (second look). In-cart items render
   // as a disabled "Added". Failures are silent — the browse column still works.
@@ -702,6 +710,9 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                 <span>Total</span>
                 <span className="itinerary-total-price">{formatPrice(totalPrice)}</span>
               </div>
+              <p className="itinerary-deposit-note">
+                Pay {formatPrice(Math.round(totalPrice * 0.3 * 100) / 100)} deposit now (30%). Pay the rest later.
+              </p>
             <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>
               Complete Booking
             </button>
@@ -947,6 +958,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           link={previewActivity ? getPreviewLink(previewActivity) : null}
           onClose={() => setPreviewActivity(null)}
       />
+
+      {/* Mobile sticky bar: keeps the total + primary CTA reachable while the
+          itinerary list scrolls. Hidden while the inline booking form is open. */}
+      {state.tripItems.length > 0 && !showContactForm && (
+          <div className="trip-builder-sticky-bar">
+            <div className="trip-builder-sticky-total">
+              <span className="trip-builder-sticky-label">Total</span>
+              <span className="trip-builder-sticky-price">{formatPrice(totalPrice)}</span>
+            </div>
+            <button className="btn btn--primary" onClick={handleConfirmTrip}>
+              Book now
+            </button>
+          </div>
+      )}
     </div>
   );
 }

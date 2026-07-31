@@ -1,5 +1,8 @@
 import {Helmet} from 'react-helmet-async';
 import {useNavigate} from 'react-router-dom';
+import {useCatalog} from '../context/CatalogContext';
+import {getDefaultDestination} from '../utils/defaultDestination';
+import {DEFAULT_DESTINATION_SLUG} from '../services/config';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import TripSetupModal from '../components/TripSetupModal';
 import TrustBar from '../components/home/TrustBar';
@@ -11,12 +14,15 @@ import VoteDemoCard from '../components/home/VoteDemoCard';
 import StickyVoteCta from '../components/home/StickyVoteCta';
 import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
 import {pushEvent} from '../utils/analytics';
-import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './HomePage.css';
 
 function HomePage() {
     const navigate = useNavigate();
+    const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
+
+    const exploreActivitiesSlug =
+        getDefaultDestination(catalog.destinations)?.slug || DEFAULT_DESTINATION_SLUG;
 
     return (
         <div className="homepage">
@@ -51,11 +57,11 @@ function HomePage() {
                             </button>
                             <a
                                 className="hp-btn-secondary"
-                                href="/#activities"
+                                href={`/destination/${exploreActivitiesSlug}?tab=activities`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'});
-                                    scrollToHomeSection(navigate, 'activities');
+                                    navigate(`/destination/${exploreActivitiesSlug}?tab=activities`);
                                 }}
                             >
                                 Explore activities
@@ -66,8 +72,8 @@ function HomePage() {
             </section>
 
             <FeaturedActivitiesSection/>
-            <TrustBar/>
             <HowItWorksSection onStartVote={openVoteSetup}/>
+            <TrustBar/>
             <ReviewsSection onStartVote={openVoteSetup}/>
             <ContactCtaSection/>
 

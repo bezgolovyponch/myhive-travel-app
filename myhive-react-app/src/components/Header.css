@@ -155,14 +155,41 @@
     box-shadow: var(--shadow-lg);
 }
 
+/* Cart-icon variant: a circular secondary (white) button with the activity
+   count shown as a notification dot in the corner. */
+.trip-builder-btn--cart {
+    position: relative;
+    background: var(--white);
+    color: var(--brand);
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.25rem;
+}
+
+.trip-builder-btn--cart:hover {
+    background: var(--white);
+}
+
 .trip-builder-wrapper {
     position: relative;
     z-index: 1;
 }
 
+.trip-builder-btn--cart .trip-builder-count {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    margin: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+}
+
 .trip-builder-count {
-    background: var(--white);
-    color: var(--accent);
+    background: var(--accent);
+    color: var(--white);
     font-size: 0.6875rem;
     font-weight: 600;
     width: 20px;
@@ -172,6 +199,7 @@
     align-items: center;
     justify-content: center;
     margin-left: var(--gap-sm);
+    border: 2px solid var(--white);
 }
 
 .trip-builder-dropdown {

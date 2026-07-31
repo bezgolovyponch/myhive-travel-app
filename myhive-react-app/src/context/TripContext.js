@@ -11,6 +11,9 @@ export const initialState = {
     tripBudget: null,
     tripSetupModalOpen: false,
     tripBuilderModalOpen: false,
+    // True while the inline Complete Booking form is open, so the destination
+    // chrome (global header, hero, tabs) collapses into a focused checkout view.
+    checkoutOpen: false,
 };
 
 export function reducer(state, action) {
@@ -80,6 +83,8 @@ export function reducer(state, action) {
             return {...state, tripItems: state.tripItems.filter(i => i.packageId !== action.packageId)};
         case 'SET_TRIP_ID':
             return {...state, tripId: action.tripId};
+        case 'SET_CHECKOUT_OPEN':
+            return {...state, checkoutOpen: action.open};
         default:
             return state;
     }

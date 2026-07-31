@@ -177,19 +177,21 @@ function DestinationPage() {
     }
 
   return (
-    <div className="destination-page">
+    <div className={`destination-page${trip.checkoutOpen ? ' destination-page--checkout' : ''}`}>
         <Helmet>
             <title>{destination.name} — Trivlu</title>
             <meta name="description"
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
+        {!trip.checkoutOpen && (
         <div className="page-hero destination-header">
         <h1>{destination.name}</h1>
         <p>{destination.description || ''}</p>
       </div>
-      
-      <nav className="tab-nav">
+        )}
+
+      <nav className="tab-nav" style={{display: trip.checkoutOpen ? 'none' : undefined}}>
           <button
               className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
           onClick={() => handleTabChange('activities')}

@@ -91,6 +91,17 @@ function ActivityDetailPage() {
         .filter(Boolean);
     const descriptionBlocks = parseDescriptionBlocks(activity.description);
 
+    // Buyer-decision fields (Baymard tours study): meeting point, availability
+    // window and cancellation terms. Real values when the activity supplies them,
+    // otherwise accurate defaults that hold across our stag activities.
+    const meetingPoint = activity.meetingPoint
+        || `Central ${activity.destinationName || 'city centre'} — exact meeting point confirmed on booking.`;
+    const timeWindow = activity.timeWindow
+        || activity.availability
+        || 'Daily · flexible start times, arranged for your group.';
+    const cancellationPolicy = activity.cancellationPolicy
+        || 'Free changes up to 14 days before. See our refund policy for full terms.';
+
     const handleAddToTrip = () => {
         dispatch({type: 'ADD_TO_TRIP', activity});
     };
@@ -165,6 +176,37 @@ function ActivityDetailPage() {
                             )}
                         </section>
                     )}
+                    <section className="activity-detail-blk">
+                        <h2 className="activity-detail-blk-title">
+                            <i className="ph ph-info" aria-hidden="true"/> Good to know
+                        </h2>
+                        <ul className="activity-detail-facts">
+                            <li>
+                                <i className="ph ph-map-pin" aria-hidden="true"/>
+                                <div>
+                                    <span className="activity-detail-fact-label">Meeting point</span>
+                                    <span className="activity-detail-fact-value">{meetingPoint}</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i className="ph ph-clock" aria-hidden="true"/>
+                                <div>
+                                    <span className="activity-detail-fact-label">Availability</span>
+                                    <span className="activity-detail-fact-value">{timeWindow}</span>
+                                </div>
+                            </li>
+                            <li>
+                                <i className="ph ph-calendar-x" aria-hidden="true"/>
+                                <div>
+                                    <span className="activity-detail-fact-label">Cancellation</span>
+                                    <span className="activity-detail-fact-value">
+                                        {cancellationPolicy}{' '}
+                                        <Link to="/refund-policy">Refund policy</Link>
+                                    </span>
+                                </div>
+                            </li>
+                        </ul>
+                    </section>
                 </div>
 
                 <aside className="activity-detail-add-col">

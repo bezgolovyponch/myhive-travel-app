@@ -35,6 +35,12 @@ function Header() {
       .replace('-', ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
+  // The Complete Booking flow is a focused checkout: the global header (and its
+  // breadcrumb subheader) collapse away so nothing competes with the form.
+  if (state.checkoutOpen) {
+    return null;
+  }
+
   return (
     <header className="header header--transparent">
       <div className="header-content">
@@ -57,8 +63,12 @@ function Header() {
           <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
         </nav>
           <div className="trip-builder-wrapper">
-              <button className="trip-builder-btn" onClick={handleTripBuilderClick}>
-                  TRIP BUILDER
+              <button
+                  className="trip-builder-btn trip-builder-btn--cart"
+                  onClick={handleTripBuilderClick}
+                  aria-label={`Trip builder${state.tripItems.length > 0 ? ` (${state.tripItems.length} activities)` : ''}`}
+              >
+                  <i className="ph ph-shopping-cart-simple" aria-hidden="true"/>
                   {state.tripItems.length > 0 && (
                       <span className="trip-builder-count">{state.tripItems.length}</span>
                   )}

@@ -1,4 +1,11 @@
 /* Destination Page Styles */
+
+/* Complete Booking checkout view: header, hero and tabs are removed, so the
+   focused form gets its own top breathing room in place of the hero's. */
+.destination-page--checkout {
+    padding-top: var(--gap-xl);
+}
+
 .destination-header {
     /* The banner slides under the fixed header + breadcrumbs (64px + 46px on
        desktop) — clear them plus the same 24px breathing room as the bottom */

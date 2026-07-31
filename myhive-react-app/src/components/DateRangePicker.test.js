@@ -138,6 +138,33 @@ describe('DateRangePicker', () => {
       expect(container.querySelector('.drp-pop')).toBeNull();
     });
 
+    it('fills the start date and stays open on the first day click', () => {
+      // Regression: a mousedown-based outside-click guard using contains(e.target)
+      // closed the popover before the day's click fired onSelect, so Start never
+      // filled. The guard now reads composedPath(), which survives react-day-picker
+      // re-rendering the clicked day out of the tree.
+      const onChange = jest.fn();
+      const { container } = render(
+        <div>
+          <span data-testid="outside">out</span>
+          <DateRangePicker from="" to="" onChange={onChange} popover />
+        </div>
+      );
+      fireEvent.click(container.querySelector('.drp-field'));
+      expect(container.querySelector('.drp-pop')).toBeInTheDocument();
+
+      const grid = container.querySelector('[role="grid"]');
+      const enabledDay = grid.querySelector('.drp-day:not(.drp-disabled):not(.drp-hidden) .drp-day-btn');
+      fireEvent.mouseDown(enabledDay);
+      fireEvent.click(enabledDay);
+
+      expect(onChange).toHaveBeenCalled();
+      const [from] = onChange.mock.calls[onChange.mock.calls.length - 1];
+      expect(from).toBeTruthy();
+      // With only a start picked, the calendar stays open for the end date.
+      expect(container.querySelector('.drp-pop')).toBeInTheDocument();
+    });
+
     it('closes the popover on outside click', () => {
       render(
         <div>

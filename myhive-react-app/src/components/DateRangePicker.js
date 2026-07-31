@@ -67,6 +67,7 @@ function DateRangePicker({ from, to, onChange, collapsible = false, popover = fa
   const calWrapRef = useRef(null);
   const rootRef = useRef(null);
   const fieldsRef = useRef(null);
+  const popRef = useRef(null);
 
   useLayoutEffect(() => {
     if (!popover || !popOpen || !fieldsRef.current) return;
@@ -95,10 +96,24 @@ function DateRangePicker({ from, to, onChange, collapsible = false, popover = fa
   }, []);
 
   // Popover mode: clicking anywhere outside the component closes the dropdown.
+  // The calendar renders in a position:fixed .drp-pop that is a DOM child of the
+  // root, but react-day-picker re-renders the day grid on pointer-down, so the
+  // clicked <button> is detached before a plain rootRef.contains(e.target) runs
+  // — that false negative was closing the popover before the day's click could
+  // fire onSelect, so Start never filled. composedPath() snapshots the event's
+  // ancestor chain at dispatch time, immune to that re-render race.
   useEffect(() => {
     if (!popover || !popOpen) return undefined;
     const onDocMouseDown = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) {
+      // composedPath() over contains(e.target): react-day-picker re-renders the
+      // day grid on mouse-down, detaching the clicked <button> before this runs,
+      // so contains(e.target) returns a false negative and closes the popover
+      // before the day's click can fire onSelect. The path is captured at
+      // dispatch time and includes .drp-pop even after the re-render.
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : [e.target];
+      const insideRoot = rootRef.current && path.includes(rootRef.current);
+      const insidePop = popRef.current && path.includes(popRef.current);
+      if (!insideRoot && !insidePop) {
         setPopOpen(false);
       }
     };
@@ -199,7 +214,7 @@ function DateRangePicker({ from, to, onChange, collapsible = false, popover = fa
       </div>
 
       {calendarVisible && (
-        <div className={popover ? 'drp-pop' : undefined} style={popover ? popPos : undefined}>
+        <div className={popover ? 'drp-pop' : undefined} style={popover ? popPos : undefined} ref={popover ? popRef : undefined}>
           <div className="drp-cal-wrap" ref={calWrapRef}>
             <DayPicker
               mode="range"
