@@ -162,23 +162,24 @@
     font-weight: 500;
 }
 
+/* Plain × — no circle/background. */
 .remove-item-btn {
-    background: var(--error);
-    color: var(--white);
+    background: none;
+    color: var(--text-muted);
     border: none;
     width: 24px;
     height: 24px;
-    border-radius: var(--radius-full);
     cursor: pointer;
-    font-size: 0.6875rem;
+    font-size: 1.125rem;
+    line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 150ms;
+    transition: color 150ms;
 }
 
 .remove-item-btn:hover {
-    transform: scale(1.1);
+    color: var(--text);
 }
 
 .browse-header {

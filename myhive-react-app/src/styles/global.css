@@ -6,7 +6,9 @@
        the catalog and detail pages use it so all pages match the main page. */
     --purple: #534AB7;
     --purple-l: #7F77DD;
-    --accent: #FF5722;
+    /* Accent retired the old orange (#FF5722): all accents now use the CTA
+       purple so prices, the cart dot, and discount badges match the buttons. */
+    --accent: #534AB7;
     --green: #4CAF50;
     --gray: #999;
     --white: #fff;

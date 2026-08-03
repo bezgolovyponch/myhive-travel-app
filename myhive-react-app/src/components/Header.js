@@ -18,8 +18,18 @@ function Header() {
       if (state.tripBuilderModalOpen) {
           dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
     } else {
+      // Only one panel open at a time — close the nav menu if it's showing.
+      setMobileNavOpen(false);
       dispatch({type: 'OPEN_TRIP_BUILDER_MODAL'});
     }
+  };
+
+  const handleBurgerClick = () => {
+      // Opening the nav menu closes the cart dropdown, so the two never overlap.
+      if (!mobileNavOpen && state.tripBuilderModalOpen) {
+          dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
+      }
+      setMobileNavOpen(!mobileNavOpen);
   };
 
   const destinationMatch = location.pathname.match(/^\/destination\/([^/?]+)/);
@@ -79,15 +89,6 @@ function Header() {
       {/* Pinned action cluster: burger + cart stay fixed at the top-right of the
           viewport on every page, even as the header bar above scrolls away. */}
       <div className="header-actions">
-        <button
-            type="button"
-            className="hamburger-btn"
-            aria-label="Menu"
-            aria-expanded={mobileNavOpen}
-            onClick={() => setMobileNavOpen(!mobileNavOpen)}
-        >
-            <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
-        </button>
         <div className="trip-builder-wrapper">
           <button
               className="cart-btn"
@@ -109,6 +110,15 @@ function Header() {
           </button>
           <TripBuilderDropdown/>
         </div>
+        <button
+            type="button"
+            className="hamburger-btn"
+            aria-label="Menu"
+            aria-expanded={mobileNavOpen}
+            onClick={handleBurgerClick}
+        >
+            <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
+        </button>
       </div>
     </header>
   );

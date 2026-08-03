@@ -202,8 +202,11 @@
     display: block;
 }
 
+/* Static (not relative): the cart dropdown anchors to the fixed .header-actions
+   cluster's right edge — the true screen edge — rather than to the cart button,
+   which now sits left of the burger and would pull the dropdown toward centre. */
 .trip-builder-wrapper {
-    position: relative;
+    position: static;
     z-index: 1;
 }
 
@@ -227,11 +230,14 @@
     border: 2px solid var(--brand);
 }
 
+/* Anchored to the fixed .header-actions cluster: drops below the cluster and
+   pins its right edge to the cluster's right edge (= screen right inset), so it
+   opens hard against the right side instead of drifting toward centre. */
 .trip-builder-dropdown {
     position: absolute;
     top: calc(100% + 0.75rem);
     right: 0;
-    width: 22.5rem;
+    width: min(22.5rem, calc(100vw - 2 * var(--page-padding)));
     background: var(--surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
