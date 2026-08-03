@@ -393,8 +393,14 @@
   color: var(--text-muted, rgba(167, 169, 169, 0.7));
 }
 
+/* Total + CTAs stack with even spacing so buttons never touch/overlap. */
+.trip-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+}
+
 .start-vote-btn {
-    margin-top: 0.5rem;
     background: transparent;
     border: 1px solid #7c6cf5;
     color: var(--white);

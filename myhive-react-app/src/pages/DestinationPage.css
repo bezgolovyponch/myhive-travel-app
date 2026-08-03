@@ -5,7 +5,8 @@
 
 /* Tab Navigation */
 .tab-nav {
-    margin-top: 8.375rem;
+    /* Clear the floating header (4rem row + ~2.9rem breadcrumbs) with no gap. */
+    margin-top: 6.9rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -197,8 +198,8 @@
     }
 
     .tab-nav {
-        /* Mobile header bar is 3.25rem (+ breadcrumbs). */
-        margin-top: 7rem;
+        /* Mobile header bar is 3.25rem + ~2.9rem breadcrumbs, no gap. */
+        margin-top: 6.15rem;
         overflow-x: auto;
         justify-content: flex-start;
     }

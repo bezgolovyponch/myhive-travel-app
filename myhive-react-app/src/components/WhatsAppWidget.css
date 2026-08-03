@@ -34,6 +34,15 @@
     }
 }
 
+/* The trip view pins a tall summary+CTA bar to the bottom on mobile; the FAB
+   would overlap its buttons (Complete Booking / Start group vote), so hide it
+   while that bar is on screen — the user is mid-checkout, not seeking chat. */
+@media (max-width: 768px) {
+    body:has(.trip-builder-rail) .trv-chat-fab {
+        display: none;
+    }
+}
+
 /* Sits above the fixed mobile Add-to-Trip bar on activity detail pages
    (~64px tall incl. safe-area padding) so the FAB never covers that
    primary CTA. Matches the breakpoint .activity-detail-add-bar appears at. */

@@ -844,7 +844,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
 
       {/* Sticky summary + CTA rail — a side rail on desktop, a pinned bottom
           bar on mobile. Carries the trip summary, budget, total, and both the
-          "Let your mates vote" and "Complete Booking" actions. */}
+          "Start group vote" and "Complete Booking" actions. */}
       <aside className="trip-builder-rail">
         {tripSummary}
         {state.tripBudget != null && (
