@@ -97,8 +97,11 @@
 }
 
 .itinerary-total-price {
-    color: var(--accent);
+    /* Prices are content, not actions: high-contrast neutral, emphasis via
+       weight/size — not the brand purple (which reads as a link/CTA). */
+    color: var(--text);
     font-size: 1.125rem;
+    font-weight: 700;
 }
 
 .itinerary-list {
@@ -158,8 +161,8 @@
 
 .itinerary-item-price {
     font-size: 0.75rem;
-    color: var(--accent);
-    font-weight: 500;
+    color: var(--text);
+    font-weight: 700;
 }
 
 /* Plain × — no circle/background. */
@@ -179,7 +182,8 @@
 }
 
 .remove-item-btn:hover {
-    color: var(--text);
+    /* Destructive intent surfaces on hover only (routine reversible action). */
+    color: var(--error);
 }
 
 .browse-header {
@@ -241,8 +245,8 @@
 
 .browse-activity-price {
     font-size: 0.6875rem;
-    color: var(--accent);
-    font-weight: 500;
+    color: var(--text);
+    font-weight: 700;
 }
 
 .browse-add-btn {

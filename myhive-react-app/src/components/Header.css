@@ -357,8 +357,8 @@
 
 .trip-modal-item-price {
     font-size: 0.75rem;
-    color: var(--accent);
-    font-weight: 600;
+    color: var(--text);
+    font-weight: 700;
 }
 
 .trip-modal-item-remove {
@@ -373,7 +373,7 @@
 }
 
 .trip-modal-item-remove:hover {
-    color: #e74c3c;
+    color: var(--error);
 }
 
 .trip-modal-total {
@@ -387,8 +387,9 @@
 }
 
 .trip-modal-total-price {
-    color: var(--accent);
+    color: var(--text);
     font-size: 1rem;
+    font-weight: 700;
 }
 
 .trip-modal-package-group {
