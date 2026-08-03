@@ -82,13 +82,6 @@ function TripBuilderDropdown() {
                                 </div>
                             ))}
                         </div>
-                        <div className="trip-modal-total">
-                            <span>Total ({travelers} {travelers === 1 ? 'person' : 'people'})</span>
-                            <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
-                        </div>
-                        <button className="trip-builder-complete-btn" onClick={handleComplete}>
-                            Continue
-                        </button>
                     </>
                 ) : (
                     <div className="empty-trip-state">
@@ -106,6 +99,17 @@ function TripBuilderDropdown() {
                     </div>
                 )}
             </div>
+            {state.tripItems.length > 0 && (
+                <div className="trip-builder-dropdown-footer">
+                    <div className="trip-modal-total">
+                        <span>Total ({travelers} {travelers === 1 ? 'person' : 'people'})</span>
+                        <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
+                    </div>
+                    <button className="trip-builder-complete-btn" onClick={handleComplete}>
+                        Continue
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

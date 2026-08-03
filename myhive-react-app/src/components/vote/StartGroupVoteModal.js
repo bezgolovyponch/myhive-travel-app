@@ -120,7 +120,7 @@ function StartGroupVoteModal({
             isOpen={isOpen}
             onClose={handleClose}
             closeOnBackdrop
-            title="Let your mates vote"
+            title="Start group vote"
             contentClassName="start-vote-modal"
             footer={(
                 <button

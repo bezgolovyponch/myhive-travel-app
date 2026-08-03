@@ -20,7 +20,8 @@ function HomePage() {
     const navigate = useNavigate();
     const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
-
+    // "Explore activities" goes to the catalog — the default destination's
+    // activities listing — rather than scrolling to the homepage teaser.
     const exploreActivitiesSlug =
         getDefaultDestination(catalog.destinations)?.slug || DEFAULT_DESTINATION_SLUG;
 

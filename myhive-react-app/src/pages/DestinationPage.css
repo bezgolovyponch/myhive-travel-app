@@ -1,35 +1,18 @@
 /* Destination Page Styles */
+/* No destination title/hero block: the tabs are the first content. The header
+   bar floats over the top (absolute) and scrolls away, so the tab row reserves
+   room to clear the header (4rem) + breadcrumbs (~2.9rem) plus breathing room. */
 
-/* Complete Booking checkout view: header, hero and tabs are removed, so the
-   focused form gets its own top breathing room in place of the hero's. */
+/* Complete Booking checkout view (from main): header, hero and tabs are hidden,
+   so the focused form gets its own top breathing room in place of the hero's. */
 .destination-page--checkout {
     padding-top: var(--gap-xl);
 }
 
-.destination-header {
-    /* The banner slides under the fixed header + breadcrumbs (64px + 46px on
-       desktop) — clear them plus the same 24px breathing room as the bottom */
-    padding-top: 8.375rem;
-    padding-bottom: var(--gap-lg);
-}
-
-.destination-header p {
-    /* The global p margin would double the bottom spacing */
-    margin-bottom: 0;
-}
-
-.destination-header h1 {
-    font-size: clamp(1.5rem, 4vw, 1.875rem);
-    font-weight: 600;
-}
-
-.destination-header p {
-    font-size: 1rem;
-    opacity: 0.9;
-}
-
 /* Tab Navigation */
 .tab-nav {
+    /* Clear the floating header (4rem row + ~2.9rem breadcrumbs) with no gap. */
+    margin-top: 6.9rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -112,18 +95,22 @@
     .category-filters {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
+        gap: var(--gap-xs);
     }
 
-    /* Chips were ~32px tall at this breakpoint (text + gap-sm padding),
-       under the 40px tap-target minimum. Give every chip an equal, centered
-       min-height so the grid rows stay uniform and touch-friendly without
-       changing the visual gap between chips. */
+    /* Every chip is the SAME fixed size regardless of label length: a uniform
+       2.75rem-tall tap target, text centered and clamped to 2 lines so a
+       2-word category ("Guns & Bullets") never makes its row taller than a
+       1-word one ("Chillout"). Tighter padding + gap keeps the grid compact. */
     .filter-btn {
-        min-height: 2.5rem;
+        height: 2.75rem;
+        padding: 0 0.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
+        line-height: 1.1;
+        overflow: hidden;
     }
 }
 
@@ -221,6 +208,8 @@
     }
 
     .tab-nav {
+        /* Mobile header bar is 3.25rem + ~2.9rem breadcrumbs, no gap. */
+        margin-top: 6.15rem;
         overflow-x: auto;
         justify-content: flex-start;
     }
@@ -231,9 +220,3 @@
     }
 }
 
-@media (max-width: 768px) {
-    /* Mobile header row is 52px (+46px breadcrumbs) */
-    .destination-header {
-        padding-top: 7.625rem;
-    }
-}

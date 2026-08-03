@@ -18,8 +18,18 @@ function Header() {
       if (state.tripBuilderModalOpen) {
           dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
     } else {
+      // Only one panel open at a time — close the nav menu if it's showing.
+      setMobileNavOpen(false);
       dispatch({type: 'OPEN_TRIP_BUILDER_MODAL'});
     }
+  };
+
+  const handleBurgerClick = () => {
+      // Opening the nav menu closes the cart dropdown, so the two never overlap.
+      if (!mobileNavOpen && state.tripBuilderModalOpen) {
+          dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
+      }
+      setMobileNavOpen(!mobileNavOpen);
   };
 
   const destinationMatch = location.pathname.match(/^\/destination\/([^/?]+)/);
@@ -42,6 +52,10 @@ function Header() {
   }
 
   return (
+    // The header bar (logo + nav + breadcrumbs) now scrolls away with the page
+    // on every route (2026-08-03). Only the cart + burger cluster below stays
+    // pinned — it's rendered as a sibling fixed to the viewport, not part of
+    // this in-flow bar.
     <header className="header header--transparent">
       <div className="header-content">
         <Link to="/" className="logo">
@@ -62,29 +76,7 @@ function Header() {
           <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
           <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
         </nav>
-          <div className="trip-builder-wrapper">
-              <button
-                  className="trip-builder-btn trip-builder-btn--cart"
-                  onClick={handleTripBuilderClick}
-                  aria-label={`Trip builder${state.tripItems.length > 0 ? ` (${state.tripItems.length} activities)` : ''}`}
-              >
-                  <i className="ph ph-shopping-cart-simple" aria-hidden="true"/>
-                  {state.tripItems.length > 0 && (
-                      <span className="trip-builder-count">{state.tripItems.length}</span>
-                  )}
-              </button>
-              <TripBuilderDropdown/>
-          </div>
         <TripSetupModal/>
-          <button
-              type="button"
-              className="hamburger-btn"
-              aria-label="Menu"
-              aria-expanded={mobileNavOpen}
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-          >
-              <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
-          </button>
       </div>
       {showBreadcrumbs && (
           <div className="breadcrumbs">
@@ -99,6 +91,41 @@ function Header() {
             </div>
           </div>
       )}
+
+      {/* Pinned action cluster: burger + cart stay fixed at the top-right of the
+          viewport on every page, even as the header bar above scrolls away. */}
+      <div className="header-actions">
+        <div className="trip-builder-wrapper">
+          <button
+              className="cart-btn"
+              onClick={handleTripBuilderClick}
+              aria-label={state.tripItems.length > 0
+                  ? `Cart, ${state.tripItems.length} item${state.tripItems.length === 1 ? '' : 's'}`
+                  : 'Cart'}
+          >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                   aria-hidden="true">
+                  <circle cx="9" cy="21" r="1"/>
+                  <circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+              </svg>
+              {state.tripItems.length > 0 && (
+                  <span className="cart-count">{state.tripItems.length}</span>
+              )}
+          </button>
+          <TripBuilderDropdown/>
+        </div>
+        <button
+            type="button"
+            className="hamburger-btn"
+            aria-label="Menu"
+            aria-expanded={mobileNavOpen}
+            onClick={handleBurgerClick}
+        >
+            <span className={`hamburger-icon ${mobileNavOpen ? 'open' : ''}`}/>
+        </button>
+      </div>
     </header>
   );
 }

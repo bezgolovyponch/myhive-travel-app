@@ -76,7 +76,7 @@ test('Start Group Vote opens the vote setup modal with the only destination pres
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
 
   // TripSetupModal in vote mode shows the vote-specific confirm button.
-  expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
+  expect(await screen.findByText('Continue')).toBeInTheDocument();
   // The destination is preset silently — no picker and no read-only row; it
   // only surfaces later on the booking page.
   expect(screen.queryByText('Prague')).not.toBeInTheDocument();
@@ -97,7 +97,7 @@ test('hero "Start Group Vote" fires cta_click with block hero before opening vot
   // cta_click — proving it fired before the modal opened.
   expect(pushEvent.mock.calls[0]).toEqual(['cta_click', {cta_label: 'Start Group Vote', block: 'hero'}]);
   // The vote setup modal should still open (existing action not broken).
-  expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
+  expect(await screen.findByText('Continue')).toBeInTheDocument();
 });
 
 test('vote setup modal keeps the picker hidden even with several destinations in the API', async () => {
@@ -114,7 +114,7 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   await screen.findByText('What the Lads Say');
 
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
-  await screen.findByText('Continue to Categories');
+  await screen.findByText('Continue');
 
   // The destination is resolved silently (default Prague) — the modal never
   // shows a picker or a read-only destination row.

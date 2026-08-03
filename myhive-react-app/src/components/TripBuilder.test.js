@@ -170,7 +170,7 @@ async function fillAndSubmitContactForm(user) {
     // Dates (mocked DateRangePicker exposes two testid inputs)
     await user.type(screen.getByTestId('date-from'), '2026-08-01');
     await user.type(screen.getByTestId('date-to'), '2026-08-07');
-    await user.click(screen.getByRole('button', {name: 'Confirm'}));
+    await user.click(screen.getByRole('button', {name: 'Send booking request'}));
 }
 
 // ---------------------------------------------------------------------------
@@ -652,7 +652,12 @@ describe('inline booking form in the browse column', () => {
         expect(screen.queryByText('Complete Your Booking')).not.toBeInTheDocument();
     });
 
-    test('opening the form on mobile scrolls it to sit right below the fixed header', async () => {
+    // Flush the requestAnimationFrame the scroll is deferred with (the booking
+    // form mounts only after showContactForm flips true, so the scroll runs on
+    // the next frame once the ref is populated).
+    const flushRaf = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+
+    test('opening the form on mobile scrolls it into view', async () => {
         const user = userEvent.setup();
         window.matchMedia = jest.fn().mockReturnValue({
             matches: true, // stacked mobile layout
@@ -660,20 +665,14 @@ describe('inline booking form in the browse column', () => {
             removeEventListener: jest.fn(),
         });
         window.scrollTo = jest.fn();
-        // Fixed site header (main bar + breadcrumbs row) — its real height must be
-        // subtracted so the section top lands exactly below it, not underneath it.
-        const expectedHeaderHeight = 93;
-        const header = document.createElement('header');
-        header.className = 'header';
-        Object.defineProperty(header, 'offsetHeight', {value: expectedHeaderHeight});
-        document.body.appendChild(header);
 
         renderTripBuilder();
         await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        await flushRaf();
 
-        // jsdom geometry: column top = 0, scrollY = 0 → target = 0 - headerHeight.
-        expect(window.scrollTo).toHaveBeenCalledWith({top: -expectedHeaderHeight, behavior: 'smooth'});
-        header.remove();
+        // The header is now in-flow (no fixed offset to subtract). jsdom geometry:
+        // form top = 0, scrollY = 0 → target = 0 - 12px breathing room.
+        expect(window.scrollTo).toHaveBeenCalledWith({top: -12, behavior: 'smooth'});
     });
 
     test('every Complete Booking click re-scrolls on mobile, even while the form is already open', async () => {
@@ -688,10 +687,12 @@ describe('inline booking form in the browse column', () => {
         renderTripBuilder();
 
         await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        await flushRaf();
         expect(window.scrollTo).toHaveBeenCalledTimes(1);
 
         // The form stays open; a second click must scroll back down to it again.
         await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        await flushRaf();
         expect(window.scrollTo).toHaveBeenCalledTimes(2);
     });
 
@@ -771,7 +772,7 @@ describe('Let your mates vote button', () => {
     test('shows an enabled button when the cart has standalone activities', () => {
         renderTripBuilder(buildTripState({ tripItems: [activity1] }));
 
-        expect(screen.getByRole('button', { name: 'Let your mates vote' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
     });
 
     test('hides the button when the cart only contains package items', () => {
@@ -781,7 +782,7 @@ describe('Let your mates vote button', () => {
             ],
         }));
 
-        expect(screen.queryByRole('button', { name: 'Let your mates vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
     });
 
     test('disables the button when standalone items span another destination', () => {
@@ -792,7 +793,7 @@ describe('Let your mates vote button', () => {
             ],
         }));
 
-        const voteButton = screen.getByRole('button', { name: 'Let your mates vote' });
+        const voteButton = screen.getByRole('button', { name: 'Start group vote' });
         expect(voteButton).toBeDisabled();
         expect(voteButton).toHaveAttribute(
             'title',
@@ -810,7 +811,7 @@ describe('cta_click on "Let your mates vote"', () => {
         const user = userEvent.setup();
         renderTripBuilder(buildTripState({ tripItems: [activity1, activity2] }));
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         expect(pushEvent).toHaveBeenCalledWith('cta_click', {
             cta_label: 'Let your mates vote',
@@ -830,7 +831,7 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Create vote' })).not.toBeInTheDocument();
@@ -847,7 +848,7 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(screen.queryByText('A vote is already running')).not.toBeInTheDocument();
@@ -859,7 +860,7 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
@@ -869,7 +870,7 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(voteApi.getSession).not.toHaveBeenCalled();
@@ -987,7 +988,7 @@ describe('vote button after a completed cart vote', () => {
         renderTripBuilder(buildTripState({ tripItems: [cartItem] }));
 
         expect(await screen.findByText('♥ 8')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Let your mates vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
     });
 
     test('emptying the cart drops the finished session and re-enables voting for the next trip', async () => {
@@ -1004,7 +1005,7 @@ describe('vote button after a completed cart vote', () => {
         });
 
         rerender(buildTree([cartItem], dispatch));
-        expect(screen.getByRole('button', { name: 'Let your mates vote' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
     });
 
     test('emptying the cart strips the voteSession URL param so a refresh stays reset', async () => {
@@ -1148,9 +1149,9 @@ describe('quiz mode: one-click vote', () => {
             tripBudget: 2000,
         }));
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
-        expect(await screen.findByText('Let your mates vote', { selector: '.app-modal-title, h2' })).toBeInTheDocument();
+        expect(await screen.findByText('Start group vote', { selector: '.app-modal-title, h2' })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 
@@ -1158,7 +1159,7 @@ describe('quiz mode: one-click vote', () => {
         const user = userEvent.setup();
         renderQuizTripBuilder(buildTripState());
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
@@ -1171,7 +1172,7 @@ describe('quiz mode: one-click vote', () => {
         const user = userEvent.setup();
         renderQuizTripBuilder(buildTripState());
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
@@ -1185,10 +1186,10 @@ describe('quiz mode: one-click vote', () => {
         const user = userEvent.setup();
         renderQuizTripBuilder(buildTripState());
 
-        await user.click(screen.getByRole('button', { name: 'Let your mates vote' }));
+        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
 
         await waitFor(() => expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull());
-        expect(await screen.findByText('Let your mates vote', { selector: '.app-modal-title, h2' })).toBeInTheDocument();
+        expect(await screen.findByText('Start group vote', { selector: '.app-modal-title, h2' })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 });
@@ -1461,7 +1462,7 @@ describe('vote button after a completed QUIZ vote', () => {
         await waitFor(() => {
             expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_TO_TRIP' }));
         });
-        expect(screen.queryByRole('button', { name: 'Let your mates vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
     });
 
     test('emptying the cart strips the param and restores the button for the next trip', async () => {
@@ -1478,6 +1479,6 @@ describe('vote button after a completed QUIZ vote', () => {
         });
 
         rerender(buildTree([cartItem], dispatch));
-        expect(screen.getByRole('button', { name: 'Let your mates vote' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
     });
 });

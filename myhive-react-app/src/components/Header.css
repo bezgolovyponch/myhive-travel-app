@@ -1,20 +1,38 @@
-/* Header */
+/* Header — the bar (logo + nav + breadcrumbs) sits in the normal document flow
+   on every route and scrolls away with the page. Only the .header-actions
+   cluster (cart + burger) stays pinned; see below. */
 .header {
     background: var(--brand);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: static;
     z-index: 50;
     box-shadow: var(--shadow-md);
 }
 
-/* The header floats over page content on every page: no solid background, no
-   shadow, smaller height. A subtle top-down gradient keeps white nav text
-   legible over light page backgrounds. */
+/* The header still floats over the hero photo on pages that have one: absolute
+   over the top of the page (so the hero shows through) but NOT fixed, so it
+   leaves the viewport as you scroll. A subtle top-down gradient keeps the white
+   nav text legible over light page backgrounds. */
 .header--transparent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 100%);
     box-shadow: none;
+}
+
+/* Burger + cart cluster: fixed to the top-right of the viewport on every page,
+   so both stay reachable while the bar above scrolls away. Vertically centered
+   in the 4rem logo/nav row so it sits above the breadcrumbs block, aligned with
+   the logo — top = (4rem row − 2.5rem button) / 2 = 0.75rem. */
+.header-actions {
+    position: fixed;
+    top: 0.75rem;
+    right: var(--page-padding);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
 }
 
 .header-content {
@@ -54,14 +72,16 @@
     align-items: center;
 }
 
-/* Transparent header: nav-links sit on the right next to the Trip Builder
-   button instead of dead-centre, matching the template. */
+/* Transparent header: nav-links sit on the right, clearing the pinned
+   cart+burger cluster (two 2.5rem buttons + gap = 5.5rem, sitting at
+   var(--page-padding) from the edge) plus breathing room, so the links never
+   slide underneath it. */
 .header--transparent .nav-links {
     position: static;
     left: auto;
     transform: none;
     margin-left: auto;
-    margin-right: var(--gap-lg);
+    margin-right: calc(5.5rem + var(--page-padding) + var(--gap));
     gap: 1.375rem;
 }
 
@@ -85,11 +105,13 @@
 }
 
 .hamburger-btn {
+    /* Mobile-only: desktop keeps its inline nav links in the (scroll-away) bar,
+       so a burger there would duplicate them. On mobile it's shown (see the
+       max-width block) and lives in the pinned cluster with the cart.
+       Full circular-button styling lives in the shared rule below so it matches
+       the cart exactly. */
     display: none;
-    background: none;
-    border: none;
     cursor: pointer;
-    padding: var(--gap-sm);
 }
 
 .hamburger-icon,
@@ -134,84 +156,92 @@
     transform: rotate(-45deg);
 }
 
-.trip-builder-btn {
-    background: var(--accent);
-    color: var(--white);
-    padding: var(--gap-sm) 1.25rem;
-    border-radius: var(--radius-full);
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 150ms;
-    font-size: 0.875rem;
-    /* Center the activity-count badge with the label */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.trip-builder-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
-}
-
-/* Cart-icon variant: a circular secondary (white) button with the activity
-   count shown as a notification dot in the corner. */
-.trip-builder-btn--cart {
+/* Cart icon (replaces the old "TRIP BUILDER" text pill, 2026-08-03).
+   Secondary-white treatment: a circular white-outlined button. It floats over
+   arbitrary page backgrounds (hero photos, dark pages) now that it's pinned, so
+   a translucent-dark backing + shadow keep the white icon legible everywhere.
+   The item count rides on top as an accent notification dot. */
+/* Cart and burger are the same pinned circular button: identical size, colour,
+   border, and centering. The floating dark backing keeps the white icon legible
+   over any page background. */
+.cart-btn,
+.hamburger-btn {
     position: relative;
-    background: var(--white);
-    color: var(--brand);
+    background: rgba(20, 18, 26, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    color: var(--white);
+    cursor: pointer;
     width: 2.5rem;
     height: 2.5rem;
     padding: 0;
-    border-radius: 50%;
-    font-size: 1.25rem;
-}
-
-.trip-builder-btn--cart:hover {
-    background: var(--white);
-}
-
-.trip-builder-wrapper {
-    position: relative;
-    z-index: 1;
-}
-
-.trip-builder-btn--cart .trip-builder-count {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    margin: 0;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-}
-
-.trip-builder-count {
-    background: var(--accent);
-    color: var(--white);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-left: var(--gap-sm);
-    border: 2px solid var(--white);
+    transition: background 150ms, border-color 150ms;
+    box-shadow: var(--shadow-md);
 }
 
+.cart-btn:hover,
+.hamburger-btn:hover {
+    background: rgba(20, 18, 26, 0.75);
+    border-color: var(--white);
+}
+
+.cart-btn svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+/* Static (not relative): the cart dropdown anchors to the fixed .header-actions
+   cluster's right edge — the true screen edge — rather than to the cart button,
+   which now sits left of the burger and would pull the dropdown toward centre. */
+.trip-builder-wrapper {
+    position: static;
+    z-index: 1;
+}
+
+/* Notification dot: the activity count in an accent pill over the icon corner. */
+.cart-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--accent);
+    color: var(--white);
+    font-size: 0.625rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    border: 2px solid var(--brand);
+}
+
+/* Anchored to the fixed .header-actions cluster: drops below the cluster and
+   pins its right edge to the cluster's right edge (= screen right inset), so it
+   opens hard against the right side instead of drifting toward centre. */
 .trip-builder-dropdown {
     position: absolute;
     top: calc(100% + 0.75rem);
     right: 0;
-    width: 22.5rem;
+    width: min(22.5rem, calc(100vw - 2 * var(--page-padding)));
     background: var(--surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     z-index: 100;
     border: 1px solid var(--card-border);
+    /* Column so the items list scrolls while header + footer stay pinned. */
+    display: flex;
+    flex-direction: column;
+    max-height: min(32rem, calc(100vh - 6rem));
+    overflow: hidden;
 }
 
 .trip-builder-dropdown-header {
@@ -220,6 +250,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .trip-builder-dropdown-header h3 {
@@ -234,8 +265,22 @@
     flex-direction: column;
     gap: 0.75rem;
     padding: var(--gap);
-    max-height: 25rem;
+    /* Only the items list scrolls; the total + Continue live in the pinned
+       footer below. */
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Pinned footer: Total + Continue always visible at the bottom of the cart. */
+.trip-builder-dropdown-footer {
+    flex-shrink: 0;
+    padding: var(--gap);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: var(--surface);
 }
 
 .trip-builder-complete-btn {
@@ -314,8 +359,8 @@
 
 .trip-modal-item-price {
     font-size: 0.75rem;
-    color: var(--accent);
-    font-weight: 600;
+    color: var(--text);
+    font-weight: 700;
 }
 
 .trip-modal-item-remove {
@@ -330,23 +375,23 @@
 }
 
 .trip-modal-item-remove:hover {
-    color: #e74c3c;
+    color: var(--error);
 }
 
 .trip-modal-total {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--gap) 0.75rem;
-    border-top: 1px solid var(--card-border);
+    padding: 0 0.75rem;
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--text);
 }
 
 .trip-modal-total-price {
-    color: var(--accent);
+    color: var(--text);
     font-size: 1rem;
+    font-weight: 700;
 }
 
 .trip-modal-package-group {
@@ -406,10 +451,10 @@
     margin: 0;
 }
 
-/* Breadcrumbs */
+/* Breadcrumbs — no band or divider; they sit flush on the header ground. */
 .breadcrumbs {
-    background: rgba(255, 255, 255, 0.1);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    border-top: none;
 }
 
 .breadcrumbs-content {
@@ -442,8 +487,9 @@
 }
 
 @media (max-width: 768px) {
+    /* inline-flex (not block) so the shared circular-button centering holds. */
     .hamburger-btn {
-        display: block;
+        display: inline-flex;
     }
 
     /* Mockup mobile nav: small, fully transparent (the hero overlay keeps text
@@ -460,46 +506,41 @@
         height: 26px;
     }
 
-    /* Static so the dropdown's containing block is the full-width fixed .header
-       (not this narrow wrapper, whose right edge sits left of the viewport edge
-       because the hamburger follows it) — otherwise a right:0 dropdown spills
-       off the left edge. Anchoring to .header also drops it below the
-       breadcrumbs row, matching the nav menu. */
-    .trip-builder-wrapper {
-        position: static;
-        margin-left: auto;
-        margin-right: var(--gap-sm);
-    }
-
-    .trip-builder-btn {
-        font-size: 0.75rem;
-        padding: 0.375rem 0.875rem;
+    .cart-btn svg {
+        width: 22px;
+        height: 22px;
     }
 
     /* The .header--transparent .nav-links desktop rule (higher specificity) must
        not leak into mobile, so the dropdown selector repeats it.
-       Almost-transparent blurred panel on the right half of the screen; it is
-       anchored to .header (not .header-content) so it opens below the
-       breadcrumbs bar instead of covering it. */
+       The burger now lives in the fixed .header-actions cluster, so the nav
+       menu is fixed to the viewport (below the cluster, right-aligned) — it
+       opens on screen wherever the user has scrolled to. */
+    .header-actions {
+        top: 0.375rem;
+    }
+
     .nav-links,
     .header--transparent .nav-links {
         display: none;
-        position: absolute;
-        top: 100%;
+        position: fixed;
+        top: calc(0.375rem + 2.5rem + var(--gap-sm));
         left: auto;
-        right: 0;
-        width: 50%;
+        right: var(--page-padding);
+        /* Same width, surface colour, and border as the cart (trip builder)
+           dropdown so the two openings look identical. */
+        width: min(18.75rem, calc(100vw - 1rem));
         margin: 0;
         transform: none;
-        background: rgba(20, 18, 26, 0.55);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        background: var(--surface);
+        border: 1px solid var(--card-border);
         flex-direction: column;
         align-items: stretch;
         gap: 0;
         padding: var(--gap-sm) 0;
-        box-shadow: none;
-        border-bottom-left-radius: var(--radius, 0.5rem);
+        box-shadow: var(--shadow-lg);
+        border-radius: var(--radius-lg);
+        z-index: 60;
     }
 
     .nav-links.nav-open {
@@ -509,21 +550,15 @@
     .nav-links a {
         padding: 0.75rem 1.25rem;
         text-align: left;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid var(--card-border);
     }
 
     .nav-links a:first-child {
         border-top: none;
     }
 
-    /* Static so the fixed .header is the dropdown's containing block — the
-       panel then lands below the breadcrumbs row when one is shown. */
-    .header-content {
-        position: static;
-    }
-
     .trip-builder-dropdown {
-        right: 0.5rem;
+        right: 0;
         width: min(18.75rem, calc(100vw - 1rem));
     }
 }

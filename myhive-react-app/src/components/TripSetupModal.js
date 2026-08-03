@@ -141,7 +141,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                         className="btn btn--primary"
                         disabled={isVoteMode && !voteFormValid}
                     >
-                        {isVoteMode ? 'Continue to Categories' : 'Confirm'}
+                        {isVoteMode ? 'Continue' : 'Confirm'}
                     </button>
                 </>
             }
