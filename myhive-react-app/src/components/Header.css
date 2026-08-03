@@ -31,6 +31,28 @@
     border-top-color: rgba(255, 255, 255, 0.15);
 }
 
+/* The static header scrolls away, but the cart must stay reachable — pin its
+   wrapper to the top-right of the viewport so the button (and its dropdown)
+   remain on screen as the page scrolls. */
+.header--static .trip-builder-wrapper {
+    position: fixed;
+    top: var(--gap);
+    right: var(--page-padding);
+    z-index: 60;
+}
+
+/* Floating over the dark page ground rather than the brand header — restyle the
+   button as a solid dark chip so the white outline still reads, and match the
+   dot's cutout border to the page background. */
+.header--static .cart-btn {
+    background: var(--surface);
+    box-shadow: var(--shadow-lg);
+}
+
+.header--static .cart-count {
+    border-color: var(--surface);
+}
+
 .header-content {
     height: var(--header-height);
     padding: 0 var(--page-padding);
@@ -148,29 +170,32 @@
     transform: rotate(-45deg);
 }
 
-/* Cart icon (replaces the old "TRIP BUILDER" text pill, 2026-08-03). White
-   stroke over the dark/photo header; the item count rides as an overlay badge. */
+/* Cart icon (replaces the old "TRIP BUILDER" text pill, 2026-08-03).
+   Secondary-white treatment: a circular white-outlined button; the item count
+   rides as an accent notification dot. */
 .cart-btn {
     position: relative;
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.7);
     color: var(--white);
     cursor: pointer;
-    padding: 0.25rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-full);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 150ms;
-    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
+    transition: background 150ms, border-color 150ms;
 }
 
 .cart-btn:hover {
-    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: var(--white);
 }
 
 .cart-btn svg {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     display: block;
 }
 
@@ -179,10 +204,11 @@
     z-index: 1;
 }
 
+/* Notification dot: the activity count in an accent pill over the icon corner. */
 .cart-count {
     position: absolute;
-    top: -4px;
-    right: -6px;
+    top: -5px;
+    right: -5px;
     background: var(--accent);
     color: var(--white);
     font-size: 0.625rem;
@@ -195,6 +221,7 @@
     align-items: center;
     justify-content: center;
     line-height: 1;
+    border: 2px solid var(--brand);
 }
 
 .trip-builder-dropdown {

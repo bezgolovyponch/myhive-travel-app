@@ -675,7 +675,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   isOpen
                   onClose={() => setShowContactForm(false)}
                   onSubmit={handleContactSubmit}
-                  submitLabel="Confirm"
+                  submitLabel="Send booking request"
                   tripData={{tripItems: state.tripItems, travelers, destinationName}}
                   initialValues={{
                     numberOfTravelers: travelers,
@@ -877,7 +877,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                       disabled={!canStartVote || checkingVote}
                       title={voteButtonTitle}
                   >
-                    Let your mates vote
+                    Start group vote
                   </button>
               )}
               <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>

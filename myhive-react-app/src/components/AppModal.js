@@ -20,8 +20,10 @@ function useVisualViewportHeight(isOpen, ref) {
         if (!isOpen || !vv) {
             return undefined;
         }
+        // Capture the element at effect-setup time so cleanup resets the same
+        // node it was measuring, not whatever ref.current points at later.
+        const el = ref.current;
         const apply = () => {
-            const el = ref.current;
             if (!el) return;
             const height = Math.round(vv.height);
             const usable = vv.scale === 1 && height >= window.innerHeight * MIN_VIEWPORT_RATIO;
@@ -33,7 +35,7 @@ function useVisualViewportHeight(isOpen, ref) {
         return () => {
             vv.removeEventListener('resize', apply);
             vv.removeEventListener('scroll', apply);
-            if (ref.current) ref.current.style.height = '';
+            if (el) el.style.height = '';
         };
     }, [isOpen, ref]);
 }

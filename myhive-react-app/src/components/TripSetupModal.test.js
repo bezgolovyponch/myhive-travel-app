@@ -213,7 +213,7 @@ test('vote mode with prefilled setup is ready to continue without an email', asy
     { onVoteConfirm }
   );
 
-  await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+  await userEvent.click(screen.getByRole('button', { name: /^continue$/i }));
 
   expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({
     travelers: 4,
@@ -226,7 +226,7 @@ test('confirm is enabled once dates are set (no email needed) and payload has no
   const onVoteConfirm = jest.fn();
   renderVoteModal(singleDestCatalogState, baseTripState, { onVoteConfirm });
   pickDates('2026-09-04', '2026-09-06');
-  fireEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
   expect(onVoteConfirm).toHaveBeenCalledWith(expect.not.objectContaining({ email: expect.anything() }));
 });
 
@@ -320,7 +320,7 @@ test('A9: tb_group_submitted does NOT fire when vote form is invalid (missing da
   // renderVoteModal with multiple destinations → voteFormValid is false (no destination selected, no dates)
   renderVoteModal();
 
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
+  const submitBtn = screen.getByRole('button', { name: /^continue$/i });
   await userEvent.click(submitBtn);
 
   const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
@@ -336,7 +336,7 @@ async function fillVoteFormAndSubmit() {
   await userEvent.type(screen.getByTestId('date-from'), '2026-08-01');
   await userEvent.type(screen.getByTestId('date-to'), '2026-08-07');
   // Submit
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
+  const submitBtn = screen.getByRole('button', { name: /^continue$/i });
   await userEvent.click(submitBtn);
 }
 
@@ -421,7 +421,7 @@ test('typing a large group size is kept, not clamped', async () => {
   fireEvent.blur(num);
   expect(num).toHaveValue(35);
 
-  await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+  await userEvent.click(screen.getByRole('button', { name: /^continue$/i }));
 
   expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ travelers: 35 }));
 });
