@@ -315,11 +315,15 @@
     }
 
     /* The rail becomes a bar pinned to the bottom of the viewport, holding the
-       trip summary, total, and both CTAs within a thumb's reach. */
+       trip summary, total, and both CTAs within a thumb's reach. Uses fixed
+       (not sticky) because an ancestor's overflow-x:hidden breaks sticky —
+       fixed always shows regardless. */
     .trip-builder-rail {
-        position: sticky;
+        position: fixed;
+        left: 0;
+        right: 0;
         bottom: 0;
-        z-index: 20;
+        z-index: 40;
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         gap: var(--gap);
         /* Clear the iOS home indicator / browser chrome. */
@@ -329,6 +333,12 @@
            cap the bar and let its inner content scroll if it ever overflows. */
         max-height: 70dvh;
         overflow-y: auto;
+    }
+
+    /* The fixed bar sits over the page bottom — reserve space so the last of
+       the browse list isn't hidden behind it. */
+    .trip-builder-main {
+        margin-bottom: 14rem;
     }
 }
 

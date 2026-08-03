@@ -1,18 +1,11 @@
 /* Destination Page Styles */
-/* The header is now in-flow (static) on this page, so the title needs no top
-   reserve — it sits directly below the header/breadcrumbs on the page ground. */
-.destination-title {
-    padding: var(--gap-xl) var(--page-padding) var(--gap-lg);
-}
-
-.destination-title h1 {
-    font-size: clamp(1.5rem, 4vw, 1.875rem);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-}
+/* No destination title/hero block: the tabs are the first content. The header
+   bar floats over the top (absolute) and scrolls away, so the tab row reserves
+   room to clear the header (4rem) + breadcrumbs (~2.9rem) plus breathing room. */
 
 /* Tab Navigation */
 .tab-nav {
+    margin-top: 8.375rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -204,6 +197,8 @@
     }
 
     .tab-nav {
+        /* Mobile header bar is 3.25rem (+ breadcrumbs). */
+        margin-top: 7rem;
         overflow-x: auto;
         justify-content: flex-start;
     }

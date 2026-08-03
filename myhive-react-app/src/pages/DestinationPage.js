@@ -184,10 +184,6 @@ function DestinationPage() {
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
-        <div className="destination-title">
-            <h1>{destination.name}</h1>
-        </div>
-
       <nav className="tab-nav">
           <button
               className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}

@@ -70,7 +70,10 @@ html {
     background: var(--bg);
     -webkit-font-smoothing: antialiased;
     scroll-behavior: smooth;
-    overflow-x: hidden;
+    /* NB: no overflow-x:hidden here — on the root element it turns the viewport
+       into a clipped scroll container, which silently breaks `position: sticky`
+       for every descendant (e.g. the trip-builder summary rail). Horizontal
+       overflow is still contained by `body { overflow-x: hidden }` below. */
     touch-action: pan-y;
     /* Kill the browser's horizontal-swipe history navigation (trackpad
        two-finger swipe / touch overscroll): a drag on the vote swipe-cards

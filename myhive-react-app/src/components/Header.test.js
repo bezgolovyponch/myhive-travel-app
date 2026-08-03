@@ -53,19 +53,19 @@ test('shows breadcrumbs on a destination page', () => {
   expect(container.querySelector('.breadcrumbs')).toBeInTheDocument();
 });
 
-test('header is static (non-sticky) on the destination list page', () => {
-  const {container} = renderHeader('/destination/prague?tab=activities');
-  expect(container.querySelector('.header')).toHaveClass('header--static');
-});
-
-test('header is not static on the homepage', () => {
+test('renders the pinned cart+burger action cluster on the homepage', () => {
   const {container} = renderHeader('/');
-  expect(container.querySelector('.header')).not.toHaveClass('header--static');
+  const actions = container.querySelector('.header-actions');
+  expect(actions).toBeInTheDocument();
+  expect(actions.querySelector('.cart-btn')).toBeInTheDocument();
+  expect(actions.querySelector('.hamburger-btn')).toBeInTheDocument();
 });
 
-test('header is not static on the activity detail page', () => {
-  const {container} = renderHeader('/destination/prague/activity/karting');
-  expect(container.querySelector('.header')).not.toHaveClass('header--static');
+test('renders the pinned cart+burger action cluster on the destination page too', () => {
+  const {container} = renderHeader('/destination/prague?tab=activities');
+  const actions = container.querySelector('.header-actions');
+  expect(actions).toBeInTheDocument();
+  expect(actions.querySelector('.cart-btn')).toBeInTheDocument();
 });
 
 test('cart button reflects the item count in its label', () => {
