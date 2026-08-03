@@ -153,8 +153,8 @@
 
 .package-detail-activity-price {
     font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--accent);
+    font-weight: 700;
+    color: var(--text);
 }
 
 /* Includes text */
@@ -193,7 +193,7 @@
 .package-detail-discounted {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--text);
     line-height: 1;
 }
 

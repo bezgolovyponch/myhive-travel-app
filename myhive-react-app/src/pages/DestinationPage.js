@@ -158,7 +158,7 @@ function DestinationPage() {
   if (loading) {
     return (
       <div className="destination-page">
-          <div className="page-hero destination-header">
+          <div className="page-hero">
           <h1>Loading...</h1>
         </div>
       </div>
@@ -168,7 +168,7 @@ function DestinationPage() {
     if (error || !destination) {
         return (
             <div className="destination-page">
-                <div className="page-hero destination-header">
+                <div className="page-hero">
                     <h1>Destination not found</h1>
                     <button className="btn btn--primary" onClick={() => navigate('/')}>Back to Home</button>
                 </div>
@@ -184,11 +184,6 @@ function DestinationPage() {
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
-        <div className="page-hero destination-header">
-        <h1>{destination.name}</h1>
-        <p>{destination.description || ''}</p>
-      </div>
-      
       <nav className="tab-nav">
           <button
               className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}

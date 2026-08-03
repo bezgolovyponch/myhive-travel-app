@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -76,7 +76,7 @@ test('Start Group Vote opens the vote setup modal with the only destination pres
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
 
   // TripSetupModal in vote mode shows the vote-specific confirm button.
-  expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
+  expect(await screen.findByText('Continue')).toBeInTheDocument();
   // The destination is preset silently — no picker and no read-only row; it
   // only surfaces later on the booking page.
   expect(screen.queryByText('Prague')).not.toBeInTheDocument();
@@ -97,7 +97,7 @@ test('hero "Start Group Vote" fires cta_click with block hero before opening vot
   // cta_click — proving it fired before the modal opened.
   expect(pushEvent.mock.calls[0]).toEqual(['cta_click', {cta_label: 'Start Group Vote', block: 'hero'}]);
   // The vote setup modal should still open (existing action not broken).
-  expect(await screen.findByText('Continue to Categories')).toBeInTheDocument();
+  expect(await screen.findByText('Continue')).toBeInTheDocument();
 });
 
 test('vote setup modal keeps the picker hidden even with several destinations in the API', async () => {
@@ -114,7 +114,7 @@ test('vote setup modal keeps the picker hidden even with several destinations in
   await screen.findByText('What the Lads Say');
 
   await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
-  await screen.findByText('Continue to Categories');
+  await screen.findByText('Continue');
 
   // The destination is resolved silently (default Prague) — the modal never
   // shows a picker or a read-only destination row.
@@ -134,20 +134,15 @@ test('hero headline is plain text, not a link or button', async () => {
   expect(headline.querySelector('a')).toBeNull();
 });
 
-test('Explore activities CTA scrolls to the activities section', async () => {
+test('Explore activities CTA links to the catalog (default destination activities)', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
   renderHome();
-  const section = document.createElement('div');
-  section.id = 'activities';
-  section.scrollIntoView = jest.fn();
-  document.body.appendChild(section);
 
   const cta = screen.getByRole('link', {name: /Explore activities/i});
-  expect(cta).toHaveAttribute('href', '/#activities');
+  // Routes to the default destination's activities listing, not an anchor scroll.
+  expect(cta).toHaveAttribute('href', '/destination/prague?tab=activities');
   await userEvent.click(cta);
-  await waitFor(() => expect(section.scrollIntoView).toHaveBeenCalled());
   expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});
-  section.remove();
 });
 
 test('hero title mentions Prague', () => {

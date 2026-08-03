@@ -53,6 +53,28 @@ test('shows breadcrumbs on a destination page', () => {
   expect(container.querySelector('.breadcrumbs')).toBeInTheDocument();
 });
 
+test('renders the pinned cart+burger action cluster on the homepage', () => {
+  const {container} = renderHeader('/');
+  const actions = container.querySelector('.header-actions');
+  expect(actions).toBeInTheDocument();
+  expect(actions.querySelector('.cart-btn')).toBeInTheDocument();
+  expect(actions.querySelector('.hamburger-btn')).toBeInTheDocument();
+});
+
+test('renders the pinned cart+burger action cluster on the destination page too', () => {
+  const {container} = renderHeader('/destination/prague?tab=activities');
+  const actions = container.querySelector('.header-actions');
+  expect(actions).toBeInTheDocument();
+  expect(actions.querySelector('.cart-btn')).toBeInTheDocument();
+});
+
+test('cart button reflects the item count in its label', () => {
+  const {container} = renderHeader('/');
+  // Empty cart → generic label, no count badge.
+  expect(screen.getByRole('button', {name: 'Cart'})).toBeInTheDocument();
+  expect(container.querySelector('.cart-count')).toBeNull();
+});
+
 test('hides breadcrumbs on the activity detail page (page renders its own)', () => {
   const {container} = renderHeader('/destination/prague/activity/karting');
   expect(container.querySelector('.breadcrumbs')).toBeNull();

@@ -53,8 +53,8 @@
 
 .package-discounted {
     font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--accent);
+    font-weight: 700;
+    color: var(--text);
 }
 
 .package-savings {

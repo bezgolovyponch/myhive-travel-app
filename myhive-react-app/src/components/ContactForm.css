@@ -20,6 +20,14 @@
     color: var(--text);
 }
 
+/* Sits directly under the title as a subtitle (the panel's flex gap otherwise
+   spaces it a full row away). */
+.contact-form-panel__step {
+    margin: calc(var(--gap) * -1 + var(--gap-xs)) 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
 .contact-form-panel__body {
     flex: 1;
     min-height: 0;

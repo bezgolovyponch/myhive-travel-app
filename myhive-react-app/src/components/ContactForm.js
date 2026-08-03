@@ -268,6 +268,9 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
         return (
             <div className="contact-form-panel">
                 <h3 className="contact-form-panel__title">Complete Your Booking</h3>
+                <p className="contact-form-panel__step">
+                    Step 1 of 2 — we confirm availability, then you pay a 30% deposit.
+                </p>
                 <div className="contact-form-panel__body">{body}</div>
                 <div className="contact-form-panel__footer">{footer}</div>
             </div>

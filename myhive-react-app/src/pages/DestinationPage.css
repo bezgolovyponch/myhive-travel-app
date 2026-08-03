@@ -1,28 +1,12 @@
 /* Destination Page Styles */
-.destination-header {
-    /* The banner slides under the fixed header + breadcrumbs (64px + 46px on
-       desktop) — clear them plus the same 24px breathing room as the bottom */
-    padding-top: 8.375rem;
-    padding-bottom: var(--gap-lg);
-}
-
-.destination-header p {
-    /* The global p margin would double the bottom spacing */
-    margin-bottom: 0;
-}
-
-.destination-header h1 {
-    font-size: clamp(1.5rem, 4vw, 1.875rem);
-    font-weight: 600;
-}
-
-.destination-header p {
-    font-size: 1rem;
-    opacity: 0.9;
-}
+/* No destination title/hero block: the tabs are the first content. The header
+   bar floats over the top (absolute) and scrolls away, so the tab row reserves
+   room to clear the header (4rem) + breadcrumbs (~2.9rem) plus breathing room. */
 
 /* Tab Navigation */
 .tab-nav {
+    /* Clear the floating header (4rem row + ~2.9rem breadcrumbs) with no gap. */
+    margin-top: 6.9rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -214,6 +198,8 @@
     }
 
     .tab-nav {
+        /* Mobile header bar is 3.25rem + ~2.9rem breadcrumbs, no gap. */
+        margin-top: 6.15rem;
         overflow-x: auto;
         justify-content: flex-start;
     }
@@ -224,9 +210,3 @@
     }
 }
 
-@media (max-width: 768px) {
-    /* Mobile header row is 52px (+46px breadcrumbs) */
-    .destination-header {
-        padding-top: 7.625rem;
-    }
-}

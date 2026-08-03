@@ -52,12 +52,14 @@ test('a failed filter change shows an inline error, not "Destination not found"'
         .mockRejectedValueOnce(new Error('network'));
 
     renderPage();
-    expect(await screen.findByRole('heading', {name: 'Prague'})).toBeInTheDocument();
+    // The tab nav is the first content now (no destination hero/title). Its
+    // presence stands in for "the page rendered / survived".
+    expect(await screen.findByRole('button', {name: 'Activities'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Food'}));
 
     expect(await screen.findByText(/couldn't load activities/i)).toBeInTheDocument();
     // The page itself must survive the list failure
-    expect(screen.getByRole('heading', {name: 'Prague'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Activities'})).toBeInTheDocument();
     expect(screen.queryByText('Destination not found')).not.toBeInTheDocument();
 });

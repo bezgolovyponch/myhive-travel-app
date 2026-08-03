@@ -1,5 +1,7 @@
 import {Helmet} from 'react-helmet-async';
 import {useNavigate} from 'react-router-dom';
+import {useCatalog} from '../context/CatalogContext';
+import {getDefaultDestination} from '../utils/defaultDestination';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import TripSetupModal from '../components/TripSetupModal';
 import TrustBar from '../components/home/TrustBar';
@@ -11,12 +13,18 @@ import VoteDemoCard from '../components/home/VoteDemoCard';
 import StickyVoteCta from '../components/home/StickyVoteCta';
 import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
 import {pushEvent} from '../utils/analytics';
-import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './HomePage.css';
 
 function HomePage() {
     const navigate = useNavigate();
+    const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
+    // "Explore activities" goes to the catalog — the default destination's
+    // activities listing — rather than scrolling to the homepage teaser.
+    const catalogDestination = getDefaultDestination(catalog.destinations);
+    const catalogHref = catalogDestination
+        ? `/destination/${catalogDestination.slug}?tab=activities`
+        : '/#activities';
 
     return (
         <div className="homepage">
@@ -51,11 +59,11 @@ function HomePage() {
                             </button>
                             <a
                                 className="hp-btn-secondary"
-                                href="/#activities"
+                                href={catalogHref}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'});
-                                    scrollToHomeSection(navigate, 'activities');
+                                    navigate(catalogHref);
                                 }}
                             >
                                 Explore activities
