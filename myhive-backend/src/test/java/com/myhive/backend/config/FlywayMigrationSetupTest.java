@@ -2,6 +2,8 @@ package com.myhive.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.InputStream;
+import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -31,5 +33,25 @@ class FlywayMigrationSetupTest {
                 new ClassPathResource("db/migration/V1__initiator_email_optional.sql");
 
         assertThat(migration.exists()).isTrue();
+    }
+
+    /**
+     * Flyway + {@code spring.jpa.defer-datasource-initialization=true} is an
+     * unsupported combination: Boot wires flyway → deferred script initializer
+     * → entityManagerFactory → flyway, and prod startup dies with "Circular
+     * depends-on relationship between 'flyway' and 'entityManagerFactory'".
+     */
+    @Test
+    void prodProfileDoesNotCombineFlywayWithDeferredDatasourceInit() throws Exception {
+        Properties prodProperties = new Properties();
+        try (InputStream stream =
+                new ClassPathResource("application-prod.properties").getInputStream()) {
+            prodProperties.load(stream);
+        }
+
+        assertThat(prodProperties.getProperty("spring.flyway.enabled")).isEqualTo("true");
+        assertThat(prodProperties.getProperty("spring.jpa.defer-datasource-initialization"))
+                .as("defer-datasource-initialization must not be set in prod while Flyway is enabled")
+                .isNull();
     }
 }
