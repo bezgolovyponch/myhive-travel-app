@@ -53,6 +53,28 @@ test('shows breadcrumbs on a destination page', () => {
   expect(container.querySelector('.breadcrumbs')).toBeInTheDocument();
 });
 
+test('header is static (non-sticky) on the destination list page', () => {
+  const {container} = renderHeader('/destination/prague?tab=activities');
+  expect(container.querySelector('.header')).toHaveClass('header--static');
+});
+
+test('header is not static on the homepage', () => {
+  const {container} = renderHeader('/');
+  expect(container.querySelector('.header')).not.toHaveClass('header--static');
+});
+
+test('header is not static on the activity detail page', () => {
+  const {container} = renderHeader('/destination/prague/activity/karting');
+  expect(container.querySelector('.header')).not.toHaveClass('header--static');
+});
+
+test('cart button reflects the item count in its label', () => {
+  const {container} = renderHeader('/');
+  // Empty cart → generic label, no count badge.
+  expect(screen.getByRole('button', {name: 'Cart'})).toBeInTheDocument();
+  expect(container.querySelector('.cart-count')).toBeNull();
+});
+
 test('hides breadcrumbs on the activity detail page (page renders its own)', () => {
   const {container} = renderHeader('/destination/prague/activity/karting');
   expect(container.querySelector('.breadcrumbs')).toBeNull();

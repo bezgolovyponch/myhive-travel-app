@@ -31,12 +31,16 @@ function Header() {
   // actual item name), so the header only shows breadcrumbs on destination pages.
   const isDetailPage = /^\/destination\/[^/?]+\/(activity|package)\//.test(location.pathname);
   const showBreadcrumbs = Boolean(destinationSlug) && !isDetailPage;
+  // The destination list/trip page drops the fixed chrome (redesign 2026-08-03):
+  // the header renders in-flow so the logo + breadcrumbs scroll away. Every other
+  // route keeps the fixed transparent header that floats over hero photos.
+  const isDestinationListPage = showBreadcrumbs;
   const currentTabLabel = (new URLSearchParams(location.search).get('tab') || 'activities')
       .replace('-', ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
   return (
-    <header className="header header--transparent">
+    <header className={`header header--transparent${isDestinationListPage ? ' header--static' : ''}`}>
       <div className="header-content">
         <Link to="/" className="logo">
           <img src="/logo-trivlu.svg?v=4" alt="Trivlu" className="logo-img"/>
@@ -57,10 +61,22 @@ function Header() {
           <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
         </nav>
           <div className="trip-builder-wrapper">
-              <button className="trip-builder-btn" onClick={handleTripBuilderClick}>
-                  TRIP BUILDER
+              <button
+                  className="cart-btn"
+                  onClick={handleTripBuilderClick}
+                  aria-label={state.tripItems.length > 0
+                      ? `Cart, ${state.tripItems.length} item${state.tripItems.length === 1 ? '' : 's'}`
+                      : 'Cart'}
+              >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                       aria-hidden="true">
+                      <circle cx="9" cy="21" r="1"/>
+                      <circle cx="20" cy="21" r="1"/>
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                  </svg>
                   {state.tripItems.length > 0 && (
-                      <span className="trip-builder-count">{state.tripItems.length}</span>
+                      <span className="cart-count">{state.tripItems.length}</span>
                   )}
               </button>
               <TripBuilderDropdown/>

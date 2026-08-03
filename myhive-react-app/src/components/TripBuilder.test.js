@@ -652,7 +652,12 @@ describe('inline booking form in the browse column', () => {
         expect(screen.queryByText('Complete Your Booking')).not.toBeInTheDocument();
     });
 
-    test('opening the form on mobile scrolls it to sit right below the fixed header', async () => {
+    // Flush the requestAnimationFrame the scroll is deferred with (the booking
+    // form mounts only after showContactForm flips true, so the scroll runs on
+    // the next frame once the ref is populated).
+    const flushRaf = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+
+    test('opening the form on mobile scrolls it into view', async () => {
         const user = userEvent.setup();
         window.matchMedia = jest.fn().mockReturnValue({
             matches: true, // stacked mobile layout
@@ -660,20 +665,14 @@ describe('inline booking form in the browse column', () => {
             removeEventListener: jest.fn(),
         });
         window.scrollTo = jest.fn();
-        // Fixed site header (main bar + breadcrumbs row) — its real height must be
-        // subtracted so the section top lands exactly below it, not underneath it.
-        const expectedHeaderHeight = 93;
-        const header = document.createElement('header');
-        header.className = 'header';
-        Object.defineProperty(header, 'offsetHeight', {value: expectedHeaderHeight});
-        document.body.appendChild(header);
 
         renderTripBuilder();
         await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        await flushRaf();
 
-        // jsdom geometry: column top = 0, scrollY = 0 → target = 0 - headerHeight.
-        expect(window.scrollTo).toHaveBeenCalledWith({top: -expectedHeaderHeight, behavior: 'smooth'});
-        header.remove();
+        // The header is now in-flow (no fixed offset to subtract). jsdom geometry:
+        // form top = 0, scrollY = 0 → target = 0 - 12px breathing room.
+        expect(window.scrollTo).toHaveBeenCalledWith({top: -12, behavior: 'smooth'});
     });
 
     test('every Complete Booking click re-scrolls on mobile, even while the form is already open', async () => {
@@ -688,10 +687,12 @@ describe('inline booking form in the browse column', () => {
         renderTripBuilder();
 
         await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        await flushRaf();
         expect(window.scrollTo).toHaveBeenCalledTimes(1);
 
         // The form stays open; a second click must scroll back down to it again.
         await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+        await flushRaf();
         expect(window.scrollTo).toHaveBeenCalledTimes(2);
     });
 
