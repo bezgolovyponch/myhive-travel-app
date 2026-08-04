@@ -212,7 +212,6 @@ function DestinationPage() {
 
         <div className="tab-content" style={{display: currentTab === 'activities' ? 'flex' : 'none'}}>
         <div className="tab-header">
-          <h2>Activities</h2>
             <div className="filter-group">
                 <div className="category-filters">
               <button
