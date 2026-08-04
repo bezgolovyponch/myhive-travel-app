@@ -206,10 +206,6 @@
     width: 22px;
     height: 22px;
     display: block;
-    /* Optical centering: the cart glyph's mass sits low-left in its 24×24
-       viewBox (wheels at the bottom, handle extending up-left), so a geometric
-       center looks off. Nudge it up-right to sit visually centred. */
-    transform: translate(1px, -1px);
 }
 
 /* Static (not relative): the cart dropdown anchors to the fixed .header-actions
