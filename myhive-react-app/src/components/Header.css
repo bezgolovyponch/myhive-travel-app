@@ -111,11 +111,19 @@
 .hamburger-btn {
     /* Mobile-only: desktop keeps its inline nav links in the (scroll-away) bar,
        so a burger there would duplicate them. On mobile it's shown (see the
-       max-width block) and lives in the pinned cluster with the cart.
+       max-width block) and lives in the cluster with the cart.
        Full circular-button styling lives in the shared rule below so it matches
        the cart exactly. */
-    display: none;
     cursor: pointer;
+}
+
+/* Desktop: hide the burger entirely — the nav links are already inline in the
+   bar. This !important beats the shared `.cart-btn, .hamburger-btn` rule's
+   `display: inline-flex`, which otherwise leaks the burger onto desktop. */
+@media (min-width: 769px) {
+    .hamburger-btn {
+        display: none !important;
+    }
 }
 
 .hamburger-icon,
@@ -198,6 +206,10 @@
     width: 22px;
     height: 22px;
     display: block;
+    /* Optical centering: the cart glyph's mass sits low-left in its 24×24
+       viewBox (wheels at the bottom, handle extending up-left), so a geometric
+       center looks off. Nudge it up-right to sit visually centred. */
+    transform: translate(1px, -1px);
 }
 
 /* Static (not relative): the cart dropdown anchors to the fixed .header-actions
