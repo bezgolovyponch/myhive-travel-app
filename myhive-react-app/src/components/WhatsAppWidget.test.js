@@ -19,6 +19,25 @@ test('renders a direct WhatsApp link and fires the analytics event on click', ()
     }));
 });
 
+// Cancel-must-return-to-site: the click opens WhatsApp in a separate context
+// via window.open and prevents the default navigation, so backing out of
+// WhatsApp (desktop or mobile) leaves the visitor on the page they were on
+// rather than stranding them on the wa.me interstitial / site root.
+test('opens WhatsApp in a new window without navigating the current page', () => {
+    window.dataLayer = [];
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    try {
+        renderAt('/destination/prague');
+        const link = screen.getByRole('link', {name: /chat with us on whatsapp/i});
+        const clickEvent = new MouseEvent('click', {bubbles: true, cancelable: true});
+        link.dispatchEvent(clickEvent);
+        expect(clickEvent.defaultPrevented).toBe(true);
+        expect(openSpy).toHaveBeenCalledWith(WHATSAPP_URL, '_blank', 'noopener,noreferrer');
+    } finally {
+        openSpy.mockRestore();
+    }
+});
+
 test('hidden on the participant swipe page', () => {
     renderAt('/vote/tok123/activities');
     expect(screen.queryByRole('link', {name: /whatsapp/i})).toBeNull();

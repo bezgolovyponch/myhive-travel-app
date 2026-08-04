@@ -6,8 +6,9 @@
 }
 
 .trust-bar-title {
-    font-size: clamp(1.5rem, 3vw, 1.75rem);
-    font-weight: 500;
+    /* Same scale as every other landing section heading (.section-title). */
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
+    font-weight: 600;
     color: var(--white);
     margin: 0 0 var(--gap-xl);
 }
