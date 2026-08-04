@@ -14,11 +14,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* WhatsApp brand green with a soft glow halo, matching the pissup FAB. */
     background: #4caf50;
     color: #fff;
     font-size: 1.75rem;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), 0 0 0 6px rgba(76, 175, 80, 0.18);
+    /* Plain drop shadow — no green glow ring. */
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 /* Red notification dot in the top-right corner, matching the pissup FAB. */
