@@ -184,7 +184,10 @@ function DestinationPage() {
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
-      <nav className="tab-nav" style={{display: trip.checkoutOpen ? 'none' : undefined}}>
+      <nav
+          className="tab-nav"
+          style={{display: (trip.checkoutOpen || currentTab === 'trip-builder') ? 'none' : undefined}}
+      >
           <button
               className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
           onClick={() => handleTabChange('activities')}
@@ -280,8 +283,9 @@ function DestinationPage() {
         </div>
       </div>
 
-      {/* Trip Builder Tab */}
-        <div id="trip-builder-tab" className="tab-content"
+      {/* Trip Builder Tab — tabs are hidden here, so this panel reserves the
+          header/breadcrumbs clearance itself. */}
+        <div id="trip-builder-tab" className="tab-content tab-content--trip"
              style={{display: currentTab === 'trip-builder' ? 'flex' : 'none'}}>
         {tripBuilderActivated && <TripBuilder destinationId={destination?.id} destinationSlug={destination?.slug} destinationName={destination?.name} />}
       </div>
