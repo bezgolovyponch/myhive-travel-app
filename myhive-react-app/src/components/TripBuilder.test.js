@@ -816,6 +816,45 @@ describe('CTA emphasis around the group vote', () => {
         expect(bookingButton).not.toHaveClass('btn--primary');
     });
 
+    // The list heading reflects the step: while the group can still be sent to
+    // vote (the Start group vote CTA is up) it's a "Voting List"; once the vote
+    // ends — or there's nothing to vote on — it's back to "Your Itinerary".
+    test('heading reads "Your Voting List" while the vote CTA is available', () => {
+        renderTripBuilder(buildTripState({ tripItems: [activity1] }));
+
+        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Your Voting List' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Your Itinerary' })).not.toBeInTheDocument();
+    });
+
+    test('heading reverts to "Your Itinerary" once the cart vote has ended', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getResult.mockResolvedValue({
+            voteMode: 'CART',
+            participantCount: 9,
+            result: [{ activityId: 'a-1', name: 'Bar Crawl', price: 45, likeCount: 8 }],
+        });
+
+        renderTripBuilder(buildTripState({
+            tripItems: [{ id: 'a-1', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' }],
+        }));
+
+        expect(await screen.findByText('♥ 8')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Your Itinerary' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Your Voting List' })).not.toBeInTheDocument();
+    });
+
+    test('heading stays "Your Itinerary" for a package-only cart (nothing to vote on)', () => {
+        renderTripBuilder(buildTripState({
+            tripItems: [
+                { id: 'a-1', name: 'Karting', price: 50, packageId: 'p-1', packageName: 'Mayhem', packageDiscountPct: 10 },
+            ],
+        }));
+
+        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Your Itinerary' })).toBeInTheDocument();
+    });
+
     test('after a completed cart vote, Complete Booking takes the primary style back', async () => {
         localStorage.setItem('myhive-trip-vote-session', 't-1');
         voteApi.getResult.mockResolvedValue({

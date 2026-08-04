@@ -582,7 +582,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     <div className={layoutClasses}>
       <div className="trip-builder-main">
         <div className="itinerary-header">
-          <h2>Your Itinerary</h2>
+          {/* While the group can still be sent to vote (the Start group vote CTA
+              is up) this is the list they'll vote on; once voting ends — or
+              there's nothing to vote on — it's their itinerary. */}
+          <h2>{voteCtaVisible ? 'Your Voting List' : 'Your Itinerary'}</h2>
           <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
         </div>
         {tripSummary}
