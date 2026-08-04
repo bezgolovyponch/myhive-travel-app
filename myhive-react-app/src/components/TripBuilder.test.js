@@ -846,6 +846,43 @@ describe('CTA emphasis around the group vote', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Itinerary footer — Estimated cost line + Complete Booking close the
+// itinerary; the sticky rail keeps only the vote CTA (and vanishes when empty)
+// ---------------------------------------------------------------------------
+
+describe('itinerary footer: estimate + Complete Booking', () => {
+    test('shows the Estimated cost line with the trip total and no rail Total', () => {
+        // 2 travelers × (€60 + €40) = €200
+        renderTripBuilder(buildTripState({ tripItems: [activity1, activity2] }));
+
+        const expectedTotal = '€200';
+        const estimateLabel = screen.getByText('Estimated cost');
+        expect(estimateLabel).toBeInTheDocument();
+        expect(screen.getByText(expectedTotal)).toBeInTheDocument();
+        expect(screen.queryByText('Total')).not.toBeInTheDocument();
+    });
+
+    test('the rail is not rendered when there is nothing to vote on and no budget', () => {
+        const { container } = renderTripBuilder(buildTripState({
+            tripItems: [
+                { id: 'a-1', name: 'Karting', price: 50, packageId: 'p-1', packageName: 'Mayhem', packageDiscountPct: 10 },
+            ],
+        }));
+
+        expect(container.querySelector('.trip-builder-rail')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Complete Booking' })).toBeInTheDocument();
+    });
+
+    test('the rail with the vote CTA renders alongside the itinerary-footer booking button', () => {
+        const { container } = renderTripBuilder(buildTripState({ tripItems: [activity1] }));
+
+        const rail = container.querySelector('.trip-builder-rail');
+        expect(rail).toContainElement(screen.getByRole('button', { name: 'Start group vote' }));
+        expect(rail).not.toContainElement(screen.getByRole('button', { name: 'Complete Booking' }));
+    });
+});
+
+// ---------------------------------------------------------------------------
 // cta_click on the "Let your mates vote" button
 // ---------------------------------------------------------------------------
 
@@ -1067,79 +1104,21 @@ describe('vote button after a completed cart vote', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Quiz mode — Start Over (organizer arrived from the quiz/swipe flow)
+// Quiz mode — Start Over was removed from the checkout (2026-08-04)
 // ---------------------------------------------------------------------------
 
-describe('quiz mode: Start Over', () => {
-    const quizSetup = {
-        destination: { id: 'dest-1', slug: 'prague' },
-        travelers: 4,
-        startDate: '2026-09-01',
-        endDate: '2026-09-05',
-        email: 'organizer@example.com',
-        budget: 2000,
-    };
-
-    function seedQuizFlow(setupOverrides = {}) {
+describe('quiz mode: Start Over removed', () => {
+    test('no Start Over button renders even with a stored quiz flow for this destination', async () => {
         sessionStorage.setItem('myhive-quiz-flow', JSON.stringify({
-            setup: { ...quizSetup, ...setupOverrides },
+            setup: { destination: { id: 'dest-1', slug: 'prague' } },
             responses: [{ questionId: 'q1', answerId: 'a1' }],
         }));
-    }
+        renderTripBuilder(buildTripState({ tripItems: [] }));
 
-    function QuizLocationProbe() {
-        const location = useLocation();
-        return <div data-testid="quiz-location">{location.pathname}</div>;
-    }
-
-    function renderQuizTripBuilder(tripState = buildTripState(), dispatch = jest.fn()) {
-        render(
-            <MemoryRouter initialEntries={['/']}>
-                <TripContext.Provider value={{ state: tripState, dispatch }}>
-                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
-                    <QuizLocationProbe />
-                </TripContext.Provider>
-            </MemoryRouter>
-        );
-        return dispatch;
-    }
-
-    test('Start Over shows in quiz mode, clears the trip, and restarts the quiz', async () => {
-        seedQuizFlow();
-        const user = userEvent.setup();
-        const dispatch = renderQuizTripBuilder();
-
-        await user.click(screen.getByRole('button', { name: 'Start Over' }));
-
-        expect(pushEvent).toHaveBeenCalledWith('cta_click', {
-            cta_label: 'Start Over',
-            block: 'trip_builder',
-        });
-        expect(dispatch).toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
-        expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
-        expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
-        expect(sessionStorage.getItem('myhive-quiz-flow')).toBeNull();
-        expect(screen.getByTestId('quiz-location')).toHaveTextContent('/vote/new/quiz');
-    });
-
-    test('Start Over is absent without a stored quiz flow', () => {
-        renderQuizTripBuilder();
+        // Quiz mode kicks off the Recommended-for-you pool fetch on mount —
+        // await it settling so the effect's state update lands inside act().
+        await waitFor(() => expect(voteApi.buildPool).toHaveBeenCalled());
         expect(screen.queryByRole('button', { name: 'Start Over' })).not.toBeInTheDocument();
-    });
-
-    test('Start Over is absent when the stored quiz flow is for another destination', () => {
-        seedQuizFlow({ destination: { id: 'other-dest', slug: 'berlin' } });
-        renderQuizTripBuilder();
-        expect(screen.queryByRole('button', { name: 'Start Over' })).not.toBeInTheDocument();
-    });
-
-    test('Start Over still shows when the cart is empty in quiz mode', async () => {
-        seedQuizFlow();
-        renderQuizTripBuilder(buildTripState({ tripItems: [] }));
-        // findByRole (not getByRole): quiz mode now also kicks off the
-        // Recommended-for-you pool fetch on mount — await it settling so the
-        // effect's state update lands inside act() like the other quiz-mode tests.
-        expect(await screen.findByRole('button', { name: 'Start Over' })).toBeInTheDocument();
     });
 });
 

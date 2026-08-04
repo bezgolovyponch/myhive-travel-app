@@ -6,6 +6,12 @@
     align-items: start;
 }
 
+/* Without the vote rail (vote ended / nothing to vote on, no budget) the main
+   column takes the full width instead of leaving an empty gutter. */
+.trip-builder-layout--no-rail {
+    grid-template-columns: 1fr;
+}
+
 .trip-builder-main {
     background: var(--surface);
     border-radius: var(--radius-lg);
@@ -85,23 +91,32 @@
     font-size: max(16px, 1rem);
 }
 
-.itinerary-total {
+/* Itinerary footer: estimate line + Complete Booking, closing the itinerary
+   section in the main column. */
+.itinerary-footer {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--gap-sm) 0;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    padding-top: var(--gap-sm);
     border-top: 1px solid var(--card-border);
-    font-weight: 600;
-    color: var(--text);
-    flex-shrink: 0;
 }
 
-.itinerary-total-price {
+/* Deliberately quiet, receipt-style line: label and amount share the same
+   small size — the price is an estimate, not the checkout total. */
+.itinerary-estimate {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: var(--gap-xs);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+.itinerary-estimate-price {
     /* Prices are content, not actions: high-contrast neutral, emphasis via
-       weight/size — not the brand purple (which reads as a link/CTA). */
+       weight only — not the brand purple (which reads as a link/CTA). */
     color: var(--text);
-    font-size: 1.125rem;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .itinerary-list {
@@ -324,10 +339,10 @@
         gap: var(--gap-lg);
     }
 
-    /* The rail becomes a bar pinned to the bottom of the viewport, holding the
-       trip summary, total, and both CTAs within a thumb's reach. Uses fixed
-       (not sticky) because an ancestor's overflow-x:hidden breaks sticky —
-       fixed always shows regardless. */
+    /* The rail becomes a bar pinned to the bottom of the viewport, keeping the
+       "Start group vote" CTA (and the vote-session budget) within a thumb's
+       reach. Uses fixed (not sticky) because an ancestor's overflow-x:hidden
+       breaks sticky — fixed always shows regardless. */
     .trip-builder-rail {
         position: fixed;
         left: 0;
@@ -346,9 +361,19 @@
     }
 
     /* The fixed bar sits over the page bottom — reserve space so the last of
-       the browse list isn't hidden behind it. */
+       the browse list isn't hidden behind it. Sized to the bar's content:
+       vote button only (~5.5rem) by default, taller when the vote-session
+       budget panel joins it; no bar, no reservation. */
     .trip-builder-main {
-        margin-bottom: 14rem;
+        margin-bottom: 8rem;
+    }
+
+    .trip-builder-layout--budget .trip-builder-main {
+        margin-bottom: 15rem;
+    }
+
+    .trip-builder-layout--no-rail .trip-builder-main {
+        margin-bottom: 0;
     }
 }
 
@@ -398,7 +423,7 @@
   color: var(--text-muted, rgba(167, 169, 169, 0.7));
 }
 
-/* Total + CTAs stack with even spacing so buttons never touch/overlap. */
+/* Rail CTA block — spacing container for the vote button. */
 .trip-actions {
     display: flex;
     flex-direction: column;
@@ -415,9 +440,9 @@
     color: rgba(255, 255, 255, 0.65);
 }
 
-/* Purple-outlined secondary CTA: Start Over, and Complete Booking while the
-   group-vote button carries the primary emphasis. Disabled look comes from the
-   global .btn:disabled rule. */
+/* Purple-outlined secondary CTA: Complete Booking while the group-vote button
+   carries the primary emphasis. Disabled look comes from the global
+   .btn:disabled rule. */
 .btn--outline-brand {
     background: transparent;
     border: 1px solid #7c6cf5;
