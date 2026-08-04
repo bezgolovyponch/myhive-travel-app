@@ -222,7 +222,7 @@ function DestinationPage() {
                   className={`filter-btn ${currentFilter === 'all' ? 'active' : ''}`}
                   onClick={() => handleFilterChange('all')}
               >
-                  All
+                  <span>All</span>
               </button>
                     {(showAllCategories ? categories : categories.slice(0, VISIBLE_CATEGORY_COUNT)).map(category => (
                 <button
@@ -230,7 +230,7 @@ function DestinationPage() {
                     className={`filter-btn ${currentFilter === category.slug ? 'active' : ''}`}
                     onClick={() => handleFilterChange(category.slug)}
                 >
-                    {capitalizeFirst(category.name)}
+                    <span>{capitalizeFirst(category.name)}</span>
                 </button>
                     ))}
                 </div>

@@ -115,15 +115,35 @@
     }
 
     .filter-btn {
-        height: 2.25rem;
+        /* Uniform height sized for two lines of text (2 × 0.625rem × 1.15
+           line-height ≈ 1.44rem + padding), so a long name like
+           "Hot babies and pranks" wraps cleanly and stays vertically centred
+           instead of being clipped mid-word. Anything past two lines is
+           ellipsised rather than cut off flat. */
+        height: 2.75rem;
         padding: 0 0.25rem;
         font-size: 0.625rem;
+        /* Flex centres the label on both axes; the inner span carries the
+           2-line clamp (line-clamp needs display:-webkit-box, which can't also
+           be the flex container). */
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
-        line-height: 1.1;
+        line-height: 1.15;
         overflow: hidden;
+    }
+
+    .filter-btn > span {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        /* A single long word ("Adventure") that's wider than the narrow grid
+           cell would otherwise overflow horizontally and get clipped to
+           "Adventur" by overflow:hidden. Let it wrap across the two available
+           lines instead — this only breaks a word when it genuinely can't fit. */
+        overflow-wrap: anywhere;
     }
 }
 
