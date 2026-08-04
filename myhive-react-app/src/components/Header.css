@@ -76,16 +76,18 @@
     align-items: center;
 }
 
-/* Transparent header: nav-links sit on the right, clearing the pinned
-   cart+burger cluster (two 2.5rem buttons + gap = 5.5rem, sitting at
-   var(--page-padding) from the edge) plus breathing room, so the links never
-   slide underneath it. */
+/* Transparent header: nav-links sit on the right, close to the cart. The cart
+   (.header-actions) is pinned at var(--page-padding) from the viewport edge,
+   and .header-content already has that same var(--page-padding) as right
+   padding — so the nav only needs to clear the single 2.5rem cart button
+   (burger is hidden on desktop) plus a small gap. Adding page-padding here too
+   would double-count it and shove the links far left of the cart. */
 .header--transparent .nav-links {
     position: static;
     left: auto;
     transform: none;
     margin-left: auto;
-    margin-right: calc(5.5rem + var(--page-padding) + var(--gap));
+    margin-right: calc(2.5rem + var(--gap));
     gap: 1.375rem;
 }
 
