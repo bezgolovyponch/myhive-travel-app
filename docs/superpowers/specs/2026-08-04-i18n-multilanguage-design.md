@@ -99,6 +99,15 @@ New nullable `locale` column (default `en`) on `Booking`, `TripLead`, `VoteSessi
 3. Frontend ships with locale routing, switcher, and dictionaries.
 4. Google picks up the updated sitemap with hreflang alternates.
 
+## Costs
+
+Measured catalog volume (prod DB, 2026-08-04): ~60,000 chars of English source text (142 activities = 49k, 6 blog posts = 9.5k, rest ~1k). Backfill to 4 locales ≈ 240,000 chars one-time; ongoing admin edits are a few thousand chars/month.
+
+- **DeepL API Free**: 500,000 chars/month at €0 — the entire backfill fits in one month with 2× headroom; ongoing volume is negligible. The free tier hard-stops at the limit (no surprise charges); a card is required at signup for verification only. Paid fallback if we ever outgrow it: API Pro $5.49/mo + $25/M chars.
+- **UI dictionaries and email bundles** are translated once during development (by the AI assistant doing the implementation) — no translation API involved, €0.
+- **Infra**: no new services; Render setup unchanged. Total incremental running cost: **€0/month**.
+- Considered alternatives: Google Cloud Translation (same 500k/mo free, slightly weaker quality for EU languages); LLM API (e.g. Claude Haiku 4.5, ~$0.5 one-time for the backfill, better brand-tone control — viable swap-in for `MachineTranslationService` later); free LLM tiers (rate limits + training-on-your-data ToS — not for a production pipeline); self-hosted open-source MT (worse quality, and the only option with a real monthly hosting cost).
+
 ## Next.js migration coordination
 
 The translation table, `lang` API param, and locale dictionaries are framework-agnostic and carry over unchanged. Only the locale route wrapper is CRA-specific and gets replaced by Next.js locale routing. Add a note to the migration plan (PR #5) so the colleague accounts for the locale prefix in the v3 URL scheme.
