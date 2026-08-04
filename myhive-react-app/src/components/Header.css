@@ -25,11 +25,15 @@
    so both stay reachable while the bar above scrolls away. Vertically centered
    in the 4rem logo/nav row so it sits above the breadcrumbs block, aligned with
    the logo — top = (4rem row − 2.5rem button) / 2 = 0.75rem. */
+/* Cart + burger sit in the header bar's top row (aligned with the logo, above
+   the breadcrumbs) and scroll away WITH the header — not pinned to the viewport.
+   Absolute against the header (which is itself absolute over the page top), so
+   they leave the screen as the user scrolls. */
 .header-actions {
-    position: fixed;
+    position: absolute;
     top: 0.75rem;
     right: var(--page-padding);
-    z-index: 60;
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: var(--gap-sm);
@@ -523,7 +527,8 @@
     .nav-links,
     .header--transparent .nav-links {
         display: none;
-        position: fixed;
+        /* Absolute (not fixed) so the menu scrolls away with the header/burger. */
+        position: absolute;
         top: calc(0.375rem + 2.5rem + var(--gap-sm));
         left: auto;
         right: var(--page-padding);
