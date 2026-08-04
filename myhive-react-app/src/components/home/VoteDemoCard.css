@@ -16,7 +16,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.875rem;
 }
 
 .vc-badge {
@@ -37,9 +37,12 @@
 }
 
 .vc-sub {
+    /* Sits on the same line as the title, pushed to the right edge of the head
+       so the whole card is one row shorter. */
+    margin-left: auto;
     color: #dcdae2;
     font-size: 0.6875rem;
-    margin: 0 0 0.875rem 2.25rem;
+    white-space: nowrap;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 

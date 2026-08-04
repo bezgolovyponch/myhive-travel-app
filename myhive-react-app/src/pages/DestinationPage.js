@@ -177,44 +177,44 @@ function DestinationPage() {
     }
 
   return (
-    <div className="destination-page">
+    <div className={`destination-page${trip.checkoutOpen ? ' destination-page--checkout' : ''}`}>
         <Helmet>
             <title>{destination.name} — Trivlu</title>
             <meta name="description"
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
-        {/* Checkout (Trip Builder) hides the tab bar so nothing pulls the user
-            away from completing the booking; the header breadcrumbs and the
-            Browse More Activities section still lead back to the catalog. */}
-        {currentTab !== 'trip-builder' && (
-            <nav className="tab-nav">
-                <button
-                    className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
-                    onClick={() => handleTabChange('activities')}
-                >
-                    Activities
-                </button>
-                {packages.length > 0 && (
-                    <button
-                        className={`tab-btn ${currentTab === 'packages' ? 'active' : ''}`}
-                        onClick={() => handleTabChange('packages')}
-                    >
-                        Packages
-                    </button>
-                )}
-                <button
-                    className="tab-btn"
-                    onClick={() => handleTabChange('trip-builder')}
-                >
-                    Trip Builder
-                </button>
-            </nav>
-        )}
+      {/* Tab bar hides on the Trip Builder tab (and during checkout) so nothing
+          pulls the user away from completing the booking; breadcrumbs + Browse
+          More Activities still lead back to the catalog. */}
+      <nav
+          className="tab-nav"
+          style={{display: (trip.checkoutOpen || currentTab === 'trip-builder') ? 'none' : undefined}}
+      >
+          <button
+              className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
+          onClick={() => handleTabChange('activities')}
+        >
+          Activities
+        </button>
+          {packages.length > 0 && (
+              <button
+                  className={`tab-btn ${currentTab === 'packages' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('packages')}
+              >
+                  Packages
+              </button>
+          )}
+          <button
+              className={`tab-btn ${currentTab === 'trip-builder' ? 'active' : ''}`}
+          onClick={() => handleTabChange('trip-builder')}
+        >
+          Trip Builder
+        </button>
+      </nav>
 
         <div className="tab-content" style={{display: currentTab === 'activities' ? 'flex' : 'none'}}>
         <div className="tab-header">
-          <h2>Activities</h2>
             <div className="filter-group">
                 <div className="category-filters">
               <button
@@ -285,8 +285,9 @@ function DestinationPage() {
         </div>
       </div>
 
-      {/* Trip Builder Tab */}
-        <div id="trip-builder-tab" className="tab-content tab-content--checkout"
+      {/* Trip Builder Tab — tabs are hidden here, so this panel reserves the
+          header/breadcrumbs clearance itself. */}
+        <div id="trip-builder-tab" className="tab-content tab-content--trip"
              style={{display: currentTab === 'trip-builder' ? 'flex' : 'none'}}>
         {tripBuilderActivated && <TripBuilder destinationId={destination?.id} destinationSlug={destination?.slug} destinationName={destination?.name} />}
       </div>

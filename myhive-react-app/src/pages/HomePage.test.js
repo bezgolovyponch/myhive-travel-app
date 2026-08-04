@@ -134,12 +134,13 @@ test('hero headline is plain text, not a link or button', async () => {
   expect(headline.querySelector('a')).toBeNull();
 });
 
-test('Explore activities CTA links to the catalog (default destination activities)', async () => {
+test('Explore activities CTA links to the destination activities catalog', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
   renderHome();
 
   const cta = screen.getByRole('link', {name: /Explore activities/i});
-  // Routes to the default destination's activities listing, not an anchor scroll.
+  // Routes to the default destination's activities tab (the catalog page),
+  // not an on-page anchor scroll.
   expect(cta).toHaveAttribute('href', '/destination/prague?tab=activities');
   await userEvent.click(cta);
   expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});

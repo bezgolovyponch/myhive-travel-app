@@ -14,8 +14,8 @@ function VoteDemoCard() {
             <div className="vc-head">
                 <span className="vc-badge"><i className="ph ph-check-square"/></span>
                 <span className="vc-title">Vote on activities</span>
+                <span className="vc-sub">9 of 11 lads voted</span>
             </div>
-            <div className="vc-sub">9 of 11 lads voted</div>
             {ROWS.map((row) => (
                 <div className="vc-row" key={row.name}>
                     <div className="vc-row-top">

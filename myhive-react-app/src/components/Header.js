@@ -45,6 +45,12 @@ function Header() {
       .replace('-', ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
+  // The Complete Booking flow is a focused checkout: the global header (and its
+  // breadcrumb subheader) collapse away so nothing competes with the form.
+  if (state.checkoutOpen) {
+    return null;
+  }
+
   return (
     // The header bar (logo + nav + breadcrumbs) now scrolls away with the page
     // on every route (2026-08-03). Only the cart + burger cluster below stays

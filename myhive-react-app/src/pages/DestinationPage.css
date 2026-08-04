@@ -3,6 +3,12 @@
    bar floats over the top (absolute) and scrolls away, so the tab row reserves
    room to clear the header (4rem) + breadcrumbs (~2.9rem) plus breathing room. */
 
+/* Complete Booking checkout view (from main): header, hero and tabs are hidden,
+   so the focused form gets its own top breathing room in place of the hero's. */
+.destination-page--checkout {
+    padding-top: var(--gap-xl);
+}
+
 /* Tab Navigation */
 .tab-nav {
     /* Clear the floating header (4rem row + ~2.9rem breadcrumbs) with no gap. */
@@ -51,11 +57,17 @@
     gap: var(--gap-xl);
 }
 
-/* Checkout (Trip Builder) renders without the tab bar, so its content reserves
-   the header clearance the nav's margin-top normally provides: floating header
-   (4rem) + breadcrumbs (~2.9rem) + the usual content gap. */
-.tab-content--checkout {
-    padding-top: calc(6.9rem + var(--gap-xl));
+/* Trip Builder panel: the tab bar is hidden here (it normally reserves the
+   floating-header clearance), so this panel reserves it itself — the itinerary
+   sits below the header + breadcrumbs instead of overlapping them. */
+.tab-content--trip {
+    padding-top: 8.375rem;
+}
+
+@media (max-width: 768px) {
+    .tab-content--trip {
+        padding-top: 6.5rem;
+    }
 }
 
 .tab-header {
@@ -92,22 +104,26 @@
     gap: var(--gap-sm);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+    /* Uniform 4-column grid across all phones/small tablets: every chip is the
+       SAME compact fixed size regardless of label length, so a 2-word category
+       ("Guns & Bullets") never makes its row taller/wider than "Chillout". */
     .category-filters {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--gap-xs);
     }
 
-    /* Chips were ~32px tall at this breakpoint (text + gap-sm padding),
-       under the 40px tap-target minimum. Give every chip an equal, centered
-       min-height so the grid rows stay uniform and touch-friendly without
-       changing the visual gap between chips. */
     .filter-btn {
-        min-height: 2.5rem;
+        height: 2.25rem;
+        padding: 0 0.25rem;
+        font-size: 0.625rem;
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
+        line-height: 1.1;
+        overflow: hidden;
     }
 }
 
@@ -209,10 +225,6 @@
         margin-top: 6.15rem;
         overflow-x: auto;
         justify-content: flex-start;
-    }
-
-    .tab-content--checkout {
-        padding-top: calc(6.15rem + var(--gap-xl));
     }
 
     .tab-btn {

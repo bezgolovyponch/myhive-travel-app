@@ -14,10 +14,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #25d366;
+    background: #4caf50;
     color: #fff;
     font-size: 1.75rem;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    /* Plain drop shadow — no green glow ring. */
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Red notification dot in the top-right corner, matching the pissup FAB. */
+.trv-chat-fab::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #ff3b30;
+    border: 2px solid #fff;
 }
 
 .trv-chat-fab:hover { color: #fff; opacity: 0.92; }
@@ -34,13 +48,11 @@
     }
 }
 
-/* The trip view pins a tall summary+CTA bar to the bottom on mobile; the FAB
-   would overlap its buttons (Complete Booking / Start group vote), so hide it
-   while that bar is on screen — the user is mid-checkout, not seeking chat. */
-@media (max-width: 768px) {
-    body:has(.trip-builder-rail) .trv-chat-fab {
-        display: none;
-    }
+/* The trip view pins a Total + Complete Booking bar to the bottom of the
+   viewport; the FAB would overlap it, so hide the FAB while that bar is on
+   screen — the user is mid-checkout, not seeking chat. */
+body:has(.trip-checkout-bar) .trv-chat-fab {
+    display: none;
 }
 
 /* Sits above the fixed mobile Add-to-Trip bar on activity detail pages
