@@ -11,8 +11,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RateLimitFilterTest {
@@ -168,6 +181,77 @@ class RateLimitFilterTest {
 
         verify(response).setStatus(413);
         verify(chain, never()).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_bucketExpires_requestsPassAgainAfterTheWindow() throws Exception {
+        ScheduledExecutorService realScheduler = Executors.newSingleThreadScheduledExecutor();
+        try {
+            RateLimitFilter shortWindowFilter = new RateLimitFilter(realScheduler, 50L);
+            when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
+            when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+            when(request.getRemoteAddr()).thenReturn("10.0.0.4");
+            StringWriter sw = new StringWriter();
+            when(response.getWriter()).thenReturn(new PrintWriter(sw));
+
+            for (int i = 0; i < 101; i++) {
+                shortWindowFilter.doFilter(request, response, chain);
+            }
+            verify(response).setStatus(429);
+
+            // Poll past the 50 ms window: the expired bucket must admit requests again.
+            long deadline = System.currentTimeMillis() + 2_000L;
+            int expectedPassedThrough = 100;
+            while (true) {
+                shortWindowFilter.doFilter(request, response, chain);
+                try {
+                    verify(chain, times(expectedPassedThrough + 1)).doFilter(request, response);
+                    break;
+                } catch (AssertionError stillBlocked) {
+                    if (System.currentTimeMillis() > deadline) {
+                        fail("Bucket never expired — requests stayed rate-limited after the window");
+                    }
+                    Thread.sleep(20L);
+                }
+            }
+        } finally {
+            realScheduler.shutdownNow();
+        }
+    }
+
+    @Test
+    void doFilter_concurrentFirstRequests_stillScheduleExactlyOneCleanup() throws Exception {
+        // Regression for a race: cleanup used to be scheduled behind a count == 1
+        // check after the increment, so two concurrent first requests could both
+        // observe count 2, skip scheduling, and leave the IP blocked forever.
+        ScheduledExecutorService mockScheduler = mock(ScheduledExecutorService.class);
+        RateLimitFilter racingFilter = new RateLimitFilter(mockScheduler, 60_000L);
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+
+        int expectedBuckets = 50;
+        for (int round = 0; round < expectedBuckets; round++) {
+            when(request.getRemoteAddr()).thenReturn("10.1.0." + round);
+            CountDownLatch start = new CountDownLatch(1);
+            Runnable firstRequest = () -> {
+                try {
+                    start.await();
+                    racingFilter.doFilter(request, response, chain);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            };
+            Thread first = new Thread(firstRequest);
+            Thread second = new Thread(firstRequest);
+            first.start();
+            second.start();
+            start.countDown();
+            first.join();
+            second.join();
+        }
+
+        // Exactly one cleanup per bucket, no matter how the first requests interleaved.
+        verify(mockScheduler, times(expectedBuckets)).schedule(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS));
     }
 
     @Test

@@ -1,6 +1,10 @@
 package com.myhive.backend.config;
 
-import jakarta.servlet.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
@@ -27,11 +31,21 @@ public class RateLimitFilter implements Filter {
      *  cheap unauthenticated DoS (large-body flood). */
     private static final long MAX_WEBHOOK_BODY_BYTES = 512L * 1024L;
     private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "rate-limit-cleanup");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ScheduledExecutorService scheduler;
+    private final long cleanupDelayMillis;
+
+    public RateLimitFilter() {
+        this(Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "rate-limit-cleanup");
+            t.setDaemon(true);
+            return t;
+        }), TimeUnit.MINUTES.toMillis(1));
+    }
+
+    RateLimitFilter(ScheduledExecutorService scheduler, long cleanupDelayMillis) {
+        this.scheduler = scheduler;
+        this.cleanupDelayMillis = cleanupDelayMillis;
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -61,17 +75,25 @@ public class RateLimitFilter implements Filter {
         }
 
         String clientIp = getClientIp(httpRequest);
-        AtomicInteger count = requestCounts.computeIfAbsent(clientIp, k -> new AtomicInteger(0));
+        // Cleanup is scheduled inside the atomic computeIfAbsent so it runs exactly
+        // once per bucket. Scheduling it afterwards behind a count == 1 check had a
+        // race: two concurrent first requests could both increment before either
+        // checked the count, nobody scheduled the removal, and the IP stayed
+        // rate-limited until an application restart.
+        AtomicInteger count = requestCounts.computeIfAbsent(clientIp, key -> {
+            // Block body keeps the lambda void-compatible only, pinning the
+            // schedule(Runnable, ...) overload (an expression body would return
+            // remove()'s value and silently select schedule(Callable, ...)).
+            scheduler.schedule(() -> {
+                requestCounts.remove(key);
+            }, cleanupDelayMillis, TimeUnit.MILLISECONDS);
+            return new AtomicInteger(0);
+        });
 
         if (count.incrementAndGet() > MAX_REQUESTS_PER_MINUTE) {
             httpResponse.setStatus(429);
             httpResponse.getWriter().write("Too Many Requests");
             return;
-        }
-
-        // Schedule cleanup after 1 minute for new entries
-        if (count.get() == 1) {
-            scheduler.schedule(() -> requestCounts.remove(clientIp), 1, TimeUnit.MINUTES);
         }
 
         chain.doFilter(request, response);

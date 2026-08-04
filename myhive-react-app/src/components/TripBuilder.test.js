@@ -803,6 +803,49 @@ describe('Let your mates vote button', () => {
 });
 
 // ---------------------------------------------------------------------------
+// CTA emphasis: vote-first before a vote, booking-first once it's over
+// ---------------------------------------------------------------------------
+
+describe('CTA emphasis around the group vote', () => {
+    test('before any vote, Start group vote is primary and Complete Booking is outlined', () => {
+        renderTripBuilder(buildTripState({ tripItems: [activity1] }));
+
+        expect(screen.getByRole('button', { name: 'Start group vote' })).toHaveClass('btn--primary');
+        const bookingButton = screen.getByRole('button', { name: 'Complete Booking' });
+        expect(bookingButton).toHaveClass('btn--outline-brand');
+        expect(bookingButton).not.toHaveClass('btn--primary');
+    });
+
+    test('after a completed cart vote, Complete Booking takes the primary style back', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 't-1');
+        voteApi.getResult.mockResolvedValue({
+            voteMode: 'CART',
+            participantCount: 9,
+            result: [{ activityId: 'a-1', name: 'Bar Crawl', price: 45, likeCount: 8 }],
+        });
+
+        renderTripBuilder(buildTripState({
+            tripItems: [{ id: 'a-1', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' }],
+        }));
+
+        expect(await screen.findByText('♥ 8')).toBeInTheDocument();
+        const bookingButton = screen.getByRole('button', { name: 'Complete Booking' });
+        expect(bookingButton).toHaveClass('btn--primary');
+        expect(bookingButton).not.toHaveClass('btn--outline-brand');
+    });
+
+    test('a package-only cart (no vote button) keeps Complete Booking primary', () => {
+        renderTripBuilder(buildTripState({
+            tripItems: [
+                { id: 'a-1', name: 'Karting', price: 50, packageId: 'p-1', packageName: 'Mayhem', packageDiscountPct: 10 },
+            ],
+        }));
+
+        expect(screen.getByRole('button', { name: 'Complete Booking' })).toHaveClass('btn--primary');
+    });
+});
+
+// ---------------------------------------------------------------------------
 // cta_click on the "Let your mates vote" button
 // ---------------------------------------------------------------------------
 

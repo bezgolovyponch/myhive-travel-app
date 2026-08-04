@@ -1,9 +1,9 @@
-/* Trip Builder Layout — single main column; the only sticky element is the
-   bottom checkout bar (Total + Complete Booking). */
+/* Trip Builder Layout — Split Rail: main column + sticky summary/CTA rail. */
 .trip-builder-layout {
-    display: block;
-    /* Room so the fixed checkout bar never covers the last of the content. */
-    padding-bottom: 6rem;
+    display: grid;
+    grid-template-columns: 1fr 20rem;
+    gap: var(--gap-xl);
+    align-items: start;
 }
 
 .trip-builder-main {
@@ -16,64 +16,22 @@
     gap: var(--gap-lg);
 }
 
-/* Sticky checkout bar: pinned to the bottom of the viewport on every screen
-   size, carrying the running total + the single primary CTA. */
-.trip-checkout-bar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 40;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--gap);
-    padding: var(--gap) var(--page-padding);
-    padding-bottom: calc(var(--gap) + env(safe-area-inset-bottom));
-    background: linear-gradient(to top, var(--bg), rgba(31, 33, 33, 0.94));
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-top: 1px solid var(--card-border);
-    box-shadow: 0 -8px 20px -6px rgba(0, 0, 0, 0.45);
-}
-
-.trip-checkout-total {
+/* The rail sticks below the (now in-flow) header as the page scrolls. Its
+   card look matches the main column. */
+.trip-builder-rail {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: var(--gap-lg);
+    border: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
-    min-width: 0;
+    gap: var(--gap-lg);
 }
 
-.trip-checkout-total-label {
-    font-size: 0.6875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-}
-
-.trip-checkout-total-price {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-}
-
-.trip-checkout-deposit {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
-.trip-checkout-bar .confirm-btn {
-    flex-shrink: 0;
-    min-width: 12rem;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-}
-
-@media (max-width: 768px) {
-    .trip-checkout-bar .confirm-btn {
-        min-width: 0;
-        flex: 1;
+@media (min-width: 769px) {
+    .trip-builder-rail {
+        position: sticky;
+        top: var(--gap-lg);
     }
 }
 
@@ -145,7 +103,6 @@
     font-size: 1.125rem;
     font-weight: 700;
 }
-
 
 .itinerary-list {
     display: flex;
@@ -361,6 +318,40 @@
     border-top: none;
 }
 
+@media (max-width: 768px) {
+    .trip-builder-layout {
+        grid-template-columns: 1fr;
+        gap: var(--gap-lg);
+    }
+
+    /* The rail becomes a bar pinned to the bottom of the viewport, holding the
+       trip summary, total, and both CTAs within a thumb's reach. Uses fixed
+       (not sticky) because an ancestor's overflow-x:hidden breaks sticky —
+       fixed always shows regardless. */
+    .trip-builder-rail {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 40;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        gap: var(--gap);
+        /* Clear the iOS home indicator / browser chrome. */
+        padding-bottom: calc(var(--gap-lg) + env(safe-area-inset-bottom));
+        box-shadow: 0 -8px 20px -6px rgba(0, 0, 0, 0.45);
+        /* A very tall summary (budget + dates) must not swallow the viewport;
+           cap the bar and let its inner content scroll if it ever overflows. */
+        max-height: 70dvh;
+        overflow-y: auto;
+    }
+
+    /* The fixed bar sits over the page bottom — reserve space so the last of
+       the browse list isn't hidden behind it. */
+    .trip-builder-main {
+        margin-bottom: 14rem;
+    }
+}
+
 /* Vote-session budget panel */
 .trip-vote-budget {
   background: var(--bg, #1f2121);
@@ -414,19 +405,27 @@
     gap: var(--gap-sm);
 }
 
-.start-vote-btn {
+/* Disabled rail CTA: the global .btn:disabled 50% fade turns a purple fill
+   into bare grey text on the dark rail — keep a muted purple surface instead
+   so it still reads as a (currently unavailable) button. Wins over
+   .btn--primary:hover on specificity, so no extra hover reset is needed. */
+.trip-actions .btn--primary:disabled {
+    opacity: 1;
+    background: rgba(124, 108, 245, 0.3);
+    color: rgba(255, 255, 255, 0.65);
+}
+
+/* Purple-outlined secondary CTA: Start Over, and Complete Booking while the
+   group-vote button carries the primary emphasis. Disabled look comes from the
+   global .btn:disabled rule. */
+.btn--outline-brand {
     background: transparent;
     border: 1px solid #7c6cf5;
     color: var(--white);
 }
 
-.start-vote-btn:hover:not(:disabled) {
+.btn--outline-brand:hover:not(:disabled) {
     background: rgba(124, 108, 245, 0.08);
-}
-
-.start-vote-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 /* Recommended-for-you names are buttons (open the preview modal) — strip the

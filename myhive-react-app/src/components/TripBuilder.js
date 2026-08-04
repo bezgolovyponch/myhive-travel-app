@@ -70,14 +70,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const [previewActivity, setPreviewActivity] = useState(null);
   const navigate = useNavigate();
 
-  // Publish whether the inline Complete Booking form is open so the destination
-  // chrome (global header, hero, tabs) collapses into a focused checkout view.
-  // Reset on unmount so leaving the page never leaves the header hidden.
-  useEffect(() => {
-    dispatch({type: 'SET_CHECKOUT_OPEN', open: showContactForm});
-    return () => dispatch({type: 'SET_CHECKOUT_OPEN', open: false});
-  }, [showContactForm, dispatch]);
-
   // Quiz-flow recommendations: the quiz-matched pool for this destination,
   // left-swiped cards included on purpose (second look). In-cart items render
   // as a disabled "Added". Failures are silent — the browse column still works.
@@ -371,7 +363,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const startOverButton = (
     <button
       type="button"
-      className="btn btn--full-width start-vote-btn"
+      className="btn btn--outline-brand btn--full-width"
       onClick={handleQuizStartOver}
     >
       Start Over
@@ -549,6 +541,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // fires.
   const voteEnded = voteAnnotation != null || voteResult != null;
   const canStartVote = standalone.length > 0 && !hasForeignStandalone;
+  // While the vote CTA is on screen it carries the primary emphasis and
+  // Complete Booking steps back to the outlined look; once the vote ends (or
+  // there is nothing to vote on) the booking button is primary again.
+  const voteCtaVisible = standalone.length > 0 && !voteEnded;
   let voteButtonTitle;
   if (hasForeignStandalone) {
     voteButtonTitle = 'Group voting works for one destination at a time — remove activities from other destinations first.';
@@ -597,8 +593,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         <div className="itinerary-header">
           <h2>Your Itinerary</h2>
           <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
-          {tripSummary}
         </div>
+        {tripSummary}
         <div className="itinerary-list">
           {state.tripItems.length > 0 ? (
             <>
@@ -675,40 +671,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             </div>
           )}
         </div>
-        {state.tripBudget != null && (
-            <div className="trip-vote-budget">
-              <div className="trip-vote-budget-row">
-                <span>Spent</span>
-                <span>{formatPrice(totalPrice)}</span>
-              </div>
-              <div className="trip-vote-budget-row">
-                <span>Budget</span>
-                <span>{formatPrice(state.tripBudget)}</span>
-              </div>
-              <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
-                <span>Remaining</span>
-                <span>{formatPrice(state.tripBudget - totalPrice)}</span>
-              </div>
-            </div>
-        )}
-        {/* Secondary CTAs live under the itinerary and scroll with the page —
-            only the primary Complete Booking is sticky (bar below). */}
-        {state.tripItems.length > 0 && ((standalone.length > 0 && !voteEnded) || quizMode) && (
-            <div className="trip-actions">
-              {standalone.length > 0 && !voteEnded && (
-                  <button
-                      type="button"
-                      className="btn btn--full-width start-vote-btn"
-                      onClick={handleStartVoteClick}
-                      disabled={!canStartVote || checkingVote}
-                      title={voteButtonTitle}
-                  >
-                    Start group vote
-                  </button>
-              )}
-              {quizMode && startOverButton}
-            </div>
-        )}
         {/* Below the itinerary in the main column: the booking form takes over
             when active, otherwise the suggestions + Browse More Activities. */}
         {showContactForm ? (
@@ -885,29 +847,59 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         )}
       </div>
 
-      {/* The ONLY sticky element: a bottom bar with the running total and the
-          single primary CTA. Everything else (summary, budget, Start group
-          vote) scrolls with the itinerary above. Stays visible while the
-          booking form is open too — clicking it scrolls back down to the form. */}
-      {state.tripItems.length > 0 && (
-          <div className="trip-checkout-bar">
-            <div className="trip-checkout-total">
-              <span className="trip-checkout-total-label">Total</span>
-              <span className="trip-checkout-total-price">{formatPrice(totalPrice)}</span>
-              <span className="trip-checkout-deposit">
-                {formatPrice(Math.round(totalPrice * 0.3 * 100) / 100)} deposit (30%) now
-              </span>
+      {/* Sticky summary + CTA rail — a side rail on desktop, a pinned bottom
+          bar on mobile. Carries the budget, total, and both the
+          "Start group vote" and "Complete Booking" actions; the trip summary
+          (destination/travelers/dates) lives at the top of the itinerary. */}
+      <aside className="trip-builder-rail">
+        {state.tripBudget != null && (
+            <div className="trip-vote-budget">
+              <div className="trip-vote-budget-row">
+                <span>Spent</span>
+                <span>{formatPrice(totalPrice)}</span>
+              </div>
+              <div className="trip-vote-budget-row">
+                <span>Budget</span>
+                <span>{formatPrice(state.tripBudget)}</span>
+              </div>
+              <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
+                <span>Remaining</span>
+                <span>{formatPrice(state.tripBudget - totalPrice)}</span>
+              </div>
             </div>
-            <button className="btn btn--primary confirm-btn" onClick={handleConfirmTrip}>
-              Complete Booking
-            </button>
-          </div>
-      )}
-      {submitError && (
-          <div className="export-error">
-            <p>{submitError}</p>
-          </div>
-      )}
+        )}
+        {state.tripItems.length > 0 && (
+            <div className="trip-actions">
+              <div className="itinerary-total">
+                <span>Total</span>
+                <span className="itinerary-total-price">{formatPrice(totalPrice)}</span>
+              </div>
+              {voteCtaVisible && (
+                  <button
+                      type="button"
+                      className="btn btn--primary btn--full-width"
+                      onClick={handleStartVoteClick}
+                      disabled={!canStartVote || checkingVote}
+                      title={voteButtonTitle}
+                  >
+                    Start group vote
+                  </button>
+              )}
+              <button
+                  className={`btn ${voteCtaVisible ? 'btn--outline-brand' : 'btn--primary'} btn--full-width confirm-btn`}
+                  onClick={handleConfirmTrip}
+              >
+                Complete Booking
+              </button>
+              {quizMode && startOverButton}
+              {submitError && (
+                  <div className="export-error">
+                    <p>{submitError}</p>
+                  </div>
+              )}
+            </div>
+        )}
+      </aside>
 
       <StartGroupVoteModal
           isOpen={showVoteModal}

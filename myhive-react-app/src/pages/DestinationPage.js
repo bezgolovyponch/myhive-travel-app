@@ -184,6 +184,9 @@ function DestinationPage() {
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
+      {/* Tab bar hides on the Trip Builder tab (and during checkout) so nothing
+          pulls the user away from completing the booking; breadcrumbs + Browse
+          More Activities still lead back to the catalog. */}
       <nav
           className="tab-nav"
           style={{display: (trip.checkoutOpen || currentTab === 'trip-builder') ? 'none' : undefined}}
