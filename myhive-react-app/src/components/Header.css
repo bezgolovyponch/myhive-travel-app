@@ -206,6 +206,10 @@
     width: 22px;
     height: 22px;
     display: block;
+    /* Optical centering: the glyph spans the full viewBox width but its visual
+       mass (cart body + right edge) sits right of centre while the thin handle
+       is far left, so it reads as right-shifted. Nudge left to correct. */
+    transform: translateX(-1.5px);
 }
 
 /* Static (not relative): the cart dropdown anchors to the fixed .header-actions
