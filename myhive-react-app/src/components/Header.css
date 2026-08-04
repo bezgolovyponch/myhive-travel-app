@@ -102,16 +102,6 @@
     opacity: 0.8;
 }
 
-.hamburger-btn {
-    /* Mobile-only: desktop keeps its inline nav links in the (scroll-away) bar,
-       so a burger there would duplicate them. On mobile it's shown (see the
-       max-width block) and lives in the pinned cluster with the cart.
-       Full circular-button styling lives in the shared rule below so it matches
-       the cart exactly. */
-    display: none;
-    cursor: pointer;
-}
-
 .hamburger-icon,
 .hamburger-icon::before,
 .hamburger-icon::after {
@@ -186,6 +176,15 @@
 .hamburger-btn:hover {
     background: rgba(20, 18, 26, 0.75);
     border-color: var(--white);
+}
+
+/* Mobile-only: desktop keeps its inline nav links in the (scroll-away) bar, so
+   a burger there would duplicate them — and the nav-links' right clearance is
+   sized for the cart alone. Declared AFTER the shared circular-button rule
+   above: both selectors tie on specificity, so this display:none must come
+   later in the cascade to win (the mobile media block re-enables it). */
+.hamburger-btn {
+    display: none;
 }
 
 .cart-btn svg {
