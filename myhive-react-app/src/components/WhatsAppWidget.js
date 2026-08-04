@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import {WHATSAPP_URL} from '../services/config';
+import {openWhatsApp} from '../utils/openWhatsApp';
 import {pushEvent} from '../utils/analytics';
 import './WhatsAppWidget.css';
 
@@ -78,17 +79,14 @@ function WhatsAppWidget() {
     const aboveAddBar = ADD_BAR_ROUTE.test(pathname);
     const className = aboveAddBar ? 'trv-chat-fab trv-chat-fab--above-add-bar' : 'trv-chat-fab';
 
-    // On phones a bare `href` to wa.me navigates the current document to the
-    // interstitial before handing off to the app; backing out of WhatsApp then
-    // leaves the visitor stranded on that page (or, after another back, on the
-    // site root — the "redirect to the main page" bug). Opening it as a
-    // separate context via window.open keeps our page untouched: cancelling in
-    // WhatsApp returns the user exactly where they were. Keep the real href so
-    // the control is a genuine link (middle-click, right-click, no-JS).
+    // openWhatsApp opens the app directly on mobile (via the whatsapp:// scheme)
+    // so no wa.me web page is left behind as a blank tab, and falls back to
+    // wa.me only when the app isn't installed; desktop opens wa.me in a new tab.
+    // Keep the real href so the control is a genuine link (middle/right-click).
     const openChat = (e) => {
         pushEvent('cta_click', {cta_label: 'whatsapp_widget', page: pathname});
         e.preventDefault();
-        window.open(WHATSAPP_URL, '_blank', 'noopener,noreferrer');
+        openWhatsApp();
     };
 
     return (
