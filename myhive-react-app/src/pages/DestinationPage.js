@@ -184,28 +184,33 @@ function DestinationPage() {
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
-      <nav className="tab-nav">
-          <button
-              className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
-          onClick={() => handleTabChange('activities')}
-        >
-          Activities
-        </button>
-          {packages.length > 0 && (
-              <button
-                  className={`tab-btn ${currentTab === 'packages' ? 'active' : ''}`}
-                  onClick={() => handleTabChange('packages')}
-              >
-                  Packages
-              </button>
-          )}
-          <button
-              className={`tab-btn ${currentTab === 'trip-builder' ? 'active' : ''}`}
-          onClick={() => handleTabChange('trip-builder')}
-        >
-          Trip Builder
-        </button>
-      </nav>
+        {/* Checkout (Trip Builder) hides the tab bar so nothing pulls the user
+            away from completing the booking; the header breadcrumbs and the
+            Browse More Activities section still lead back to the catalog. */}
+        {currentTab !== 'trip-builder' && (
+            <nav className="tab-nav">
+                <button
+                    className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
+                    onClick={() => handleTabChange('activities')}
+                >
+                    Activities
+                </button>
+                {packages.length > 0 && (
+                    <button
+                        className={`tab-btn ${currentTab === 'packages' ? 'active' : ''}`}
+                        onClick={() => handleTabChange('packages')}
+                    >
+                        Packages
+                    </button>
+                )}
+                <button
+                    className="tab-btn"
+                    onClick={() => handleTabChange('trip-builder')}
+                >
+                    Trip Builder
+                </button>
+            </nav>
+        )}
 
         <div className="tab-content" style={{display: currentTab === 'activities' ? 'flex' : 'none'}}>
         <div className="tab-header">
@@ -281,7 +286,7 @@ function DestinationPage() {
       </div>
 
       {/* Trip Builder Tab */}
-        <div id="trip-builder-tab" className="tab-content"
+        <div id="trip-builder-tab" className="tab-content tab-content--checkout"
              style={{display: currentTab === 'trip-builder' ? 'flex' : 'none'}}>
         {tripBuilderActivated && <TripBuilder destinationId={destination?.id} destinationSlug={destination?.slug} destinationName={destination?.name} />}
       </div>

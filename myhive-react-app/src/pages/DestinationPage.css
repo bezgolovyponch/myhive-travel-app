@@ -51,6 +51,13 @@
     gap: var(--gap-xl);
 }
 
+/* Checkout (Trip Builder) renders without the tab bar, so its content reserves
+   the header clearance the nav's margin-top normally provides: floating header
+   (4rem) + breadcrumbs (~2.9rem) + the usual content gap. */
+.tab-content--checkout {
+    padding-top: calc(6.9rem + var(--gap-xl));
+}
+
 .tab-header {
     display: flex;
     flex-direction: column;
@@ -202,6 +209,10 @@
         margin-top: 6.15rem;
         overflow-x: auto;
         justify-content: flex-start;
+    }
+
+    .tab-content--checkout {
+        padding-top: calc(6.15rem + var(--gap-xl));
     }
 
     .tab-btn {
