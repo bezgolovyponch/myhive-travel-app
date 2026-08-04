@@ -110,25 +110,52 @@ beforeEach(() => {
   generateUuid.mockReturnValue('test-uuid-1234');
 });
 
+afterEach(() => localStorage.clear());
+
+// Sets the travelers stepper input directly (mirrors user typing + blur).
+function setTravelers(value) {
+  const input = screen.getByLabelText(/number of travelers/i);
+  fireEvent.change(input, { target: { value } });
+  fireEvent.blur(input);
+}
+
+// Sets both date fields via the mocked DateRangePicker's testids.
+function pickDates(from, to) {
+  fireEvent.change(screen.getByTestId('date-from'), { target: { value: from } });
+  fireEvent.change(screen.getByTestId('date-to'), { target: { value: to } });
+}
+
+function reopenVoteModal(rerender) {
+  rerender(voteModalTree(false, jest.fn()));
+  rerender(voteModalTree(true, jest.fn()));
+}
+
 // ---------------------------------------------------------------------------
 // Pre-existing destination picker tests
 // ---------------------------------------------------------------------------
 
-test('shows the destination picker when enabled and several destinations exist', () => {
+test('never shows a destination picker — the destination is decided at booking', () => {
   renderVoteModal();
 
-  expect(screen.getByLabelText('Destination *')).toBeInTheDocument();
-  expect(screen.getByRole('option', { name: 'Budapest' })).toBeInTheDocument();
+  expect(screen.queryByLabelText(/destination/i)).toBeNull();
+  expect(screen.queryByRole('combobox')).toBeNull();
 });
 
-test('auto-selects the only destination even with the picker enabled', () => {
+test('vote mode collects no email', () => {
+  renderVoteModal();
+
+  expect(screen.queryByLabelText(/email/i)).toBeNull();
+  expect(screen.queryByText(/reminders\. unsubscribe anytime/i)).toBeNull();
+});
+
+test('no read-only destination row either — it is not shown in the modal at all', () => {
   renderVoteModal({
     ...baseCatalogState,
     destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }],
   });
 
-  expect(screen.getByText('Prague')).toBeInTheDocument();
-  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  expect(screen.queryByText('Prague')).toBeNull();
+  expect(screen.queryByRole('combobox')).toBeNull();
 });
 
 // ---------------------------------------------------------------------------
@@ -171,7 +198,7 @@ test('vote mode drops a stale date range but keeps travelers', () => {
   expect(screen.getByTestId('date-to')).toHaveValue('');
 });
 
-test('vote mode with prefilled setup needs only an email before continuing', async () => {
+test('vote mode with prefilled setup is ready to continue without an email', async () => {
   const expectedStart = isoDaysFromNow(30);
   const expectedEnd = isoDaysFromNow(37);
   const onVoteConfirm = jest.fn();
@@ -186,14 +213,21 @@ test('vote mode with prefilled setup needs only an email before continuing', asy
     { onVoteConfirm }
   );
 
-  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
-  await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+  await userEvent.click(screen.getByRole('button', { name: /^continue$/i }));
 
   expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({
     travelers: 4,
     startDate: expectedStart,
     endDate: expectedEnd,
   }));
+});
+
+test('confirm is enabled once dates are set (no email needed) and payload has no email', () => {
+  const onVoteConfirm = jest.fn();
+  renderVoteModal(singleDestCatalogState, baseTripState, { onVoteConfirm });
+  pickDates('2026-09-04', '2026-09-06');
+  fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.not.objectContaining({ email: expect.anything() }));
 });
 
 test('trip/direct mode prefills from trip state and confirms with those values', async () => {
@@ -282,11 +316,11 @@ test('A8: tb_start fires again after the modal is closed and reopened', () => {
 // A9 — tb_group_submitted — common: invalid submit does NOT fire
 // ---------------------------------------------------------------------------
 
-test('A9: tb_group_submitted does NOT fire when vote form is invalid (missing dates/email)', async () => {
-  // renderVoteModal with multiple destinations → voteFormValid is false (no destination selected, no dates, no email)
+test('A9: tb_group_submitted does NOT fire when vote form is invalid (missing dates)', async () => {
+  // renderVoteModal with multiple destinations → voteFormValid is false (no destination selected, no dates)
   renderVoteModal();
 
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
+  const submitBtn = screen.getByRole('button', { name: /^continue$/i });
   await userEvent.click(submitBtn);
 
   const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
@@ -301,16 +335,13 @@ async function fillVoteFormAndSubmit() {
   // Fill dates
   await userEvent.type(screen.getByTestId('date-from'), '2026-08-01');
   await userEvent.type(screen.getByTestId('date-to'), '2026-08-07');
-  // Fill email
-  await userEvent.clear(screen.getByLabelText(/your email/i));
-  await userEvent.type(screen.getByLabelText(/your email/i), 'test@example.com');
   // Submit
-  const submitBtn = screen.getByRole('button', { name: /continue to categories/i });
+  const submitBtn = screen.getByRole('button', { name: /^continue$/i });
   await userEvent.click(submitBtn);
 }
 
 test('A9: vote mode valid submit fires tb_group_submitted with destination/group_size/has_budget, no trip_id', async () => {
-  // Single destination → auto-selected (voteFormValid becomes true once dates+email filled)
+  // Single destination → auto-selected (voteFormValid becomes true once dates filled)
   renderVoteModal(singleDestCatalogState);
 
   await fillVoteFormAndSubmit();
@@ -325,20 +356,8 @@ test('A9: vote mode valid submit fires tb_group_submitted with destination/group
   expect(params.trip_id).toBeUndefined();
 });
 
-test('A9: vote mode includes email when hasConsent("ad_storage") is true', async () => {
+test('A9: vote mode never includes email, regardless of ad_storage consent', async () => {
   hasConsent.mockReturnValue(true);
-  renderVoteModal(singleDestCatalogState);
-
-  await fillVoteFormAndSubmit();
-
-  const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
-  expect(submittedCalls).toHaveLength(1);
-  expect(submittedCalls[0][1].email).toBe('test@example.com');
-  expect(submittedCalls[0][1].trip_id).toBeUndefined();
-});
-
-test('A9: vote mode OMITS email when hasConsent("ad_storage") is false', async () => {
-  hasConsent.mockReturnValue(false);
   renderVoteModal(singleDestCatalogState);
 
   await fillVoteFormAndSubmit();
@@ -402,8 +421,7 @@ test('typing a large group size is kept, not clamped', async () => {
   fireEvent.blur(num);
   expect(num).toHaveValue(35);
 
-  await userEvent.type(screen.getByLabelText(/your email/i), 'org@example.com');
-  await userEvent.click(screen.getByRole('button', { name: /continue to categories/i }));
+  await userEvent.click(screen.getByRole('button', { name: /^continue$/i }));
 
   expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ travelers: 35 }));
 });
@@ -439,4 +457,63 @@ test('A9: trip/direct mode destination param is the default destination slug', a
   const submittedCalls = pushEvent.mock.calls.filter(([event]) => event === 'tb_group_submitted');
   expect(submittedCalls).toHaveLength(1);
   expect(submittedCalls[0][1].destination).toBe('prague');
+});
+
+// ---------------------------------------------------------------------------
+// Ghost button style for Cancel
+// ---------------------------------------------------------------------------
+
+test('Cancel uses the neutral ghost style, not the teal secondary', () => {
+  renderVoteModal();
+  const cancel = screen.getByRole('button', {name: /cancel/i});
+  expect(cancel).toHaveClass('btn--ghost');
+  expect(cancel).not.toHaveClass('btn--secondary');
+});
+
+// ---------------------------------------------------------------------------
+// Draft persistence + modal_abandoned on cancel
+// ---------------------------------------------------------------------------
+
+test('closing without submit saves a draft, fires modal_abandoned, and reopen re-seeds it', () => {
+  const { rerender } = renderVoteModal();
+  setTravelers('6');
+  fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', expect.objectContaining({
+    modal: 'trip_setup', vote_mode: 'VOTE', has_travelers: true,
+  }));
+
+  reopenVoteModal(rerender);
+  expect(screen.getByLabelText(/number of travelers/i)).toHaveValue(6);
+});
+
+test('modal_abandoned reflects has_dates and has_travelers correctly', () => {
+  renderVoteModal();
+  pickDates('2026-09-04', '2026-09-06');
+  fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
+    modal: 'trip_setup', vote_mode: 'VOTE', has_travelers: false, has_dates: true,
+  });
+});
+
+test('trip/direct mode cancel fires modal_abandoned with vote_mode false and dispatches CANCEL_TRIP_SETUP', () => {
+  const { mockDispatch } = renderTripModal();
+  fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', expect.objectContaining({
+    modal: 'trip_setup', vote_mode: 'TRIP',
+  }));
+  expect(mockDispatch).toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
+});
+
+// ---------------------------------------------------------------------------
+// Backdrop click closes the modal
+// ---------------------------------------------------------------------------
+
+test('backdrop click closes the modal', () => {
+  const onVoteCancel = jest.fn();
+  renderVoteModal(baseCatalogState, baseTripState, { onVoteCancel });
+  fireEvent.click(screen.getByRole('dialog')); // overlay div
+  expect(onVoteCancel).toHaveBeenCalled();
 });

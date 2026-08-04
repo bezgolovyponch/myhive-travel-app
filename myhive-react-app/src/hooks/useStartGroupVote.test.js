@@ -1,78 +1,56 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { act, renderHook } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import {CatalogContext} from '../context/CatalogContext';
 import {TripContext} from '../context/TripContext';
 import { useStartGroupVote } from './useStartGroupVote';
+import leadApi from '../services/leadApi';
 
-function QuizStub() {
-  const location = useLocation();
-  return <div data-testid="quiz-setup">{JSON.stringify(location.state?.setup)}</div>;
-}
+jest.mock('../services/leadApi');
 
-function Harness() {
-  const { voteSetupOpen, openVoteSetup, handleVoteConfirm } = useStartGroupVote();
-  return (
-    <div>
-      <span data-testid="open-state">{voteSetupOpen ? 'open' : 'closed'}</span>
-      <button onClick={openVoteSetup}>open setup</button>
-      <button
-        onClick={() =>
-          handleVoteConfirm({
-            travelers: 4,
-            startDate: '2026-08-01',
-            endDate: '2026-08-03',
-            email: 'a@b.c',
-            destination: { id: 'd1', slug: 'prague' },
-            budget: null,
-          })
-        }
-      >
-        confirm
-      </button>
-    </div>
-  );
-}
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
 
-function renderHarness(dispatch = jest.fn()) {
+function renderStartGroupVote(dispatch = jest.fn()) {
   const catalogState = { destinations: [{ id: 'd1', slug: 'prague', name: 'Prague' }] };
   const tripState = { tripItems: [] };
-  return render(
+  const wrapper = ({ children }) => (
     <CatalogContext.Provider value={{ state: catalogState, dispatch }}>
       <TripContext.Provider value={{ state: tripState, dispatch }}>
-        <MemoryRouter initialEntries={['/']}>
-          <Routes>
-            <Route path="/" element={<Harness />} />
-            <Route path="/vote/new/quiz" element={<QuizStub />} />
-          </Routes>
-        </MemoryRouter>
+        <MemoryRouter initialEntries={['/']}>{children}</MemoryRouter>
       </TripContext.Provider>
     </CatalogContext.Provider>
   );
+  return { ...renderHook(() => useStartGroupVote(), { wrapper }), dispatch };
 }
 
-test('openVoteSetup flips voteSetupOpen', async () => {
-  renderHarness();
-
-  expect(screen.getByTestId('open-state')).toHaveTextContent('closed');
-  await userEvent.click(screen.getByText('open setup'));
-  expect(screen.getByTestId('open-state')).toHaveTextContent('open');
+beforeEach(() => {
+  mockNavigate.mockClear();
 });
 
-test('handleVoteConfirm navigates to the quiz with setup state', async () => {
-  const dispatch = jest.fn();
-  renderHarness(dispatch);
+afterEach(() => {
+  localStorage.clear();
+});
 
-  await userEvent.click(screen.getByText('confirm'));
+test('openVoteSetup flips voteSetupOpen', () => {
+  const {result} = renderStartGroupVote();
 
-  const setupNode = await screen.findByTestId('quiz-setup');
-  expect(JSON.parse(setupNode.textContent)).toEqual({
-    travelers: 4,
-    startDate: '2026-08-01',
-    endDate: '2026-08-03',
-    email: 'a@b.c',
-    destination: { id: 'd1', slug: 'prague' },
-    budget: null,
-  });
-  expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
+  expect(result.current.voteSetupOpen).toBe(false);
+  act(() => result.current.openVoteSetup());
+  expect(result.current.voteSetupOpen).toBe(true);
+});
+
+test('confirm navigates to the quiz without creating a lead and without email in state', () => {
+    const {result, dispatch} = renderStartGroupVote();
+    act(() => result.current.handleVoteConfirm({
+        travelers: 8, startDate: '2026-09-04', endDate: '2026-09-06',
+        destination: {id: 'd1', slug: 'prague'}, budget: null,
+    }));
+    expect(leadApi.createLead).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/vote/new/quiz', {
+        state: {setup: expect.not.objectContaining({email: expect.anything()})},
+    });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
 });

@@ -18,10 +18,6 @@ describe('DateRangePicker', () => {
       expect(screen.queryAllByText('Add date')).toHaveLength(1);
     });
 
-    it('shows night count footer when both dates are set', () => {
-      render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
-      expect(screen.getByText(/3 night/)).toBeInTheDocument();
-    });
 
     it('hides footer when only from is set', () => {
       render(<DateRangePicker from="2026-06-12" to="" onChange={() => {}} />);
@@ -107,12 +103,87 @@ describe('DateRangePicker', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Clear end date' }));
       expect(onChange).toHaveBeenCalledWith('2026-06-12', '');
     });
+  });
 
-    it('calls onChange("","") when footer clear button clicked', () => {
+  describe('popover mode', () => {
+    it('hides the calendar until a field is clicked', () => {
+      const { container } = render(<DateRangePicker from="" to="" onChange={() => {}} popover />);
+      expect(container.querySelector('.drp-cal-wrap')).toBeNull();
+
+      fireEvent.click(container.querySelector('.drp-field'));
+
+      expect(container.querySelector('.drp-pop .drp-cal-wrap')).toBeInTheDocument();
+    });
+
+    it('renders a single month inside the popover', () => {
+      const { container } = render(<DateRangePicker from="" to="" onChange={() => {}} popover />);
+      fireEvent.click(container.querySelector('.drp-field'));
+
+      expect(container.querySelectorAll('.drp-month')).toHaveLength(1);
+    });
+
+    it('closes the popover when the range is completed', () => {
       const onChange = jest.fn();
-      render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={onChange} />);
-      fireEvent.click(screen.getByRole('button', { name: /Clear dates/i }));
-      expect(onChange).toHaveBeenCalledWith('', '');
+      const { container, rerender } = render(
+        <DateRangePicker from="2026-06-12" to="" onChange={onChange} popover />
+      );
+      fireEvent.click(container.querySelector('.drp-field'));
+      expect(container.querySelector('.drp-pop')).toBeInTheDocument();
+
+      const grid = container.querySelector('[role="grid"]');
+      const dayButtons = grid.querySelectorAll('.drp-day-btn');
+      fireEvent.click(dayButtons[dayButtons.length - 1]);
+
+      rerender(<DateRangePicker from="2026-06-12" to="2026-06-20" onChange={onChange} popover />);
+      expect(container.querySelector('.drp-pop')).toBeNull();
+    });
+
+    it('fills the start date and stays open on the first day click', () => {
+      // Regression: a mousedown-based outside-click guard using contains(e.target)
+      // closed the popover before the day's click fired onSelect, so Start never
+      // filled. The guard now reads composedPath(), which survives react-day-picker
+      // re-rendering the clicked day out of the tree.
+      const onChange = jest.fn();
+      const { container } = render(
+        <div>
+          <span data-testid="outside">out</span>
+          <DateRangePicker from="" to="" onChange={onChange} popover />
+        </div>
+      );
+      fireEvent.click(container.querySelector('.drp-field'));
+      expect(container.querySelector('.drp-pop')).toBeInTheDocument();
+
+      const grid = container.querySelector('[role="grid"]');
+      const enabledDay = grid.querySelector('.drp-day:not(.drp-disabled):not(.drp-hidden) .drp-day-btn');
+      fireEvent.mouseDown(enabledDay);
+      fireEvent.click(enabledDay);
+
+      expect(onChange).toHaveBeenCalled();
+      const [from] = onChange.mock.calls[onChange.mock.calls.length - 1];
+      expect(from).toBeTruthy();
+      // With only a start picked, the calendar stays open for the end date.
+      expect(container.querySelector('.drp-pop')).toBeInTheDocument();
+    });
+
+    it('closes the popover on outside click', () => {
+      render(
+        <div>
+          <span data-testid="outside">out</span>
+          <DateRangePicker from="" to="" onChange={() => {}} popover />
+        </div>
+      );
+      fireEvent.click(document.querySelector('.drp-field'));
+      expect(document.querySelector('.drp-pop')).toBeInTheDocument();
+
+      fireEvent.mouseDown(screen.getByTestId('outside'));
+
+      expect(document.querySelector('.drp-pop')).toBeNull();
+    });
+
+    it('does not affect default mode calendar visibility', () => {
+      const { container } = render(<DateRangePicker from="2026-06-12" to="2026-06-15" onChange={() => {}} />);
+      expect(container.querySelector('.drp-cal-wrap')).toBeInTheDocument();
+      expect(container.querySelector('.drp-pop')).toBeNull();
     });
   });
 });

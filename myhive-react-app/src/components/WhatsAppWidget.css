@@ -1,0 +1,63 @@
+.trv-chat-fab {
+    position: fixed;
+    right: 16px;
+    /* --fab-bottom is the resting offset (raised by the sticky CTA / Add-to-Trip
+       bar below); --cky-consent-h is the live height of the CookieYes consent
+       sheet, published by WhatsAppWidget.js, so the FAB floats clear of it
+       instead of being buried under its z-index 9999999 backdrop. */
+    --fab-bottom: 16px;
+    bottom: calc(var(--fab-bottom) + var(--cky-consent-h, 0px));
+    z-index: 60; /* under .app-modal overlays (z-index: 70 in styles/global.css) */
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #4caf50;
+    color: #fff;
+    font-size: 1.75rem;
+    /* Plain drop shadow — no green glow ring. */
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Red notification dot in the top-right corner, matching the pissup FAB. */
+.trv-chat-fab::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #ff3b30;
+    border: 2px solid #fff;
+}
+
+.trv-chat-fab:hover { color: #fff; opacity: 0.92; }
+
+/* Sits above the sticky mobile CTA (Task 11) */
+@media (max-width: 767px) {
+    .homepage-has-sticky-cta .trv-chat-fab { --fab-bottom: 76px; }
+
+    /* Smaller footprint over the content on phones */
+    .trv-chat-fab {
+        width: 46px;
+        height: 46px;
+        font-size: 1.5rem;
+    }
+}
+
+/* The trip view pins a Total + Complete Booking bar to the bottom of the
+   viewport; the FAB would overlap it, so hide the FAB while that bar is on
+   screen — the user is mid-checkout, not seeking chat. */
+body:has(.trip-checkout-bar) .trv-chat-fab {
+    display: none;
+}
+
+/* Sits above the fixed mobile Add-to-Trip bar on activity detail pages
+   (~64px tall incl. safe-area padding) so the FAB never covers that
+   primary CTA. Matches the breakpoint .activity-detail-add-bar appears at. */
+@media (max-width: 860px) {
+    .trv-chat-fab--above-add-bar { --fab-bottom: 84px; }
+}

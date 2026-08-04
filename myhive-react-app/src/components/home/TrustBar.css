@@ -35,10 +35,16 @@
 }
 
 .trust-title {
+    /* All four titles share one size and a fixed two-line reserve so the rows
+       stay aligned even when a longer title wraps on a narrow phone. */
     font-size: 1rem;
     font-weight: 600;
     color: var(--text);
     margin-bottom: 0.125rem;
+    min-height: 2.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .trust-text {

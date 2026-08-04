@@ -10,12 +10,15 @@ import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
 import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
-import {getOrCreateVoterToken} from '../utils/voterToken';
+import {clearTripLead} from '../utils/tripLead';
+import {useTripLeadRestore} from '../hooks/useTripLeadRestore';
+import {useEmailLeadCapture} from '../hooks/useEmailLeadCapture';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
 import ActiveVoteModal from './vote/ActiveVoteModal';
 import ActivityPreviewModal from './ActivityPreviewModal';
+import AppModal from './AppModal';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
@@ -31,7 +34,7 @@ function buildVoteAnnotation(result) {
   return {counts, participantCount: result.participantCount};
 }
 
-function TripBuilder({ destinationId, destinationSlug }) {
+function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
@@ -51,12 +54,18 @@ function TripBuilder({ destinationId, destinationSlug }) {
   const [showVoteModal, setShowVoteModal] = useState(false);
   const [activeVoteToken, setActiveVoteToken] = useState(null);
   const [checkingVote, setCheckingVote] = useState(false);
-  const [creatingVote, setCreatingVote] = useState(false);
-  const [voteCreateError, setVoteCreateError] = useState(null);
   // Organizer quiz-flow handoff (CuratePage writes it): active only for the
   // destination the quiz ran for — other destinations get the plain builder.
   const [quizFlow, setQuizFlow] = useState(() => readQuizFlow());
+  const {pendingRestore, confirmRestore, cancelRestore} = useTripLeadRestore(flow => setQuizFlow(flow));
   const quizMode = quizFlow != null && quizFlow.setup?.destination?.id === destinationId;
+  const captureCheckoutEmail = useEmailLeadCapture({
+    destinationId,
+    numberOfTravelers: state.tripTravelers || 1,
+    startDate: state.tripStartDate || null,
+    endDate: state.tripEndDate || null,
+    budget: state.tripBudget,
+  });
   const [recommended, setRecommended] = useState([]);
   const [previewActivity, setPreviewActivity] = useState(null);
   const navigate = useNavigate();
@@ -82,47 +91,32 @@ function TripBuilder({ destinationId, destinationSlug }) {
     };
   }, [quizMode, quizFlow, destinationId]);
 
-  const leftRef = useRef(null);
-  const rightRef = useRef(null);
-
-  useEffect(() => {
-    const left = leftRef.current;
-    const right = rightRef.current;
-    if (!left || !right) return;
-    const mql = window.matchMedia('(min-width: 769px)');
-    const sync = () => {
-      if (mql.matches) {
-        right.style.height = `${left.offsetHeight}px`;
-      } else {
-        right.style.height = '';
-      }
-    };
-    const obs = new ResizeObserver(sync);
-    obs.observe(left);
-    mql.addEventListener('change', sync);
-    sync();
-    return () => {
-      obs.disconnect();
-      mql.removeEventListener('change', sync);
-    };
-  }, []);
-
-  // On mobile the columns stack, so the booking form (which replaces the browse
-  // column) opens below the fold — scroll it to sit exactly below the fixed
-  // header (main bar + breadcrumbs row; measured, since its height varies).
-  // Called from every "Complete Booking" click, not from an on-open effect:
-  // a repeat click while the form is already open must scroll back down too.
+  // The booking form now replaces the browse section at the bottom of the main
+  // column. On mobile that's below the fold — scroll it into view. Called from
+  // every "Complete Booking" click, not an on-open effect: a repeat click while
+  // the form is already open must scroll back down too. The form mounts only
+  // once showContactForm flips true, so defer to the next frame — on the first
+  // click the ref is still null on this tick.
+  const bookingFormRef = useRef(null);
   const scrollBookingFormIntoView = () => {
     if (!window.matchMedia('(max-width: 768px)').matches) {
-      return; // desktop shows both columns side by side — nothing to scroll
+      return; // desktop shows the form inline with the sticky rail visible
     }
-    const right = rightRef.current;
-    if (!right) {
-      return;
+    const scrollNow = () => {
+      const form = bookingFormRef.current;
+      if (!form) {
+        return;
+      }
+      const top = form.getBoundingClientRect().top + window.scrollY - 12;
+      window.scrollTo({top, behavior: 'smooth'});
+    };
+    // rAF when available (browser); fall back to a sync call (jsdom/tests, where
+    // the form is already mounted on a repeat click and geometry is static).
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(scrollNow);
+    } else {
+      scrollNow();
     }
-    const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
-    const top = right.getBoundingClientRect().top + window.scrollY - headerHeight;
-    window.scrollTo({top, behavior: 'smooth'});
   };
 
   useEffect(() => {
@@ -306,12 +300,12 @@ function TripBuilder({ destinationId, destinationSlug }) {
     return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
   };
 
-  // Shared by handleStartVoteClick (CART modal) and handleQuizVoteCreate
-  // (quiz one-click): true — and pops the "vote already running" modal — if
-  // `token` points at a CART vote that's still ACTIVE. A failed lookup
-  // (session deleted/404 or a transient network error) self-heals by
-  // dropping the stale key and returns false so the caller falls through to
-  // its own create flow, whose own create call will surface any real error.
+  // Used by handleStartVoteClick (both CART and quiz-mode vote modals): true —
+  // and pops the "vote already running" modal — if `token` points at a CART
+  // vote that's still ACTIVE. A failed lookup (session deleted/404 or a
+  // transient network error) self-heals by dropping the stale key and
+  // returns false so the caller falls through to opening the vote modal,
+  // whose own create call will surface any real error.
   const isActiveCartVoteSession = async (token) => {
     try {
       const session = await voteApi.getSession(token);
@@ -369,7 +363,7 @@ function TripBuilder({ destinationId, destinationSlug }) {
   const startOverButton = (
     <button
       type="button"
-      className="btn btn--full-width start-vote-btn"
+      className="btn btn--outline-brand btn--full-width"
       onClick={handleQuizStartOver}
     >
       Start Over
@@ -497,6 +491,11 @@ function TripBuilder({ destinationId, destinationSlug }) {
       dispatch({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
       localStorage.removeItem('myhive-trip-vote-session');
       clearQuizFlow();
+      clearTripLead();
+      // TripBuilder does not unmount on a successful booking, so a debounced
+      // capture armed just before submit could otherwise fire after the
+      // clear above and re-create a lead for a customer who just booked.
+      captureCheckoutEmail.cancel();
       setQuizFlow(null);
       setVoteAnnotation(null);
       setVoteResult(null);
@@ -542,107 +541,60 @@ function TripBuilder({ destinationId, destinationSlug }) {
   // fires.
   const voteEnded = voteAnnotation != null || voteResult != null;
   const canStartVote = standalone.length > 0 && !hasForeignStandalone;
+  // While the vote CTA is on screen it carries the primary emphasis and
+  // Complete Booking steps back to the outlined look; once the vote ends (or
+  // there is nothing to vote on) the booking button is primary again.
+  const voteCtaVisible = standalone.length > 0 && !voteEnded;
   let voteButtonTitle;
   if (hasForeignStandalone) {
     voteButtonTitle = 'Group voting works for one destination at a time — remove activities from other destinations first.';
   }
   const totalPrice = computeTripTotal(state.tripItems, travelers);
 
-  // Quiz-flow one-click vote: email and quiz answers were captured before the
-  // quiz, so no modal — create the QUIZ session from the current cart and go
-  // straight to the waiting page. QUIZ sessions intentionally do not set
-  // myhive-trip-vote-session (parity with the old curate-screen flow).
-  const handleQuizVoteCreate = async () => {
-    pushEvent('cta_click', {
-      cta_label: 'Let your mates vote',
-      block: 'trip_builder',
-    });
-    if (creatingVote) {
-      return;
-    }
-    setCreatingVote(true);
-
-    // Active-CART-vote guard, mirroring handleStartVoteClick: a CART vote
-    // this browser already has running must block quiz mode from launching a
-    // second concurrent vote. Leaves the quiz context intact so the button
-    // just becomes clickable again once the running vote ends.
-    const activeToken = localStorage.getItem('myhive-trip-vote-session');
-    if (activeToken && await isActiveCartVoteSession(activeToken)) {
-      setCreatingVote(false);
-      return;
-    }
-
-    setVoteCreateError(null);
-    try {
-      const session = await voteApi.createSession({
-        destinationId,
-        initiatorEmail: quizFlow.setup.email,
-        numberOfTravelers: travelers,
-        startDate: state.tripStartDate || quizFlow.setup.startDate,
-        endDate: state.tripEndDate || quizFlow.setup.endDate,
-        budget: state.tripBudget,
-        voterToken: getOrCreateVoterToken(),
-        quizResponses: quizFlow.responses,
-        activityIds: standalone.map(item => item.id),
-      });
-      localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
-      if (session.managerToken) {
-        localStorage.setItem(`myhive-manager-${session.shareToken}`, session.managerToken);
-      }
-      // A12 — vote_launched: same field names as the CART path; shareToken is the trip_id.
-      pushEvent('vote_launched', {
-        trip_id: session.shareToken,
-        user_role: 'organizer',
-        selected_count: standalone.length,
-      });
-      clearQuizFlow();
-      setQuizFlow(null);
-      navigate(`/vote/${session.shareToken}/waiting`, {
-        state: { managerToken: session.managerToken },
-      });
-    } catch (e) {
-      console.error('Vote creation error:', e);
-      setVoteCreateError(e.message || 'Failed to create the vote. Please try again.');
-      setCreatingVote(false);
-    }
-  };
-
   const filteredBrowseActivities = browseFilter === 'all'
       ? browseActivities
       : browseActivities.filter(a => (a.categories || []).some(c => c.slug === browseFilter));
 
+  const tripSummary = state.tripItems.length > 0 && (
+      <div className="itinerary-trip-info">
+        {destinationName && (
+            <div className="trip-info-row">
+              <label>Destination:</label>
+              <span>{destinationName}</span>
+            </div>
+        )}
+        <div className="trip-info-row">
+          <label htmlFor="trip-travelers">Travelers:</label>
+          <input
+              type="number"
+              id="trip-travelers"
+              className="trip-info-input"
+              value={travelers}
+              onChange={e => dispatch({
+                type: 'UPDATE_TRIP_TRAVELERS',
+                travelers: Math.max(1, parseInt(e.target.value, 10) || 1)
+              })}
+              min="1"
+              max="20"
+          />
+        </div>
+        {(state.tripStartDate || state.tripEndDate) && (
+            <div className="trip-info-row">
+              <label>Dates:</label>
+              <span>{formatDate(state.tripStartDate)} — {formatDate(state.tripEndDate)}</span>
+            </div>
+        )}
+      </div>
+  );
+
   return (
     <div className="trip-builder-layout">
-      <div className="trip-builder-left" ref={leftRef}>
+      <div className="trip-builder-main">
         <div className="itinerary-header">
           <h2>Your Itinerary</h2>
           <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
-          {state.tripItems.length > 0 && (
-              <div className="itinerary-trip-info">
-                <div className="trip-info-row">
-                  <label htmlFor="trip-travelers">Travelers:</label>
-                  <input
-                      type="number"
-                      id="trip-travelers"
-                      className="trip-info-input"
-                      value={travelers}
-                      onChange={e => dispatch({
-                        type: 'UPDATE_TRIP_TRAVELERS',
-                        travelers: Math.max(1, parseInt(e.target.value, 10) || 1)
-                      })}
-                      min="1"
-                      max="20"
-                  />
-                </div>
-                {(state.tripStartDate || state.tripEndDate) && (
-                    <div className="trip-info-row">
-                      <label>Dates:</label>
-                      <span>{formatDate(state.tripStartDate)} — {formatDate(state.tripEndDate)}</span>
-                    </div>
-                )}
-              </div>
-          )}
         </div>
+        {tripSummary}
         <div className="itinerary-list">
           {state.tripItems.length > 0 ? (
             <>
@@ -719,75 +671,28 @@ function TripBuilder({ destinationId, destinationSlug }) {
             </div>
           )}
         </div>
-        {state.tripBudget != null && (
-            <div className="trip-vote-budget">
-              <div className="trip-vote-budget-row">
-                <span>Spent</span>
-                <span>{formatPrice(totalPrice)}</span>
-              </div>
-              <div className="trip-vote-budget-row">
-                <span>Budget</span>
-                <span>{formatPrice(state.tripBudget)}</span>
-              </div>
-              <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
-                <span>Remaining</span>
-                <span>{formatPrice(state.tripBudget - totalPrice)}</span>
-              </div>
-            </div>
-        )}
-        {state.tripItems.length > 0 && (
-            <div className="trip-actions">
-              <div className="itinerary-total">
-                <span>Total</span>
-                <span className="itinerary-total-price">{formatPrice(totalPrice)}</span>
-              </div>
-            <button className="btn btn--primary btn--full-width confirm-btn" onClick={handleConfirmTrip}>
-              Complete Booking
-            </button>
-              {standalone.length > 0 && !voteEnded && (
-                  <button
-                      type="button"
-                      className="btn btn--full-width start-vote-btn"
-                      onClick={quizMode ? handleQuizVoteCreate : handleStartVoteClick}
-                      disabled={!canStartVote || checkingVote || creatingVote}
-                      title={voteButtonTitle}
-                  >
-                    {creatingVote ? 'Creating…' : 'Let your mates vote'}
-                  </button>
-              )}
-              {quizMode && startOverButton}
-              {submitError && (
-                  <div className="export-error">
-                    <p>{submitError}</p>
-                  </div>
-              )}
-              {voteCreateError && (
-                  <div className="export-error">
-                    <p>{voteCreateError}</p>
-                  </div>
-              )}
-            </div>
-        )}
-      </div>
-      <div className="trip-builder-right" ref={rightRef}>
+        {/* Below the itinerary in the main column: the booking form takes over
+            when active, otherwise the suggestions + Browse More Activities. */}
         {showContactForm ? (
-            // Booking takes over the browse column: suggestions and Browse More
-            // Activities give way to the inline form until it is confirmed or cancelled.
-            <ContactForm
-                inline
-                isOpen
-                onClose={() => setShowContactForm(false)}
-                onSubmit={handleContactSubmit}
-                submitLabel="Confirm"
-                tripData={{tripItems: state.tripItems, travelers}}
-                initialValues={{
-                  numberOfTravelers: travelers,
-                  startDate: state.tripStartDate,
-                  endDate: state.tripEndDate
-                }}
-                isSubmitting={isSubmitting}
-                submitError={submitError}
-            />
+            <div className="trip-booking-form" ref={bookingFormRef}>
+              <ContactForm
+                  inline
+                  isOpen
+                  onClose={() => setShowContactForm(false)}
+                  onSubmit={handleContactSubmit}
+                  submitLabel="Send booking request"
+                  tripData={{tripItems: state.tripItems, travelers, destinationName}}
+                  initialValues={{
+                    numberOfTravelers: travelers,
+                    startDate: state.tripStartDate,
+                    endDate: state.tripEndDate
+                  }}
+                  isSubmitting={isSubmitting}
+                  submitError={submitError}
+                  onEmailChange={captureCheckoutEmail}
+                  showConsentNote
+              />
+            </div>
         ) : (
         <>
         {voteError && (
@@ -942,6 +847,60 @@ function TripBuilder({ destinationId, destinationSlug }) {
         )}
       </div>
 
+      {/* Sticky summary + CTA rail — a side rail on desktop, a pinned bottom
+          bar on mobile. Carries the budget, total, and both the
+          "Start group vote" and "Complete Booking" actions; the trip summary
+          (destination/travelers/dates) lives at the top of the itinerary. */}
+      <aside className="trip-builder-rail">
+        {state.tripBudget != null && (
+            <div className="trip-vote-budget">
+              <div className="trip-vote-budget-row">
+                <span>Spent</span>
+                <span>{formatPrice(totalPrice)}</span>
+              </div>
+              <div className="trip-vote-budget-row">
+                <span>Budget</span>
+                <span>{formatPrice(state.tripBudget)}</span>
+              </div>
+              <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
+                <span>Remaining</span>
+                <span>{formatPrice(state.tripBudget - totalPrice)}</span>
+              </div>
+            </div>
+        )}
+        {state.tripItems.length > 0 && (
+            <div className="trip-actions">
+              <div className="itinerary-total">
+                <span>Total</span>
+                <span className="itinerary-total-price">{formatPrice(totalPrice)}</span>
+              </div>
+              {voteCtaVisible && (
+                  <button
+                      type="button"
+                      className="btn btn--primary btn--full-width"
+                      onClick={handleStartVoteClick}
+                      disabled={!canStartVote || checkingVote}
+                      title={voteButtonTitle}
+                  >
+                    Start group vote
+                  </button>
+              )}
+              <button
+                  className={`btn ${voteCtaVisible ? 'btn--outline-brand' : 'btn--primary'} btn--full-width confirm-btn`}
+                  onClick={handleConfirmTrip}
+              >
+                Complete Booking
+              </button>
+              {quizMode && startOverButton}
+              {submitError && (
+                  <div className="export-error">
+                    <p>{submitError}</p>
+                  </div>
+              )}
+            </div>
+        )}
+      </aside>
+
       <StartGroupVoteModal
           isOpen={showVoteModal}
           onClose={() => setShowVoteModal(false)}
@@ -950,7 +909,25 @@ function TripBuilder({ destinationId, destinationSlug }) {
           numberOfTravelers={travelers}
           startDate={state.tripStartDate}
           endDate={state.tripEndDate}
+          voteMode={quizMode ? 'QUIZ' : 'CART'}
+          quizResponses={quizMode ? quizFlow.responses : null}
+          budget={quizMode ? state.tripBudget : null}
+          onLaunched={quizMode ? () => { clearQuizFlow(); setQuizFlow(null); } : undefined}
       />
+
+      <AppModal
+        isOpen={pendingRestore != null}
+        onClose={cancelRestore}
+        title="Replace your current trip?"
+        footer={(
+          <>
+            <button type="button" className="btn btn--secondary" onClick={cancelRestore}>Keep current</button>
+            <button type="button" className="btn btn--primary" onClick={confirmRestore}>Open saved trip</button>
+          </>
+        )}
+      >
+        <p>Opening your saved trip will replace the activities currently in your itinerary.</p>
+      </AppModal>
 
       <ActiveVoteModal
           isOpen={!!activeVoteToken}

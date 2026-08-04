@@ -59,6 +59,16 @@ export function createAdminApi(getAccessToken) {
             return response.json();
         },
 
+        async updateBookingStatus(id, status) {
+            const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}/status`, {
+                method: 'PATCH',
+                headers: await authHeaders(),
+                body: JSON.stringify({status}),
+            });
+            await handleError(response, 'Failed to update booking status');
+            return response.json();
+        },
+
         async getBookingStats() {
             const response = await fetch(`${API_BASE_URL}/admin/bookings/stats`, {
                 headers: await authHeaders(),

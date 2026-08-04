@@ -67,6 +67,12 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
   Both deposit endpoints read the `Origin` header to build same-origin Stripe return URLs (validated
   against `CORS_ALLOWED_ORIGINS`, falls back to `FRONTEND_URL`).
 - `GET /auth/me` — current user info from JWT (permitAll; returns roles when a token is present)
+- **Trip lead reminders**: `POST /leads` (create/dedup by normalized email), `PATCH /leads/{id}` (debounced sync
+  of travelers/dates/budget/quiz answers/cart items — requires the lead's `restoreToken`), `GET /leads/restore/{token}`
+  (cross-device cart restore), `POST /leads/unsubscribe` + `POST /leads/unsubscribe/one-click?token=` (RFC 8058
+  one-click, headers only emitted when `API_PUBLIC_URL` is set). Reminder emails sent by `TripLeadReminderScheduler`
+  on a 10-minute tick (QUIZ 1h/24h/72h, VOTE 24h/72h from last activity); stops on booking, new vote, or suppression;
+  leads deleted 30 days after last touch. Kill switch: `REMINDERS_ENABLED`.
 
 **Admin** (Auth0 JWT, ADMIN/MANAGER role; categories require ADMIN):
 
@@ -81,7 +87,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | Service | Provider      | Purpose                              |
 |---------|---------------|--------------------------------------|
 | Hosting | Render.com    | Backend + frontend static site       |
-| DB      | Render        | PostgreSQL 18 (Basic-256mb)          |
+| DB      | Render        | PostgreSQL 18 (Basic-256mb); schema evolves via Hibernate `ddl-auto=update` plus Flyway versioned migrations (`src/main/resources/db/migration`, prod-only, baseline 0) for DDL Hibernate can't do, e.g. dropping NOT NULL. Requires the `spring-boot-flyway` module (Boot 4 ships Flyway auto-configuration separately) and is incompatible with `spring.jpa.defer-datasource-initialization` |
 | CDN/DNS | Cloudflare    | Proxy, DDoS protection, caching, SSL |
 | Email (send)    | Resend    | SMTP relay for transactional email (noreply@trivlu.com); itinerary/vote emails sent asynchronously off the request thread via a bounded pool, contact-form notification stays synchronous |
 | Email (receive) | Zoho Mail | Inbound mailboxes: info@ / support@ / bookings@         |
@@ -120,6 +126,8 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `AUTH0_AUDIENCE`         | yes         | `https://api.trivlu.com` |
 | `AUTH0_ROLES_CLAIM`      | no          | `https://trivlu.com/roles` |
 | `FRONTEND_URL`           | for sitemap | `https://trivlu.com` (also the Stripe return-URL fallback when the request Origin is absent/untrusted) |
+| `REMINDERS_ENABLED`      | no          | `true` (kill switch for the trip-lead reminder scheduler) |
+| `API_PUBLIC_URL`         | no          | empty — set to the backend's public base URL **including the prod context path**, e.g. `https://<backend-host>/api`, to enable RFC 8058 `List-Unsubscribe`/`List-Unsubscribe-Post` headers on reminder emails. Left empty, reminder emails still send but ship **without** those one-click headers, which Gmail/Yahoo require of bulk senders. |
 
 ### Frontend (build-time `REACT_APP_*`)
 

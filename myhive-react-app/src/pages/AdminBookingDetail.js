@@ -2,21 +2,41 @@ import {useCallback, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {useAdminApi} from '../hooks/useAdminApi';
 import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
-import {Alert, Badge, Button, Card, Col, Row, Spinner, Table} from 'react-bootstrap';
+import {useAuth} from '../context/AuthContext';
+import {Alert, Badge, Button, Card, Col, Form, Row, Spinner, Table} from 'react-bootstrap';
 import {formatAmount, formatDate, formatDateTime, STATUS_VARIANTS} from '../utils/format';
 import {copyToClipboard} from '../utils/clipboard';
+
+// Statuses an admin may set by hand; payment statuses (DEPOSIT_PAID, PAID, …) are
+// owned by the Stripe webhook and the backend rejects them.
+const OPERATIONAL_STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED'];
+
+// Mirrors the backend transition rule: from an operational status any other
+// operational status is allowed; once money is in (payment status), the only
+// legal manual exit is cancellation.
+function manualStatusOptions(currentStatus) {
+    const current = currentStatus?.toUpperCase();
+    if (OPERATIONAL_STATUSES.includes(current)) {
+        return OPERATIONAL_STATUSES.filter((s) => s !== current);
+    }
+    return ['CANCELLED'];
+}
 
 function AdminBookingDetail() {
     const adminApi = useAdminApi();
     const {id} = useParams();
     const handleAuthError = useAuthErrorHandler();
     const navigate = useNavigate();
+    const {user} = useAuth();
+    const isAdmin = user?.roles?.includes('ADMIN');
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [amount, setAmount] = useState('');
     const [creating, setCreating] = useState(false);
     const [linkError, setLinkError] = useState('');
+    const [statusSaving, setStatusSaving] = useState(false);
+    const [statusError, setStatusError] = useState('');
 
     const fetchBooking = useCallback(async () => {
         try {
@@ -44,6 +64,24 @@ function AdminBookingDetail() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [booking?.id]);
+
+    const handleStatusChange = async (newStatus) => {
+        if (!newStatus) return;
+        try {
+            setStatusSaving(true);
+            setStatusError('');
+            const updated = await adminApi.updateBookingStatus(id, newStatus);
+            // A status change touches nothing else the admin view shows, so merge it
+            // locally instead of refetching — a full fetchBooking() would flash the
+            // whole page into the loading spinner.
+            setBooking((prev) => ({...prev, status: updated.status}));
+        } catch (err) {
+            if (handleAuthError(err)) return;
+            setStatusError(err.message || 'Failed to update status');
+        } finally {
+            setStatusSaving(false);
+        }
+    };
 
     const handleCreateLink = async () => {
         const cents = Math.round(parseFloat(amount) * 100);
@@ -103,11 +141,33 @@ function AdminBookingDetail() {
                         <Card.Header className="border-bottom">
                             <div className="d-flex align-items-center justify-content-between">
                                 <h6 className="fw-semibold mb-0">Customer Information</h6>
-                                <Badge bg={STATUS_VARIANTS[booking.status?.toUpperCase()] || 'secondary'}
-                                       className="fs-6">
-                                    {booking.status}
-                                </Badge>
+                                <div className="d-flex align-items-center gap-2">
+                                    {isAdmin && (
+                                        <Form.Select
+                                            size="sm"
+                                            aria-label="Change status"
+                                            className="w-auto"
+                                            value=""
+                                            disabled={statusSaving}
+                                            onChange={(e) => handleStatusChange(e.target.value)}
+                                        >
+                                            <option value="">
+                                                {statusSaving ? 'Saving…' : 'Change status…'}
+                                            </option>
+                                            {manualStatusOptions(booking.status).map((s) => (
+                                                <option key={s} value={s}>{s}</option>
+                                            ))}
+                                        </Form.Select>
+                                    )}
+                                    <Badge bg={STATUS_VARIANTS[booking.status?.toUpperCase()] || 'secondary'}
+                                           className="fs-6">
+                                        {booking.status}
+                                    </Badge>
+                                </div>
                             </div>
+                            {statusError && (
+                                <Alert variant="danger" className="py-2 mt-2 mb-0">{statusError}</Alert>
+                            )}
                         </Card.Header>
                         <Card.Body>
                             <Row className="g-3">

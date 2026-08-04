@@ -107,18 +107,6 @@ export const api = {
     return response.json();
   },
 
-  async updateBookingStatus(id, status, stripeSessionId = null) {
-    const response = await fetch(`${API_BASE_URL}/bookings/${id}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status, stripeSessionId }),
-    });
-    if (!response.ok) throw await parseApiError(response, 'Failed to update booking status');
-    return response.json();
-  },
-
     // Blog
     async getBlogPosts() {
         const response = await fetch(`${API_BASE_URL}/blog`);

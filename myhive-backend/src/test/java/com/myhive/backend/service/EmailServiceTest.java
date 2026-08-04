@@ -5,9 +5,12 @@ import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.TripLead;
+import com.myhive.backend.entity.TripLeadActivity;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.VoteMode;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -515,5 +518,184 @@ class EmailServiceTest {
         assertThat(realMessage.getAllRecipients()).hasSize(1);
         assertThat(realMessage.getAllRecipients()[0].toString()).isEqualTo("alice@example.com");
         assertThat(realMessage.getSubject()).contains("Bali");
+    }
+
+    /** Prague/prague destination, random restore + unsubscribe tokens, 6 travelers. */
+    private TripLead tripLeadWithSource(TripLeadSource source) {
+        Destination destination = new Destination();
+        destination.setName("Prague");
+        destination.setSlug("prague");
+
+        TripLead lead = new TripLead();
+        lead.setEmail("traveler@example.com");
+        lead.setSource(source);
+        lead.setRestoreToken(UUID.randomUUID());
+        lead.setUnsubscribeToken(UUID.randomUUID());
+        lead.setDestination(destination);
+        lead.setNumberOfTravelers(6);
+        return lead;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<EmailService.ReminderLineView> reminderLinesFrom(Context context) {
+        return (List<EmailService.ReminderLineView>) context.getVariable("lines");
+    }
+
+    @Test
+    void sendTripReminder_quizSubjectRotatesByStage() throws Exception {
+        TripLead lead = tripLeadWithSource(TripLeadSource.QUIZ);
+        MimeMessage stage1Message = new MimeMessage((Session) null);
+        MimeMessage stage2Message = new MimeMessage((Session) null);
+        MimeMessage stage3Message = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(stage1Message, stage2Message, stage3Message);
+        when(templateEngine.process(eq("trip-reminder"), any())).thenReturn("<html>ok</html>");
+
+        emailService.sendTripReminder(lead, 1, List.of(), List.of(), "https://trivlu.com");
+        emailService.sendTripReminder(lead, 2, List.of(), List.of(), "https://trivlu.com");
+        emailService.sendTripReminder(lead, 3, List.of(), List.of(), "https://trivlu.com");
+
+        String expectedStage1Subject = "Your Prague trip is waiting";
+        String expectedStage2Subject = "Need a hand planning Prague?";
+        String expectedStage3Subject = "Last call — your saved Prague trip";
+        assertThat(stage1Message.getSubject()).isEqualTo(expectedStage1Subject);
+        assertThat(stage2Message.getSubject()).isEqualTo(expectedStage2Subject);
+        assertThat(stage3Message.getSubject()).isEqualTo(expectedStage3Subject);
+    }
+
+    @Test
+    void sendTripReminder_voteSubjectRotatesByStage() throws Exception {
+        TripLead lead = tripLeadWithSource(TripLeadSource.VOTE);
+        MimeMessage stage1Message = new MimeMessage((Session) null);
+        MimeMessage stage2Message = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(stage1Message, stage2Message);
+        when(templateEngine.process(eq("trip-reminder"), any())).thenReturn("<html>ok</html>");
+
+        emailService.sendTripReminder(lead, 1, List.of(), List.of(), "https://trivlu.com");
+        emailService.sendTripReminder(lead, 2, List.of(), List.of(), "https://trivlu.com");
+
+        String expectedStage1Subject = "Your group voted — ready to book Prague?";
+        String expectedStage2Subject = "Still thinking it over? Your Prague trip is saved";
+        assertThat(stage1Message.getSubject()).isEqualTo(expectedStage1Subject);
+        assertThat(stage2Message.getSubject()).isEqualTo(expectedStage2Subject);
+    }
+
+    @Test
+    void sendTripReminder_floorMathBindsOnlyWhenGroupMinimumExceedsRegularTotal() throws Exception {
+        TripLead lead = tripLeadWithSource(TripLeadSource.QUIZ);
+        TripLeadActivity flooredItem = new TripLeadActivity();
+        flooredItem.setActivityName("Karting");
+        flooredItem.setPrice(new BigDecimal("40.00"));
+        flooredItem.setMinPrice(new BigDecimal("400.00"));
+        TripLeadActivity regularItem = new TripLeadActivity();
+        regularItem.setActivityName("Beer Bike");
+        regularItem.setPrice(new BigDecimal("35.00"));
+        regularItem.setMinPrice(null);
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("trip-reminder"), contextCaptor.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendTripReminder(lead, 1, List.of(flooredItem, regularItem), List.of(), "https://trivlu.com");
+
+        List<EmailService.ReminderLineView> lines = reminderLinesFrom(contextCaptor.getValue());
+        EmailService.ReminderLineView flooredLine = lines.get(0);
+        EmailService.ReminderLineView regularLine = lines.get(1);
+        BigDecimal expectedFlooredTotal = new BigDecimal("400.00"); // 40 × 6 = 240 < 400 minimum
+        BigDecimal expectedRegularTotal = new BigDecimal("210.00"); // 35 × 6, no minimum set
+        BigDecimal expectedGrandTotal = expectedFlooredTotal.add(expectedRegularTotal);
+        assertThat(flooredLine.lineTotal).isEqualByComparingTo(expectedFlooredTotal);
+        assertThat(flooredLine.groupMinApplies).isTrue();
+        assertThat(regularLine.lineTotal).isEqualByComparingTo(expectedRegularTotal);
+        assertThat(regularLine.groupMinApplies).isFalse();
+        assertThat((BigDecimal) contextCaptor.getValue().getVariable("totalPrice"))
+                .isEqualByComparingTo(expectedGrandTotal);
+    }
+
+    @Test
+    void sendTripReminder_unsubscribeHeadersGatedByApiPublicUrlConfiguration() throws Exception {
+        TripLead lead = tripLeadWithSource(TripLeadSource.QUIZ);
+        UUID expectedUnsubscribeToken = lead.getUnsubscribeToken();
+        when(templateEngine.process(eq("trip-reminder"), any())).thenReturn("<html>ok</html>");
+
+        ReflectionTestUtils.setField(emailService, "apiPublicUrl", "https://api.trivlu.com");
+        MimeMessage configuredMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(configuredMessage);
+        emailService.sendTripReminder(lead, 1, List.of(), List.of(), "https://trivlu.com");
+
+        String expectedOneClickUrl =
+                "https://api.trivlu.com/leads/unsubscribe/one-click?token=" + expectedUnsubscribeToken;
+        assertThat(configuredMessage.getHeader("List-Unsubscribe")).containsExactly("<" + expectedOneClickUrl + ">");
+        assertThat(configuredMessage.getHeader("List-Unsubscribe-Post")).containsExactly("List-Unsubscribe=One-Click");
+
+        ReflectionTestUtils.setField(emailService, "apiPublicUrl", "");
+        MimeMessage blankMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(blankMessage);
+        emailService.sendTripReminder(lead, 1, List.of(), List.of(), "https://trivlu.com");
+
+        assertThat(blankMessage.getHeader("List-Unsubscribe")).isNull();
+        assertThat(blankMessage.getHeader("List-Unsubscribe-Post")).isNull();
+    }
+
+    @Test
+    void sendTripReminder_derivesShowConsultationAndLastTouchByStageAndSource() throws Exception {
+        TripLead quizLead = tripLeadWithSource(TripLeadSource.QUIZ);
+        TripLead voteLead = tripLeadWithSource(TripLeadSource.VOTE);
+        when(mailSender.createMimeMessage()).thenReturn(
+                new MimeMessage((Session) null), new MimeMessage((Session) null),
+                new MimeMessage((Session) null), new MimeMessage((Session) null));
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("trip-reminder"), contextCaptor.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendTripReminder(quizLead, 2, List.of(), List.of(), "https://trivlu.com");
+        emailService.sendTripReminder(quizLead, 3, List.of(), List.of(), "https://trivlu.com");
+        emailService.sendTripReminder(voteLead, 1, List.of(), List.of(), "https://trivlu.com");
+        emailService.sendTripReminder(voteLead, 2, List.of(), List.of(), "https://trivlu.com");
+
+        List<Context> contexts = contextCaptor.getAllValues();
+        assertThat(contexts.get(0).getVariable("showConsultation")).isEqualTo(true); // QUIZ stage 2
+        assertThat(contexts.get(0).getVariable("lastTouch")).isEqualTo(false);
+        assertThat(contexts.get(1).getVariable("lastTouch")).isEqualTo(true); // QUIZ stage 3
+        assertThat(contexts.get(2).getVariable("showConsultation")).isEqualTo(true); // VOTE stage 1
+        assertThat(contexts.get(3).getVariable("lastTouch")).isEqualTo(true); // VOTE stage 2
+    }
+
+    @Test
+    void sendTripReminder_defaultsTravelersToOneWhenNumberOfTravelersNotSet() throws Exception {
+        TripLead lead = tripLeadWithSource(TripLeadSource.QUIZ);
+        lead.setNumberOfTravelers(null);
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("trip-reminder"), contextCaptor.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendTripReminder(lead, 1, List.of(), List.of(), "https://trivlu.com");
+
+        int expectedTravelers = 1;
+        assertThat(contextCaptor.getValue().getVariable("travelers")).isEqualTo(expectedTravelers);
+    }
+
+    @Test
+    void sendTripReminder_restoreUrlUsesDestinationSlugOrFallsBackToFrontendUrl() throws Exception {
+        TripLead leadWithDestination = tripLeadWithSource(TripLeadSource.QUIZ);
+        UUID expectedRestoreToken = leadWithDestination.getRestoreToken();
+        TripLead leadWithoutDestination = tripLeadWithSource(TripLeadSource.QUIZ);
+        leadWithoutDestination.setDestination(null);
+
+        MimeMessage messageForDestination = mock(MimeMessage.class);
+        MimeMessage messageWithoutDestination = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(messageForDestination, messageWithoutDestination);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("trip-reminder"), contextCaptor.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendTripReminder(leadWithDestination, 1, List.of(), List.of(), "https://trivlu.com");
+        emailService.sendTripReminder(leadWithoutDestination, 1, List.of(), List.of(), "https://trivlu.com");
+
+        String expectedRestoreUrl =
+                "https://trivlu.com/destination/prague?tab=trip-builder&restore=" + expectedRestoreToken;
+        List<Context> contexts = contextCaptor.getAllValues();
+        assertThat(contexts.get(0).getVariable("restoreUrl")).isEqualTo(expectedRestoreUrl);
+        assertThat(contexts.get(1).getVariable("restoreUrl")).isEqualTo("https://trivlu.com");
     }
 }

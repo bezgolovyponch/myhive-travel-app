@@ -63,7 +63,8 @@ public class VoteSession {
     @JoinColumn(name = "destination_id", nullable = false)
     private Destination destination;
 
-    @Column(name = "initiator_email", nullable = false)
+    // Nullable: collected on the booking page, not at vote creation.
+    @Column(name = "initiator_email")
     private String initiatorEmail;
 
     @Column(name = "number_of_travelers", nullable = false)

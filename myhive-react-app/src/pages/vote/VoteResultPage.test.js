@@ -245,7 +245,7 @@ test('CART result hides Proceed to Checkout for a non-initiator', async () => {
 
 // --- Option B: a self-added activity is bookable even with an empty voted result ---
 
-test('B: consultant CTA shows on empty result when the initiator added an activity, and the payload includes it', async () => {
+test('B: deposit CTA shows on empty result when the initiator added an activity, and the payload includes it', async () => {
     const user = userEvent.setup();
     localStorage.setItem('myhive-manager-tok-add', 'mgr-9');
     localStorage.setItem('myhive-initiator-tok-add', 'true');
@@ -263,20 +263,18 @@ test('B: consultant CTA shows on empty result when the initiator added an activi
     // The initiator added only sug1 to their trip (full activity shape, as TripContext stores it).
     renderAt('/vote/tok-add/result', { tripItems: [{ id: 'sug1', name: 'Jet Ski', price: 60 }] });
 
-    // Online payment is temporarily disabled, so the deposit CTA is hidden; the consultant
-    // CTA still appears because the initiator's trip has a payable activity.
-    const consultBtn = await screen.findByRole('button', { name: /Contact our consultant/i });
-    expect(consultBtn).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Book & pay 30% prepayment/i })).not.toBeInTheDocument();
+    // Even with an empty voted result, the deposit CTA appears because the trip has a payable activity.
+    const payBtn = await screen.findByRole('button', { name: /Book & pay 30% prepayment/i });
+    expect(payBtn).toBeInTheDocument();
 
-    await user.click(consultBtn);
+    await user.click(payBtn);
     await user.type(screen.getByLabelText(/Full Name/i), 'Joe Tester');
     await user.type(screen.getByLabelText(/Email Address/i), 'joe@example.com');
     await user.type(screen.getByLabelText(/Phone Number/i), '+1 555 000 1111');
     await user.click(screen.getByRole('button', { name: /Submit Booking/i }));
 
-    // The lead carries exactly the added activity (sug1), not the un-added sug2.
-    expect(paymentApi.createConsultationLead).toHaveBeenCalledWith(
+    // The deposit booking carries exactly the added activity (sug1), not the un-added sug2.
+    expect(paymentApi.createDepositSession).toHaveBeenCalledWith(
         'tok-add',
         'mgr-9',
         expect.objectContaining({

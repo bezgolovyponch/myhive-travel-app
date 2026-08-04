@@ -50,8 +50,8 @@ public class VoteSuggestionsService {
 
         List<Activity> chosen = quizSuggestions;
         if (chosen.isEmpty()) {
-            chosen = activityRepository.findSuggestionCandidates(
-                    session.getDestination().getId(), null, exclusion,
+            chosen = activityRepository.findSuggestionCandidatesAnyCategory(
+                    session.getDestination().getId(), exclusion,
                     PageRequest.of(0, SUGGESTION_CAP));
         }
 

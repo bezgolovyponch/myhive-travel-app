@@ -1,5 +1,8 @@
 import {Helmet} from 'react-helmet-async';
 import {useNavigate} from 'react-router-dom';
+import {useCatalog} from '../context/CatalogContext';
+import {getDefaultDestination} from '../utils/defaultDestination';
+import {DEFAULT_DESTINATION_SLUG} from '../services/config';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import TripSetupModal from '../components/TripSetupModal';
 import TrustBar from '../components/home/TrustBar';
@@ -7,21 +10,27 @@ import HowItWorksSection from '../components/home/HowItWorksSection';
 import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSection';
 import ReviewsSection from '../components/home/ReviewsSection';
 import ContactCtaSection from '../components/home/ContactCtaSection';
-import {SITE_URL} from '../services/config';
+import VoteDemoCard from '../components/home/VoteDemoCard';
+import StickyVoteCta from '../components/home/StickyVoteCta';
+import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
 import {pushEvent} from '../utils/analytics';
-import {scrollToHomeSection} from '../utils/scrollToHomeSection';
 import './HomePage.css';
 
 function HomePage() {
     const navigate = useNavigate();
+    const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
+    // "Explore activities" goes to the catalog — the default destination's
+    // activities listing — rather than scrolling to the homepage teaser.
+    const exploreActivitiesSlug =
+        getDefaultDestination(catalog.destinations)?.slug || DEFAULT_DESTINATION_SLUG;
 
     return (
         <div className="homepage">
             <Helmet>
-                <title>Trivlu — The Easiest Stag Do Decision. All Sorted For You.</title>
+                <title>Trivlu — Prague Stag Do. Planned in 10 Minutes.</title>
                 <meta name="description"
-                      content="Your mates vote in 10 minutes. We deliver the perfect stag do weekend — activities, booking and logistics all sorted for you."/>
+                      content="Your group votes, we do the rest. The perfect Prague stag do weekend — activities, booking and logistics all sorted for you."/>
                 <link rel="canonical" href={`${SITE_URL}/`}/>
             </Helmet>
 
@@ -30,34 +39,12 @@ function HomePage() {
                 <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">The Easiest Stag Do Decision. All Sorted For You.</h1>
+                        <h1 className="hero-title">Prague Stag Do. Planned in 10 minutes.</h1>
                         <p className="hero-subtitle">
-                            Your mates vote in 10 minutes. We deliver the perfect weekend.
+                            Your group votes, we do the rest.
                         </p>
 
-                        <aside className="vote-card" aria-hidden="true">
-                            <div className="vc-head">
-                                <span className="vc-badge"><i className="ph ph-check-square"/></span>
-                                <span className="vc-title">Vote on activities</span>
-                            </div>
-                            <div className="vc-sub">9 of 11 lads voted</div>
-                            {[
-                                {icon: 'ph-beer-stein', name: 'Bar Crawl', num: 8, pct: 89, fill: 'var(--purple-ll)'},
-                                {icon: 'ph-steering-wheel', name: 'Karting', num: 6, pct: 67, fill: 'var(--purple-l)'},
-                                {icon: 'ph-target', name: 'Shooting', num: 5, pct: 56, fill: 'var(--purple-l)'},
-                                {icon: 'ph-boat', name: 'Tiki Boat', num: 4, pct: 44, fill: 'var(--purple-l)'},
-                            ].map((row) => (
-                                <div className="vc-row" key={row.name}>
-                                    <div className="vc-row-top">
-                                        <span className="vc-name"><i className={`ph ${row.icon}`}/>{row.name}</span>
-                                        <span className="vc-num">{row.num}</span>
-                                    </div>
-                                    <div className="vc-bar">
-                                        <div className="vc-fill" style={{width: `${row.pct}%`, background: row.fill}}/>
-                                    </div>
-                                </div>
-                            ))}
-                        </aside>
+                        <VoteDemoCard/>
 
                         <div className="hero-cta-group">
                             <button
@@ -71,30 +58,23 @@ function HomePage() {
                             </button>
                             <a
                                 className="hp-btn-secondary"
-                                href="/#activities"
+                                href={`/destination/${exploreActivitiesSlug}?tab=activities`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'});
-                                    scrollToHomeSection(navigate, 'activities');
+                                    navigate(`/destination/${exploreActivitiesSlug}?tab=activities`);
                                 }}
                             >
                                 Explore activities
                             </a>
                         </div>
-                        <div className="hero-trust-line">
-                            <span>You pick the vibe</span>
-                            <span className="dot">·</span>
-                            <span>Lads vote</span>
-                            <span className="dot">·</span>
-                            <span>We organise it</span>
-                        </div>
                     </div>
                 </div>
             </section>
 
-            <TrustBar/>
-            <HowItWorksSection onStartVote={openVoteSetup}/>
             <FeaturedActivitiesSection/>
+            <HowItWorksSection onStartVote={openVoteSetup}/>
+            <TrustBar/>
             <ReviewsSection onStartVote={openVoteSetup}/>
             <ContactCtaSection/>
 
@@ -105,6 +85,8 @@ function HomePage() {
                 onVoteCancel={closeVoteSetup}
                 preselectedDestination={preselectedDestination}
             />
+
+            {STICKY_VOTE_CTA_ENABLED && <StickyVoteCta onStartVote={openVoteSetup} hidden={voteSetupOpen}/>}
         </div>
     );
 }

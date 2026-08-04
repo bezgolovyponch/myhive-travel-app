@@ -175,7 +175,9 @@ class VoteSessionCartProcessTest {
     private VoteSessionResponse createCartSession(Destination destination, Activity... activities) {
         VoteSessionCartCreateRequest request = new VoteSessionCartCreateRequest();
         request.setDestinationId(destination.getId());
-        request.setInitiatorEmail("initiator@example.com");
+        // Unique per call: processSession now really invokes TripLeadService.createFromVoteSession,
+        // which would otherwise repurpose the same lead across every test in this class.
+        request.setInitiatorEmail("initiator+" + UUID.randomUUID() + "@example.com");
         request.setNumberOfTravelers(4);
         request.setStartDate(LocalDate.of(2026, 8, 1));
         request.setEndDate(LocalDate.of(2026, 8, 3));

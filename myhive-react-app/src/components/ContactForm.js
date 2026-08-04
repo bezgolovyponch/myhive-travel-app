@@ -2,10 +2,13 @@ import {useEffect, useId, useState} from 'react';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 import AppModal from './AppModal';
+import EmailConsentNote from './EmailConsentNote';
 import {computeTripTotal} from '../utils/tripPricing';
 import {formatPrice} from '../utils/format';
 
-function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking', inline = false, tripData, initialValues, isSubmitting, submitError}) {
+function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking', inline = false,
+                      tripData, initialValues, isSubmitting, submitError,
+                      onEmailChange, showConsentNote = false}) {
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -83,6 +86,9 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
     const handleInputChange = (e) => {
         const {name, value} = e.target;
         setFormData(prev => ({...prev, [name]: value}));
+        if (name === 'email' && onEmailChange) {
+            onEmailChange(value);
+        }
         if (errors[name]) {
             setErrors(prev => ({...prev, [name]: ''}));
         }
@@ -104,6 +110,9 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                     {!inline && (
                         <div className="trip-summary">
                             <h4>Trip Summary</h4>
+                            {tripData.destinationName && (
+                                <p><strong>Destination:</strong> {tripData.destinationName}</p>
+                            )}
                             <p><strong>Activities:</strong> {tripData.tripItems.length} selected</p>
                             <p><strong>Estimated Total:</strong> {formatPrice(computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1))}</p>
                         </div>
@@ -134,6 +143,14 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                                     placeholder="john@example.com"
                                 />
                                 {errors.email && <span className="error-message">{errors.email}</span>}
+                                {showConsentNote && (
+                                    <>
+                                        <p className="email-value-note">
+                                            We&apos;ll save your trip to this address so you can pick it up anytime.
+                                        </p>
+                                        <EmailConsentNote />
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -150,12 +167,34 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                             </div>
                             <div className="form-group">
                                 <label htmlFor="numberOfTravelers">Number of Travelers *</label>
-                                <input
-                                    type="number" id="numberOfTravelers" name="numberOfTravelers"
-                                    value={formData.numberOfTravelers} onChange={handleInputChange}
-                                    min="1" max="20"
-                                    className={errors.numberOfTravelers ? 'error' : ''}
-                                />
+                                {/* Same compact − / n / + stepper as the trip setup modal */}
+                                <div className="travelers-control">
+                                    <button
+                                        type="button"
+                                        className="travelers-step"
+                                        aria-label="Decrease travelers"
+                                        disabled={(parseInt(formData.numberOfTravelers, 10) || 1) <= 1}
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            numberOfTravelers: Math.max(1, (parseInt(prev.numberOfTravelers, 10) || 1) - 1),
+                                        }))}
+                                    >−</button>
+                                    <input
+                                        type="number" id="numberOfTravelers" name="numberOfTravelers"
+                                        value={formData.numberOfTravelers} onChange={handleInputChange}
+                                        min="1" max="20"
+                                        className={`travelers-count${errors.numberOfTravelers ? ' error' : ''}`}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="travelers-step"
+                                        aria-label="Increase travelers"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            numberOfTravelers: Math.min(20, (parseInt(prev.numberOfTravelers, 10) || 1) + 1),
+                                        }))}
+                                    >+</button>
+                                </div>
                                 {errors.numberOfTravelers &&
                                     <span className="error-message">{errors.numberOfTravelers}</span>}
                             </div>
@@ -229,6 +268,9 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
         return (
             <div className="contact-form-panel">
                 <h3 className="contact-form-panel__title">Complete Your Booking</h3>
+                <p className="contact-form-panel__step">
+                    Step 1 of 2 — we confirm availability, then you pay a 30% deposit.
+                </p>
                 <div className="contact-form-panel__body">{body}</div>
                 <div className="contact-form-panel__footer">{footer}</div>
             </div>

@@ -24,7 +24,7 @@
 }
 
 .swipe-card-subtitle {
-    color: var(--text-muted, rgba(167,169,169,0.7));
+    color: #fff;
     margin-bottom: 8px;
     text-align: center;
     font-size: 0.95rem;
@@ -218,7 +218,7 @@
 
 .swipe-share-btn {
     padding: 8px 24px;
-    background: var(--brand, #6A1B9A);
+    background: var(--brand, #534AB7);
     color: #fff;
     border: none;
     border-radius: 6px;

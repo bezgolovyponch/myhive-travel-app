@@ -5,7 +5,10 @@
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* Dynamic viewport height: track the mobile browser toolbar instead of
+     sliding under it (a bottom:0 fixed box pins to the layout viewport) */
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,7 +28,10 @@
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* Dynamic viewport height: track the mobile browser toolbar instead of
+     sliding under it (a bottom:0 fixed box pins to the layout viewport) */
+  height: 100vh;
+  height: 100dvh;
   overflow: auto;
   display: flex;
   flex-direction: column;

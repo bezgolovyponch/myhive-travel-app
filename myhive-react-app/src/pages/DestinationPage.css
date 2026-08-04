@@ -1,26 +1,30 @@
 /* Destination Page Styles */
-.destination-header {
-    padding-top: calc(var(--header-height) + var(--gap-3xl));
-    padding-bottom: var(--gap-xl);
-}
+/* No destination title/hero block: the tabs are the first content. The header
+   bar floats over the top (absolute) and scrolls away, so the tab row reserves
+   room to clear the header (4rem) + breadcrumbs (~2.9rem) plus breathing room. */
 
-.destination-header h1 {
-    font-size: clamp(1.5rem, 4vw, 1.875rem);
-    font-weight: 600;
-}
-
-.destination-header p {
-    font-size: 1rem;
-    opacity: 0.9;
+/* Complete Booking checkout view (from main): header, hero and tabs are hidden,
+   so the focused form gets its own top breathing room in place of the hero's. */
+.destination-page--checkout {
+    padding-top: var(--gap-xl);
 }
 
 /* Tab Navigation */
 .tab-nav {
+    /* Clear the floating header (4rem row + ~2.9rem breadcrumbs) with no gap. */
+    margin-top: 6.9rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: center;
-    padding: 0 var(--gap);
+    /* Match the hero/tab-content horizontal gutter (--page-padding) instead of
+       the fixed --gap, so the tab bar's edges line up with every other block.
+       Deliberately unscoped: the padding is only binding at <=768px where the
+       flex-start override below applies (that's the alignment fix); at desktop
+       widths the tabs are centered and far narrower than the viewport, so the
+       larger inset (64-96px at 1280-1920px) is a never-hit minimum and the
+       rendering is unchanged. */
+    padding: 0 var(--page-padding);
 }
 
 .tab-btn {
@@ -51,6 +55,19 @@
     display: flex;
     flex-direction: column;
     gap: var(--gap-xl);
+}
+
+/* Trip Builder panel: the tab bar is hidden here (it normally reserves the
+   floating-header clearance), so this panel reserves it itself — the itinerary
+   sits below the header + breadcrumbs instead of overlapping them. */
+.tab-content--trip {
+    padding-top: 8.375rem;
+}
+
+@media (max-width: 768px) {
+    .tab-content--trip {
+        padding-top: 6.5rem;
+    }
 }
 
 .tab-header {
@@ -87,10 +104,26 @@
     gap: var(--gap-sm);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+    /* Uniform 4-column grid across all phones/small tablets: every chip is the
+       SAME compact fixed size regardless of label length, so a 2-word category
+       ("Guns & Bullets") never makes its row taller/wider than "Chillout". */
     .category-filters {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--gap-xs);
+    }
+
+    .filter-btn {
+        height: 2.25rem;
+        padding: 0 0.25rem;
+        font-size: 0.625rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.1;
+        overflow: hidden;
     }
 }
 
@@ -188,6 +221,8 @@
     }
 
     .tab-nav {
+        /* Mobile header bar is 3.25rem + ~2.9rem breadcrumbs, no gap. */
+        margin-top: 6.15rem;
         overflow-x: auto;
         justify-content: flex-start;
     }
@@ -197,3 +232,4 @@
         flex-shrink: 0;
     }
 }
+

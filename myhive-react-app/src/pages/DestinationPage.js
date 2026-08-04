@@ -160,7 +160,7 @@ function DestinationPage() {
   if (loading) {
     return (
       <div className="destination-page">
-          <div className="page-hero destination-header">
+          <div className="page-hero">
           <h1>Loading...</h1>
         </div>
       </div>
@@ -170,7 +170,7 @@ function DestinationPage() {
     if (error || !destination) {
         return (
             <div className="destination-page">
-                <div className="page-hero destination-header">
+                <div className="page-hero">
                     <h1>Destination not found</h1>
                     <button className="btn btn--primary" onClick={() => navigate('/')}>Back to Home</button>
                 </div>
@@ -179,19 +179,20 @@ function DestinationPage() {
     }
 
   return (
-    <div className="destination-page">
+    <div className={`destination-page${trip.checkoutOpen ? ' destination-page--checkout' : ''}`}>
         <Helmet>
             <title>{destination.name} — Trivlu</title>
             <meta name="description"
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </Helmet>
-        <div className="page-hero destination-header">
-        <h1>{destination.name}</h1>
-        <p>{destination.description || ''}</p>
-      </div>
-      
-      <nav className="tab-nav">
+      {/* Tab bar hides on the Trip Builder tab (and during checkout) so nothing
+          pulls the user away from completing the booking; breadcrumbs + Browse
+          More Activities still lead back to the catalog. */}
+      <nav
+          className="tab-nav"
+          style={{display: (trip.checkoutOpen || currentTab === 'trip-builder') ? 'none' : undefined}}
+      >
           <button
               className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
           onClick={() => handleTabChange('activities')}
@@ -216,7 +217,6 @@ function DestinationPage() {
 
         <div className="tab-content" style={{display: currentTab === 'activities' ? 'flex' : 'none'}}>
         <div className="tab-header">
-          <h2>Activities</h2>
             <div className="filter-group">
                 <div className="category-filters">
               <button
@@ -287,10 +287,11 @@ function DestinationPage() {
         </div>
       </div>
 
-      {/* Trip Builder Tab */}
-        <div id="trip-builder-tab" className="tab-content"
+      {/* Trip Builder Tab — tabs are hidden here, so this panel reserves the
+          header/breadcrumbs clearance itself. */}
+        <div id="trip-builder-tab" className="tab-content tab-content--trip"
              style={{display: currentTab === 'trip-builder' ? 'flex' : 'none'}}>
-        {tripBuilderActivated && <TripBuilder destinationId={destination?.id} destinationSlug={destination?.slug} />}
+        {tripBuilderActivated && <TripBuilder destinationId={destination?.id} destinationSlug={destination?.slug} destinationName={destination?.name} />}
       </div>
     </div>
   );

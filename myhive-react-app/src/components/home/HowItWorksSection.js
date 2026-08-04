@@ -1,52 +1,59 @@
 import {pushEvent} from '../../utils/analytics';
+import SwipeMomentCard from './SwipeMomentCard';
+import VoteMomentCard from './VoteMomentCard';
+import stepPickImg from '../../assets/home/step-pick.jpg';
+import stepLimoImg from '../../assets/home/step-limo.png';
 import './HowItWorksSection.css';
 
+// Layout per the approved how-it-works-v12 mockup: three equal cards — swipe
+// deck, live vote, booked photo — each captioned with a numbered step title.
 const STEPS = [
     {
-        title: 'Define your stag style',
-        text: 'Wild or classy, chill or adrenaline',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.38.35.png',
-        objectPosition: 'top',
+        title: 'Pick activities to vote on',
+        visual: <SwipeMomentCard image={stepPickImg}/>,
+        wrapperClass: 'step-img step-img--component',
     },
     {
-        title: 'Handpick the shortlist',
-        text: 'Pick what the group gets to vote on',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.52.51.jpg',
-        objectPosition: 'center',
+        title: 'Share the vote link',
+        visual: <VoteMomentCard/>,
+        wrapperClass: 'step-img step-img--component',
     },
     {
-        title: 'Send the vote link',
-        text: 'Your mates pick their favourites',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.55.15.png',
-        objectPosition: 'center',
-    },
-    {
-        title: 'Review & confirm',
-        text: 'Add, remove or tweak before you book',
-        img: 'https://cdn.jsdelivr.net/gh/cyrudi/sandbox@main/Screenshot%202026-06-19%20at%2017.40.55.jpg',
-        objectPosition: 'left top',
+        title: 'Book the winners',
+        visual: (
+            <>
+                <img src={stepLimoImg} alt="" loading="lazy"/>
+                <div className="booked">
+                    <i className="ph ph-check-circle"/>
+                    <div>
+                        <div className="booked-t">Booking confirmed</div>
+                        <div className="booked-s">Prague &middot; 19&ndash;21 Jun &middot; 8 lads</div>
+                    </div>
+                </div>
+            </>
+        ),
+        wrapperClass: 'step-img step-img--photo',
     },
 ];
 
 function HowItWorksSection({onStartVote}) {
     return (
         <section className="how-it-works">
-            <h2 className="section-title">The Smartest Way to Plan a Stag Do</h2>
+            <h2 className="section-title">Let the group decide. You just book it.</h2>
             <p className="section-subtitle">
-                Our Trip Builder uses group voting to turn everyone's preferences into one perfect stag do package.
+                Everyone votes, you confirm, we handle the rest.
             </p>
             <div className="how-it-works-steps">
                 {STEPS.map((step, index) => (
                     <div key={step.title} className="how-it-works-step">
-                        <div className="step-img">
-                            <img src={step.img} alt="" loading="lazy" style={{objectPosition: step.objectPosition}}/>
+                        <div className={step.wrapperClass}>
+                            {step.visual}
                         </div>
                         <div className="step-body">
                             <div className="step-head">
                                 <span className="step-number">{index + 1}</span>
                                 <h3 className="step-title">{step.title}</h3>
                             </div>
-                            <p className="step-text">{step.text}</p>
                         </div>
                     </div>
                 ))}

@@ -141,12 +141,11 @@
 .drp-nav-next {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 50%;
-  background: var(--surface);
+  background: transparent;
   cursor: pointer;
-  font-size: 18px;
-  color: var(--text);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -157,7 +156,33 @@
 
 .drp-nav-prev:hover,
 .drp-nav-next:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Thin white chevrons instead of react-day-picker's chunky filled ones */
+.drp-nav-prev svg,
+.drp-nav-next svg {
+  display: none;
+}
+
+.drp-nav-prev::before,
+.drp-nav-next::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-left: 1.5px solid #fff;
+  border-bottom: 1.5px solid #fff;
+  display: block;
+}
+
+.drp-nav-prev::before {
+  transform: rotate(45deg);
+  margin-left: 3px;
+}
+
+.drp-nav-next::before {
+  transform: rotate(-135deg);
+  margin-right: 3px;
 }
 
 /* ── Calendar grid (table) ── */
@@ -277,24 +302,6 @@
     height: 32px;
     font-size: 13px;
   }
-
-  .drp-fields {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .drp-field:first-child {
-    border-radius: 8px;
-    border-right: 1px solid var(--border);
-  }
-
-  .drp-field:first-child::after {
-    display: none;
-  }
-
-  .drp-field:last-child {
-    border-radius: 8px;
-  }
 }
 
 /* ── Hover range preview ── */
@@ -320,33 +327,62 @@
   outline: none;
 }
 
-/* ── Footer ── */
-.drp-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+/* ── Popover mode: a compact calendar stuck to the date fields. Fixed (with
+   inline coordinates measured from the fields) so it can never be clipped by
+   the modal body's scroll overflow and never shifts the layout underneath. ── */
+.drp-pop {
+  position: fixed;
+  z-index: 80; /* above .app-modal (z-index: 70 in styles/global.css) */
+  width: min(19.5rem, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  padding: 4px;
 }
 
-.drp-nights {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.drp-nights strong {
-  color: var(--text);
-}
-
-.drp-clear {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  text-decoration: underline;
-  cursor: pointer;
-  background: none;
+/* Inside the popover the pop itself is the frame — drop the inline wrap's own
+   box and tighten everything up so the calendar stays small. */
+.drp-pop .drp-cal-wrap {
   border: none;
-  padding: 0;
-  font-family: inherit;
+  padding: 8px 10px;
+}
+
+.drp-pop .drp-nav {
+  height: 36px;
+}
+
+.drp-pop .drp-nav-prev,
+.drp-pop .drp-nav-next {
+  width: 28px;
+  height: 28px;
+  font-size: 15px;
+}
+
+/* Month name sits vertically centered between the nav arrows */
+.drp-pop .drp-months {
+  padding-top: 10px;
+}
+
+.drp-pop .drp-month-caption {
+  margin-bottom: 12px;
+}
+
+.drp-pop .drp-month-name {
+  font-size: 14px;
+}
+
+.drp-pop .drp-weekday {
+  font-size: 11px;
+  padding: 2px 0 6px;
+}
+
+.drp-pop .drp-day {
+  height: 32px;
+}
+
+.drp-pop .drp-day-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
 }

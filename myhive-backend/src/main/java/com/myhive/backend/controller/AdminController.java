@@ -14,6 +14,7 @@ import com.myhive.backend.dto.CategoryUsageDTO;
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.dto.QuizDTO;
+import com.myhive.backend.dto.UpdateBookingStatusRequest;
 import com.myhive.backend.service.ActivityService;
 import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.BookingService;
@@ -37,6 +38,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -95,6 +97,14 @@ public class AdminController {
             @Valid @RequestBody AdminPaymentLinkRequest request) {
         AdminPaymentLinkResponse response = paymentService.createAdminPaymentLink(id, request.amountCents());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PatchMapping("/bookings/{id}/status")
+    public ResponseEntity<BookingDTO> updateBookingStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateBookingStatusRequest request) {
+        BookingDTO updatedBooking = bookingService.updateBookingStatus(id, request.getStatus());
+        return ResponseEntity.ok(updatedBooking);
     }
 
     @GetMapping("/activities")

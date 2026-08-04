@@ -19,12 +19,12 @@ export function useStartGroupVote() {
     const openVoteSetup = () => setVoteSetupOpen(true);
     const closeVoteSetup = () => setVoteSetupOpen(false);
 
-    const handleVoteConfirm = ({travelers, startDate, endDate, email, destination, budget}) => {
+    const handleVoteConfirm = ({travelers, startDate, endDate, destination, budget}) => {
         setVoteSetupOpen(false);
         dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
         navigate('/vote/new/quiz', {
             state: {
-                setup: {travelers, startDate, endDate, email, destination, budget},
+                setup: {travelers, startDate, endDate, destination, budget},
             },
         });
     };

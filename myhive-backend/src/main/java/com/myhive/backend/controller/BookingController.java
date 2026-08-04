@@ -3,15 +3,15 @@ package com.myhive.backend.controller;
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
 import com.myhive.backend.dto.TripExportRequest;
-import com.myhive.backend.dto.UpdateBookingStatusRequest;
 import com.myhive.backend.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/bookings")
@@ -30,13 +30,5 @@ public class BookingController {
     public ResponseEntity<BookingDTO> createBookingFromTrip(@Valid @RequestBody TripExportRequest request) {
         BookingDTO booking = bookingService.createBookingFromExport(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(booking);
-    }
-
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<BookingDTO> updateBookingStatus(
-            @PathVariable UUID id,
-            @Valid @RequestBody UpdateBookingStatusRequest request) {
-        BookingDTO updatedBooking = bookingService.updateBookingStatus(id, request.getStatus(), request.getStripeSessionId());
-        return ResponseEntity.ok(updatedBooking);
     }
 }
