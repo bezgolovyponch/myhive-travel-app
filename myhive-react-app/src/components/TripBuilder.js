@@ -951,20 +951,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           link={previewActivity ? getPreviewLink(previewActivity) : null}
           onClose={() => setPreviewActivity(null)}
       />
-
-      {/* Mobile sticky bar: keeps the total + primary CTA reachable while the
-          itinerary list scrolls. Hidden while the inline booking form is open. */}
-      {state.tripItems.length > 0 && !showContactForm && (
-          <div className="trip-builder-sticky-bar">
-            <div className="trip-builder-sticky-total">
-              <span className="trip-builder-sticky-label">Total</span>
-              <span className="trip-builder-sticky-price">{formatPrice(totalPrice)}</span>
-            </div>
-            <button className="btn btn--primary" onClick={handleConfirmTrip}>
-              Book now
-            </button>
-          </div>
-      )}
     </div>
   );
 }
