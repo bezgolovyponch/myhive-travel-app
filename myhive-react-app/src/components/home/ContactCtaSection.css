@@ -26,7 +26,8 @@
 }
 
 .contact-cta-title {
-    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    /* Same scale as every other landing section heading (.section-title). */
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
     color: #fff;
     margin: 0 0 0.875rem;
     text-transform: uppercase;
