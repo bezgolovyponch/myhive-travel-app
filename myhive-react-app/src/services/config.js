@@ -1,8 +1,14 @@
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 export const SITE_URL = process.env.REACT_APP_SITE_URL || 'https://trivlu.com';
 
-// Placeholder FB page until the real one is provided
-export const WHATSAPP_URL = 'https://wa.me/420795518597';
+// WhatsApp chat link. The number is the account; WhatsApp itself controls the
+// name shown at the top of the chat (that's an account/Business-profile setting,
+// not something the link can set). The ?text= param pre-fills the visitor's
+// first message so the conversation opens with context and reads as "Trivlu".
+export const WHATSAPP_NUMBER = '420795518597';
+export const WHATSAPP_GREETING = 'Hi Trivlu, I\'d like some help planning my trip.';
+export const WHATSAPP_URL =
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_GREETING)}`;
 export const MESSENGER_URL = 'https://m.me/trivlu';
 
 // Prague is the only destination on sale, so destination choice is hidden and the

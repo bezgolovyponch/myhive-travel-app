@@ -8,44 +8,35 @@
     --fab-bottom: 16px;
     bottom: calc(var(--fab-bottom) + var(--cky-consent-h, 0px));
     z-index: 60; /* under .app-modal overlays (z-index: 70 in styles/global.css) */
-    width: 52px;
-    height: 52px;
+    /* 64px matches the pissup WhatsApp FAB (same size on desktop and mobile). */
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #4caf50;
     color: #fff;
-    font-size: 1.75rem;
     /* Plain drop shadow — no green glow ring. */
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
-/* Red notification dot in the top-right corner, matching the pissup FAB. */
-.trv-chat-fab::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 11px;
-    height: 11px;
-    border-radius: 50%;
-    background: #ff3b30;
-    border: 2px solid #fff;
+/* The WhatsApp glyph fills ~56% of the circle, like the pissup FAB. */
+.trv-chat-fab svg {
+    width: 36px;
+    height: 36px;
+    display: block;
 }
 
 .trv-chat-fab:hover { color: #fff; opacity: 0.92; }
 
-/* Sits above the sticky mobile CTA (Task 11) */
+/* No notification dot — the FAB is a plain "chat with us" launcher, not an
+   unread badge. (Removed the red ::after dot that mimicked pissup's.) */
+
+/* Sits above the sticky mobile CTA (Task 11). The FAB keeps its full 60px on
+   phones too — same size as pissup's, no shrink. */
 @media (max-width: 767px) {
     .homepage-has-sticky-cta .trv-chat-fab { --fab-bottom: 76px; }
-
-    /* Smaller footprint over the content on phones */
-    .trv-chat-fab {
-        width: 46px;
-        height: 46px;
-        font-size: 1.5rem;
-    }
 }
 
 /* On phones the trip view pins the vote rail to the bottom of the viewport;
