@@ -7,9 +7,12 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,6 +50,26 @@ public class RateLimitFilter implements Filter {
         this.cleanupDelayMillis = cleanupDelayMillis;
     }
 
+    /** Shared secret for server-to-server callers (the Next SSR service). Cold ISR fills render
+     *  the whole catalog from one egress IP and would exhaust the per-IP bucket; a matching
+     *  X-Internal-Token bypasses the counter. Blank (default) disables the exemption. */
+    private final byte[] internalToken;
+
+    public RateLimitFilter(@Value("${internal.api.token:}") String internalToken) {
+        this.internalToken = internalToken == null || internalToken.isBlank()
+                ? null
+                : internalToken.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private boolean isInternalRequest(HttpServletRequest request) {
+        if (internalToken == null) {
+            return false;
+        }
+        String header = request.getHeader("X-Internal-Token");
+        return header != null
+                && MessageDigest.isEqual(internalToken, header.getBytes(StandardCharsets.UTF_8));
+    }
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -70,6 +93,11 @@ public class RateLimitFilter implements Filter {
                 httpResponse.getWriter().write("Payload Too Large");
                 return;
             }
+            chain.doFilter(request, response);
+            return;
+        }
+
+        if (isInternalRequest(httpRequest)) {
             chain.doFilter(request, response);
             return;
         }
