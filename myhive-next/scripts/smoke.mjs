@@ -50,9 +50,13 @@ async function expect404(path) {
 }
 
 // SEO-v3 «метатеги» table — titles are pinned where the doc fixes them.
+// The homepage now renders the canonical CRA component, so its title and H1 are
+// CRA's — deliberately overriding the SEO-v3 заготовка ("Trivlu — Stag Do Trips,
+// Sorted in Minutes" / "The Easiest Stag Do Decision"), which had drifted from
+// what production actually serves. Still within the ≤60 char budget checked below.
 await check('/', {
-  title: 'Trivlu — Stag Do Trips, Sorted in Minutes',
-  needles: ['The Easiest Stag Do Decision', 'application/ld+json'],
+  title: 'Trivlu — Prague Stag Do. Planned in 10 Minutes.',
+  needles: ['Prague Stag Do. Planned in 10 minutes.', 'application/ld+json', 'activity-card'],
 });
 await check('/destination/prague', {
   title: 'Prague Stag Do — Activities & Packages | Trivlu',

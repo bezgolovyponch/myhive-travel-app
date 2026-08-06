@@ -74,7 +74,20 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
         <span className="activity-category">
           {primaryCategory ? capitalizeFirst(primaryCategory) : 'Activity'}
         </span>
-                <h3 className="activity-title">{title}</h3>
+                {/* A real anchor so the card is a crawlable link when this card is
+                    server-rendered — the surrounding div is role="button", which
+                    emits no href. preventDefault lets the click bubble to
+                    handleCardClick instead, keeping SPA client-side navigation. */}
+                <h3 className="activity-title">
+                    <a
+                        href={activityLink}
+                        className="activity-title-link"
+                        onClick={(e) => e.preventDefault()}
+                        tabIndex={-1}
+                    >
+                        {title}
+                    </a>
+                </h3>
                 <div className="activity-footer">
                     <span className="activity-price">
                         {formattedPrice}

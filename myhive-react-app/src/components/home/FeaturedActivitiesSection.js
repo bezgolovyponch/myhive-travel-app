@@ -10,12 +10,18 @@ import './FeaturedActivitiesSection.css';
 
 const MAX_FEATURED = 12;
 
-function FeaturedActivitiesSection() {
+// `injected` lets a server renderer supply the grid so it reaches the initial
+// HTML — the fetch below runs in an effect, which a crawler never sees. Omitted
+// in the SPA, where the effect stays the only source.
+function FeaturedActivitiesSection({activities: injected}) {
     const {state: catalog} = useCatalog();
     const {state: trip} = useTrip();
-    const [activities, setActivities] = useState([]);
+    const [activities, setActivities] = useState(injected ?? []);
 
     useEffect(() => {
+        if (injected) {
+            return undefined;
+        }
         // The fallback must be scoped to the default destination, so wait for
         // the catalog instead of fetching on mount.
         if (catalog.loading) {
@@ -42,7 +48,7 @@ function FeaturedActivitiesSection() {
         return () => {
             cancelled = true;
         };
-    }, [catalog.loading, catalog.destinations]);
+    }, [injected, catalog.loading, catalog.destinations]);
 
     if (activities.length === 0) {
         return null;

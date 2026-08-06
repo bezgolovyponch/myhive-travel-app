@@ -1,0 +1,105 @@
+'use client';
+
+// CRA components navigate with react-router (<Link to>, useNavigate). The SSR
+// public pages have no <Routes> tree, so a real BrowserRouter would "navigate"
+// to a blank screen — react-router would own history and find nothing to render.
+// This bridges react-router navigation onto real browser navigation: <Link>s
+// render correct hrefs and clicking one does a full page load, which is exactly
+// what leaving an SSR page should do. Inside the SPA the very same components
+// keep using the genuine BrowserRouter from legacy-src/App.
+import { Router } from 'react-router-dom';
+import type { To } from 'react-router-dom';
+import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+
+function toHref(to: To): string {
+  if (typeof to === 'string') return to;
+  const { pathname = '', search = '', hash = '' } = to;
+  return `${pathname}${search}${hash}`;
+}
+
+type BridgeLocation = {
+  pathname: string;
+  search: string;
+  hash: string;
+  state: unknown;
+  key: string;
+};
+
+export default function LegacyRouter({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  // The server has no window, so the first render knows only the pathname.
+  // Deliberately not reading search/hash here: usePathname is prerender-safe
+  // while useSearchParams would force this subtree out of the static HTML,
+  // which is the one thing these pages exist to produce.
+  const [location, setLocation] = useState<BridgeLocation>(() => ({
+    pathname,
+    search: '',
+    hash: '',
+    state: null,
+    key: 'default',
+  }));
+
+  // Fill in search/hash after hydration. Running in an effect means React never
+  // diffs it against the server markup, so this costs no hydration mismatch.
+  // Consumers that need it (header breadcrumb tab label, AttributionCapture)
+  // re-run on the update.
+  useEffect(() => {
+    const { pathname: p, search, hash } = window.location;
+    setLocation((prev) =>
+      prev.pathname === p && prev.search === search && prev.hash === hash
+        ? prev
+        : { pathname: p, search, hash, state: null, key: 'default' }
+    );
+  }, [pathname]);
+
+  const navigator = useMemo(
+    () => ({
+      createHref: toHref,
+      go: (delta: number) => window.history.go(delta),
+
+      push: (to: To) => {
+        const url = new URL(toHref(to), window.location.origin);
+        // Same-document target: don't reload. scrollToHomeSection() calls
+        // navigate('/') unconditionally before scrolling, so on '/' a reload
+        // here would throw away the smooth scroll it was about to do.
+        if (url.pathname === window.location.pathname) {
+          window.history.pushState(null, '', url);
+          setLocation({
+            pathname: url.pathname,
+            search: url.search,
+            hash: url.hash,
+            state: null,
+            key: 'default',
+          });
+          return;
+        }
+        window.location.assign(url);
+      },
+
+      replace: (to: To) => {
+        const url = new URL(toHref(to), window.location.origin);
+        if (url.pathname === window.location.pathname) {
+          window.history.replaceState(null, '', url);
+          setLocation({
+            pathname: url.pathname,
+            search: url.search,
+            hash: url.hash,
+            state: null,
+            key: 'default',
+          });
+          return;
+        }
+        window.location.replace(url);
+      },
+    }),
+    []
+  );
+
+  return (
+    <Router location={location} navigator={navigator}>
+      {children}
+    </Router>
+  );
+}

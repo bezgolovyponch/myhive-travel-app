@@ -22,12 +22,23 @@ export function reducer(state, action) {
     }
 }
 
-export function CatalogProvider({children}) {
-    const [state, dispatch] = useReducer(reducer, initialState);
+// `initialDestinations` lets a server renderer seed the catalog so components
+// that read it (header breadcrumbs, the homepage "View All Activities" CTA)
+// produce real markup on the first paint instead of waiting for an effect.
+// Omitted in the SPA, where the fetch below stays the only source.
+export function CatalogProvider({children, initialDestinations}) {
+    const seeded = Array.isArray(initialDestinations);
+    const [state, dispatch] = useReducer(
+        reducer,
+        seeded ? {...initialState, destinations: initialDestinations, loading: false} : initialState,
+    );
 
     // Only destinations are needed app-wide (header breadcrumbs, vote setup,
     // home page). Activities are fetched per destination by their consumers.
     useEffect(() => {
+        if (seeded) {
+            return;
+        }
         const fetchData = async () => {
             try {
                 dispatch({type: 'SET_LOADING', loading: true});
@@ -39,7 +50,7 @@ export function CatalogProvider({children}) {
             }
         };
         fetchData();
-    }, []);
+    }, [seeded]);
 
     return (
         <CatalogContext.Provider value={{state, dispatch}}>
