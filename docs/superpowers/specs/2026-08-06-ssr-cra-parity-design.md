@@ -2,7 +2,37 @@
 
 **Date:** 2026-08-06
 **Branch:** `feat/nextjs-foundation`
-**Status:** design, awaiting review
+**Status:** implemented 2026-08-07 (`2760c45`, `b75897b`, `984919b`)
+
+## Outcome
+
+All twelve SSR public routes now render the canonical CRA components. The
+duplicate layer is gone: `Header.tsx`, `Footer.tsx`, `ActivityCardStatic.tsx` and
+`ContactFormIsland.tsx` are deleted, and no page under `app/` hand-copies CRA
+markup any more.
+
+Verified on the production build in WebKit at iPhone 13: `smoke.mjs` PASS with
+zero server errors, 547 CRA tests passing, every page one `<h1>` and one
+`<title>` with no console or hydration errors, cart present and incrementing,
+`.vc-fill` back to 7px, 12 crawlable activity links, and all five homepage
+`cta_click` events firing with their `cta_label`/`block` params where previously
+none fired at all.
+
+Three SEO improvements the hand-written duplicates carried and CRA lacked had to
+be ported *into* CRA so switching to it was not a regression — a crawlable anchor
+on `ActivityCard`'s title (CRA rendered `role="button"` with no `href`), an `h1`
+on the blog listing, and an `h1` on the destination catalog. This was the main
+surprise of the work: the duplicates were not uniformly worse.
+
+Also fixed, found only by running it: `react-helmet-async@3`'s
+`React19Dispatcher` renders real `title`/`meta`/`link` elements for React 19 to
+hoist, so every page emitted two titles, two descriptions and two canonicals —
+and on streamed dynamic routes the `<head>` title came out **empty** while the
+real one landed in the body. CRA's `Helmet` is now wrapped in `PageHead`, which
+the SSR chrome switches off by context; the SPA keeps the default.
+
+**Still open:** the `page_view` question below. It needs the GTM console, not the
+repo.
 
 ## Problem
 
