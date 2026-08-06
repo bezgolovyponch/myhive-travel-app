@@ -21,6 +21,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -41,9 +42,15 @@ class RateLimitFilterTest {
 
     private RateLimitFilter filter;
 
+    private static final String INTERNAL_TOKEN = "test-internal-token";
+
     @BeforeEach
     void setUp() {
-        filter = new RateLimitFilter();
+        filter = new RateLimitFilter(INTERNAL_TOKEN);
+        // Every request now passes through isInternalRequest() first; default to "no header" so
+        // pre-existing tests (which don't exercise the internal-token branch) aren't broken by
+        // Mockito's strict-stubbing argument-mismatch check.
+        lenient().when(request.getHeader("X-Internal-Token")).thenReturn(null);
     }
 
     @Test
@@ -267,6 +274,48 @@ class RateLimitFilterTest {
         }
 
         // Should have rate-limited based on the last XFF entry, not the blank CF header
+        verify(chain, times(100)).doFilter(request, response);
+        verify(response).setStatus(429);
+    }
+
+    @Test
+    void doFilter_matchingInternalToken_bypassesRateLimit() throws Exception {
+        when(request.getHeader("X-Internal-Token")).thenReturn(INTERNAL_TOKEN);
+        for (int i = 0; i < 150; i++) {
+            filter.doFilter(request, response, chain);
+        }
+        verify(chain, times(150)).doFilter(request, response);
+        verify(response, never()).setStatus(429);
+    }
+
+    @Test
+    void doFilter_wrongInternalToken_isRateLimitedNormally() throws Exception {
+        when(request.getHeader("X-Internal-Token")).thenReturn("wrong-token");
+        when(request.getRemoteAddr()).thenReturn("10.0.0.1");
+        StringWriter sw = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(sw));
+        for (int i = 0; i < 101; i++) {
+            filter.doFilter(request, response, chain);
+        }
+        verify(chain, times(100)).doFilter(request, response);
+        verify(response).setStatus(429);
+    }
+
+    @Test
+    void doFilter_blankConfiguredToken_ignoresHeader() throws Exception {
+        RateLimitFilter unconfigured = new RateLimitFilter("");
+        // Blank configured token disables the exemption entirely, so isInternalRequest() never
+        // even reads this header — stub is lenient to document that the header is present but
+        // irrelevant, rather than because the code consumes it.
+        lenient().when(request.getHeader("X-Internal-Token")).thenReturn("");
+        when(request.getHeader("CF-Connecting-IP")).thenReturn(null);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("10.0.0.2");
+        StringWriter sw = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(sw));
+        for (int i = 0; i < 101; i++) {
+            unconfigured.doFilter(request, response, chain);
+        }
         verify(chain, times(100)).doFilter(request, response);
         verify(response).setStatus(429);
     }

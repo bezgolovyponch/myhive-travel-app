@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {useNavigate, useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
@@ -68,7 +68,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   });
   const [recommended, setRecommended] = useState([]);
   const [previewActivity, setPreviewActivity] = useState(null);
-  const navigate = useNavigate();
 
   // Quiz-flow recommendations: the quiz-matched pool for this destination,
   // left-swiped cards included on purpose (second look). In-cart items render
@@ -350,26 +349,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     }
   };
 
-  const handleQuizStartOver = () => {
-    pushEvent('cta_click', { cta_label: 'Start Over', block: 'trip_builder' });
-    dispatch({ type: 'CANCEL_TRIP_SETUP' });
-    dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
-    dispatch({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
-    clearQuizFlow();
-    setQuizFlow(null);
-    navigate('/vote/new/quiz', { state: { setup: quizFlow.setup } });
-  };
-
-  const startOverButton = (
-    <button
-      type="button"
-      className="btn btn--outline-brand btn--full-width"
-      onClick={handleQuizStartOver}
-    >
-      Start Over
-    </button>
-  );
-
   const handleConfirmTrip = () => {
     // Resolve the trip_id: the full annotation token (URL param or stored CART
     // session — see annotationToken above) takes priority, then the client-minted
@@ -545,6 +524,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // Complete Booking steps back to the outlined look; once the vote ends (or
   // there is nothing to vote on) the booking button is primary again.
   const voteCtaVisible = standalone.length > 0 && !voteEnded;
+  // The sticky rail now carries only the vote CTA (and the vote-session budget
+  // panel); with neither to show it disappears entirely so the layout doesn't
+  // reserve an empty column / bottom bar.
+  const railVisible = state.tripBudget != null || voteCtaVisible;
   let voteButtonTitle;
   if (hasForeignStandalone) {
     voteButtonTitle = 'Group voting works for one destination at a time — remove activities from other destinations first.';
@@ -587,11 +570,22 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       </div>
   );
 
+  // Layout modifiers drive how much bottom clearance mobile reserves for the
+  // fixed bar (none / vote button only / budget panel + button).
+  const layoutClasses = [
+    'trip-builder-layout',
+    !railVisible && 'trip-builder-layout--no-rail',
+    state.tripBudget != null && 'trip-builder-layout--budget',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className="trip-builder-layout">
+    <div className={layoutClasses}>
       <div className="trip-builder-main">
         <div className="itinerary-header">
-          <h2>Your Itinerary</h2>
+          {/* While the group can still be sent to vote (the Start group vote CTA
+              is up) this is the list they'll vote on; once voting ends — or
+              there's nothing to vote on — it's their itinerary. */}
+          <h2>{voteCtaVisible ? 'Your Voting List' : 'Your Itinerary'}</h2>
           <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
         </div>
         {tripSummary}
@@ -667,10 +661,31 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           ) : (
             <div className="empty-state">
               <p>Start building your trip by adding activities!</p>
-              {quizMode && startOverButton}
             </div>
           )}
         </div>
+        {/* Itinerary footer: the estimate (small, receipt-style) and the
+            Complete Booking action close the itinerary section; the sticky
+            rail keeps only the vote CTA. */}
+        {state.tripItems.length > 0 && (
+            <div className="itinerary-footer">
+              <div className="itinerary-estimate">
+                <span>Estimated cost</span>
+                <span className="itinerary-estimate-price">{formatPrice(totalPrice)}</span>
+              </div>
+              <button
+                  className={`btn ${voteCtaVisible ? 'btn--outline-brand' : 'btn--primary'} btn--full-width confirm-btn`}
+                  onClick={handleConfirmTrip}
+              >
+                Complete Booking
+              </button>
+              {submitError && (
+                  <div className="export-error">
+                    <p>{submitError}</p>
+                  </div>
+              )}
+            </div>
+        )}
         {/* Below the itinerary in the main column: the booking form takes over
             when active, otherwise the suggestions + Browse More Activities. */}
         {showContactForm ? (
@@ -847,34 +862,30 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         )}
       </div>
 
-      {/* Sticky summary + CTA rail — a side rail on desktop, a pinned bottom
-          bar on mobile. Carries the budget, total, and both the
-          "Start group vote" and "Complete Booking" actions; the trip summary
-          (destination/travelers/dates) lives at the top of the itinerary. */}
-      <aside className="trip-builder-rail">
-        {state.tripBudget != null && (
-            <div className="trip-vote-budget">
-              <div className="trip-vote-budget-row">
-                <span>Spent</span>
-                <span>{formatPrice(totalPrice)}</span>
-              </div>
-              <div className="trip-vote-budget-row">
-                <span>Budget</span>
-                <span>{formatPrice(state.tripBudget)}</span>
-              </div>
-              <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
-                <span>Remaining</span>
-                <span>{formatPrice(state.tripBudget - totalPrice)}</span>
-              </div>
-            </div>
-        )}
-        {state.tripItems.length > 0 && (
-            <div className="trip-actions">
-              <div className="itinerary-total">
-                <span>Total</span>
-                <span className="itinerary-total-price">{formatPrice(totalPrice)}</span>
-              </div>
-              {voteCtaVisible && (
+      {/* Sticky vote rail — a side rail on desktop, a pinned bottom bar on
+          mobile. Carries only the vote-session budget panel and the
+          "Start group vote" CTA; the estimate and Complete Booking live at
+          the end of the itinerary in the main column. */}
+      {railVisible && (
+          <aside className="trip-builder-rail">
+            {state.tripBudget != null && (
+                <div className="trip-vote-budget">
+                  <div className="trip-vote-budget-row">
+                    <span>Spent</span>
+                    <span>{formatPrice(totalPrice)}</span>
+                  </div>
+                  <div className="trip-vote-budget-row">
+                    <span>Budget</span>
+                    <span>{formatPrice(state.tripBudget)}</span>
+                  </div>
+                  <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
+                    <span>Remaining</span>
+                    <span>{formatPrice(state.tripBudget - totalPrice)}</span>
+                  </div>
+                </div>
+            )}
+            {voteCtaVisible && (
+                <div className="trip-actions">
                   <button
                       type="button"
                       className="btn btn--primary btn--full-width"
@@ -884,22 +895,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   >
                     Start group vote
                   </button>
-              )}
-              <button
-                  className={`btn ${voteCtaVisible ? 'btn--outline-brand' : 'btn--primary'} btn--full-width confirm-btn`}
-                  onClick={handleConfirmTrip}
-              >
-                Complete Booking
-              </button>
-              {quizMode && startOverButton}
-              {submitError && (
-                  <div className="export-error">
-                    <p>{submitError}</p>
-                  </div>
-              )}
-            </div>
-        )}
-      </aside>
+                </div>
+            )}
+          </aside>
+      )}
 
       <StartGroupVoteModal
           isOpen={showVoteModal}

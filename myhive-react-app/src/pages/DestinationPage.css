@@ -105,25 +105,14 @@
 }
 
 @media (max-width: 768px) {
-    /* Uniform 4-column grid across all phones/small tablets: every chip is the
-       SAME compact fixed size regardless of label length, so a 2-word category
-       ("Guns & Bullets") never makes its row taller/wider than "Chillout". */
-    .category-filters {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: var(--gap-xs);
-    }
-
+    /* Chips size to their content and wrap onto new rows as needed — same as
+       desktop, just a smaller font/padding. Each label stays on one line so a
+       word is never broken ("Extreme" → "Extrem/e") and a full name like
+       "Hot babies and pranks" simply takes the width it needs. */
     .filter-btn {
-        height: 2.25rem;
-        padding: 0 0.25rem;
-        font-size: 0.625rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        line-height: 1.1;
-        overflow: hidden;
+        font-size: 0.6875rem;
+        padding: 0.4375rem 0.875rem;
+        white-space: nowrap;
     }
 }
 
