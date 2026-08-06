@@ -1,5 +1,5 @@
+import PageHead from '../components/PageHead';
 import {useEffect, useState} from 'react';
-import {Helmet} from 'react-helmet-async';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
@@ -22,11 +22,13 @@ function formatDuration(minutes) {
     return rest ? `${hours}h ${rest}m` : `${hours}h`;
 }
 
-function ActivityDetailPage() {
+// `activity` is supplied by the server renderer (Next.js SSR) so the record is
+// in the initial HTML; omitted in the SPA, which fetches by slug as before.
+function ActivityDetailPage({activity: injectedActivity}) {
     const {destinationSlug, slug} = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useTrip();
-    const {data: activity, loading, error} = useFetchBySlug(api.getActivityBySlug, slug);
+    const {data: activity, loading, error} = useFetchBySlug(api.getActivityBySlug, slug, injectedActivity);
     const [moreActivities, setMoreActivities] = useState([]);
 
     const destinationId = activity?.destinationId;
@@ -119,11 +121,11 @@ function ActivityDetailPage() {
 
     return (
         <div className="activity-detail-page">
-            <Helmet>
-                <title>{title} — Trivlu</title>
+            <PageHead>
+                <title>{title} in {activity.destinationName} | Trivlu</title>
                 <meta name="description" content={activity.description || `${title} in ${activity.destinationName}`}/>
                 <link rel="canonical" href={`${SITE_URL}/destination/${destSlug}/activity/${activity.slug}`}/>
-            </Helmet>
+            </PageHead>
 
             <nav className="activity-detail-breadcrumbs">
                 <Link to="/">Home</Link>

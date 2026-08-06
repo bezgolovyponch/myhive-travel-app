@@ -1,12 +1,12 @@
-// SSR package detail — content parity with legacy-src/pages/PackageDetailPage.js.
-// Interactive Add-to-trip lives in the SPA; the CTA here full-page-navigates
-// into an SPA-owned URL.
+// SSR package detail — a thin server shell: metadata, JSON-LD, the record fetch
+// and the city-match guard. The markup is the canonical CRA page
+// (legacy-src/pages/PackageDetailPage.js), so this route cannot drift from what
+// the SPA renders, and its Add-to-trip CTA is the real one rather than a link.
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { api, type TripPackage } from '../../../../../../lib/api';
-import { breadcrumbJsonLd, formatPricePerPerson, pageMetadata, jsonLd } from '../../../../../../lib/seo';
-import '../../../../../../legacy-src/pages/PackageDetailPage.css';
+import { api } from '../../../../../../lib/api';
+import { breadcrumbJsonLd, pageMetadata, jsonLd } from '../../../../../../lib/seo';
+import LegacyPackageDetail from '../../../../../../components/site/legacy/LegacyPackageDetail';
 
 export const revalidate = 3600;
 
@@ -42,9 +42,8 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
   }
 
   const destinationName = destinationNameFromSlug(slug);
-  const title = `${pkg.name} — ${destinationName} Package | Trivlu`;
   return pageMetadata({
-    title,
+    title: `${pkg.name} — ${destinationName} Package | Trivlu`,
     description: pkg.description
       ? truncate(pkg.description)
       : `${pkg.name} package in ${destinationName}.`,
@@ -54,22 +53,20 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
   });
 }
 
-export default async function PackageDetailPage({ params }: PageParams) {
+export default async function Page({ params }: PageParams) {
   const { slug, pslug } = await params;
   const pkg = await api.getPackageBySlug(pslug);
   if (!pkg) {
     notFound();
   }
 
-  // City-match guard (spec §6): reject a mismatched destination slug so the
-  // same package is not reachable under multiple cities.
+  // City-match guard (spec §6): reject a mismatched destination slug so the same
+  // package is not reachable under multiple cities.
   if (pkg.destinationSlug && pkg.destinationSlug !== slug) {
     notFound();
   }
 
   const destinationName = destinationNameFromSlug(slug);
-  const activities: TripPackage['activities'] = pkg.activities ?? [];
-
   const breadcrumbLd = breadcrumbJsonLd([
     ['Home', '/'],
     [destinationName, `/destination/${slug}`],
@@ -77,82 +74,12 @@ export default async function PackageDetailPage({ params }: PageParams) {
   ]);
 
   return (
-    <div className="package-detail-page">
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }}
       />
-
-      <nav className="package-detail-breadcrumbs">
-        <a href="/">Home</a>
-        <span>&rsaquo;</span>
-        <a href={`/destination/${slug}`}>{destinationName}</a>
-        <span>&rsaquo;</span>
-        <span>{pkg.name}</span>
-      </nav>
-
-      <div className="package-detail-hero">
-        {pkg.imageUrl && (
-          <img src={pkg.imageUrl} alt={pkg.name} className="package-detail-hero-image" />
-        )}
-        <div className="package-detail-hero-overlay">
-          <h1 className="package-detail-hero-title">{pkg.name}</h1>
-        </div>
-      </div>
-
-      <div className="package-detail-grid">
-        <div className="package-detail-main">
-          {pkg.description && (
-            <p className="package-detail-description">{pkg.description}</p>
-          )}
-
-          {activities && activities.length > 0 && (
-            <section className="package-detail-activities-section">
-              <h2 className="package-detail-section-title">What&apos;s Included</h2>
-              <div className="package-detail-activities">
-                {activities.map((activity) => (
-                  <Link
-                    key={activity.id}
-                    href={`/destination/${slug}/activity/${activity.slug}`}
-                    className="package-detail-activity"
-                  >
-                    {activity.imageUrl && (
-                      <img
-                        src={activity.imageUrl}
-                        alt={activity.name}
-                        className="package-detail-activity-image"
-                      />
-                    )}
-                    <div className="package-detail-activity-info">
-                      <span className="package-detail-activity-name">{activity.name}</span>
-                      <span className="package-detail-activity-price">
-                        {formatPricePerPerson(activity.price)}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        <aside className="package-detail-price-card">
-          <div className="package-detail-price-card-inner">
-            <div className="package-detail-original">€{Math.round(pkg.originalPrice)}</div>
-            <div className="package-detail-discounted">€{Math.round(pkg.discountedPrice)}</div>
-            <div className="package-detail-savings">
-              You save €{Math.round(pkg.savings)}
-              {pkg.discountPct ? ` (${Math.round(pkg.discountPct)}% off)` : ''}
-            </div>
-            <a
-              className="add-to-trip-btn package-detail-add-btn"
-              href={`/destination/${slug}?tab=trip-builder&addPackage=${pkg.slug}`}
-            >
-              Add to Trip
-            </a>
-          </div>
-        </aside>
-      </div>
-    </div>
+      <LegacyPackageDetail pkg={pkg} />
+    </>
   );
 }

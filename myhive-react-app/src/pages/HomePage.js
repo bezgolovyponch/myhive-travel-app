@@ -1,4 +1,4 @@
-import {Helmet} from 'react-helmet-async';
+import PageHead from '../components/PageHead';
 import {useNavigate} from 'react-router-dom';
 import {useCatalog} from '../context/CatalogContext';
 import {getDefaultDestination} from '../utils/defaultDestination';
@@ -41,12 +41,12 @@ function HomePage({featuredActivities, voteHref}) {
 
     return (
         <div className="homepage">
-            <Helmet>
+            <PageHead>
                 <title>Trivlu — Prague Stag Do. Planned in 10 Minutes.</title>
                 <meta name="description"
                       content="Your group votes, we do the rest. The perfect Prague stag do weekend — activities, booking and logistics all sorted for you."/>
                 <link rel="canonical" href={`${SITE_URL}/`}/>
-            </Helmet>
+            </PageHead>
 
             <section className="hero">
                 <div className="hero-overlay"/>

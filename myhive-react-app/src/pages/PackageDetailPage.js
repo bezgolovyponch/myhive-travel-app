@@ -1,4 +1,4 @@
-import {Helmet} from 'react-helmet-async';
+import PageHead from '../components/PageHead';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
@@ -7,11 +7,13 @@ import {SITE_URL} from '../services/config';
 import {DEFAULT_ACTIVITY_IMAGE, formatAmount} from '../utils/format';
 import './PackageDetailPage.css';
 
-function PackageDetailPage() {
+// `pkg` is supplied by the server renderer (Next.js SSR) so the record is in the
+// initial HTML; omitted in the SPA, which fetches by slug as before.
+function PackageDetailPage({pkg: injectedPkg}) {
     const {destSlug, slug} = useParams();
     const navigate = useNavigate();
     const {dispatch} = useTrip();
-    const {data: pkg, loading, error} = useFetchBySlug(api.getPackageBySlug, slug);
+    const {data: pkg, loading, error} = useFetchBySlug(api.getPackageBySlug, slug, injectedPkg);
 
     if (loading) {
         return (
@@ -47,11 +49,11 @@ function PackageDetailPage() {
 
     return (
         <div className="package-detail-page">
-            <Helmet>
+            <PageHead>
                 <title>{pkg.name} — {pkg.destinationName} Package | Trivlu</title>
                 <meta name="description" content={metaDescription}/>
                 <link rel="canonical" href={`${SITE_URL}/destination/${resolvedDestSlug}/package/${pkg.slug}`}/>
-            </Helmet>
+            </PageHead>
 
             <nav className="package-detail-breadcrumbs">
                 <Link to="/">Home</Link>

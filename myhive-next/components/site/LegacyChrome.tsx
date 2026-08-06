@@ -17,6 +17,7 @@
 // module scope, which is the sole reason LegacyAppShim needs ssr:false. Keeping
 // it out of this import graph is what makes server rendering possible at all.
 import { HelmetProvider } from 'react-helmet-async';
+import { PageHeadEnabledContext } from '../../legacy-src/components/PageHead';
 import { CatalogProvider } from '../../legacy-src/context/CatalogContext';
 import { TripProvider } from '../../legacy-src/context/TripContext';
 import {
@@ -79,6 +80,12 @@ export default function LegacyChrome({
   destinations: LegacyDestination[];
 }) {
   return (
+    // Next's per-route `metadata` owns the head here, so the CRA pages' PageHead
+    // blocks stay silent — otherwise react-helmet-async 3's React19Dispatcher
+    // renders a second title/description/canonical into the tree for React to
+    // hoist. HelmetProvider is still mounted because the SPA components inside
+    // this tree may reach for it.
+    <PageHeadEnabledContext.Provider value={false}>
     <HelmetProvider>
       <LegacyRouter>
         <CatalogProvider initialDestinations={destinations}>
@@ -91,5 +98,6 @@ export default function LegacyChrome({
         </CatalogProvider>
       </LegacyRouter>
     </HelmetProvider>
+    </PageHeadEnabledContext.Provider>
   );
 }

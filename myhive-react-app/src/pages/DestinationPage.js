@@ -1,5 +1,5 @@
+import PageHead from '../components/PageHead';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {Helmet} from 'react-helmet-async';
 import {useTrip} from '../context/TripContext';
 import ActivityCard from '../components/ActivityCard';
 import TripBuilder from '../components/TripBuilder';
@@ -180,12 +180,12 @@ function DestinationPage() {
 
   return (
     <div className={`destination-page${trip.checkoutOpen ? ' destination-page--checkout' : ''}`}>
-        <Helmet>
+        <PageHead>
             <title>{destination.name} — Trivlu</title>
             <meta name="description"
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
-        </Helmet>
+        </PageHead>
       {/* Tab bar hides on the Trip Builder tab (and during checkout) so nothing
           pulls the user away from completing the booking; breadcrumbs + Browse
           More Activities still lead back to the catalog. */}

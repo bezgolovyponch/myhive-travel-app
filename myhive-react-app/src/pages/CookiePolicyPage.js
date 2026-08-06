@@ -1,4 +1,4 @@
-import {Helmet} from 'react-helmet-async';
+import PageHead from '../components/PageHead';
 import {SITE_URL} from '../services/config';
 import './PolicyPage.css';
 
@@ -10,12 +10,12 @@ import './PolicyPage.css';
 function CookiePolicyPage() {
     return (
         <div className="policy-page">
-            <Helmet>
-                <title>Cookie Policy — Trivlu</title>
+            <PageHead>
+                <title>Cookie Policy | Trivlu</title>
                 <meta name="description"
                       content="Learn how Trivlu uses cookies and how to manage your cookie preferences."/>
                 <link rel="canonical" href={`${SITE_URL}/cookie-policy`}/>
-            </Helmet>
+            </PageHead>
             <section className="page-hero">
                 <h1>Cookie Policy</h1>
             </section>

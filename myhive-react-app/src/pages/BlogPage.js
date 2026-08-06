@@ -1,29 +1,39 @@
+import PageHead from '../components/PageHead';
 import {useEffect, useState} from 'react';
-import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
 import api from '../services/api';
 import {SITE_URL} from '../services/config';
 import './BlogPage.css';
 
-function BlogPage() {
-    const [posts, setPosts] = useState([]);
-    const [loading, setLoading] = useState(true);
+// `posts` is supplied by the server renderer (Next.js SSR) so the listing is in
+// the initial HTML; omitted in the SPA, which fetches on mount as before.
+function BlogPage({posts: injectedPosts}) {
+    const seeded = Array.isArray(injectedPosts);
+    const [posts, setPosts] = useState(seeded ? injectedPosts : []);
+    const [loading, setLoading] = useState(!seeded);
 
     useEffect(() => {
+        if (seeded) {
+            return;
+        }
         api.getBlogPosts()
             .then(data => setPosts(data))
             .catch(() => setPosts([]))
             .finally(() => setLoading(false));
-    }, []);
+    }, [seeded]);
 
     return (
         <div className="blog-page">
-            <Helmet>
-                <title>Blog — Trivlu</title>
-                <meta name="description" content="Stories, tips, and inspiration for your next group adventure."/>
+            <PageHead>
+                <title>Stag Do Planning Guides &amp; Ideas | Trivlu Blog</title>
+                <meta name="description" content="Guides, ideas and destination tips for planning the perfect stag do — from budgeting to the best cities in Europe."/>
                 <link rel="canonical" href={`${SITE_URL}/blog`}/>
-            </Helmet>
+            </PageHead>
             <section className="blog-section">
+                {/* The listing had no h1 at all, which the SSR smoke checks flag
+                    (exactly one per page). Kept inside .blog-section so the
+                    existing layout is unchanged. */}
+                <h1>The Stag Do Playbook</h1>
                 {loading ? (
                     <p style={{color: 'var(--text-muted)'}}>Loading posts...</p>
                 ) : posts.length === 0 ? (
