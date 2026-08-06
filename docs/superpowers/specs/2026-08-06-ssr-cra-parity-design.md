@@ -42,7 +42,26 @@ Verified by execution against `localhost:3001` (Next dev) and `https://www.trivl
 | Analytics: SSR fires 0 of 27 `pushEvent` events | Confirmed by grep; SSR landing is plain `<a href>` markup |
 | GTM container matches | Confirmed — `GTM-KB7BJLDS` on both; `sync-legacy` excludes `index.html`, so no double-load |
 | Trip-builder/mobile commits covered by sync | Code-read only, **not executed** |
-| Mobile overflow | **Retracted.** A local headless screenshot appeared to show horizontal clipping, but production clips identically at the same viewport, so it is a headless-Chrome artifact. Mobile remains unverified. |
+
+Verified in **Playwright WebKit at iPhone 13**, production vs local Next SSR:
+
+| Probe | production (CRA) | local Next SSR |
+|---|---|---|
+| `documentElement.scrollWidth` vs viewport | 390 = 390, no overflow | 390 = 390, no overflow |
+| `.cart-btn` present | yes | **no** |
+| `.header-actions` present | yes | **no** |
+| `.vc-fill` computed height | 7px | **0px** |
+| `document.title` | Trivlu — Prague Stag Do. Planned in 10 Minutes. | Trivlu — Stag Do Trips, Sorted in Minutes |
+
+`.vc-fill` at 0px height is the missing-`VoteDemoCard.css` bug measured directly: the vote
+bars are in the DOM with no styles, so the hero card renders as unstyled text over the
+hero photo.
+
+**No mobile layout overflow exists on either side.** An earlier local headless-Chrome
+screenshot appeared to show horizontal clipping, but production clipped identically, and
+WebKit reports `scrollWidth == clientWidth` for both — it was a headless artifact. The
+only over-wide elements on production are CookieYes' hidden preference panel (845px),
+which is expected. Retracted as a finding.
 
 Three different titles exist today: production pre-JS (`Trivlu — Group Travel Made
 Easy`, from CRA `index.html`), CRA post-JS Helmet (`Trivlu — Prague Stag Do. Planned in
@@ -197,9 +216,14 @@ Non-negotiable: the refactor must not shrink server-rendered content.
 
 ## Verification
 
-- **Mobile: on production, in WebKit** — not local desktop Chrome. Local headless
-  already produced one false positive during this investigation, and the CookieYes
-  overlay that several mobile fixes interact with does not exist locally.
+- **Mobile: Playwright WebKit at an iPhone viewport**, not local desktop Chrome. Local
+  headless Chrome already produced one false positive during this investigation, and the
+  CookieYes overlay that several mobile fixes interact with does not exist locally.
+  Playwright lives at `/Users/olga/.npm/_npx/e41f203b7505f1fb/node_modules`; it is
+  CommonJS, so ESM scripts must `import pw from '…/playwright/index.js'` and destructure
+  (`NODE_PATH` does not work for ESM). The reusable probe is
+  `scratchpad/mobile-check.mjs` — it asserts overflow, cart presence and `.vc-fill`
+  height, and should be re-run after each phase.
 - **Itinerary/trip-builder:** the "no gaps" conclusion is code-reading only. Exercise the
   real flow — add an activity from an SSR activity page via `?add=`, confirm
   `useTripDeepLink` dispatches it, the cart count increments, and the itinerary opens.
