@@ -7,6 +7,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -34,31 +35,42 @@ public class RateLimitFilter implements Filter {
      *  cheap unauthenticated DoS (large-body flood). */
     private static final long MAX_WEBHOOK_BODY_BYTES = 512L * 1024L;
     private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService scheduler;
-    private final long cleanupDelayMillis;
-
-    public RateLimitFilter() {
-        this(Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "rate-limit-cleanup");
-            t.setDaemon(true);
-            return t;
-        }), TimeUnit.MINUTES.toMillis(1));
-    }
-
-    RateLimitFilter(ScheduledExecutorService scheduler, long cleanupDelayMillis) {
-        this.scheduler = scheduler;
-        this.cleanupDelayMillis = cleanupDelayMillis;
-    }
 
     /** Shared secret for server-to-server callers (the Next SSR service). Cold ISR fills render
      *  the whole catalog from one egress IP and would exhaust the per-IP bucket; a matching
      *  X-Internal-Token bypasses the counter. Blank (default) disables the exemption. */
     private final byte[] internalToken;
+    private final ScheduledExecutorService scheduler;
+    private final long cleanupDelayMillis;
 
+    /** Spring instantiates the bean through this constructor. {@code internal.api.token} is blank
+     *  by default (exemption disabled); the cleanup scheduler is the real single-thread daemon.
+     *  {@code @Autowired} is required because the test-seam constructors below make this a
+     *  multi-constructor class, so Spring cannot auto-select one on its own. */
+    @Autowired
     public RateLimitFilter(@Value("${internal.api.token:}") String internalToken) {
+        this(internalToken,
+                Executors.newSingleThreadScheduledExecutor(r -> {
+                    Thread t = new Thread(r, "rate-limit-cleanup");
+                    t.setDaemon(true);
+                    return t;
+                }),
+                TimeUnit.MINUTES.toMillis(1));
+    }
+
+    /** Test seam: inject a controllable cleanup scheduler/delay. The internal-token exemption is
+     *  disabled (blank token), matching the pre-existing rate-limit tests. */
+    RateLimitFilter(ScheduledExecutorService scheduler, long cleanupDelayMillis) {
+        this("", scheduler, cleanupDelayMillis);
+    }
+
+    private RateLimitFilter(String internalToken, ScheduledExecutorService scheduler,
+            long cleanupDelayMillis) {
         this.internalToken = internalToken == null || internalToken.isBlank()
                 ? null
                 : internalToken.getBytes(StandardCharsets.UTF_8);
+        this.scheduler = scheduler;
+        this.cleanupDelayMillis = cleanupDelayMillis;
     }
 
     private boolean isInternalRequest(HttpServletRequest request) {
