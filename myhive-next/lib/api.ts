@@ -82,6 +82,15 @@ export interface BlogPost {
   seoIndexable?: boolean | null;
 }
 
+// Shape of the backend's paged activity response, as CRA's DestinationPage
+// consumes it: the catalog renders page 0 server-side and pages further on the
+// client, so seeded state must carry totalElements/last too.
+export interface ActivityPage {
+  content: Activity[];
+  totalElements: number;
+  last: boolean;
+}
+
 export const api = {
   getDestinations: () => get<Destination[]>('/destinations'),
   getDestinationBySlug: (slug: string) =>
@@ -91,6 +100,10 @@ export const api = {
   getActivities: (destinationId: string) =>
     get<Activity[]>(`/activities?destinationId=${encodeURIComponent(destinationId)}`),
   getFeaturedActivities: () => get<Activity[]>('/activities?featured=true'),
+  getActivitiesPaged: (destinationId: string, page = 0, size = 12) =>
+    get<ActivityPage>(
+      `/activities/paged?destinationId=${encodeURIComponent(destinationId)}&page=${page}&size=${size}`
+    ),
   getActivityBySlug: (slug: string) =>
     get<Activity>(`/activities/slug/${encodeURIComponent(slug)}`),
   getPackages: (destinationId: string) =>
