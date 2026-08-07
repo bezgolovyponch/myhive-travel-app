@@ -45,7 +45,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       urls.push({
         url: `${SITE_URL}/blog/${post.slug}`,
         priority: 0.7,
-        lastModified: post.publishedAt || post.createdAt || undefined,
+        lastModified: post.date || post.createdAt || undefined,
       });
     }
   } catch {

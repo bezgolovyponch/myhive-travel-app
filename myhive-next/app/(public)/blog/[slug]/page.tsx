@@ -49,7 +49,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: post.title,
-    datePublished: post.publishedAt || post.createdAt || undefined,
+    datePublished: post.date || post.createdAt || undefined,
     image: post.imageUrl || undefined,
     author: { '@type': 'Organization', name: 'Trivlu' },
     publisher: {

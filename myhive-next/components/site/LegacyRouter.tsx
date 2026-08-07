@@ -46,12 +46,21 @@ export default function LegacyRouter({ children }: { children: React.ReactNode }
   // Consumers that need it (header breadcrumb tab label, AttributionCapture)
   // re-run on the update.
   useEffect(() => {
-    const { pathname: p, search, hash } = window.location;
-    setLocation((prev) =>
-      prev.pathname === p && prev.search === search && prev.hash === hash
-        ? prev
-        : { pathname: p, search, hash, state: null, key: 'default' }
-    );
+    const sync = () => {
+      const { pathname: p, search, hash } = window.location;
+      setLocation((prev) =>
+        prev.pathname === p && prev.search === search && prev.hash === hash
+          ? prev
+          : { pathname: p, search, hash, state: null, key: 'default' }
+      );
+    };
+    sync();
+    // Same-document pushes below (a ?tab= switch, say) create history entries
+    // that Back/Forward move through without changing the pathname, so
+    // usePathname never fires and this effect would not re-run. Without the
+    // listener the URL would step back while the rendered tab stayed put.
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
   }, [pathname]);
 
   const navigator = useMemo(

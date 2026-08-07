@@ -77,7 +77,11 @@ export interface BlogPost {
   content: string;
   imageUrl?: string | null;
   category?: string | null;
-  publishedAt?: string | null;
+  // The backend's publication field is `date` (a plain YYYY-MM-DD), which is
+  // also what the CRA blog pages render. There is no `publishedAt` — a field of
+  // that name here silently made every consumer fall through to createdAt, i.e.
+  // the row's insert timestamp, misreporting publication dates.
+  date?: string | null;
   createdAt?: string | null;
   seoIndexable?: boolean | null;
 }
