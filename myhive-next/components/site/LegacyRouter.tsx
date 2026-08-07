@@ -18,6 +18,20 @@ function toHref(to: To): string {
   return `${pathname}${search}${hash}`;
 }
 
+// CRA's tracked links push cta_click and navigate in the same tick. In the SPA
+// that was safe — navigation kept the document alive — but here a cross-document
+// load can destroy the queued event before GTM's asynchronous container has
+// dispatched it. Yielding briefly lets the already-queued push drain first.
+// Imperceptible to the user, and bounded so navigation can never hang on it.
+// NOTE: this is a mitigation, not a guarantee. The airtight version is GTM's
+// eventCallback on the cta_click itself, which needs the container's tag
+// configuration to confirm — see the analytics follow-ups.
+const ANALYTICS_FLUSH_MS = 250;
+
+function leaveDocument(go: () => void) {
+  setTimeout(go, ANALYTICS_FLUSH_MS);
+}
+
 type BridgeLocation = {
   pathname: string;
   search: string;
@@ -84,7 +98,7 @@ export default function LegacyRouter({ children }: { children: React.ReactNode }
           });
           return;
         }
-        window.location.assign(url);
+        leaveDocument(() => window.location.assign(url));
       },
 
       replace: (to: To) => {
@@ -100,7 +114,7 @@ export default function LegacyRouter({ children }: { children: React.ReactNode }
           });
           return;
         }
-        window.location.replace(url);
+        leaveDocument(() => window.location.replace(url));
       },
     }),
     []

@@ -10,7 +10,16 @@ import LegacyAppShim from '../../components/LegacyAppShim';
 // The SPA legitimately owns only the service flows; every public URL has an
 // SSR page that wins route resolution. Anything else is a real 404 — mounting
 // the SPA unconditionally turned unknown URLs into soft 404s (HTTP 200).
-const SPA_PREFIXES = new Set(['admin', 'vote', 'payment']);
+// Bare react-router routes: the SPA renders real UI at the prefix itself.
+// /unsubscribe is reached from reminder emails — EmailService builds
+// `frontendUrl + "/unsubscribe?token=..."` — so a 404 here silently breaks every
+// unsubscribe link, which is a compliance problem and not merely a dead page.
+// It takes no subpath, so anything deeper is still a real 404.
+const SPA_EXACT = new Set(['unsubscribe']);
+// Prefixes whose bare form is NOT a react-router route: the SPA would render
+// empty chrome at HTTP 200 (a soft 404), so a subpath is required. /admin is the
+// exception — it owns /admin/* including the bare form.
+const SPA_NESTED = new Set(['vote', 'payment']);
 
 export default async function CatchAllPage({
   params,
@@ -18,10 +27,10 @@ export default async function CatchAllPage({
   params: Promise<{ slug: string[] }>;
 }) {
   const { slug } = await params;
-  // Bare /vote and /payment are not react-router routes — the SPA would render
-  // empty chrome at HTTP 200 (a soft 404). Only /admin is a real bare route.
   const ownsUrl =
-    slug[0] === 'admin' || (SPA_PREFIXES.has(slug[0]) && slug.length > 1);
+    slug[0] === 'admin' ||
+    (SPA_EXACT.has(slug[0]) && slug.length === 1) ||
+    (SPA_NESTED.has(slug[0]) && slug.length > 1);
   if (!ownsUrl) {
     notFound();
   }

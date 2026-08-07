@@ -19,9 +19,12 @@ export function useTripLeadRestore(onQuizFlowRestored) {
     const {state: catalog} = useCatalog();
     const [pendingRestore, setPendingRestore] = useState(null);
     const restoreToken = searchParams.get('restore');
-    // Mount-time cart emptiness decides whether to ask — reading live state in the
-    // fetch callback would still be the pre-restore value, but a ref is explicit.
-    const hasLocalCartRef = useRef(state.tripItems.length > 0);
+    // Whether the user already had a cart of their own decides if we ask before
+    // replacing it. Snapshotted once TripContext has read localStorage back (see
+    // the effect below) — at first render tripItems is deliberately empty, so
+    // reading it here would make every returning user look like a new one and
+    // silently overwrite their cart.
+    const hasLocalCartRef = useRef(null);
 
     const stripParam = () => {
         setSearchParams(params => {
@@ -86,8 +89,11 @@ export function useTripLeadRestore(onQuizFlowRestored) {
     };
 
     useEffect(() => {
-        if (!restoreToken || catalog.loading) {
+        if (!restoreToken || catalog.loading || !state.restored) {
             return undefined;
+        }
+        if (hasLocalCartRef.current === null) {
+            hasLocalCartRef.current = state.tripItems.length > 0;
         }
         let cancelled = false;
         leadApi.restoreLead(restoreToken)
@@ -112,7 +118,7 @@ export function useTripLeadRestore(onQuizFlowRestored) {
         // apply/stripParam are stable within a render pass; re-running on their identity
         // would refetch on every render.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [restoreToken, catalog.loading]);
+    }, [restoreToken, catalog.loading, state.restored]);
 
     return {
         pendingRestore,

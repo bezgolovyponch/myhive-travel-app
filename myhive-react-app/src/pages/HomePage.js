@@ -13,7 +13,7 @@ import ContactCtaSection from '../components/home/ContactCtaSection';
 import VoteDemoCard from '../components/home/VoteDemoCard';
 import StickyVoteCta from '../components/home/StickyVoteCta';
 import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
-import {pushEvent} from '../utils/analytics';
+import {pushEvent, navigateAfterEvents} from '../utils/analytics';
 import './HomePage.css';
 
 // Two props exist only for the server-rendered copy of this page (Next.js Ф1);
@@ -33,7 +33,9 @@ function HomePage({featuredActivities, voteHref}) {
     const navigate = useNavigate();
     const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
-    const startVote = voteHref ? () => window.location.assign(voteHref) : openVoteSetup;
+    // navigateAfterEvents, not a bare assign: the cta_click pushed immediately
+    // before this must survive leaving the document.
+    const startVote = voteHref ? () => navigateAfterEvents(voteHref) : openVoteSetup;
     // "Explore activities" goes to the catalog — the default destination's
     // activities listing — rather than scrolling to the homepage teaser.
     const exploreActivitiesSlug =

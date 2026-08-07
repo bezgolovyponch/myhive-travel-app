@@ -1,4 +1,40 @@
-import {createContext, useContext, useEffect, useReducer} from 'react';
+import {createContext, useContext, useEffect, useLayoutEffect, useReducer, useRef} from 'react';
+
+// Restoring the cart must not happen during the first render: under SSR the
+// server has no localStorage, so a client that read it while rendering produced
+// markup that disagreed with the server's and React threw away the tree
+// (hydration error #418) for every returning user with a saved cart.
+// useLayoutEffect instead — it commits before paint, so there is no visible
+// flash of an empty cart — falling back to useEffect on the server, where
+// useLayoutEffect warns and there is nothing to restore anyway.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+function readSavedTrip() {
+    const saved = {};
+    try {
+        const tripId = localStorage.getItem('myhive-trip-id');
+        if (tripId) {
+            saved.tripId = tripId;
+        }
+    } catch (e) { /* ignore corrupt storage */ }
+    try {
+        const items = localStorage.getItem('myhive-trip-items');
+        if (items) {
+            saved.tripItems = JSON.parse(items);
+        }
+    } catch (e) { /* ignore corrupt storage */ }
+    try {
+        const setup = localStorage.getItem('myhive-trip-setup');
+        if (setup) {
+            const parsed = JSON.parse(setup);
+            saved.tripTravelers = parsed.travelers || 1;
+            saved.tripStartDate = parsed.startDate || '';
+            saved.tripEndDate = parsed.endDate || '';
+            saved.tripBudget = parsed.budget ?? null;
+        }
+    } catch (e) { /* ignore corrupt storage */ }
+    return saved;
+}
 
 export const TripContext = createContext();
 
@@ -14,6 +50,11 @@ export const initialState = {
     // True while the inline Complete Booking form is open, so the destination
     // chrome (global header, hero, tabs) collapses into a focused checkout view.
     checkoutOpen: false,
+    // False until the saved cart has been read back from localStorage. Consumers
+    // that branch on whether the user already has a cart must wait for this —
+    // before it flips, tripItems is deliberately empty (see below) and a
+    // returning user is indistinguishable from a new one.
+    restored: false,
 };
 
 export function reducer(state, action) {
@@ -85,50 +126,50 @@ export function reducer(state, action) {
             return {...state, tripId: action.tripId};
         case 'SET_CHECKOUT_OPEN':
             return {...state, checkoutOpen: action.open};
+        case 'RESTORE_FROM_STORAGE':
+            return {...state, ...action.saved, restored: true};
         default:
             return state;
     }
 }
 
 export function TripProvider({children}) {
-    const [state, dispatch] = useReducer(reducer, initialState, (init) => {
-        let {tripId, tripItems, tripTravelers, tripStartDate, tripEndDate, tripBudget} = init;
-        try {
-            const saved = localStorage.getItem('myhive-trip-id');
-            if (saved) {
-                tripId = saved;
-            }
-        } catch (e) { /* ignore corrupt storage */ }
-        try {
-            const saved = localStorage.getItem('myhive-trip-items');
-            if (saved) {
-                tripItems = JSON.parse(saved);
-            }
-        } catch (e) { /* ignore corrupt storage */ }
-        try {
-            const saved = localStorage.getItem('myhive-trip-setup');
-            if (saved) {
-                const setup = JSON.parse(saved);
-                tripTravelers = setup.travelers || 1;
-                tripStartDate = setup.startDate || '';
-                tripEndDate = setup.endDate || '';
-                tripBudget = setup.budget ?? null;
-            }
-        } catch (e) { /* ignore corrupt storage */ }
-        return {...init, tripId, tripItems, tripTravelers, tripStartDate, tripEndDate, tripBudget};
-    });
+    // Starts from the same empty state the server renders; the saved cart is
+    // restored below, before paint.
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const restoredRef = useRef(false);
 
+    useIsomorphicLayoutEffect(() => {
+        // Dispatched even when nothing was saved, so `restored` flips exactly
+        // once and consumers can tell "no cart" from "not read yet".
+        dispatch({type: 'RESTORE_FROM_STORAGE', saved: readSavedTrip()});
+        restoredRef.current = true;
+    }, []);
+
+    // The writers below must never run before the read above, or mounting would
+    // persist the empty initial state over a saved cart. Layout effects commit
+    // before passive ones so the ordering already holds; the guard keeps that
+    // from being an invisible dependency of a one-line refactor.
     useEffect(() => {
+        if (!restoredRef.current) {
+            return;
+        }
         if (state.tripId !== null) {
             localStorage.setItem('myhive-trip-id', state.tripId);
         }
     }, [state.tripId]);
 
     useEffect(() => {
+        if (!restoredRef.current) {
+            return;
+        }
         localStorage.setItem('myhive-trip-items', JSON.stringify(state.tripItems));
     }, [state.tripItems]);
 
     useEffect(() => {
+        if (!restoredRef.current) {
+            return;
+        }
         localStorage.setItem('myhive-trip-setup', JSON.stringify({
             travelers: state.tripTravelers,
             startDate: state.tripStartDate,

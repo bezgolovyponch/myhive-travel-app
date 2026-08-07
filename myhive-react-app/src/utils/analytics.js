@@ -15,3 +15,18 @@ export function pushEvent(event, params = {}) {
   }
   window.dataLayer.push(payload);
 }
+
+// Leaving the document in the same tick as a pushEvent can destroy the queued
+// event before GTM's asynchronous container dispatches it. In the SPA these CTAs
+// opened a modal or navigated client-side, so the document survived; a
+// server-rendered page has to do a real navigation. Yield briefly first,
+// bounded so navigation can never hang on analytics.
+// Mitigation, not a guarantee: the airtight version is GTM's eventCallback on
+// the event itself, which needs the container's tag configuration to confirm.
+const NAVIGATION_FLUSH_MS = 250;
+
+export function navigateAfterEvents(href) {
+  setTimeout(() => {
+    window.location.assign(href);
+  }, NAVIGATION_FLUSH_MS);
+}

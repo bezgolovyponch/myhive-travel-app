@@ -53,6 +53,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${GTM_ID}');}`;
 
+// The <noscript> fallback cannot read location.hostname, so it needs a
+// server-side equivalent of the same allowlist or it fires unconditionally —
+// which let no-JS preview and localhost traffic reach the production container
+// despite the guarantee above. NEXT_PUBLIC_SITE_URL is the deploy's own notion
+// of its canonical origin, so test its host with the same pattern.
+const CANONICAL_HOST = /(^|\.)trivlu\.com$/;
+function isCanonicalDeploy() {
+  try {
+    return CANONICAL_HOST.test(new URL(SITE_URL).hostname);
+  } catch {
+    return false;
+  }
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -81,14 +95,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
           strategy="beforeInteractive"
         />
-        <noscript>
-          <iframe
-            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
-            height="0"
-            width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
-          />
-        </noscript>
+        {isCanonicalDeploy() && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: 'none', visibility: 'hidden' }}
+            />
+          </noscript>
+        )}
         {children}
       </body>
     </html>
