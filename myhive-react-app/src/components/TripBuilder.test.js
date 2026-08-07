@@ -765,6 +765,52 @@ describe('itinerary line price label', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Travelers field — must be clearable so a new count can be typed
+// ---------------------------------------------------------------------------
+
+describe('travelers input', () => {
+    // Regression: the field used to clamp every keystroke through
+    // Math.max(1, parseInt(v) || 1), so clearing it instantly re-rendered "1"
+    // with the caret behind it — typing 5 gave 15, and a two-digit group was
+    // effectively impossible to enter.
+    test('clearing the field leaves it empty instead of snapping back to 1', async () => {
+        const user = userEvent.setup();
+        const {dispatchMock} = renderTripBuilder(buildTripState({tripTravelers: 2}));
+
+        const input = await screen.findByLabelText('Travelers:');
+        await user.clear(input);
+
+        expect(input).toHaveValue(null);
+        expect(dispatchMock).not.toHaveBeenCalledWith(
+            expect.objectContaining({type: 'UPDATE_TRIP_TRAVELERS'}),
+        );
+    });
+
+    test('a two-digit count typed after clearing commits the full number', async () => {
+        const user = userEvent.setup();
+        const {dispatchMock} = renderTripBuilder(buildTripState({tripTravelers: 2}));
+
+        const input = await screen.findByLabelText('Travelers:');
+        await user.clear(input);
+        await user.type(input, '12');
+
+        expect(input).toHaveValue(12);
+        expect(dispatchMock).toHaveBeenLastCalledWith({type: 'UPDATE_TRIP_TRAVELERS', travelers: 12});
+    });
+
+    test('blurring an emptied field restores the committed count', async () => {
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({tripTravelers: 2}));
+
+        const input = await screen.findByLabelText('Travelers:');
+        await user.clear(input);
+        await user.tab();
+
+        expect(input).toHaveValue(2);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // "Let your mates vote" button — visibility + enabled/disabled state
 // ---------------------------------------------------------------------------
 

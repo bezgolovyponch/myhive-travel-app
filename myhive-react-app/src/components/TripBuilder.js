@@ -492,6 +492,12 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   };
 
   const travelers = state.tripTravelers || 1;
+  // The travelers field is edited as free text while focused. Clamping every
+  // keystroke back into the reducer makes an emptied field snap to "1" with the
+  // caret behind it, so typing "5" yields "15" and a two-digit group is nearly
+  // impossible to enter. null means "not editing" — show the committed value.
+  // Same shape as the stepper in TripSetupModal.js.
+  const [travelersDraft, setTravelersDraft] = useState(null);
 
   // One price label for both standalone and package lines; shows the floored
   // total with a marker whenever the group minimum binds — including travelers = 1.
@@ -552,11 +558,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
               type="number"
               id="trip-travelers"
               className="trip-info-input"
-              value={travelers}
-              onChange={e => dispatch({
-                type: 'UPDATE_TRIP_TRAVELERS',
-                travelers: Math.max(1, parseInt(e.target.value, 10) || 1)
-              })}
+              value={travelersDraft ?? travelers}
+              onChange={e => {
+                const raw = e.target.value;
+                setTravelersDraft(raw);
+                // Only usable values reach the reducer; "" and "0" stay in the
+                // draft so the field can be cleared and retyped.
+                const parsed = parseInt(raw, 10);
+                if (Number.isFinite(parsed) && parsed >= 1) {
+                  dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: parsed});
+                }
+              }}
+              // Dropping the draft re-renders the committed value, so a field
+              // left empty or at "0" reverts instead of persisting a bad count.
+              onBlur={() => setTravelersDraft(null)}
               min="1"
               max="20"
           />

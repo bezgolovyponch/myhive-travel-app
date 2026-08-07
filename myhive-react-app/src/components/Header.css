@@ -310,10 +310,12 @@
     transform: translateY(-1px);
 }
 
+/* The only action in the empty Trip Builder — filled purple, matching the
+   other primary CTAs. */
 .trip-builder-vote-btn {
     width: 100%;
     padding: 10px;
-    background: transparent;
+    background: var(--purple, #534AB7);
     color: var(--white);
     border: 2px solid var(--purple, #534AB7);
     border-radius: 8px;
@@ -325,7 +327,8 @@
 }
 
 .trip-builder-vote-btn:hover {
-    background: var(--purple, #534AB7);
+    background: var(--purple-l, #7F77DD);
+    border-color: var(--purple-l, #7F77DD);
 }
 
 /* Trip Builder Modal Items (used in Header dropdown) */

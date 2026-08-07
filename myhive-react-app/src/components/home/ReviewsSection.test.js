@@ -9,16 +9,16 @@ beforeEach(() => {
     jest.clearAllMocks();
 });
 
-test('clicking "Build Your Trip" fires cta_click with block reviews before calling onStartVote', async () => {
+test('clicking "Start Group Vote" fires cta_click with block reviews before calling onStartVote', async () => {
     const user = userEvent.setup();
     const onStartVote = jest.fn();
 
     render(<ReviewsSection onStartVote={onStartVote}/>);
 
-    await user.click(screen.getByRole('button', {name: 'Build Your Trip'}));
+    await user.click(screen.getByRole('button', {name: 'Start Group Vote'}));
 
     expect(pushEvent).toHaveBeenCalledTimes(1);
-    expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Build Your Trip', block: 'reviews'});
+    expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Start Group Vote', block: 'reviews'});
     expect(onStartVote).toHaveBeenCalledTimes(1);
 });
 
@@ -30,7 +30,7 @@ test('pushEvent fires before onStartVote', async () => {
 
     render(<ReviewsSection onStartVote={onStartVote}/>);
 
-    await user.click(screen.getByRole('button', {name: 'Build Your Trip'}));
+    await user.click(screen.getByRole('button', {name: 'Start Group Vote'}));
 
     expect(callOrder).toEqual(['pushEvent', 'onStartVote']);
 });
