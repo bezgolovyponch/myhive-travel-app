@@ -54,7 +54,33 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-KB7BJLDS';
 // a preview (or localhost) can verify the stack before the domain cutover.
 // Whatever it collects lands in the container NEXT_PUBLIC_GTM_ID names, so point
 // that at a test container when the production numbers matter.
+//
+// Forcing it is necessary but NOT sufficient, and the difference is invisible:
+// CookieYes keeps its own domain allowlist, so on a host it does not recognise
+// the banner still renders while window.getCkyConsent never initialises —
+// measured on localhost, undefined even after clicking Accept, against a
+// function under www.trivlu.com. utils/consent.js is deny-by-default, so
+// ad_storage is never granted and the Meta Pixel stays blocked no matter what
+// the visitor clicks. A forced host has to be added in the CookieYes dashboard
+// too before "the banner appeared" means the consent stack actually works.
 const GTM_FORCED = process.env.NEXT_PUBLIC_GTM_FORCE === 'true';
+
+// Lifting the host gate must never silently fall back to the production
+// container: everything the QA session clicks would land in the real GA4
+// property and Meta audiences, and ad audiences cannot be un-polluted.
+// Documenting that was not enough, so the id now has to be named explicitly —
+// point it at a test container, or repeat GTM-KB7BJLDS when hitting production
+// on purpose. Throwing beats degrading: a forced preview that quietly measures
+// nothing is worse than a build that refuses.
+if (GTM_FORCED && !process.env.NEXT_PUBLIC_GTM_ID) {
+  throw new Error(
+    'NEXT_PUBLIC_GTM_FORCE=true requires NEXT_PUBLIC_GTM_ID to be set explicitly. ' +
+      'It otherwise defaults to the production container (GTM-KB7BJLDS), so the ' +
+      'forced preview would push its traffic into real GA4/Meta audiences. ' +
+      'Set a test container id, or repeat GTM-KB7BJLDS to opt into that.'
+  );
+}
+
 const GTM_GUARD = GTM_FORCED ? 'true' : `/(^|\\.)trivlu\\.com$/.test(location.hostname)`;
 const GTM_SNIPPET = `if(${GTM_GUARD}){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -67,10 +93,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 // which let no-JS preview and localhost traffic reach the production container
 // despite the guarantee above. NEXT_PUBLIC_SITE_URL is the deploy's own notion
 // of its canonical origin, so test its host with the same pattern.
+//
+// Read the raw variable, NOT the SITE_URL constant: that one falls back to the
+// canonical origin so og:image stays absolute for link scrapers, and reusing it
+// here made the gate fail OPEN — a preview that forgot to set the variable
+// rendered the production iframe, i.e. the exact leak this gate prevents.
+// Unset means "unknown deploy", which must resolve to no tracking.
 const CANONICAL_HOST = /(^|\.)trivlu\.com$/;
 function isCanonicalDeploy() {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!configuredOrigin) return false;
   try {
-    return CANONICAL_HOST.test(new URL(SITE_URL).hostname);
+    return CANONICAL_HOST.test(new URL(configuredOrigin).hostname);
   } catch {
     return false;
   }
