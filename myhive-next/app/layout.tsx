@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
 
 // og/twitter URLs must be absolute on the canonical host — WhatsApp/Telegram
 // scrapers refuse redirected og:image URLs (apex 301s to www).
@@ -123,6 +122,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             it pulls must start at parse time; afterInteractive would hold the
             banner until hydration and undercount bounces. */}
         <script dangerouslySetInnerHTML={{ __html: GTM_SNIPPET }} />
+        {/* Turnstile (render=explicit) is in <head> too, and as a plain async
+            script rather than next/script: beforeInteractive emitted a loader
+            <script> into <body> ahead of the GTM noscript, which §3 wants first.
+            async+defer matches what the CRA injected. Safe on localhost —
+            ContactForm uses Cloudflare's "always passes" test sitekey there. */}
+        <script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          async
+          defer
+        />
       </head>
       <body>
         {/* precedence makes React 19 hoist these stylesheet links into <head> */}
@@ -136,15 +145,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"
           precedence="default"
         />
-        {/* Turnstile loader (render=explicit) — beforeInteractive so the
-            download starts from the initial HTML like CRA's head injection,
-            not after the client-only SPA hydrates. Safe on localhost:
-            ContactForm uses Cloudflare's "always passes" test sitekey there. */}
-        <Script
-          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-          strategy="beforeInteractive"
-        />
-        {/* ТЗ §3: the noscript iframe belongs immediately after <body> opens. */}
+        {/* ТЗ §3: the noscript iframe belongs immediately after <body> opens.
+            Next always emits its own <div hidden> as the first body child, which
+            no layout can remove; this is otherwise the first element. */}
         {(isCanonicalDeploy() || GTM_FORCED) && (
           <noscript>
             <iframe
