@@ -36,7 +36,7 @@ const { paymentApi } = require('../services/paymentApi');
 // Captures the Turnstile success callback so tests can simulate a solved captcha.
 let turnstileCallback;
 
-jest.mock('../utils/analytics', () => ({ pushEvent: jest.fn() }));
+jest.mock('../utils/analytics', () => ({ pushEvent: jest.fn(), navigateAfterEvents: jest.fn() }));
 
 jest.mock('../utils/userRole', () => ({ resolveUserRole: jest.fn() }));
 
@@ -81,7 +81,7 @@ jest.mock('./DateRangePicker', () =>
 // ---------------------------------------------------------------------------
 
 const api = require('../services/api').default;
-const { pushEvent } = require('../utils/analytics');
+const { pushEvent, navigateAfterEvents } = require('../utils/analytics');
 const { resolveUserRole } = require('../utils/userRole');
 const { getAttribution, getRef } = require('../utils/attribution');
 const { generateUuid } = require('../utils/uuid');
@@ -734,7 +734,11 @@ test('deposit: the success screen offers a Turnstile-gated 30% deposit for the c
     await user.click(depositBtn);
 
     await waitFor(() => expect(paymentApi.createBookingDepositSession).toHaveBeenCalledWith('booking-123', 'tok-xyz'));
-    expect(assign).toHaveBeenCalledWith('https://checkout/cs_dep');
+    // navigateAfterEvents, not a bare assign: the payment_page_viewed push must survive
+    // the handoff to Stripe.
+    await waitFor(() => expect(navigateAfterEvents).toHaveBeenCalledWith('https://checkout/cs_dep'));
+    expect(pushEvent).toHaveBeenCalledWith(
+        'payment_page_viewed', expect.objectContaining({user_role: 'organizer', currency: 'EUR'}));
 });
 
 // ---------------------------------------------------------------------------

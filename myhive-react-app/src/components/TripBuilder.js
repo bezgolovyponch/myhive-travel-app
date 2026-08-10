@@ -949,12 +949,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           shareToken={activeVoteToken}
       />
 
+      {/* tripId/userRole feed payment_page_viewed when the deposit CTA hands off to
+          Stripe. Same trip_id booking_submitted reported, so the two events join up.
+          The role is resolved the same way withUserRole does — only a vote session can
+          tell organizer from participant, and resolveUserRole is not consulted without
+          one. Outside a vote there is a single actor, the person who just submitted the
+          booking, so 'organizer' is a statement of fact rather than a default. */}
       <SuccessModal
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
           userName={successContactData?.fullName || 'Traveler'}
           userEmail={successContactData?.email || ''}
           bookingId={successBookingId}
+          tripId={effectiveTripId}
+          userRole={annotationToken ? resolveUserRole(annotationToken) : 'organizer'}
       />
 
       <ActivityPreviewModal

@@ -7,13 +7,21 @@ jest.mock('../services/paymentApi', () => ({
     paymentApi: { createBookingDepositSession: jest.fn() },
 }));
 
+jest.mock('../utils/analytics', () => ({
+    pushEvent: jest.fn(),
+    navigateAfterEvents: jest.fn(),
+}));
+
 const {paymentApi} = require('../services/paymentApi');
+const {pushEvent, navigateAfterEvents} = require('../utils/analytics');
 
 // Captures the Turnstile success callback so tests can simulate a solved captcha.
 let turnstileCallback;
 
 beforeEach(() => {
     turnstileCallback = undefined;
+    pushEvent.mockClear();
+    navigateAfterEvents.mockClear();
     window.turnstile = {
         render: (el, opts) => { turnstileCallback = opts.callback; return 'w1'; },
         remove: jest.fn(),
@@ -44,8 +52,6 @@ test('deposit CTA unlocks after Turnstile and redirects to Stripe Checkout', asy
     const user = userEvent.setup();
     const expectedCheckoutUrl = 'https://checkout/cs_dep';
     paymentApi.createBookingDepositSession.mockResolvedValue({bookingId: 'b-1', checkoutUrl: expectedCheckoutUrl});
-    const assign = jest.fn();
-    Object.defineProperty(window, 'location', {configurable: true, value: {assign, href: '', hostname: 'localhost'}});
 
     render(<SuccessModal isOpen onClose={jest.fn()} userName="Sam" userEmail="sam@x.com" bookingId="b-1" />);
 
@@ -58,7 +64,53 @@ test('deposit CTA unlocks after Turnstile and redirects to Stripe Checkout', asy
     await user.click(depositBtn);
 
     await waitFor(() => expect(paymentApi.createBookingDepositSession).toHaveBeenCalledWith('b-1', 'tok-xyz'));
-    expect(assign).toHaveBeenCalledWith(expectedCheckoutUrl);
+    expect(navigateAfterEvents).toHaveBeenCalledWith(expectedCheckoutUrl);
+});
+
+// payment_page_viewed (ТЗ §8) — see PaymentActions.test.js for why the handoff
+// to Stripe is the funnel step. This is the Trip Builder branch of the same
+// step: the organizer pays the deposit straight off the booking-success screen.
+test('deposit handoff pushes payment_page_viewed before leaving for Stripe', async () => {
+    const user = userEvent.setup();
+    paymentApi.createBookingDepositSession.mockResolvedValue({bookingId: 'b-1', checkoutUrl: 'https://checkout/cs_dep'});
+
+    render(
+        <SuccessModal
+            isOpen
+            onClose={jest.fn()}
+            userName="Sam"
+            userEmail="sam@x.com"
+            bookingId="b-1"
+            tripId="TRV-1042"
+            userRole="organizer"
+        />
+    );
+
+    act(() => { turnstileCallback('tok-xyz'); });
+    await user.click(screen.getByRole('button', {name: /pay 30% deposit/i}));
+
+    await waitFor(() => expect(navigateAfterEvents).toHaveBeenCalled());
+    expect(pushEvent).toHaveBeenCalledWith('payment_page_viewed', {
+        trip_id: 'TRV-1042',
+        user_role: 'organizer',
+        currency: 'EUR',
+    });
+    expect(pushEvent.mock.invocationCallOrder[0])
+        .toBeLessThan(navigateAfterEvents.mock.invocationCallOrder[0]);
+});
+
+test('a failed deposit call pushes nothing — the payment page was never reached', async () => {
+    const user = userEvent.setup();
+    paymentApi.createBookingDepositSession.mockRejectedValue(new Error('nope'));
+
+    render(<SuccessModal isOpen onClose={jest.fn()} userName="Sam" userEmail="sam@x.com" bookingId="b-1" tripId="TRV-1" />);
+
+    act(() => { turnstileCallback('tok-xyz'); });
+    await user.click(screen.getByRole('button', {name: /pay 30% deposit/i}));
+
+    expect(await screen.findByText('nope')).toBeInTheDocument();
+    expect(pushEvent).not.toHaveBeenCalled();
+    expect(navigateAfterEvents).not.toHaveBeenCalled();
 });
 
 test('a failed deposit call shows the error and re-enables the button', async () => {
