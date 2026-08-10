@@ -41,13 +41,22 @@ export const viewport: Viewport = {
   themeColor: '#000000',
 };
 
-const GTM_ID = 'GTM-KB7BJLDS';
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-KB7BJLDS';
 
 // GTM runs ONLY on the canonical domain (allowlist, not the CRA's localhost
 // blocklist): the Ф0 preview URL must not pump QA traffic into the production
 // container/ad audiences, and localhost still throws a cross-origin "Script
 // error." — Consent Mode v2 / CookieYes load through the GTM container itself.
-const GTM_SNIPPET = `if(/(^|\\.)trivlu\\.com$/.test(location.hostname)){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+//
+// Because the whole stack arrives through the container, that gate is also why a
+// preview shows no cookie banner, no events and no Meta Pixel: none of them are
+// loaded by this app directly. NEXT_PUBLIC_GTM_FORCE=true lifts the host check so
+// a preview (or localhost) can verify the stack before the domain cutover.
+// Whatever it collects lands in the container NEXT_PUBLIC_GTM_ID names, so point
+// that at a test container when the production numbers matter.
+const GTM_FORCED = process.env.NEXT_PUBLIC_GTM_FORCE === 'true';
+const GTM_GUARD = GTM_FORCED ? 'true' : `/(^|\\.)trivlu\\.com$/.test(location.hostname)`;
+const GTM_SNIPPET = `if(${GTM_GUARD}){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
@@ -95,7 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
           strategy="beforeInteractive"
         />
-        {isCanonicalDeploy() && (
+        {(isCanonicalDeploy() || GTM_FORCED) && (
           <noscript>
             <iframe
               src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
