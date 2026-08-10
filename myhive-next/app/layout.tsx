@@ -113,6 +113,17 @@ function isCanonicalDeploy() {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        {/* ТЗ §3 wants the loader as high in <head> as possible, and this is the
+            only placement that gets there. React hoists <link precedence> and
+            next/script hoists a src= script, but an INLINE script is hoisted by
+            neither — with strategy="beforeInteractive" it still rendered into
+            <body>, verified in .next/server/app/index.html. An explicit <head>
+            in the root layout is what actually works. GTM and the consent stack
+            it pulls must start at parse time; afterInteractive would hold the
+            banner until hydration and undercount bounces. */}
+        <script dangerouslySetInnerHTML={{ __html: GTM_SNIPPET }} />
+      </head>
       <body>
         {/* precedence makes React 19 hoist these stylesheet links into <head> */}
         <link
@@ -125,11 +136,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"
           precedence="default"
         />
-        {/* Plain synchronous script, first in body: GTM + the consent stack it
-            loads must start at parse time, before any content — the CRA served
-            this from <head>, and afterInteractive would undercount bounces and
-            delay the consent banner until after hydration. */}
-        <script dangerouslySetInnerHTML={{ __html: GTM_SNIPPET }} />
         {/* Turnstile loader (render=explicit) — beforeInteractive so the
             download starts from the initial HTML like CRA's head injection,
             not after the client-only SPA hydrates. Safe on localhost:
@@ -138,6 +144,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
           strategy="beforeInteractive"
         />
+        {/* ТЗ §3: the noscript iframe belongs immediately after <body> opens. */}
         {(isCanonicalDeploy() || GTM_FORCED) && (
           <noscript>
             <iframe

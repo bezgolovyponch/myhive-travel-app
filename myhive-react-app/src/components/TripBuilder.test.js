@@ -241,6 +241,23 @@ test('A16b: trip_builder_viewed fires once on mount when the trip has items', as
     expect(resolveUserRole).not.toHaveBeenCalled();
 });
 
+// The container routes this one funnel step through two disjoint trigger sets:
+// GA4 listens for checkout_viewed (ТЗ §8), Meta InitiateCheckout for
+// trip_builder_viewed. Emitting both is what keeps either from going blind;
+// neither name is in both sets, so nothing is double counted.
+test('A16b: the checkout step emits checkout_viewed and trip_builder_viewed identically', async () => {
+    renderTripBuilder();
+
+    await waitFor(() => {
+        expect(pushEvent.mock.calls.filter(([e]) => e === 'checkout_viewed')).toHaveLength(1);
+    });
+    const [, ga4Params] = pushEvent.mock.calls.find(([e]) => e === 'checkout_viewed');
+    const [, metaParams] = pushEvent.mock.calls.find(([e]) => e === 'trip_builder_viewed');
+    expect(ga4Params).toEqual(metaParams);
+    expect(ga4Params.trip_id).toBe('ctx-trip-id');
+    expect(pushEvent.mock.calls.filter(([e]) => e === 'trip_builder_viewed')).toHaveLength(1);
+});
+
 test('A16b: trip_builder_viewed does NOT fire when the trip is empty', async () => {
     renderTripBuilder(buildTripState({ tripItems: [] }));
 

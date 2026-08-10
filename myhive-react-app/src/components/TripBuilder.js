@@ -273,12 +273,22 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       return;
     }
     sessionStorage.setItem(viewedKey, '1');
-    pushEvent('trip_builder_viewed', withUserRole({
+    const checkoutParams = withUserRole({
       trip_id: tripId,
       value: computeTripTotal(state.tripItems, state.tripTravelers || 1),
       currency: 'EUR',
       items_count: state.tripItems.length,
-    }));
+    });
+    // Both names, deliberately, until the container stops needing two.
+    // GTM-KB7BJLDS routes this step through two disjoint trigger sets: GA4 fires
+    // on a regex that lists checkout_viewed (ТЗ §8) and not trip_builder_viewed,
+    // while Meta InitiateCheckout fires on an _eq for trip_builder_viewed and not
+    // checkout_viewed. So the vote path reaches GA4 but not Meta, and this path
+    // reached Meta but not GA4 — renaming would simply swap which one is blind.
+    // Neither name appears in both trigger sets, so there is no double count.
+    // Delete the legacy push once checkout_viewed is added to the Meta trigger.
+    pushEvent('checkout_viewed', checkoutParams);
+    pushEvent('trip_builder_viewed', checkoutParams);
     // withUserRole is derived solely from annotationToken (already a dep below)
     // and the stable resolveUserRole import, so it's safe to omit here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
