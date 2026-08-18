@@ -55,4 +55,6 @@ public class ActivityDTO {
     private String imageUrl;
 
     private String includes;
+
+    private Boolean seoIndexable;
 }

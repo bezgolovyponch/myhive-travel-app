@@ -56,4 +56,6 @@ public class PackageDTO {
     private BigDecimal originalPrice;
     private BigDecimal discountedPrice;
     private BigDecimal savings;
+
+    private Boolean seoIndexable;
 }

@@ -26,4 +26,5 @@ public class DestinationDTO {
     private BigDecimal rating;
     private Integer activityCount;
     private List<CategoryDTO> assignedCategories;
+    private Boolean seoIndexable;
 }

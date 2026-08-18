@@ -41,6 +41,10 @@ public class BlogPost implements Slugged {
 
     private LocalDate date;
 
+    /** Per-record SEO gate: only editorially ready records are indexable (sitemap + no noindex). */
+    @Column(name = "seo_indexable", nullable = false, columnDefinition = "boolean default false")
+    private boolean seoIndexable = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

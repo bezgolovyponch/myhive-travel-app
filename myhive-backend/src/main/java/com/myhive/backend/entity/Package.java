@@ -68,6 +68,10 @@ public class Package implements Slugged {
     @Column(name = "discount_pct", nullable = false, precision = 5, scale = 2)
     private BigDecimal discountPct;
 
+    /** Per-record SEO gate: only editorially ready records are indexable (sitemap + no noindex). */
+    @Column(name = "seo_indexable", nullable = false, columnDefinition = "boolean default false")
+    private boolean seoIndexable = false;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "package_categories",

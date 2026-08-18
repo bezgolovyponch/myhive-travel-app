@@ -34,4 +34,5 @@ public class BlogPostDTO {
 
     private LocalDate date;
     private LocalDateTime createdAt;
+    private Boolean seoIndexable;
 }

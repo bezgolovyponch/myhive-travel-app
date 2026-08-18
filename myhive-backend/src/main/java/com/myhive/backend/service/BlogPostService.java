@@ -77,6 +77,7 @@ public class BlogPostService {
         blogPost.setCategory(dto.getCategory());
         blogPost.setImageUrl(dto.getImageUrl());
         blogPost.setDate(dto.getDate());
+        blogPost.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
     }
 
     private BlogPostDTO convertToDTO(BlogPost blogPost) {
@@ -90,6 +91,7 @@ public class BlogPostService {
         dto.setImageUrl(blogPost.getImageUrl());
         dto.setDate(blogPost.getDate());
         dto.setCreatedAt(blogPost.getCreatedAt());
+        dto.setSeoIndexable(blogPost.isSeoIndexable());
         return dto;
     }
 }

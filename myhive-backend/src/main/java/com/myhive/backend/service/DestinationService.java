@@ -83,6 +83,7 @@ public class DestinationService {
         destination.setCity(dto.getCity());
         destination.setImageUrl(dto.getImageUrl());
         destination.setRating(dto.getRating());
+        destination.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
     }
 
     @Transactional
@@ -153,6 +154,7 @@ public class DestinationService {
         dto.setImageUrl(destination.getImageUrl());
         dto.setRating(destination.getRating());
         dto.setActivityCount(destination.getActivities() != null ? destination.getActivities().size() : 0);
+        dto.setSeoIndexable(destination.isSeoIndexable());
         return dto;
     }
 }

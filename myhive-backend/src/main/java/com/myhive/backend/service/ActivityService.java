@@ -151,6 +151,7 @@ public class ActivityService {
         activity.setIncludes(dto.getIncludes());
         activity.setFeaturedWeight(dto.getFeaturedWeight() == null ? 0 : dto.getFeaturedWeight());
         activity.setFeatured(Boolean.TRUE.equals(dto.getFeatured()));
+        activity.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
         activity.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
     }
 
@@ -170,6 +171,7 @@ public class ActivityService {
         dto.setIncludes(activity.getIncludes());
         dto.setFeaturedWeight(activity.getFeaturedWeight());
         dto.setFeatured(activity.isFeatured());
+        dto.setSeoIndexable(activity.isSeoIndexable());
 
         List<CategoryDTO> categoryDtos = CategoryResolver.toDTOs(activity.getCategories());
         dto.setCategories(categoryDtos);

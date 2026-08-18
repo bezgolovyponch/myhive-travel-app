@@ -85,6 +85,7 @@ public class PackageService {
         dto.setIncludes(p.getIncludes());
         dto.setDuration(p.getDuration());
         dto.setDiscountPct(p.getDiscountPct());
+        dto.setSeoIndexable(p.isSeoIndexable());
 
         List<PackageActivityRefDTO> refs = new ArrayList<>();
         for (PackageActivity pa : p.getPackageActivities()) {
@@ -152,6 +153,7 @@ public class PackageService {
         p.setIncludes(dto.getIncludes());
         p.setDuration(dto.getDuration());
         p.setDiscountPct(dto.getDiscountPct());
+        p.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
         p.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
         applyActivities(dto.getActivities(), p);
     }

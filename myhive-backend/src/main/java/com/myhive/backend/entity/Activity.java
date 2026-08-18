@@ -67,6 +67,10 @@ public class Activity implements Slugged {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean featured = false;
 
+    /** Per-record SEO gate: only editorially ready records are indexable (sitemap + no noindex). */
+    @Column(name = "seo_indexable", nullable = false, columnDefinition = "boolean default false")
+    private boolean seoIndexable = false;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "activity_categories",
