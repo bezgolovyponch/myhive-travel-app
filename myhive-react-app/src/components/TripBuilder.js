@@ -699,7 +699,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                 <span className="itinerary-estimate-price">{formatPrice(totalPrice)}</span>
               </div>
               <button
-                  className={`btn ${voteCtaVisible ? 'btn--outline-brand' : 'btn--primary'} btn--full-width confirm-btn`}
+                  className="btn btn--primary btn--full-width confirm-btn"
                   onClick={handleConfirmTrip}
               >
                 Complete Booking

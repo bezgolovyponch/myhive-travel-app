@@ -440,9 +440,6 @@
     color: rgba(255, 255, 255, 0.65);
 }
 
-/* The purple-outlined Complete Booking look (.btn--outline-brand) lives with
-   the other button variants in styles/global.css. */
-
 /* Recommended-for-you names are buttons (open the preview modal) — strip the
    native button chrome so they render like the plain titles around them. */
 .browse-activity-link {

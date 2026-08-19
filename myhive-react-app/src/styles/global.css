@@ -203,19 +203,6 @@ a:hover {
     background: rgba(255, 255, 255, 0.12);
 }
 
-/* Purple-outlined secondary CTA (Complete Booking while the group-vote button
-   carries the primary emphasis). Lives here rather than in TripBuilder.css so
-   the same-file order guarantees it beats the .btn.btn base above. */
-.btn.btn--outline-brand {
-    background: transparent;
-    border: 1px solid #7c6cf5;
-    color: var(--white);
-}
-
-.btn.btn--outline-brand:hover:not(:disabled) {
-    background: rgba(124, 108, 245, 0.08);
-}
-
 .btn.btn--lg {
     padding: 0.625rem 1.25rem;
     font-size: 1rem;
