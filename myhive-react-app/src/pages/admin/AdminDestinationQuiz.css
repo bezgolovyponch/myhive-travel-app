@@ -72,42 +72,44 @@
     box-shadow: 0 0 0 0.2rem rgba(50, 184, 198, 0.25);
 }
 
-/* Bootstrap outline buttons need dark-theme treatment */
-.quiz-admin .btn-outline-secondary {
+/* Bootstrap outline buttons need dark-theme treatment. The .btn class is
+   doubled in so these outrank the doubled .btn.btn base in global.css
+   whatever order the chunks load in. */
+.quiz-admin .btn.btn-outline-secondary {
     color: var(--text);
     border-color: var(--card-border);
     background: transparent;
 }
 
-.quiz-admin .btn-outline-secondary:hover,
-.quiz-admin .btn-outline-secondary:focus {
+.quiz-admin .btn.btn-outline-secondary:hover,
+.quiz-admin .btn.btn-outline-secondary:focus {
     background: var(--surface);
     color: var(--text);
     border-color: var(--text-muted);
 }
 
-.quiz-admin .btn-outline-danger {
+.quiz-admin .btn.btn-outline-danger {
     color: #ff6b6b;
     border-color: rgba(220, 53, 69, 0.5);
     background: transparent;
 }
 
-.quiz-admin .btn-outline-danger:hover,
-.quiz-admin .btn-outline-danger:focus {
+.quiz-admin .btn.btn-outline-danger:hover,
+.quiz-admin .btn.btn-outline-danger:focus {
     background: rgba(220, 53, 69, 0.15);
     color: #ff8a8a;
     border-color: #dc3545;
 }
 
-.quiz-admin .btn-primary {
+.quiz-admin .btn.btn-primary {
     background: var(--primary);
     border-color: var(--primary);
     color: var(--primary-text, #13343b);
     font-weight: 600;
 }
 
-.quiz-admin .btn-primary:hover,
-.quiz-admin .btn-primary:focus {
+.quiz-admin .btn.btn-primary:hover,
+.quiz-admin .btn.btn-primary:focus {
     background: var(--primary-hover, #2da6b2);
     border-color: var(--primary-hover, #2da6b2);
 }

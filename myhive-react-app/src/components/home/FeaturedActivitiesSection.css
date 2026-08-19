@@ -25,7 +25,9 @@
 
 /* "View All Activities" is the section's primary CTA — filled purple, matching
    the other primary buttons on the homepage. */
-.featured-activities-cta {
+/* Full .btn.btn--lg chain so the border/font-weight here outrank the doubled
+   .btn.btn base in global.css whatever order the chunks load in. */
+.btn.btn--lg.featured-activities-cta {
     background: var(--purple);
     color: #fff;
     border: 2px solid var(--purple);
@@ -34,7 +36,7 @@
     margin-top: var(--gap-sm);
 }
 
-.featured-activities-cta:hover {
+.btn.btn--lg.featured-activities-cta:hover {
     background: var(--purple-l);
     border-color: var(--purple-l);
     color: #fff;

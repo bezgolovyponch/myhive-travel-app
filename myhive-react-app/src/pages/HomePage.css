@@ -21,13 +21,13 @@
 
 /* Section CTAs use the global .btn--primary; repaint it purple only inside the
    homepage so the rest of the app keeps the brand button. */
-.homepage .btn--primary {
+.homepage .btn.btn--primary {
     background: var(--purple);
     color: #fff;
     box-shadow: 0 0.5rem 1.5rem rgba(83, 74, 183, 0.4);
 }
 
-.homepage .btn--primary:hover {
+.homepage .btn.btn--primary:hover {
     background: var(--purple-l);
 }
 

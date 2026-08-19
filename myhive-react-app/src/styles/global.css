@@ -135,8 +135,17 @@ a:hover {
     outline-offset: 2px;
 }
 
-/* Buttons */
-.btn {
+/* Buttons.
+   Every selector is doubled up (.btn.btn, .btn.btn--x) on purpose: Bootstrap
+   (pulled in globally for the admin) also styles .btn, and the Next build
+   orders stylesheet chunks unpredictably — at equal specificity whichever
+   loads last wins, which once left the outlined Complete Booking button
+   invisible until hover. The doubled class keeps every contested property
+   (colors, borders, metrics, focus ring) winning regardless of chunk order.
+   Scoped button overrides in other files (.homepage, .trip-actions,
+   .quiz-admin, the featured-activities CTA) sit one class above these for
+   the same reason. */
+.btn.btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -151,60 +160,73 @@ a:hover {
     text-decoration: none;
 }
 
-.btn:focus-visible {
+.btn.btn:focus-visible {
     outline: none;
     box-shadow: var(--focus-ring);
 }
 
-.btn--primary {
+.btn.btn--primary {
     background: var(--brand);
     color: var(--white);
 }
 
-.btn--primary:hover {
+.btn.btn--primary:hover {
     background: var(--brand-dark);
 }
 
-.btn--secondary {
+.btn.btn--secondary {
     background: var(--primary);
     color: var(--primary-text);
 }
 
-.btn--secondary:hover {
+.btn.btn--secondary:hover {
     background: var(--primary-hover);
 }
 
-.btn--accent {
+.btn.btn--accent {
     background: var(--accent);
     color: var(--white);
 }
 
-.btn--accent:hover {
+.btn.btn--accent:hover {
     opacity: 0.9;
 }
 
 /* Outlined cancel/back look, matching the hero "Explore activities" button */
-.btn--ghost {
+.btn.btn--ghost {
     background: transparent;
     color: var(--white, #fff);
     border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
-.btn--ghost:hover {
+.btn.btn--ghost:hover {
     background: rgba(255, 255, 255, 0.12);
 }
 
-.btn--lg {
+/* Purple-outlined secondary CTA (Complete Booking while the group-vote button
+   carries the primary emphasis). Lives here rather than in TripBuilder.css so
+   the same-file order guarantees it beats the .btn.btn base above. */
+.btn.btn--outline-brand {
+    background: transparent;
+    border: 1px solid #7c6cf5;
+    color: var(--white);
+}
+
+.btn.btn--outline-brand:hover:not(:disabled) {
+    background: rgba(124, 108, 245, 0.08);
+}
+
+.btn.btn--lg {
     padding: 0.625rem 1.25rem;
     font-size: 1rem;
     border-radius: 0.625rem;
 }
 
-.btn--full-width {
+.btn.btn--full-width {
     width: 100%;
 }
 
-.btn:disabled {
+.btn.btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
