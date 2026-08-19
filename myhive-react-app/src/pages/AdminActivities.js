@@ -19,6 +19,7 @@ const EMPTY_FORM = {
     duration: '',
     featuredWeight: 0,
     featured: false,
+    seoIndexable: false,
     categoryIds: [],
     imageUrl: '',
     includes: '',
@@ -90,6 +91,7 @@ function AdminActivities() {
             duration: a.duration ?? '',
             featuredWeight: a.featuredWeight ?? 0,
             featured: a.featured ?? false,
+            seoIndexable: !!a.seoIndexable,
             categoryIds: a.categoryIds || (a.categories || []).map(c => c.id),
             imageUrl: a.imageUrl || '',
             includes: a.includes || '',
@@ -340,6 +342,16 @@ function AdminActivities() {
                                 className="text-white"
                                 checked={!!form.featured}
                                 onChange={e => setForm({...form, featured: e.target.checked})}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Check
+                                type="switch"
+                                id="activity-seo-indexable"
+                                label="Indexable by Google (SEO-ready content)"
+                                className="text-white"
+                                checked={!!form.seoIndexable}
+                                onChange={e => updateField('seoIndexable', e.target.checked)}
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">

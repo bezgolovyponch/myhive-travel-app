@@ -3,8 +3,9 @@ import AppModal from './AppModal';
 import {WHATSAPP_URL, PAYMENTS_ENABLED} from '../services/config';
 import {paymentApi} from '../services/paymentApi';
 import {useTurnstileWidget} from '../hooks/useTurnstileWidget';
+import {pushEvent, navigateAfterEvents} from '../utils/analytics';
 
-function SuccessModal({isOpen, onClose, userName, userEmail, bookingId}) {
+function SuccessModal({isOpen, onClose, userName, userEmail, bookingId, tripId, userRole}) {
     // The 30% deposit is a real charge, so it is Turnstile-gated; the widget only renders
     // when this success screen belongs to a booking that can still be paid (bookingId set)
     // and online payment is enabled.
@@ -17,8 +18,18 @@ function SuccessModal({isOpen, onClose, userName, userEmail, bookingId}) {
         setDepositError(null);
         try {
             const {checkoutUrl} = await paymentApi.createBookingDepositSession(bookingId, turnstileToken);
+            // payment_page_viewed (ТЗ §8) — see PaymentActions for the reasoning and for why
+            // share_value is absent. Pushed only once the session exists: a failed call means
+            // the payment page was never reached.
+            pushEvent('payment_page_viewed', {
+                trip_id: tripId,
+                user_role: userRole,
+                currency: 'EUR',
+            });
             // Hand off to Stripe Checkout; keep isRedirecting true through the redirect.
-            window.location.assign(checkoutUrl);
+            // navigateAfterEvents, not a bare assign: the push above must not die with the
+            // document before the container dispatches it.
+            navigateAfterEvents(checkoutUrl);
         } catch (error) {
             setDepositError(error.message || 'Failed to start payment. Please try again.');
             setIsRedirecting(false);

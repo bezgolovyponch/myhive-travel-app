@@ -19,6 +19,7 @@ const EMPTY_FORM = {
     city: '',
     imageUrl: '',
     rating: '',
+    seoIndexable: false,
 };
 
 const COLUMNS = [
@@ -75,6 +76,7 @@ function AdminDestinations() {
             city: d.city || '',
             imageUrl: d.imageUrl || '',
             rating: d.rating ?? '',
+            seoIndexable: !!d.seoIndexable,
         }),
         validate: (form) => {
             const errors = {};
@@ -281,6 +283,16 @@ function AdminDestinations() {
                                 value={form.rating}
                                 onChange={e => setForm({...form, rating: e.target.value})}
                                 placeholder="e.g. 4.75"
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Check
+                                type="switch"
+                                id="destination-seo-indexable"
+                                label="Indexable by Google (SEO-ready content)"
+                                className="text-white"
+                                checked={!!form.seoIndexable}
+                                onChange={e => updateField('seoIndexable', e.target.checked)}
                             />
                         </Form.Group>
                         {editing && allCategories.length > 0 && (

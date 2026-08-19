@@ -52,11 +52,11 @@ function ReviewsSection({onStartVote}) {
             <button
                 className="btn btn--primary btn--lg"
                 onClick={() => {
-                    pushEvent('cta_click', {cta_label: 'Build Your Trip', block: 'reviews'});
+                    pushEvent('cta_click', {cta_label: 'Start Group Vote', block: 'reviews'});
                     onStartVote();
                 }}
             >
-                Build Your Trip
+                Start Group Vote
             </button>
         </section>
     );

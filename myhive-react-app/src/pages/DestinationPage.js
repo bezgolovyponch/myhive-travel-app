@@ -1,5 +1,5 @@
+import PageHead from '../components/PageHead';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {Helmet} from 'react-helmet-async';
 import {useTrip} from '../context/TripContext';
 import ActivityCard from '../components/ActivityCard';
 import TripBuilder from '../components/TripBuilder';
@@ -8,16 +8,23 @@ import PackageCard from '../components/PackageCard';
 import api from '../services/api';
 import {SITE_URL} from '../services/config';
 import {capitalizeFirst} from '../utils/format';
+import useTripDeepLink from '../hooks/useTripDeepLink';
 import './DestinationPage.css';
 
 const PAGE_SIZE = 12;
 const VISIBLE_CATEGORY_COUNT = 12;
 
-function DestinationPage() {
+// `initial` lets a server renderer seed the whole first paint — destination,
+// categories, page 0 of activities (with its pagination metadata) and packages —
+// so the catalog reaches the initial HTML instead of arriving in the effect
+// below, which no crawler runs. Filtering and Show More still page on the client
+// from there. Omitted in the SPA, which fetches on mount exactly as before.
+function DestinationPage({initial}) {
     const {slug} = useParams();
     const {state: trip} = useTrip();
   const location = useLocation();
   const navigate = useNavigate();
+    useTripDeepLink();
     const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
     // Mount TripBuilder only once its tab has been opened — it fetches the
     // destination's activity catalog on mount, which is wasted on visitors
@@ -31,16 +38,16 @@ function DestinationPage() {
     }, [currentTab]);
   const [currentFilter, setCurrentFilter] = useState('all');
     const [showAllCategories, setShowAllCategories] = useState(false);
-  const [destination, setDestination] = useState(null);
-  const [activities, setActivities] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [packages, setPackages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [destination, setDestination] = useState(initial?.destination ?? null);
+  const [activities, setActivities] = useState(initial?.activities ?? []);
+    const [categories, setCategories] = useState(initial?.categories ?? []);
+    const [packages, setPackages] = useState(initial?.packages ?? []);
+  const [loading, setLoading] = useState(!initial);
     const [error, setError] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
-    const [totalElements, setTotalElements] = useState(0);
+    const [hasMore, setHasMore] = useState(initial ? !initial.last : true);
+    const [totalElements, setTotalElements] = useState(initial?.totalElements ?? 0);
     // Errors from filter/pagination must not replace the whole loaded page.
     const [listError, setListError] = useState(false);
     const [filterLoading, setFilterLoading] = useState(false);
@@ -78,6 +85,10 @@ function DestinationPage() {
     }, []);
 
   useEffect(() => {
+    if (initial) {
+        // Server already supplied destination, categories, page 0 and packages.
+        return undefined;
+    }
     let cancelled = false;
     const fetchDestinationData = async () => {
       try {
@@ -118,7 +129,7 @@ function DestinationPage() {
     return () => {
         cancelled = true;
     };
-  }, [slug, fetchActivitiesPage]);
+  }, [slug, fetchActivitiesPage, initial]);
 
   const handleTabChange = (tabName) => {
     const params = new URLSearchParams(location.search);
@@ -178,12 +189,30 @@ function DestinationPage() {
 
   return (
     <div className={`destination-page${trip.checkoutOpen ? ' destination-page--checkout' : ''}`}>
-        <Helmet>
+        <PageHead>
             <title>{destination.name} — Trivlu</title>
             <meta name="description"
                   content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
-        </Helmet>
+        </PageHead>
+      {/* The catalog carried no h1 outside its loading/error states, which the SSR
+          smoke checks flag (exactly one per page) and which cost the highest-
+          traffic organic page its main heading. Hidden on the Trip Builder tab and
+          during checkout, like the tab bar below, so the focused flows are
+          unchanged. */}
+      {!trip.checkoutOpen && currentTab !== 'trip-builder' && (
+          <div
+              className="page-hero destination-header"
+              style={destination.imageUrl ? {
+                  backgroundImage: `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url(${destination.imageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+              } : undefined}
+          >
+              <h1>{destination.name} Stag Do</h1>
+              {destination.description && <p>{destination.description}</p>}
+          </div>
+      )}
       {/* Tab bar hides on the Trip Builder tab (and during checkout) so nothing
           pulls the user away from completing the booking; breadcrumbs + Browse
           More Activities still lead back to the catalog. */}

@@ -434,24 +434,14 @@
    into bare grey text on the dark rail — keep a muted purple surface instead
    so it still reads as a (currently unavailable) button. Wins over
    .btn--primary:hover on specificity, so no extra hover reset is needed. */
-.trip-actions .btn--primary:disabled {
+.trip-actions .btn.btn--primary:disabled {
     opacity: 1;
     background: rgba(124, 108, 245, 0.3);
     color: rgba(255, 255, 255, 0.65);
 }
 
-/* Purple-outlined secondary CTA: Complete Booking while the group-vote button
-   carries the primary emphasis. Disabled look comes from the global
-   .btn:disabled rule. */
-.btn--outline-brand {
-    background: transparent;
-    border: 1px solid #7c6cf5;
-    color: var(--white);
-}
-
-.btn--outline-brand:hover:not(:disabled) {
-    background: rgba(124, 108, 245, 0.08);
-}
+/* The purple-outlined Complete Booking look (.btn--outline-brand) lives with
+   the other button variants in styles/global.css. */
 
 /* Recommended-for-you names are buttons (open the preview modal) — strip the
    native button chrome so they render like the plain titles around them. */

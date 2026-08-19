@@ -1,4 +1,4 @@
-import {Helmet} from 'react-helmet-async';
+import PageHead from '../components/PageHead';
 import {Link} from 'react-router-dom';
 import {SITE_URL} from '../services/config';
 import {COMPANY, POLICY_EFFECTIVE_DATE} from '../legal/companyInfo';
@@ -10,12 +10,12 @@ import './PolicyPage.css';
 function PrivacyPolicyPage() {
     return (
         <div className="policy-page">
-            <Helmet>
-                <title>Privacy Policy — Trivlu</title>
+            <PageHead>
+                <title>Privacy Policy | Trivlu</title>
                 <meta name="description"
                       content="How Trivlu collects, uses, and protects your personal data under the GDPR."/>
                 <link rel="canonical" href={`${SITE_URL}/privacy-policy`}/>
-            </Helmet>
+            </PageHead>
             <section className="page-hero">
                 <h1>Privacy Policy</h1>
             </section>

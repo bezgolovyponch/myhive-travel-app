@@ -1,13 +1,16 @@
-import {Helmet} from 'react-helmet-async';
+import PageHead from '../components/PageHead';
 import {Link, useParams} from 'react-router-dom';
 import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
+import MarkdownContent from '../components/MarkdownContent';
 import './BlogPostPage.css';
 
-function BlogPostPage() {
+// `post` is supplied by the server renderer (Next.js SSR) so the article is in
+// the initial HTML; omitted in the SPA, which fetches by slug as before.
+function BlogPostPage({post: injectedPost}) {
     const {slug} = useParams();
-    const {data: post, loading, error} = useFetchBySlug(api.getBlogPostBySlug, slug);
+    const {data: post, loading, error} = useFetchBySlug(api.getBlogPostBySlug, slug, injectedPost);
 
     if (loading) {
         return (
@@ -30,15 +33,13 @@ function BlogPostPage() {
         );
     }
 
-    const paragraphs = post.content ? post.content.split('\n').filter(p => p.trim()) : [];
-
     return (
         <div className="blog-post-page">
-            <Helmet>
-                <title>{post.title} — Trivlu Blog</title>
+            <PageHead>
+                <title>{post.title} | Trivlu Blog</title>
                 <meta name="description" content={post.excerpt || post.title}/>
                 <link rel="canonical" href={`${SITE_URL}/blog/${post.slug}`}/>
-            </Helmet>
+            </PageHead>
             {post.imageUrl && (
                 <div className="blog-post-hero" style={{backgroundImage: `url(${post.imageUrl})`}}>
                     <div className="blog-post-hero-overlay">
@@ -57,9 +58,7 @@ function BlogPostPage() {
                         {post.date && <span className="blog-post-date">{post.date}</span>}
                     </>
                 )}
-                {paragraphs.map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                ))}
+                <MarkdownContent>{post.content}</MarkdownContent>
 
                 <div className="blog-post-back">
                     <Link to="/blog" className="btn btn--primary">Back to Blog</Link>

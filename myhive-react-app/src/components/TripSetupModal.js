@@ -46,12 +46,16 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
-    // A8: fire tb_start once per open transition in vote mode.
+    // A8: fire tb_start once per open transition. ТЗ §8 defines the trigger as
+    // opening the Trip Builder's first screen — this modal — however the user got
+    // there, so direct entry counts too. vote_mode separates the two paths instead
+    // of one of them being silent: previously every organizer who did not arrive
+    // through a vote link was missing from the top of the funnel entirely.
     const tbStartFiredRef = useRef(false);
     useEffect(() => {
-        if (isOpen && isVoteMode && !tbStartFiredRef.current) {
+        if (isOpen && !tbStartFiredRef.current) {
             tbStartFiredRef.current = true;
-            pushEvent('tb_start', {ref: getRef()});
+            pushEvent('tb_start', {ref: getRef(), vote_mode: isVoteMode ? 'VOTE' : 'TRIP'});
         }
         if (!isOpen) {
             tbStartFiredRef.current = false;

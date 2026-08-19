@@ -1,4 +1,5 @@
 import {pushEvent} from '../../utils/analytics';
+import {assetUrl} from '../../utils/assetUrl';
 import SwipeMomentCard from './SwipeMomentCard';
 import VoteMomentCard from './VoteMomentCard';
 import stepPickImg from '../../assets/home/step-pick.jpg';
@@ -10,7 +11,7 @@ import './HowItWorksSection.css';
 const STEPS = [
     {
         title: 'Pick activities to vote on',
-        visual: <SwipeMomentCard image={stepPickImg}/>,
+        visual: <SwipeMomentCard image={assetUrl(stepPickImg)}/>,
         wrapperClass: 'step-img step-img--component',
     },
     {
@@ -22,7 +23,7 @@ const STEPS = [
         title: 'Book the winners',
         visual: (
             <>
-                <img src={stepLimoImg} alt="" loading="lazy"/>
+                <img src={assetUrl(stepLimoImg)} alt="" loading="lazy"/>
                 <div className="booked">
                     <i className="ph ph-check-circle"/>
                     <div>

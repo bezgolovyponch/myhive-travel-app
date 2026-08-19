@@ -36,7 +36,7 @@ const { paymentApi } = require('../services/paymentApi');
 // Captures the Turnstile success callback so tests can simulate a solved captcha.
 let turnstileCallback;
 
-jest.mock('../utils/analytics', () => ({ pushEvent: jest.fn() }));
+jest.mock('../utils/analytics', () => ({ pushEvent: jest.fn(), navigateAfterEvents: jest.fn() }));
 
 jest.mock('../utils/userRole', () => ({ resolveUserRole: jest.fn() }));
 
@@ -81,7 +81,7 @@ jest.mock('./DateRangePicker', () =>
 // ---------------------------------------------------------------------------
 
 const api = require('../services/api').default;
-const { pushEvent } = require('../utils/analytics');
+const { pushEvent, navigateAfterEvents } = require('../utils/analytics');
 const { resolveUserRole } = require('../utils/userRole');
 const { getAttribution, getRef } = require('../utils/attribution');
 const { generateUuid } = require('../utils/uuid');
@@ -239,6 +239,23 @@ test('A16b: trip_builder_viewed fires once on mount when the trip has items', as
     // Plain trip — no vote token involved, so no user_role field at all.
     expect(params).not.toHaveProperty('user_role');
     expect(resolveUserRole).not.toHaveBeenCalled();
+});
+
+// The container routes this one funnel step through two disjoint trigger sets:
+// GA4 listens for checkout_viewed (ТЗ §8), Meta InitiateCheckout for
+// trip_builder_viewed. Emitting both is what keeps either from going blind;
+// neither name is in both sets, so nothing is double counted.
+test('A16b: the checkout step emits checkout_viewed and trip_builder_viewed identically', async () => {
+    renderTripBuilder();
+
+    await waitFor(() => {
+        expect(pushEvent.mock.calls.filter(([e]) => e === 'checkout_viewed')).toHaveLength(1);
+    });
+    const [, ga4Params] = pushEvent.mock.calls.find(([e]) => e === 'checkout_viewed');
+    const [, metaParams] = pushEvent.mock.calls.find(([e]) => e === 'trip_builder_viewed');
+    expect(ga4Params).toEqual(metaParams);
+    expect(ga4Params.trip_id).toBe('ctx-trip-id');
+    expect(pushEvent.mock.calls.filter(([e]) => e === 'trip_builder_viewed')).toHaveLength(1);
 });
 
 test('A16b: trip_builder_viewed does NOT fire when the trip is empty', async () => {
@@ -734,7 +751,11 @@ test('deposit: the success screen offers a Turnstile-gated 30% deposit for the c
     await user.click(depositBtn);
 
     await waitFor(() => expect(paymentApi.createBookingDepositSession).toHaveBeenCalledWith('booking-123', 'tok-xyz'));
-    expect(assign).toHaveBeenCalledWith('https://checkout/cs_dep');
+    // navigateAfterEvents, not a bare assign: the payment_page_viewed push must survive
+    // the handoff to Stripe.
+    await waitFor(() => expect(navigateAfterEvents).toHaveBeenCalledWith('https://checkout/cs_dep'));
+    expect(pushEvent).toHaveBeenCalledWith(
+        'payment_page_viewed', expect.objectContaining({user_role: 'organizer', currency: 'EUR'}));
 });
 
 // ---------------------------------------------------------------------------
@@ -761,6 +782,52 @@ describe('itinerary line price label', () => {
         }));
 
         expect(await screen.findByText('€40 × 2 = €80')).toBeInTheDocument();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Travelers field — must be clearable so a new count can be typed
+// ---------------------------------------------------------------------------
+
+describe('travelers input', () => {
+    // Regression: the field used to clamp every keystroke through
+    // Math.max(1, parseInt(v) || 1), so clearing it instantly re-rendered "1"
+    // with the caret behind it — typing 5 gave 15, and a two-digit group was
+    // effectively impossible to enter.
+    test('clearing the field leaves it empty instead of snapping back to 1', async () => {
+        const user = userEvent.setup();
+        const {dispatchMock} = renderTripBuilder(buildTripState({tripTravelers: 2}));
+
+        const input = await screen.findByLabelText('Travelers:');
+        await user.clear(input);
+
+        expect(input).toHaveValue(null);
+        expect(dispatchMock).not.toHaveBeenCalledWith(
+            expect.objectContaining({type: 'UPDATE_TRIP_TRAVELERS'}),
+        );
+    });
+
+    test('a two-digit count typed after clearing commits the full number', async () => {
+        const user = userEvent.setup();
+        const {dispatchMock} = renderTripBuilder(buildTripState({tripTravelers: 2}));
+
+        const input = await screen.findByLabelText('Travelers:');
+        await user.clear(input);
+        await user.type(input, '12');
+
+        expect(input).toHaveValue(12);
+        expect(dispatchMock).toHaveBeenLastCalledWith({type: 'UPDATE_TRIP_TRAVELERS', travelers: 12});
+    });
+
+    test('blurring an emptied field restores the committed count', async () => {
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({tripTravelers: 2}));
+
+        const input = await screen.findByLabelText('Travelers:');
+        await user.clear(input);
+        await user.tab();
+
+        expect(input).toHaveValue(2);
     });
 });
 

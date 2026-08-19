@@ -1,4 +1,4 @@
-import {Helmet} from 'react-helmet-async';
+import PageHead from '../components/PageHead';
 import {Link} from 'react-router-dom';
 import {SITE_URL} from '../services/config';
 import {COMPANY, POLICY_EFFECTIVE_DATE} from '../legal/companyInfo';
@@ -19,12 +19,12 @@ import './PolicyPage.css';
 function TermsPage() {
     return (
         <div className="policy-page">
-            <Helmet>
-                <title>Terms &amp; Conditions — Trivlu</title>
+            <PageHead>
+                <title>Terms &amp; Conditions | Trivlu</title>
                 <meta name="description"
                       content="The terms and conditions that apply when you book group trips and experiences through Trivlu."/>
                 <link rel="canonical" href={`${SITE_URL}/terms`}/>
-            </Helmet>
+            </PageHead>
             <section className="page-hero">
                 <h1>Terms &amp; Conditions</h1>
             </section>

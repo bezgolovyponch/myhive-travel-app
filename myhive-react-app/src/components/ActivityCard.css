@@ -29,6 +29,11 @@
     font-size: 0.6875rem;
     font-weight: 500;
     align-self: flex-start;
+    /* Optical alignment: the pill's box already sits flush with the card
+       padding, but its own side padding pushed the label 8px right of the
+       title beneath it. Pulling the pill left by exactly that padding lines
+       the two text runs up. */
+    margin-left: calc(var(--gap-sm) * -1);
 }
 
 .activity-title {
@@ -74,9 +79,11 @@
     margin-top: auto;
 }
 
+/* Lighter than .activity-title (600): the title is the primary information on
+   the card, so the price must not out-weigh it. */
 .activity-price {
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 500;
     color: var(--text);
 }
 
@@ -136,4 +143,13 @@
         font-size: 0.6875rem;
         padding: 0.375rem 0.5rem;
     }
+}
+
+/* The title is wrapped in a real anchor for crawlability (see ActivityCard.js);
+   it must look exactly like the plain heading text it replaced. */
+.activity-title-link,
+.activity-title-link:hover,
+.activity-title-link:focus {
+    color: inherit;
+    text-decoration: none;
 }

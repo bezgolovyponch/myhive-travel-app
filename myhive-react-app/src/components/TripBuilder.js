@@ -273,12 +273,22 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       return;
     }
     sessionStorage.setItem(viewedKey, '1');
-    pushEvent('trip_builder_viewed', withUserRole({
+    const checkoutParams = withUserRole({
       trip_id: tripId,
       value: computeTripTotal(state.tripItems, state.tripTravelers || 1),
       currency: 'EUR',
       items_count: state.tripItems.length,
-    }));
+    });
+    // Both names, deliberately, until the container stops needing two.
+    // GTM-KB7BJLDS routes this step through two disjoint trigger sets: GA4 fires
+    // on a regex that lists checkout_viewed (ТЗ §8) and not trip_builder_viewed,
+    // while Meta InitiateCheckout fires on an _eq for trip_builder_viewed and not
+    // checkout_viewed. So the vote path reaches GA4 but not Meta, and this path
+    // reached Meta but not GA4 — renaming would simply swap which one is blind.
+    // Neither name appears in both trigger sets, so there is no double count.
+    // Delete the legacy push once checkout_viewed is added to the Meta trigger.
+    pushEvent('checkout_viewed', checkoutParams);
+    pushEvent('trip_builder_viewed', checkoutParams);
     // withUserRole is derived solely from annotationToken (already a dep below)
     // and the stable resolveUserRole import, so it's safe to omit here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -492,6 +502,12 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   };
 
   const travelers = state.tripTravelers || 1;
+  // The travelers field is edited as free text while focused. Clamping every
+  // keystroke back into the reducer makes an emptied field snap to "1" with the
+  // caret behind it, so typing "5" yields "15" and a two-digit group is nearly
+  // impossible to enter. null means "not editing" — show the committed value.
+  // Same shape as the stepper in TripSetupModal.js.
+  const [travelersDraft, setTravelersDraft] = useState(null);
 
   // One price label for both standalone and package lines; shows the floored
   // total with a marker whenever the group minimum binds — including travelers = 1.
@@ -552,11 +568,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
               type="number"
               id="trip-travelers"
               className="trip-info-input"
-              value={travelers}
-              onChange={e => dispatch({
-                type: 'UPDATE_TRIP_TRAVELERS',
-                travelers: Math.max(1, parseInt(e.target.value, 10) || 1)
-              })}
+              value={travelersDraft ?? travelers}
+              onChange={e => {
+                const raw = e.target.value;
+                setTravelersDraft(raw);
+                // Only usable values reach the reducer; "" and "0" stay in the
+                // draft so the field can be cleared and retyped.
+                const parsed = parseInt(raw, 10);
+                if (Number.isFinite(parsed) && parsed >= 1) {
+                  dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: parsed});
+                }
+              }}
+              // Dropping the draft re-renders the committed value, so a field
+              // left empty or at "0" reverts instead of persisting a bad count.
+              onBlur={() => setTravelersDraft(null)}
               min="1"
               max="20"
           />
@@ -934,12 +959,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           shareToken={activeVoteToken}
       />
 
+      {/* tripId/userRole feed payment_page_viewed when the deposit CTA hands off to
+          Stripe. Same trip_id booking_submitted reported, so the two events join up.
+          The role is resolved the same way withUserRole does — only a vote session can
+          tell organizer from participant, and resolveUserRole is not consulted without
+          one. Outside a vote there is a single actor, the person who just submitted the
+          booking, so 'organizer' is a statement of fact rather than a default. */}
       <SuccessModal
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
           userName={successContactData?.fullName || 'Traveler'}
           userEmail={successContactData?.email || ''}
           bookingId={successBookingId}
+          tripId={effectiveTripId}
+          userRole={annotationToken ? resolveUserRole(annotationToken) : 'organizer'}
       />
 
       <ActivityPreviewModal

@@ -6,6 +6,7 @@ import {required, slugFormat} from '../utils/validators';
 import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
+import MarkdownContent from '../components/MarkdownContent';
 import SaveErrorAlert from '../components/admin/SaveErrorAlert';
 
 const EMPTY_FORM = {
@@ -16,6 +17,7 @@ const EMPTY_FORM = {
     category: '',
     imageUrl: '',
     date: '',
+    seoIndexable: false,
 };
 
 const COLUMNS = [
@@ -46,6 +48,7 @@ function AdminBlog() {
             category: post.category || '',
             imageUrl: post.imageUrl || '',
             date: post.date || new Date().toISOString().split('T')[0],
+            seoIndexable: !!post.seoIndexable,
         }),
         validate: (form) => {
             const errors = {};
@@ -183,9 +186,25 @@ function AdminBlog() {
                                 value={form.content}
                                 onChange={e => updateField('content', e.target.value)}
                                 isInvalid={!!fieldErrors.content}
-                                placeholder="Full blog post content. Use blank lines to separate paragraphs."
+                                placeholder="Markdown supported: ## headings, [links](/destination/prague), lists, tables. Blank line = new paragraph."
                             />
                             <Form.Control.Feedback type="invalid">{fieldErrors.content}</Form.Control.Feedback>
+                        </Form.Group>
+                        {form.content && (
+                            <div className="border rounded p-3 mb-3">
+                                <div className="text-secondary small mb-2">Preview (rendered exactly as on the site)</div>
+                                <MarkdownContent>{form.content}</MarkdownContent>
+                            </div>
+                        )}
+                        <Form.Group className="mb-3">
+                            <Form.Check
+                                type="switch"
+                                id="blog-seo-indexable"
+                                label="Indexable by Google (SEO-ready content)"
+                                className="text-white"
+                                checked={!!form.seoIndexable}
+                                onChange={e => updateField('seoIndexable', e.target.checked)}
+                            />
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Category</Form.Label>

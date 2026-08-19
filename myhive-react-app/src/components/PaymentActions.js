@@ -3,6 +3,8 @@ import ContactForm from './ContactForm';
 import AppModal from './AppModal';
 import {paymentApi} from '../services/paymentApi';
 import {PAYMENTS_ENABLED} from '../services/config';
+import {pushEvent, navigateAfterEvents} from '../utils/analytics';
+import {resolveUserRole} from '../utils/userRole';
 
 function PaymentActions({voteShareToken, managerToken, tripData, initialValues, makeBookingPayload}) {
     const [mode, setMode] = useState(null);
@@ -29,7 +31,18 @@ function PaymentActions({voteShareToken, managerToken, tripData, initialValues, 
                 if (bookingId) {
                     localStorage.setItem(`myhive-booking-${voteShareToken}`, bookingId);
                 }
-                window.location.assign(checkoutUrl);
+                // payment_page_viewed (ТЗ §8). The share is paid on Stripe Checkout, so this
+                // handoff is the only moment the funnel can record "reached the payment page" —
+                // fired after the session exists, because a failed call never gets there.
+                // share_value is deliberately absent: the deposit percentage is server-side
+                // config (app.payment.deposit-pct) and the session response carries no amount,
+                // so the only number available here would be a guess.
+                pushEvent('payment_page_viewed', {
+                    trip_id: voteShareToken,
+                    user_role: resolveUserRole(voteShareToken),
+                    currency: 'EUR',
+                });
+                navigateAfterEvents(checkoutUrl);
                 return;
             }
             await paymentApi.createConsultationLead(voteShareToken, managerToken, payload);

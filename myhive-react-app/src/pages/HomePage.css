@@ -21,13 +21,13 @@
 
 /* Section CTAs use the global .btn--primary; repaint it purple only inside the
    homepage so the rest of the app keeps the brand button. */
-.homepage .btn--primary {
+.homepage .btn.btn--primary {
     background: var(--purple);
     color: #fff;
     box-shadow: 0 0.5rem 1.5rem rgba(83, 74, 183, 0.4);
 }
 
-.homepage .btn--primary:hover {
+.homepage .btn.btn--primary:hover {
     background: var(--purple-l);
 }
 
@@ -35,7 +35,12 @@
 /* Hero Section */
 .hero {
     position: relative;
-    min-height: 28rem;
+    /* Full-viewport hero on every breakpoint so the next section's heading never
+       peeks above the fold. svh (the *small* viewport height, i.e. mobile
+       browser chrome expanded) is the only unit that guarantees that; the vh
+       line is the fallback for browsers without svh. */
+    min-height: 100vh;
+    min-height: 100svh;
     display: flex;
     align-items: center;
     padding-top: calc(var(--header-height) + 2.5rem);
@@ -161,7 +166,8 @@
 
 @media (max-width: 768px) {
     .hero {
-        min-height: 41.25rem;
+        /* min-height stays the base 100svh — a fixed rem height either cropped
+           the hero or let the next heading peek, depending on the device. */
         background-image: url('https://img.trivlu.com/hero_stag_do_prague.png');
         background-position: 42% 25%;
     }

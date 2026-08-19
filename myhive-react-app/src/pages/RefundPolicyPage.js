@@ -1,4 +1,4 @@
-import {Helmet} from 'react-helmet-async';
+import PageHead from '../components/PageHead';
 import {Link} from 'react-router-dom';
 import {SITE_URL} from '../services/config';
 import {COMPANY, POLICY_EFFECTIVE_DATE} from '../legal/companyInfo';
@@ -11,12 +11,12 @@ import './PolicyPage.css';
 function RefundPolicyPage() {
     return (
         <div className="policy-page">
-            <Helmet>
-                <title>Refund &amp; Cancellation Policy — Trivlu</title>
+            <PageHead>
+                <title>Refund Policy | Trivlu</title>
                 <meta name="description"
                       content="Trivlu's cancellation and refund terms for tours, activities, and packages."/>
                 <link rel="canonical" href={`${SITE_URL}/refund-policy`}/>
-            </Helmet>
+            </PageHead>
             <section className="page-hero">
                 <h1>Refund &amp; Cancellation Policy</h1>
             </section>

@@ -261,16 +261,17 @@ test('A8: tb_start fires once when the modal opens in vote mode', () => {
   renderVoteModal();
 
   expect(pushEvent).toHaveBeenCalledTimes(1);
-  expect(pushEvent).toHaveBeenCalledWith('tb_start', { ref: null });
+  expect(pushEvent).toHaveBeenCalledWith('tb_start', { ref: null, vote_mode: 'VOTE' });
 });
 
-test('A8: tb_start does NOT fire when the modal is open in trip/direct mode', () => {
+// ТЗ §8 triggers tb_start on opening the Trip Builder's first screen, not on
+// arriving through a vote link. Direct entry used to be silent, which cut every
+// organizer who never came through an invite out of the funnel's first step.
+test('A8: tb_start fires for direct entry too, tagged as the trip path', () => {
   renderTripModal();
 
-  expect(pushEvent).not.toHaveBeenCalledWith('tb_start', expect.anything());
-  // Trip-mode open should emit no analytics at all (tb_group_submitted only
-  // fires on confirm), so guard against any unexpected event on open.
-  expect(pushEvent).not.toHaveBeenCalled();
+  expect(pushEvent).toHaveBeenCalledTimes(1);
+  expect(pushEvent).toHaveBeenCalledWith('tb_start', { ref: null, vote_mode: 'TRIP' });
 });
 
 function voteModalTree(voteOpen, mockDispatch) {

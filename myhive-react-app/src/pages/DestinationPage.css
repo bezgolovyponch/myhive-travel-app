@@ -1,7 +1,8 @@
 /* Destination Page Styles */
-/* No destination title/hero block: the tabs are the first content. The header
-   bar floats over the top (absolute) and scrolls away, so the tab row reserves
-   room to clear the header (4rem) + breadcrumbs (~2.9rem) plus breathing room. */
+/* The hero (h1 + destination description) is the first content, and the
+   transparent header (4rem bar + ~2.9rem breadcrumbs) floats absolute over it,
+   so the hero reserves that clearance on top of its normal --gap-xl padding —
+   without it the description runs under the breadcrumbs. */
 
 /* Complete Booking checkout view (from main): header, hero and tabs are hidden,
    so the focused form gets its own top breathing room in place of the hero's. */
@@ -9,10 +10,14 @@
     padding-top: var(--gap-xl);
 }
 
+.page-hero.destination-header {
+    padding-top: calc(6.9rem + var(--gap-xl));
+}
+
 /* Tab Navigation */
 .tab-nav {
-    /* Clear the floating header (4rem row + ~2.9rem breadcrumbs) with no gap. */
-    margin-top: 6.9rem;
+    /* No header clearance of its own: the tab row is only ever visible together
+       with the hero above, which already clears the floating header. */
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -209,9 +214,12 @@
         grid-template-columns: 1fr;
     }
 
+    /* Mobile header bar is 3.25rem + ~2.9rem breadcrumbs. */
+    .page-hero.destination-header {
+        padding-top: calc(6.15rem + var(--gap-xl));
+    }
+
     .tab-nav {
-        /* Mobile header bar is 3.25rem + ~2.9rem breadcrumbs, no gap. */
-        margin-top: 6.15rem;
         overflow-x: auto;
         justify-content: flex-start;
     }

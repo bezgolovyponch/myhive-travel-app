@@ -17,6 +17,7 @@ import TermsPage from '../pages/TermsPage';
 import RefundPolicyPage from '../pages/RefundPolicyPage';
 import UnsubscribePage from '../pages/UnsubscribePage';
 import QuizPage from '../pages/vote/QuizPage';
+import VoteEntryPage from '../pages/vote/VoteEntryPage';
 import CuratePage from '../pages/vote/CuratePage';
 import ActivityVotePage from '../pages/vote/ActivityVotePage';
 import VoteWaitingPage from '../pages/vote/VoteWaitingPage';
@@ -51,6 +52,7 @@ function Layout() {
             <Route path="/terms" element={<TermsPage/>}/>
             <Route path="/refund-policy" element={<RefundPolicyPage/>}/>
             <Route path="/unsubscribe" element={<UnsubscribePage/>}/>
+            <Route path="/vote/new" element={<VoteEntryPage />} />
             <Route path="/vote/new/quiz" element={<QuizPage />} />
             <Route path="/vote/new/curate" element={<CuratePage />} />
             <Route path="/vote/:shareToken/quiz" element={<QuizPage />} />
