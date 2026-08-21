@@ -1329,6 +1329,11 @@ describe('quiz mode: vote_skipped on Complete Booking', () => {
         await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
 
         expect(pushEvent).toHaveBeenCalledWith('vote_skipped', {
+            nights: undefined,
+            group_size: 2,
+            activities_count: 2,
+            vote_id: undefined,
+            source_campaign: undefined,
             trip_id: 'ctx-trip-id',
             selected_count: 2,
         });
@@ -1387,6 +1392,11 @@ describe('quiz mode: vote_skipped on Complete Booking', () => {
         await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
 
         expect(pushEvent).toHaveBeenCalledWith('vote_skipped', {
+            nights: undefined,
+            group_size: 2,
+            activities_count: 2,
+            vote_id: undefined,
+            source_campaign: undefined,
             trip_id: 'ctx-trip-id',
             selected_count: 1,
         });

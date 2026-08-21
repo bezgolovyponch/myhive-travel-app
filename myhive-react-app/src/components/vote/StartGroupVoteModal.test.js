@@ -63,6 +63,11 @@ test('creates the session, stores tokens and navigates to waiting', async () => 
   expect(localStorage.getItem('myhive-initiator-t-1')).toBe('true');
   expect(localStorage.getItem('myhive-trip-vote-session')).toBe('t-1');
   expect(pushEvent).toHaveBeenCalledWith('vote_launched', {
+    nights: 2,
+    group_size: 4,
+    activities_count: 2,
+    vote_id: 't-1',
+    source_campaign: undefined,
     trip_id: 't-1',
     user_role: 'organizer',
     selected_count: 2,

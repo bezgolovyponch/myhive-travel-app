@@ -5,6 +5,7 @@ import AppModal from './AppModal';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
 import {getRef} from '../utils/attribution';
+import {funnelParams} from '../utils/funnel';
 import {clearSetupDraft, readSetupDraft, writeSetupDraft} from '../utils/setupDraft';
 import {generateUuid} from '../utils/uuid';
 import './ContactForm.css';
@@ -96,6 +97,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             if (!voteFormValid) return;
             // A9: tb_group_submitted — vote mode (no trip_id; no email collected here).
             pushEvent('tb_group_submitted', {
+                ...funnelParams({ startDate, endDate, groupSize: travelersNum }),
                 destination: destination ? destination.slug : undefined,
                 group_size: travelersNum,
                 has_budget: false,
@@ -108,6 +110,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             const tripId = generateUuid();
             dispatch({type: 'SET_TRIP_ID', tripId});
             pushEvent('tb_group_submitted', {
+                ...funnelParams({ startDate, endDate, groupSize: travelersNum }),
                 destination: destination ? destination.slug : undefined,
                 group_size: travelersNum,
                 has_budget: false,

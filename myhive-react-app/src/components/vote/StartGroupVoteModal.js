@@ -5,6 +5,7 @@ import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
 import { clearTripLead } from '../../utils/tripLead';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
+import { funnelParams } from '../../utils/funnel';
 import './StartGroupVoteModal.css';
 
 // Pure so the validation rules can be reasoned about (and tested) independent
@@ -98,6 +99,13 @@ function StartGroupVoteModal({
             // Mirrors CuratePage's A12 vote_launched (QUIZ) — same field names,
             // shareToken as trip_id, organizer is always the creator here.
             pushEvent('vote_launched', {
+                ...funnelParams({
+                    startDate: needsDates ? voteStartDate : startDate,
+                    endDate: needsDates ? voteEndDate : endDate,
+                    groupSize: numberOfTravelers,
+                    activitiesCount: activityIds.length,
+                    voteId: session.shareToken,
+                }),
                 trip_id: session.shareToken,
                 user_role: 'organizer',
                 selected_count: activityIds.length,

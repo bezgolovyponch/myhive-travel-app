@@ -4,6 +4,7 @@ import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
 import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
 import { pushEvent } from '../../utils/analytics';
+import { funnelParams } from '../../utils/funnel';
 import VoteMeta from './VoteMeta';
 import './ActivityVotePage.css';
 
@@ -24,7 +25,7 @@ function ActivityVoteContent() {
     useEffect(() => {
         if (!voteOpenedFiredRef.current.has(shareToken)) {
             voteOpenedFiredRef.current.add(shareToken);
-            pushEvent('vote_opened', { trip_id: shareToken, user_role: 'participant' });
+            pushEvent('vote_opened', { ...funnelParams({ voteId: shareToken }), trip_id: shareToken, user_role: 'participant' });
         }
     }, [shareToken]);
 
@@ -75,7 +76,7 @@ function ActivityVoteContent() {
                 votes: deduped.map(v => ({ activityId: v.activityId, liked: v.liked })),
             });
             localStorage.setItem(votedKey(shareToken), 'true');
-            pushEvent('vote_completed', { trip_id: shareToken, user_role: 'participant' });
+            pushEvent('vote_completed', { ...funnelParams({ voteId: shareToken }), trip_id: shareToken, user_role: 'participant' });
             navigate(`/vote/${shareToken}/waiting`);
         } catch (e) {
             if (e.message === 'Session is full') {
