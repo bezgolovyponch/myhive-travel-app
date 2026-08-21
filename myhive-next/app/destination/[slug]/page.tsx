@@ -10,6 +10,12 @@ import { breadcrumbJsonLd, pageMetadata, jsonLd } from '../../../lib/seo';
 import PublicChrome from '../../../components/site/PublicChrome';
 import LegacyAppShim from '../../../components/LegacyAppShim';
 import LegacyDestination from '../../../components/site/legacy/LegacyDestination';
+import PragueLanding from '../../../components/landing/PragueLanding';
+import { buildRows, hydratePool, toLandingActivity } from '../../../components/landing/data';
+
+// The redesigned marketing landing serves Prague's bare URL; every other
+// destination keeps the SSR catalogue below.
+const LANDING_SLUG = 'prague';
 
 interface PageParams {
   params: Promise<{ slug: string }>;
@@ -67,6 +73,41 @@ export default async function Page({ params, searchParams }: PageParams) {
     notFound();
   }
 
+  const breadcrumbScript = (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: jsonLd(
+          breadcrumbJsonLd([
+            ['Home', '/'],
+            [dest.name, `/destination/${dest.slug}`],
+          ]),
+        ),
+      }}
+    />
+  );
+
+  // Prague's bare URL gets the redesigned landing (its own chrome, whole
+  // catalogue for the category rows). ?tab= flows above are already handled.
+  if (slug === LANDING_SLUG) {
+    const [activities, categories] = await Promise.all([
+      api.getActivities(dest.id).then((a) => a ?? []),
+      api.getDestinationCategories(dest.id).then((c) => c ?? []),
+    ]);
+    const landing = activities.map(toLandingActivity);
+    return (
+      <>
+        {breadcrumbScript}
+        <PragueLanding
+          rows={buildRows(landing, categories)}
+          pool={hydratePool(landing)}
+          totalActivities={landing.length || 72}
+          destinationSlug={dest.slug}
+        />
+      </>
+    );
+  }
+
   const [categories, activityPage, packages] = await Promise.all([
     api.getDestinationCategories(dest.id).then((c) => c ?? []),
     api
@@ -75,17 +116,9 @@ export default async function Page({ params, searchParams }: PageParams) {
     api.getPackages(dest.id).then((p) => p ?? []),
   ]);
 
-  const breadcrumbLd = breadcrumbJsonLd([
-    ['Home', '/'],
-    [dest.name, `/destination/${dest.slug}`],
-  ]);
-
   return (
     <PublicChrome>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }}
-      />
+      {breadcrumbScript}
       <LegacyDestination
         initial={{
           destination: dest,
