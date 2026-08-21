@@ -1,7 +1,7 @@
 import './TrustBar.css';
 
 const TRUST_ITEMS = [
-    {icon: 'ph-certificate', title: 'Stag Do Specialists', text: "We've done this thousands of times"},
+    {icon: 'ph-certificate', title: '15 years in Prague', text: 'Local team. No agency fee.'},
     {icon: 'ph-list-heart', title: 'Group-Voted Plan', text: 'Built on what your mates actually want'},
     {icon: 'ph-kanban', title: 'We Handle Everything', text: 'Booking, logistics, support'},
     {icon: 'ph-headset', title: 'Real Human Support', text: 'WhatsApp & chat, 7 days a week'},
