@@ -9,6 +9,7 @@ import api from '../services/api';
 import {SITE_URL} from '../services/config';
 import {capitalizeFirst} from '../utils/format';
 import useTripDeepLink from '../hooks/useTripDeepLink';
+import {useT} from '../i18n';
 import './DestinationPage.css';
 
 const PAGE_SIZE = 12;
@@ -20,6 +21,7 @@ const VISIBLE_CATEGORY_COUNT = 12;
 // below, which no crawler runs. Filtering and Show More still page on the client
 // from there. Omitted in the SPA, which fetches on mount exactly as before.
 function DestinationPage({initial}) {
+    const t = useT('destination');
     const {slug} = useParams();
     const {state: trip} = useTrip();
   const location = useLocation();
@@ -170,7 +172,7 @@ function DestinationPage({initial}) {
     return (
       <div className="destination-page">
           <div className="page-hero">
-          <h1>Loading...</h1>
+          <h1>{t('loading')}</h1>
         </div>
       </div>
     );
@@ -180,8 +182,8 @@ function DestinationPage({initial}) {
         return (
             <div className="destination-page">
                 <div className="page-hero">
-                    <h1>Destination not found</h1>
-                    <button className="btn btn--primary" onClick={() => navigate('/')}>Back to Home</button>
+                    <h1>{t('notFound')}</h1>
+                    <button className="btn btn--primary" onClick={() => navigate('/')}>{t('backToHome')}</button>
                 </div>
             </div>
         );
@@ -209,7 +211,7 @@ function DestinationPage({initial}) {
                   backgroundPosition: 'center',
               } : undefined}
           >
-              <h1>{destination.name} Stag Do</h1>
+              <h1>{t('heroTitle', {name: destination.name})}</h1>
               {destination.description && <p>{destination.description}</p>}
           </div>
       )}
@@ -224,21 +226,21 @@ function DestinationPage({initial}) {
               className={`tab-btn ${currentTab === 'activities' ? 'active' : ''}`}
           onClick={() => handleTabChange('activities')}
         >
-          Activities
+          {t('tabActivities')}
         </button>
           {packages.length > 0 && (
               <button
                   className={`tab-btn ${currentTab === 'packages' ? 'active' : ''}`}
                   onClick={() => handleTabChange('packages')}
               >
-                  Packages
+                  {t('tabPackages')}
               </button>
           )}
           <button
               className={`tab-btn ${currentTab === 'trip-builder' ? 'active' : ''}`}
           onClick={() => handleTabChange('trip-builder')}
         >
-          Trip Builder
+          {t('tabTripBuilder')}
         </button>
       </nav>
 
@@ -251,7 +253,7 @@ function DestinationPage({initial}) {
                   className={`filter-btn ${currentFilter === 'all' ? 'active' : ''}`}
                   onClick={() => handleFilterChange('all')}
               >
-                  All
+                  {t('filterAll')}
               </button>
                     {(showAllCategories ? categories : categories.slice(0, VISIBLE_CATEGORY_COUNT)).map(category => (
                 <button
@@ -269,17 +271,17 @@ function DestinationPage({initial}) {
                         className="filter-toggle"
                         onClick={() => setShowAllCategories(!showAllCategories)}
                     >
-                        {showAllCategories ? 'Show less' : `Show all (${categories.length})`}
+                        {showAllCategories ? t('showLess') : t('showAll', {count: categories.length})}
                     </button>
                 )}
           </div>
         </div>
 
         {listError && (
-            <p className="text-error">Couldn't load activities. Please try again.</p>
+            <p className="text-error">{t('listError')}</p>
         )}
         {filterLoading && (
-            <p>Loading activities...</p>
+            <p>{t('loadingActivities')}</p>
         )}
         <div className="activities-grid">
             {activities.map(activity => (
@@ -298,7 +300,7 @@ function DestinationPage({initial}) {
                         onClick={handleLoadMore}
                         disabled={loadingMore}
                     >
-                        {loadingMore ? 'Loading...' : `Show More (${activities.length} of ${totalElements})`}
+                        {loadingMore ? t('loading') : t('showMore', {shown: activities.length, total: totalElements})}
                     </button>
                 </div>
             )}

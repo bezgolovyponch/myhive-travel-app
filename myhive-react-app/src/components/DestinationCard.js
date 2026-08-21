@@ -1,10 +1,12 @@
 import {useNavigate} from 'react-router-dom';
 import {useDestinationModal} from '../context/DestinationModalContext';
+import {useT} from '../i18n';
 import './DestinationCard.css';
 
 function DestinationCard({ destination }) {
   const {dispatch} = useDestinationModal();
   const navigate = useNavigate();
+  const t = useT('cards');
 
   // Map backend data to frontend format
   const imageUrl = destination.imageUrl || `https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop`;
@@ -37,7 +39,7 @@ function DestinationCard({ destination }) {
         className={`card destination-card ${hasActivities ? '' : 'disabled'}`}
         role="button"
         tabIndex={0}
-        aria-label={`View ${destination.name}`}
+        aria-label={t('viewAria', {name: destination.name})}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
     >
@@ -49,7 +51,7 @@ function DestinationCard({ destination }) {
       />
       {badge && (
         <div className={`destination-badge badge-${badge.toLowerCase().replace(' ', '-')}`}>
-          {badge}
+          {t('badgePopular')}
         </div>
       )}
       <div className="destination-content">

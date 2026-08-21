@@ -1,6 +1,8 @@
 import {Button} from 'react-bootstrap';
+import {useT} from '../i18n';
 
 function Pagination({page, totalPages, onPageChange}) {
+    const t = useT('cards');
     if (totalPages <= 1) return null;
 
     return (
@@ -11,10 +13,10 @@ function Pagination({page, totalPages, onPageChange}) {
                 disabled={page === 0}
                 onClick={() => onPageChange(page - 1)}
             >
-                Previous
+                {t('previous')}
             </Button>
             <span className="small text-muted">
-                Page {page + 1} of {totalPages}
+                {t('pageOf', {current: page + 1, total: totalPages})}
             </span>
             <Button
                 variant="outline-secondary"
@@ -22,7 +24,7 @@ function Pagination({page, totalPages, onPageChange}) {
                 disabled={page >= totalPages - 1}
                 onClick={() => onPageChange(page + 1)}
             >
-                Next
+                {t('next')}
             </Button>
         </div>
     );

@@ -5,11 +5,13 @@ import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import {DEFAULT_ACTIVITY_IMAGE, formatAmount} from '../utils/format';
+import {useT} from '../i18n';
 import './PackageDetailPage.css';
 
 // `pkg` is supplied by the server renderer (Next.js SSR) so the record is in the
 // initial HTML; omitted in the SPA, which fetches by slug as before.
 function PackageDetailPage({pkg: injectedPkg}) {
+    const t = useT('packageDetail');
     const {destSlug, slug} = useParams();
     const navigate = useNavigate();
     const {dispatch} = useTrip();
@@ -18,7 +20,7 @@ function PackageDetailPage({pkg: injectedPkg}) {
     if (loading) {
         return (
             <div className="package-detail-page">
-                <div className="package-detail-loading">Loading...</div>
+                <div className="package-detail-loading">{t('loading')}</div>
             </div>
         );
     }
@@ -27,8 +29,8 @@ function PackageDetailPage({pkg: injectedPkg}) {
         return (
             <div className="package-detail-page">
                 <div className="package-detail-loading">
-                    <p>Package not found.</p>
-                    <button className="btn btn--primary" onClick={() => navigate(-1)}>Go Back</button>
+                    <p>{t('notFound')}</p>
+                    <button className="btn btn--primary" onClick={() => navigate(-1)}>{t('goBack')}</button>
                 </div>
             </div>
         );
@@ -56,7 +58,7 @@ function PackageDetailPage({pkg: injectedPkg}) {
             </PageHead>
 
             <nav className="package-detail-breadcrumbs">
-                <Link to="/">Home</Link>
+                <Link to="/">{t('breadcrumbHome')}</Link>
                 <span>&rsaquo;</span>
                 <Link to={`/destination/${resolvedDestSlug}`}>{pkg.destinationName}</Link>
                 <span>&rsaquo;</span>
@@ -78,7 +80,7 @@ function PackageDetailPage({pkg: injectedPkg}) {
 
                     {sortedActivities.length > 0 && (
                         <section className="package-detail-activities-section">
-                            <h2 className="package-detail-section-title">What's Included</h2>
+                            <h2 className="package-detail-section-title">{t('includedTitle')}</h2>
                             <div className="package-detail-activities">
                                 {sortedActivities.map(activity => (
                                     <Link
@@ -103,7 +105,7 @@ function PackageDetailPage({pkg: injectedPkg}) {
 
                     {pkg.includes && (
                         <div className="package-detail-includes">
-                            <strong>Includes:</strong> {pkg.includes}
+                            <strong>{t('includesLabel')}</strong> {pkg.includes}
                         </div>
                     )}
                 </div>
@@ -113,11 +115,11 @@ function PackageDetailPage({pkg: injectedPkg}) {
                         <div className="package-detail-original">{formatAmount(pkg.originalPrice)}</div>
                         <div className="package-detail-discounted">{formatAmount(pkg.discountedPrice)}</div>
                         <div className="package-detail-savings">
-                            You save {formatAmount(pkg.savings)}
-                            {pkg.discountPct ? ` (${pkg.discountPct}% off)` : ''}
+                            {t('youSave', {amount: formatAmount(pkg.savings)})}
+                            {pkg.discountPct ? ` ${t('percentOff', {pct: pkg.discountPct})}` : ''}
                         </div>
                         <button className="add-to-trip-btn package-detail-add-btn" onClick={handleAddToTrip}>
-                            Add to Trip
+                            {t('addToTrip')}
                         </button>
                     </div>
                 </aside>

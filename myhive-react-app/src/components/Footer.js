@@ -1,35 +1,38 @@
 import {Link, useNavigate} from 'react-router-dom';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
+import {useLocalePath, useT} from '../i18n';
 import './Footer.css';
 
 function Footer() {
     const navigate = useNavigate();
+    const t = useT('footer');
+    const lp = useLocalePath();
 
     return (
         <footer className="site-footer">
             <div className="footer-content">
                 <Link to="/" className="footer-logo">Trivlu</Link>
-                <p className="footer-tagline">Turn group travel chaos into epic adventures with zero stress.</p>
+                <p className="footer-tagline">{t('tagline')}</p>
 
                 <nav className="footer-nav">
-                    <a href="/#activities" onClick={(e) => { e.preventDefault(); scrollToHomeSection(navigate, 'activities'); }}>Activities</a>
-                    <Link to="/about">About</Link>
-                    <Link to="/blog">Blog</Link>
-                    <Link to="/contact">Contact</Link>
+                    <a href={lp('/') + '#activities'} onClick={(e) => { e.preventDefault(); scrollToHomeSection(navigate, 'activities'); }}>{t('nav.activities')}</a>
+                    <Link to="/about">{t('nav.about')}</Link>
+                    <Link to="/blog">{t('nav.blog')}</Link>
+                    <Link to="/contact">{t('nav.contact')}</Link>
                 </nav>
             </div>
 
             <div className="footer-bottom">
                 <nav className="footer-legal">
-                    <Link to="/terms">Terms</Link>
-                    <Link to="/refund-policy">Refund Policy</Link>
-                    <Link to="/cookie-policy">Cookie Policy</Link>
-                    <Link to="/privacy-policy">Privacy Policy</Link>
+                    <Link to="/terms">{t('legal.terms')}</Link>
+                    <Link to="/refund-policy">{t('legal.refundPolicy')}</Link>
+                    <Link to="/cookie-policy">{t('legal.cookiePolicy')}</Link>
+                    <Link to="/privacy-policy">{t('legal.privacyPolicy')}</Link>
                     {/* CookieYes binds the click handler to .cky-banner-element to reopen
                         the consent banner — no JS of ours needed. */}
-                    <button type="button" className="cky-banner-element">Cookie settings</button>
+                    <button type="button" className="cky-banner-element">{t('legal.cookieSettings')}</button>
                 </nav>
-                <p>&copy; {new Date().getFullYear()} Trivlu. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} {t('copyright')}</p>
             </div>
         </footer>
     );

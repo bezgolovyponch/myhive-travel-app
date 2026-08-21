@@ -1,9 +1,11 @@
 import {useEffect, useState} from 'react';
 import {pushEvent} from '../../utils/analytics';
+import {useT} from '../../i18n';
 import './StickyVoteCta.css';
 
 // Mobile-only bottom bar that repeats the hero CTA once it scrolls away.
 function StickyVoteCta({onStartVote, heroSelector = '.hero-cta-group', hidden = false}) {
+    const t = useT('home');
     const [heroGone, setHeroGone] = useState(false);
 
     useEffect(() => {
@@ -37,7 +39,7 @@ function StickyVoteCta({onStartVote, heroSelector = '.hero-cta-group', hidden = 
                     onStartVote();
                 }}
             >
-                <i className="ph ph-check-square" aria-hidden="true"/> Start Group Vote
+                <i className="ph ph-check-square" aria-hidden="true"/> {t('stickyCta.label')}
             </button>
         </div>
     );

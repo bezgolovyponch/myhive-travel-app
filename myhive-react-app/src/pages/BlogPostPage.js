@@ -4,11 +4,13 @@ import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import MarkdownContent from '../components/MarkdownContent';
+import {useT} from '../i18n';
 import './BlogPostPage.css';
 
 // `post` is supplied by the server renderer (Next.js SSR) so the article is in
 // the initial HTML; omitted in the SPA, which fetches by slug as before.
 function BlogPostPage({post: injectedPost}) {
+    const t = useT('blog');
     const {slug} = useParams();
     const {data: post, loading, error} = useFetchBySlug(api.getBlogPostBySlug, slug, injectedPost);
 
@@ -16,7 +18,7 @@ function BlogPostPage({post: injectedPost}) {
         return (
             <div className="blog-post-page">
                 <div className="blog-post-container">
-                    <p className="text-center">Loading...</p>
+                    <p className="text-center">{t('loading')}</p>
                 </div>
             </div>
         );
@@ -26,8 +28,8 @@ function BlogPostPage({post: injectedPost}) {
         return (
             <div className="blog-post-page">
                 <div className="blog-post-container">
-                    <h1>Post not found</h1>
-                    <Link to="/blog" className="btn btn--primary">Back to Blog</Link>
+                    <h1>{t('postNotFound')}</h1>
+                    <Link to="/blog" className="btn btn--primary">{t('backToBlog')}</Link>
                 </div>
             </div>
         );
@@ -61,7 +63,7 @@ function BlogPostPage({post: injectedPost}) {
                 <MarkdownContent>{post.content}</MarkdownContent>
 
                 <div className="blog-post-back">
-                    <Link to="/blog" className="btn btn--primary">Back to Blog</Link>
+                    <Link to="/blog" className="btn btn--primary">{t('backToBlog')}</Link>
                 </div>
             </article>
         </div>
