@@ -27,12 +27,12 @@ export const metadata: Metadata = {
     type: 'website',
     url: SITE_URL,
     images: [
-      { url: `${SITE_URL}/og-image.png`, width: 1000, height: 1000, type: 'image/png' },
+      { url: `${SITE_URL}/og-image-1200x630.png`, width: 1200, height: 630, type: 'image/png' },
     ],
   },
   twitter: {
-    card: 'summary',
-    images: [`${SITE_URL}/og-image.png`],
+    card: 'summary_large_image',
+    images: [`${SITE_URL}/og-image-1200x630.png`],
   },
 };
 
