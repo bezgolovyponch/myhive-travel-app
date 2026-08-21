@@ -29,6 +29,7 @@ import Header from '../../legacy-src/components/Header';
 import Footer from '../../legacy-src/components/Footer';
 import WhatsAppWidget from '../../legacy-src/components/WhatsAppWidget';
 import AppModal from '../../legacy-src/components/AppModal';
+import { useT } from '../../legacy-src/i18n';
 import { useTripLeadSync } from '../../legacy-src/hooks/useTripLeadSync';
 import LegacyRouter from './LegacyRouter';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -43,6 +44,7 @@ export interface LegacyDestination {
 // Hooks that must run inside the providers, so they cannot live in the root.
 function ChromeInner({ children }: { children: React.ReactNode }) {
   useTripLeadSync();
+  const t = useT('chrome');
   const { state, dispatch } = useDestinationModal();
   const closeDestinationModal = () => dispatch({ type: 'CLOSE_DESTINATION_MODAL' });
 
@@ -55,16 +57,20 @@ function ChromeInner({ children }: { children: React.ReactNode }) {
       <AppModal
         isOpen={state.destinationModalOpen}
         onClose={closeDestinationModal}
-        title="Coming Soon"
+        title={t('comingSoonTitle')}
         // Layout.js omits this; AppModal renders `{footer && ...}`, so null is
         // runtime-identical and satisfies the inferred prop type.
         footer={null}
       >
         <div className="empty-trip-state">
-          <h3>{state.selectedDestination?.name || 'This destination'} is coming soon!</h3>
-          <p>We&apos;re working hard to bring you amazing experiences here. Stay tuned!</p>
+          <h3>
+            {t('comingSoonHeading', {
+              name: state.selectedDestination?.name || t('fallbackDestination'),
+            })}
+          </h3>
+          <p>{t('comingSoonBody')}</p>
           <button className="btn btn--primary" onClick={closeDestinationModal}>
-            Got it
+            {t('gotIt')}
           </button>
         </div>
       </AppModal>

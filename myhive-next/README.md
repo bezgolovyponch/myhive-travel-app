@@ -17,6 +17,34 @@ which runs automatically before `dev` and `build`:
 `npm run dev` also watches the CRA sources and re-syncs on change; edits made
 while a plain `next dev` is running are invisible until re-synced.
 
+## i18n
+
+English lives on the bare URLs it always had; other locales are path-prefixed
+(`/de/...`). Routing is next-intl (`i18n/routing.ts` + `middleware.ts`); the
+locale list itself lives in `myhive-react-app/src/i18n/routes.js` so the legacy
+link helpers and Next routing share one source.
+
+- **UI strings** live in `myhive-react-app/src/i18n/messages/{en,de}.json`
+  (synced into `legacy-src/` like all CRA sources). Legacy components read them
+  through a tiny `useT` hook (`src/i18n/index.js`) whose context defaults to
+  English — the standalone CRA build and its tests need no provider. The
+  `[locale]` layout mounts `LegacyLocaleProvider` to switch languages; missing
+  German keys fall back to English on both server and client.
+- **Metadata** (titles/descriptions) come from the same files via next-intl's
+  `getTranslations` in each page's `generateMetadata`; `lib/seo.ts` emits
+  locale-aware canonicals and the hreflang set.
+- **Links**: legacy components keep locale-free URLs; `LegacyRouter` strips the
+  prefix from the location it feeds react-router and re-adds it on every
+  href/navigation. SPA-owned flows (/admin, /vote, /payment, /unsubscribe) are
+  English-only and never prefixed — the catch-all redirects `/de/admin`-style
+  URLs back to the real ones.
+- **Legal pages** are not translated (`translated: false` in `pageMetadata`):
+  `/de/terms` serves the English document with a canonical pointing at
+  `/terms` and no hreflang set.
+- Backend content (destinations, activities, packages, blog bodies) is not
+  localized yet — that's the content phase (Ф3): translation tables/JSONB in
+  Spring plus `?locale=` on the API.
+
 ## Environment
 
 Copy `.env.local.example` → `.env.local`. Notable contracts:
