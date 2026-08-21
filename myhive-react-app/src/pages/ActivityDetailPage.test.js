@@ -14,7 +14,7 @@ const activity = {
   description: 'Feel the raw power of the legendary AK-47.',
   price: 89,
   duration: 180,
-  includes: 'English-speaking guide, Return transfer, All equipment',
+  includes: 'English-speaking guide; Return transfer; All equipment',
   destinationId: 'd1',
   destinationSlug: 'prague',
   destinationName: 'Prague',

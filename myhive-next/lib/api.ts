@@ -43,7 +43,7 @@ export interface Activity {
   slug: string;
   name: string;
   description: string;
-  includes?: string | null;  // comma/semicolon-separated list
+  includes?: string | null;  // semicolon/newline-separated list
   price: number;
   minPrice?: number | null;
   duration?: number | null;

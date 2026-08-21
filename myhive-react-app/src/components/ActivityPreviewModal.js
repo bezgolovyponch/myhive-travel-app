@@ -24,9 +24,9 @@ function ActivityPreviewModal({ activity, link, onClose }) {
     }
 
     // Same parsing as the detail page: the API stores includes as one
-    // comma/semicolon/newline-separated string.
+    // semicolon/newline-separated string (commas stay inside an item).
     const includedItems = (activity.includes || '')
-        .split(/[,;\n]+/)
+        .split(/[;\n]+/)
         .map((item) => item.trim())
         .filter(Boolean);
 

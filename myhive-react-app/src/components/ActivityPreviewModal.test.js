@@ -9,7 +9,7 @@ const activity = {
   categories: ['Water', 'Nature'],
   imageUrl: 'http://img/snorkel.jpg',
   description: 'Explore the coral reefs with a guide.',
-  includes: 'Mask, Fins; Guide',
+  includes: 'Mask, snorkel & tube; Fins\nGuide',
 };
 
 test('renders nothing when activity is null', () => {
@@ -40,7 +40,8 @@ test('shows the What\'s included list parsed from the includes string', () => {
   render(<ActivityPreviewModal activity={activity} link={null} onClose={jest.fn()} />);
 
   expect(screen.getByText(/What's included/i)).toBeInTheDocument();
-  expect(screen.getByText('Mask')).toBeInTheDocument();
+  // Commas are not separators — 'Mask, snorkel & tube' stays one item.
+  expect(screen.getByText('Mask, snorkel & tube')).toBeInTheDocument();
   expect(screen.getByText('Fins')).toBeInTheDocument();
   expect(screen.getByText('Guide')).toBeInTheDocument();
 });

@@ -380,7 +380,7 @@ function AdminActivities() {
                                 rows={2}
                                 value={form.includes}
                                 onChange={e => setForm({...form, includes: e.target.value})}
-                                placeholder="e.g. Transport, guide, lunch, tickets"
+                                placeholder="e.g. Transport; guide; lunch; tickets"
                             />
                         </Form.Group>
                         <ImageUploadField

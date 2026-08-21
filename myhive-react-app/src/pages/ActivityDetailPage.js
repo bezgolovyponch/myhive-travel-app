@@ -88,7 +88,7 @@ function ActivityDetailPage({activity: injectedActivity}) {
         ? activity.images
         : [activity.imageUrl || DEFAULT_ACTIVITY_IMAGE];
     const includesItems = (activity.includes || '')
-        .split(/[,;\n]+/)
+        .split(/[;\n]+/)
         .map(item => item.trim())
         .filter(Boolean);
     const descriptionBlocks = parseDescriptionBlocks(activity.description);
