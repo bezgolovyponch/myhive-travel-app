@@ -42,4 +42,13 @@ public class VoteSessionCreateRequest {
     // Retained for one release cycle so old clients still validate; ignored by the service.
     @Size(max = 20)
     private List<UUID> likedCategoryIds;
+
+    @Size(max = 128)
+    private String fbp;
+
+    @Size(max = 256)
+    private String fbc;
+
+    @Size(max = 256)
+    private String fbclid;
 }

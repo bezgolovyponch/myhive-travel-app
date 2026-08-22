@@ -78,6 +78,16 @@ public class TripExportRequest {
 
     private String referrer;
 
+    @JsonProperty("event_id")
+    @Size(max = 64)
+    private String eventId;
+
+    @Size(max = 128)
+    private String fbp;
+
+    @Size(max = 256)
+    private String fbc;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

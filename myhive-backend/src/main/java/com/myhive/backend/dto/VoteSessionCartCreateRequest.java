@@ -27,4 +27,13 @@ public class VoteSessionCartCreateRequest {
     @NotEmpty(message = "activityIds must not be empty")
     @Size(max = 50, message = "activityIds may not exceed 50")
     private List<UUID> activityIds;
+
+    @Size(max = 128)
+    private String fbp;
+
+    @Size(max = 256)
+    private String fbc;
+
+    @Size(max = 256)
+    private String fbclid;
 }

@@ -60,11 +60,12 @@ public class PaymentService {
     private final StripeProperties stripeProperties;
     private final EmailService emailService;
     private final FrontendUrlResolver frontendUrlResolver;
+    private final MetaCapiService metaCapiService;
 
     public PaymentService(BookingService bookingService, BookingRepository bookingRepository,
             BookingPaymentShareRepository shareRepository, ProcessedStripeEventRepository processedEventRepository,
             VoteSessionService voteSessionService, StripeGateway stripeGateway, StripeProperties stripeProperties,
-            EmailService emailService, FrontendUrlResolver frontendUrlResolver) {
+            EmailService emailService, FrontendUrlResolver frontendUrlResolver, MetaCapiService metaCapiService) {
         this.bookingService = bookingService;
         this.bookingRepository = bookingRepository;
         this.shareRepository = shareRepository;
@@ -74,6 +75,7 @@ public class PaymentService {
         this.stripeProperties = stripeProperties;
         this.emailService = emailService;
         this.frontendUrlResolver = frontendUrlResolver;
+        this.metaCapiService = metaCapiService;
     }
 
     @Transactional
@@ -203,10 +205,14 @@ public class PaymentService {
         String frontendBase = frontendUrlResolver.resolve(originHeader);
         // Purchase params for the payment_completed analytics event on the return page — value +
         // currency are server-authoritative (not client-computed), trip_id joins the funnel.
+        // event_id is the SAME derivation handlePaymentSucceeded uses for the CAPI Purchase event
+        // (keyed by share id) — the browser Pixel and server CAPI dedup on this shared id.
+        String purchaseEventId = purchaseEventId(deposit.getId());
         String successUrl = frontendBase + "/payment/success?booking=" + booking.getId()
                 + "&value=" + centsToBig(depositCents).toPlainString()
                 + "&currency=" + stripeProperties.getCurrency().toUpperCase(Locale.ROOT)
-                + "&trip_id=" + encode(booking.getTripId());
+                + "&trip_id=" + encode(booking.getTripId())
+                + "&event_id=" + purchaseEventId;
         String cancelUrl = frontendBase + "/payment/cancelled";
         CheckoutSessionRef ref = stripeGateway.createCheckoutSession(depositCents, stripeProperties.getCurrency(),
                 "Deposit for trip " + booking.getTripId(), metadata, successUrl, cancelUrl,
@@ -283,6 +289,14 @@ public class PaymentService {
         shareRepository.save(share);
 
         Booking booking = share.getBooking();
+        try {
+            metaCapiService.sendEvent(MetaCapiService.MetaCapiEvent.of("Purchase", purchaseEventId(share.getId()))
+                    .value(share.getAmount(), "EUR")
+                    .email(share.getPayerEmail() != null ? share.getPayerEmail() : booking.getUserEmail())
+                    .fbc(MetaCapiService.fbcFrom(null, booking.getFbclid())));
+        } catch (Exception e) {
+            log.error("Failed to send Purchase CAPI event for share {}: {}", share.getId(), e.getMessage(), e);
+        }
         // M2: status/fully-paid is decided on NET money held — refunded shares are excluded so a
         // refund mid-collection cannot push a booking to PAID.
         BigDecimal paidSum = shareRepository.findByBookingId(booking.getId()).stream()
@@ -446,6 +460,12 @@ public class PaymentService {
 
     private BigDecimal centsToBig(long cents) {
         return BigDecimal.valueOf(cents).movePointLeft(2);
+    }
+
+    /** Meta dedup key shared by the browser Pixel (via the Stripe success_url) and the server CAPI
+     *  Purchase event fired from {@link #handlePaymentSucceeded} — both derive from the same share id. */
+    private static String purchaseEventId(UUID shareId) {
+        return UUID.nameUUIDFromBytes(("purchase:" + shareId).getBytes(StandardCharsets.UTF_8)).toString();
     }
 
     /** URL-encode a return-URL query value (trip_id can be a TRV code, client UUID, or vote token). */

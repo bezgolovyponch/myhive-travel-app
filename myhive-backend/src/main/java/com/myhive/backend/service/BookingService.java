@@ -55,6 +55,7 @@ public class BookingService {
     private final EmailService emailService;
     private final BookingPaymentShareRepository shareRepository;
     private final StripeGateway stripeGateway;
+    private final MetaCapiService metaCapiService;
 
     @Transactional
     public BookingDTO createBooking(CreateBookingRequest request) {
@@ -321,6 +322,20 @@ public class BookingService {
             emailService.sendBookingNotification(saved, request);
         } catch (Exception e) {
             log.error("Failed to send booking notification for booking: {}. Error: {}", saved.getId(), e.getMessage(), e);
+        }
+
+        try {
+            metaCapiService.sendEvent(MetaCapiService.MetaCapiEvent.of(
+                            "Lead",
+                            request.getEventId() != null && !request.getEventId().isBlank()
+                                    ? request.getEventId()
+                                    : saved.getId().toString())
+                    .value(saved.getTotalAmount(), "EUR")
+                    .email(saved.getUserEmail())
+                    .fbp(request.getFbp())
+                    .fbc(MetaCapiService.fbcFrom(request.getFbc(), request.getFbclid())));
+        } catch (Exception e) {
+            log.error("Failed to send Lead CAPI event for booking {}: {}", saved.getId(), e.getMessage(), e);
         }
 
         return convertToDTO(saved);

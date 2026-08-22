@@ -85,6 +85,7 @@ public class VoteSessionService {
     private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
     private final VoteSuggestionsService voteSuggestionsService;
     private final TripLeadService tripLeadService;
+    private final MetaCapiService metaCapiService;
 
     @Value("${app.frontend.url:https://trivlu.com}")
     private String frontendUrl;
@@ -125,6 +126,7 @@ public class VoteSessionService {
         }
 
         sendVoteCreatedConfirmationQuietly(session);
+        sendStartGroupVoteCapiEventQuietly(session, request.getFbp(), request.getFbc(), request.getFbclid());
 
         long participantCount = voteActivityLikeRepository
                 .countDistinctVoterTokensBySessionId(session.getId());
@@ -148,6 +150,7 @@ public class VoteSessionService {
 
         persistBallot(session, activityIds, activitiesById);
         sendVoteCreatedConfirmationQuietly(session);
+        sendStartGroupVoteCapiEventQuietly(session, request.getFbp(), request.getFbc(), request.getFbclid());
 
         // A brand-new session has no voters yet.
         return toResponse(session, 0, session.getManagerToken());
@@ -245,6 +248,20 @@ public class VoteSessionService {
         } catch (Exception e) {
             // A failed confirmation email must never fail session creation — log and move on.
             log.error("Failed to send vote-created confirmation for session {}: {}",
+                    session.getId(), e.getMessage(), e);
+        }
+    }
+
+    /** MetaCapiService is itself fire-and-forget, but a client-side bug there must still never fail creation. */
+    private void sendStartGroupVoteCapiEventQuietly(VoteSession session, String fbp, String fbc, String fbclid) {
+        try {
+            metaCapiService.sendEvent(MetaCapiService.MetaCapiEvent.of(
+                            "start_group_vote", session.getShareToken().toString())
+                    .email(session.getInitiatorEmail())
+                    .fbp(fbp)
+                    .fbc(MetaCapiService.fbcFrom(fbc, fbclid)));
+        } catch (Exception e) {
+            log.error("Failed to send start_group_vote CAPI event for session {}: {}",
                     session.getId(), e.getMessage(), e);
         }
     }
