@@ -40,7 +40,7 @@ Manager и Meta Events Manager для trivlu.com. Это чек-лист дей�
 | `cta_click` | Custom Event тег | (custom `CTAClick`) | `cta_label` | `cta_click` |
 | `contact_click` | Standard Event тег | `Contact` | `channel` | `contact_click` |
 | `tb_start` | Standard Event тег | `ViewContent` | `ref` | `tb_start` |
-| `tb_group_submitted` | Standard Event тег + Advanced Matching | `CompleteRegistration` | `destination`, `group_size`, `has_budget`, **`user_email`** → Advanced Matching (email) | `tb_group_submitted` (key event) |
+| `tb_group_submitted` | Standard Event тег | `CompleteRegistration` | `destination`, `group_size`, `has_budget` (email на этом шаге не собирается продуктом — Advanced Matching подключается на `booking_submitted`) | `tb_group_submitted` (key event) |
 | `quiz_completed` | Custom Event тег | (custom) | `q_daytime`, `q_adrenaline`, `q_food`, `q_classy` | `quiz_completed` |
 | `shortlist_completed` | Custom Event тег | (custom) | `selected_count` | `shortlist_completed` |
 | `vote_launched` | Custom Event тег | **`start_group_vote`** (custom conversion, см. §3) | `selected_count`, `trip_id`, `nights`, `vote_id`, `group_size`, `activities_count`, `source_campaign`, **`event_id`** | `vote_launched` |
@@ -126,8 +126,7 @@ Manager и Meta Events Manager для trivlu.com. Это чек-лист дей�
       Consent Settings = «маркетинговые».
 - [ ] Все события из таблицы §2 настроены в GTM (Custom Event триггер + Data
       Layer Variables на каждый параметр).
-- [ ] `tb_group_submitted` и `booking_submitted` передают `user_email` в
-      Advanced Matching.
+- [ ] `booking_submitted` передаёт `user_email` в Advanced Matching.
 - [ ] Custom Conversion `start_group_vote` создана в Events Manager.
 - [ ] `META_PIXEL_ID` / `META_CAPI_ACCESS_TOKEN` заданы на бэкенде (без них
       CAPI молча выключен — это ожидаемо для окружений без кредов).
