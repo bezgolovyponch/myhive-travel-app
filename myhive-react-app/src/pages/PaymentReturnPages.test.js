@@ -79,7 +79,15 @@ test('success page fires payment_completed with revenue params from the return U
         value: 30,
         currency: 'EUR',
         trip_id: 'TRV-ABC123',
+        event_id: undefined,
     });
+});
+
+test('success page echoes the event_id URL param so browser Purchase dedups against server CAPI Purchase', () => {
+    renderSuccessPage('/payment/success?booking=b1&value=30.00&currency=EUR&trip_id=TRV-ABC123&event_id=evt-xyz');
+
+    const [, params] = pushEvent.mock.calls.find(([event]) => event === 'payment_completed');
+    expect(params.event_id).toBe('evt-xyz');
 });
 
 test('payment_completed fires at most once per booking across re-mounts', () => {

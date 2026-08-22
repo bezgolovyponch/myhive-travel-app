@@ -8,6 +8,7 @@ import {computeTripTotal, groupMinApplied, groupTripItems, lineTotal} from '../u
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
+import {getCookie} from '../utils/cookies';
 import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
 import {clearTripLead} from '../utils/tripLead';
@@ -479,7 +480,15 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     setSubmitError(null);
 
     try {
-      const bookingData = buildBookingData(contactData);
+      // One event_id shared by the API payload and the dataLayer push, so
+      // Meta's browser Pixel Lead and server CAPI Lead dedup against each other.
+      const leadEventId = generateUuid();
+      const bookingData = {
+        ...buildBookingData(contactData),
+        event_id: leadEventId,
+        fbp: getCookie('_fbp'),
+        fbc: getCookie('_fbc'),
+      };
 
       const booking = await api.createBookingFromTrip(bookingData);
 
@@ -507,6 +516,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           group_size: submittedTravelers,
           ...getAttribution(),
           ref: getRef(),
+          event_id: leadEventId,
+          user_email: contactData.email,
         }));
       }
 

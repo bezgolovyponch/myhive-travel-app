@@ -20,3 +20,9 @@ test('keeps false/0, drops undefined/null/empty', () => {
   expect('missing' in e).toBe(false);
   expect('blank' in e).toBe(false);
 });
+
+test('an explicit event_id in params overrides the generated one — relied on for CAPI dedup', () => {
+  pushEvent('booking_submitted', { event_id: 'fixed-lead-id-123' });
+  const e = window.dataLayer[0];
+  expect(e.event_id).toBe('fixed-lead-id-123');
+});

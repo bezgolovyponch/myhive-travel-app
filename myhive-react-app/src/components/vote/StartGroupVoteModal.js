@@ -6,6 +6,8 @@ import { pushEvent } from '../../utils/analytics';
 import { clearTripLead } from '../../utils/tripLead';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
 import { funnelParams } from '../../utils/funnel';
+import { getAttribution } from '../../utils/attribution';
+import { getCookie } from '../../utils/cookies';
 import './StartGroupVoteModal.css';
 
 // Pure so the validation rules can be reasoned about (and tested) independent
@@ -79,6 +81,9 @@ function StartGroupVoteModal({
                     voterToken: getOrCreateVoterToken(),
                     quizResponses,
                     activityIds,
+                    fbp: getCookie('_fbp'),
+                    fbc: getCookie('_fbc'),
+                    fbclid: getAttribution().fbclid,
                 })
                 : await voteApi.createCartSession({
                     destinationId,
@@ -86,6 +91,9 @@ function StartGroupVoteModal({
                     startDate: resolvedStart,
                     endDate: resolvedEnd,
                     activityIds,
+                    fbp: getCookie('_fbp'),
+                    fbc: getCookie('_fbc'),
+                    fbclid: getAttribution().fbclid,
                 });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
             if (session.managerToken) {
