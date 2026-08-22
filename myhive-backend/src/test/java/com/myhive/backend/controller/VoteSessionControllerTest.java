@@ -237,4 +237,43 @@ class VoteSessionControllerTest {
                 .andExpect(jsonPath("$.rows[0].name").value("Bar Crawl"))
                 .andExpect(jsonPath("$.rows[0].likeCount").value(2));
     }
+
+    @Test
+    void recordOpen_returns204_onSuccess() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        String body = """
+                { "voterToken": "%s" }
+                """.formatted(UUID.randomUUID());
+
+        mockMvc.perform(post("/vote/sessions/{shareToken}/opens", shareToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void recordOpen_returns400WhenVoterTokenMissing() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+
+        mockMvc.perform(post("/vote/sessions/{shareToken}/opens", shareToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void recordOpen_returns404WhenSessionNotFound() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        doThrow(new ResourceNotFoundException("Vote session not found"))
+                .when(voteSessionService).recordOpen(any(), any());
+
+        String body = """
+                { "voterToken": "%s" }
+                """.formatted(UUID.randomUUID());
+
+        mockMvc.perform(post("/vote/sessions/{shareToken}/opens", shareToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isNotFound());
+    }
 }

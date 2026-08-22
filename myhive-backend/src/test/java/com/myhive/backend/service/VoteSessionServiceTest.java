@@ -63,6 +63,7 @@ class VoteSessionServiceTest {
     @Mock private com.myhive.backend.service.VoteSuggestionsService voteSuggestionsService;
     @Mock private com.myhive.backend.service.TripLeadService tripLeadService;
     @Mock private MetaCapiService metaCapiService;
+    @Mock private com.myhive.backend.repository.VoteSessionOpenRepository voteSessionOpenRepository;
 
     @InjectMocks
     private VoteSessionService voteSessionService;
@@ -495,6 +496,26 @@ class VoteSessionServiceTest {
         assertThat(event.eventName).isEqualTo("start_group_vote");
         assertThat(event.email).isEqualTo("bob@example.com");
         assertThat(event.fbc).startsWith("fb.1.").endsWith(".clickid123");
+    }
+
+    @Test
+    void recordOpen_isIdempotentPerVoterToken() {
+        UUID shareToken = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID voterToken = UUID.randomUUID();
+
+        VoteSession session = new VoteSession();
+        session.setId(sessionId);
+        session.setShareToken(shareToken);
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        when(voteSessionOpenRepository.existsBySessionIdAndVoterToken(sessionId, voterToken))
+                .thenReturn(false, true);
+
+        voteSessionService.recordOpen(shareToken, voterToken);
+        voteSessionService.recordOpen(shareToken, voterToken);
+
+        verify(voteSessionOpenRepository, org.mockito.Mockito.times(1)).save(any());
     }
 
     @Test

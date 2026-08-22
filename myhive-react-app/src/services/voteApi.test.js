@@ -151,6 +151,33 @@ describe('createSession forwards fbp/fbc/fbclid', () => {
   });
 });
 
+describe('recordOpen', () => {
+  afterEach(() => {
+    delete global.fetch;
+  });
+
+  it('POSTs the voterToken to /vote/sessions/{shareToken}/opens', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 204 });
+
+    await voteApi.recordOpen('tok-1', 'voter-1');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/vote/sessions/tok-1/opens'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voterToken: 'voter-1' }),
+      }),
+    );
+  });
+
+  it('never rejects, even when the request fails', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('network down'));
+
+    await expect(voteApi.recordOpen('tok-1', 'voter-1')).resolves.toBeUndefined();
+  });
+});
+
 describe('getTally', () => {
   afterEach(() => {
     delete global.fetch;

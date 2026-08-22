@@ -26,8 +26,9 @@ function ActivityVoteContent() {
         if (!voteOpenedFiredRef.current.has(shareToken)) {
             voteOpenedFiredRef.current.add(shareToken);
             pushEvent('vote_opened', { ...funnelParams({ voteId: shareToken }), trip_id: shareToken, user_role: 'participant' });
+            voteApi.recordOpen(shareToken, voterToken);
         }
-    }, [shareToken]);
+    }, [shareToken, voterToken]);
 
     useEffect(() => {
         if (localStorage.getItem(votedKey(shareToken))) {

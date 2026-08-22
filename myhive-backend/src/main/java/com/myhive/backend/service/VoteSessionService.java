@@ -21,6 +21,7 @@ import com.myhive.backend.entity.QuizQuestion;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
+import com.myhive.backend.entity.VoteSessionOpen;
 import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
@@ -37,12 +38,14 @@ import com.myhive.backend.repository.QuizAnswerRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
 import com.myhive.backend.repository.VoteActivityLikeRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
+import com.myhive.backend.repository.VoteSessionOpenRepository;
 import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import com.myhive.backend.repository.VoteSessionResultActivityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -86,6 +89,7 @@ public class VoteSessionService {
     private final VoteSuggestionsService voteSuggestionsService;
     private final TripLeadService tripLeadService;
     private final MetaCapiService metaCapiService;
+    private final VoteSessionOpenRepository voteSessionOpenRepository;
 
     @Value("${app.frontend.url:https://trivlu.com}")
     private String frontendUrl;
@@ -406,6 +410,27 @@ public class VoteSessionService {
     public long getParticipantCount(UUID shareToken) {
         VoteSession session = findByShareToken(shareToken);
         return voteActivityLikeRepository.countDistinctVoterTokensBySessionId(session.getId());
+    }
+
+    /**
+     * Records a distinct-device open of a vote link — the "invited (opened)" proxy metric, since
+     * true invite counts don't exist in a share-link model. Idempotent per (session, voterToken);
+     * best-effort from the caller's perspective, so this must never throw for a duplicate open.
+     */
+    @Transactional
+    public void recordOpen(UUID shareToken, UUID voterToken) {
+        VoteSession session = findByShareToken(shareToken);
+        if (voteSessionOpenRepository.existsBySessionIdAndVoterToken(session.getId(), voterToken)) {
+            return;
+        }
+        try {
+            VoteSessionOpen open = new VoteSessionOpen();
+            open.setSession(session);
+            open.setVoterToken(voterToken);
+            voteSessionOpenRepository.save(open);
+        } catch (DataIntegrityViolationException ignored) {
+            // concurrent first-open race — unique constraint already recorded it
+        }
     }
 
     public VoteResultResponse getResult(UUID shareToken) {

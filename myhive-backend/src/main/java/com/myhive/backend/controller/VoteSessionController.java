@@ -12,6 +12,7 @@ import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.dto.VoteTallyResponse;
 import com.myhive.backend.service.VoteSessionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -101,5 +102,13 @@ public class VoteSessionController {
     public void submitParticipantQuiz(@PathVariable UUID shareToken,
                                       @Valid @RequestBody ParticipantQuizSubmissionRequest request) {
         voteSessionService.submitParticipantQuiz(shareToken, request);
+    }
+
+    public record RecordOpenRequest(@NotNull UUID voterToken) {}
+
+    @PostMapping("/{shareToken}/opens")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recordOpen(@PathVariable UUID shareToken, @Valid @RequestBody RecordOpenRequest request) {
+        voteSessionService.recordOpen(shareToken, request.voterToken());
     }
 }

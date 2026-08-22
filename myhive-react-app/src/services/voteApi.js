@@ -126,6 +126,15 @@ const voteApi = {
     return response.json();
   },
 
+  // Best-effort open beacon — failures must never block the vote UI.
+  recordOpen(shareToken, voterToken) {
+    return fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/opens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterToken }),
+    }).catch(() => {});
+  },
+
   // Live tally (CART sessions): server requires that voterToken has voted, or a managerToken.
   async getTally(shareToken, { voterToken, managerToken } = {}) {
     const params = new URLSearchParams();

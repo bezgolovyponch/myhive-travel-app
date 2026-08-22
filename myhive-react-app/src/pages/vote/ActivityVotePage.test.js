@@ -164,6 +164,18 @@ test('A14: vote_opened fires again for a different shareToken when component sta
     });
 });
 
+test('fires the recordOpen beacon once on mount inside the vote_opened dedup effect', async () => {
+    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
+    voteApi.recordOpen.mockResolvedValue(undefined);
+
+    renderAt('/vote/tok-abc/activities');
+
+    await screen.findByLabelText('Like');
+
+    expect(voteApi.recordOpen).toHaveBeenCalledTimes(1);
+    expect(voteApi.recordOpen).toHaveBeenCalledWith('tok-abc', expect.any(String));
+});
+
 // --- A15: vote_completed ---
 
 test('A15: vote_completed fires once after all cards are swiped and castVotes resolves', async () => {

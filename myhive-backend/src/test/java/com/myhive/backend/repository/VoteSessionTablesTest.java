@@ -7,6 +7,7 @@ import com.myhive.backend.entity.QuizAnswer;
 import com.myhive.backend.entity.QuizQuestion;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
+import com.myhive.backend.entity.VoteSessionOpen;
 import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.model.VoteSessionStatus;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,8 @@ class VoteSessionTablesTest {
     private VoteSessionActivityRepository voteSessionActivityRepository;
     @Autowired
     private VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
+    @Autowired
+    private VoteSessionOpenRepository voteSessionOpenRepository;
     @Autowired
     private DestinationRepository destinationRepository;
     @Autowired
@@ -108,6 +111,41 @@ class VoteSessionTablesTest {
         assertThat(reloaded).hasSize(1);
         assertThat(reloaded.get(0).getVoterToken()).isEqualTo(expectedVoterToken);
         assertThat(reloaded.get(0).getAnswer().getId()).isEqualTo(answer.getId());
+    }
+
+    @Test
+    void voteSessionOpen_uniqueOnSessionAndVoterToken() {
+        VoteSession session = newActiveSession();
+        UUID voterToken = UUID.randomUUID();
+
+        VoteSessionOpen first = new VoteSessionOpen();
+        first.setSession(session);
+        first.setVoterToken(voterToken);
+        voteSessionOpenRepository.saveAndFlush(first);
+
+        VoteSessionOpen duplicate = new VoteSessionOpen();
+        duplicate.setSession(session);
+        duplicate.setVoterToken(voterToken);
+
+        assertThatThrownBy(() -> voteSessionOpenRepository.saveAndFlush(duplicate))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void voteSessionOpen_countBySessionIdCountsDistinctOpens() {
+        VoteSession session = newActiveSession();
+
+        VoteSessionOpen open1 = new VoteSessionOpen();
+        open1.setSession(session);
+        open1.setVoterToken(UUID.randomUUID());
+        voteSessionOpenRepository.saveAndFlush(open1);
+
+        VoteSessionOpen open2 = new VoteSessionOpen();
+        open2.setSession(session);
+        open2.setVoterToken(UUID.randomUUID());
+        voteSessionOpenRepository.saveAndFlush(open2);
+
+        assertThat(voteSessionOpenRepository.countBySessionId(session.getId())).isEqualTo(2L);
     }
 
     private VoteSession newActiveSession() {
