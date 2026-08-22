@@ -79,6 +79,26 @@ describe('createCartSession', () => {
     expect(body.fbc).toBe('fb.1.1.abc');
     expect(body.fbclid).toBe('click-123');
   });
+
+  it('forwards groomName in the request body', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ shareToken: 't-1', managerToken: 'm-1' }),
+    });
+
+    await voteApi.createCartSession({
+      destinationId: 'd-1',
+      numberOfTravelers: 4,
+      startDate: '2026-08-01',
+      endDate: '2026-08-03',
+      activityIds: ['a-1'],
+      groomName: 'Tom',
+    });
+
+    const [, options] = global.fetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.groomName).toBe('Tom');
+  });
 });
 
 describe('createSession forwards fbp/fbc/fbclid', () => {
@@ -108,6 +128,26 @@ describe('createSession forwards fbp/fbc/fbclid', () => {
     expect(body.fbp).toBe('fb.1.1.2');
     expect(body.fbc).toBe('fb.1.1.abc');
     expect(body.fbclid).toBe('click-123');
+  });
+
+  it('forwards groomName in the request body', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ shareToken: 't-1', managerToken: 'm-1' }),
+    });
+
+    await voteApi.createSession({
+      destinationId: 'd-1',
+      numberOfTravelers: 4,
+      startDate: '2026-08-01',
+      endDate: '2026-08-03',
+      activityIds: ['a-1'],
+      groomName: 'Tom',
+    });
+
+    const [, options] = global.fetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.groomName).toBe('Tom');
   });
 });
 

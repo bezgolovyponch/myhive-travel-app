@@ -22,13 +22,13 @@ const voteApi = {
 
   // Atomic session creation
   async createSession({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
-                        budget, voterToken, quizResponses, activityIds, fbp, fbc, fbclid }) {
+                        budget, voterToken, quizResponses, activityIds, fbp, fbc, fbclid, groomName }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
-        budget, voterToken, quizResponses, activityIds, fbp, fbc, fbclid,
+        budget, voterToken, quizResponses, activityIds, fbp, fbc, fbclid, groomName,
       }),
     });
     if (!response.ok) {
@@ -110,13 +110,13 @@ const voteApi = {
 
   // Cart-seeded session creation (no quiz) — the ballot is the initiator's cart.
   async createCartSession({ destinationId, initiatorEmail, numberOfTravelers,
-                            startDate, endDate, activityIds, fbp, fbc, fbclid }) {
+                            startDate, endDate, activityIds, fbp, fbc, fbclid, groomName }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, activityIds,
-        fbp, fbc, fbclid,
+        fbp, fbc, fbclid, groomName,
       }),
     });
     if (!response.ok) {

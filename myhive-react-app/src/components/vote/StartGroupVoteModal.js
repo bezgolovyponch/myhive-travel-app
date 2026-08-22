@@ -37,6 +37,7 @@ function StartGroupVoteModal({
     const navigate = useNavigate();
     const [voteStartDate, setVoteStartDate] = useState(startDate || '');
     const [voteEndDate, setVoteEndDate] = useState(endDate || '');
+    const [groomName, setGroomName] = useState('');
     const [errors, setErrors] = useState({});
     const [apiError, setApiError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
@@ -84,6 +85,7 @@ function StartGroupVoteModal({
                     fbp: getCookie('_fbp'),
                     fbc: getCookie('_fbc'),
                     fbclid: getAttribution().fbclid,
+                    groomName: groomName.trim() || undefined,
                 })
                 : await voteApi.createCartSession({
                     destinationId,
@@ -94,6 +96,7 @@ function StartGroupVoteModal({
                     fbp: getCookie('_fbp'),
                     fbc: getCookie('_fbc'),
                     fbclid: getAttribution().fbclid,
+                    groomName: groomName.trim() || undefined,
                 });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
             if (session.managerToken) {
@@ -153,6 +156,15 @@ function StartGroupVoteModal({
                 Share the link with your mates and watch the results live.
                 Voting closes automatically after 24 hours.
             </p>
+            <label htmlFor="start-vote-groom">Who&apos;s the stag? <span className="optional">(optional)</span></label>
+            <input
+                id="start-vote-groom"
+                type="text"
+                maxLength={100}
+                placeholder="e.g. Tom"
+                value={groomName}
+                onChange={(e) => setGroomName(e.target.value)}
+            />
             {needsDates && (
                 <>
                     <label htmlFor="start-vote-start-date">Trip dates</label>
