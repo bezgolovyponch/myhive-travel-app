@@ -4,7 +4,7 @@
 // by two page files has to live outside the route tree.
 import type { Metadata } from 'next';
 import { api } from './api';
-import { pageMetadata } from './seo';
+import { canonical, pageMetadata } from './seo';
 
 export async function voteMetadata(shareToken: string): Promise<Metadata> {
   let session = null;
@@ -23,6 +23,11 @@ export async function voteMetadata(shareToken: string): Promise<Metadata> {
     title,
     description,
     path: `/vote/${shareToken}`,
+    // Route-segment opengraph-image.tsx only auto-registers og:image when no
+    // page-level openGraph.images is set; pageMetadata always sets one, so it
+    // must be pointed at the dynamic collage explicitly or the static brand
+    // fallback silently wins.
+    image: canonical(`/vote/${shareToken}/opengraph-image`),
     noindex: true,
   });
 }
