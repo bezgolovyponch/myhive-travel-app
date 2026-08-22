@@ -7,7 +7,7 @@ import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '..
 import {computeTripTotal, groupMinApplied, groupTripItems, lineTotal} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
-import {getAttribution, getRef} from '../utils/attribution';
+import {getAttribution, getRef, getFirstTouch} from '../utils/attribution';
 import {getCookie} from '../utils/cookies';
 import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
@@ -432,6 +432,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // Shared trip → booking payload, used by both the lead ("Submit Booking") and the 30% deposit flow.
   const buildBookingData = (contactData) => {
     const attribution = getAttribution();
+    const firstTouch = getFirstTouch();
     return {
       tripName: 'Booking',
       userEmail: contactData.email,
@@ -467,6 +468,9 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       tripId: effectiveTripId,
       ...attribution,
       ref: getRef(),
+      first_touch_at: firstTouch ? new Date(firstTouch.ts).toISOString().slice(0, 19) : undefined,
+      first_utm_source: firstTouch?.utm_source,
+      first_utm_campaign: firstTouch?.utm_campaign,
     };
   };
 

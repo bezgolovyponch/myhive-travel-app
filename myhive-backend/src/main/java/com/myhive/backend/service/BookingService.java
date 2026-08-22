@@ -209,6 +209,9 @@ public class BookingService {
         booking.setGclid(request.getGclid());
         booking.setFbclid(request.getFbclid());
         booking.setReferrer(request.getReferrer());
+        booking.setFirstTouchAt(request.getFirstTouchAt());
+        booking.setFirstUtmSource(request.getFirstUtmSource());
+        booking.setFirstUtmCampaign(request.getFirstUtmCampaign());
 
         booking.setBookingItems(items);
         BigDecimal total = calculateTotal(items);
@@ -430,6 +433,9 @@ public class BookingService {
         dto.setGclid(booking.getGclid());
         dto.setFbclid(booking.getFbclid());
         dto.setReferrer(booking.getReferrer());
+        dto.setFirstTouchAt(booking.getFirstTouchAt());
+        dto.setFirstUtmSource(booking.getFirstUtmSource());
+        dto.setFirstUtmCampaign(booking.getFirstUtmCampaign());
 
         if (booking.getBookingItems() != null) {
             dto.setItems(booking.getBookingItems().stream()

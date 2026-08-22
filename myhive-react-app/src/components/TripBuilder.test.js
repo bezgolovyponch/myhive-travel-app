@@ -43,6 +43,7 @@ jest.mock('../utils/userRole', () => ({ resolveUserRole: jest.fn() }));
 jest.mock('../utils/attribution', () => ({
     getAttribution: jest.fn(),
     getRef: jest.fn(),
+    getFirstTouch: jest.fn(),
 }));
 
 jest.mock('../utils/uuid', () => ({ generateUuid: jest.fn() }));
@@ -83,7 +84,7 @@ jest.mock('./DateRangePicker', () =>
 const api = require('../services/api').default;
 const { pushEvent, navigateAfterEvents } = require('../utils/analytics');
 const { resolveUserRole } = require('../utils/userRole');
-const { getAttribution, getRef } = require('../utils/attribution');
+const { getAttribution, getRef, getFirstTouch } = require('../utils/attribution');
 const { generateUuid } = require('../utils/uuid');
 
 // ---------------------------------------------------------------------------
@@ -188,6 +189,7 @@ beforeEach(() => {
     voteApi.buildPool.mockResolvedValue({ pool: [] });
     getAttribution.mockReturnValue({ utm_source: 'facebook', utm_medium: 'cpc' });
     getRef.mockReturnValue('ref-abc');
+    getFirstTouch.mockReturnValue(null);
     generateUuid.mockReturnValue('fresh-uuid');
     resolveUserRole.mockReturnValue('organizer');
 
@@ -660,6 +662,42 @@ test('A19: createBookingFromTrip includes ref: null when getRef returns null', a
 
     const [bookingData] = api.createBookingFromTrip.mock.calls[0];
     expect(bookingData.ref).toBeNull();
+});
+
+test('A19: createBookingFromTrip includes first-touch fields when getFirstTouch has a record', async () => {
+    getFirstTouch.mockReturnValue({ ts: 1000, utm_source: 'fb', utm_campaign: 'summer', referrer: 'https://facebook.com' });
+    const user = userEvent.setup();
+    renderTripBuilder();
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    expect(bookingData.first_touch_at).toBe(new Date(1000).toISOString().slice(0, 19));
+    expect(bookingData.first_utm_source).toBe('fb');
+    expect(bookingData.first_utm_campaign).toBe('summer');
+});
+
+test('A19: createBookingFromTrip omits first-touch fields when getFirstTouch returns null', async () => {
+    getFirstTouch.mockReturnValue(null);
+    const user = userEvent.setup();
+    renderTripBuilder();
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    expect(bookingData.first_touch_at).toBeUndefined();
+    expect(bookingData.first_utm_source).toBeUndefined();
+    expect(bookingData.first_utm_campaign).toBeUndefined();
 });
 
 // ---------------------------------------------------------------------------
