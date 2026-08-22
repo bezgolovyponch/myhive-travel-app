@@ -50,6 +50,22 @@ class BookingFirstTouchExporterTest {
     }
 
     @Test
+    void tripIdFormulaInjectionIsSanitized() {
+        Booking b = new Booking();
+        b.setId(UUID.randomUUID());
+        b.setTripId("=1+1");
+        b.setStatus(BookingStatus.PAID);
+        b.setPaidAt(LocalDateTime.of(2026, 1, 10, 12, 0));
+        when(bookingRepository.findByPaidAtIsNotNull()).thenReturn(List.of(b));
+
+        String csv = exporter.exportPaid();
+        String dataLine = csv.replace("﻿", "").split("\r?\n")[1];
+        String[] columns = dataLine.split(",", -1);
+        // trip_id is column index 1
+        assertThat(columns[1]).isEqualTo("'=1+1");
+    }
+
+    @Test
     void blankDaysWhenFirstTouchMissing() {
         Booking b = new Booking();
         b.setId(UUID.randomUUID());

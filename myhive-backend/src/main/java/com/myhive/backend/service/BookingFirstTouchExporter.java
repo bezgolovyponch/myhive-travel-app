@@ -51,7 +51,7 @@ public class BookingFirstTouchExporter {
     private String[] toRow(Booking b) {
         return new String[]{
                 String.valueOf(b.getId()),
-                nullSafe(b.getTripId()),
+                sanitize(nullSafe(b.getTripId())),
                 b.getStatus() == null ? "" : b.getStatus().toString(),
                 b.getFirstTouchAt() == null ? "" : b.getFirstTouchAt().toString(),
                 b.getCreatedAt() == null ? "" : b.getCreatedAt().toString(),
