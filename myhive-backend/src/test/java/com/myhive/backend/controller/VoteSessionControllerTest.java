@@ -65,7 +65,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 expectedToken, "Bali", "bali", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 2,
-                expectedManagerToken, "QUIZ");
+                expectedManagerToken, "QUIZ", null);
 
         when(voteSessionService.createSession(any())).thenReturn(response);
 
@@ -95,7 +95,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 expectedToken, "Prague", "prague", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 4,
-                expectedManagerToken, "CART");
+                expectedManagerToken, "CART", null);
 
         when(voteSessionService.createCartSession(any())).thenReturn(response);
 
@@ -146,7 +146,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 shareToken, "Bali", "bali", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 5L, 3,
-                null, "QUIZ");
+                null, "QUIZ", null);
 
         when(voteSessionService.getSession(shareToken)).thenReturn(response);
 

@@ -110,7 +110,8 @@ public class VoteSessionService {
                 loadAndValidateDestinationActivities(destination, request.getActivityIds());
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
-                request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget());
+                request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(),
+                request.getGroomName());
 
         persistBallot(session, request.getActivityIds(), activitiesById);
 
@@ -146,7 +147,8 @@ public class VoteSessionService {
         Map<UUID, Activity> activitiesById = loadAndValidateDestinationActivities(destination, activityIds);
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
-                request.getStartDate(), request.getEndDate(), VoteMode.CART, null);
+                request.getStartDate(), request.getEndDate(), VoteMode.CART, null,
+                request.getGroomName());
 
         persistBallot(session, activityIds, activitiesById);
         sendVoteCreatedConfirmationQuietly(session);
@@ -158,7 +160,7 @@ public class VoteSessionService {
 
     private VoteSession newSession(Destination destination, String initiatorEmail, Integer numberOfTravelers,
                                    LocalDate startDate, LocalDate endDate,
-                                   VoteMode voteMode, BigDecimal budget) {
+                                   VoteMode voteMode, BigDecimal budget, String groomName) {
         VoteSession session = new VoteSession();
         session.setShareToken(UUID.randomUUID());
         session.setManagerToken(UUID.randomUUID());
@@ -171,6 +173,7 @@ public class VoteSessionService {
         session.setVoteMode(voteMode);
         session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
         session.setBudget(budget);
+        session.setGroomName(groomName);
         return voteSessionRepository.save(session);
     }
 
@@ -695,7 +698,8 @@ public class VoteSessionService {
                 participantCount,
                 travelers,
                 managerToken,
-                session.getVoteMode().name());
+                session.getVoteMode().name(),
+                session.getGroomName());
     }
 
     private Set<UUID> resolveDestinationCategoryIds(Destination destination) {

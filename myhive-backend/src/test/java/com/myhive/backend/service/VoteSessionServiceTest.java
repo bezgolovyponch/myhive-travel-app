@@ -496,4 +496,18 @@ class VoteSessionServiceTest {
         assertThat(event.email).isEqualTo("bob@example.com");
         assertThat(event.fbc).startsWith("fb.1.").endsWith(".clickid123");
     }
+
+    @Test
+    void createCartSession_persistsGroomName() {
+        VoteSessionCartCreateRequest request = happyPathCartCreateSetup();
+        request.setGroomName("Tom");
+
+        ArgumentCaptor<VoteSession> sessionCaptor = ArgumentCaptor.forClass(VoteSession.class);
+
+        VoteSessionResponse response = voteSessionService.createCartSession(request);
+
+        verify(voteSessionRepository, org.mockito.Mockito.atLeastOnce()).save(sessionCaptor.capture());
+        assertThat(sessionCaptor.getValue().getGroomName()).isEqualTo("Tom");
+        assertThat(response.getGroomName()).isEqualTo("Tom");
+    }
 }

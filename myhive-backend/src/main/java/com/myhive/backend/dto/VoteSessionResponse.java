@@ -18,4 +18,5 @@ public class VoteSessionResponse {
     private int numberOfTravelers;
     private UUID managerToken;
     private String voteMode;
+    private String groomName;
 }

@@ -95,6 +95,10 @@ public class VoteSession {
             columnDefinition = "varchar(20) not null default 'QUIZ'")
     private VoteMode voteMode = VoteMode.QUIZ;
 
+    // Optional stag name: used in the vote page's OG title ("Vote on {name}'s stag do").
+    @Column(name = "groom_name", length = 100)
+    private String groomName;
+
     @PrePersist
     private void prePersist() {
         if (maxParticipants == null) {

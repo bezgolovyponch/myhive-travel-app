@@ -51,4 +51,7 @@ public class VoteSessionCreateRequest {
 
     @Size(max = 256)
     private String fbclid;
+
+    @Size(max = 100)
+    private String groomName;
 }
