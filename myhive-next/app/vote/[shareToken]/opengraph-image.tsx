@@ -10,12 +10,13 @@ export const alt = 'Group vote on Trivlu';
 // otherwise crash the whole ImageResponse for one rotten activity photo (seed
 // and user-supplied URLs do rot — e.g. an Unsplash asset returning 404 HTML).
 // HEAD-check candidates first so a dead URL degrades to fewer photos instead
-// of a 500.
+// of a 500. Bounded with a timeout too: a slow/hanging host must not stall
+// the whole OG response for scrapers — an aborted probe just drops that tile.
 async function reachableImageUrls(urls: string[]): Promise<string[]> {
   const checks = await Promise.all(
     urls.map(async (u) => {
       try {
-        const res = await fetch(u, { method: 'HEAD' });
+        const res = await fetch(u, { method: 'HEAD', signal: AbortSignal.timeout(1500) });
         return res.ok && (res.headers.get('content-type') ?? '').startsWith('image/') ? u : null;
       } catch {
         return null;
