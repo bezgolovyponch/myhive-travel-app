@@ -39,4 +39,10 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     /** Trip-lead reminder stop condition: any booking (incl. consultation) from this vote session. */
     boolean existsByVoteSessionId(UUID voteSessionId);
+
+    /** Admin vote-participation export: bookings for a batch of vote sessions, joined in-memory by the caller. */
+    List<Booking> findByVoteSessionIdIn(Collection<UUID> voteSessionIds);
+
+    /** Admin first-touch->paid report: every booking that has completed a payment. */
+    List<Booking> findByPaidAtIsNotNull();
 }

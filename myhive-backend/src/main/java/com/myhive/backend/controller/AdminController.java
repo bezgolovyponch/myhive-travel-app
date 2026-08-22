@@ -22,8 +22,10 @@ import com.myhive.backend.service.CategoryService;
 import com.myhive.backend.service.DestinationService;
 import com.myhive.backend.service.ImageUploadService;
 import com.myhive.backend.service.PackageService;
+import com.myhive.backend.service.BookingFirstTouchExporter;
 import com.myhive.backend.service.PaymentService;
 import com.myhive.backend.service.QuizService;
+import com.myhive.backend.service.VoteCsvExporter;
 import com.myhive.backend.service.activity.ActivityCsvExporter;
 import com.myhive.backend.service.activity.ActivityCsvImporter;
 import jakarta.validation.Valid;
@@ -73,6 +75,8 @@ public class AdminController {
     private final Optional<ImageUploadService> imageUploadService;
     private final ActivityCsvExporter activityCsvExporter;
     private final ActivityCsvImporter activityCsvImporter;
+    private final VoteCsvExporter voteCsvExporter;
+    private final BookingFirstTouchExporter bookingFirstTouchExporter;
 
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
@@ -162,6 +166,22 @@ public class AdminController {
         }
         DestinationDTO dest = destinationService.getDestinationById(destinationId);
         return "activities-" + dest.getSlug() + "-" + date + ".csv";
+    }
+
+    @GetMapping(value = "/votes/export", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> exportVotes() {
+        byte[] body = voteCsvExporter.exportAll().getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"votes-" + LocalDate.now() + ".csv\"")
+                .body(body);
+    }
+
+    @GetMapping(value = "/bookings/first-touch-report", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> firstTouchReport() {
+        byte[] body = bookingFirstTouchExporter.exportPaid().getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"first-touch-" + LocalDate.now() + ".csv\"")
+                .body(body);
     }
 
     @PostMapping("/activities/import/preview")
