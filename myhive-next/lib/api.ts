@@ -19,6 +19,19 @@ async function get<T>(path: string): Promise<T | null> {
   return res.json();
 }
 
+// Vote sessions carry live counts (participantCount changes as people vote),
+// so they skip the hour-long catalog cache in favor of a short revalidate.
+async function getLive<T>(path: string): Promise<T | null> {
+  const token = process.env.INTERNAL_API_TOKEN;
+  const res = await fetch(`${BACKEND}${path}`, {
+    next: { revalidate: 60 },
+    ...(token ? { headers: { 'X-Internal-Token': token } } : {}),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Backend ${res.status} on ${path}`);
+  return res.json();
+}
+
 export interface Destination {
   id: string;
   slug: string;
@@ -95,6 +108,22 @@ export interface ActivityPage {
   last: boolean;
 }
 
+export interface VoteSessionMeta {
+  shareToken: string;
+  destinationName: string;
+  destinationSlug: string;
+  status: string;
+  participantCount: number;
+  numberOfTravelers: number;
+  groomName?: string | null;
+}
+
+export interface VoteActivityMeta {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+}
+
 export const api = {
   getDestinations: () => get<Destination[]>('/destinations'),
   getDestinationBySlug: (slug: string) =>
@@ -117,4 +146,8 @@ export const api = {
   getBlogPosts: () => get<BlogPost[]>('/blog'),
   getBlogPostBySlug: (slug: string) =>
     get<BlogPost>(`/blog/slug/${encodeURIComponent(slug)}`),
+  getVoteSession: (shareToken: string) =>
+    getLive<VoteSessionMeta>(`/vote/sessions/${encodeURIComponent(shareToken)}`),
+  getVoteActivities: (shareToken: string) =>
+    getLive<VoteActivityMeta[]>(`/vote/sessions/${encodeURIComponent(shareToken)}/activities`),
 };
