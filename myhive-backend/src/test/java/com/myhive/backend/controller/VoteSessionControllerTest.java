@@ -24,6 +24,8 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -121,7 +123,7 @@ class VoteSessionControllerTest {
     @Test
     void getResult_returns404WhenActive() throws Exception {
         UUID shareToken = UUID.randomUUID();
-        when(voteSessionService.getResult(shareToken))
+        when(voteSessionService.getResult(eq(shareToken), isNull()))
                 .thenThrow(new ResourceNotFoundException("Result not available yet"));
 
         mockMvc.perform(get("/vote/sessions/{shareToken}/result", shareToken))
@@ -148,7 +150,7 @@ class VoteSessionControllerTest {
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 5L, 3,
                 null, "QUIZ");
 
-        when(voteSessionService.getSession(shareToken)).thenReturn(response);
+        when(voteSessionService.getSession(eq(shareToken), isNull())).thenReturn(response);
 
         mockMvc.perform(get("/vote/sessions/{shareToken}", shareToken))
                 .andExpect(status().isOk())
@@ -182,7 +184,7 @@ class VoteSessionControllerTest {
         com.myhive.backend.dto.PublicQuizQuestionDTO question = new com.myhive.backend.dto.PublicQuizQuestionDTO(
                 UUID.randomUUID(), "Daytime or night?", List.of(answer));
         com.myhive.backend.dto.PublicQuizDTO quiz = new com.myhive.backend.dto.PublicQuizDTO(List.of(question));
-        when(voteSessionService.getParticipantQuiz(shareToken)).thenReturn(quiz);
+        when(voteSessionService.getParticipantQuiz(eq(shareToken), isNull())).thenReturn(quiz);
 
         mockMvc.perform(get("/vote/sessions/" + shareToken + "/quiz"))
                 .andExpect(status().isOk())
@@ -228,7 +230,7 @@ class VoteSessionControllerTest {
                 List.of(new VoteTallyResponse.TallyRow(
                         UUID.randomUUID(), "Bar Crawl", new java.math.BigDecimal("45.00"), 2L)));
 
-        when(voteSessionService.getTally(any(), any(), any())).thenReturn(tally);
+        when(voteSessionService.getTally(any(), any(), any(), any())).thenReturn(tally);
 
         mockMvc.perform(get("/vote/sessions/{shareToken}/tally", shareToken)
                         .param("voterToken", UUID.randomUUID().toString()))

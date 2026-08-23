@@ -1,3 +1,5 @@
+import {currentLocale} from '../i18n/routes';
+
 export function formatAmount(amount) {
     if (amount == null) return '\u2014';
     const n = Number(amount);
@@ -9,16 +11,23 @@ export function formatAmount(amount) {
     return Number.isInteger(n) ? `\u20AC${n}` : `\u20AC${n.toFixed(2)}`;
 }
 
+// Dates follow the page locale (month names, order); English keeps en-GB.
+const DATE_LOCALE_TAGS = {en: 'en-GB', de: 'de-DE'};
+
+function dateLocaleTag() {
+    return DATE_LOCALE_TAGS[currentLocale()] || 'en-GB';
+}
+
 export function formatDate(dateStr) {
     if (!dateStr) return '\u2014';
-    return new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-GB', {
+    return new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00')).toLocaleDateString(dateLocaleTag(), {
         day: '2-digit', month: 'short', year: 'numeric',
     });
 }
 
 export function formatDateTime(dateStr) {
     if (!dateStr) return '\u2014';
-    return new Date(dateStr).toLocaleDateString('en-GB', {
+    return new Date(dateStr).toLocaleDateString(dateLocaleTag(), {
         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
 }

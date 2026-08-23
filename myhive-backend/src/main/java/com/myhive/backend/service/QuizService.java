@@ -19,6 +19,7 @@ import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
 import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -58,23 +59,31 @@ public class QuizService {
     }
 
     public PublicQuizDTO getPublicQuiz(UUID destinationId) {
+        return getPublicQuiz(destinationId, null);
+    }
+
+    /** @param locale request locale (en/de/…); prompts and labels come back resolved for it, English fallback. */
+    public PublicQuizDTO getPublicQuiz(UUID destinationId, String locale) {
         if (!destinationRepository.existsById(destinationId)) {
             throw new ResourceNotFoundException("Destination", destinationId);
         }
+        String lc = Translations.normalize(locale);
         List<PublicQuizQuestionDTO> questions = quizQuestionRepository
                 .findByDestinationIdOrderBySortOrder(destinationId)
                 .stream()
-                .map(this::toPublicQuestion)
+                .map(q -> toPublicQuestion(q, lc))
                 .toList();
         return new PublicQuizDTO(questions);
     }
 
-    private PublicQuizQuestionDTO toPublicQuestion(QuizQuestion question) {
+    private PublicQuizQuestionDTO toPublicQuestion(QuizQuestion question, String lc) {
         List<PublicQuizAnswerDTO> answers = question.getAnswers().stream()
                 .sorted(Comparator.comparingInt(QuizAnswer::getSortOrder))
-                .map(a -> new PublicQuizAnswerDTO(a.getId(), a.getLabel()))
+                .map(a -> new PublicQuizAnswerDTO(a.getId(),
+                        Translations.pick(a.getTranslations(), lc, "label", a.getLabel())))
                 .toList();
-        return new PublicQuizQuestionDTO(question.getId(), question.getPrompt(), answers);
+        return new PublicQuizQuestionDTO(question.getId(),
+                Translations.pick(question.getTranslations(), lc, "prompt", question.getPrompt()), answers);
     }
 
     public List<UUID> snapshot(Collection<UUID> answerIds) {
@@ -110,11 +119,11 @@ public class QuizService {
                             .map(w -> new QuizAnswerWeightDTO(w.getCategory().getId(), w.getWeight()))
                             .toList();
                     return new QuizAnswerDTO(answer.getId(), answer.getLabel(),
-                            answer.getSortOrder(), weights);
+                            answer.getSortOrder(), weights, answer.getTranslations());
                 })
                 .toList();
         return new QuizQuestionDTO(question.getId(), question.getPrompt(),
-                question.getSortOrder(), answers);
+                question.getSortOrder(), answers, question.getTranslations());
     }
 
     @Transactional
@@ -145,8 +154,21 @@ public class QuizService {
                     destinationId, discardedResponses);
         }
 
-        quizQuestionRepository.deleteAll(
-                quizQuestionRepository.findByDestinationIdOrderBySortOrder(destinationId));
+        // The quiz is rebuilt from scratch below (new rows, new ids), so translations
+        // stored on the old rows would vanish on every admin save. Remember them by
+        // id: a DTO that doesn't carry translations (the admin form) keeps the ones
+        // its row already had; a DTO that does (admin i18n tooling) wins.
+        List<QuizQuestion> existing = quizQuestionRepository.findByDestinationIdOrderBySortOrder(destinationId);
+        Map<UUID, Map<String, Map<String, String>>> questionTranslations = new HashMap<>();
+        Map<UUID, Map<String, Map<String, String>>> answerTranslations = new HashMap<>();
+        for (QuizQuestion q : existing) {
+            questionTranslations.put(q.getId(), q.getTranslations());
+            for (QuizAnswer a : q.getAnswers()) {
+                answerTranslations.put(a.getId(), a.getTranslations());
+            }
+        }
+
+        quizQuestionRepository.deleteAll(existing);
         quizQuestionRepository.flush();
 
         for (QuizQuestionDTO questionDto : dto.getQuestions()) {
@@ -154,11 +176,17 @@ public class QuizService {
             question.setDestination(destination);
             question.setPrompt(questionDto.getPrompt());
             question.setSortOrder(questionDto.getSortOrder());
+            question.setTranslations(questionDto.getTranslations() != null
+                    ? questionDto.getTranslations()
+                    : questionTranslations.get(questionDto.getId()));
             for (QuizAnswerDTO answerDto : questionDto.getAnswers()) {
                 QuizAnswer answer = new QuizAnswer();
                 answer.setQuestion(question);
                 answer.setLabel(answerDto.getLabel());
                 answer.setSortOrder(answerDto.getSortOrder());
+                answer.setTranslations(answerDto.getTranslations() != null
+                        ? answerDto.getTranslations()
+                        : answerTranslations.get(answerDto.getId()));
                 if (answerDto.getWeights() != null) {
                     for (QuizAnswerWeightDTO weightDto : answerDto.getWeights()) {
                         Category category = categoryRepository.findById(weightDto.getCategoryId())

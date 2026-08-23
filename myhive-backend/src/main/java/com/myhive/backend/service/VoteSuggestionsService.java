@@ -2,11 +2,11 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.SuggestionDTO;
 import com.myhive.backend.entity.Activity;
-import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
 import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -29,6 +30,12 @@ public class VoteSuggestionsService {
     private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
 
     public List<SuggestionDTO> buildSuggestions(VoteSession session) {
+        return buildSuggestions(session, null);
+    }
+
+    /** @param locale request locale (en/de/…); names, descriptions, includes and category names come back resolved for it. */
+    public List<SuggestionDTO> buildSuggestions(VoteSession session, String locale) {
+        String lc = Translations.normalize(locale);
         List<UUID> curatedActivityIds = voteSessionActivityRepository
                 .findBySessionIdOrderBySortOrder(session.getId()).stream()
                 .map(row -> row.getActivity().getId())
@@ -55,20 +62,23 @@ public class VoteSuggestionsService {
                     PageRequest.of(0, SUGGESTION_CAP));
         }
 
-        return chosen.stream().map(this::toDTO).toList();
+        return chosen.stream().map(a -> toDTO(a, lc)).toList();
     }
 
-    private SuggestionDTO toDTO(Activity activity) {
+    private SuggestionDTO toDTO(Activity activity, String lc) {
         List<String> categories = activity.getCategories().stream()
-                .map(Category::getName)
+                .map(c -> Translations.pick(c.getTranslations(), lc, "name", c.getName()))
                 .sorted()
                 .toList();
         String destinationSlug = activity.getDestination() == null
                 ? null : activity.getDestination().getSlug();
-        return new SuggestionDTO(activity.getId(), activity.getName(),
+        Map<String, Map<String, String>> tr = activity.getTranslations();
+        return new SuggestionDTO(activity.getId(),
+                Translations.pick(tr, lc, "name", activity.getName()),
                 activity.getPrice(), activity.getMinPrice(), activity.getImageUrl(),
                 activity.getSlug(), destinationSlug,
-                activity.getDescription(), activity.getIncludes(),
+                Translations.pick(tr, lc, "description", activity.getDescription()),
+                Translations.pick(tr, lc, "includes", activity.getIncludes()),
                 categories);
     }
 }

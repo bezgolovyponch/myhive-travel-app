@@ -445,3 +445,9 @@ UPDATE categories SET translations = '{"de":{"name":"Nachtleben"}}' WHERE slug =
 UPDATE categories SET translations = '{"de":{"name":"Abenteuer"}}' WHERE slug = 'adventure';
 UPDATE categories SET translations = '{"de":{"name":"Tagsüber"}}' WHERE slug = 'daytime';
 UPDATE categories SET translations = '{"de":{"name":"Kultur"}}' WHERE slug = 'culture';
+UPDATE quiz_questions SET translations = '{"de":{"prompt":"Tagsüber unterwegs oder Legende um 4 Uhr morgens?"}}' WHERE prompt = 'Daytime hero or 4am legend?';
+UPDATE quiz_questions SET translations = '{"de":{"prompt":"Adrenalinkick oder null Risiko?"}}' WHERE prompt = 'Adrenaline rush or zero risk?';
+UPDATE quiz_answers SET translations = '{"de":{"label":"Tagsüber"}}' WHERE label = 'Daytime';
+UPDATE quiz_answers SET translations = '{"de":{"label":"Legende um 4 Uhr"}}' WHERE label = '4am legend';
+UPDATE quiz_answers SET translations = '{"de":{"label":"Adrenalin"}}' WHERE label = 'Adrenaline';
+UPDATE quiz_answers SET translations = '{"de":{"label":"Null Risiko"}}' WHERE label = 'Zero risk';

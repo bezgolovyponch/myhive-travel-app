@@ -1,7 +1,9 @@
 package com.myhive.backend.entity;
 
+import com.myhive.backend.util.TranslationsConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -20,6 +22,7 @@ import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -42,6 +45,11 @@ public class QuizAnswer {
 
     @Column(nullable = false, length = 200)
     private String label;
+
+    /** Per-locale overrides of label, e.g. {"de": {"label": ...}}. Base column stays English. */
+    @Convert(converter = TranslationsConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private Map<String, Map<String, String>> translations;
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;

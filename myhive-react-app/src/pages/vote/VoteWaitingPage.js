@@ -5,11 +5,12 @@ import VoteMeta from './VoteMeta';
 import VoteTallyCard from '../../components/vote/VoteTallyCard';
 import { copyToClipboard } from '../../utils/clipboard';
 import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
-import { useT } from '../../i18n';
+import { useT, useLocalePath } from '../../i18n';
 import './VoteWaitingPage.css';
 
 function VoteWaitingContent() {
     const t = useT('vote');
+    const lp = useLocalePath();
     const { shareToken } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -156,7 +157,8 @@ function VoteWaitingContent() {
     // participant-count threshold — `numberOfTravelers` is a pricing input,
     // not an expected-voter count.
 
-    const shareUrl = `${window.location.origin}/vote/${shareToken}/activities?ref=invite`;
+    // Invitees land on the same language the organizer is using.
+    const shareUrl = `${window.location.origin}${lp(`/vote/${shareToken}/activities`)}?ref=invite`;
 
     const handleCopy = () => {
         copyToClipboard(shareUrl).then(ok => {

@@ -1,15 +1,11 @@
 import {API_BASE_URL} from './config';
 import {parseApiError} from './httpError';
-import {currentLocale, localeField} from '../i18n/routes';
+import {localeField, withLocaleParam as localized} from '../i18n/routes';
 
-// Public catalog reads carry the page's locale so the backend resolves the
-// translatable fields in place (same response shape, see the backend's
-// Translations). Read from the URL, not React context: this module is plain JS
-// shared by contexts, hooks and components alike, and the locale prefix is the
-// one thing every caller's page has in common. No window (tests, SSR) → en.
-function localized(url) {
-    return `${url}${url.includes('?') ? '&' : '?'}locale=${currentLocale()}`;
-}
+// Public catalog reads carry the page's locale (withLocaleParam) so the backend
+// resolves the translatable fields in place — same response shape, see the
+// backend's Translations. The locale comes from the URL prefix, not React
+// context: this module is plain JS shared by contexts, hooks and components.
 
 export const api = {
   // Destinations

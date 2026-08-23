@@ -4,12 +4,13 @@ import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
 import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
 import { pushEvent } from '../../utils/analytics';
-import { useT } from '../../i18n';
+import { useT, useLocalePath } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './ActivityVotePage.css';
 
 function ActivityVoteContent() {
     const t = useT('vote');
+    const lp = useLocalePath();
     const { shareToken } = useParams();
     const navigate = useNavigate();
 
@@ -113,7 +114,8 @@ function ActivityVoteContent() {
         </div>
     );
 
-    const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
+    // Invitees land on the same language the organizer is using.
+    const shareUrl = `${window.location.origin}${lp(`/vote/${shareToken}/activities`)}`;
 
     const getCardLink = (activity) => {
         if (!activity || !activity.slug || !activity.destinationSlug) return null;

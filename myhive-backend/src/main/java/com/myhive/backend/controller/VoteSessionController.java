@@ -46,14 +46,18 @@ public class VoteSessionController {
         return voteSessionService.createCartSession(request);
     }
 
+    // `locale` (en/de/…) on the reads localizes the copy in place; absent = English.
+
     @GetMapping("/{shareToken}")
-    public VoteSessionResponse getSession(@PathVariable UUID shareToken) {
-        return voteSessionService.getSession(shareToken);
+    public VoteSessionResponse getSession(@PathVariable UUID shareToken,
+                                          @RequestParam(required = false) String locale) {
+        return voteSessionService.getSession(shareToken, locale);
     }
 
     @GetMapping("/{shareToken}/activities")
-    public List<VoteActivityResponse> getActivities(@PathVariable UUID shareToken) {
-        return voteSessionService.getActivities(shareToken);
+    public List<VoteActivityResponse> getActivities(@PathVariable UUID shareToken,
+                                                    @RequestParam(required = false) String locale) {
+        return voteSessionService.getActivities(shareToken, locale);
     }
 
     @PostMapping("/{shareToken}/votes")
@@ -80,20 +84,23 @@ public class VoteSessionController {
     }
 
     @GetMapping("/{shareToken}/result")
-    public VoteResultResponse getResult(@PathVariable UUID shareToken) {
-        return voteSessionService.getResult(shareToken);
+    public VoteResultResponse getResult(@PathVariable UUID shareToken,
+                                        @RequestParam(required = false) String locale) {
+        return voteSessionService.getResult(shareToken, locale);
     }
 
     @GetMapping("/{shareToken}/tally")
     public VoteTallyResponse getTally(@PathVariable UUID shareToken,
                                       @RequestParam(required = false) UUID voterToken,
-                                      @RequestParam(required = false) UUID managerToken) {
-        return voteSessionService.getTally(shareToken, voterToken, managerToken);
+                                      @RequestParam(required = false) UUID managerToken,
+                                      @RequestParam(required = false) String locale) {
+        return voteSessionService.getTally(shareToken, voterToken, managerToken, locale);
     }
 
     @GetMapping("/{shareToken}/quiz")
-    public PublicQuizDTO getParticipantQuiz(@PathVariable UUID shareToken) {
-        return voteSessionService.getParticipantQuiz(shareToken);
+    public PublicQuizDTO getParticipantQuiz(@PathVariable UUID shareToken,
+                                            @RequestParam(required = false) String locale) {
+        return voteSessionService.getParticipantQuiz(shareToken, locale);
     }
 
     @PostMapping("/{shareToken}/quiz")

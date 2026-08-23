@@ -28,8 +28,9 @@ export function splitLocale(pathname) {
 
 /** Locale of the current page, read from the URL prefix; the default outside a browser (tests, SSR). */
 export function currentLocale() {
-  if (typeof window === 'undefined') return DEFAULT_LOCALE;
-  return splitLocale(window.location.pathname).locale;
+  // Tests stub window.location with partial objects; no pathname = default.
+  const pathname = typeof window === 'undefined' ? null : window.location?.pathname;
+  return pathname ? splitLocale(pathname).locale : DEFAULT_LOCALE;
 }
 
 /**
@@ -40,6 +41,16 @@ export function currentLocale() {
 export function localeField() {
   const locale = currentLocale();
   return locale === DEFAULT_LOCALE ? {} : { locale };
+}
+
+/**
+ * Append the current locale to an API URL (`?locale=de` / `&locale=de`): the
+ * backend resolves translatable content in place for it. Every public read
+ * sends it, English included, so the response never carries the raw
+ * translations map meant for the admin.
+ */
+export function withLocaleParam(url) {
+  return `${url}${url.includes('?') ? '&' : '?'}locale=${currentLocale()}`;
 }
 
 /** Prefix an absolute-relative path for a locale. '/'+'de' -> '/de'. */
