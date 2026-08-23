@@ -433,3 +433,15 @@ UPDATE activities SET min_price = 200.00 WHERE slug = 'jet-ski-adventure';
 UPDATE activities SET min_price = 400.00 WHERE slug = 'vltava-river-cruise';
 UPDATE activities SET min_price = 300.00 WHERE slug = 'beer-tasting-experience';
 UPDATE activities SET min_price = 150.00 WHERE slug = 'prague-castle-tour';
+
+-- German content translations for a few records, so /de can be verified
+-- locally (the prod fill lives in prod-migration-translations-de.sql).
+-- Shape: {"<locale>": {"<field>": "<text>"}}; missing fields fall back to English.
+UPDATE destinations SET translations = '{"de":{"name":"Prag","description":"Die Stadt der hundert Türme","country":"Tschechien","city":"Prag"}}' WHERE slug = 'prague';
+UPDATE activities SET translations = '{"de":{"name":"Prager Burg Tour","description":"Erkunde die größte zusammenhängende Burganlage der Welt.","includes":"Tickets ohne Anstehen; lizenzierter Guide; Audio-Headset"}}' WHERE slug = 'prague-castle-tour';
+UPDATE activities SET translations = '{"de":{"name":"Bierverkostung","description":"Probiere die besten tschechischen Biere mit einem lokalen Guide."}}' WHERE slug = 'beer-tasting-experience';
+UPDATE activities SET translations = '{"de":{"name":"Prager Kneipentour"}}' WHERE slug = 'prague-pub-crawl';
+UPDATE categories SET translations = '{"de":{"name":"Nachtleben"}}' WHERE slug = 'nightlife';
+UPDATE categories SET translations = '{"de":{"name":"Abenteuer"}}' WHERE slug = 'adventure';
+UPDATE categories SET translations = '{"de":{"name":"Tagsüber"}}' WHERE slug = 'daytime';
+UPDATE categories SET translations = '{"de":{"name":"Kultur"}}' WHERE slug = 'culture';

@@ -1,11 +1,13 @@
 package com.myhive.backend.entity;
 
+import com.myhive.backend.util.TranslationsConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -32,6 +34,11 @@ public class BlogPost implements Slugged {
 
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    /** Per-locale overrides of title/excerpt/content/category, e.g. {"de": {"title": ...}}. Base columns stay English. */
+    @Convert(converter = TranslationsConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private Map<String, Map<String, String>> translations;
 
     @Column(length = 100)
     private String category;

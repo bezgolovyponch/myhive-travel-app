@@ -41,9 +41,14 @@ link helpers and Next routing share one source.
 - **Legal pages** are not translated (`translated: false` in `pageMetadata`):
   `/de/terms` serves the English document with a canonical pointing at
   `/terms` and no hreflang set.
-- Backend content (destinations, activities, packages, blog bodies) is not
-  localized yet — that's the content phase (Ф3): translation tables/JSONB in
-  Spring plus `?locale=` on the API.
+- **Backend content** (destinations, activities, packages, categories, blog)
+  is localized by the backend: every read in `lib/api.ts` carries
+  `?locale=`, and the response comes back with the translatable fields
+  resolved in place (English fallback per field), same shape as before. The
+  legacy client fetches (`services/api.js`) do the same, reading the locale
+  from the URL prefix. Translations live in a `translations` JSON column per
+  content table (`myhive-backend`, see `util/Translations`); the prod fill is
+  `myhive-backend/prod-migration-translations-de.sql`.
 
 ## Environment
 

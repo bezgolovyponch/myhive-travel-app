@@ -1,7 +1,9 @@
 package com.myhive.backend.entity;
 
 import jakarta.persistence.CascadeType;
+import com.myhive.backend.util.TranslationsConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -25,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -62,6 +65,11 @@ public class Destination implements Slugged {
 
     @Column(precision = 4, scale = 2)
     private BigDecimal rating;
+
+    /** Per-locale overrides of name/description/country/city, e.g. {"de": {"name": ...}}. Base columns stay English. */
+    @Convert(converter = TranslationsConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private Map<String, Map<String, String>> translations;
 
     /** Per-record SEO gate: only editorially ready records are indexable (sitemap + no noindex). */
     @Column(name = "seo_indexable", nullable = false, columnDefinition = "boolean default false")

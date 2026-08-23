@@ -14,6 +14,7 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.util.MoneyMath;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,8 +40,15 @@ public class PackageService {
     private final ActivityRepository activityRepository;
     private final CategoryRepository categoryRepository;
 
+    // Without a locale: admin/raw view (base fields + translations map). With
+    // one: public view, fields resolved for that locale. See ActivityService.
+
     public List<PackageDTO> getAllPackages() {
-        return packageRepository.findAll().stream().map(this::toDTO).toList();
+        return getAllPackages(null);
+    }
+
+    public List<PackageDTO> getAllPackages(String locale) {
+        return packageRepository.findAll().stream().map(p -> toDTO(p, locale)).toList();
     }
 
     public Page<PackageDTO> getPackagesPaged(Pageable pageable) {
@@ -48,51 +56,82 @@ public class PackageService {
     }
 
     public PackageDTO getPackageById(UUID id) {
+        return getPackageById(id, null);
+    }
+
+    public PackageDTO getPackageById(UUID id, String locale) {
         Package p = packageRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Package", id));
-        return toDTO(p);
+        return toDTO(p, locale);
     }
 
     public PackageDTO getPackageBySlug(String slug) {
+        return getPackageBySlug(slug, null);
+    }
+
+    public PackageDTO getPackageBySlug(String slug, String locale) {
         Package p = packageRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Package", slug));
-        return toDTO(p);
+        return toDTO(p, locale);
     }
 
     public List<PackageDTO> getPackagesByDestination(UUID destinationId) {
-        return packageRepository.findByDestinationId(destinationId).stream().map(this::toDTO).toList();
+        return getPackagesByDestination(destinationId, null);
+    }
+
+    public List<PackageDTO> getPackagesByDestination(UUID destinationId, String locale) {
+        return packageRepository.findByDestinationId(destinationId).stream().map(p -> toDTO(p, locale)).toList();
     }
 
     public List<PackageDTO> getPackagesByDestinationAndCategorySlug(UUID destinationId, String categorySlug) {
+        return getPackagesByDestinationAndCategorySlug(destinationId, categorySlug, null);
+    }
+
+    public List<PackageDTO> getPackagesByDestinationAndCategorySlug(UUID destinationId, String categorySlug, String locale) {
         return packageRepository.findByDestinationIdAndCategoriesSlug(destinationId, categorySlug).stream()
-                .map(this::toDTO).toList();
+                .map(p -> toDTO(p, locale)).toList();
     }
 
     public List<PackageDTO> getPackagesByCategorySlug(String categorySlug) {
-        return packageRepository.findByCategoriesSlug(categorySlug).stream().map(this::toDTO).toList();
+        return getPackagesByCategorySlug(categorySlug, null);
+    }
+
+    public List<PackageDTO> getPackagesByCategorySlug(String categorySlug, String locale) {
+        return packageRepository.findByCategoriesSlug(categorySlug).stream().map(p -> toDTO(p, locale)).toList();
     }
 
     PackageDTO toDTO(Package p) {
+        return toDTO(p, null);
+    }
+
+    PackageDTO toDTO(Package p, String locale) {
+        String lc = Translations.normalize(locale);
+        Map<String, Map<String, String>> tr = p.getTranslations();
+        Destination destination = p.getDestination();
         PackageDTO dto = new PackageDTO();
         dto.setId(p.getId());
         dto.setSlug(p.getSlug());
-        dto.setDestinationId(p.getDestination().getId());
-        dto.setDestinationName(p.getDestination().getName());
-        dto.setDestinationSlug(p.getDestination().getSlug());
-        dto.setName(p.getName());
-        dto.setDescription(p.getDescription());
+        dto.setDestinationId(destination.getId());
+        dto.setDestinationName(Translations.pick(destination.getTranslations(), lc, "name", destination.getName()));
+        dto.setDestinationSlug(destination.getSlug());
+        dto.setName(Translations.pick(tr, lc, "name", p.getName()));
+        dto.setDescription(Translations.pick(tr, lc, "description", p.getDescription()));
         dto.setImageUrl(p.getImageUrl());
-        dto.setIncludes(p.getIncludes());
+        dto.setIncludes(Translations.pick(tr, lc, "includes", p.getIncludes()));
         dto.setDuration(p.getDuration());
         dto.setDiscountPct(p.getDiscountPct());
         dto.setSeoIndexable(p.isSeoIndexable());
+        if (locale == null) {
+            dto.setTranslations(tr);
+        }
 
         List<PackageActivityRefDTO> refs = new ArrayList<>();
         for (PackageActivity pa : p.getPackageActivities()) {
             Activity a = pa.getActivity();
             refs.add(new PackageActivityRefDTO(
                     a.getId(), pa.getPosition(),
-                    a.getSlug(), a.getName(), a.getPrice(), a.getDuration(), a.getImageUrl()));
+                    a.getSlug(), Translations.pick(a.getTranslations(), lc, "name", a.getName()),
+                    a.getPrice(), a.getDuration(), a.getImageUrl()));
         }
         dto.setActivities(refs);
 
@@ -107,7 +146,7 @@ public class PackageService {
         dto.setDiscountedPrice(discounted);
         dto.setSavings(savings);
 
-        List<CategoryDTO> cats = CategoryResolver.toDTOs(p.getCategories());
+        List<CategoryDTO> cats = CategoryResolver.toDTOs(p.getCategories(), lc);
         dto.setCategories(cats);
         dto.setCategoryIds(cats.stream().map(CategoryDTO::getId).toList());
         return dto;
@@ -155,6 +194,10 @@ public class PackageService {
         p.setDiscountPct(dto.getDiscountPct());
         p.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
         p.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
+        // null = "unchanged" (see ActivityService.applyDtoToEntity).
+        if (dto.getTranslations() != null) {
+            p.setTranslations(dto.getTranslations());
+        }
         applyActivities(dto.getActivities(), p);
     }
 

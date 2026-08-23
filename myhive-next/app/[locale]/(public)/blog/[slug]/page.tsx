@@ -3,8 +3,8 @@
 // renders post.content as GFM markdown through the shared MarkdownContent
 // renderer (react-markdown + remark-gfm), NOT dangerouslySetInnerHTML — raw HTML
 // in content is not rendered and URLs go through react-markdown's sanitizer.
-// Post content itself is backend data — localized in the content phase (Ф3),
-// not here; until then every locale serves the English body under its own URL.
+// Post fields arrive already localized for `locale` (backend translations
+// column, English fallback per field).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -28,7 +28,7 @@ function summarize(post: BlogPost) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params;
-  const post = await api.getBlogPostBySlug(slug);
+  const post = await api.getBlogPostBySlug(slug, locale);
   if (!post) return {};
 
   const t = await getTranslations({ locale, namespace: 'meta.blogPost' });
@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const post = await api.getBlogPostBySlug(slug);
+  const post = await api.getBlogPostBySlug(slug, locale);
   if (!post) notFound();
 
   const t = await getTranslations({ locale, namespace: 'common' });

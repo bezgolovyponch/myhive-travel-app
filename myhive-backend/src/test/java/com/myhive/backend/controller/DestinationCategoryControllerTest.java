@@ -22,6 +22,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -61,7 +62,7 @@ class DestinationCategoryControllerTest {
     void getCategoriesForDestination_returnsOk() throws Exception {
         UUID id = UUID.randomUUID();
         CategoryDTO category = new CategoryDTO(UUID.randomUUID(), "Adventure", "adventure");
-        when(destinationService.getCategoriesForDestination(id)).thenReturn(List.of(category));
+        when(destinationService.getCategoriesForDestination(eq(id), isNull())).thenReturn(List.of(category));
 
         mockMvc.perform(get("/destinations/{id}/categories", id))
                 .andExpect(status().isOk())
@@ -72,7 +73,7 @@ class DestinationCategoryControllerTest {
     @Test
     void getCategoriesForDestination_emptyResult_returnsEmptyArray() throws Exception {
         UUID id = UUID.randomUUID();
-        when(destinationService.getCategoriesForDestination(id)).thenReturn(List.of());
+        when(destinationService.getCategoriesForDestination(eq(id), isNull())).thenReturn(List.of());
 
         mockMvc.perform(get("/destinations/{id}/categories", id))
                 .andExpect(status().isOk())

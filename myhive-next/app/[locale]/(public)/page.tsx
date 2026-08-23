@@ -31,14 +31,14 @@ const MAX_FEATURED = 12;
 // Mirrors FeaturedActivitiesSection's own fallback: curated featured activities,
 // else the default destination's, so the grid is never empty and never shows
 // another destination's activities.
-async function loadFeatured(): Promise<Activity[]> {
+async function loadFeatured(locale: string): Promise<Activity[]> {
   try {
-    const destinations = (await api.getDestinations()) ?? [];
+    const destinations = (await api.getDestinations(locale)) ?? [];
     const main =
       destinations.find((d) => d.slug === DEFAULT_DESTINATION_SLUG) ?? destinations[0];
-    let activities = (await api.getFeaturedActivities().catch(() => null)) ?? [];
+    let activities = (await api.getFeaturedActivities(locale).catch(() => null)) ?? [];
     if (activities.length === 0 && main) {
-      activities = (await api.getActivities(main.id)) ?? [];
+      activities = (await api.getActivities(main.id, locale)) ?? [];
     }
     return activities.slice(0, MAX_FEATURED);
   } catch {
@@ -50,7 +50,7 @@ async function loadFeatured(): Promise<Activity[]> {
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const activities = await loadFeatured();
+  const activities = await loadFeatured(locale);
 
   const organizationJsonLd = {
     '@context': 'https://schema.org',

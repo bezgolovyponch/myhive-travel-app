@@ -43,7 +43,7 @@ export async function generateMetadata({ params, searchParams }: PageParams): Pr
   if (sp.tab != null || sp.voteSession != null) {
     return { title: t('tripBuilderTitle'), robots: { index: false, follow: true } };
   }
-  const dest = await api.getDestinationBySlug(slug);
+  const dest = await api.getDestinationBySlug(slug, locale);
   if (!dest) {
     return { title: t('notFound') };
   }
@@ -81,17 +81,17 @@ export default async function Page({ params, searchParams }: PageParams) {
     return <LegacyAppShim />;
   }
 
-  const dest = await api.getDestinationBySlug(slug);
+  const dest = await api.getDestinationBySlug(slug, locale);
   if (!dest) {
     notFound();
   }
 
   const [categories, activityPage, packages] = await Promise.all([
-    api.getDestinationCategories(dest.id).then((c) => c ?? []),
+    api.getDestinationCategories(dest.id, locale).then((c) => c ?? []),
     api
-      .getActivitiesPaged(dest.id, 0, PAGE_SIZE)
+      .getActivitiesPaged(dest.id, 0, PAGE_SIZE, locale)
       .catch(() => ({ content: [], totalElements: 0, last: true })),
-    api.getPackages(dest.id).then((p) => p ?? []),
+    api.getPackages(dest.id, locale).then((p) => p ?? []),
   ]);
 
   const t = await getTranslations({ locale, namespace: 'common' });
@@ -104,7 +104,7 @@ export default async function Page({ params, searchParams }: PageParams) {
   );
 
   return (
-    <PublicChrome>
+    <PublicChrome locale={locale}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }}

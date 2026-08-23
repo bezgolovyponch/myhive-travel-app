@@ -1,22 +1,35 @@
 import {API_BASE_URL} from './config';
 import {parseApiError} from './httpError';
+import {splitLocale} from '../i18n/routes';
+
+// Public catalog reads carry the page's locale so the backend resolves the
+// translatable fields in place (same response shape, see the backend's
+// Translations). Read from the URL, not React context: this module is plain JS
+// shared by contexts, hooks and components alike, and the locale prefix is the
+// one thing every caller's page has in common. No window (tests, SSR) → en.
+function localized(url) {
+    const locale = typeof window === 'undefined'
+        ? 'en'
+        : splitLocale(window.location.pathname).locale;
+    return `${url}${url.includes('?') ? '&' : '?'}locale=${locale}`;
+}
 
 export const api = {
   // Destinations
   async getDestinations() {
-    const response = await fetch(`${API_BASE_URL}/destinations`);
+    const response = await fetch(localized(`${API_BASE_URL}/destinations`));
     if (!response.ok) throw await parseApiError(response, 'Failed to fetch destinations');
     return response.json();
   },
 
   async getDestination(id) {
-    const response = await fetch(`${API_BASE_URL}/destinations/${id}`);
+    const response = await fetch(localized(`${API_BASE_URL}/destinations/${id}`));
     if (!response.ok) throw await parseApiError(response, 'Failed to fetch destination');
     return response.json();
   },
 
     async getDestinationBySlug(slug) {
-        const response = await fetch(`${API_BASE_URL}/destinations/slug/${slug}`);
+        const response = await fetch(localized(`${API_BASE_URL}/destinations/slug/${slug}`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch destination');
         return response.json();
     },
@@ -31,7 +44,7 @@ export const api = {
 
     if (params.toString()) url += `?${params.toString()}`;
 
-    const response = await fetch(url);
+    const response = await fetch(localized(url));
     if (!response.ok) throw await parseApiError(response, 'Failed to fetch activities');
     return response.json();
   },
@@ -43,13 +56,13 @@ export const api = {
         params.append('size', size);
         if (categorySlug) params.append('categorySlug', categorySlug);
 
-        const response = await fetch(`${API_BASE_URL}/activities/paged?${params.toString()}`);
+        const response = await fetch(localized(`${API_BASE_URL}/activities/paged?${params.toString()}`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch activities');
         return response.json();
     },
 
     async getFeaturedActivities() {
-        const response = await fetch(`${API_BASE_URL}/activities?featured=true`);
+        const response = await fetch(localized(`${API_BASE_URL}/activities?featured=true`));
         if (!response.ok) {
             throw await parseApiError(response, 'Failed to fetch featured activities');
         }
@@ -58,38 +71,38 @@ export const api = {
 
     // Categories
     async getCategories() {
-        const response = await fetch(`${API_BASE_URL}/categories`);
+        const response = await fetch(localized(`${API_BASE_URL}/categories`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch categories');
         return response.json();
     },
 
     async getCategoriesForDestination(destinationId) {
-        const response = await fetch(`${API_BASE_URL}/destinations/${destinationId}/categories`);
+        const response = await fetch(localized(`${API_BASE_URL}/destinations/${destinationId}/categories`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch categories for destination');
         return response.json();
     },
 
   async getActivity(id) {
-    const response = await fetch(`${API_BASE_URL}/activities/${id}`);
+    const response = await fetch(localized(`${API_BASE_URL}/activities/${id}`));
     if (!response.ok) throw await parseApiError(response, 'Failed to fetch activity');
     return response.json();
   },
 
     async getActivityBySlug(slug) {
-        const response = await fetch(`${API_BASE_URL}/activities/slug/${slug}`);
+        const response = await fetch(localized(`${API_BASE_URL}/activities/slug/${slug}`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch activity');
         return response.json();
     },
 
     // Packages
     async getPackagesByDestination(destinationId) {
-        const response = await fetch(`${API_BASE_URL}/packages?destinationId=${encodeURIComponent(destinationId)}`);
+        const response = await fetch(localized(`${API_BASE_URL}/packages?destinationId=${encodeURIComponent(destinationId)}`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch packages');
         return response.json();
     },
 
     async getPackageBySlug(slug) {
-        const response = await fetch(`${API_BASE_URL}/packages/slug/${slug}`);
+        const response = await fetch(localized(`${API_BASE_URL}/packages/slug/${slug}`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch package');
         return response.json();
     },
@@ -109,19 +122,19 @@ export const api = {
 
     // Blog
     async getBlogPosts() {
-        const response = await fetch(`${API_BASE_URL}/blog`);
+        const response = await fetch(localized(`${API_BASE_URL}/blog`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch blog posts');
         return response.json();
     },
 
     async getBlogPost(id) {
-        const response = await fetch(`${API_BASE_URL}/blog/${id}`);
+        const response = await fetch(localized(`${API_BASE_URL}/blog/${id}`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch blog post');
         return response.json();
     },
 
     async getBlogPostBySlug(slug) {
-        const response = await fetch(`${API_BASE_URL}/blog/slug/${slug}`);
+        const response = await fetch(localized(`${API_BASE_URL}/blog/slug/${slug}`));
         if (!response.ok) throw await parseApiError(response, 'Failed to fetch blog post');
         return response.json();
     },

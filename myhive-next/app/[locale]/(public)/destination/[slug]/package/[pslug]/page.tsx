@@ -2,8 +2,8 @@
 // and the city-match guard. The markup is the canonical CRA page
 // (legacy-src/pages/PackageDetailPage.js), so this route cannot drift from what
 // the SPA renders, and its Add-to-trip CTA is the real one rather than a link.
-// Record fields (name, description) are backend data — localized in the content
-// phase (Ф3); until then every locale serves the English record.
+// Record fields arrive already localized for `locale` (backend translations
+// column, English fallback per field).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -36,14 +36,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug, pslug } = await params;
   const t = await getTranslations({ locale, namespace: 'meta.package' });
   const [pkg, dest] = await Promise.all([
-    api.getPackageBySlug(pslug),
-    api.getDestinationBySlug(slug),
+    api.getPackageBySlug(pslug, locale),
+    api.getDestinationBySlug(slug, locale),
   ]);
   if (!pkg) {
     return { title: t('notFound') };
   }
 
-  const destinationName = destinationNameFromSlug(slug);
+  const destinationName = dest?.name || destinationNameFromSlug(slug);
   return pageMetadata({
     title: t('title', { name: pkg.name, destination: destinationName }),
     description: pkg.description
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const { locale, slug, pslug } = await params;
   setRequestLocale(locale);
-  const pkg = await api.getPackageBySlug(pslug);
+  const pkg = await api.getPackageBySlug(pslug, locale);
   if (!pkg) {
     notFound();
   }
@@ -71,7 +71,8 @@ export default async function Page({ params }: Props) {
   }
 
   const t = await getTranslations({ locale, namespace: 'common' });
-  const destinationName = destinationNameFromSlug(slug);
+  // destinationName rides on the record (localized); the slug is the fallback.
+  const destinationName = pkg.destinationName || destinationNameFromSlug(slug);
   const breadcrumbLd = breadcrumbJsonLd(
     [
       [t('home'), '/'],

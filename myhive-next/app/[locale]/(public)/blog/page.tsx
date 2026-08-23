@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const posts = (await api.getBlogPosts().catch(() => null)) ?? [];
+  const posts = (await api.getBlogPosts(locale).catch(() => null)) ?? [];
 
   return <LegacyBlog posts={posts} />;
 }

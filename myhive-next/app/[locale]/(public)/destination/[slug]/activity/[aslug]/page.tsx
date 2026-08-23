@@ -2,8 +2,8 @@
 // and the city-match guard. The markup is the canonical CRA page
 // (legacy-src/pages/ActivityDetailPage.js), so this route cannot drift from what
 // the SPA renders, and its Add-to-trip CTA is the real one rather than a link.
-// Record fields (name, description) are backend data — localized in the content
-// phase (Ф3); until then every locale serves the English record.
+// Record fields arrive already localized for `locale` (backend translations
+// column, English fallback per field).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -36,13 +36,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug, aslug } = await params;
   const t = await getTranslations({ locale, namespace: 'meta.activity' });
   const [activity, dest] = await Promise.all([
-    api.getActivityBySlug(aslug),
-    api.getDestinationBySlug(slug),
+    api.getActivityBySlug(aslug, locale),
+    api.getDestinationBySlug(slug, locale),
   ]);
   if (!activity) {
     return { title: t('notFound') };
   }
-  const destinationName = destinationNameFromSlug(slug);
+  const destinationName = dest?.name || destinationNameFromSlug(slug);
   return pageMetadata({
     title: t('title', { name: activity.name, destination: destinationName }),
     description: activity.description
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const { locale, slug, aslug } = await params;
   setRequestLocale(locale);
-  const activity = await api.getActivityBySlug(aslug);
+  const activity = await api.getActivityBySlug(aslug, locale);
   if (!activity) {
     notFound();
   }
@@ -70,7 +70,8 @@ export default async function Page({ params }: Props) {
   }
 
   const t = await getTranslations({ locale, namespace: 'common' });
-  const destinationName = destinationNameFromSlug(slug);
+  // destinationName rides on the record (localized); the slug is the fallback.
+  const destinationName = activity.destinationName || destinationNameFromSlug(slug);
   const breadcrumbLd = breadcrumbJsonLd(
     [
       [t('home'), '/'],

@@ -4,6 +4,7 @@ import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.util.Translations;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,12 +33,19 @@ class CategoryResolver {
     }
 
     static List<CategoryDTO> toDTOs(Collection<Category> categories) {
+        return toDTOs(categories, null);
+    }
+
+    /** @param locale normalized locale (see {@link Translations#normalize}); null = base names. */
+    static List<CategoryDTO> toDTOs(Collection<Category> categories, String locale) {
         if (categories == null) {
             return new ArrayList<>();
         }
         return categories.stream()
-                .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(c -> new CategoryDTO(c.getId(), c.getName(), c.getSlug()))
+                .map(c -> new CategoryDTO(c.getId(),
+                        Translations.pick(c.getTranslations(), locale, "name", c.getName()), c.getSlug()))
+                // Sorted by the name the caller will show, so German lists read alphabetically too.
+                .sorted(Comparator.comparing(CategoryDTO::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 }
