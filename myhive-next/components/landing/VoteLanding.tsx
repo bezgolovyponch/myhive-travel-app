@@ -1,9 +1,10 @@
 'use client';
 
-// The voting homepage (mockup fixes/trivlu-landing-1-voting-v58.html):
-// "Skip chatting. Start voting." One picked list — fed by the hero swipe deck
-// and the catalogue's Add-to-trip buttons — drives the header cart, step 1's
-// done flag, the sticky bar and the final CTA.
+// The voting landing at /landing/vote (mockup
+// fixes/trivlu-landing-1-voting-v58.html): "Skip chatting. Start voting."
+// One picked list — fed by the hero swipe deck and the catalogue's Add-to-trip
+// buttons — drives the header cart, step 1's done flag, the sticky bar and the
+// final CTA.
 import { useReducer } from 'react';
 import './landing.css';
 import './home.css';
@@ -165,7 +166,7 @@ function scrollToDeck() {
     ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-export default function HomeLanding({
+export default function VoteLanding({
   rows,
   deck,
   pool,

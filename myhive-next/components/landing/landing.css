@@ -49,6 +49,15 @@
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
 }
+/* The landing routes never load the legacy global stylesheet, so the UA's
+   default body margin (8px, white behind it) must be neutralised here. :has
+   keeps the rule inert on every route that doesn't render a landing. */
+html:has(.tl),
+body:has(.tl) {
+  margin: 0;
+  padding: 0;
+  background: #16131c;
+}
 .tl *, .tl *::before, .tl *::after { box-sizing: border-box; }
 .tl img { max-width: 100%; display: block; }
 .tl button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
