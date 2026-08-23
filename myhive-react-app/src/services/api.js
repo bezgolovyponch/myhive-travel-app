@@ -1,6 +1,6 @@
 import {API_BASE_URL} from './config';
 import {parseApiError} from './httpError';
-import {splitLocale} from '../i18n/routes';
+import {currentLocale, localeField} from '../i18n/routes';
 
 // Public catalog reads carry the page's locale so the backend resolves the
 // translatable fields in place (same response shape, see the backend's
@@ -8,10 +8,7 @@ import {splitLocale} from '../i18n/routes';
 // shared by contexts, hooks and components alike, and the locale prefix is the
 // one thing every caller's page has in common. No window (tests, SSR) → en.
 function localized(url) {
-    const locale = typeof window === 'undefined'
-        ? 'en'
-        : splitLocale(window.location.pathname).locale;
-    return `${url}${url.includes('?') ? '&' : '?'}locale=${locale}`;
+    return `${url}${url.includes('?') ? '&' : '?'}locale=${currentLocale()}`;
 }
 
 export const api = {
@@ -114,7 +111,8 @@ export const api = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(bookingData),
+      // locale: language of the customer's confirmation emails.
+      body: JSON.stringify({...bookingData, ...localeField()}),
     });
     if (!response.ok) throw await parseApiError(response, 'Failed to create booking');
     return response.json();
@@ -159,7 +157,8 @@ export const api = {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(tripData),
+            // locale: language of the customer's confirmation emails.
+            body: JSON.stringify({...tripData, ...localeField()}),
         });
     if (!response.ok) throw await parseApiError(response, 'Failed to create booking');
         return response.json();

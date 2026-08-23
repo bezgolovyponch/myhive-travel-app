@@ -40,6 +40,7 @@ import com.myhive.backend.repository.VoteSessionActivityRepository;
 import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import com.myhive.backend.repository.VoteSessionResultActivityRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -109,7 +110,7 @@ public class VoteSessionService {
                 loadAndValidateDestinationActivities(destination, request.getActivityIds());
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
-                request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget());
+                request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(), request.getLocale());
 
         persistBallot(session, request.getActivityIds(), activitiesById);
 
@@ -144,7 +145,7 @@ public class VoteSessionService {
         Map<UUID, Activity> activitiesById = loadAndValidateDestinationActivities(destination, activityIds);
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
-                request.getStartDate(), request.getEndDate(), VoteMode.CART, null);
+                request.getStartDate(), request.getEndDate(), VoteMode.CART, null, request.getLocale());
 
         persistBallot(session, activityIds, activitiesById);
         sendVoteCreatedConfirmationQuietly(session);
@@ -155,12 +156,13 @@ public class VoteSessionService {
 
     private VoteSession newSession(Destination destination, String initiatorEmail, Integer numberOfTravelers,
                                    LocalDate startDate, LocalDate endDate,
-                                   VoteMode voteMode, BigDecimal budget) {
+                                   VoteMode voteMode, BigDecimal budget, String locale) {
         VoteSession session = new VoteSession();
         session.setShareToken(UUID.randomUUID());
         session.setManagerToken(UUID.randomUUID());
         session.setDestination(destination);
         session.setInitiatorEmail(initiatorEmail);
+        session.setLocale(Translations.normalize(locale));
         session.setNumberOfTravelers(numberOfTravelers);
         session.setStartDate(startDate);
         session.setEndDate(endDate);

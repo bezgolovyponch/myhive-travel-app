@@ -4,6 +4,7 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.model.VoteMode;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
@@ -23,6 +24,11 @@ class VoteCreatedTemplateRenderTest {
         resolver.setCharacterEncoding("UTF-8");
         SpringTemplateEngine templateEngine = new SpringTemplateEngine();
         templateEngine.setTemplateResolver(resolver);
+        // The template's copy lives in messages*.properties (#{...} keys), like in the app.
+        ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
+        messages.setBasename("messages");
+        messages.setDefaultEncoding("UTF-8");
+        templateEngine.setTemplateEngineMessageSource(messages);
         return templateEngine;
     }
 

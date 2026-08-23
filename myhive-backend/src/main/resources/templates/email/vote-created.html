@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Your Group Vote is Live</title>
+    <title th:text="#{email.voteCreated.title}">Your Group Vote is Live</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f0f0f0; margin: 0; padding: 20px 0; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
@@ -26,46 +26,45 @@
 <body>
 <div class="container">
     <div class="header">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 56px;">
-        <h1>Your group vote is live!</h1>
-        <p th:text="'Trip to ' + ${session.destination.name}">Trip to Bali</p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 56px;">
+        <h1 th:text="#{email.voteCreated.header.title}">Your group vote is live!</h1>
+        <p th:text="#{email.common.tripTo(${session.destination.name})}">Trip to Bali</p>
     </div>
     <div class="content">
         <p>
-            Your group vote for <strong th:text="${session.destination.name}">Bali</strong>
-            (<span th:text="${startDate}">August 1, 2026</span> &ndash; <span th:text="${endDate}">August 10, 2026</span>,
-            <span th:text="${session.numberOfTravelers}">2</span> travelers) is now open.
-            Voting closes automatically in 24 hours, on <span th:text="${expiresAt}">August 2, 2026 at 12:00 UTC</span>.
+            <span th:utext="#{email.voteCreated.intro.open(${session.destination.name}, ${startDate}, ${endDate}, ${session.numberOfTravelers})}">Your group vote for <strong>Bali</strong>
+            (August 1, 2026 &ndash; August 10, 2026, 2 travelers) is now open.</span>
+            <span th:text="#{email.voteCreated.intro.closes(${expiresAt})}">Voting closes automatically in 24 hours, on August 2, 2026 at 12:00 UTC.</span>
         </p>
 
         <div class="section">
-            <h2>How it works</h2>
+            <h2 th:text="#{email.voteCreated.how.title}">How it works</h2>
             <ol class="steps">
-                <li>Share the invite link below with your group &mdash; they swipe to vote on the activities.</li>
-                <li>Track progress any time on your vote dashboard (live count + countdown).</li>
-                <li th:if="${session.voteMode.name() == 'CART'}">When the timer ends &mdash; or you end it early &mdash; we tally the votes and email you the results.</li>
-                <li th:unless="${session.voteMode.name() == 'CART'}">When the timer ends &mdash; or you end it early &mdash; we tally the votes and email you the final itinerary to open in Trip Builder.</li>
+                <li th:text="#{email.voteCreated.how.step1}">Share the invite link below with your group &mdash; they swipe to vote on the activities.</li>
+                <li th:text="#{email.voteCreated.how.step2}">Track progress any time on your vote dashboard (live count + countdown).</li>
+                <li th:if="${session.voteMode.name() == 'CART'}" th:text="#{email.voteCreated.how.step3.cart}">When the timer ends &mdash; or you end it early &mdash; we tally the votes and email you the results.</li>
+                <li th:unless="${session.voteMode.name() == 'CART'}" th:text="#{email.voteCreated.how.step3.quiz}">When the timer ends &mdash; or you end it early &mdash; we tally the votes and email you the final itinerary to open in Trip Builder.</li>
             </ol>
         </div>
 
-        <p class="invite-label">Your invite link &mdash; send it to your group:</p>
+        <p class="invite-label" th:text="#{email.voteCreated.invite.label}">Your invite link &mdash; send it to your group:</p>
         <p class="invite-box" th:text="${inviteUrl}">https://trivlu.com/vote/abc/activities?ref=invite</p>
 
-        <a th:href="${dashboardUrl}" class="cta-button" style="color: #ffffff !important;">Open your vote dashboard</a>
+        <a th:href="${dashboardUrl}" class="cta-button" style="color: #ffffff !important;" th:text="#{email.voteCreated.cta.dashboard}">Open your vote dashboard</a>
 
-        <p class="muted">
+        <p class="muted" th:text="#{email.voteCreated.results.auto}">
             The final results will be emailed to this address automatically &mdash; you don't need to do anything else.
         </p>
         <p class="muted">
-            Questions? Email us at
+            <span th:text="#{email.common.questions}">Questions? Email us at</span>
             <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@trivlu.com</a>.
         </p>
     </div>
     <div class="footer">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 36px; margin-bottom: 10px;">
-        <p>Creating unforgettable travel experiences</p>
-        <p>This is an automated message. Please do not reply to this email.</p>
-        <p>For support, contact us at support@trivlu.com</p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 36px; margin-bottom: 10px;">
+        <p th:text="#{email.common.footer.tagline}">Creating unforgettable travel experiences</p>
+        <p th:text="#{email.common.footer.automated}">This is an automated message. Please do not reply to this email.</p>
+        <p th:text="#{email.common.footer.support}">For support, contact us at support@trivlu.com</p>
     </div>
 </div>
 </body>

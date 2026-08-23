@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Trivlu Travel Itinerary Confirmation</title>
+    <title th:text="#{email.itinerary.title}">Trivlu Travel Itinerary Confirmation</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -117,37 +117,37 @@
 <body>
 <div class="container">
     <div class="header">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 56px;">
-        <h1>Your Travel Itinerary</h1>
-        <p>Thank you for choosing Trivlu Travel, <span th:text="${customerName}">Customer</span>!</p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 56px;">
+        <h1 th:text="#{email.itinerary.header.title}">Your Travel Itinerary</h1>
+        <p th:text="#{email.itinerary.header.thanks(${customerName})}">Thank you for choosing Trivlu Travel, Customer!</p>
     </div>
     <div class="content">
 
         <div class="section">
-            <h2>Booking Details</h2>
-            <p><strong>Booking reference:</strong> <span th:text="${tripId}">TRV-XXXXXXXX</span></p>
-            <p><strong>Booking Date:</strong> <span th:text="${bookingDate}">March 5, 2026</span></p>
-            <p><strong>Trip Name:</strong> <span th:text="${tripData.tripName}">Booking</span></p>
-            <p><strong>Status:</strong> <span class="status-confirmed">Confirmed</span></p>
+            <h2 th:text="#{email.itinerary.booking.title}">Booking Details</h2>
+            <p><strong th:text="#{email.itinerary.booking.reference}">Booking reference:</strong> <span th:text="${tripId}">TRV-XXXXXXXX</span></p>
+            <p><strong th:text="#{email.itinerary.booking.date}">Booking Date:</strong> <span th:text="${bookingDate}">March 5, 2026</span></p>
+            <p><strong th:text="#{email.itinerary.booking.tripName}">Trip Name:</strong> <span th:text="${tripData.tripName}">Booking</span></p>
+            <p><strong th:text="#{email.itinerary.booking.status}">Status:</strong> <span class="status-confirmed" th:text="#{email.itinerary.booking.statusConfirmed}">Confirmed</span></p>
         </div>
 
         <!-- Payment summary — shown only when a deposit has been collected (not for lead bookings). -->
         <div class="section" th:if="${depositPaid}">
-            <h2>Payment</h2>
-            <p><strong>Deposit paid:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(amountPaid, 1, 2)}">0.00</span></span></p>
-            <p th:if="${totalAmount != null}"><strong>Trip total:</strong> €<span th:text="${#numbers.formatDecimal(totalAmount, 1, 2)}">0.00</span></p>
-            <p th:if="${balanceDue != null}"><strong>Balance due:</strong> €<span th:text="${#numbers.formatDecimal(balanceDue, 1, 2)}">0.00</span></p>
+            <h2 th:text="#{email.itinerary.payment.title}">Payment</h2>
+            <p><strong th:text="#{email.itinerary.payment.depositPaid}">Deposit paid:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(amountPaid, 1, 2)}">0.00</span></span></p>
+            <p th:if="${totalAmount != null}"><strong th:text="#{email.itinerary.payment.tripTotal}">Trip total:</strong> €<span th:text="${#numbers.formatDecimal(totalAmount, 1, 2)}">0.00</span></p>
+            <p th:if="${balanceDue != null}"><strong th:text="#{email.itinerary.payment.balanceDue}">Balance due:</strong> €<span th:text="${#numbers.formatDecimal(balanceDue, 1, 2)}">0.00</span></p>
         </div>
 
         <!-- Destinations and Activities -->
         <div th:if="${destinationViews}" th:each="destinationView : ${destinationViews}">
             <div class="section">
                 <h2><span th:text="${destinationView.destinationName}">Destination</span></h2>
-                <p><strong>Country:</strong> <span th:text="${destinationView.country}">Country</span></p>
-                <p><strong>Duration:</strong> <span th:text="${destinationView.duration}">1</span> days</p>
+                <p><strong th:text="#{email.itinerary.destination.country}">Country:</strong> <span th:text="${destinationView.country}">Country</span></p>
+                <p><strong th:text="#{email.itinerary.destination.duration}">Duration:</strong> <span th:text="#{email.itinerary.destination.durationDays(${destinationView.duration})}">1 days</span></p>
 
                 <div th:if="${destinationView.startDate != null and destinationView.endDate != null}">
-                    <p><strong>Travel Dates:</strong>
+                    <p><strong th:text="#{email.itinerary.destination.travelDates}">Travel Dates:</strong>
                         <span th:text="${destinationView.startDate}">Start Date</span> –
                         <span th:text="${destinationView.endDate}">End Date</span>
                     </p>
@@ -155,34 +155,34 @@
 
                 <!-- Package groups -->
                 <div th:each="packageGroup : ${destinationView.packageGroups}">
-                    <h3>Package: <span th:text="${packageGroup.packageName}">Package Name</span></h3>
+                    <h3 th:text="#{email.itinerary.package.title(${packageGroup.packageName})}">Package: Package Name</h3>
                     <div th:each="line : ${packageGroup.activities}" class="activity">
                         <h4 th:text="${line.activity.activityName}">Activity Name</h4>
-                        <p><strong>Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
-                        <p><strong>Description:</strong> <span th:text="${line.activity.description ?: 'No description available'}">Description</span></p>
-                        <p><strong>Duration:</strong> <span th:text="${line.activity.duration ?: 0}">0</span> hours</p>
-                        <p><strong>Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
-                        <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
-                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> applies</p>
+                        <p><strong th:text="#{email.itinerary.activity.category}">Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
+                        <p><strong th:text="#{email.itinerary.activity.description}">Description:</strong> <span th:text="${line.activity.description ?: #messages.msg('email.itinerary.activity.noDescription')}">Description</span></p>
+                        <p><strong th:text="#{email.itinerary.activity.duration}">Duration:</strong> <span th:text="#{email.itinerary.activity.durationHours(${line.activity.duration ?: 0})}">0 hours</span></p>
+                        <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                        <p th:if="${line.groupMinApplies}"><strong th:text="#{email.itinerary.activity.groupMin}">Group minimum:</strong>
+                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
                     </div>
-                    <p><strong>Subtotal:</strong> €<span th:text="${#numbers.formatDecimal(packageGroup.subtotal, 1, 2)}">0.00</span></p>
-                    <p class="discount"><strong>Package discount (−<span th:text="${packageGroup.discountPct}">0</span>%):</strong>
+                    <p><strong th:text="#{email.itinerary.package.subtotal}">Subtotal:</strong> €<span th:text="${#numbers.formatDecimal(packageGroup.subtotal, 1, 2)}">0.00</span></p>
+                    <p class="discount"><strong th:text="#{email.itinerary.package.discount(${packageGroup.discountPct})}">Package discount (−0%):</strong>
                         −€<span th:text="${#numbers.formatDecimal(packageGroup.subtotal - packageGroup.discounted, 1, 2)}">0.00</span>
                     </p>
-                    <p><strong>Package total:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(packageGroup.discounted, 1, 2)}">0.00</span></span></p>
+                    <p><strong th:text="#{email.itinerary.package.total}">Package total:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(packageGroup.discounted, 1, 2)}">0.00</span></span></p>
                 </div>
 
                 <!-- Standalone activities -->
                 <div th:if="${not #lists.isEmpty(destinationView.standaloneActivities)}">
-                    <h3>Standalone Activities</h3>
+                    <h3 th:text="#{email.itinerary.standalone.title}">Standalone Activities</h3>
                     <div th:each="line : ${destinationView.standaloneActivities}" class="activity">
                         <h4 th:text="${line.activity.activityName}">Activity Name</h4>
-                        <p><strong>Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
-                        <p><strong>Description:</strong> <span th:text="${line.activity.description ?: 'No description available'}">Description</span></p>
-                        <p><strong>Duration:</strong> <span th:text="${line.activity.duration ?: 0}">0</span> hours</p>
-                        <p><strong>Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
-                        <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
-                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> applies</p>
+                        <p><strong th:text="#{email.itinerary.activity.category}">Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
+                        <p><strong th:text="#{email.itinerary.activity.description}">Description:</strong> <span th:text="${line.activity.description ?: #messages.msg('email.itinerary.activity.noDescription')}">Description</span></p>
+                        <p><strong th:text="#{email.itinerary.activity.duration}">Duration:</strong> <span th:text="#{email.itinerary.activity.durationHours(${line.activity.duration ?: 0})}">0 hours</span></p>
+                        <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                        <p th:if="${line.groupMinApplies}"><strong th:text="#{email.itinerary.activity.groupMin}">Group minimum:</strong>
+                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
                     </div>
                 </div>
             </div>
@@ -190,25 +190,25 @@
 
         <!-- Additional Information -->
         <div th:if="${tripData.notes != null and not #strings.isEmpty(tripData.notes)}" class="section">
-            <h2>Additional Information</h2>
+            <h2 th:text="#{email.itinerary.notes.title}">Additional Information</h2>
             <p th:text="${tripData.notes}">Additional notes</p>
         </div>
 
         <div class="section">
-            <h2>Next Steps</h2>
+            <h2 th:text="#{email.itinerary.nextSteps.title}">Next Steps</h2>
             <ol>
-                <li>Our team will contact you within 24 hours to confirm details</li>
-                <li>Payment arrangements will be discussed during the call</li>
-                <li>Final confirmations and travel documents will be provided</li>
+                <li th:text="#{email.itinerary.nextSteps.step1}">Our team will contact you within 24 hours to confirm details</li>
+                <li th:text="#{email.itinerary.nextSteps.step2}">Payment arrangements will be discussed during the call</li>
+                <li th:text="#{email.itinerary.nextSteps.step3}">Final confirmations and travel documents will be provided</li>
             </ol>
         </div>
 
     </div>
     <div class="footer">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 36px; margin-bottom: 10px;">
-        <p>Creating unforgettable travel experiences</p>
-        <p>This is an automated message. Please do not reply to this email.</p>
-        <p>For support, contact us at support@trivlu.com</p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 36px; margin-bottom: 10px;">
+        <p th:text="#{email.common.footer.tagline}">Creating unforgettable travel experiences</p>
+        <p th:text="#{email.common.footer.automated}">This is an automated message. Please do not reply to this email.</p>
+        <p th:text="#{email.common.footer.support}">For support, contact us at support@trivlu.com</p>
     </div>
 </div>
 </body>

@@ -48,3 +48,11 @@ posts) keeps English in the base columns and per-locale overrides in a
 - Adding a language needs no backend change — only content: fill `"<locale>"`
   keys. Prod fill for German: `prod-migration-translations-de.sql` (run against
   the prod database; base rows are matched by slug).
+
+Customer emails (vote created/result, trip reminders, itinerary and payment
+confirmations) render in the locale stored on the VoteSession / TripLead /
+Booking (`locale` column, sent by the frontend at creation; null = English):
+the Thymeleaf templates use `#{...}` keys from `messages.properties` /
+`messages_de.properties` (subjects included), dates are spelled in that
+language and frontend links carry the locale prefix. Staff notifications
+(booking/contact/consultation) stay English.

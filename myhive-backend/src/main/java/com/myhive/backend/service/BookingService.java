@@ -21,6 +21,7 @@ import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.util.EmailMasker;
 import com.myhive.backend.util.MoneyMath;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -60,6 +61,7 @@ public class BookingService {
     public BookingDTO createBooking(CreateBookingRequest request) {
         Booking booking = new Booking();
         booking.setUserEmail(request.getUserEmail());
+        booking.setLocale(Translations.normalize(request.getLocale()));
         booking.setStatus(BookingStatus.PENDING);
 
         List<BookingItem> items = new ArrayList<>();
@@ -119,6 +121,7 @@ public class BookingService {
     public Booking createBookingEntity(TripExportRequest request, boolean enforceTrustedPricing) {
         Booking booking = new Booking();
         booking.setUserEmail(request.getUserEmail());
+        booking.setLocale(Translations.normalize(request.getLocale()));
         booking.setStatus(BookingStatus.PENDING);
         booking.setCustomerName(request.getCustomerName());
         booking.setPhone(request.getPhone());
@@ -267,6 +270,7 @@ public class BookingService {
         TripExportRequest request = new TripExportRequest();
         request.setTripName("Booking");
         request.setUserEmail(booking.getUserEmail());
+        request.setLocale(booking.getLocale());
         request.setCustomerName(booking.getCustomerName());
         request.setPhone(booking.getPhone());
         request.setNumberOfTravelers(booking.getNumberOfTravelers());

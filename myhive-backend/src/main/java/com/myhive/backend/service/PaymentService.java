@@ -317,7 +317,7 @@ public class PaymentService {
         if (share.getType() == PaymentShareType.DEPOSIT || fullyPaid) {
             try {
                 emailService.sendPaymentReceived(booking.getUserEmail(), booking.getCustomerName(),
-                        booking.getTripId(), paidSum, booking.getTotalAmount(), fullyPaid);
+                        booking.getTripId(), paidSum, booking.getTotalAmount(), fullyPaid, booking.getLocale());
             } catch (Exception e) {
                 log.error("Payment-received email failed for booking {}: {}", booking.getId(), e.getMessage(), e);
             }

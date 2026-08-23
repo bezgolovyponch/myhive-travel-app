@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { localeField } from '../i18n/routes';
 
 const voteApi = {
   // Public quiz fetch (organizer pre-session, by destinationId)
@@ -29,6 +30,8 @@ const voteApi = {
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
         budget, voterToken, quizResponses, activityIds,
+        // Language of the organizer's emails (vote created / result) and their links.
+        ...localeField(),
       }),
     });
     if (!response.ok) {
@@ -116,6 +119,7 @@ const voteApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, activityIds,
+        ...localeField(),
       }),
     });
     if (!response.ok) {

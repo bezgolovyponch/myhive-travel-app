@@ -20,6 +20,10 @@ public class CreateBookingRequest {
     @NotEmpty(message = "Activities list cannot be empty")
     private List<BookingActivityItem> activities;
 
+    /** Locale the customer is browsing in ("de"); drives the language of the confirmation emails. Null = English. */
+    @Size(max = 8)
+    private String locale;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

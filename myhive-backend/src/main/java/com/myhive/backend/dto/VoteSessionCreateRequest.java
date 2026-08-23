@@ -42,4 +42,7 @@ public class VoteSessionCreateRequest {
     // Retained for one release cycle so old clients still validate; ignored by the service.
     @Size(max = 20)
     private List<UUID> likedCategoryIds;
+
+    /** Locale the initiator is browsing in ("de"); drives the language of the vote emails. Null = English. */
+    @Size(max = 8) private String locale;
 }

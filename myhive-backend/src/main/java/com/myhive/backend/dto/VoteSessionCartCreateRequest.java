@@ -27,4 +27,7 @@ public class VoteSessionCartCreateRequest {
     @NotEmpty(message = "activityIds must not be empty")
     @Size(max = 50, message = "activityIds may not exceed 50")
     private List<UUID> activityIds;
+
+    /** Locale the initiator is browsing in ("de"); drives the language of the vote emails. Null = English. */
+    @Size(max = 8) private String locale;
 }
