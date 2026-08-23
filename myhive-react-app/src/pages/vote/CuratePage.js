@@ -5,10 +5,12 @@ import SwipeCard from '../../components/SwipeCard';
 import {useTrip} from '../../context/TripContext';
 import { pushEvent } from '../../utils/analytics';
 import { writeQuizFlow } from '../../utils/quizFlow';
+import { useT } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './CuratePage.css';
 
 function CurateContent() {
+  const t = useT('vote');
   const location = useLocation();
   const navigate = useNavigate();
   const {dispatch} = useTrip();
@@ -137,24 +139,24 @@ function CurateContent() {
     return <div className="curate-page-error">{error}</div>;
   }
   if (!pool) {
-    return <div className="curate-page-loading">Loading pool…</div>;
+    return <div className="curate-page-loading">{t('curate.loading')}</div>;
   }
   if (pool.length === 0) {
-    return <div className="curate-page-empty">No activities match your quiz. Try a different destination.</div>;
+    return <div className="curate-page-empty">{t('curate.empty')}</div>;
   }
 
   if (isComplete) {
     if (pickedRef.current.length > 0) {
       // Handoff in flight — the completion effect above is navigating away.
-      return <div className="curate-page-loading">Building your trip…</div>;
+      return <div className="curate-page-loading">{t('curate.building')}</div>;
     }
     return (
       <div className="curate-finalize">
         <p className="curate-finalize-empty">
-          You didn&apos;t pick anything. Start over and swipe right on what the group should vote on.
+          {t('curate.nothingPicked')}
         </p>
         <button type="button" className="curate-finalize-reset" onClick={handleStartOver}>
-          Start over
+          {t('curate.startOver')}
         </button>
       </div>
     );
@@ -167,17 +169,18 @@ function CurateContent() {
       onSwipe={handleSwipe}
       onUndo={handleUndo}
       canUndo={currentIndex > 0}
-      title="Pick activities for the group to vote on"
-      subtitle="Swipe right to include, left to skip"
+      title={t('curate.title')}
+      subtitle={t('curate.subtitle')}
       getCardLink={getCardLink}
     />
   );
 }
 
 export default function CuratePage() {
+    const t = useT('vote');
     return (
         <>
-            <VoteMeta title="Pick activities"/>
+            <VoteMeta title={t('meta.curate')}/>
             <CurateContent/>
         </>
     );

@@ -1,17 +1,21 @@
 import { formatPricePerPerson } from '../../utils/format';
+import { useT } from '../../i18n';
 import './VoteTallyCard.css';
 
 // Ranked vote tally, visually derived from the homepage hero ".vote-card"
 // (name + count + progress bar). Used on the waiting screen (live) and the
 // result screen (frozen, with prices).
-function VoteTallyCard({ title = 'Vote results', participantCount, rows, showPrices = false }) {
+function VoteTallyCard({ title, participantCount, rows, showPrices = false }) {
+    const t = useT('voteComponents');
     const denominator = Math.max(1, participantCount);
     return (
         <div className="vote-tally-card">
             <div className="vote-tally-head">
-                <span className="vote-tally-title">{title}</span>
+                <span className="vote-tally-title">{title ?? t('tally.title')}</span>
                 <span className="vote-tally-sub">
-                    {participantCount} {participantCount === 1 ? 'mate has' : 'mates have'} voted
+                    {participantCount === 1
+                        ? t('tally.votedOne', { count: participantCount })
+                        : t('tally.votedOther', { count: participantCount })}
                 </span>
             </div>
             <ul className="vote-tally-list">

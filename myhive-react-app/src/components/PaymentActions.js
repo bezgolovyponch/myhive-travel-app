@@ -5,8 +5,10 @@ import {paymentApi} from '../services/paymentApi';
 import {PAYMENTS_ENABLED} from '../services/config';
 import {pushEvent, navigateAfterEvents} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
+import {useT} from '../i18n';
 
 function PaymentActions({voteShareToken, managerToken, tripData, initialValues, makeBookingPayload}) {
+    const t = useT('payment');
     const [mode, setMode] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const [showConsultDone, setShowConsultDone] = useState(false);
@@ -49,7 +51,7 @@ function PaymentActions({voteShareToken, managerToken, tripData, initialValues, 
             setShowForm(false);
             setShowConsultDone(true);
         } catch (e) {
-            setSubmitError(e.message || 'Something went wrong. Please try again.');
+            setSubmitError(e.message || t('actions.genericError'));
         } finally {
             setIsSubmitting(false);
         }
@@ -63,7 +65,7 @@ function PaymentActions({voteShareToken, managerToken, tripData, initialValues, 
                     className="btn btn--primary payment-actions__deposit"
                     onClick={() => open('deposit')}
                 >
-                    Book &amp; pay 30% prepayment
+                    {t('actions.bookDeposit')}
                 </button>
             )}
             <button
@@ -71,7 +73,7 @@ function PaymentActions({voteShareToken, managerToken, tripData, initialValues, 
                 className="btn btn--secondary payment-actions__consult"
                 onClick={() => open('consult')}
             >
-                Contact our consultant
+                {t('actions.contactConsultant')}
             </button>
 
             <ContactForm
@@ -87,14 +89,14 @@ function PaymentActions({voteShareToken, managerToken, tripData, initialValues, 
             <AppModal
                 isOpen={showConsultDone}
                 onClose={() => setShowConsultDone(false)}
-                title="Request received"
+                title={t('actions.consultDoneTitle')}
                 footer={
                     <button className="btn btn--primary" onClick={() => setShowConsultDone(false)}>
-                        Got it
+                        {t('actions.gotIt')}
                     </button>
                 }
             >
-                <p>Thanks! Our consultant will contact you shortly to finalize your trip and arrange payment.</p>
+                <p>{t('actions.consultDoneBody')}</p>
             </AppModal>
         </div>
     );

@@ -4,14 +4,13 @@
 export const SUPPORTED_LOCALES = ['en', 'de'];
 export const DEFAULT_LOCALE = 'en';
 
-// URLs the legacy SPA owns (client-only flows). They are never locale-prefixed:
-// the SPA's BrowserRouter reads the real URL and knows nothing about locales.
-// /unsubscribe takes no subpath; /vote and /payment require one; /admin owns
-// its whole subtree including the bare form. Mirrored by the Next catch-all,
-// which decides between mounting the SPA and a real 404.
+// URLs the legacy SPA owns (client-only flows), used by the Next catch-all to
+// decide between mounting the SPA and a real 404. /unsubscribe takes no
+// subpath; /vote and /payment require one; /admin owns its whole subtree
+// including the bare form. They are locale-prefixed like everything else —
+// the SPA's BrowserRouter takes the prefix as its basename (see App.js).
 export const SPA_EXACT = new Set(['unsubscribe']);
 export const SPA_NESTED = new Set(['vote', 'payment']);
-export const SPA_PREFIXES = new Set(['admin', 'vote', 'payment', 'unsubscribe']);
 
 function firstSegment(pathname) {
   return pathname.split('/').filter(Boolean)[0] ?? '';
@@ -27,6 +26,22 @@ export function splitLocale(pathname) {
   return { locale: DEFAULT_LOCALE, pathname };
 }
 
+/** Locale of the current page, read from the URL prefix; the default outside a browser (tests, SSR). */
+export function currentLocale() {
+  if (typeof window === 'undefined') return DEFAULT_LOCALE;
+  return splitLocale(window.location.pathname).locale;
+}
+
+/**
+ * Request-body fragment carrying the current locale — `{locale: 'de'}`, or {}
+ * for the default: the backend stores null for English, so the field is only
+ * sent when it says something.
+ */
+export function localeField() {
+  const locale = currentLocale();
+  return locale === DEFAULT_LOCALE ? {} : { locale };
+}
+
 /** Prefix an absolute-relative path for a locale. '/'+'de' -> '/de'. */
 export function localizePath(path, locale) {
   if (!locale || locale === DEFAULT_LOCALE) return path;
@@ -34,8 +49,7 @@ export function localizePath(path, locale) {
 }
 
 /**
- * Locale-prefix an href unless it is external, already prefixed, or an
- * SPA-owned URL (those flows are English-only and unprefixed by design).
+ * Locale-prefix an href unless it is external or already prefixed.
  * Accepts hrefs with search/hash.
  */
 export function localizeHref(href, locale) {
@@ -46,6 +60,5 @@ export function localizeHref(href, locale) {
   const rest = href.slice(pathEnd);
   const seg = firstSegment(path);
   if (SUPPORTED_LOCALES.includes(seg) && seg !== DEFAULT_LOCALE) return href;
-  if (SPA_PREFIXES.has(seg)) return href;
   return localizePath(path, locale) + rest;
 }

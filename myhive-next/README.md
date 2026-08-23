@@ -35,9 +35,13 @@ link helpers and Next routing share one source.
   locale-aware canonicals and the hreflang set.
 - **Links**: legacy components keep locale-free URLs; `LegacyRouter` strips the
   prefix from the location it feeds react-router and re-adds it on every
-  href/navigation. SPA-owned flows (/admin, /vote, /payment, /unsubscribe) are
-  English-only and never prefixed — the catch-all redirects `/de/admin`-style
-  URLs back to the real ones.
+  href/navigation. The SPA-owned flows (/vote, /payment, /unsubscribe, ?tab=
+  state) run under the prefix too: the CRA `BrowserRouter` takes it as its
+  `basename` (see `myhive-react-app/src/App.js`), so `/de/vote/...` mounts the
+  SPA in German. /admin stays English (no translations, works under both).
+- **Emails**: the SPA sends the page locale when it creates a vote session,
+  a trip lead or a booking; the backend stores it and renders the customer
+  emails (and the links inside them) in that language.
 - **Legal pages** are not translated (`translated: false` in `pageMetadata`):
   `/de/terms` serves the English document with a canonical pointing at
   `/terms` and no hreflang set.

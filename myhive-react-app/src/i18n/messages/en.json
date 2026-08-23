@@ -54,7 +54,8 @@
   },
   "common": {
     "home": "Home",
-    "blog": "Blog"
+    "blog": "Blog",
+    "close": "Close"
   },
   "chrome": {
     "comingSoonTitle": "Coming Soon",
@@ -455,5 +456,254 @@
     "loading": "Loading...",
     "postNotFound": "Post not found",
     "backToBlog": "Back to Blog"
+  },
+  "voteComponents": {
+    "start": {
+      "title": "Start group vote",
+      "sub": "Share the link with your mates and watch the results live. Voting closes automatically after 24 hours.",
+      "tripDates": "Trip dates",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "create": "Create vote",
+      "creating": "Creating…",
+      "errors": {
+        "datesRequired": "Trip dates are required",
+        "endBeforeStart": "End date must be on or after the start date",
+        "createFailed": "Failed to create the vote. Please try again."
+      }
+    },
+    "active": {
+      "title": "A vote is already running",
+      "body": "Your mates are still voting on this trip. Finish that vote before starting a new one — you can end it early from the vote dashboard.",
+      "openDashboard": "Open the vote dashboard"
+    },
+    "tally": {
+      "title": "Vote results",
+      "votedOne": "{count} mate has voted",
+      "votedOther": "{count} mates have voted"
+    }
+  },
+  "tripBuilder": {
+    "heading": {
+      "votingList": "Your Voting List",
+      "itinerary": "Your Itinerary",
+      "selectedOne": "{count} activity selected",
+      "selectedOther": "{count} activities selected"
+    },
+    "summary": {
+      "destination": "Destination:",
+      "travelers": "Travelers:",
+      "dates": "Dates:"
+    },
+    "items": {
+      "percentOff": "{pct}% off",
+      "removeAria": "Remove {name}"
+    },
+    "price": {
+      "perPerson": "{price} / person",
+      "multiplied": "{price} × {travelers} = {total}",
+      "groupMinLine": "{price} × {travelers} = {total} (group min)"
+    },
+    "emptyState": "Start building your trip by adding activities!",
+    "footer": {
+      "estimatedCost": "Estimated cost",
+      "completeBooking": "Complete Booking",
+      "sendBookingRequest": "Send booking request"
+    },
+    "errors": {
+      "addActivitiesFirst": "Please add some activities to your trip before submitting.",
+      "submitFailed": "Failed to submit booking. Please try again."
+    },
+    "vote": {
+      "startCta": "Start group vote",
+      "foreignDestinationTitle": "Group voting works for one destination at a time — remove activities from other destinations first.",
+      "loadError": "Couldn't load your group's vote results. Refresh the page to try again."
+    },
+    "recommended": {
+      "title": "Recommended for you",
+      "subtitle": "Based on your quiz answers"
+    },
+    "suggestions": {
+      "title": "Group suggestions",
+      "subtitle": "From your group's quiz answers"
+    },
+    "browse": {
+      "title": "Browse More Activities",
+      "filterAll": "All",
+      "showLess": "Show less",
+      "showAll": "Show all ({count})",
+      "add": "Add",
+      "added": "Added"
+    },
+    "budget": {
+      "spent": "Spent",
+      "budget": "Budget",
+      "remaining": "Remaining"
+    },
+    "restore": {
+      "title": "Replace your current trip?",
+      "keepCurrent": "Keep current",
+      "openSaved": "Open saved trip",
+      "body": "Opening your saved trip will replace the activities currently in your itinerary."
+    },
+    "success": {
+      "defaultUserName": "Traveler"
+    }
+  },
+  "swipe": {
+    "processing": "Processing your choices...",
+    "progress": "{current} / {total}",
+    "durationHours": "{hours}h",
+    "fromPerPerson": "from {price} / person",
+    "perPersonPrice": "{price} / person",
+    "groupMinimum": "Group minimum {amount}",
+    "likeOverlay": "LIKE ♥",
+    "nopeOverlay": "NOPE ✕",
+    "dislikeAria": "Dislike",
+    "undoAria": "Undo last swipe",
+    "likeAria": "Like",
+    "linkCopied": "✓ Link Copied!",
+    "copyInviteLink": "Copy Invite Link"
+  },
+  "chat": {
+    "greeting": "Hi! I'm your AI travel assistant. What type of trip are you looking for?",
+    "autoEngage": "Planning a stag do? Tell me what your group is into and I'll point you to the right activities!",
+    "responses": {
+      "default": "I can help you plan the perfect group getaway! What interests you most?",
+      "nightlife": "For epic nightlife, check the Nightlife category in Activities — bar crawls, club entries and boat parties are group favourites.",
+      "adventure": "Adventure awaits! Browse the Adventure category for go-karting, water sports and adrenaline activities your group can do together.",
+      "relax": "Perfect for unwinding — look for spa, beach club and relaxed daytime activities to balance out the big nights.",
+      "packages": "Our packages bundle several activities at a discount — check the Packages tab on the destination page and customize any of them in the Trip Builder!",
+      "suggestPackages": "Packages are the easiest start — a ready-made mix of activities at a discount that you can still customize in the Trip Builder!",
+      "suggestTripBuilder": "You have {count} activities selected.",
+      "suggestAddMore": "Consider adding more for a full experience!",
+      "suggestBalanced": "This looks like a great balanced trip!",
+      "suggestDefault": "Start with the featured activities on the home page — they're the most popular with groups. Add anything you like to the Trip Builder!",
+      "prices": "Prices are shown per person on every activity card, and packages give you a discount for booking several activities together. The Trip Builder totals everything for your group size.",
+      "groups": "Everything here is built for groups! You can even start a group vote from the Trip Builder so the whole crew picks the activities together.",
+      "hello": "Hello! I'm here to help you plan the perfect trip. Are you looking for adventure, nightlife, relaxation, or a mix of everything?"
+    },
+    "title": "AI Travel Assistant",
+    "closeAria": "Close chat",
+    "avatarAi": "AI",
+    "avatarYou": "You",
+    "inputAria": "Chat message",
+    "inputPlaceholder": "Tell me about your ideal trip...",
+    "sendAria": "Send message",
+    "send": "Send",
+    "openAria": "Open chat assistant"
+  },
+  "datePicker": {
+    "startLabel": "Start",
+    "endLabel": "End",
+    "addDate": "Add date",
+    "clearStartAria": "Clear start date",
+    "clearEndAria": "Clear end date"
+  },
+  "payment": {
+    "actions": {
+      "genericError": "Something went wrong. Please try again.",
+      "bookDeposit": "Book & pay 30% prepayment",
+      "contactConsultant": "Contact our consultant",
+      "consultDoneTitle": "Request received",
+      "gotIt": "Got it",
+      "consultDoneBody": "Thanks! Our consultant will contact you shortly to finalize your trip and arrange payment."
+    },
+    "success": {
+      "title": "Thank you — your payment is on its way!",
+      "body": "We're confirming your payment with our provider. You'll get an email once it's processed.",
+      "bookingReference": "Booking reference: {booking}",
+      "contactHeading": "Contact us to get details about your trip",
+      "whatsappAria": "Contact us on WhatsApp",
+      "whatsappUs": "WhatsApp us"
+    },
+    "cancelled": {
+      "title": "Payment cancelled",
+      "body": "No charge was made. You can return to your trip and try again whenever you're ready."
+    },
+    "backToHome": "Back to home"
+  },
+  "unsubscribe": {
+    "title": "Unsubscribe from trip reminders",
+    "body": "You'll stop receiving reminder emails about your saved trip. Booking and vote confirmations are not affected.",
+    "error": "Something went wrong. Please try again.",
+    "working": "Unsubscribing…",
+    "confirm": "Unsubscribe",
+    "doneTitle": "You're unsubscribed",
+    "doneBody": "We won't send you any more trip reminders."
+  },
+  "vote": {
+    "meta": {
+      "quiz": "Group quiz",
+      "curate": "Pick activities",
+      "activities": "Vote on activities",
+      "waiting": "Voting open",
+      "result": "Vote results"
+    },
+    "quiz": {
+      "loadFailed": "Failed to load quiz",
+      "loading": "Loading quiz…",
+      "progress": "{current} / {total}"
+    },
+    "curate": {
+      "loading": "Loading pool…",
+      "empty": "No activities match your quiz. Try a different destination.",
+      "building": "Building your trip…",
+      "nothingPicked": "You didn't pick anything. Start over and swipe right on what the group should vote on.",
+      "startOver": "Start over",
+      "title": "Pick activities for the group to vote on",
+      "subtitle": "Swipe right to include, left to skip"
+    },
+    "activities": {
+      "submitFailed": "Failed to submit votes. Please try again.",
+      "loading": "Loading activities...",
+      "submitting": "Submitting your votes...",
+      "sessionGoneTitle": "This vote session no longer exists.",
+      "sessionGoneHint": "It may have expired or been removed — ask the organiser for a new link.",
+      "empty": "No activities found for the selected categories.",
+      "title": "Which activities are you up for?",
+      "subtitle": "Swipe right to vote yes, left to skip"
+    },
+    "waiting": {
+      "processing": "Processing results...",
+      "countdown": "{hours}h {minutes}m",
+      "shareTitleDestination": "Vote: trip to {destination}",
+      "shareTitleGeneric": "Vote on our trip",
+      "shareText": "Help pick what we do — vote on the activities:",
+      "sessionError": "Could not load session: {error}",
+      "finalising": "Finalising results...",
+      "title": "Voting is open!",
+      "tripTo": "Trip to {destination}",
+      "yourSession": "Your vote session",
+      "alreadyVoted": "✓ You’ve already voted in this session.",
+      "untilResults": "until results",
+      "votedOne": "person voted",
+      "votedOther": "people voted",
+      "ofTotal": "of {total}",
+      "liveResults": "Live results",
+      "shareLabel": "Share with friends:",
+      "inviteLinkAria": "Invite link",
+      "share": "Share",
+      "copied": "✓ Link copied!",
+      "copyLink": "Copy link",
+      "copyInviteLink": "Copy invite link",
+      "endEarly": "End voting early & see results",
+      "note": "Results will appear on this page after the timer ends."
+    },
+    "result": {
+      "loading": "Loading result...",
+      "cartTitle": "The votes are in!",
+      "proceedToCheckout": "Proceed to Checkout",
+      "title": "Trip result",
+      "groupPick": "The group's pick",
+      "empty": "The group didn't agree on anything within the budget. See suggestions below.",
+      "counts": "Likes: {likes} · Skips: {skips}",
+      "budgetTitle": "Budget",
+      "spent": "Spent: {amount}",
+      "budget": "Budget: {amount}",
+      "remaining": "Remaining: {amount}",
+      "openTripBuilder": "Open in Trip Builder",
+      "suggestionsTitle": "Suggestions"
+    }
   }
 }

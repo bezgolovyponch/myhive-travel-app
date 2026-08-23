@@ -1,5 +1,6 @@
 import {useEffect, useId, useRef} from 'react';
 import {useModalA11y} from '../hooks/useModalA11y';
+import {useT} from '../i18n';
 
 // iOS Safari lays fixed elements out against the *large* viewport, so a
 // bottom-anchored sheet can sit far below the visible bottom edge: on a 14 Pro
@@ -52,6 +53,7 @@ function AppModal({
                       overlayClassName = '',
                       closeOnBackdrop = false,
                   }) {
+    const t = useT('common');
     const titleId = useId();
     const contentRef = useModalA11y(isOpen, onClose);
     const overlayRef = useRef(null);
@@ -77,7 +79,7 @@ function AppModal({
             >
                 <div className="app-modal-header">
                     <h2 id={titleId}>{title}</h2>
-                    <button type="button" className="app-modal-close-btn" onClick={onClose} aria-label="Close">×</button>
+                    <button type="button" className="app-modal-close-btn" onClick={onClose} aria-label={t('close')}>×</button>
                 </div>
                 <div className="app-modal-body">{children}</div>
                 {footer && <div className="app-modal-footer">{footer}</div>}

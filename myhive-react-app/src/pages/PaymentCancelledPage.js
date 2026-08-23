@@ -1,12 +1,14 @@
 import {Link} from 'react-router-dom';
+import {useT} from '../i18n';
 import './PaymentReturnPages.css';
 
 function PaymentCancelledPage() {
+    const t = useT('payment');
     return (
         <div className="payment-return">
-            <h1>Payment cancelled</h1>
-            <p>No charge was made. You can return to your trip and try again whenever you're ready.</p>
-            <Link to="/" className="btn btn--primary">Back to home</Link>
+            <h1>{t('cancelled.title')}</h1>
+            <p>{t('cancelled.body')}</p>
+            <Link to="/" className="btn btn--primary">{t('backToHome')}</Link>
         </div>
     );
 }

@@ -26,10 +26,12 @@ import PaymentSuccessPage from '../pages/PaymentSuccessPage';
 import PaymentCancelledPage from '../pages/PaymentCancelledPage';
 import {useDestinationModal} from '../context/DestinationModalContext';
 import {useTripLeadSync} from '../hooks/useTripLeadSync';
+import {useT} from '../i18n';
 import AppModal from './AppModal';
 
 function Layout() {
   useTripLeadSync();
+  const t = useT('chrome');
   const {state, dispatch} = useDestinationModal();
   const closeDestinationModal = () => dispatch({type: 'CLOSE_DESTINATION_MODAL'});
 
@@ -68,13 +70,13 @@ function Layout() {
         <AppModal
             isOpen={state.destinationModalOpen}
             onClose={closeDestinationModal}
-            title="Coming Soon"
+            title={t('comingSoonTitle')}
         >
             <div className="empty-trip-state">
-                <h3>{state.selectedDestination?.name || 'This destination'} is coming soon!</h3>
-                <p>We're working hard to bring you amazing experiences here. Stay tuned!</p>
+                <h3>{t('comingSoonHeading', {name: state.selectedDestination?.name || t('fallbackDestination')})}</h3>
+                <p>{t('comingSoonBody')}</p>
                 <button className="btn btn--primary" onClick={closeDestinationModal}>
-                    Got it
+                    {t('gotIt')}
                 </button>
             </div>
         </AppModal>

@@ -4,14 +4,13 @@
 // the real Add-to-trip buttons behave exactly as they do in the SPA, and this
 // route cannot drift from it.
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api } from '@/lib/api';
 import { breadcrumbJsonLd, pageMetadata, jsonLd } from '@/lib/seo';
 import PublicChrome from '@/components/site/PublicChrome';
 import LegacyAppShim from '@/components/LegacyAppShim';
 import LegacyDestination from '@/components/site/legacy/LegacyDestination';
-import { DEFAULT_LOCALE } from '../../../../legacy-src/i18n/routes';
 
 interface PageParams {
   params: Promise<{ locale: string; slug: string }>;
@@ -21,18 +20,6 @@ interface PageParams {
 // Matches PAGE_SIZE in legacy-src/pages/DestinationPage.js — the seeded first
 // page must be the same size the client's Show More continues from.
 const PAGE_SIZE = 12;
-
-function spaQueryString(sp: Record<string, string | string[] | undefined>) {
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(sp)) {
-    if (value == null) continue;
-    for (const v of Array.isArray(value) ? value : [value]) {
-      qs.append(key, v);
-    }
-  }
-  const s = qs.toString();
-  return s ? `?${s}` : '';
-}
 
 export async function generateMetadata({ params, searchParams }: PageParams): Promise<Metadata> {
   const sp = await searchParams;
@@ -71,13 +58,6 @@ export default async function Page({ params, searchParams }: PageParams) {
   // It also means the seeded catalog below only ever serves the bare URL, where
   // there is no search string for the CRA page to interpret.
   if (sp.tab != null || sp.voteSession != null) {
-    // The SPA's BrowserRouter has no locale-prefixed routes: a fresh load of
-    // /de/destination/x?tab=... would render blank chrome. The flow itself is
-    // English-only for now, so hand it the real URL. (Client-side tab switches
-    // on /de stay in the CRA page and never hit this branch.)
-    if (locale !== DEFAULT_LOCALE) {
-      redirect(`/destination/${slug}${spaQueryString(sp)}`);
-    }
     return <LegacyAppShim />;
   }
 

@@ -44,7 +44,8 @@
   },
   "common": {
     "home": "Startseite",
-    "blog": "Blog"
+    "blog": "Blog",
+    "close": "Schließen"
   },
   "chrome": {
     "comingSoonTitle": "Bald verfügbar",
@@ -445,5 +446,254 @@
     "loading": "Wird geladen...",
     "postNotFound": "Beitrag nicht gefunden",
     "backToBlog": "Zurück zum Blog"
+  },
+  "voteComponents": {
+    "start": {
+      "title": "Gruppen-Voting starten",
+      "sub": "Teile den Link mit deinen Jungs und verfolge die Ergebnisse live. Das Voting endet automatisch nach 24 Stunden.",
+      "tripDates": "Reisedaten",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "create": "Voting erstellen",
+      "creating": "Wird erstellt…",
+      "errors": {
+        "datesRequired": "Reisedaten sind erforderlich",
+        "endBeforeStart": "Das Enddatum muss am oder nach dem Startdatum liegen",
+        "createFailed": "Voting konnte nicht erstellt werden. Bitte versuch es erneut."
+      }
+    },
+    "active": {
+      "title": "Ein Voting läuft bereits",
+      "body": "Deine Jungs stimmen noch über diesen Trip ab. Beende dieses Voting, bevor du ein neues startest — im Voting-Dashboard kannst du es vorzeitig beenden.",
+      "openDashboard": "Voting-Dashboard öffnen"
+    },
+    "tally": {
+      "title": "Voting-Ergebnisse",
+      "votedOne": "{count} Kumpel hat abgestimmt",
+      "votedOther": "{count} Kumpels haben abgestimmt"
+    }
+  },
+  "tripBuilder": {
+    "heading": {
+      "votingList": "Deine Voting-Liste",
+      "itinerary": "Dein Programm",
+      "selectedOne": "{count} Aktivität ausgewählt",
+      "selectedOther": "{count} Aktivitäten ausgewählt"
+    },
+    "summary": {
+      "destination": "Reiseziel:",
+      "travelers": "Reisende:",
+      "dates": "Daten:"
+    },
+    "items": {
+      "percentOff": "{pct}% Rabatt",
+      "removeAria": "{name} entfernen"
+    },
+    "price": {
+      "perPerson": "{price} / Person",
+      "multiplied": "{price} × {travelers} = {total}",
+      "groupMinLine": "{price} × {travelers} = {total} (Gruppen-Minimum)"
+    },
+    "emptyState": "Füge Aktivitäten hinzu und stell dir deinen Trip zusammen!",
+    "footer": {
+      "estimatedCost": "Geschätzte Kosten",
+      "completeBooking": "Buchung abschließen",
+      "sendBookingRequest": "Buchungsanfrage senden"
+    },
+    "errors": {
+      "addActivitiesFirst": "Bitte füge erst Aktivitäten zu deinem Trip hinzu, bevor du absendest.",
+      "submitFailed": "Buchung konnte nicht gesendet werden. Bitte versuch es erneut."
+    },
+    "vote": {
+      "startCta": "Gruppen-Voting starten",
+      "foreignDestinationTitle": "Gruppen-Voting funktioniert nur für ein Reiseziel gleichzeitig — entferne zuerst die Aktivitäten anderer Reiseziele.",
+      "loadError": "Die Voting-Ergebnisse deiner Gruppe konnten nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen."
+    },
+    "recommended": {
+      "title": "Für dich empfohlen",
+      "subtitle": "Basierend auf deinen Quiz-Antworten"
+    },
+    "suggestions": {
+      "title": "Vorschläge der Gruppe",
+      "subtitle": "Aus den Quiz-Antworten deiner Gruppe"
+    },
+    "browse": {
+      "title": "Weitere Aktivitäten entdecken",
+      "filterAll": "Alle",
+      "showLess": "Weniger anzeigen",
+      "showAll": "Alle anzeigen ({count})",
+      "add": "Hinzufügen",
+      "added": "Hinzugefügt"
+    },
+    "budget": {
+      "spent": "Ausgegeben",
+      "budget": "Budget",
+      "remaining": "Übrig"
+    },
+    "restore": {
+      "title": "Aktuellen Trip ersetzen?",
+      "keepCurrent": "Aktuellen behalten",
+      "openSaved": "Gespeicherten Trip öffnen",
+      "body": "Wenn du deinen gespeicherten Trip öffnest, werden die Aktivitäten in deinem aktuellen Programm ersetzt."
+    },
+    "success": {
+      "defaultUserName": "Reisender"
+    }
+  },
+  "swipe": {
+    "processing": "Deine Auswahl wird verarbeitet...",
+    "progress": "{current} / {total}",
+    "durationHours": "{hours} Std.",
+    "fromPerPerson": "ab {price} / Person",
+    "perPersonPrice": "{price} / Person",
+    "groupMinimum": "Gruppen-Mindestbetrag {amount}",
+    "likeOverlay": "LIKE ♥",
+    "nopeOverlay": "NOPE ✕",
+    "dislikeAria": "Gefällt mir nicht",
+    "undoAria": "Letzten Swipe rückgängig machen",
+    "likeAria": "Gefällt mir",
+    "linkCopied": "✓ Link kopiert!",
+    "copyInviteLink": "Einladungslink kopieren"
+  },
+  "chat": {
+    "greeting": "Hi! Ich bin dein KI-Reiseassistent. Was für einen Trip suchst du?",
+    "autoEngage": "Planst du einen JGA? Sag mir, worauf deine Gruppe steht, und ich zeige dir die passenden Aktivitäten!",
+    "responses": {
+      "default": "Ich helfe dir, den perfekten Gruppentrip zu planen! Was interessiert dich am meisten?",
+      "nightlife": "Für episches Nachtleben schau in die Kategorie Nachtleben bei den Aktivitäten — Kneipentouren, Club-Eintritte und Bootspartys sind Gruppenfavoriten.",
+      "adventure": "Abenteuer wartet! Stöbere in der Kategorie Abenteuer nach Kartfahren, Wassersport und Adrenalin-Aktivitäten, die eure Gruppe zusammen machen kann.",
+      "relax": "Perfekt zum Runterkommen — schau nach Spa, Beachclub und entspannten Tagesaktivitäten, um die großen Nächte auszugleichen.",
+      "packages": "Unsere Pakete bündeln mehrere Aktivitäten mit Rabatt — schau auf der Reiseziel-Seite in den Tab Pakete und passe jedes davon im Trip-Planer an!",
+      "suggestPackages": "Pakete sind der einfachste Start — eine fertige Mischung aus Aktivitäten mit Rabatt, die du im Trip-Planer trotzdem anpassen kannst!",
+      "suggestTripBuilder": "Du hast {count} Aktivitäten ausgewählt.",
+      "suggestAddMore": "Füge noch ein paar hinzu für das volle Erlebnis!",
+      "suggestBalanced": "Das sieht nach einem richtig ausgewogenen Trip aus!",
+      "suggestDefault": "Starte mit den vorgestellten Aktivitäten auf der Startseite — sie sind bei Gruppen am beliebtesten. Füge alles, was dir gefällt, zum Trip-Planer hinzu!",
+      "prices": "Preise stehen pro Person auf jeder Aktivitätskarte, und Pakete geben dir Rabatt, wenn du mehrere Aktivitäten zusammen buchst. Der Trip-Planer rechnet alles für eure Gruppengröße zusammen.",
+      "groups": "Hier ist alles für Gruppen gemacht! Du kannst aus dem Trip-Planer sogar ein Gruppen-Voting starten, damit die ganze Crew die Aktivitäten gemeinsam auswählt.",
+      "hello": "Hallo! Ich helfe dir, den perfekten Trip zu planen. Suchst du Abenteuer, Nachtleben, Entspannung oder eine Mischung aus allem?"
+    },
+    "title": "KI-Reiseassistent",
+    "closeAria": "Chat schließen",
+    "avatarAi": "KI",
+    "avatarYou": "Du",
+    "inputAria": "Chat-Nachricht",
+    "inputPlaceholder": "Erzähl mir von deinem idealen Trip...",
+    "sendAria": "Nachricht senden",
+    "send": "Senden",
+    "openAria": "Chat-Assistent öffnen"
+  },
+  "datePicker": {
+    "startLabel": "Start",
+    "endLabel": "Ende",
+    "addDate": "Datum wählen",
+    "clearStartAria": "Startdatum löschen",
+    "clearEndAria": "Enddatum löschen"
+  },
+  "payment": {
+    "actions": {
+      "genericError": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
+      "bookDeposit": "Buchen & 30% Anzahlung leisten",
+      "contactConsultant": "Unseren Berater kontaktieren",
+      "consultDoneTitle": "Anfrage erhalten",
+      "gotIt": "Alles klar",
+      "consultDoneBody": "Danke! Unser Berater meldet sich in Kürze bei dir, um deinen Trip abzuschließen und die Zahlung zu organisieren."
+    },
+    "success": {
+      "title": "Danke — deine Zahlung ist unterwegs!",
+      "body": "Wir bestätigen deine Zahlung gerade mit unserem Anbieter. Du bekommst eine E-Mail, sobald sie verarbeitet ist.",
+      "bookingReference": "Buchungsnummer: {booking}",
+      "contactHeading": "Kontaktiere uns für Details zu deinem Trip",
+      "whatsappAria": "Kontaktiere uns auf WhatsApp",
+      "whatsappUs": "Schreib uns auf WhatsApp"
+    },
+    "cancelled": {
+      "title": "Zahlung abgebrochen",
+      "body": "Es wurde nichts abgebucht. Du kannst zu deinem Trip zurückkehren und es versuchen, wann immer du bereit bist."
+    },
+    "backToHome": "Zurück zur Startseite"
+  },
+  "unsubscribe": {
+    "title": "Von Trip-Erinnerungen abmelden",
+    "body": "Du bekommst keine Erinnerungs-E-Mails mehr zu deinem gespeicherten Trip. Buchungs- und Voting-Bestätigungen sind davon nicht betroffen.",
+    "error": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
+    "working": "Wird abgemeldet…",
+    "confirm": "Abmelden",
+    "doneTitle": "Du bist abgemeldet",
+    "doneBody": "Wir schicken dir keine Trip-Erinnerungen mehr."
+  },
+  "vote": {
+    "meta": {
+      "quiz": "Gruppen-Quiz",
+      "curate": "Aktivitäten auswählen",
+      "activities": "Über Aktivitäten abstimmen",
+      "waiting": "Voting läuft",
+      "result": "Voting-Ergebnisse"
+    },
+    "quiz": {
+      "loadFailed": "Quiz konnte nicht geladen werden",
+      "loading": "Quiz wird geladen…",
+      "progress": "{current} / {total}"
+    },
+    "curate": {
+      "loading": "Auswahl wird geladen…",
+      "empty": "Keine Aktivitäten passen zu deinem Quiz. Probier ein anderes Reiseziel.",
+      "building": "Dein Trip wird zusammengestellt…",
+      "nothingPicked": "Du hast nichts ausgewählt. Fang von vorn an und swipe nach rechts, worüber die Gruppe abstimmen soll.",
+      "startOver": "Von vorn beginnen",
+      "title": "Wähle Aktivitäten, über die die Gruppe abstimmt",
+      "subtitle": "Nach rechts swipen zum Aufnehmen, nach links zum Überspringen"
+    },
+    "activities": {
+      "submitFailed": "Stimmen konnten nicht gesendet werden. Bitte versuch es erneut.",
+      "loading": "Aktivitäten werden geladen...",
+      "submitting": "Deine Stimmen werden gesendet...",
+      "sessionGoneTitle": "Dieses Voting existiert nicht mehr.",
+      "sessionGoneHint": "Es ist vielleicht abgelaufen oder wurde entfernt — frag den Organisator nach einem neuen Link.",
+      "empty": "Keine Aktivitäten für die gewählten Kategorien gefunden.",
+      "title": "Auf welche Aktivitäten hast du Lust?",
+      "subtitle": "Nach rechts swipen für Ja, nach links zum Überspringen"
+    },
+    "waiting": {
+      "processing": "Ergebnisse werden verarbeitet...",
+      "countdown": "{hours} Std. {minutes} Min.",
+      "shareTitleDestination": "Voting: Trip nach {destination}",
+      "shareTitleGeneric": "Stimmt über unseren Trip ab",
+      "shareText": "Hilf mit zu entscheiden, was wir machen — stimm über die Aktivitäten ab:",
+      "sessionError": "Session konnte nicht geladen werden: {error}",
+      "finalising": "Ergebnisse werden finalisiert...",
+      "title": "Das Voting läuft!",
+      "tripTo": "Trip nach {destination}",
+      "yourSession": "Dein Voting",
+      "alreadyVoted": "✓ Du hast in diesem Voting bereits abgestimmt.",
+      "untilResults": "bis zu den Ergebnissen",
+      "votedOne": "Person hat abgestimmt",
+      "votedOther": "Personen haben abgestimmt",
+      "ofTotal": "von {total}",
+      "liveResults": "Live-Ergebnisse",
+      "shareLabel": "Mit Freunden teilen:",
+      "inviteLinkAria": "Einladungslink",
+      "share": "Teilen",
+      "copied": "✓ Link kopiert!",
+      "copyLink": "Link kopieren",
+      "copyInviteLink": "Einladungslink kopieren",
+      "endEarly": "Voting vorzeitig beenden & Ergebnisse sehen",
+      "note": "Die Ergebnisse erscheinen auf dieser Seite, sobald der Timer abgelaufen ist."
+    },
+    "result": {
+      "loading": "Ergebnis wird geladen...",
+      "cartTitle": "Die Stimmen sind da!",
+      "proceedToCheckout": "Zur Kasse",
+      "title": "Trip-Ergebnis",
+      "groupPick": "Die Wahl der Gruppe",
+      "empty": "Die Gruppe konnte sich innerhalb des Budgets auf nichts einigen. Sieh dir die Vorschläge unten an.",
+      "counts": "Likes: {likes} · Übersprungen: {skips}",
+      "budgetTitle": "Budget",
+      "spent": "Ausgegeben: {amount}",
+      "budget": "Budget: {amount}",
+      "remaining": "Übrig: {amount}",
+      "openTripBuilder": "Im Trip-Planer öffnen",
+      "suggestionsTitle": "Vorschläge"
+    }
   }
 }
