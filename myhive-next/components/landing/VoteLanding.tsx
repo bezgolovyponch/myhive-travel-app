@@ -73,7 +73,36 @@ export default function VoteLanding({
 
   return (
     <div className={`tl tl--home ${inter.variable}`} id="top">
-      <LandingHeader>
+      <LandingHeader
+        cart={
+          <button
+            className="hdr__cart"
+            type="button"
+            aria-label={tChrome(picked.length === 1 ? 'cartAriaOne' : 'cartAriaOther', {
+              count: picked.length,
+            })}
+            onClick={() => {
+              if (picked.length > 0) goToBuilder('Cart', 'header');
+              else document.getElementById('activities')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="9" cy="20" r="1" />
+              <circle cx="19" cy="20" r="1" />
+              <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6" />
+            </svg>
+            <span className="hdr__cart-count">{picked.length > 0 ? picked.length : ''}</span>
+          </button>
+        }
+      >
         <button
           className="btn btn--primary"
           type="button"
@@ -83,32 +112,6 @@ export default function VoteLanding({
           }}
         >
           {tChrome('startVote')}
-        </button>
-        <button
-          className="hdr__cart"
-          type="button"
-          aria-label={tChrome(picked.length === 1 ? 'cartAriaOne' : 'cartAriaOther', {
-            count: picked.length,
-          })}
-          onClick={() => {
-            if (picked.length > 0) goToBuilder('Cart', 'header');
-            else document.getElementById('activities')?.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="9" cy="20" r="1" />
-            <circle cx="19" cy="20" r="1" />
-            <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6" />
-          </svg>
-          <span className="hdr__cart-count">{picked.length > 0 ? picked.length : ''}</span>
         </button>
       </LandingHeader>
 

@@ -1,21 +1,25 @@
 'use client';
 
-// Fixed landing header: logo, language switcher, phone, WhatsApp and the
-// page's primary CTA (passed as children). Gains a border once the page
-// scrolls (is-stuck). The switcher swaps the locale prefix on the current
-// path, mirroring the legacy header's dropdown.
+// Fixed landing header: logo, phone, WhatsApp, the page's primary CTA (passed
+// as children), then the language dropdown (the same one the main homepage
+// header uses) sitting immediately left of the cart — matching the main
+// header's action-cluster order. Gains a border once the page scrolls
+// (is-stuck).
 import { useEffect, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
-import { useT, useLocale, splitLocale, localizePath, SUPPORTED_LOCALES } from '../../legacy-src/i18n';
+import { useT } from '../../legacy-src/i18n';
 import TrivluLogo, { PhoneIcon, WhatsAppIcon } from './TrivluLogo';
+import LandingLanguageSwitcher from './LandingLanguageSwitcher';
 import { PHONE_DISPLAY, PHONE_HREF, WHATSAPP_HREF } from './data';
 
-export default function LandingHeader({ children }: { children?: ReactNode }) {
+export default function LandingHeader({
+  children,
+  cart,
+}: {
+  children?: ReactNode;
+  cart?: ReactNode;
+}) {
   const [stuck, setStuck] = useState(false);
   const t = useT('landing.chrome');
-  const locale = useLocale();
-  const pathname = usePathname() ?? '/';
-  const { pathname: bare } = splitLocale(pathname);
 
   useEffect(() => {
     const onScroll = () => setStuck(window.scrollY > 20);
@@ -31,18 +35,6 @@ export default function LandingHeader({ children }: { children?: ReactNode }) {
           <TrivluLogo />
         </a>
         <span className="hdr__spacer" />
-        <nav className="hdr__lang" aria-label={t('langAria')}>
-          {SUPPORTED_LOCALES.map((l: string) => (
-            <a
-              key={l}
-              href={localizePath(bare, l)}
-              className={l === locale ? 'is-on' : undefined}
-              aria-current={l === locale ? 'page' : undefined}
-            >
-              {l.toUpperCase()}
-            </a>
-          ))}
-        </nav>
         <a className="hdr__tel" href={PHONE_HREF}>
           <PhoneIcon />
           <span className="hdr__num">{PHONE_DISPLAY}</span>
@@ -57,6 +49,8 @@ export default function LandingHeader({ children }: { children?: ReactNode }) {
           <WhatsAppIcon />
         </a>
         {children}
+        <LandingLanguageSwitcher />
+        {cart}
       </div>
     </header>
   );
