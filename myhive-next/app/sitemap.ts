@@ -11,6 +11,11 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const urls: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, priority: 1 },
+    // Campaign landings (PR #16, redesign branch): indexed for organic
+    // traffic by product decision, 2026-08-23. The routes ship in that PR —
+    // deploy this entry together with it or after it, not before.
+    { url: `${SITE_URL}/landing/vote`, priority: 0.8 },
+    { url: `${SITE_URL}/landing/prague`, priority: 0.8 },
     { url: `${SITE_URL}/blog`, priority: 0.8 },
     { url: `${SITE_URL}/about`, priority: 0.5 },
     { url: `${SITE_URL}/contact`, priority: 0.5 },
