@@ -1,13 +1,16 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatPricePerPerson, groupMinNote, hasGroupMin} from '../utils/format';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice, hasGroupMin} from '../utils/format';
 import ActivityPreviewModal from './ActivityPreviewModal';
+import {useLocalePath, useT} from '../i18n';
 import './ActivityCard.css';
 
 function ActivityCard({ activity, isAdded = false, silent = false }) {
     const {dispatch} = useTrip();
     const navigate = useNavigate();
+    const t = useT('cards');
+    const lp = useLocalePath();
     const [previewOpen, setPreviewOpen] = useState(false);
 
     const destSlug = activity.destinationSlug || activity.destinationId;
@@ -40,9 +43,11 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
 
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const title = activity.name || activity.title;
+    // "/ person" lives in the key, not utils/format.js: German flips the whole
+    // phrase ("ab {price} / Person"), so the format string must be translatable.
     const formattedPrice = hasGroupMin(activity)
-        ? `from ${formatPricePerPerson(activity.price)}`
-        : formatPricePerPerson(activity.price);
+        ? t('fromPerPerson', {price: formatPrice(activity.price)})
+        : t('perPersonPrice', {price: formatPrice(activity.price)});
     const primaryCategory = activity.categories && activity.categories.length > 0
         ? activity.categories[0].name
         : null;
@@ -60,7 +65,7 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
             className="card activity-card"
             role="button"
             tabIndex={0}
-            aria-label={`View ${title}`}
+            aria-label={t('viewAria', {name: title})}
             onClick={handleCardClick}
             onKeyDown={handleCardKeyDown}
         >
@@ -72,7 +77,7 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
             />
             <div className="activity-content">
         <span className="activity-category">
-          {primaryCategory ? capitalizeFirst(primaryCategory) : 'Activity'}
+          {primaryCategory ? capitalizeFirst(primaryCategory) : t('activityCategory')}
         </span>
                 {/* A real anchor so the card is a crawlable link when this card is
                     server-rendered — the surrounding div is role="button", which
@@ -80,7 +85,7 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                     handleCardClick instead, keeping SPA client-side navigation. */}
                 <h3 className="activity-title">
                     <a
-                        href={activityLink}
+                        href={lp(activityLink)}
                         className="activity-title-link"
                         onClick={(e) => e.preventDefault()}
                         tabIndex={-1}
@@ -92,7 +97,9 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                     <span className="activity-price">
                         {formattedPrice}
                         {hasGroupMin(activity) && (
-                            <span className="activity-min-note">{groupMinNote(activity)}</span>
+                            <span className="activity-min-note">
+                                {t('groupMinimum', {amount: formatAmount(Number(activity.minPrice))})}
+                            </span>
                         )}
                     </span>
                     <div className="activity-actions">
@@ -100,14 +107,14 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                             className="more-info-btn"
                             onClick={handleMoreInfo}
                         >
-                            More info
+                            {t('moreInfo')}
                         </button>
                         <button
                             className="add-to-trip-btn"
                             onClick={handleAddToTrip}
                             disabled={isAdded}
                         >
-                            {isAdded ? 'Added' : 'Add to trip'}
+                            {isAdded ? t('added') : t('addToTrip')}
                         </button>
                     </div>
                 </div>

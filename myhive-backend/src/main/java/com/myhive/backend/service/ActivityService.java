@@ -13,6 +13,7 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,9 +35,18 @@ public class ActivityService {
     private final PackageRepository packageRepository;
     private final VoteSessionActivityRepository voteSessionActivityRepository;
 
+    // Read methods come in two flavours: without a locale (admin/raw view — base
+    // fields plus the translations map) and with one (public view — fields
+    // resolved for that locale, map omitted). The public controllers always
+    // pass the request's locale, even "en".
+
     public List<ActivityDTO> getAllActivities() {
+        return getAllActivities(null);
+    }
+
+    public List<ActivityDTO> getAllActivities(String locale) {
         return activityRepository.findAll().stream()
-                .map(this::convertToDTO)
+                .map(a -> convertToDTO(a, locale))
                 .toList();
     }
 
@@ -46,52 +56,84 @@ public class ActivityService {
     }
 
     public ActivityDTO getActivityById(UUID id) {
+        return getActivityById(id, null);
+    }
+
+    public ActivityDTO getActivityById(UUID id, String locale) {
         Activity activity = activityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Activity", id));
-        return convertToDTO(activity);
+        return convertToDTO(activity, locale);
     }
 
     public ActivityDTO getActivityBySlug(String slug) {
+        return getActivityBySlug(slug, null);
+    }
+
+    public ActivityDTO getActivityBySlug(String slug, String locale) {
         Activity activity = activityRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Activity", slug));
-        return convertToDTO(activity);
+        return convertToDTO(activity, locale);
     }
 
     public List<ActivityDTO> getActivitiesByDestination(UUID destinationId) {
+        return getActivitiesByDestination(destinationId, null);
+    }
+
+    public List<ActivityDTO> getActivitiesByDestination(UUID destinationId, String locale) {
         return activityRepository.findByDestinationId(destinationId).stream()
-                .map(this::convertToDTO)
+                .map(a -> convertToDTO(a, locale))
                 .toList();
     }
 
     public List<ActivityDTO> getActivitiesByCategorySlug(String categorySlug) {
+        return getActivitiesByCategorySlug(categorySlug, null);
+    }
+
+    public List<ActivityDTO> getActivitiesByCategorySlug(String categorySlug, String locale) {
         return activityRepository.findByCategoriesSlug(categorySlug).stream()
-                .map(this::convertToDTO)
+                .map(a -> convertToDTO(a, locale))
                 .toList();
     }
 
     public List<ActivityDTO> getActivitiesByDestinationAndCategorySlug(UUID destinationId, String categorySlug) {
+        return getActivitiesByDestinationAndCategorySlug(destinationId, categorySlug, null);
+    }
+
+    public List<ActivityDTO> getActivitiesByDestinationAndCategorySlug(UUID destinationId, String categorySlug, String locale) {
         return activityRepository.findByDestinationIdAndCategoriesSlug(destinationId, categorySlug).stream()
-                .map(this::convertToDTO)
+                .map(a -> convertToDTO(a, locale))
                 .toList();
     }
 
     public List<ActivityDTO> getFeaturedActivities(String categorySlug) {
+        return getFeaturedActivities(categorySlug, null);
+    }
+
+    public List<ActivityDTO> getFeaturedActivities(String categorySlug, String locale) {
         List<Activity> featuredActivities = categorySlug == null
                 ? activityRepository.findByFeaturedTrueOrderByNameAsc()
                 : activityRepository.findByFeaturedTrueAndCategoriesSlugOrderByNameAsc(categorySlug);
         return featuredActivities.stream()
-                .map(this::convertToDTO)
+                .map(a -> convertToDTO(a, locale))
                 .toList();
     }
 
     public Page<ActivityDTO> getActivitiesByDestinationPaged(UUID destinationId, Pageable pageable) {
+        return getActivitiesByDestinationPaged(destinationId, pageable, null);
+    }
+
+    public Page<ActivityDTO> getActivitiesByDestinationPaged(UUID destinationId, Pageable pageable, String locale) {
         return activityRepository.findByDestinationId(destinationId, pageable)
-                .map(this::convertToDTO);
+                .map(a -> convertToDTO(a, locale));
     }
 
     public Page<ActivityDTO> getActivitiesByDestinationAndCategorySlugPaged(UUID destinationId, String categorySlug, Pageable pageable) {
+        return getActivitiesByDestinationAndCategorySlugPaged(destinationId, categorySlug, pageable, null);
+    }
+
+    public Page<ActivityDTO> getActivitiesByDestinationAndCategorySlugPaged(UUID destinationId, String categorySlug, Pageable pageable, String locale) {
         return activityRepository.findByDestinationIdAndCategoriesSlug(destinationId, categorySlug, pageable)
-                .map(this::convertToDTO);
+                .map(a -> convertToDTO(a, locale));
     }
 
     @Transactional
@@ -153,27 +195,41 @@ public class ActivityService {
         activity.setFeatured(Boolean.TRUE.equals(dto.getFeatured()));
         activity.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
         activity.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
+        // null = "unchanged": the admin forms that don't know about translations
+        // yet must not wipe them on every save. Send {} to clear.
+        if (dto.getTranslations() != null) {
+            activity.setTranslations(dto.getTranslations());
+        }
     }
 
     private ActivityDTO convertToDTO(Activity activity) {
+        return convertToDTO(activity, null);
+    }
+
+    private ActivityDTO convertToDTO(Activity activity, String locale) {
+        String lc = Translations.normalize(locale);
+        Destination destination = activity.getDestination();
         ActivityDTO dto = new ActivityDTO();
         dto.setId(activity.getId());
         dto.setSlug(activity.getSlug());
-        dto.setDestinationId(activity.getDestination().getId());
-        dto.setDestinationName(activity.getDestination().getName());
-        dto.setDestinationSlug(activity.getDestination().getSlug());
-        dto.setName(activity.getName());
-        dto.setDescription(activity.getDescription());
+        dto.setDestinationId(destination.getId());
+        dto.setDestinationName(Translations.pick(destination.getTranslations(), lc, "name", destination.getName()));
+        dto.setDestinationSlug(destination.getSlug());
+        dto.setName(Translations.pick(activity.getTranslations(), lc, "name", activity.getName()));
+        dto.setDescription(Translations.pick(activity.getTranslations(), lc, "description", activity.getDescription()));
         dto.setPrice(activity.getPrice());
         dto.setMinPrice(activity.getMinPrice());
         dto.setDuration(activity.getDuration());
         dto.setImageUrl(activity.getImageUrl());
-        dto.setIncludes(activity.getIncludes());
+        dto.setIncludes(Translations.pick(activity.getTranslations(), lc, "includes", activity.getIncludes()));
         dto.setFeaturedWeight(activity.getFeaturedWeight());
         dto.setFeatured(activity.isFeatured());
         dto.setSeoIndexable(activity.isSeoIndexable());
+        if (locale == null) {
+            dto.setTranslations(activity.getTranslations());
+        }
 
-        List<CategoryDTO> categoryDtos = CategoryResolver.toDTOs(activity.getCategories());
+        List<CategoryDTO> categoryDtos = CategoryResolver.toDTOs(activity.getCategories(), lc);
         dto.setCategories(categoryDtos);
         dto.setCategoryIds(categoryDtos.stream().map(CategoryDTO::getId).toList());
         return dto;

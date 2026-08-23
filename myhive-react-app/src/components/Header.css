@@ -76,18 +76,20 @@
     align-items: center;
 }
 
-/* Transparent header: nav-links sit on the right, close to the cart. The cart
-   (.header-actions) is pinned at var(--page-padding) from the viewport edge,
-   and .header-content already has that same var(--page-padding) as right
-   padding — so the nav only needs to clear the single 2.5rem cart button
-   (burger is hidden on desktop) plus a small gap. Adding page-padding here too
-   would double-count it and shove the links far left of the cart. */
+/* Transparent header: nav-links sit on the right, close to the cart. The
+   cluster (.header-actions) is pinned at var(--page-padding) from the viewport
+   edge, and .header-content already has that same var(--page-padding) as right
+   padding — so the nav only needs to clear the cluster's own width (burger is
+   hidden on desktop): the 5rem language pill (fixed width, see
+   LanguageSwitcher.css) + gap + the 2.5rem cart button, plus a small gap.
+   Adding page-padding here too would double-count it and shove the links far
+   left of the cluster. */
 .header--transparent .nav-links {
     position: static;
     left: auto;
     transform: none;
     margin-left: auto;
-    margin-right: calc(2.5rem + var(--gap));
+    margin-right: calc(5rem + var(--gap-sm) + 2.5rem + var(--gap));
     gap: 1.375rem;
 }
 

@@ -1,12 +1,14 @@
 package com.myhive.backend.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,6 +23,11 @@ class TripReminderTemplateRenderTest {
         resolver.setCharacterEncoding("UTF-8");
         SpringTemplateEngine templateEngine = new SpringTemplateEngine();
         templateEngine.setTemplateResolver(resolver);
+        // The template's copy lives in messages*.properties (#{...} keys), like in the app.
+        ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
+        messages.setBasename("messages");
+        messages.setDefaultEncoding("UTF-8");
+        templateEngine.setTemplateEngineMessageSource(messages);
         return templateEngine;
     }
 
@@ -101,5 +108,27 @@ class TripReminderTemplateRenderTest {
         assertThat(consultationHtml).contains("Need a hand?");
         assertThat(urgencyHtml).contains("fill up early");
         assertThat(consultationHtml).doesNotContain("fill up early");
+    }
+
+    @Test
+    void rendersInGermanWhenTheContextLocaleIsGerman() {
+        // Same variables, German context: copy comes from messages_de.properties,
+        // the document declares the language, and no key leaks through as ??key??.
+        Context context = new Context(Locale.GERMAN);
+        Context base = baseContext();
+        for (String name : base.getVariableNames()) {
+            context.setVariable(name, base.getVariable(name));
+        }
+        context.setVariable("stage", 2);
+        context.setVariable("showConsultation", true);
+
+        String html = engine().process("trip-reminder", context);
+
+        assertThat(html)
+                .contains("lang=\"de\"")
+                .contains("Brauchst du Hilfe?")
+                .contains("Prague")
+                .doesNotContain("Need a hand?")
+                .doesNotContain("??");
     }
 }

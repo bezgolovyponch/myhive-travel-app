@@ -10,12 +10,14 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -30,6 +32,12 @@ public class VotePoolService {
     private final ActivityRepository activityRepository;
 
     public VotePoolResponse buildPool(VotePoolRequest request) {
+        return buildPool(request, null);
+    }
+
+    /** @param locale request locale (en/de/…); names, descriptions and category names come back resolved for it. */
+    public VotePoolResponse buildPool(VotePoolRequest request, String locale) {
+        String lc = Translations.normalize(locale);
         Destination destination = destinationRepository.findById(request.getDestinationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", request.getDestinationId()));
 
@@ -53,21 +61,23 @@ public class VotePoolService {
                 destination.getId(), organizerCats, PageRequest.of(0, POOL_CAP));
 
         List<VotePoolActivityDTO> pool = activities.stream()
-                .map(this::toDTO)
+                .map(a -> toDTO(a, lc))
                 .toList();
         return new VotePoolResponse(pool);
     }
 
-    private VotePoolActivityDTO toDTO(Activity activity) {
+    private VotePoolActivityDTO toDTO(Activity activity, String lc) {
         List<String> categories = activity.getCategories().stream()
-                .map(Category::getName)
+                .map(c -> Translations.pick(c.getTranslations(), lc, "name", c.getName()))
                 .sorted()
                 .toList();
         String destinationSlug = activity.getDestination() == null
                 ? null : activity.getDestination().getSlug();
-        return new VotePoolActivityDTO(activity.getId(), activity.getName(),
+        Map<String, Map<String, String>> tr = activity.getTranslations();
+        return new VotePoolActivityDTO(activity.getId(),
+                Translations.pick(tr, lc, "name", activity.getName()),
                 activity.getPrice(), activity.getMinPrice(), activity.getImageUrl(),
                 activity.getSlug(), destinationSlug, categories,
-                activity.getDescription(), activity.getDuration());
+                Translations.pick(tr, lc, "description", activity.getDescription()), activity.getDuration());
     }
 }

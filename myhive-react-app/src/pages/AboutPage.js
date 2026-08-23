@@ -1,66 +1,51 @@
 import PageHead from '../components/PageHead';
 import {SITE_URL} from '../services/config';
+import {useT} from '../i18n';
 import './AboutPage.css';
 
 function AboutPage() {
+    const t = useT('about');
+    const tMeta = useT('meta');
     return (
         <div className="about-page">
             <PageHead>
-                <title>About Trivlu — Group Travel Made Easy</title>
-                <meta name="description"
-                      content="We built Trivlu so best men can plan a stag the whole group actually agrees on. Here's who we are and why."/>
+                <title>{tMeta('about.title')}</title>
+                <meta name="description" content={tMeta('about.description')}/>
                 <link rel="canonical" href={`${SITE_URL}/about`}/>
             </PageHead>
             <section className="page-hero">
-                <h1>About Trivlu</h1>
-                <p>Making group travel effortless, one adventure at a time.</p>
+                <h1>{t('hero.title')}</h1>
+                <p>{t('hero.subtitle')}</p>
             </section>
 
             <section className="about-section">
-                <h2>Our Mission</h2>
-                <p>
-                    Trivlu was born from a simple frustration: planning group trips shouldn't be harder
-                    than the trip itself. We believe that bringing people together for shared adventures
-                    should be seamless, exciting, and stress-free.
-                </p>
-                <p>
-                    Our AI-powered platform takes the chaos out of coordinating multi-traveler
-                    experiences. From selecting destinations to building custom itineraries, Trivlu
-                    handles the logistics so you can focus on making memories.
-                </p>
+                <h2>{t('mission.title')}</h2>
+                <p>{t('mission.p1')}</p>
+                <p>{t('mission.p2')}</p>
             </section>
 
             <section className="about-section about-values">
-                <h2>What We Stand For</h2>
+                <h2>{t('values.title')}</h2>
                 <div className="values-grid">
                     <div className="value-card">
-                        <h3>Adventure First</h3>
-                        <p>We curate destinations and activities that create unforgettable experiences for groups of all
-                            sizes.</p>
+                        <h3>{t('values.adventure.title')}</h3>
+                        <p>{t('values.adventure.body')}</p>
                     </div>
                     <div className="value-card">
-                        <h3>Zero Stress</h3>
-                        <p>Our smart trip builder handles the complexity of group coordination so you don't have to.</p>
+                        <h3>{t('values.stress.title')}</h3>
+                        <p>{t('values.stress.body')}</p>
                     </div>
                     <div className="value-card">
-                        <h3>Better Together</h3>
-                        <p>Travel is best when shared. We design every feature to bring groups closer together.</p>
+                        <h3>{t('values.together.title')}</h3>
+                        <p>{t('values.together.body')}</p>
                     </div>
                 </div>
             </section>
 
             <section className="about-section">
-                <h2>Our Story</h2>
-                <p>
-                    It started with a weekend trip that almost didn't happen. Too many group chats,
-                    conflicting preferences, and last-minute cancellations nearly derailed what should
-                    have been a simple getaway.
-                </p>
-                <p>
-                    That experience sparked an idea: what if there was a platform that made planning
-                    group adventures as fun as the adventures themselves? Trivlu is the answer — the
-                    first AI-powered trip maker built specifically for multi-traveler experiences.
-                </p>
+                <h2>{t('story.title')}</h2>
+                <p>{t('story.p1')}</p>
+                <p>{t('story.p2')}</p>
             </section>
         </div>
     );

@@ -4,10 +4,13 @@ import voteApi from '../../services/voteApi';
 import SwipeCard from '../../components/SwipeCard';
 import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
 import { pushEvent } from '../../utils/analytics';
+import { useT, useLocalePath } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './ActivityVotePage.css';
 
 function ActivityVoteContent() {
+    const t = useT('vote');
+    const lp = useLocalePath();
     const { shareToken } = useParams();
     const navigate = useNavigate();
 
@@ -83,22 +86,22 @@ function ActivityVoteContent() {
             } else {
                 submittingRef.current = false;
                 setSubmitting(false);
-                setError('Failed to submit votes. Please try again.');
+                setError(t('activities.submitFailed'));
             }
         }
     };
 
     if (loading) return (
-        <div className="vote-state">Loading activities...</div>
+        <div className="vote-state">{t('activities.loading')}</div>
     );
     if (submitting) return (
-        <div className="vote-state">Submitting your votes...</div>
+        <div className="vote-state">{t('activities.submitting')}</div>
     );
     if (error === 'Vote session not found') return (
         <div className="vote-state">
-            <p className="vote-state-title">This vote session no longer exists.</p>
+            <p className="vote-state-title">{t('activities.sessionGoneTitle')}</p>
             <p className="vote-state-muted">
-                It may have expired or been removed — ask the organiser for a new link.
+                {t('activities.sessionGoneHint')}
             </p>
         </div>
     );
@@ -107,11 +110,12 @@ function ActivityVoteContent() {
     );
     if (activities.length === 0) return (
         <div className="vote-state">
-            <p>No activities found for the selected categories.</p>
+            <p>{t('activities.empty')}</p>
         </div>
     );
 
-    const shareUrl = `${window.location.origin}/vote/${shareToken}/activities`;
+    // Invitees land on the same language the organizer is using.
+    const shareUrl = `${window.location.origin}${lp(`/vote/${shareToken}/activities`)}`;
 
     const getCardLink = (activity) => {
         if (!activity || !activity.slug || !activity.destinationSlug) return null;
@@ -125,8 +129,8 @@ function ActivityVoteContent() {
             onSwipe={handleSwipe}
             onUndo={handleUndo}
             canUndo={currentIndex > 0}
-            title="Which activities are you up for?"
-            subtitle="Swipe right to vote yes, left to skip"
+            title={t('activities.title')}
+            subtitle={t('activities.subtitle')}
             shareUrl={shareUrl}
             getCardLink={getCardLink}
         />
@@ -134,9 +138,10 @@ function ActivityVoteContent() {
 }
 
 function ActivityVotePage() {
+    const t = useT('vote');
     return (
         <>
-            <VoteMeta title="Vote on activities"/>
+            <VoteMeta title={t('meta.activities')}/>
             <ActivityVoteContent/>
         </>
     );

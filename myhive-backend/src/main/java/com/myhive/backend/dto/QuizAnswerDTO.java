@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -25,4 +26,11 @@ public class QuizAnswerDTO {
 
     @Valid
     private List<QuizAnswerWeightDTO> weights;
+
+    /** Per-locale overrides of label ({"de": {"label": ...}}); admin view only, null = unchanged on save. */
+    private Map<String, Map<String, String>> translations;
+
+    public QuizAnswerDTO(UUID id, String label, int sortOrder, List<QuizAnswerWeightDTO> weights) {
+        this(id, label, sortOrder, weights, null);
+    }
 }

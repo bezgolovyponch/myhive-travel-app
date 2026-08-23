@@ -20,7 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.thymeleaf.TemplateEngine;
@@ -56,8 +59,20 @@ class EmailServiceTest {
     @Mock
     private AsyncMailSender asyncMailSender;
 
+    // The real bundle, not a mock: subjects are asserted verbatim below, and a
+    // stub would only re-encode the same English strings in this test.
+    @Spy
+    private MessageSource messageSource = realMessageSource();
+
     @InjectMocks
     private EmailService emailService;
+
+    private static MessageSource realMessageSource() {
+        ResourceBundleMessageSource source = new ResourceBundleMessageSource();
+        source.setBasename("messages");
+        source.setDefaultEncoding("UTF-8");
+        return source;
+    }
 
     @BeforeEach
     void setUp() {

@@ -1,23 +1,28 @@
 import AppModal from './AppModal';
-import { formatPricePerPerson, groupMinNote, hasGroupMin } from '../utils/format';
+import { formatAmount, formatPrice, hasGroupMin } from '../utils/format';
+import { useLocalePath, useT } from '../i18n';
 import './ActivityPreviewModal.css';
 
 function ActivityPreviewModal({ activity, link, onClose }) {
+    const t = useT('cards');
+    const lp = useLocalePath();
     if (!activity) {
         return null;
     }
 
     const meta = [];
     if (activity.price != null) {
+        // "/ person" lives in the key (German flips the phrase), so the
+        // translatable format string replaces utils/format's English one.
         meta.push(hasGroupMin(activity)
-            ? `from ${formatPricePerPerson(activity.price)}`
-            : formatPricePerPerson(activity.price));
+            ? t('fromPerPerson', {price: formatPrice(activity.price)})
+            : t('perPersonPrice', {price: formatPrice(activity.price)}));
     }
     if (hasGroupMin(activity)) {
-        meta.push(groupMinNote(activity));
+        meta.push(t('groupMinimum', {amount: formatAmount(Number(activity.minPrice))}));
     }
     if (activity.duration != null) {
-        meta.push(`${Math.round(activity.duration / 60)}h`);
+        meta.push(t('durationHours', {hours: Math.round(activity.duration / 60)}));
     }
     if (activity.categories && activity.categories.length > 0) {
         meta.push(activity.categories.join(' · '));
@@ -39,12 +44,12 @@ function ActivityPreviewModal({ activity, link, onClose }) {
             closeOnBackdrop
             footer={link && (
                 <a
-                    href={link}
+                    href={lp(link)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="activity-preview-link"
                 >
-                    View full page ↗
+                    {t('viewFullPage')}
                 </a>
             )}
         >
@@ -57,11 +62,11 @@ function ActivityPreviewModal({ activity, link, onClose }) {
             <div className="activity-preview-description">
                 {activity.description
                     ? activity.description
-                    : <span className="activity-preview-no-desc">No description yet.</span>}
+                    : <span className="activity-preview-no-desc">{t('noDescription')}</span>}
             </div>
             {includedItems.length > 0 && (
                 <div className="activity-preview-includes">
-                    <h3 className="activity-preview-includes-title">What's included</h3>
+                    <h3 className="activity-preview-includes-title">{t('whatsIncluded')}</h3>
                     <ul className="activity-preview-includes-list">
                         {includedItems.map((item) => (
                             <li key={item}>{item}</li>

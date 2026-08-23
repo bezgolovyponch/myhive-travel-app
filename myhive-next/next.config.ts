@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 // Server-only backend base, INCLUDING its path prefix: local Spring serves at
 // root (http://localhost:8080), prod behind the container that strips /api
@@ -45,4 +46,8 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Binds i18n/request.ts (message loading) into the build; routing itself is
+// middleware.ts + the app/[locale] segment.
+const withNextIntl = createNextIntlPlugin();
+
+export default withNextIntl(nextConfig);

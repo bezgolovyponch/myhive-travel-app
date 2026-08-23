@@ -3,7 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
-import {capitalizeFirst, formatDate, formatPrice, formatPricePerPerson} from '../utils/format';
+import {capitalizeFirst, formatDate, formatPrice} from '../utils/format';
 import {computeTripTotal, groupMinApplied, groupTripItems, lineTotal} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
@@ -19,6 +19,7 @@ import StartGroupVoteModal from './vote/StartGroupVoteModal';
 import ActiveVoteModal from './vote/ActiveVoteModal';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
+import {useT} from '../i18n';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
@@ -35,6 +36,7 @@ function buildVoteAnnotation(result) {
 }
 
 function TripBuilder({ destinationId, destinationSlug, destinationName }) {
+  const t = useT('tripBuilder');
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
@@ -442,7 +444,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
 
   const handleContactSubmit = async (contactData) => {
     if (state.tripItems.length === 0) {
-      alert('Please add some activities to your trip before submitting.');
+      alert(t('errors.addActivitiesFirst'));
       return;
     }
 
@@ -495,7 +497,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Booking submission error:', error);
-      setSubmitError(error.message || 'Failed to submit booking. Please try again.');
+      setSubmitError(error.message || t('errors.submitFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -513,11 +515,19 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // total with a marker whenever the group minimum binds — including travelers = 1.
   const itemPriceLabel = (item) => {
     if (groupMinApplied(item, travelers)) {
-      return `${formatPrice(item.price)} × ${travelers} = ${formatPrice(lineTotal(item, travelers))} (group min)`;
+      return t('price.groupMinLine', {
+        price: formatPrice(item.price),
+        travelers,
+        total: formatPrice(lineTotal(item, travelers)),
+      });
     }
     return travelers > 1
-        ? `${formatPrice(item.price)} × ${travelers} = ${formatPrice(item.price * travelers)}`
-        : formatPricePerPerson(item.price);
+        ? t('price.multiplied', {
+          price: formatPrice(item.price),
+          travelers,
+          total: formatPrice(item.price * travelers),
+        })
+        : t('price.perPerson', {price: formatPrice(item.price)});
   };
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
@@ -546,7 +556,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const railVisible = state.tripBudget != null || voteCtaVisible;
   let voteButtonTitle;
   if (hasForeignStandalone) {
-    voteButtonTitle = 'Group voting works for one destination at a time — remove activities from other destinations first.';
+    voteButtonTitle = t('vote.foreignDestinationTitle');
   }
   const totalPrice = computeTripTotal(state.tripItems, travelers);
 
@@ -558,12 +568,12 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       <div className="itinerary-trip-info">
         {destinationName && (
             <div className="trip-info-row">
-              <label>Destination:</label>
+              <label>{t('summary.destination')}</label>
               <span>{destinationName}</span>
             </div>
         )}
         <div className="trip-info-row">
-          <label htmlFor="trip-travelers">Travelers:</label>
+          <label htmlFor="trip-travelers">{t('summary.travelers')}</label>
           <input
               type="number"
               id="trip-travelers"
@@ -588,7 +598,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         </div>
         {(state.tripStartDate || state.tripEndDate) && (
             <div className="trip-info-row">
-              <label>Dates:</label>
+              <label>{t('summary.dates')}</label>
               <span>{formatDate(state.tripStartDate)} — {formatDate(state.tripEndDate)}</span>
             </div>
         )}
@@ -610,8 +620,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           {/* While the group can still be sent to vote (the Start group vote CTA
               is up) this is the list they'll vote on; once voting ends — or
               there's nothing to vote on — it's their itinerary. */}
-          <h2>{voteCtaVisible ? 'Your Voting List' : 'Your Itinerary'}</h2>
-          <p>{state.tripItems.length} {state.tripItems.length === 1 ? 'activity' : 'activities'} selected</p>
+          <h2>{voteCtaVisible ? t('heading.votingList') : t('heading.itinerary')}</h2>
+          <p>{state.tripItems.length === 1
+              ? t('heading.selectedOne', {count: state.tripItems.length})
+              : t('heading.selectedOther', {count: state.tripItems.length})}</p>
         </div>
         {tripSummary}
         <div className="itinerary-list">
@@ -622,12 +634,12 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   <div className="package-group-header">
                     <span className="package-group-name">{group.packageName}</span>
                     {group.packageDiscountPct > 0 && (
-                      <span className="package-group-discount">{group.packageDiscountPct}% off</span>
+                      <span className="package-group-discount">{t('items.percentOff', {pct: group.packageDiscountPct})}</span>
                     )}
                     <button
                       type="button"
                       className="remove-item-btn"
-                      aria-label={`Remove ${group.packageName}`}
+                      aria-label={t('items.removeAria', {name: group.packageName})}
                       onClick={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
                     >
                       ×
@@ -675,7 +687,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   <button
                     type="button"
                     className="remove-item-btn"
-                    aria-label={`Remove ${item.name}`}
+                    aria-label={t('items.removeAria', {name: item.name})}
                     onClick={() => handleRemoveActivity(item.id)}
                   >
                     ×
@@ -685,7 +697,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             </>
           ) : (
             <div className="empty-state">
-              <p>Start building your trip by adding activities!</p>
+              <p>{t('emptyState')}</p>
             </div>
           )}
         </div>
@@ -695,14 +707,14 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         {state.tripItems.length > 0 && (
             <div className="itinerary-footer">
               <div className="itinerary-estimate">
-                <span>Estimated cost</span>
+                <span>{t('footer.estimatedCost')}</span>
                 <span className="itinerary-estimate-price">{formatPrice(totalPrice)}</span>
               </div>
               <button
                   className="btn btn--primary btn--full-width confirm-btn"
                   onClick={handleConfirmTrip}
               >
-                Complete Booking
+                {t('footer.completeBooking')}
               </button>
               {submitError && (
                   <div className="export-error">
@@ -720,7 +732,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   isOpen
                   onClose={() => setShowContactForm(false)}
                   onSubmit={handleContactSubmit}
-                  submitLabel="Send booking request"
+                  submitLabel={t('footer.sendBookingRequest')}
                   tripData={{tripItems: state.tripItems, travelers, destinationName}}
                   initialValues={{
                     numberOfTravelers: travelers,
@@ -737,13 +749,13 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         <>
         {voteError && (
             <p className="text-error">
-              Couldn't load your group's vote results. Refresh the page to try again.
+              {t('vote.loadError')}
             </p>
         )}
         {quizMode && recommended.length > 0 && (
             <div className="trip-vote-suggestions">
-              <h3>Recommended for you</h3>
-              <p className="trip-vote-suggestions-sub">Based on your quiz answers</p>
+              <h3>{t('recommended.title')}</h3>
+              <p className="trip-vote-suggestions-sub">{t('recommended.subtitle')}</p>
               <div className="browse-activities">
                 {recommended.map(a => {
                     const isAdded = state.tripItems.some(item => item.id === a.id);
@@ -762,7 +774,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                             >
                               {a.name}
                             </button>
-                            <div className="browse-activity-price">{formatPricePerPerson(a.price)}</div>
+                            <div className="browse-activity-price">{t('price.perPerson', {price: formatPrice(a.price)})}</div>
                           </div>
                           <button
                               className="browse-add-btn"
@@ -780,7 +792,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                               })}
                               disabled={isAdded}
                           >
-                            {isAdded ? 'Added' : 'Add'}
+                            {isAdded ? t('browse.added') : t('browse.add')}
                           </button>
                         </div>
                     );
@@ -790,8 +802,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         )}
         {voteResult && voteResult.suggestions && voteResult.suggestions.length > 0 && (
             <div className="trip-vote-suggestions">
-              <h3>Group suggestions</h3>
-              <p className="trip-vote-suggestions-sub">From your group&apos;s quiz answers</p>
+              <h3>{t('suggestions.title')}</h3>
+              <p className="trip-vote-suggestions-sub">{t('suggestions.subtitle')}</p>
               <div className="browse-activities">
                 {voteResult.suggestions.map(s => {
                     const isAdded = state.tripItems.some(item => item.id === s.activityId);
@@ -803,7 +815,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                           )}
                           <div className="browse-activity-content">
                             <div className="browse-activity-title">{s.name}</div>
-                            <div className="browse-activity-price">{formatPricePerPerson(s.price)}</div>
+                            <div className="browse-activity-price">{t('price.perPerson', {price: formatPrice(s.price)})}</div>
                           </div>
                           <button
                               className="browse-add-btn"
@@ -821,7 +833,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                               })}
                               disabled={isAdded}
                           >
-                            {isAdded ? 'Added' : 'Add'}
+                            {isAdded ? t('browse.added') : t('browse.add')}
                           </button>
                         </div>
                     );
@@ -830,7 +842,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             </div>
         )}
         <div className="browse-header">
-          <h3>Browse More Activities</h3>
+          <h3>{t('browse.title')}</h3>
           <div className="filter-group">
             <div className="browse-filters">
               <button
@@ -838,7 +850,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   className={`filter-btn ${browseFilter === 'all' ? 'active' : ''}`}
                   onClick={() => setBrowseFilter('all')}
               >
-                All
+                {t('browse.filterAll')}
               </button>
               {(showAllCategories ? categories : categories.slice(0, VISIBLE_CATEGORY_COUNT)).map(category => (
                   <button
@@ -856,7 +868,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     className="filter-toggle"
                     onClick={() => setShowAllCategories(!showAllCategories)}
                 >
-                  {showAllCategories ? 'Show less' : `Show all (${categories.length})`}
+                  {showAllCategories ? t('browse.showLess') : t('browse.showAll', {count: categories.length})}
                 </button>
             )}
           </div>
@@ -870,14 +882,14 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                        className="browse-activity-image" loading="lazy"/>
                   <div className="browse-activity-content">
                     <div className="browse-activity-title">{activity.name}</div>
-                    <div className="browse-activity-price">{formatPricePerPerson(activity.price)}</div>
+                    <div className="browse-activity-price">{t('price.perPerson', {price: formatPrice(activity.price)})}</div>
                   </div>
                   <button
                       className="browse-add-btn"
                       onClick={() => handleAddActivity(activity)}
                       disabled={isAdded}
                   >
-                    {isAdded ? 'Added' : 'Add'}
+                    {isAdded ? t('browse.added') : t('browse.add')}
                   </button>
                 </div>
             );
@@ -896,15 +908,15 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             {state.tripBudget != null && (
                 <div className="trip-vote-budget">
                   <div className="trip-vote-budget-row">
-                    <span>Spent</span>
+                    <span>{t('budget.spent')}</span>
                     <span>{formatPrice(totalPrice)}</span>
                   </div>
                   <div className="trip-vote-budget-row">
-                    <span>Budget</span>
+                    <span>{t('budget.budget')}</span>
                     <span>{formatPrice(state.tripBudget)}</span>
                   </div>
                   <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
-                    <span>Remaining</span>
+                    <span>{t('budget.remaining')}</span>
                     <span>{formatPrice(state.tripBudget - totalPrice)}</span>
                   </div>
                 </div>
@@ -918,7 +930,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                       disabled={!canStartVote || checkingVote}
                       title={voteButtonTitle}
                   >
-                    Start group vote
+                    {t('vote.startCta')}
                   </button>
                 </div>
             )}
@@ -942,15 +954,15 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       <AppModal
         isOpen={pendingRestore != null}
         onClose={cancelRestore}
-        title="Replace your current trip?"
+        title={t('restore.title')}
         footer={(
           <>
-            <button type="button" className="btn btn--secondary" onClick={cancelRestore}>Keep current</button>
-            <button type="button" className="btn btn--primary" onClick={confirmRestore}>Open saved trip</button>
+            <button type="button" className="btn btn--secondary" onClick={cancelRestore}>{t('restore.keepCurrent')}</button>
+            <button type="button" className="btn btn--primary" onClick={confirmRestore}>{t('restore.openSaved')}</button>
           </>
         )}
       >
-        <p>Opening your saved trip will replace the activities currently in your itinerary.</p>
+        <p>{t('restore.body')}</p>
       </AppModal>
 
       <ActiveVoteModal
@@ -968,7 +980,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       <SuccessModal
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
-          userName={successContactData?.fullName || 'Traveler'}
+          userName={successContactData?.fullName || t('success.defaultUserName')}
           userEmail={successContactData?.email || ''}
           bookingId={successBookingId}
           tripId={effectiveTripId}

@@ -9,6 +9,7 @@ import { pushEvent } from '../../utils/analytics';
 import { getAttribution, getRef } from '../../utils/attribution';
 import { resolveUserRole } from '../../utils/userRole';
 import PaymentActions from '../../components/PaymentActions';
+import { useT } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './VoteResultPage.css';
 
@@ -27,6 +28,7 @@ function suggestionToActivity(s) {
 }
 
 function VoteResultContent() {
+    const t = useT('vote');
     const { shareToken } = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useTrip();
@@ -129,14 +131,14 @@ function VoteResultContent() {
         return <div className="result-page-error">{error}</div>;
     }
     if (!data) {
-        return <div className="result-page-loading">Loading result...</div>;
+        return <div className="result-page-loading">{t('result.loading')}</div>;
     }
 
     if (data.voteMode === 'CART') {
         return (
             <div className="result-page">
                 <div className="result-page-inner">
-                    <h1>The votes are in!</h1>
+                    <h1>{t('result.cartTitle')}</h1>
                     <VoteTallyCard
                         participantCount={data.participantCount}
                         rows={data.result.map(row => ({
@@ -154,7 +156,7 @@ function VoteResultContent() {
                             onClick={() => navigate(
                                 `/destination/${data.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`)}
                         >
-                            Proceed to Checkout
+                            {t('result.proceedToCheckout')}
                         </button>
                     )}
                 </div>
@@ -165,13 +167,13 @@ function VoteResultContent() {
     return (
         <div className="result-page">
             <div className="result-page-inner">
-                <h1>Trip result</h1>
+                <h1>{t('result.title')}</h1>
 
                 <section className="result-block">
-                    <h2>The group&apos;s pick</h2>
+                    <h2>{t('result.groupPick')}</h2>
                     {data.result.length === 0 ? (
                         <p className="result-empty">
-                            The group didn&apos;t agree on anything within the budget. See suggestions below.
+                            {t('result.empty')}
                         </p>
                     ) : (
                         <ul className="result-list">
@@ -182,7 +184,7 @@ function VoteResultContent() {
                                         <span className="result-row-price">{formatPricePerPerson(row.price)}</span>
                                     </div>
                                     <div className="result-row-counts">
-                                        Likes: {row.likeCount} &middot; Skips: {row.skipCount}
+                                        {t('result.counts', { likes: row.likeCount, skips: row.skipCount })}
                                     </div>
                                 </li>
                             ))}
@@ -199,13 +201,13 @@ function VoteResultContent() {
                         : null;
                     return (
                         <section className="result-block budget-block">
-                            <h2>Budget</h2>
-                            <p>Spent: {formatPrice(displayedTotal)}</p>
+                            <h2>{t('result.budgetTitle')}</h2>
+                            <p>{t('result.spent', { amount: formatPrice(displayedTotal) })}</p>
                             {data.budget != null && (
                                 <>
-                                    <p>Budget: {formatPrice(data.budget)}</p>
+                                    <p>{t('result.budget', { amount: formatPrice(data.budget) })}</p>
                                     <p className={displayedRemaining < 0 ? 'budget-over' : ''}>
-                                        Remaining: {formatPrice(displayedRemaining)}
+                                        {t('result.remaining', { amount: formatPrice(displayedRemaining) })}
                                     </p>
                                 </>
                             )}
@@ -219,7 +221,7 @@ function VoteResultContent() {
                         className="result-open-trip-btn"
                         onClick={handleOpenTripBuilder}
                     >
-                        Open in Trip Builder
+                        {t('result.openTripBuilder')}
                     </button>
                 )}
 
@@ -239,7 +241,7 @@ function VoteResultContent() {
 
                 {data.suggestions.length > 0 && (
                     <section className="result-block">
-                        <h2>Suggestions</h2>
+                        <h2>{t('result.suggestionsTitle')}</h2>
                         <div className="suggestions-grid">
                             {data.suggestions.map(s => {
                                 const activity = suggestionToActivity(s);
@@ -262,9 +264,10 @@ function VoteResultContent() {
 }
 
 function VoteResultPage() {
+    const t = useT('vote');
     return (
         <>
-            <VoteMeta title="Vote results"/>
+            <VoteMeta title={t('meta.result')}/>
             <VoteResultContent/>
         </>
     );

@@ -19,23 +19,28 @@ public class ActivityController {
 
     private final ActivityService activityService;
 
+    // `locale` (en/de/…) localizes the translatable fields in place; the
+    // response shape is unchanged. Absent → raw view with the translations map
+    // (admin use). Paging still sorts on the base English name.
+
     @GetMapping
     public ResponseEntity<List<ActivityDTO>> getAllActivities(
             @RequestParam(required = false) UUID destinationId,
             @RequestParam(required = false) String categorySlug,
-            @RequestParam(required = false, defaultValue = "false") boolean featured) {
+            @RequestParam(required = false, defaultValue = "false") boolean featured,
+            @RequestParam(required = false) String locale) {
 
         if (featured) {
-            return ResponseEntity.ok(activityService.getFeaturedActivities(categorySlug));
+            return ResponseEntity.ok(activityService.getFeaturedActivities(categorySlug, locale));
         }
         if (destinationId != null && categorySlug != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlug(destinationId, categorySlug));
+            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlug(destinationId, categorySlug, locale));
         } else if (destinationId != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByDestination(destinationId));
+            return ResponseEntity.ok(activityService.getActivitiesByDestination(destinationId, locale));
         } else if (categorySlug != null) {
-            return ResponseEntity.ok(activityService.getActivitiesByCategorySlug(categorySlug));
+            return ResponseEntity.ok(activityService.getActivitiesByCategorySlug(categorySlug, locale));
         } else {
-            return ResponseEntity.ok(activityService.getAllActivities());
+            return ResponseEntity.ok(activityService.getAllActivities(locale));
         }
     }
 
@@ -44,24 +49,29 @@ public class ActivityController {
             @RequestParam UUID destinationId,
             @RequestParam(required = false) String categorySlug,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size) {
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(required = false) String locale) {
 
         int safeSize = Math.min(size, 50);
         PageRequest pageRequest = PageRequest.of(page, safeSize, Sort.by("name").ascending());
 
         if (categorySlug != null && !categorySlug.isEmpty()) {
-            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlugPaged(destinationId, categorySlug, pageRequest));
+            return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlugPaged(destinationId, categorySlug, pageRequest, locale));
         }
-        return ResponseEntity.ok(activityService.getActivitiesByDestinationPaged(destinationId, pageRequest));
+        return ResponseEntity.ok(activityService.getActivitiesByDestinationPaged(destinationId, pageRequest, locale));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ActivityDTO> getActivityById(@PathVariable UUID id) {
-        return ResponseEntity.ok(activityService.getActivityById(id));
+    public ResponseEntity<ActivityDTO> getActivityById(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String locale) {
+        return ResponseEntity.ok(activityService.getActivityById(id, locale));
     }
 
     @GetMapping("/slug/{slug}")
-    public ResponseEntity<ActivityDTO> getActivityBySlug(@PathVariable String slug) {
-        return ResponseEntity.ok(activityService.getActivityBySlug(slug));
+    public ResponseEntity<ActivityDTO> getActivityBySlug(
+            @PathVariable String slug,
+            @RequestParam(required = false) String locale) {
+        return ResponseEntity.ok(activityService.getActivityBySlug(slug, locale));
     }
 }

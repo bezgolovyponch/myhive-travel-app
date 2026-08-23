@@ -148,6 +148,30 @@ body:has(.tl) {
 .tl .logo { display: inline-flex; align-items: center; color: #fff; text-decoration: none; }
 .tl .logo svg { height: 1.55rem; width: auto; display: block; }
 .tl .hdr__spacer { margin-left: auto; }
+/* language switcher — compact EN | DE, styled like the mockups' nav links */
+.tl .hdr__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.tl .hdr__lang a {
+  padding: 0.3rem 0.45rem;
+  border-radius: var(--r);
+  color: var(--muted-l);
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+.tl .hdr__lang a:hover {
+  color: var(--text);
+  background: #ffffff0f;
+}
+.tl .hdr__lang a.is-on {
+  color: #fff;
+  font-weight: 700;
+}
 .tl .hdr__tel {
   display: inline-flex;
   align-items: center;

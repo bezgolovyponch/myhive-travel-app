@@ -1,27 +1,29 @@
 import {pushEvent} from '../../utils/analytics';
+import {useT} from '../../i18n';
 import './ReviewsSection.css';
 
 // Hardcoded until real reviews exist; replace content only, keep the shape.
+// Reviewer names are proper nouns and stay untranslated.
 const REVIEWS = [
     {
-        quote: "Easiest stag do I've ever organised. The lads voted, Trivlu sorted the rest — all I did was show up.",
+        quoteKey: 'reviews.r1Quote',
         name: 'James W.',
-        country: 'United Kingdom',
+        countryKey: 'reviews.r1Country',
     },
     {
-        quote: 'Booked shooting, karting and a boat party for 14 guys. Zero chaos, brilliant weekend.',
+        quoteKey: 'reviews.r2Quote',
         name: 'Connor M.',
-        country: 'Ireland',
+        countryKey: 'reviews.r2Country',
     },
     {
-        quote: 'The group vote ended every argument in the group chat. 10/10, would use again.',
+        quoteKey: 'reviews.r3Quote',
         name: 'Mark D.',
-        country: 'United Kingdom',
+        countryKey: 'reviews.r3Country',
     },
     {
-        quote: 'Great communication and the itinerary was spot on. The deposit system made paying painless.',
+        quoteKey: 'reviews.r4Quote',
         name: 'Tom V.',
-        country: 'Netherlands',
+        countryKey: 'reviews.r4Country',
     },
 ];
 
@@ -30,20 +32,21 @@ function initials(name) {
 }
 
 function ReviewsSection({onStartVote}) {
+    const t = useT('home');
     return (
         <section className="reviews-section">
-            <h2 className="section-title reviews-title">What the Lads Say</h2>
-            <p className="section-subtitle reviews-subtitle">Real reviews from real stag dos.</p>
+            <h2 className="section-title reviews-title">{t('reviews.heading')}</h2>
+            <p className="section-subtitle reviews-subtitle">{t('reviews.subtitle')}</p>
             <div className="reviews-grid">
                 {REVIEWS.map(review => (
                     <div key={review.name} className="review-card">
-                        <div className="review-stars" role="img" aria-label="5 out of 5 stars">★★★★★</div>
-                        <blockquote className="review-quote">"{review.quote}"</blockquote>
+                        <div className="review-stars" role="img" aria-label={t('reviews.starsLabel')}>★★★★★</div>
+                        <blockquote className="review-quote">"{t(review.quoteKey)}"</blockquote>
                         <div className="review-author">
                             <span className="review-avatar" aria-hidden="true">{initials(review.name)}</span>
                             <div>
                                 <div className="review-name">{review.name}</div>
-                                <div className="review-country">{review.country}</div>
+                                <div className="review-country">{t(review.countryKey)}</div>
                             </div>
                         </div>
                     </div>
@@ -56,7 +59,7 @@ function ReviewsSection({onStartVote}) {
                     onStartVote();
                 }}
             >
-                Start Group Vote
+                {t('reviews.startVoteCta')}
             </button>
         </section>
     );

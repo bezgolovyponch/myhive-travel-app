@@ -47,6 +47,10 @@ public class TripLead {
     @Column(nullable = false)
     private String email;
 
+    /** Locale the lead was browsing in ("de"); null = English. Drives the language of the reminder emails and their links. */
+    @Column(length = 8)
+    private String locale;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)

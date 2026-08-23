@@ -1,6 +1,8 @@
 package com.myhive.backend.entity;
 
+import com.myhive.backend.util.TranslationsConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,6 +19,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,6 +45,11 @@ public class Category implements Slugged {
 
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean votable = true;
+
+    /** Per-locale overrides of name, e.g. {"de": {"name": ...}}. The unique base name stays English. */
+    @Convert(converter = TranslationsConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private Map<String, Map<String, String>> translations;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

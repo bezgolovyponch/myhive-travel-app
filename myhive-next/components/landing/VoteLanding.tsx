@@ -4,10 +4,12 @@
 // fixes/trivlu-landing-1-voting-v58.html): "Skip chatting. Start voting."
 // One picked list — fed by the hero swipe deck and the catalogue's Add-to-trip
 // buttons — drives the header cart, step 1's done flag, the sticky bar and the
-// final CTA.
+// final CTA. All copy comes from the landing dictionary (en/de); cta_click
+// labels stay English so analytics never fragments by locale.
 import { useReducer } from 'react';
 import './landing.css';
 import './home.css';
+import { useT, useLocalePath } from '../../legacy-src/i18n';
 import { inter } from './fonts';
 import LandingHeader from './LandingHeader';
 import LandingFooter from './LandingFooter';
@@ -15,135 +17,13 @@ import TrivluLogo from './TrivluLogo';
 import ActivityRows from './ActivityRows';
 import TripCalculator from './TripCalculator';
 import WhyUsSection from './WhyUsSection';
-import ReviewsSection, { type LandingReview } from './ReviewsSection';
-import FaqSection, { type FaqItem } from './FaqSection';
+import ReviewsSection from './ReviewsSection';
+import FaqSection from './FaqSection';
 import SwipeDeck, { builderUrlWithPicks } from './SwipeDeck';
 import { deckReducer, initialDeck } from './deck';
 import { trackCta, trackCtaAndGo } from './analytics';
 import { PHONE_DISPLAY, PHONE_HREF, type ActivityRow, type LandingActivity } from './data';
 import type { Pool } from './engine';
-
-const REVIEWS: LandingReview[] = [
-  {
-    quote:
-      'The easiest bachelor party I ever organised. The group voted. Trivlu arranged everything. I only arrived.',
-    name: 'James W.',
-    meta: '11 people · UK · May 2025 · karting, shooting',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-  },
-  {
-    quote:
-      'We booked shooting, karting and a boat party for fourteen people. No problems. A perfect weekend.',
-    name: 'Connor M.',
-    meta: '14 people · Ireland · June 2025 · boat, shooting',
-    avatar: 'https://randomuser.me/api/portraits/men/44.jpg',
-  },
-  {
-    quote:
-      'The group vote ended every argument in the chat. The decision took one evening instead of a month.',
-    name: 'Mark D.',
-    meta: '8 people · UK · Sept 2025 · rafting, beer spa',
-    avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
-  },
-  {
-    quote: 'Trivlu communicated well. The plan was exactly right. The deposit payment was easy.',
-    name: 'Tom V.',
-    meta: '9 people · Netherlands · Oct 2025 · paintball, dinner',
-    avatar: 'https://randomuser.me/api/portraits/men/11.jpg',
-  },
-];
-
-const FAQ: FaqItem[] = [
-  {
-    q: 'Is Prague still a good choice in 2026? I read that bachelor parties were banned.',
-    open: true,
-    a: (
-      <>
-        <p className="faq__a">
-          Prague banned no bachelor parties. The city banned <em>commercial</em> pub crawls in
-          November 2024. The ban covers the historic centre between 22:00 and 06:00. The fine
-          reaches 100,000 CZK. The fine applies to the tour company, not to your group. Your
-          friends may walk from one pub to another at any hour.
-        </p>
-        <p className="faq__a">
-          The city centre also contains no-drinking zones. An open can in your hand costs up to
-          10,000 CZK. Our evenings start earlier. Our evenings happen inside venues, not on the
-          street. These rules affect no part of your weekend.
-        </p>
-      </>
-    ),
-  },
-  {
-    q: 'Does everyone need to download an app or create an account?',
-    open: true,
-    a: (
-      <p className="faq__a">
-        No. You share one link. Your friends open the link in a browser. No app, no account, no
-        password. You only leave your details before booking.
-      </p>
-    ),
-  },
-  {
-    q: 'Who pays, and when?',
-    open: true,
-    a: (
-      <p className="faq__a">
-        One person pays a 30 percent deposit by card. The deposit reserves every activity. The
-        group pays the remaining balance on arrival. Free cancellation protects your group if the
-        group size changes. <a href="/refund-policy">Refund policy</a>
-      </p>
-    ),
-  },
-  {
-    q: 'We are not interested in strip clubs. Is there anything else?',
-    a: (
-      <p className="faq__a">
-        Trivlu offers 72 activities. Only one category out of eight contains adult entertainment.
-        Choose rafting, shooting, karting or axe throwing. Choose a beer spa, a brewery tour or a
-        river cruise. Choose bubble football or tank driving. Many groups ignore the adult category
-        completely.
-      </p>
-    ),
-  },
-  {
-    q: 'Do you book flights and hotels too?',
-    a: (
-      <p className="faq__a">
-        No. Trivlu adds no fee to flights or hotels. You find better prices yourself. Trivlu shows
-        realistic price ranges for both. Trivlu books the activities, plans the timing, and solves
-        problems in the city.
-      </p>
-    ),
-  },
-  {
-    q: 'What if someone cancels?',
-    a: (
-      <p className="faq__a">
-        Tell us. We change the booking. Free cancellation covers every activity. Watch the minimum
-        group price. Some activities charge a minimum price for the whole group. Trivlu shows the
-        minimum price on the activity card.
-      </p>
-    ),
-  },
-  {
-    q: 'What is the smallest group you accept?',
-    a: (
-      <p className="faq__a">
-        A group of four works for most activities. Smaller groups pay more per person for
-        activities with a minimum group price. Trivlu shows the exact price before you book.
-      </p>
-    ),
-  },
-  {
-    q: 'How fast do you really reply?',
-    a: (
-      <p className="faq__a">
-        We reply within ten minutes, seven days a week. Call {PHONE_DISPLAY}. Or send a message to
-        the same number on WhatsApp.
-      </p>
-    ),
-  },
-];
 
 // The three drawn numerals: same 90×120 box, monoline skeleton, hairline only.
 const STEP_FIGURES = [
@@ -152,13 +32,7 @@ const STEP_FIGURES = [
   'M34.6 37.5 35.7 35.6 38.3 33.8 41.8 32.6 45.4 32.0 48.6 32.1 51.8 32.8 54.3 34.4 55.8 36.4 56.4 38.3 56.4 40.6 55.7 42.5 54.4 44.3 52.1 45.9 49.4 47.0 46.1 47.7 40.4 48.2 38.0 49.2 36.3 50.5 35.1 52.2 34.3 54.1 34.1 56.2 34.3 57.8 35.0 59.8 36.3 61.5 37.9 62.8 40.3 63.8 44.8 64.4 48.8 65.5 52.0 67.1 55.1 69.7 56.4 71.5 57.1 72.9 58.1 76.1 58.3 79.9 57.7 83.1 56.9 85.1 55.7 86.8 53.7 88.8 51.8 90.1 49.0 91.3 46.6 91.8 44.1 92.0 41.1 91.8 37.8 90.7 36.6 90.0 35.4 88.9 34.2 87.0 33.4 83.8 32.8 82.3 31.9 81.0 30.9 79.9 29.6 79.0 28.1 78.4 26.6 78.0 24.5 78.1 23.0 78.5 21.1 79.4 19.9 80.5 18.7 82.1 17.9 84.1 17.7 85.6 18.3 89.7 19.0 92.2 20.0 94.5 21.3 96.7 22.8 98.8 24.5 100.7 26.4 102.4 30.5 105.0 35.5 106.9 41.0 107.9 47.2 107.9 51.9 107.1 55.4 106.0 59.4 104.2 62.5 102.2 65.9 99.4 68.4 96.6 70.3 93.9 72.3 89.7 73.4 86.4 74.1 82.9 74.3 78.8 74.1 75.0 73.1 70.0 71.8 66.6 70.0 63.1 67.2 59.3 64.6 56.6 67.2 53.9 68.9 51.6 70.5 48.6 71.5 45.9 72.2 43.1 72.5 40.1 72.4 37.3 71.7 33.6 70.1 29.1 67.8 25.5 64.9 22.4 61.4 19.8 57.5 17.9 53.1 16.6 48.4 16.0 43.1 16.2 38.4 16.9 34.5 18.0 30.2 19.9 27.0 21.9 24.2 24.5 21.7 27.6 19.8 31.2 18.9 34.4 18.7 36.0 18.8 37.5 19.3 39.0 20.0 40.4 21.0 41.6 22.2 42.6 23.6 43.4 25.1 43.8 26.7 44.0 28.2 43.9 29.7 43.4 31.1 42.7 32.3 41.7 33.3 40.5 34.1 39.1Z',
 ];
 
-const DEMO_POLL: { label: string; pct: number }[] = [
-  { label: 'AK-47 shooting', pct: 89 },
-  { label: 'River boat cruise', pct: 78 },
-  { label: 'Beer spa', pct: 67 },
-  { label: 'Go-karting', pct: 56 },
-  { label: 'Army tank experience', pct: 44 },
-];
+const DEMO_POLL_PCT = [89, 78, 67, 56, 44];
 
 function scrollToDeck() {
   document
@@ -181,11 +55,21 @@ export default function VoteLanding({
   fromPrice: number;
   destinationSlug: string;
 }) {
+  const t = useT('landing.vote');
+  const tAct = useT('landing.activities');
+  const tChrome = useT('landing.chrome');
+  const lp = useLocalePath();
   const [state, dispatch] = useReducer(deckReducer, undefined, initialDeck);
   const picked = state.picked;
-  const builderHref = builderUrlWithPicks(picked);
+  const builderHref = lp(builderUrlWithPicks(picked));
 
   const goToBuilder = (label: string, block: string) => trackCtaAndGo(label, block, builderHref);
+
+  const steps = [
+    { h: t('steps.s1h'), p: t('steps.s1p', { count: totalActivities }) },
+    { h: t('steps.s2h'), p: t('steps.s2p') },
+    { h: t('steps.s3h'), p: t('steps.s3p') },
+  ];
 
   return (
     <div className={`tl tl--home ${inter.variable}`} id="top">
@@ -198,12 +82,14 @@ export default function VoteLanding({
             scrollToDeck();
           }}
         >
-          Start group vote
+          {tChrome('startVote')}
         </button>
         <button
           className="hdr__cart"
           type="button"
-          aria-label={`Selected activities. ${picked.length} ${picked.length === 1 ? 'item' : 'items'}`}
+          aria-label={tChrome(picked.length === 1 ? 'cartAriaOne' : 'cartAriaOther', {
+            count: picked.length,
+          })}
           onClick={() => {
             if (picked.length > 0) goToBuilder('Cart', 'header');
             else document.getElementById('activities')?.scrollIntoView({ behavior: 'smooth' });
@@ -235,22 +121,27 @@ export default function VoteLanding({
           <div className="hero__left">
             <div className="hero__copy">
               <h1 className="hero__title">
-                Skip chatting.
+                {t('hero.title1')}
                 <br />
-                <em>Start voting</em>
+                <em>{t('hero.title2')}</em>
               </h1>
               <p className="hero__lead">
-                Plan a <em>bachelor party in Prague</em> with no chaos in the group chat.
+                {t('hero.leadPre')}
+                <em>{t('hero.leadEm')}</em>
+                {t('hero.leadPost')}
               </p>
               <ol className="hero__steps">
                 <li>
-                  <span className="hero__n">1</span>Create a shortlist
+                  <span className="hero__n">1</span>
+                  {t('hero.step1')}
                 </li>
                 <li>
-                  <span className="hero__n">2</span>Share the vote link
+                  <span className="hero__n">2</span>
+                  {t('hero.step2')}
                 </li>
                 <li>
-                  <span className="hero__n">3</span>Confirm the winners
+                  <span className="hero__n">3</span>
+                  {t('hero.step3')}
                 </li>
               </ol>
             </div>
@@ -264,21 +155,21 @@ export default function VoteLanding({
                   scrollToDeck();
                 }}
               >
-                Start group vote
+                {tChrome('startVote')}
               </button>
               <a
                 className="btn btn--ghost btn--lg"
                 href="#activities"
                 onClick={() => trackCta('See all activities', 'hero')}
               >
-                See all {totalActivities} activities
+                {t('hero.ctaSeeAll', { count: totalActivities })}
               </a>
             </div>
 
             <div className="hero__meta">
-              <span>{totalActivities} activities in Prague</span>
-              <span>from €{fromPrice} per person</span>
-              <span>Free cancellation</span>
+              <span>{t('hero.metaActivities', { count: totalActivities })}</span>
+              <span>{t('hero.metaFrom', { price: fromPrice })}</span>
+              <span>{t('hero.metaCancel')}</span>
             </div>
           </div>
 
@@ -290,48 +181,30 @@ export default function VoteLanding({
       {/* ══════════ THE REAL PROBLEM ══════════ */}
       <section className="problem">
         <div className="shell">
-          <h2 className="t-h2">Getting your group to agree is the hardest part of the trip</h2>
-          <div className="cols__hd">What it usually looks like</div>
+          <h2 className="t-h2">{t('problem.title')}</h2>
+          <div className="cols__hd">{t('problem.colsHd')}</div>
           <div className="cols">
-            <div className="col">
-              <div className="col__vis col__vis--icon">
-                <img
-                  className="col__icon"
-                  src="/landing/problem-chat.webp"
-                  alt="Unread group chat icon"
-                  loading="lazy"
-                  decoding="async"
-                />
+            {(
+              [
+                ['problem-chat', 'c1'],
+                ['problem-calendar', 'c2'],
+                ['problem-prices', 'c3'],
+              ] as const
+            ).map(([img, key]) => (
+              <div className="col" key={key}>
+                <div className="col__vis col__vis--icon">
+                  <img
+                    className="col__icon"
+                    src={`/landing/${img}.webp`}
+                    alt={t(`problem.${key}alt`)}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <h3 className="col__h">{t(`problem.${key}h`)}</h3>
+                <p className="col__p">{t(`problem.${key}p`)}</p>
               </div>
-              <h3 className="col__h">Chaos in a group chat</h3>
-              <p className="col__p">Everyone holds an opinion. Everyone waits for somebody else.</p>
-            </div>
-            <div className="col">
-              <div className="col__vis col__vis--icon">
-                <img
-                  className="col__icon"
-                  src="/landing/problem-calendar.webp"
-                  alt="Calendar with a selected date icon"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <h3 className="col__h">Time passes. No decision</h3>
-              <p className="col__p">The bachelor party is close. The group booked nothing.</p>
-            </div>
-            <div className="col">
-              <div className="col__vis col__vis--icon">
-                <img
-                  className="col__icon"
-                  src="/landing/problem-prices.webp"
-                  alt="Rising price chart icon"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <h3 className="col__h">Flight prices rise every week</h3>
-              <p className="col__p">Every week of delay costs the group real money.</p>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -340,18 +213,15 @@ export default function VoteLanding({
           <div className="band__in">
             <div className="band__head">
               <span className="band__lbl">
-                What it looks like using <TrivluLogo className="band__logo" />
+                {t('band.lblPre')} <TrivluLogo className="band__logo" />
               </span>
-              <h3 className="band__h">Voting is finished. Tour booked in 10 minutes</h3>
-              <p className="band__p">
-                Your group votes. Trivlu builds one exact itinerary, tailored to your group hour by
-                hour.
-              </p>
+              <h3 className="band__h">{t('band.h')}</h3>
+              <p className="band__p">{t('band.p')}</p>
             </div>
             <div className="band__body">
               <div className="band__time">
-                <em>Three weeks</em>
-                <strong>10 minutes</strong>
+                <em>{t('band.timeOld')}</em>
+                <strong>{t('band.timeNew')}</strong>
               </div>
               <div className="band__cta">
                 <button
@@ -359,25 +229,25 @@ export default function VoteLanding({
                   type="button"
                   onClick={() => goToBuilder('Start group vote', 'band')}
                 >
-                  Start group vote
+                  {tChrome('startVote')}
                 </button>
               </div>
-              <p className="band__fine">No account or payment card needed.</p>
+              <p className="band__fine">{t('band.fine')}</p>
             </div>
             <div className="band__vis">
               <div className="band__hd">
-                <b>Voting is finished</b>
-                <span>11 of 11 answered</span>
+                <b>{t('band.visTitle')}</b>
+                <span>{t('band.visAnswered')}</span>
               </div>
               <div className="ev-poll">
-                {DEMO_POLL.map((row) => (
-                  <div className="ev-prow" key={row.label}>
-                    <span className="ev-plab">{row.label}</span>
+                {DEMO_POLL_PCT.map((pct, i) => (
+                  <div className="ev-prow" key={pct}>
+                    <span className="ev-plab">{t(`band.poll${i + 1}`)}</span>
                     <span className="ev-pval" style={{ color: 'var(--brand-ic)' }}>
-                      {row.pct}%
+                      {pct}%
                     </span>
                     <span className="ev-ptrack">
-                      <span className="ev-pfill" style={{ width: `${row.pct}%` }} />
+                      <span className="ev-pfill" style={{ width: `${pct}%` }} />
                     </span>
                   </div>
                 ))}
@@ -385,8 +255,8 @@ export default function VoteLanding({
               <div className="band__ok">
                 <span className="dot-ok">✓</span>
                 <span>
-                  <b>Booking confirmed</b>
-                  <span>Prague · 19–21 Jun · 8 people</span>
+                  <b>{t('band.okTitle')}</b>
+                  <span>{t('band.okSub')}</span>
                 </span>
               </div>
             </div>
@@ -399,23 +269,10 @@ export default function VoteLanding({
       {/* ══════════ STEPS ══════════ */}
       <section id="how">
         <div className="shell">
-          <h2 className="t-h2">Plan your trip in 3 easy steps</h2>
-          <p className="t-lede">Let the group decide. You confirm the winners.</p>
+          <h2 className="t-h2">{t('steps.title')}</h2>
+          <p className="t-lede">{t('steps.lede')}</p>
           <div className="steps">
-            {[
-              {
-                h: 'Create a shortlist',
-                p: `Choose from ${totalActivities} activities in Prague. No account, no form.`,
-              },
-              {
-                h: 'Share one link. The group votes',
-                p: 'Send the vote link to the group chat. We email you the results.',
-              },
-              {
-                h: 'Confirm the winners',
-                p: 'We confirm every booking with the venue. You pay 30 percent now, the balance on arrival.',
-              },
-            ].map((step, i) => {
+            {steps.map((step, i) => {
               const done = i === 0 && picked.length > 0;
               return (
                 <article className={`step${done ? ' is-done' : ''}`} key={step.h}>
@@ -426,7 +283,9 @@ export default function VoteLanding({
                   </div>
                   <h3 className="step__h">{step.h}</h3>
                   <p className="step__p">{step.p}</p>
-                  <p className="step__flag">{done ? `Done. ${picked.length} chosen.` : ''}</p>
+                  <p className="step__flag">
+                    {done ? t('steps.done', { count: picked.length }) : ''}
+                  </p>
                 </article>
               );
             })}
@@ -440,7 +299,7 @@ export default function VoteLanding({
                 scrollToDeck();
               }}
             >
-              Start group vote
+              {tChrome('startVote')}
             </button>
           </div>
         </div>
@@ -449,33 +308,21 @@ export default function VoteLanding({
       {/* ══════════ TRUST STRIP ══════════ */}
       <section className="trust">
         <div className="trust__in">
-          <div className="trust__i">
-            <strong>Voting is free</strong>
-            <span>Pay only when you book.</span>
-          </div>
-          <div className="trust__i">
-            <strong>30% deposit</strong>
-            <span>Pay the balance on arrival.</span>
-          </div>
-          <div className="trust__i">
-            <strong>15 years in Prague</strong>
-            <span>Local team. No agency fee.</span>
-          </div>
-          <div className="trust__i">
-            <strong>We reply in 10 minutes</strong>
-            <span>Human support 24/7</span>
-          </div>
+          {(['t1', 't2', 't3', 't4'] as const).map((key) => (
+            <div className="trust__i" key={key}>
+              <strong>{t(`trust.${key}h`)}</strong>
+              <span>{t(`trust.${key}p`)}</span>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ══════════ ACTIVITIES ══════════ */}
       <section id="activities">
         <div className="shell">
-          <p className="t-eyebrow">What you can book</p>
-          <h2 className="t-h2">{totalActivities} activities. Pick the ones your group wants</h2>
-          <p className="t-lede">
-            From tank driving to river cruises and spas, there are activities for every group.
-          </p>
+          <p className="t-eyebrow">{tAct('eyebrow')}</p>
+          <h2 className="t-h2">{tAct('title', { count: totalActivities })}</h2>
+          <p className="t-lede">{tAct('ledeVote')}</p>
           <ActivityRows
             rows={rows}
             destinationSlug={destinationSlug}
@@ -485,10 +332,10 @@ export default function VoteLanding({
           <div className="grid__more">
             <a
               className="btn btn--ghost btn--lg"
-              href={`/destination/${destinationSlug}?tab=activities`}
+              href={lp(`/destination/${destinationSlug}?tab=activities`)}
               onClick={() => trackCta('View all activities', 'activities')}
             >
-              View all {totalActivities} activities →
+              {tAct('viewAll', { count: totalActivities })}
             </a>
           </div>
         </div>
@@ -497,46 +344,25 @@ export default function VoteLanding({
       <hr className="rule" />
 
       {/* ══════════ COSTS ══════════ */}
-      <section id="costs">
-        <div className="shell">
-          <p className="t-eyebrow">A weekend for every budget</p>
-          <h2 className="t-h2">See what your budget actually buys</h2>
-          <p className="t-lede">
-            Say how long you are staying and how much you want to spend. We create an example
-            weekend from the real catalogue.
-          </p>
-          <TripCalculator pool={pool} ctaLabel="Build your trip now" />
-        </div>
-      </section>
+      <CostsSection pool={pool} />
 
       <hr className="rule" />
 
-      <WhyUsSection
-        paragraphs={[
-          'We organised bachelor parties in Prague for fifteen years.',
-          'You gain two advantages with Trivlu: you pay the venue price without an added agency fee. You speak to the person who books your activities. Our team is located in Prague and always happy to assist you.',
-        ]}
-        guarantees={[
-          'Pay a 30 percent deposit now. Pay the balance later.',
-          'Free cancellation covers every activity.',
-          'Card payments are processed by Stripe.',
-        ]}
-        block="why"
-      />
+      <WhyUsSection variant="vote" />
 
       <hr className="rule" />
 
-      <ReviewsSection reviews={REVIEWS} />
+      <ReviewsSection variant="vote" />
 
       <hr className="rule" />
 
-      <FaqSection items={FAQ} />
+      <FaqSection variant="vote" />
 
       {/* ══════════ FINAL CTA ══════════ */}
       <section className="final">
         <div className="shell">
-          <h2>Stop debating in the group chat</h2>
-          <p>Choose the activities. Send one link. Let the group vote.</p>
+          <h2>{t('final.title')}</h2>
+          <p>{t('final.p')}</p>
           <div className="final__row">
             <button
               className="btn btn--primary btn--lg"
@@ -550,7 +376,9 @@ export default function VoteLanding({
                 }
               }}
             >
-              {picked.length > 0 ? `Build your trip now (${picked.length} chosen)` : 'Start group vote'}
+              {picked.length > 0
+                ? t('final.buildNow', { count: picked.length })
+                : tChrome('startVote')}
             </button>
             <a
               className="btn btn--ghost btn--lg"
@@ -560,16 +388,16 @@ export default function VoteLanding({
               📞 {PHONE_DISPLAY}
             </a>
           </div>
-          <p className="final__fine">Reply in 10 minutes · Free cancellation · 30% deposit</p>
+          <p className="final__fine">{t('final.fine')}</p>
         </div>
       </section>
 
       <LandingFooter
-        tagline="Prague stag do. Planned in 10 minutes. Your group votes, we do the rest."
+        taglineKey="taglineVote"
         tripLinks={[
-          { href: '#activities', label: 'Activities' },
-          { href: '#how', label: 'How Trivlu works' },
-          { href: '#costs', label: 'Prices' },
+          { href: '#activities', labelKey: 'activities' },
+          { href: '#how', labelKey: 'how' },
+          { href: '#costs', labelKey: 'prices' },
         ]}
       />
 
@@ -580,10 +408,24 @@ export default function VoteLanding({
           type="button"
           onClick={() => goToBuilder('Build your trip now', 'sticky')}
         >
-          Build your trip now
+          {t('sticky.cta')}
         </button>
-        <span className="sticky__note">No account or credit card needed.</span>
+        <span className="sticky__note">{t('sticky.note')}</span>
       </div>
     </div>
+  );
+}
+
+function CostsSection({ pool }: { pool: Pool }) {
+  const t = useT('landing.calc');
+  return (
+    <section id="costs">
+      <div className="shell">
+        <p className="t-eyebrow">{t('eyebrow')}</p>
+        <h2 className="t-h2">{t('title')}</h2>
+        <p className="t-lede">{t('lede')}</p>
+        <TripCalculator pool={pool} />
+      </div>
+    </section>
   );
 }

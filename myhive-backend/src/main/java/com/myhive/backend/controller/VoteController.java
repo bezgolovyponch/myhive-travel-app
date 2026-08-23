@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -24,13 +25,17 @@ public class VoteController {
     private final QuizService quizService;
     private final VotePoolService votePoolService;
 
+    // `locale` (en/de/…) localizes the copy in place; absent = English.
+
     @GetMapping("/destinations/{destinationId}/quiz")
-    public PublicQuizDTO getPublicQuiz(@PathVariable UUID destinationId) {
-        return quizService.getPublicQuiz(destinationId);
+    public PublicQuizDTO getPublicQuiz(@PathVariable UUID destinationId,
+                                       @RequestParam(required = false) String locale) {
+        return quizService.getPublicQuiz(destinationId, locale);
     }
 
     @PostMapping("/pool")
-    public VotePoolResponse buildPool(@Valid @RequestBody VotePoolRequest request) {
-        return votePoolService.buildPool(request);
+    public VotePoolResponse buildPool(@Valid @RequestBody VotePoolRequest request,
+                                      @RequestParam(required = false) String locale) {
+        return votePoolService.buildPool(request, locale);
     }
 }

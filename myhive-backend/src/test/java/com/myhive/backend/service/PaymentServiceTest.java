@@ -381,7 +381,7 @@ class PaymentServiceTest {
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.DEPOSIT_PAID);
         assertThat(booking.getAmountPaid()).isEqualByComparingTo(new BigDecimal("30.00"));
         verify(emailService).sendPaymentReceived(eq("init@test.com"), eq("Init"), eq("TRV-1"),
-                any(BigDecimal.class), any(BigDecimal.class), eq(false));
+                any(BigDecimal.class), any(BigDecimal.class), eq(false), any());
         // A paid deposit also sends the customer's itinerary confirmation (with the paid amount + total)
         // and alerts the bookings inbox.
         verify(emailService).sendItineraryConfirmation(eq("init@test.com"), eq("Init"),
@@ -423,7 +423,7 @@ class PaymentServiceTest {
         assertThat(deposit.isPaid()).isTrue();
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.DEPOSIT_PAID);
         verify(emailService).sendPaymentReceived(eq("buyer@test.com"), eq("Buyer"), eq("TRV-LEAD1"),
-                any(BigDecimal.class), any(BigDecimal.class), eq(false));
+                any(BigDecimal.class), any(BigDecimal.class), eq(false), any());
         verify(emailService, never()).sendItineraryConfirmation(anyString(), anyString(),
                 any(TripExportRequest.class), anyString(),
                 any(java.math.BigDecimal.class), any(java.math.BigDecimal.class));
@@ -465,7 +465,7 @@ class PaymentServiceTest {
 
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.PAID);
         assertThat(booking.getPaidAt()).isNotNull();
-        verify(emailService).sendPaymentReceived(any(), any(), any(), any(), any(), eq(true));
+        verify(emailService).sendPaymentReceived(any(), any(), any(), any(), any(), eq(true), any());
     }
 
     @Test

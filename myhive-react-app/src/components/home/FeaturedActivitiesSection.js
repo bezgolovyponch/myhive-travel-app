@@ -6,6 +6,7 @@ import {useTrip} from '../../context/TripContext';
 import {getDefaultDestination} from '../../utils/defaultDestination';
 import {pushEvent} from '../../utils/analytics';
 import ActivityCard from '../ActivityCard';
+import {useT} from '../../i18n';
 import './FeaturedActivitiesSection.css';
 
 const MAX_FEATURED = 12;
@@ -14,6 +15,7 @@ const MAX_FEATURED = 12;
 // HTML — the fetch below runs in an effect, which a crawler never sees. Omitted
 // in the SPA, where the effect stays the only source.
 function FeaturedActivitiesSection({activities: injected}) {
+    const t = useT('home');
     const {state: catalog} = useCatalog();
     const {state: trip} = useTrip();
     const [activities, setActivities] = useState(injected ?? []);
@@ -58,9 +60,9 @@ function FeaturedActivitiesSection({activities: injected}) {
 
     return (
         <section className="featured-activities" id="activities">
-            <h2 className="section-title">70+ Activities. Something for Every Group.</h2>
+            <h2 className="section-title">{t('featured.heading')}</h2>
             <p className="section-subtitle">
-                From tank driving to strip clubs and spa — we've got every stag style covered.
+                {t('featured.subtitle')}
             </p>
             <div className="featured-activities-grid">
                 {activities.map(activity => (
@@ -77,7 +79,7 @@ function FeaturedActivitiesSection({activities: injected}) {
                     className="btn btn--lg featured-activities-cta"
                     onClick={() => pushEvent('cta_click', {cta_label: 'View All Activities', block: 'activities'})}
                 >
-                    View All Activities
+                    {t('featured.viewAllCta')}
                 </Link>
             )}
         </section>

@@ -1,0 +1,1042 @@
+{
+  "meta": {
+    "site": {
+      "title": "Trivlu — Group Travel Made Easy",
+      "description": "Turn group travel chaos into epic adventures with zero stress. Trivlu is the first AI trip maker for multi-traveler experiences."
+    },
+    "home": {
+      "title": "Trivlu — Prague Stag Do. Planned in 10 Minutes.",
+      "description": "Your group votes, we do the rest. The perfect Prague stag do weekend — activities, booking and logistics all sorted for you."
+    },
+    "about": {
+      "title": "About Trivlu — Group Travel Made Easy",
+      "description": "We built Trivlu so best men can plan a stag the whole group actually agrees on. Here's who we are and why."
+    },
+    "contact": {
+      "title": "Contact Trivlu — Talk to the Team",
+      "description": "Questions about your stag do or booking? Reach the Trivlu team by WhatsApp, Messenger or email — we're quick to reply."
+    },
+    "blog": {
+      "title": "Stag Do Planning Guides & Ideas | Trivlu Blog",
+      "description": "Guides, ideas and destination tips for planning the perfect stag do — from budgeting to the best cities in Europe."
+    },
+    "blogPost": {
+      "title": "{title} | Trivlu Blog"
+    },
+    "destination": {
+      "pragueTitle": "Prague Stag Do — Activities & Packages | Trivlu",
+      "pragueDescription": "Everything for a Prague stag do: top activities, prices for the group and instant trip building. Start planning in minutes.",
+      "title": "{name} Stag Do — Activities & Packages | Trivlu",
+      "description": "Everything for a {name} stag do: top activities, prices for the group and instant trip building.",
+      "tripBuilderTitle": "Trip Builder | Trivlu",
+      "notFound": "Destination not found | Trivlu"
+    },
+    "activity": {
+      "title": "{name} in {destination} | Trivlu",
+      "fallbackDescription": "{name} in {destination}.",
+      "notFound": "Activity not found | Trivlu"
+    },
+    "package": {
+      "title": "{name} — {destination} Package | Trivlu",
+      "fallbackDescription": "{name} package in {destination}.",
+      "notFound": "Package not found | Trivlu"
+    },
+    "legal": {
+      "termsTitle": "Terms & Conditions | Trivlu",
+      "termsDescription": "The terms and conditions that apply when you book group trips and experiences through Trivlu.",
+      "privacyTitle": "Privacy Policy | Trivlu",
+      "privacyDescription": "How Trivlu collects, uses, and protects your personal data under the GDPR.",
+      "refundTitle": "Refund Policy | Trivlu",
+      "refundDescription": "Trivlu's cancellation and refund terms for tours, activities, and packages.",
+      "cookieTitle": "Cookie Policy | Trivlu",
+      "cookieDescription": "Learn how Trivlu uses cookies and how to manage your cookie preferences."
+    }
+  },
+  "common": {
+    "home": "Home",
+    "blog": "Blog",
+    "close": "Close"
+  },
+  "chrome": {
+    "comingSoonTitle": "Coming Soon",
+    "comingSoonHeading": "{name} is coming soon!",
+    "fallbackDestination": "This destination",
+    "comingSoonBody": "We're working hard to bring you amazing experiences here. Stay tuned!",
+    "gotIt": "Got it"
+  },
+  "header": {
+    "nav": {
+      "activities": "Activities",
+      "about": "About",
+      "blog": "Blog",
+      "contact": "Contact"
+    },
+    "breadcrumb": {
+      "home": "Home",
+      "destination": "Destination"
+    },
+    "tab": {
+      "activities": "Activities",
+      "trip-builder": "Trip Builder",
+      "packages": "Packages"
+    },
+    "cartAria": "Cart",
+    "cartAriaOne": "Cart, {count} item",
+    "cartAriaOther": "Cart, {count} items",
+    "menuAria": "Menu",
+    "languageAria": "Language"
+  },
+  "footer": {
+    "tagline": "Turn group travel chaos into epic adventures with zero stress.",
+    "nav": {
+      "activities": "Activities",
+      "about": "About",
+      "blog": "Blog",
+      "contact": "Contact"
+    },
+    "legal": {
+      "terms": "Terms",
+      "refundPolicy": "Refund Policy",
+      "cookiePolicy": "Cookie Policy",
+      "privacyPolicy": "Privacy Policy",
+      "cookieSettings": "Cookie settings"
+    },
+    "copyright": "Trivlu. All rights reserved."
+  },
+  "whatsapp": {
+    "chatAria": "Chat with us on WhatsApp"
+  },
+  "tripSetup": {
+    "title": "Set Up Your Trip",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "confirm": "Confirm",
+    "travelersLabel": "Number of Travelers *",
+    "decreaseAria": "Decrease travelers",
+    "increaseAria": "Increase travelers"
+  },
+  "tripDropdown": {
+    "title": "Trip Builder",
+    "closeAria": "Close",
+    "percentOff": "{pct}% off",
+    "removeAria": "Remove {name}",
+    "emptyState": "No activities added yet. Browse and add activities to build your trip!",
+    "voteTogether": "Vote together & build a trip",
+    "totalOne": "Total ({count} person)",
+    "totalOther": "Total ({count} people)",
+    "continue": "Continue"
+  },
+  "home": {
+    "hero": {
+      "title": "Prague Stag Do. Planned in 10 minutes.",
+      "subtitle": "Your group votes, we do the rest.",
+      "startVoteCta": "Start Group Vote",
+      "exploreCta": "Explore activities"
+    },
+    "featured": {
+      "heading": "70+ Activities. Something for Every Group.",
+      "subtitle": "From tank driving to strip clubs and spa — we've got every stag style covered.",
+      "viewAllCta": "View All Activities"
+    },
+    "howItWorks": {
+      "heading": "Let the group decide. You just book it.",
+      "subtitle": "Everyone votes, you confirm, we handle the rest.",
+      "step1Title": "Pick activities to vote on",
+      "step2Title": "Share the vote link",
+      "step3Title": "Book the winners",
+      "bookedTitle": "Booking confirmed",
+      "bookedSub": "Prague · 19–21 Jun · 8 lads",
+      "startVoteCta": "Start Group Vote"
+    },
+    "trust": {
+      "heading": "Why Plan Your Prague Stag Weekend with Trivlu",
+      "item1Title": "Stag Do Specialists",
+      "item1Text": "We've done this thousands of times",
+      "item2Title": "Group-Voted Plan",
+      "item2Text": "Built on what your mates actually want",
+      "item3Title": "We Handle Everything",
+      "item3Text": "Booking, logistics, support",
+      "item4Title": "Real Human Support",
+      "item4Text": "WhatsApp & chat, 7 days a week"
+    },
+    "reviews": {
+      "heading": "What the Lads Say",
+      "subtitle": "Real reviews from real stag dos.",
+      "starsLabel": "5 out of 5 stars",
+      "r1Quote": "Easiest stag do I've ever organised. The lads voted, Trivlu sorted the rest — all I did was show up.",
+      "r1Country": "United Kingdom",
+      "r2Quote": "Booked shooting, karting and a boat party for 14 guys. Zero chaos, brilliant weekend.",
+      "r2Country": "Ireland",
+      "r3Quote": "The group vote ended every argument in the group chat. 10/10, would use again.",
+      "r3Country": "United Kingdom",
+      "r4Quote": "Great communication and the itinerary was spot on. The deposit system made paying painless.",
+      "r4Country": "Netherlands",
+      "startVoteCta": "Start Group Vote"
+    },
+    "contactCta": {
+      "title": "We're just a message away",
+      "subtitle": "Chat with our team on WhatsApp — ask anything, we'll help plan the perfect stag do.",
+      "whatsappCta": "Chat on WhatsApp"
+    },
+    "stickyCta": {
+      "label": "Start Group Vote"
+    },
+    "voteDemo": {
+      "title": "Vote on activities",
+      "sub": "9 of 11 lads voted",
+      "row1Name": "Bar Crawl",
+      "row2Name": "Karting",
+      "row3Name": "Shooting",
+      "row4Name": "Tiki Boat"
+    },
+    "voteMoment": {
+      "title": "Voting is open",
+      "sub": "9 of 11 lads voted · 4h left",
+      "row1Name": "Steak & Strip",
+      "row2Name": "Tank driving",
+      "row3Name": "Bar crawl",
+      "row4Name": "Beer spa",
+      "row5Name": "Karting",
+      "row6Name": "Shooting"
+    },
+    "swipeMoment": {
+      "cardName": "Steak & Strip",
+      "cardMeta": "1.5h · €45 / person",
+      "likeStamp": "LIKE"
+    }
+  },
+  "destination": {
+    "loading": "Loading...",
+    "notFound": "Destination not found",
+    "backToHome": "Back to Home",
+    "heroTitle": "{name} Stag Do",
+    "tabActivities": "Activities",
+    "tabPackages": "Packages",
+    "tabTripBuilder": "Trip Builder",
+    "filterAll": "All",
+    "showLess": "Show less",
+    "showAll": "Show all ({count})",
+    "listError": "Couldn't load activities. Please try again.",
+    "loadingActivities": "Loading activities...",
+    "showMore": "Show More ({shown} of {total})"
+  },
+  "cards": {
+    "viewAria": "View {name}",
+    "activityCategory": "Activity",
+    "fromPerPerson": "from {price} / person",
+    "perPersonPrice": "{price} / person",
+    "groupMinimum": "Group minimum {amount}",
+    "moreInfo": "More info",
+    "added": "Added",
+    "addToTrip": "Add to trip",
+    "saveAmount": "Save {amount}",
+    "badgePopular": "Popular",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {current} of {total}",
+    "durationHours": "{hours}h",
+    "viewFullPage": "View full page ↗",
+    "noDescription": "No description yet.",
+    "whatsIncluded": "What's included",
+    "openPhoto": "Open photo {num} of {total}",
+    "seeAllPhotos": "See all photos ({count})",
+    "photosAria": "{title} photos",
+    "photoAlt": "{title} {num} of {total}",
+    "close": "Close",
+    "previousPhoto": "Previous photo",
+    "nextPhoto": "Next photo",
+    "goToPhoto": "Go to photo {num}"
+  },
+  "about": {
+    "hero": {
+      "title": "About Trivlu",
+      "subtitle": "Making group travel effortless, one adventure at a time."
+    },
+    "mission": {
+      "title": "Our Mission",
+      "p1": "Trivlu was born from a simple frustration: planning group trips shouldn't be harder than the trip itself. We believe that bringing people together for shared adventures should be seamless, exciting, and stress-free.",
+      "p2": "Our AI-powered platform takes the chaos out of coordinating multi-traveler experiences. From selecting destinations to building custom itineraries, Trivlu handles the logistics so you can focus on making memories."
+    },
+    "values": {
+      "title": "What We Stand For",
+      "adventure": {
+        "title": "Adventure First",
+        "body": "We curate destinations and activities that create unforgettable experiences for groups of all sizes."
+      },
+      "stress": {
+        "title": "Zero Stress",
+        "body": "Our smart trip builder handles the complexity of group coordination so you don't have to."
+      },
+      "together": {
+        "title": "Better Together",
+        "body": "Travel is best when shared. We design every feature to bring groups closer together."
+      }
+    },
+    "story": {
+      "title": "Our Story",
+      "p1": "It started with a weekend trip that almost didn't happen. Too many group chats, conflicting preferences, and last-minute cancellations nearly derailed what should have been a simple getaway.",
+      "p2": "That experience sparked an idea: what if there was a platform that made planning group adventures as fun as the adventures themselves? Trivlu is the answer — the first AI-powered trip maker built specifically for multi-traveler experiences."
+    }
+  },
+  "contact": {
+    "hero": {
+      "title": "Contact Us",
+      "subtitle": "Have a question or want to plan a group trip? We'd love to hear from you."
+    },
+    "info": {
+      "title": "Get in Touch",
+      "body": "Whether you have a question about destinations, pricing, or anything else, our team is ready to help.",
+      "emailLabel": "Email",
+      "responseTimeLabel": "Response Time",
+      "responseTimeValue": "Within 24 hours",
+      "companyLabel": "Company",
+      "addressLabel": "Address",
+      "addressValue": "Na Folimance 2155/15, Vinohrady, 120 00 Prague 2, Czech Republic"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Email is invalid",
+      "subjectRequired": "Subject is required",
+      "messageRequired": "Message is required",
+      "turnstileRequired": "Please complete the verification"
+    },
+    "sendError": "Failed to send message. Please try again or email us directly.",
+    "success": {
+      "title": "Message Sent!",
+      "textBeforeEmail": "Thanks, {name}. We'll get back to you at",
+      "textAfterEmail": "within 24 hours.",
+      "sendAnother": "Send Another Message"
+    },
+    "form": {
+      "nameLabel": "Name *",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email *",
+      "emailPlaceholder": "you@example.com",
+      "subjectLabel": "Subject *",
+      "subjectOptions": {
+        "placeholder": "Select a topic",
+        "groupTrip": "Group Trip Inquiry",
+        "pricing": "Pricing & Packages",
+        "partnership": "Partnership",
+        "support": "Support",
+        "other": "Other"
+      },
+      "messageLabel": "Message *",
+      "messagePlaceholder": "Tell us how we can help...",
+      "sending": "Sending...",
+      "send": "Send Message"
+    },
+    "booking": {
+      "title": "Complete Your Booking",
+      "step": "Step 1 of 2 — we confirm availability, then you pay a 30% deposit.",
+      "submitLabel": "Submit Booking",
+      "submitting": "Submitting...",
+      "cancel": "Cancel",
+      "validation": {
+        "fullNameRequired": "Full name is required",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Email is invalid",
+        "phoneRequired": "Phone number is required",
+        "phoneInvalid": "Phone number is invalid",
+        "startDateRequired": "Start date is required",
+        "endDateRequired": "End date is required",
+        "endDateAfterStart": "End date must be after start date (minimum 1 night)",
+        "travelersMin": "Number of travelers must be at least 1"
+      },
+      "summaryTitle": "Trip Summary",
+      "destinationLabel": "Destination:",
+      "activitiesLabel": "Activities:",
+      "activitiesSelected": "{count} selected",
+      "estimatedTotalLabel": "Estimated Total:",
+      "fullNameLabel": "Full Name *",
+      "fullNamePlaceholder": "John Doe",
+      "emailLabel": "Email Address *",
+      "emailPlaceholder": "john@example.com",
+      "emailSaveNote": "We'll save your trip to this address so you can pick it up anytime.",
+      "phoneLabel": "Phone Number *",
+      "phonePlaceholder": "+1 234 567 8900",
+      "travelersLabel": "Number of Travelers *",
+      "decreaseTravelers": "Decrease travelers",
+      "increaseTravelers": "Increase travelers",
+      "contactMethodLabel": "Preferred Contact Method *",
+      "contactMethodOptions": {
+        "email": "Email",
+        "phone": "Phone",
+        "whatsapp": "WhatsApp",
+        "both": "Both"
+      },
+      "hearAboutUsLabel": "How did you hear about us?",
+      "hearAboutUsOptions": {
+        "placeholder": "Select an option",
+        "search": "Search Engine",
+        "social": "Social Media",
+        "friend": "Friend/Family",
+        "ad": "Advertisement",
+        "blog": "Blog/Article",
+        "other": "Other"
+      },
+      "specialRequirementsLabel": "Special Requirements or Notes",
+      "specialRequirementsPlaceholder": "Any special dietary requirements, accessibility needs, or other preferences..."
+    },
+    "consentNote": "We'll email you a link to your trip and a couple of reminders. Unsubscribe anytime.",
+    "bookingSuccess": {
+      "title": "Booking Submitted Successfully!",
+      "gotIt": "Got it!",
+      "thankYou": "Thank you, {name}!",
+      "submitted": "Your travel booking has been submitted successfully.",
+      "contactTextBefore": "We will contact you soon at",
+      "contactTextAfter": "to confirm the details.",
+      "nextStepsTitle": "What happens next?",
+      "step1": "Our team will review your booking request",
+      "step2": "We'll contact you via email to confirm details",
+      "step3": "We'll provide personalized recommendations",
+      "step4": "We'll finalize your travel itinerary",
+      "depositTitle": "Want to lock your trip in right away?",
+      "redirecting": "Redirecting…",
+      "payDeposit": "Pay 30% deposit now",
+      "paymentError": "Failed to start payment. Please try again.",
+      "whatsappTitle": "Contact us to get details about your trip",
+      "whatsappAria": "Contact us on WhatsApp",
+      "whatsappUs": "WhatsApp us"
+    }
+  },
+  "activityDetail": {
+    "loading": "Loading...",
+    "notFound": "Activity not found.",
+    "goBack": "Go Back",
+    "breadcrumbHome": "Home",
+    "categoryFallback": "Activity",
+    "duration": {
+      "minutes": "{minutes}m",
+      "hours": "{hours}h",
+      "hoursMinutes": "{hours}h {rest}m"
+    },
+    "includedTitle": "What's included",
+    "aboutTitle": "About this activity",
+    "goodToKnowTitle": "Good to know",
+    "facts": {
+      "meetingPointLabel": "Meeting point",
+      "meetingPointDefault": "Central {place} — exact meeting point confirmed on booking.",
+      "cityCentreFallback": "city centre",
+      "availabilityLabel": "Availability",
+      "availabilityDefault": "Daily · flexible start times, arranged for your group.",
+      "cancellationLabel": "Cancellation",
+      "cancellationDefault": "Free changes up to 14 days before. See our refund policy for full terms.",
+      "refundPolicyLink": "Refund policy"
+    },
+    "from": "from",
+    "perPerson": "/ person",
+    "groupMinimum": "Group minimum {amount}",
+    "groupPriceFrom": "Group price · from",
+    "addToTrip": "Add to trip",
+    "addedToTrip": "Added to trip",
+    "help": {
+      "textBefore": "Not sure yet?",
+      "linkLabel": "Chat with our team",
+      "textAfter": "on WhatsApp."
+    },
+    "moreActivities": "More Activities in {destination}"
+  },
+  "packageDetail": {
+    "loading": "Loading...",
+    "notFound": "Package not found.",
+    "goBack": "Go Back",
+    "breadcrumbHome": "Home",
+    "includedTitle": "What's Included",
+    "includesLabel": "Includes:",
+    "youSave": "You save {amount}",
+    "percentOff": "({pct}% off)",
+    "addToTrip": "Add to Trip"
+  },
+  "blog": {
+    "listTitle": "The Stag Do Playbook",
+    "loadingPosts": "Loading posts...",
+    "emptyState": "No blog posts yet. Check back soon!",
+    "loading": "Loading...",
+    "postNotFound": "Post not found",
+    "backToBlog": "Back to Blog"
+  },
+  "voteComponents": {
+    "start": {
+      "title": "Start group vote",
+      "sub": "Share the link with your mates and watch the results live. Voting closes automatically after 24 hours.",
+      "tripDates": "Trip dates",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "create": "Create vote",
+      "creating": "Creating…",
+      "errors": {
+        "datesRequired": "Trip dates are required",
+        "endBeforeStart": "End date must be on or after the start date",
+        "createFailed": "Failed to create the vote. Please try again."
+      }
+    },
+    "active": {
+      "title": "A vote is already running",
+      "body": "Your mates are still voting on this trip. Finish that vote before starting a new one — you can end it early from the vote dashboard.",
+      "openDashboard": "Open the vote dashboard"
+    },
+    "tally": {
+      "title": "Vote results",
+      "votedOne": "{count} mate has voted",
+      "votedOther": "{count} mates have voted"
+    }
+  },
+  "tripBuilder": {
+    "heading": {
+      "votingList": "Your Voting List",
+      "itinerary": "Your Itinerary",
+      "selectedOne": "{count} activity selected",
+      "selectedOther": "{count} activities selected"
+    },
+    "summary": {
+      "destination": "Destination:",
+      "travelers": "Travelers:",
+      "dates": "Dates:"
+    },
+    "items": {
+      "percentOff": "{pct}% off",
+      "removeAria": "Remove {name}"
+    },
+    "price": {
+      "perPerson": "{price} / person",
+      "multiplied": "{price} × {travelers} = {total}",
+      "groupMinLine": "{price} × {travelers} = {total} (group min)"
+    },
+    "emptyState": "Start building your trip by adding activities!",
+    "footer": {
+      "estimatedCost": "Estimated cost",
+      "completeBooking": "Complete Booking",
+      "sendBookingRequest": "Send booking request"
+    },
+    "errors": {
+      "addActivitiesFirst": "Please add some activities to your trip before submitting.",
+      "submitFailed": "Failed to submit booking. Please try again."
+    },
+    "vote": {
+      "startCta": "Start group vote",
+      "foreignDestinationTitle": "Group voting works for one destination at a time — remove activities from other destinations first.",
+      "loadError": "Couldn't load your group's vote results. Refresh the page to try again."
+    },
+    "recommended": {
+      "title": "Recommended for you",
+      "subtitle": "Based on your quiz answers"
+    },
+    "suggestions": {
+      "title": "Group suggestions",
+      "subtitle": "From your group's quiz answers"
+    },
+    "browse": {
+      "title": "Browse More Activities",
+      "filterAll": "All",
+      "showLess": "Show less",
+      "showAll": "Show all ({count})",
+      "add": "Add",
+      "added": "Added"
+    },
+    "budget": {
+      "spent": "Spent",
+      "budget": "Budget",
+      "remaining": "Remaining"
+    },
+    "restore": {
+      "title": "Replace your current trip?",
+      "keepCurrent": "Keep current",
+      "openSaved": "Open saved trip",
+      "body": "Opening your saved trip will replace the activities currently in your itinerary."
+    },
+    "success": {
+      "defaultUserName": "Traveler"
+    }
+  },
+  "swipe": {
+    "processing": "Processing your choices...",
+    "progress": "{current} / {total}",
+    "durationHours": "{hours}h",
+    "fromPerPerson": "from {price} / person",
+    "perPersonPrice": "{price} / person",
+    "groupMinimum": "Group minimum {amount}",
+    "likeOverlay": "LIKE ♥",
+    "nopeOverlay": "NOPE ✕",
+    "dislikeAria": "Dislike",
+    "undoAria": "Undo last swipe",
+    "likeAria": "Like",
+    "linkCopied": "✓ Link Copied!",
+    "copyInviteLink": "Copy Invite Link"
+  },
+  "chat": {
+    "greeting": "Hi! I'm your AI travel assistant. What type of trip are you looking for?",
+    "autoEngage": "Planning a stag do? Tell me what your group is into and I'll point you to the right activities!",
+    "responses": {
+      "default": "I can help you plan the perfect group getaway! What interests you most?",
+      "nightlife": "For epic nightlife, check the Nightlife category in Activities — bar crawls, club entries and boat parties are group favourites.",
+      "adventure": "Adventure awaits! Browse the Adventure category for go-karting, water sports and adrenaline activities your group can do together.",
+      "relax": "Perfect for unwinding — look for spa, beach club and relaxed daytime activities to balance out the big nights.",
+      "packages": "Our packages bundle several activities at a discount — check the Packages tab on the destination page and customize any of them in the Trip Builder!",
+      "suggestPackages": "Packages are the easiest start — a ready-made mix of activities at a discount that you can still customize in the Trip Builder!",
+      "suggestTripBuilder": "You have {count} activities selected.",
+      "suggestAddMore": "Consider adding more for a full experience!",
+      "suggestBalanced": "This looks like a great balanced trip!",
+      "suggestDefault": "Start with the featured activities on the home page — they're the most popular with groups. Add anything you like to the Trip Builder!",
+      "prices": "Prices are shown per person on every activity card, and packages give you a discount for booking several activities together. The Trip Builder totals everything for your group size.",
+      "groups": "Everything here is built for groups! You can even start a group vote from the Trip Builder so the whole crew picks the activities together.",
+      "hello": "Hello! I'm here to help you plan the perfect trip. Are you looking for adventure, nightlife, relaxation, or a mix of everything?"
+    },
+    "title": "AI Travel Assistant",
+    "closeAria": "Close chat",
+    "avatarAi": "AI",
+    "avatarYou": "You",
+    "inputAria": "Chat message",
+    "inputPlaceholder": "Tell me about your ideal trip...",
+    "sendAria": "Send message",
+    "send": "Send",
+    "openAria": "Open chat assistant"
+  },
+  "datePicker": {
+    "startLabel": "Start",
+    "endLabel": "End",
+    "addDate": "Add date",
+    "clearStartAria": "Clear start date",
+    "clearEndAria": "Clear end date"
+  },
+  "payment": {
+    "actions": {
+      "genericError": "Something went wrong. Please try again.",
+      "bookDeposit": "Book & pay 30% prepayment",
+      "contactConsultant": "Contact our consultant",
+      "consultDoneTitle": "Request received",
+      "gotIt": "Got it",
+      "consultDoneBody": "Thanks! Our consultant will contact you shortly to finalize your trip and arrange payment."
+    },
+    "success": {
+      "title": "Thank you — your payment is on its way!",
+      "body": "We're confirming your payment with our provider. You'll get an email once it's processed.",
+      "bookingReference": "Booking reference: {booking}",
+      "contactHeading": "Contact us to get details about your trip",
+      "whatsappAria": "Contact us on WhatsApp",
+      "whatsappUs": "WhatsApp us"
+    },
+    "cancelled": {
+      "title": "Payment cancelled",
+      "body": "No charge was made. You can return to your trip and try again whenever you're ready."
+    },
+    "backToHome": "Back to home"
+  },
+  "unsubscribe": {
+    "title": "Unsubscribe from trip reminders",
+    "body": "You'll stop receiving reminder emails about your saved trip. Booking and vote confirmations are not affected.",
+    "error": "Something went wrong. Please try again.",
+    "working": "Unsubscribing…",
+    "confirm": "Unsubscribe",
+    "doneTitle": "You're unsubscribed",
+    "doneBody": "We won't send you any more trip reminders."
+  },
+  "vote": {
+    "meta": {
+      "quiz": "Group quiz",
+      "curate": "Pick activities",
+      "activities": "Vote on activities",
+      "waiting": "Voting open",
+      "result": "Vote results"
+    },
+    "quiz": {
+      "loadFailed": "Failed to load quiz",
+      "loading": "Loading quiz…",
+      "progress": "{current} / {total}"
+    },
+    "curate": {
+      "loading": "Loading pool…",
+      "empty": "No activities match your quiz. Try a different destination.",
+      "building": "Building your trip…",
+      "nothingPicked": "You didn't pick anything. Start over and swipe right on what the group should vote on.",
+      "startOver": "Start over",
+      "title": "Pick activities for the group to vote on",
+      "subtitle": "Swipe right to include, left to skip"
+    },
+    "activities": {
+      "submitFailed": "Failed to submit votes. Please try again.",
+      "loading": "Loading activities...",
+      "submitting": "Submitting your votes...",
+      "sessionGoneTitle": "This vote session no longer exists.",
+      "sessionGoneHint": "It may have expired or been removed — ask the organiser for a new link.",
+      "empty": "No activities found for the selected categories.",
+      "title": "Which activities are you up for?",
+      "subtitle": "Swipe right to vote yes, left to skip"
+    },
+    "waiting": {
+      "processing": "Processing results...",
+      "countdown": "{hours}h {minutes}m",
+      "shareTitleDestination": "Vote: trip to {destination}",
+      "shareTitleGeneric": "Vote on our trip",
+      "shareText": "Help pick what we do — vote on the activities:",
+      "sessionError": "Could not load session: {error}",
+      "finalising": "Finalising results...",
+      "title": "Voting is open!",
+      "tripTo": "Trip to {destination}",
+      "yourSession": "Your vote session",
+      "alreadyVoted": "✓ You’ve already voted in this session.",
+      "untilResults": "until results",
+      "votedOne": "person voted",
+      "votedOther": "people voted",
+      "ofTotal": "of {total}",
+      "liveResults": "Live results",
+      "shareLabel": "Share with friends:",
+      "inviteLinkAria": "Invite link",
+      "share": "Share",
+      "copied": "✓ Link copied!",
+      "copyLink": "Copy link",
+      "copyInviteLink": "Copy invite link",
+      "endEarly": "End voting early & see results",
+      "note": "Results will appear on this page after the timer ends."
+    },
+    "result": {
+      "loading": "Loading result...",
+      "cartTitle": "The votes are in!",
+      "proceedToCheckout": "Proceed to Checkout",
+      "title": "Trip result",
+      "groupPick": "The group's pick",
+      "empty": "The group didn't agree on anything within the budget. See suggestions below.",
+      "counts": "Likes: {likes} · Skips: {skips}",
+      "budgetTitle": "Budget",
+      "spent": "Spent: {amount}",
+      "budget": "Budget: {amount}",
+      "remaining": "Remaining: {amount}",
+      "openTripBuilder": "Open in Trip Builder",
+      "suggestionsTitle": "Suggestions"
+    }
+  },
+  "landing": {
+    "meta": {
+      "vote": {
+        "title": "Trivlu. Bachelor Party Planner for Prague. Skip Chatting. Start Voting.",
+        "description": "Trivlu plans bachelor parties in Prague. Swipe the activities. Send one link. Your friends vote. Choose from 72 activities. Free cancellation. Reply in 10 minutes."
+      },
+      "prague": {
+        "title": "Trivlu. Why Prague Is the Best Bachelor Party City in Europe.",
+        "description": "Prague lies ninety minutes away. Beer costs €2.20. Trivlu offers 72 local activities. Read five reasons, real prices and a complete sample weekend."
+      }
+    },
+    "chrome": {
+      "waAria": "Message us on WhatsApp",
+      "startVote": "Start group vote",
+      "buildTrip": "Build your trip",
+      "cartAriaOne": "Selected activities. {count} item",
+      "cartAriaOther": "Selected activities. {count} items",
+      "langAria": "Language"
+    },
+    "footer": {
+      "trips": "Trips",
+      "company": "Company",
+      "talk": "Talk to a person",
+      "activities": "Activities",
+      "how": "How Trivlu works",
+      "prices": "Prices",
+      "exampleWeekend": "Example weekend",
+      "rules": "The 2026 rules",
+      "about": "About",
+      "blog": "Blog",
+      "contact": "Contact",
+      "terms": "Terms",
+      "refund": "Refund policy",
+      "privacy": "Privacy",
+      "cookies": "Cookies",
+      "copyright": "© 2026 Trivlu · Prague, Czechia",
+      "taglineVote": "Prague stag do. Planned in 10 minutes. Your group votes, we do the rest.",
+      "taglinePrague": "Group travel with no chaos in a group chat. Built in Prague."
+    },
+    "activities": {
+      "eyebrow": "What you can book",
+      "title": "{count} activities. Pick the ones your group wants",
+      "ledeVote": "From tank driving to river cruises and spas, there are activities for every group.",
+      "ledePrague": "From tank driving to strip clubs and spa — we've got every stag style covered.",
+      "inCatalogue": "{count} in the catalogue",
+      "viewAll": "View all {count} activities →",
+      "addToTrip": "Add to trip",
+      "added": "Added ✓",
+      "photoComing": "Photo coming soon",
+      "perPerson": "/ person",
+      "from": "from",
+      "minPerGroup": "min €{min} per group"
+    },
+    "calc": {
+      "eyebrow": "A weekend for every budget",
+      "title": "See what your budget actually buys",
+      "lede": "Say how long you are staying and how much you want to spend. We create an example weekend from the real catalogue.",
+      "exampleWeekend": "An example weekend",
+      "exampleTrip": "An example {days}-day trip",
+      "activitiesCount": "{count} activities",
+      "sub": "One of many ways to spend it. Change anything later in the trip builder.",
+      "perPerson": "Per person",
+      "note": "Programme only. Flights and beds are yours to book. Prices assume eight people or more.",
+      "howManyDays": "How many days",
+      "activitiesPerDay": "Activities per day",
+      "budgetPerPerson": "Budget per person",
+      "cta": "Build your trip now",
+      "airportTransfer": "Airport transfer",
+      "dayFriday": "Friday",
+      "daySaturday": "Saturday",
+      "daySunday": "Sunday",
+      "dayMonday": "Monday"
+    },
+    "compare": {
+      "header": "Drinks, hotels and food over the weekend",
+      "sub": "{drinks} drinks · {nights} nights · {meals} meals",
+      "compareWith": "Compare Prague with",
+      "breakdown": "beer €{beer} · bed €{bed} · food €{food}",
+      "prague": "Prague",
+      "saves": "Your group of 10 saves",
+      "source": "Beer and food: Numbeo, August 2026. A meal is one sit-down dinner in an inexpensive restaurant. Hotels: central three-star double room, split between two people.",
+      "joyAlt": "Men clinking glasses of lager at a bar"
+    },
+    "why": {
+      "title": "New company. Experienced team",
+      "eyebrowPrague": "About us",
+      "p1": "We organised bachelor parties in Prague for fifteen years.",
+      "p2Vote": "You gain two advantages with Trivlu: you pay the venue price without an added agency fee. You speak to the person who books your activities. Our team is located in Prague and always happy to assist you.",
+      "p2Prague": "You gain two advantages with Trivlu: You pay the venue price without an added agency fee. You speak to the person who books your activities.",
+      "p3Prague": "Our team is located in Prague and always happy to assist you.",
+      "g1": "Pay a 30 percent deposit now. Pay the balance later.",
+      "g2": "Free cancellation covers every activity.",
+      "g3": "Card payments are processed by Stripe.",
+      "g4": "One person books. The group repays that person later.",
+      "sellerName": "Trivlu team",
+      "sellerRole": "Your trip planner in Prague",
+      "sellerLive": "Replies in 10 minutes · 7 days a week",
+      "callNow": "Call now",
+      "whatsapp": "WhatsApp"
+    },
+    "reviews": {
+      "title": "What our groups say",
+      "eyebrowPrague": "Reviews from groups we organised before",
+      "starsAria": "5 out of 5 stars",
+      "r1Quote": "The easiest bachelor party I ever organised. The group voted. Trivlu arranged everything. I only arrived.",
+      "r1Meta": "11 people · UK · May 2025 · karting, shooting",
+      "r2Quote": "We booked shooting, karting and a boat party for fourteen people. No problems. A perfect weekend.",
+      "r2Meta": "14 people · Ireland · June 2025 · boat, shooting",
+      "r3VoteQuote": "The group vote ended every argument in the chat. The decision took one evening instead of a month.",
+      "r3VoteMeta": "8 people · UK · Sept 2025 · rafting, beer spa",
+      "r3PragueQuote": "We worried about the new rules in Prague. The rules changed nothing. The weekend ran exactly as planned.",
+      "r3PragueMeta": "8 people · UK · Sept 2025 · rafting, river boat",
+      "r4Quote": "Trivlu communicated well. The plan was exactly right. The deposit payment was easy.",
+      "r4Meta": "9 people · Netherlands · Oct 2025 · paintball, dinner"
+    },
+    "faq": {
+      "title": "The things people worry about",
+      "eyebrowPrague": "Answered before you ask",
+      "vote": {
+        "q1": "Is Prague still a good choice in 2026? I read that bachelor parties were banned.",
+        "q1a1": "Prague banned no bachelor parties. The city banned commercial pub crawls in November 2024. The ban covers the historic centre between 22:00 and 06:00. The fine reaches 100,000 CZK. The fine applies to the tour company, not to your group. Your friends may walk from one pub to another at any hour.",
+        "q1a2": "The city centre also contains no-drinking zones. An open can in your hand costs up to 10,000 CZK. Our evenings start earlier. Our evenings happen inside venues, not on the street. These rules affect no part of your weekend.",
+        "q2": "Does everyone need to download an app or create an account?",
+        "q2a": "No. You share one link. Your friends open the link in a browser. No app, no account, no password. You only leave your details before booking.",
+        "q3": "Who pays, and when?",
+        "q3a": "One person pays a 30 percent deposit by card. The deposit reserves every activity. The group pays the remaining balance on arrival. Free cancellation protects your group if the group size changes.",
+        "q3link": "Refund policy",
+        "q4": "We are not interested in strip clubs. Is there anything else?",
+        "q4a": "Trivlu offers 72 activities. Only one category out of eight contains adult entertainment. Choose rafting, shooting, karting or axe throwing. Choose a beer spa, a brewery tour or a river cruise. Choose bubble football or tank driving. Many groups ignore the adult category completely.",
+        "q5": "Do you book flights and hotels too?",
+        "q5a": "No. Trivlu adds no fee to flights or hotels. You find better prices yourself. Trivlu shows realistic price ranges for both. Trivlu books the activities, plans the timing, and solves problems in the city.",
+        "q6": "What if someone cancels?",
+        "q6a": "Tell us. We change the booking. Free cancellation covers every activity. Watch the minimum group price. Some activities charge a minimum price for the whole group. Trivlu shows the minimum price on the activity card.",
+        "q7": "What is the smallest group you accept?",
+        "q7a": "A group of four works for most activities. Smaller groups pay more per person for activities with a minimum group price. Trivlu shows the exact price before you book.",
+        "q8": "How fast do you really reply?",
+        "q8a": "We reply within ten minutes, seven days a week. Call {phone}. Or send a message to the same number on WhatsApp."
+      },
+      "prague": {
+        "q1": "When is the best time to go?",
+        "q1a": "Choose May, June or September. The weather suits the Vltava river and the outdoor activities. The city stays calm. July and August bring heat and crowds. Winter is cheap and the bars are excellent. Winter closes rafting and outdoor shooting.",
+        "q2": "How far ahead should we book?",
+        "q2a": "Book six to eight weeks ahead. Flights cost about 44 percent less than a last-minute booking. The popular Saturday slots stay open. Four weeks still works. Two weeks works with a smaller choice.",
+        "q3": "Do you organise the accommodation and transfers?",
+        "q3a": "Trivlu offers airport transfers as an activity. Trivlu sells no hotels. You find a better price yourself. Trivlu adds no fee. We name the districts that keep every venue walkable.",
+        "q4": "Is Prague safe for a large group?",
+        "q4a": "Yes. Watch for pickpockets around Charles Bridge and Old Town Square. Never change money on the street. Agree the taxi price before the ride. Our guides manage the venue arrangements. We book only partner venues.",
+        "q5": "We are not interested in strip clubs. Is there anything else?",
+        "q5a": "Trivlu offers 72 activities. Only one category out of eight contains adult entertainment. Choose rafting, shooting, karting or axe throwing. Choose a beer spa, a brewery tour or a river cruise. Many groups ignore the adult category completely.",
+        "q6": "What is the smallest group you accept?",
+        "q6a": "A group of four works for most activities. Smaller groups pay more per person for activities with a minimum group price. Trivlu shows the exact price before you book.",
+        "q7": "How fast do you really reply?",
+        "q7a": "We reply within ten minutes, seven days a week. Call {phone}. Or send a message to the same number on WhatsApp."
+      }
+    },
+    "vote": {
+      "hero": {
+        "title1": "Skip chatting.",
+        "title2": "Start voting",
+        "leadPre": "Plan a ",
+        "leadEm": "bachelor party in Prague",
+        "leadPost": " with no chaos in the group chat.",
+        "step1": "Create a shortlist",
+        "step2": "Share the vote link",
+        "step3": "Confirm the winners",
+        "ctaSeeAll": "See all {count} activities",
+        "metaActivities": "{count} activities in Prague",
+        "metaFrom": "from €{price} per person",
+        "metaCancel": "Free cancellation"
+      },
+      "deck": {
+        "stageAria": "Activity picker",
+        "coach": "Swipe right to add, left to skip.",
+        "stampYes": "IN",
+        "stampNo": "NOPE",
+        "skip": "Skip",
+        "skipAria": "Skip this activity",
+        "add": "Add to vote",
+        "addAria": "Add this activity to the vote",
+        "shortTitle": "Your demo shortlist",
+        "chosen": "{count} chosen",
+        "empty": "You chose no activities. Browse more activities below.",
+        "buildNow": "Build your trip now",
+        "buildOwn": "Build your own trip",
+        "explore": "Explore activities"
+      },
+      "problem": {
+        "title": "Getting your group to agree is the hardest part of the trip",
+        "colsHd": "What it usually looks like",
+        "c1h": "Chaos in a group chat",
+        "c1p": "Everyone holds an opinion. Everyone waits for somebody else.",
+        "c1alt": "Unread group chat icon",
+        "c2h": "Time passes. No decision",
+        "c2p": "The bachelor party is close. The group booked nothing.",
+        "c2alt": "Calendar with a selected date icon",
+        "c3h": "Flight prices rise every week",
+        "c3p": "Every week of delay costs the group real money.",
+        "c3alt": "Rising price chart icon"
+      },
+      "band": {
+        "lblPre": "What it looks like using",
+        "h": "Voting is finished. Tour booked in 10 minutes",
+        "p": "Your group votes. Trivlu builds one exact itinerary, tailored to your group hour by hour.",
+        "timeOld": "Three weeks",
+        "timeNew": "10 minutes",
+        "fine": "No account or payment card needed.",
+        "visTitle": "Voting is finished",
+        "visAnswered": "11 of 11 answered",
+        "poll1": "AK-47 shooting",
+        "poll2": "River boat cruise",
+        "poll3": "Beer spa",
+        "poll4": "Go-karting",
+        "poll5": "Army tank experience",
+        "okTitle": "Booking confirmed",
+        "okSub": "Prague · 19–21 Jun · 8 people"
+      },
+      "steps": {
+        "title": "Plan your trip in 3 easy steps",
+        "lede": "Let the group decide. You confirm the winners.",
+        "s1h": "Create a shortlist",
+        "s1p": "Choose from {count} activities in Prague. No account, no form.",
+        "s2h": "Share one link. The group votes",
+        "s2p": "Send the vote link to the group chat. We email you the results.",
+        "s3h": "Confirm the winners",
+        "s3p": "We confirm every booking with the venue. You pay 30 percent now, the balance on arrival.",
+        "done": "Done. {count} chosen."
+      },
+      "trust": {
+        "t1h": "Voting is free",
+        "t1p": "Pay only when you book.",
+        "t2h": "30% deposit",
+        "t2p": "Pay the balance on arrival.",
+        "t3h": "15 years in Prague",
+        "t3p": "Local team. No agency fee.",
+        "t4h": "We reply in 10 minutes",
+        "t4p": "Human support 24/7"
+      },
+      "final": {
+        "title": "Stop debating in the group chat",
+        "p": "Choose the activities. Send one link. Let the group vote.",
+        "buildNow": "Build your trip now ({count} chosen)",
+        "fine": "Reply in 10 minutes · Free cancellation · 30% deposit"
+      },
+      "sticky": {
+        "cta": "Build your trip now",
+        "note": "No account or credit card needed."
+      }
+    },
+    "prague": {
+      "hero": {
+        "eyebrow": "Bachelor party planner for Prague",
+        "tPre": "Prague is ",
+        "tEm1": "ninety minutes away",
+        "tMid": " and ",
+        "tEm2": "four times cheaper",
+        "sub": "Prague is the most popular bachelor party city in Europe. Lots to do, low prices, and most activities are within walking distance.",
+        "ctaExplore": "Explore Activities",
+        "pf1b": "15 years",
+        "pf1t": "Experience in Prague. Local team",
+        "pf2b": "10 min",
+        "pf2t": "Average reply time. 7 days a week",
+        "pf3b": "30%",
+        "pf3t": "Deposit now. Free cancellation",
+        "pf4b": "€0",
+        "pf4t": "Plan and vote for free before you book"
+      },
+      "tiles": {
+        "title": "Four arguments for choosing Prague",
+        "t1h": "Your money lasts four times longer",
+        "t1alt": "A purple wallet holding euro notes",
+        "t1b": "€2.20",
+        "t1mid": " a beer ",
+        "t1em": "· €9.60 in Oslo",
+        "t2h": "You land before dinner on Friday",
+        "t2alt": "An aeroplane taking off beside a clock",
+        "t2b": "1 h 20",
+        "t2mid": " direct ",
+        "t2em": "· from €66 return",
+        "t3h": "Things you simply cannot do at home",
+        "t3alt": "An armoured tracked vehicle you can drive on a range",
+        "t3b": "72 activities",
+        "t3mid": " ",
+        "t3em": "· from €26",
+        "t4h": "Everything sits inside a twenty-minute walk",
+        "t4alt": "A map of central Prague with Charles Bridge and three pins",
+        "t4b": "20 min",
+        "t4mid": " corner to corner",
+        "t4em": ""
+      },
+      "bandImg": {
+        "alt": "Charles Bridge and the Prague skyline at dusk",
+        "caption": "Build it now, decide later",
+        "small": "Nothing to pay until the group agrees. Let them vote on the activities you pick."
+      },
+      "rules": {
+        "eyebrow": "The question everyone asks now",
+        "title": "“Did Prague ban bachelor parties?”",
+        "lede": "No. One rule changed in 2024. Most websites explain the rule badly. Read the facts below.",
+        "mythBadge": "What people think",
+        "mythH": "“Bachelor parties are banned and you get fined.”",
+        "mythP": "Headlines about a pub crawl ban created this belief. No law made group travel to Prague illegal.",
+        "factBadge": "What is true",
+        "factH": "Commercial pub crawls cannot run at night",
+        "factP1": "The city banned commercial pub crawls in November 2024. The ban covers the historic centre between 22:00 and 06:00. The fine reaches 100,000 CZK. The fine applies to the company, not to your group.",
+        "factP2": "Your friends may walk from one pub to another at any hour.",
+        "l1b": "Street drinking",
+        "l1t": " is banned in parts of the city centre. An open can in your hand costs up to 10,000 CZK. Bar terraces and beer gardens remain legal.",
+        "l2b": "Rented e-scooters",
+        "l2t": " left Prague in January 2026. Bikes and public transport still operate. The centre stays walkable.",
+        "l3b": "No alcohol",
+        "l3t": " is permitted for any driver, including a cyclist. Not half a beer. None.",
+        "l4b": "Costumes",
+        "l4t": " work in party bars. Better clubs and traditional beer halls refuse a group in matching outfits.",
+        "noteB": "Our method.",
+        "noteT": " Our evenings start earlier. Our evenings happen inside partner venues, not on the street. We worked in Prague through the rule change. No Trivlu group ever received a fine."
+      },
+      "final": {
+        "title": "It's time to build your perfect weekend in Prague",
+        "p": "Pick your dates. Choose the activities. See the price for your group. The whole process takes ten minutes.",
+        "fine": "Reply in 10 minutes · Free cancellation · 30% deposit"
+      }
+    },
+    "rows": {
+      "extreme": "Extreme",
+      "guns-and-bullets": "Guns & Bullets",
+      "food-and-drink": "Food & Drink",
+      "czech-beer": "Czech Beer",
+      "nightlife": "Nightlife",
+      "wellness": "Chillout",
+      "stag-hot-babies-and-pranks": "Pranks & Adults",
+      "transfer": "Transfers"
+    }
+  }
+}

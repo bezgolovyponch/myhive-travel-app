@@ -11,9 +11,9 @@
 import { api } from '../../lib/api';
 import LegacyChrome, { type LegacyDestination } from './LegacyChrome';
 
-async function loadDestinations(): Promise<LegacyDestination[]> {
+async function loadDestinations(locale: string): Promise<LegacyDestination[]> {
   try {
-    return (await api.getDestinations()) ?? [];
+    return (await api.getDestinations(locale)) ?? [];
   } catch {
     // Backend unreachable: render the chrome without breadcrumbs rather than
     // 500 the page. The client-side fetch never runs (the catalog is seeded),
@@ -22,8 +22,14 @@ async function loadDestinations(): Promise<LegacyDestination[]> {
   }
 }
 
-export default async function PublicChrome({ children }: { children: React.ReactNode }) {
-  const destinations = await loadDestinations();
+export default async function PublicChrome({
+  locale,
+  children,
+}: {
+  locale: string;
+  children: React.ReactNode;
+}) {
+  const destinations = await loadDestinations(locale);
 
   return <LegacyChrome destinations={destinations}>{children}</LegacyChrome>;
 }

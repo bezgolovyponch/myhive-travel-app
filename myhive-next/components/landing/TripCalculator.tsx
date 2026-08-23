@@ -4,6 +4,7 @@
 // its sticky controls, plus the home-city price comparison that follows the
 // chosen trip length. All maths lives in engine.ts; this file only renders.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useT, useLocalePath } from '../../legacy-src/i18n';
 import {
   buildLadder,
   compareCities,
@@ -23,6 +24,7 @@ const DAY_OPTIONS = [1, 2, 3];
 const PER_DAY_OPTIONS = [2, 3, 4];
 
 function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNames: string[] }) {
+  const t = useT('landing.calc');
   const { sl, chosen } = programme;
   const rows: React.ReactNode[] = [];
   let lastDay = '';
@@ -30,7 +32,7 @@ function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNam
     if (s.day !== lastDay) {
       rows.push(
         <div className="tc-day" key={`day-${s.day}`}>
-          {s.day}
+          {t(`day${s.day}`)}
         </div>,
       );
       if (lastDay === '') {
@@ -38,7 +40,7 @@ function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNam
           <div className="tc-row tc-row--fix" key="arrive">
             <span className="tc-row__t">16:40</span>
             <img className="tc-row__ph" src={ARRIVE_PH} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-            <span className="tc-row__n">{TRANSFER.n}</span>
+            <span className="tc-row__n">{t('airportTransfer')}</span>
             <span className="tc-row__p">€{TRANSFER.p}</span>
           </div>,
         );
@@ -66,7 +68,7 @@ function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNam
     <div className="tc-row tc-row--fix" key="depart">
       <span className="tc-row__t">16:00</span>
       <img className="tc-row__ph" src={DEPART_PH} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-      <span className="tc-row__n">{TRANSFER.n}</span>
+      <span className="tc-row__n">{t('airportTransfer')}</span>
       <span className="tc-row__p">€{TRANSFER.p}</span>
     </div>,
   );
@@ -74,6 +76,7 @@ function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNam
 }
 
 function CityCompare({ nights }: { nights: number }) {
+  const t = useT('landing.compare');
   const [homeCity, setHomeCity] = useState('Oslo');
   const c = compareCities(homeCity, nights);
   return (
@@ -81,14 +84,12 @@ function CityCompare({ nights }: { nights: number }) {
       <div>
         <div className="vs">
           <div className="vs__hd">
-            Drinks, hotels and food over the weekend{' '}
-            <small>
-              {c.drinks} drinks · {c.nights} nights · {c.meals} meals
-            </small>
+            {t('header')}{' '}
+            <small>{t('sub', { drinks: c.drinks, nights: c.nights, meals: c.meals })}</small>
           </div>
           <div className="vs__bd">
             <div className="cityrow">
-              <span className="cityrow__l">Compare Prague with</span>
+              <span className="cityrow__l">{t('compareWith')}</span>
               {Object.keys(CITIES).map((city) => (
                 <button
                   key={city}
@@ -104,9 +105,7 @@ function CityCompare({ nights }: { nights: number }) {
               <div className="vsrow vsrow--home">
                 <span className="vsrow__c">
                   {homeCity}{' '}
-                  <i>
-                    beer €{c.home.beer} · bed €{c.home.bed} · food €{c.home.food}
-                  </i>
+                  <i>{t('breakdown', { beer: c.home.beer, bed: c.home.bed, food: c.home.food })}</i>
                 </span>
                 <span className="vsrow__v">€{c.home.total}</span>
                 <span className="vsrow__t">
@@ -115,9 +114,9 @@ function CityCompare({ nights }: { nights: number }) {
               </div>
               <div className="vsrow vsrow--prg">
                 <span className="vsrow__c">
-                  Prague{' '}
+                  {t('prague')}{' '}
                   <i>
-                    beer €{c.prague.beer} · bed €{c.prague.bed} · food €{c.prague.food}
+                    {t('breakdown', { beer: c.prague.beer, bed: c.prague.bed, food: c.prague.food })}
                   </i>
                 </span>
                 <span className="vsrow__v">€{c.prague.total}</span>
@@ -132,28 +131,27 @@ function CityCompare({ nights }: { nights: number }) {
             {/* the numbers, and what they buy */}
             <figure className="joy">
               <img
-                alt="Men clinking glasses of lager at a bar"
+                alt={t('joyAlt')}
                 loading="lazy"
                 decoding="async"
                 src="https://wsrv.nl/?url=https%3A%2F%2Fimages.pexels.com%2Fphotos%2F3851421%2Fpexels-photo-3851421.jpeg%3Fauto%3Dcompress%26cs%3Dtinysrgb%26w%3D1200&w=900&output=webp&q=76"
               />
             </figure>
             <div className="vs__save">
-              <span>Your group of 10 saves</span>
+              <span>{t('saves')}</span>
               <b>€{c.groupSaves.toLocaleString('en-GB')}</b>
             </div>
           </div>
-          <p className="vs__src">
-            Beer and food: Numbeo, August 2026. A meal is one sit-down dinner in an inexpensive
-            restaurant. Hotels: central three-star double room, split between two people.
-          </p>
+          <p className="vs__src">{t('source')}</p>
         </div>
       </div>
     </div>
   );
 }
 
-export default function TripCalculator({ pool, ctaLabel }: { pool: Pool; ctaLabel: string }) {
+export default function TripCalculator({ pool }: { pool: Pool }) {
+  const t = useT('landing.calc');
+  const lp = useLocalePath();
   const [days, setDays] = useState(2);
   const [perDay, setPerDay] = useState(3);
   // The slider keeps its relative position when the ladder is rebuilt, exactly
@@ -181,10 +179,11 @@ export default function TripCalculator({ pool, ctaLabel }: { pool: Pool; ctaLabe
     return () => mq.removeEventListener('change', sync);
   }, []);
 
+  const builderHref = lp(BUILDER_URL);
   const controls = (
     <aside className="tc-ctrl">
       <div className="tc-field">
-        <span className="tc-field__l">How many days</span>
+        <span className="tc-field__l">{t('howManyDays')}</span>
         <span className="tc-seg">
           {DAY_OPTIONS.map((d) => (
             <button
@@ -199,7 +198,7 @@ export default function TripCalculator({ pool, ctaLabel }: { pool: Pool; ctaLabe
         </span>
       </div>
       <div className="tc-field">
-        <span className="tc-field__l">Activities per day</span>
+        <span className="tc-field__l">{t('activitiesPerDay')}</span>
         <span className="tc-seg">
           {PER_DAY_OPTIONS.map((p) => (
             <button
@@ -214,11 +213,11 @@ export default function TripCalculator({ pool, ctaLabel }: { pool: Pool; ctaLabe
         </span>
       </div>
       <div className="tc-slab">
-        <span>Budget per person</span>
+        <span>{t('budgetPerPerson')}</span>
         <b>€{programme.spent}</b>
       </div>
       <input
-        aria-label="Budget per person"
+        aria-label={t('budgetPerPerson')}
         type="range"
         min={0}
         max={ladder.length - 1}
@@ -232,13 +231,13 @@ export default function TripCalculator({ pool, ctaLabel }: { pool: Pool; ctaLabe
       </div>
       <a
         className="btn btn--primary btn--block tc-ctrl__cta"
-        href={BUILDER_URL}
+        href={builderHref}
         onClick={(e) => {
           e.preventDefault();
-          trackCtaAndGo(ctaLabel, 'costs', BUILDER_URL);
+          trackCtaAndGo('Build your trip now', 'costs', builderHref);
         }}
       >
-        {ctaLabel}
+        {t('cta')}
       </a>
     </aside>
   );
@@ -248,18 +247,16 @@ export default function TripCalculator({ pool, ctaLabel }: { pool: Pool; ctaLabe
       <div className="tripcalc">
         <div className="tripcalc__card">
           <div className="tc-hd">
-            <h3>An example {days === 2 ? 'weekend' : `${days}-day trip`}</h3>
-            <small>{programme.sl.length} activities</small>
+            <h3>{days === 2 ? t('exampleWeekend') : t('exampleTrip', { days })}</h3>
+            <small>{t('activitiesCount', { count: programme.sl.length })}</small>
           </div>
-          <p className="tc-sub">One of many ways to spend it. Change anything later in the trip builder.</p>
+          <p className="tc-sub">{t('sub')}</p>
           <ItineraryRows programme={programme} prevNames={prevNames} />
           <div className="tc-tot">
-            <span>Per person</span>
+            <span>{t('perPerson')}</span>
             <b>€{programme.spent}</b>
           </div>
-          <p className="tc-note">
-            Programme only. Flights and beds are yours to book. Prices assume eight people or more.
-          </p>
+          <p className="tc-note">{t('note')}</p>
           {mobile ? controls : null}
         </div>
         {mobile ? null : controls}

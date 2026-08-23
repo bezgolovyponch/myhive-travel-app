@@ -1,9 +1,10 @@
 import { API_BASE_URL } from './config';
+import { localeField, withLocaleParam } from '../i18n/routes';
 
 const voteApi = {
   // Public quiz fetch (organizer pre-session, by destinationId)
   async getPublicQuizForDestination(destinationId) {
-    const response = await fetch(`${API_BASE_URL}/vote/destinations/${destinationId}/quiz`);
+    const response = await fetch(withLocaleParam(`${API_BASE_URL}/vote/destinations/${destinationId}/quiz`));
     if (response.status === 404) return { questions: [] };
     if (!response.ok) throw new Error('Failed to fetch quiz');
     return response.json();
@@ -11,7 +12,7 @@ const voteApi = {
 
   // Build the pool (stateless, pre-session)
   async buildPool({ destinationId, responses }) {
-    const response = await fetch(`${API_BASE_URL}/vote/pool`, {
+    const response = await fetch(withLocaleParam(`${API_BASE_URL}/vote/pool`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ destinationId, responses }),
@@ -29,6 +30,8 @@ const voteApi = {
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
         budget, voterToken, quizResponses, activityIds,
+        // Language of the organizer's emails (vote created / result) and their links.
+        ...localeField(),
       }),
     });
     if (!response.ok) {
@@ -39,14 +42,14 @@ const voteApi = {
   },
 
   async getSession(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}`);
+    const response = await fetch(withLocaleParam(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}`));
     if (!response.ok) throw new Error('Failed to fetch vote session');
     return response.json();
   },
 
   // Curated voting list (same URL as before — backend now serves curated for new sessions)
   async getActivities(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/activities`);
+    const response = await fetch(withLocaleParam(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/activities`));
     if (response.status === 404) throw new Error('Vote session not found');
     if (!response.ok) throw new Error('Failed to fetch vote activities');
     return response.json();
@@ -54,7 +57,7 @@ const voteApi = {
 
   // Participant quiz
   async getParticipantQuiz(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/quiz`);
+    const response = await fetch(withLocaleParam(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/quiz`));
     if (!response.ok) throw new Error('Failed to fetch participant quiz');
     return response.json();
   },
@@ -101,7 +104,7 @@ const voteApi = {
   },
 
   async getResult(shareToken) {
-    const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/result`);
+    const response = await fetch(withLocaleParam(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/result`));
     if (response.status === 404) throw new Error('Vote session not found');
     if (response.status === 409) throw new Error('Result not available yet');
     if (!response.ok) throw new Error('Failed to fetch vote result');
@@ -116,6 +119,7 @@ const voteApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, activityIds,
+        ...localeField(),
       }),
     });
     if (!response.ok) {
@@ -135,7 +139,7 @@ const voteApi = {
       params.set('managerToken', managerToken);
     }
     const response = await fetch(
-        `${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/tally?${params}`);
+        withLocaleParam(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/tally?${params}`));
     if (response.status === 403) throw new Error('Vote first to see the live tally');
     if (!response.ok) throw new Error('Failed to fetch tally');
     return response.json();

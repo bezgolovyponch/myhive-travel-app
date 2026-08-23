@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,4 +22,7 @@ public class TripLeadCreateRequest {
     private LocalDate startDate;
     private LocalDate endDate;
     @PositiveOrZero private BigDecimal budget;
+
+    /** Locale the lead is browsing in ("de"); drives the language of the reminder emails. Null = English. */
+    @Size(max = 8) private String locale;
 }

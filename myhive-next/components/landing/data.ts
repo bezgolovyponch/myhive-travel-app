@@ -17,8 +17,9 @@ export const WHATSAPP_HREF =
 export interface LandingActivity {
   slug: string;
   name: string;
-  category: string | null; // primary category name (photo chip)
-  categories: string[];
+  category: string | null; // primary category name, localized by the backend (photo chip)
+  categories: string[]; // localized names
+  categorySlugs: string[]; // locale-stable slugs where the API provides them
   price: number;
   hasGroupMin: boolean;
   minPrice: number | null;
@@ -37,6 +38,12 @@ function categoryNames(a: Activity): string[] {
   return (a.categories ?? []).map((c) => (typeof c === 'string' ? c : c.name)).filter(Boolean);
 }
 
+function categorySlugs(a: Activity): string[] {
+  return (a.categories ?? [])
+    .map((c) => (typeof c === 'string' ? undefined : c.slug))
+    .filter((s): s is string => Boolean(s));
+}
+
 export function toLandingActivity(a: Activity): LandingActivity {
   const cats = categoryNames(a);
   const hasGroupMin = a.minPrice != null && a.minPrice > 0;
@@ -45,6 +52,7 @@ export function toLandingActivity(a: Activity): LandingActivity {
     name: a.name,
     category: cats[0] ?? null,
     categories: cats,
+    categorySlugs: categorySlugs(a),
     price: a.price,
     hasGroupMin,
     minPrice: hasGroupMin ? a.minPrice! : null,
@@ -53,24 +61,19 @@ export function toLandingActivity(a: Activity): LandingActivity {
   };
 }
 
-// One row per category, in the mockup's order and with the mockup's labels.
-// `matches` carries the catalogue's own names for the same category (the live
-// backend says "Hot babies and pranks" where the approved copy says
-// "Pranks & Adults"). The slug is only a fallback for the category link — the
-// live category slug wins when the API knows any of the matched names.
-export const ROW_ORDER: { name: string; matches: string[]; fallbackSlug: string }[] = [
-  { name: 'Extreme', matches: ['extreme'], fallbackSlug: 'extreme' },
-  { name: 'Guns & Bullets', matches: ['guns & bullets'], fallbackSlug: 'guns-and-bullets' },
-  { name: 'Food & Drink', matches: ['food & drink'], fallbackSlug: 'food-and-drink' },
-  { name: 'Czech Beer', matches: ['czech beer'], fallbackSlug: 'czech-beer' },
-  { name: 'Nightlife', matches: ['nightlife'], fallbackSlug: 'nightlife' },
-  { name: 'Chillout', matches: ['chillout'], fallbackSlug: 'wellness' },
-  {
-    name: 'Pranks & Adults',
-    matches: ['pranks & adults', 'hot babies and pranks'],
-    fallbackSlug: 'stag-hot-babies-and-pranks',
-  },
-  { name: 'Transfers', matches: ['transfers', 'transfer'], fallbackSlug: 'transfer' },
+// One row per category, in the mockup's order, keyed by the locale-stable
+// category slug. Display labels live in the landing dictionary
+// (landing.rows.<slug>) so the approved copy renders in every locale; an
+// unknown slug falls back to the live category name.
+export const ROW_ORDER: string[] = [
+  'extreme',
+  'guns-and-bullets',
+  'food-and-drink',
+  'czech-beer',
+  'nightlife',
+  'wellness',
+  'stag-hot-babies-and-pranks',
+  'transfer',
 ];
 
 export const PER_ROW = 6;
@@ -80,8 +83,8 @@ export function categoryLink(destinationSlug: string, categorySlug: string): str
 }
 
 export interface ActivityRow {
-  name: string;
   slug: string;
+  liveName: string; // localized category name from the API; label fallback
   total: number; // "N in the catalogue"
   items: LandingActivity[]; // photographed first, PER_ROW deep
 }
@@ -90,19 +93,22 @@ export function buildRows(
   activities: LandingActivity[],
   categories: Category[] = [],
 ): ActivityRow[] {
-  const bySlug = new Map(categories.map((c) => [c.name.toLowerCase(), c.slug]));
-  return ROW_ORDER.map(({ name, matches, fallbackSlug }) => {
-    const all = activities.filter((a) =>
-      a.categories.some((c) => matches.includes(c.toLowerCase())),
-    );
+  // Some payloads carry category names only; resolve those through the live
+  // categories list so slug matching still works.
+  const nameToSlug = new Map(categories.map((c) => [c.name.toLowerCase(), c.slug]));
+  const slugToName = new Map(categories.map((c) => [c.slug, c.name]));
+  const inCategory = (a: LandingActivity, slug: string) =>
+    a.categorySlugs.includes(slug) ||
+    a.categories.some((n) => nameToSlug.get(n.toLowerCase()) === slug);
+  return ROW_ORDER.map((slug) => {
+    const all = activities.filter((a) => inCategory(a, slug));
     const items = [...all.filter((a) => a.imageUrl), ...all.filter((a) => !a.imageUrl)].slice(
       0,
       PER_ROW,
     );
-    const liveSlug = matches.map((m) => bySlug.get(m)).find(Boolean);
     return {
-      name,
-      slug: liveSlug ?? fallbackSlug,
+      slug,
+      liveName: slugToName.get(slug) ?? '',
       total: all.length,
       items,
     };

@@ -1,0 +1,1032 @@
+{
+  "meta": {
+    "site": {
+      "title": "Trivlu — Gruppenreisen leicht gemacht",
+      "description": "Verwandle Gruppenreise-Chaos in epische Abenteuer — ganz ohne Stress. Trivlu ist der erste KI-Reiseplaner für Gruppenerlebnisse."
+    },
+    "home": {
+      "title": "Trivlu — JGA in Prag. Geplant in 10 Minuten.",
+      "description": "Deine Gruppe stimmt ab, wir erledigen den Rest. Das perfekte JGA-Wochenende in Prag — Aktivitäten, Buchung und Logistik komplett organisiert."
+    },
+    "about": {
+      "title": "Über Trivlu — Gruppenreisen leicht gemacht",
+      "description": "Wir haben Trivlu gebaut, damit Trauzeugen einen JGA planen können, hinter dem wirklich die ganze Gruppe steht. Wer wir sind und warum."
+    },
+    "contact": {
+      "title": "Trivlu kontaktieren — Sprich mit dem Team",
+      "description": "Fragen zu deinem JGA oder deiner Buchung? Erreiche das Trivlu-Team per WhatsApp, Messenger oder E-Mail — wir antworten schnell."
+    },
+    "blog": {
+      "title": "JGA-Planung: Guides & Ideen | Trivlu Blog",
+      "description": "Guides, Ideen und Reiseziel-Tipps für den perfekten Junggesellenabschied — vom Budget bis zu den besten Städten Europas."
+    },
+    "blogPost": {
+      "title": "{title} | Trivlu Blog"
+    },
+    "destination": {
+      "pragueTitle": "JGA in Prag — Aktivitäten & Pakete | Trivlu",
+      "pragueDescription": "Alles für den Junggesellenabschied in Prag: Top-Aktivitäten, Gruppenpreise und sofortige Trip-Planung. Starte in wenigen Minuten.",
+      "title": "JGA in {name} — Aktivitäten & Pakete | Trivlu",
+      "description": "Alles für den Junggesellenabschied in {name}: Top-Aktivitäten, Gruppenpreise und sofortige Trip-Planung.",
+      "tripBuilderTitle": "Trip-Planer | Trivlu",
+      "notFound": "Reiseziel nicht gefunden | Trivlu"
+    },
+    "activity": {
+      "title": "{name} in {destination} | Trivlu",
+      "fallbackDescription": "{name} in {destination}.",
+      "notFound": "Aktivität nicht gefunden | Trivlu"
+    },
+    "package": {
+      "title": "{name} — Paket in {destination} | Trivlu",
+      "fallbackDescription": "Paket {name} in {destination}.",
+      "notFound": "Paket nicht gefunden | Trivlu"
+    }
+  },
+  "common": {
+    "home": "Startseite",
+    "blog": "Blog",
+    "close": "Schließen"
+  },
+  "chrome": {
+    "comingSoonTitle": "Bald verfügbar",
+    "comingSoonHeading": "{name} kommt bald!",
+    "fallbackDestination": "Dieses Reiseziel",
+    "comingSoonBody": "Wir arbeiten daran, dir hier großartige Erlebnisse zu bieten. Bleib dran!",
+    "gotIt": "Alles klar"
+  },
+  "header": {
+    "nav": {
+      "activities": "Aktivitäten",
+      "about": "Über uns",
+      "blog": "Blog",
+      "contact": "Kontakt"
+    },
+    "breadcrumb": {
+      "home": "Startseite",
+      "destination": "Reiseziel"
+    },
+    "tab": {
+      "activities": "Aktivitäten",
+      "trip-builder": "Trip-Planer",
+      "packages": "Pakete"
+    },
+    "cartAria": "Warenkorb",
+    "cartAriaOne": "Warenkorb, {count} Artikel",
+    "cartAriaOther": "Warenkorb, {count} Artikel",
+    "menuAria": "Menü",
+    "languageAria": "Sprache"
+  },
+  "footer": {
+    "tagline": "Verwandle Gruppenreise-Chaos in epische Abenteuer — ganz ohne Stress.",
+    "nav": {
+      "activities": "Aktivitäten",
+      "about": "Über uns",
+      "blog": "Blog",
+      "contact": "Kontakt"
+    },
+    "legal": {
+      "terms": "AGB",
+      "refundPolicy": "Rückerstattung",
+      "cookiePolicy": "Cookie-Richtlinie",
+      "privacyPolicy": "Datenschutz",
+      "cookieSettings": "Cookie-Einstellungen"
+    },
+    "copyright": "Trivlu. Alle Rechte vorbehalten."
+  },
+  "whatsapp": {
+    "chatAria": "Chatte mit uns auf WhatsApp"
+  },
+  "tripSetup": {
+    "title": "Trip einrichten",
+    "cancel": "Abbrechen",
+    "continue": "Weiter",
+    "confirm": "Bestätigen",
+    "travelersLabel": "Anzahl der Reisenden *",
+    "decreaseAria": "Weniger Reisende",
+    "increaseAria": "Mehr Reisende"
+  },
+  "tripDropdown": {
+    "title": "Trip-Planer",
+    "closeAria": "Schließen",
+    "percentOff": "{pct}% Rabatt",
+    "removeAria": "{name} entfernen",
+    "emptyState": "Noch keine Aktivitäten hinzugefügt. Stöbere durch die Aktivitäten und stell dir deinen Trip zusammen!",
+    "voteTogether": "Stimmt gemeinsam ab & plant euren Trip",
+    "totalOne": "Gesamt ({count} Person)",
+    "totalOther": "Gesamt ({count} Personen)",
+    "continue": "Weiter"
+  },
+  "home": {
+    "hero": {
+      "title": "JGA in Prag. Geplant in 10 Minuten.",
+      "subtitle": "Deine Gruppe stimmt ab, wir erledigen den Rest.",
+      "startVoteCta": "Gruppen-Voting starten",
+      "exploreCta": "Aktivitäten entdecken"
+    },
+    "featured": {
+      "heading": "70+ Aktivitäten. Für jede Gruppe das Richtige.",
+      "subtitle": "Von Panzerfahren über Stripclubs bis Spa — bei uns findet jeder JGA seinen Stil.",
+      "viewAllCta": "Alle Aktivitäten ansehen"
+    },
+    "howItWorks": {
+      "heading": "Lass die Gruppe entscheiden. Du buchst nur noch.",
+      "subtitle": "Alle stimmen ab, du bestätigst, wir kümmern uns um den Rest.",
+      "step1Title": "Wähle Aktivitäten fürs Voting",
+      "step2Title": "Teile den Voting-Link",
+      "step3Title": "Buche die Gewinner",
+      "bookedTitle": "Buchung bestätigt",
+      "bookedSub": "Prag · 19.–21. Juni · 8 Jungs",
+      "startVoteCta": "Gruppen-Voting starten"
+    },
+    "trust": {
+      "heading": "Warum du deinen JGA in Prag mit Trivlu planen solltest",
+      "item1Title": "JGA-Spezialisten",
+      "item1Text": "Wir haben das schon tausende Male gemacht",
+      "item2Title": "Plan per Gruppen-Voting",
+      "item2Text": "Basierend auf dem, was deine Jungs wirklich wollen",
+      "item3Title": "Wir kümmern uns um alles",
+      "item3Text": "Buchung, Logistik, Support",
+      "item4Title": "Echter menschlicher Support",
+      "item4Text": "WhatsApp & Chat, 7 Tage die Woche"
+    },
+    "reviews": {
+      "heading": "Das sagen die Jungs",
+      "subtitle": "Echte Bewertungen von echten JGAs.",
+      "starsLabel": "5 von 5 Sternen",
+      "r1Quote": "Der einfachste JGA, den ich je organisiert habe. Die Jungs haben abgestimmt, Trivlu hat den Rest erledigt — ich musste nur noch auftauchen.",
+      "r1Country": "Großbritannien",
+      "r2Quote": "Schießstand, Kartfahren und Bootsparty für 14 Mann gebucht. Null Chaos, geniales Wochenende.",
+      "r2Country": "Irland",
+      "r3Quote": "Das Gruppen-Voting hat jede Diskussion im Gruppenchat beendet. 10/10, gerne wieder.",
+      "r3Country": "Großbritannien",
+      "r4Quote": "Super Kommunikation und der Zeitplan hat perfekt gepasst. Mit dem Anzahlungssystem war das Bezahlen völlig unkompliziert.",
+      "r4Country": "Niederlande",
+      "startVoteCta": "Gruppen-Voting starten"
+    },
+    "contactCta": {
+      "title": "Wir sind nur eine Nachricht entfernt",
+      "subtitle": "Schreib unserem Team auf WhatsApp — frag uns alles, wir helfen dir, den perfekten JGA zu planen.",
+      "whatsappCta": "Auf WhatsApp chatten"
+    },
+    "stickyCta": {
+      "label": "Gruppen-Voting starten"
+    },
+    "voteDemo": {
+      "title": "Über Aktivitäten abstimmen",
+      "sub": "9 von 11 Jungs haben abgestimmt",
+      "row1Name": "Kneipentour",
+      "row2Name": "Kartfahren",
+      "row3Name": "Schießstand",
+      "row4Name": "Tiki-Boot"
+    },
+    "voteMoment": {
+      "title": "Das Voting läuft",
+      "sub": "9 von 11 Jungs haben abgestimmt · noch 4 Std.",
+      "row1Name": "Steak & Strip",
+      "row2Name": "Panzerfahren",
+      "row3Name": "Kneipentour",
+      "row4Name": "Bier-Spa",
+      "row5Name": "Kartfahren",
+      "row6Name": "Schießstand"
+    },
+    "swipeMoment": {
+      "cardName": "Steak & Strip",
+      "cardMeta": "1,5 Std. · 45 € / Person",
+      "likeStamp": "LIKE"
+    }
+  },
+  "destination": {
+    "loading": "Wird geladen...",
+    "notFound": "Reiseziel nicht gefunden",
+    "backToHome": "Zurück zur Startseite",
+    "heroTitle": "JGA in {name}",
+    "tabActivities": "Aktivitäten",
+    "tabPackages": "Pakete",
+    "tabTripBuilder": "Trip-Planer",
+    "filterAll": "Alle",
+    "showLess": "Weniger anzeigen",
+    "showAll": "Alle anzeigen ({count})",
+    "listError": "Aktivitäten konnten nicht geladen werden. Bitte versuch es erneut.",
+    "loadingActivities": "Aktivitäten werden geladen...",
+    "showMore": "Mehr anzeigen ({shown} von {total})"
+  },
+  "cards": {
+    "viewAria": "{name} ansehen",
+    "activityCategory": "Aktivität",
+    "fromPerPerson": "ab {price} / Person",
+    "perPersonPrice": "{price} / Person",
+    "groupMinimum": "Gruppen-Mindestbetrag {amount}",
+    "moreInfo": "Mehr Infos",
+    "added": "Hinzugefügt",
+    "addToTrip": "Zum Trip hinzufügen",
+    "saveAmount": "Spare {amount}",
+    "badgePopular": "Beliebt",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "pageOf": "Seite {current} von {total}",
+    "durationHours": "{hours} Std.",
+    "viewFullPage": "Zur Detailseite ↗",
+    "noDescription": "Noch keine Beschreibung.",
+    "whatsIncluded": "Was ist enthalten",
+    "openPhoto": "Foto {num} von {total} öffnen",
+    "seeAllPhotos": "Alle Fotos ansehen ({count})",
+    "photosAria": "Fotos von {title}",
+    "photoAlt": "{title} {num} von {total}",
+    "close": "Schließen",
+    "previousPhoto": "Vorheriges Foto",
+    "nextPhoto": "Nächstes Foto",
+    "goToPhoto": "Zu Foto {num}"
+  },
+  "about": {
+    "hero": {
+      "title": "Über Trivlu",
+      "subtitle": "Gruppenreisen mühelos machen — ein Abenteuer nach dem anderen."
+    },
+    "mission": {
+      "title": "Unsere Mission",
+      "p1": "Trivlu ist aus einem einfachen Frust entstanden: Eine Gruppenreise zu planen sollte nicht anstrengender sein als die Reise selbst. Wir glauben, dass es nahtlos, aufregend und stressfrei sein sollte, Menschen für gemeinsame Abenteuer zusammenzubringen.",
+      "p2": "Unsere KI-gestützte Plattform nimmt das Chaos aus der Koordination von Gruppenerlebnissen. Von der Wahl des Reiseziels bis zum individuellen Programm übernimmt Trivlu die Logistik, damit du dich auf die gemeinsamen Erinnerungen konzentrieren kannst."
+    },
+    "values": {
+      "title": "Wofür wir stehen",
+      "adventure": {
+        "title": "Abenteuer zuerst",
+        "body": "Wir kuratieren Reiseziele und Aktivitäten, die für Gruppen jeder Größe unvergessliche Erlebnisse schaffen."
+      },
+      "stress": {
+        "title": "Null Stress",
+        "body": "Unser smarter Trip-Planer übernimmt die komplizierte Gruppenkoordination, damit du es nicht musst."
+      },
+      "together": {
+        "title": "Gemeinsam besser",
+        "body": "Reisen ist am schönsten, wenn man es teilt. Jedes Feature ist dafür gemacht, Gruppen näher zusammenzubringen."
+      }
+    },
+    "story": {
+      "title": "Unsere Geschichte",
+      "p1": "Alles begann mit einem Wochenendtrip, der fast nicht stattgefunden hätte. Zu viele Gruppenchats, widersprüchliche Wünsche und Absagen in letzter Minute hätten einen eigentlich simplen Kurztrip beinahe zum Scheitern gebracht.",
+      "p2": "Diese Erfahrung brachte die Idee: Was wäre, wenn eine Plattform das Planen von Gruppenabenteuern genauso viel Spaß machen würde wie die Abenteuer selbst? Trivlu ist die Antwort — der erste KI-gestützte Reiseplaner, der speziell für Gruppenerlebnisse gebaut wurde."
+    }
+  },
+  "contact": {
+    "hero": {
+      "title": "Kontakt",
+      "subtitle": "Du hast eine Frage oder willst einen Gruppentrip planen? Wir freuen uns, von dir zu hören."
+    },
+    "info": {
+      "title": "Melde dich bei uns",
+      "body": "Ob Fragen zu Reisezielen, Preisen oder etwas anderem — unser Team hilft dir gerne weiter.",
+      "emailLabel": "E-Mail",
+      "responseTimeLabel": "Antwortzeit",
+      "responseTimeValue": "Innerhalb von 24 Stunden",
+      "companyLabel": "Unternehmen",
+      "addressLabel": "Adresse",
+      "addressValue": "Na Folimance 2155/15, Vinohrady, 120 00 Prag 2, Tschechien"
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "emailRequired": "E-Mail ist erforderlich",
+      "emailInvalid": "E-Mail ist ungültig",
+      "subjectRequired": "Betreff ist erforderlich",
+      "messageRequired": "Nachricht ist erforderlich",
+      "turnstileRequired": "Bitte schließe die Verifizierung ab"
+    },
+    "sendError": "Nachricht konnte nicht gesendet werden. Bitte versuch es erneut oder schreib uns direkt per E-Mail.",
+    "success": {
+      "title": "Nachricht gesendet!",
+      "textBeforeEmail": "Danke, {name}. Wir melden uns bei dir unter",
+      "textAfterEmail": "innerhalb von 24 Stunden.",
+      "sendAnother": "Weitere Nachricht senden"
+    },
+    "form": {
+      "nameLabel": "Name *",
+      "namePlaceholder": "Dein Name",
+      "emailLabel": "E-Mail *",
+      "emailPlaceholder": "du@beispiel.de",
+      "subjectLabel": "Betreff *",
+      "subjectOptions": {
+        "placeholder": "Thema auswählen",
+        "groupTrip": "Anfrage Gruppenreise",
+        "pricing": "Preise & Pakete",
+        "partnership": "Partnerschaft",
+        "support": "Support",
+        "other": "Sonstiges"
+      },
+      "messageLabel": "Nachricht *",
+      "messagePlaceholder": "Erzähl uns, wie wir helfen können...",
+      "sending": "Wird gesendet...",
+      "send": "Nachricht senden"
+    },
+    "booking": {
+      "title": "Buchung abschließen",
+      "step": "Schritt 1 von 2 — wir bestätigen die Verfügbarkeit, dann zahlst du 30% Anzahlung.",
+      "submitLabel": "Buchung absenden",
+      "submitting": "Wird gesendet...",
+      "cancel": "Abbrechen",
+      "validation": {
+        "fullNameRequired": "Vollständiger Name ist erforderlich",
+        "emailRequired": "E-Mail ist erforderlich",
+        "emailInvalid": "E-Mail ist ungültig",
+        "phoneRequired": "Telefonnummer ist erforderlich",
+        "phoneInvalid": "Telefonnummer ist ungültig",
+        "startDateRequired": "Startdatum ist erforderlich",
+        "endDateRequired": "Enddatum ist erforderlich",
+        "endDateAfterStart": "Enddatum muss nach dem Startdatum liegen (mindestens 1 Nacht)",
+        "travelersMin": "Anzahl der Reisenden muss mindestens 1 sein"
+      },
+      "summaryTitle": "Trip-Übersicht",
+      "destinationLabel": "Reiseziel:",
+      "activitiesLabel": "Aktivitäten:",
+      "activitiesSelected": "{count} ausgewählt",
+      "estimatedTotalLabel": "Geschätzte Gesamtsumme:",
+      "fullNameLabel": "Vollständiger Name *",
+      "fullNamePlaceholder": "Max Mustermann",
+      "emailLabel": "E-Mail-Adresse *",
+      "emailPlaceholder": "max@beispiel.de",
+      "emailSaveNote": "Wir speichern deinen Trip unter dieser Adresse, damit du jederzeit weitermachen kannst.",
+      "phoneLabel": "Telefonnummer *",
+      "phonePlaceholder": "+49 151 12345678",
+      "travelersLabel": "Anzahl der Reisenden *",
+      "decreaseTravelers": "Weniger Reisende",
+      "increaseTravelers": "Mehr Reisende",
+      "contactMethodLabel": "Bevorzugter Kontaktweg *",
+      "contactMethodOptions": {
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "whatsapp": "WhatsApp",
+        "both": "Beides"
+      },
+      "hearAboutUsLabel": "Wie hast du von uns erfahren?",
+      "hearAboutUsOptions": {
+        "placeholder": "Bitte auswählen",
+        "search": "Suchmaschine",
+        "social": "Social Media",
+        "friend": "Freunde/Familie",
+        "ad": "Werbung",
+        "blog": "Blog/Artikel",
+        "other": "Sonstiges"
+      },
+      "specialRequirementsLabel": "Besondere Wünsche oder Anmerkungen",
+      "specialRequirementsPlaceholder": "Besondere Ernährungswünsche, Barrierefreiheit oder andere Anliegen..."
+    },
+    "consentNote": "Wir schicken dir per E-Mail einen Link zu deinem Trip und ein paar Erinnerungen. Abmeldung jederzeit möglich.",
+    "bookingSuccess": {
+      "title": "Buchung erfolgreich übermittelt!",
+      "gotIt": "Alles klar!",
+      "thankYou": "Danke, {name}!",
+      "submitted": "Deine Reisebuchung wurde erfolgreich übermittelt.",
+      "contactTextBefore": "Wir melden uns bald bei dir unter",
+      "contactTextAfter": "um die Details zu bestätigen.",
+      "nextStepsTitle": "Wie geht es weiter?",
+      "step1": "Unser Team prüft deine Buchungsanfrage",
+      "step2": "Wir kontaktieren dich per E-Mail, um die Details zu bestätigen",
+      "step3": "Wir schicken dir persönliche Empfehlungen",
+      "step4": "Wir finalisieren dein Reiseprogramm",
+      "depositTitle": "Willst du deinen Trip gleich festmachen?",
+      "redirecting": "Weiterleitung…",
+      "payDeposit": "Jetzt 30% Anzahlung zahlen",
+      "paymentError": "Zahlung konnte nicht gestartet werden. Bitte versuch es erneut.",
+      "whatsappTitle": "Kontaktiere uns für Details zu deinem Trip",
+      "whatsappAria": "Kontaktiere uns auf WhatsApp",
+      "whatsappUs": "Schreib uns auf WhatsApp"
+    }
+  },
+  "activityDetail": {
+    "loading": "Wird geladen...",
+    "notFound": "Aktivität nicht gefunden.",
+    "goBack": "Zurück",
+    "breadcrumbHome": "Startseite",
+    "categoryFallback": "Aktivität",
+    "duration": {
+      "minutes": "{minutes} Min.",
+      "hours": "{hours} Std.",
+      "hoursMinutes": "{hours} Std. {rest} Min."
+    },
+    "includedTitle": "Was ist enthalten",
+    "aboutTitle": "Über diese Aktivität",
+    "goodToKnowTitle": "Gut zu wissen",
+    "facts": {
+      "meetingPointLabel": "Treffpunkt",
+      "meetingPointDefault": "Zentral: {place} — genauer Treffpunkt wird bei der Buchung bestätigt.",
+      "cityCentreFallback": "Stadtzentrum",
+      "availabilityLabel": "Verfügbarkeit",
+      "availabilityDefault": "Täglich · flexible Startzeiten, abgestimmt auf eure Gruppe.",
+      "cancellationLabel": "Stornierung",
+      "cancellationDefault": "Kostenlose Änderungen bis 14 Tage vorher. Alle Bedingungen in unserer Rückerstattungsrichtlinie.",
+      "refundPolicyLink": "Rückerstattungsrichtlinie"
+    },
+    "from": "ab",
+    "perPerson": "/ Person",
+    "groupMinimum": "Gruppen-Mindestbetrag {amount}",
+    "groupPriceFrom": "Gruppenpreis · ab",
+    "addToTrip": "Zum Trip hinzufügen",
+    "addedToTrip": "Zum Trip hinzugefügt",
+    "help": {
+      "textBefore": "Noch unsicher?",
+      "linkLabel": "Chatte mit unserem Team",
+      "textAfter": "auf WhatsApp."
+    },
+    "moreActivities": "Mehr Aktivitäten in {destination}"
+  },
+  "packageDetail": {
+    "loading": "Wird geladen...",
+    "notFound": "Paket nicht gefunden.",
+    "goBack": "Zurück",
+    "breadcrumbHome": "Startseite",
+    "includedTitle": "Was ist enthalten",
+    "includesLabel": "Enthält:",
+    "youSave": "Du sparst {amount}",
+    "percentOff": "({pct}% Rabatt)",
+    "addToTrip": "Zum Trip hinzufügen"
+  },
+  "blog": {
+    "listTitle": "Das JGA-Playbook",
+    "loadingPosts": "Beiträge werden geladen...",
+    "emptyState": "Noch keine Blogbeiträge. Schau bald wieder vorbei!",
+    "loading": "Wird geladen...",
+    "postNotFound": "Beitrag nicht gefunden",
+    "backToBlog": "Zurück zum Blog"
+  },
+  "voteComponents": {
+    "start": {
+      "title": "Gruppen-Voting starten",
+      "sub": "Teile den Link mit deinen Jungs und verfolge die Ergebnisse live. Das Voting endet automatisch nach 24 Stunden.",
+      "tripDates": "Reisedaten",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "create": "Voting erstellen",
+      "creating": "Wird erstellt…",
+      "errors": {
+        "datesRequired": "Reisedaten sind erforderlich",
+        "endBeforeStart": "Das Enddatum muss am oder nach dem Startdatum liegen",
+        "createFailed": "Voting konnte nicht erstellt werden. Bitte versuch es erneut."
+      }
+    },
+    "active": {
+      "title": "Ein Voting läuft bereits",
+      "body": "Deine Jungs stimmen noch über diesen Trip ab. Beende dieses Voting, bevor du ein neues startest — im Voting-Dashboard kannst du es vorzeitig beenden.",
+      "openDashboard": "Voting-Dashboard öffnen"
+    },
+    "tally": {
+      "title": "Voting-Ergebnisse",
+      "votedOne": "{count} Kumpel hat abgestimmt",
+      "votedOther": "{count} Kumpels haben abgestimmt"
+    }
+  },
+  "tripBuilder": {
+    "heading": {
+      "votingList": "Deine Voting-Liste",
+      "itinerary": "Dein Programm",
+      "selectedOne": "{count} Aktivität ausgewählt",
+      "selectedOther": "{count} Aktivitäten ausgewählt"
+    },
+    "summary": {
+      "destination": "Reiseziel:",
+      "travelers": "Reisende:",
+      "dates": "Daten:"
+    },
+    "items": {
+      "percentOff": "{pct}% Rabatt",
+      "removeAria": "{name} entfernen"
+    },
+    "price": {
+      "perPerson": "{price} / Person",
+      "multiplied": "{price} × {travelers} = {total}",
+      "groupMinLine": "{price} × {travelers} = {total} (Gruppen-Minimum)"
+    },
+    "emptyState": "Füge Aktivitäten hinzu und stell dir deinen Trip zusammen!",
+    "footer": {
+      "estimatedCost": "Geschätzte Kosten",
+      "completeBooking": "Buchung abschließen",
+      "sendBookingRequest": "Buchungsanfrage senden"
+    },
+    "errors": {
+      "addActivitiesFirst": "Bitte füge erst Aktivitäten zu deinem Trip hinzu, bevor du absendest.",
+      "submitFailed": "Buchung konnte nicht gesendet werden. Bitte versuch es erneut."
+    },
+    "vote": {
+      "startCta": "Gruppen-Voting starten",
+      "foreignDestinationTitle": "Gruppen-Voting funktioniert nur für ein Reiseziel gleichzeitig — entferne zuerst die Aktivitäten anderer Reiseziele.",
+      "loadError": "Die Voting-Ergebnisse deiner Gruppe konnten nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen."
+    },
+    "recommended": {
+      "title": "Für dich empfohlen",
+      "subtitle": "Basierend auf deinen Quiz-Antworten"
+    },
+    "suggestions": {
+      "title": "Vorschläge der Gruppe",
+      "subtitle": "Aus den Quiz-Antworten deiner Gruppe"
+    },
+    "browse": {
+      "title": "Weitere Aktivitäten entdecken",
+      "filterAll": "Alle",
+      "showLess": "Weniger anzeigen",
+      "showAll": "Alle anzeigen ({count})",
+      "add": "Hinzufügen",
+      "added": "Hinzugefügt"
+    },
+    "budget": {
+      "spent": "Ausgegeben",
+      "budget": "Budget",
+      "remaining": "Übrig"
+    },
+    "restore": {
+      "title": "Aktuellen Trip ersetzen?",
+      "keepCurrent": "Aktuellen behalten",
+      "openSaved": "Gespeicherten Trip öffnen",
+      "body": "Wenn du deinen gespeicherten Trip öffnest, werden die Aktivitäten in deinem aktuellen Programm ersetzt."
+    },
+    "success": {
+      "defaultUserName": "Reisender"
+    }
+  },
+  "swipe": {
+    "processing": "Deine Auswahl wird verarbeitet...",
+    "progress": "{current} / {total}",
+    "durationHours": "{hours} Std.",
+    "fromPerPerson": "ab {price} / Person",
+    "perPersonPrice": "{price} / Person",
+    "groupMinimum": "Gruppen-Mindestbetrag {amount}",
+    "likeOverlay": "LIKE ♥",
+    "nopeOverlay": "NOPE ✕",
+    "dislikeAria": "Gefällt mir nicht",
+    "undoAria": "Letzten Swipe rückgängig machen",
+    "likeAria": "Gefällt mir",
+    "linkCopied": "✓ Link kopiert!",
+    "copyInviteLink": "Einladungslink kopieren"
+  },
+  "chat": {
+    "greeting": "Hi! Ich bin dein KI-Reiseassistent. Was für einen Trip suchst du?",
+    "autoEngage": "Planst du einen JGA? Sag mir, worauf deine Gruppe steht, und ich zeige dir die passenden Aktivitäten!",
+    "responses": {
+      "default": "Ich helfe dir, den perfekten Gruppentrip zu planen! Was interessiert dich am meisten?",
+      "nightlife": "Für episches Nachtleben schau in die Kategorie Nachtleben bei den Aktivitäten — Kneipentouren, Club-Eintritte und Bootspartys sind Gruppenfavoriten.",
+      "adventure": "Abenteuer wartet! Stöbere in der Kategorie Abenteuer nach Kartfahren, Wassersport und Adrenalin-Aktivitäten, die eure Gruppe zusammen machen kann.",
+      "relax": "Perfekt zum Runterkommen — schau nach Spa, Beachclub und entspannten Tagesaktivitäten, um die großen Nächte auszugleichen.",
+      "packages": "Unsere Pakete bündeln mehrere Aktivitäten mit Rabatt — schau auf der Reiseziel-Seite in den Tab Pakete und passe jedes davon im Trip-Planer an!",
+      "suggestPackages": "Pakete sind der einfachste Start — eine fertige Mischung aus Aktivitäten mit Rabatt, die du im Trip-Planer trotzdem anpassen kannst!",
+      "suggestTripBuilder": "Du hast {count} Aktivitäten ausgewählt.",
+      "suggestAddMore": "Füge noch ein paar hinzu für das volle Erlebnis!",
+      "suggestBalanced": "Das sieht nach einem richtig ausgewogenen Trip aus!",
+      "suggestDefault": "Starte mit den vorgestellten Aktivitäten auf der Startseite — sie sind bei Gruppen am beliebtesten. Füge alles, was dir gefällt, zum Trip-Planer hinzu!",
+      "prices": "Preise stehen pro Person auf jeder Aktivitätskarte, und Pakete geben dir Rabatt, wenn du mehrere Aktivitäten zusammen buchst. Der Trip-Planer rechnet alles für eure Gruppengröße zusammen.",
+      "groups": "Hier ist alles für Gruppen gemacht! Du kannst aus dem Trip-Planer sogar ein Gruppen-Voting starten, damit die ganze Crew die Aktivitäten gemeinsam auswählt.",
+      "hello": "Hallo! Ich helfe dir, den perfekten Trip zu planen. Suchst du Abenteuer, Nachtleben, Entspannung oder eine Mischung aus allem?"
+    },
+    "title": "KI-Reiseassistent",
+    "closeAria": "Chat schließen",
+    "avatarAi": "KI",
+    "avatarYou": "Du",
+    "inputAria": "Chat-Nachricht",
+    "inputPlaceholder": "Erzähl mir von deinem idealen Trip...",
+    "sendAria": "Nachricht senden",
+    "send": "Senden",
+    "openAria": "Chat-Assistent öffnen"
+  },
+  "datePicker": {
+    "startLabel": "Start",
+    "endLabel": "Ende",
+    "addDate": "Datum wählen",
+    "clearStartAria": "Startdatum löschen",
+    "clearEndAria": "Enddatum löschen"
+  },
+  "payment": {
+    "actions": {
+      "genericError": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
+      "bookDeposit": "Buchen & 30% Anzahlung leisten",
+      "contactConsultant": "Unseren Berater kontaktieren",
+      "consultDoneTitle": "Anfrage erhalten",
+      "gotIt": "Alles klar",
+      "consultDoneBody": "Danke! Unser Berater meldet sich in Kürze bei dir, um deinen Trip abzuschließen und die Zahlung zu organisieren."
+    },
+    "success": {
+      "title": "Danke — deine Zahlung ist unterwegs!",
+      "body": "Wir bestätigen deine Zahlung gerade mit unserem Anbieter. Du bekommst eine E-Mail, sobald sie verarbeitet ist.",
+      "bookingReference": "Buchungsnummer: {booking}",
+      "contactHeading": "Kontaktiere uns für Details zu deinem Trip",
+      "whatsappAria": "Kontaktiere uns auf WhatsApp",
+      "whatsappUs": "Schreib uns auf WhatsApp"
+    },
+    "cancelled": {
+      "title": "Zahlung abgebrochen",
+      "body": "Es wurde nichts abgebucht. Du kannst zu deinem Trip zurückkehren und es versuchen, wann immer du bereit bist."
+    },
+    "backToHome": "Zurück zur Startseite"
+  },
+  "unsubscribe": {
+    "title": "Von Trip-Erinnerungen abmelden",
+    "body": "Du bekommst keine Erinnerungs-E-Mails mehr zu deinem gespeicherten Trip. Buchungs- und Voting-Bestätigungen sind davon nicht betroffen.",
+    "error": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
+    "working": "Wird abgemeldet…",
+    "confirm": "Abmelden",
+    "doneTitle": "Du bist abgemeldet",
+    "doneBody": "Wir schicken dir keine Trip-Erinnerungen mehr."
+  },
+  "vote": {
+    "meta": {
+      "quiz": "Gruppen-Quiz",
+      "curate": "Aktivitäten auswählen",
+      "activities": "Über Aktivitäten abstimmen",
+      "waiting": "Voting läuft",
+      "result": "Voting-Ergebnisse"
+    },
+    "quiz": {
+      "loadFailed": "Quiz konnte nicht geladen werden",
+      "loading": "Quiz wird geladen…",
+      "progress": "{current} / {total}"
+    },
+    "curate": {
+      "loading": "Auswahl wird geladen…",
+      "empty": "Keine Aktivitäten passen zu deinem Quiz. Probier ein anderes Reiseziel.",
+      "building": "Dein Trip wird zusammengestellt…",
+      "nothingPicked": "Du hast nichts ausgewählt. Fang von vorn an und swipe nach rechts, worüber die Gruppe abstimmen soll.",
+      "startOver": "Von vorn beginnen",
+      "title": "Wähle Aktivitäten, über die die Gruppe abstimmt",
+      "subtitle": "Nach rechts swipen zum Aufnehmen, nach links zum Überspringen"
+    },
+    "activities": {
+      "submitFailed": "Stimmen konnten nicht gesendet werden. Bitte versuch es erneut.",
+      "loading": "Aktivitäten werden geladen...",
+      "submitting": "Deine Stimmen werden gesendet...",
+      "sessionGoneTitle": "Dieses Voting existiert nicht mehr.",
+      "sessionGoneHint": "Es ist vielleicht abgelaufen oder wurde entfernt — frag den Organisator nach einem neuen Link.",
+      "empty": "Keine Aktivitäten für die gewählten Kategorien gefunden.",
+      "title": "Auf welche Aktivitäten hast du Lust?",
+      "subtitle": "Nach rechts swipen für Ja, nach links zum Überspringen"
+    },
+    "waiting": {
+      "processing": "Ergebnisse werden verarbeitet...",
+      "countdown": "{hours} Std. {minutes} Min.",
+      "shareTitleDestination": "Voting: Trip nach {destination}",
+      "shareTitleGeneric": "Stimmt über unseren Trip ab",
+      "shareText": "Hilf mit zu entscheiden, was wir machen — stimm über die Aktivitäten ab:",
+      "sessionError": "Session konnte nicht geladen werden: {error}",
+      "finalising": "Ergebnisse werden finalisiert...",
+      "title": "Das Voting läuft!",
+      "tripTo": "Trip nach {destination}",
+      "yourSession": "Dein Voting",
+      "alreadyVoted": "✓ Du hast in diesem Voting bereits abgestimmt.",
+      "untilResults": "bis zu den Ergebnissen",
+      "votedOne": "Person hat abgestimmt",
+      "votedOther": "Personen haben abgestimmt",
+      "ofTotal": "von {total}",
+      "liveResults": "Live-Ergebnisse",
+      "shareLabel": "Mit Freunden teilen:",
+      "inviteLinkAria": "Einladungslink",
+      "share": "Teilen",
+      "copied": "✓ Link kopiert!",
+      "copyLink": "Link kopieren",
+      "copyInviteLink": "Einladungslink kopieren",
+      "endEarly": "Voting vorzeitig beenden & Ergebnisse sehen",
+      "note": "Die Ergebnisse erscheinen auf dieser Seite, sobald der Timer abgelaufen ist."
+    },
+    "result": {
+      "loading": "Ergebnis wird geladen...",
+      "cartTitle": "Die Stimmen sind da!",
+      "proceedToCheckout": "Zur Kasse",
+      "title": "Trip-Ergebnis",
+      "groupPick": "Die Wahl der Gruppe",
+      "empty": "Die Gruppe konnte sich innerhalb des Budgets auf nichts einigen. Sieh dir die Vorschläge unten an.",
+      "counts": "Likes: {likes} · Übersprungen: {skips}",
+      "budgetTitle": "Budget",
+      "spent": "Ausgegeben: {amount}",
+      "budget": "Budget: {amount}",
+      "remaining": "Übrig: {amount}",
+      "openTripBuilder": "Im Trip-Planer öffnen",
+      "suggestionsTitle": "Vorschläge"
+    }
+  },
+  "landing": {
+    "meta": {
+      "vote": {
+        "title": "Trivlu. JGA-Planer für Prag. Schluss mit Chatten. Startet das Voting.",
+        "description": "Trivlu plant Junggesellenabschiede in Prag. Swipe durch die Aktivitäten. Teile einen Link. Deine Freunde stimmen ab. 72 Aktivitäten zur Auswahl. Kostenlose Stornierung. Antwort in 10 Minuten."
+      },
+      "prague": {
+        "title": "Trivlu. Warum Prag die beste JGA-Stadt Europas ist.",
+        "description": "Prag liegt neunzig Minuten entfernt. Das Bier kostet 2,20 €. Trivlu bietet 72 lokale Aktivitäten. Lies fünf Gründe, echte Preise und ein komplettes Beispiel-Wochenende."
+      }
+    },
+    "chrome": {
+      "waAria": "Schreib uns auf WhatsApp",
+      "startVote": "Gruppen-Voting starten",
+      "buildTrip": "Trip planen",
+      "cartAriaOne": "Ausgewählte Aktivitäten. {count} Eintrag",
+      "cartAriaOther": "Ausgewählte Aktivitäten. {count} Einträge",
+      "langAria": "Sprache"
+    },
+    "footer": {
+      "trips": "Trips",
+      "company": "Unternehmen",
+      "talk": "Sprich mit einem Menschen",
+      "activities": "Aktivitäten",
+      "how": "So funktioniert Trivlu",
+      "prices": "Preise",
+      "exampleWeekend": "Beispiel-Wochenende",
+      "rules": "Die Regeln 2026",
+      "about": "Über uns",
+      "blog": "Blog",
+      "contact": "Kontakt",
+      "terms": "AGB",
+      "refund": "Erstattungsrichtlinie",
+      "privacy": "Datenschutz",
+      "cookies": "Cookies",
+      "copyright": "© 2026 Trivlu · Prag, Tschechien",
+      "taglineVote": "JGA in Prag. Geplant in 10 Minuten. Deine Gruppe stimmt ab, wir erledigen den Rest.",
+      "taglinePrague": "Gruppenreisen ohne Chaos im Gruppenchat. Gebaut in Prag."
+    },
+    "activities": {
+      "eyebrow": "Was du buchen kannst",
+      "title": "{count} Aktivitäten. Wählt aus, was eure Gruppe will",
+      "ledeVote": "Von Panzerfahren über Bootstouren bis Spa — hier findet jede Gruppe etwas.",
+      "ledePrague": "Von Panzerfahren über Stripclubs bis Spa — bei uns findet jeder JGA seinen Stil.",
+      "inCatalogue": "{count} im Katalog",
+      "viewAll": "Alle {count} Aktivitäten ansehen →",
+      "addToTrip": "Zum Trip hinzufügen",
+      "added": "Hinzugefügt ✓",
+      "photoComing": "Foto folgt bald",
+      "perPerson": "/ Person",
+      "from": "ab",
+      "minPerGroup": "min. {min} € pro Gruppe"
+    },
+    "calc": {
+      "eyebrow": "Ein Wochenende für jedes Budget",
+      "title": "Sieh, was dein Budget wirklich kauft",
+      "lede": "Sag uns, wie lange ihr bleibt und wie viel ihr ausgeben wollt. Wir bauen ein Beispiel-Wochenende aus dem echten Katalog.",
+      "exampleWeekend": "Ein Beispiel-Wochenende",
+      "exampleTrip": "Ein Beispiel-Trip über {days} Tage",
+      "activitiesCount": "{count} Aktivitäten",
+      "sub": "Eine von vielen Möglichkeiten. Alles später im Trip-Planer änderbar.",
+      "perPerson": "Pro Person",
+      "note": "Nur das Programm. Flüge und Betten bucht ihr selbst. Preise gelten ab acht Personen.",
+      "howManyDays": "Wie viele Tage",
+      "activitiesPerDay": "Aktivitäten pro Tag",
+      "budgetPerPerson": "Budget pro Person",
+      "cta": "Jetzt Trip planen",
+      "airportTransfer": "Flughafentransfer",
+      "dayFriday": "Freitag",
+      "daySaturday": "Samstag",
+      "daySunday": "Sonntag",
+      "dayMonday": "Montag"
+    },
+    "compare": {
+      "header": "Getränke, Hotels und Essen übers Wochenende",
+      "sub": "{drinks} Getränke · {nights} Nächte · {meals} Mahlzeiten",
+      "compareWith": "Vergleiche Prag mit",
+      "breakdown": "Bier {beer} € · Bett {bed} € · Essen {food} €",
+      "prague": "Prag",
+      "saves": "Eure 10er-Gruppe spart",
+      "source": "Bier und Essen: Numbeo, August 2026. Eine Mahlzeit ist ein Abendessen im günstigen Restaurant. Hotels: zentrales Drei-Sterne-Doppelzimmer, geteilt durch zwei Personen.",
+      "joyAlt": "Männer stoßen an der Bar mit Bier an"
+    },
+    "why": {
+      "title": "Neue Firma. Erfahrenes Team",
+      "eyebrowPrague": "Über uns",
+      "p1": "Wir haben fünfzehn Jahre lang Junggesellenabschiede in Prag organisiert.",
+      "p2Vote": "Mit Trivlu hast du zwei Vorteile: Du zahlst den Venue-Preis ohne Agenturaufschlag. Und du sprichst direkt mit der Person, die eure Aktivitäten bucht. Unser Team sitzt in Prag und hilft dir jederzeit gern.",
+      "p2Prague": "Mit Trivlu hast du zwei Vorteile: Du zahlst den Venue-Preis ohne Agenturaufschlag. Und du sprichst direkt mit der Person, die eure Aktivitäten bucht.",
+      "p3Prague": "Unser Team sitzt in Prag und hilft dir jederzeit gern.",
+      "g1": "Zahle jetzt 30 Prozent Anzahlung. Den Rest später.",
+      "g2": "Kostenlose Stornierung für jede Aktivität.",
+      "g3": "Kartenzahlungen laufen über Stripe.",
+      "g4": "Einer bucht. Die Gruppe zahlt es ihm später zurück.",
+      "sellerName": "Trivlu-Team",
+      "sellerRole": "Dein Trip-Planer in Prag",
+      "sellerLive": "Antwort in 10 Minuten · 7 Tage die Woche",
+      "callNow": "Jetzt anrufen",
+      "whatsapp": "WhatsApp"
+    },
+    "reviews": {
+      "title": "Was unsere Gruppen sagen",
+      "eyebrowPrague": "Bewertungen von Gruppen, die wir organisiert haben",
+      "starsAria": "5 von 5 Sternen",
+      "r1Quote": "Der einfachste JGA, den ich je organisiert habe. Die Gruppe hat abgestimmt. Trivlu hat alles arrangiert. Ich musste nur ankommen.",
+      "r1Meta": "11 Personen · UK · Mai 2025 · Kart, Schießen",
+      "r2Quote": "Wir haben Schießen, Kartfahren und eine Bootsparty für vierzehn Leute gebucht. Keine Probleme. Ein perfektes Wochenende.",
+      "r2Meta": "14 Personen · Irland · Juni 2025 · Boot, Schießen",
+      "r3VoteQuote": "Das Gruppen-Voting hat jede Diskussion im Chat beendet. Die Entscheidung dauerte einen Abend statt einen Monat.",
+      "r3VoteMeta": "8 Personen · UK · Sept. 2025 · Rafting, Bierspa",
+      "r3PragueQuote": "Wir hatten Sorgen wegen der neuen Regeln in Prag. Die Regeln haben nichts geändert. Das Wochenende lief exakt wie geplant.",
+      "r3PragueMeta": "8 Personen · UK · Sept. 2025 · Rafting, Bootstour",
+      "r4Quote": "Trivlu hat super kommuniziert. Der Plan hat genau gepasst. Die Anzahlung war easy.",
+      "r4Meta": "9 Personen · Niederlande · Okt. 2025 · Paintball, Dinner"
+    },
+    "faq": {
+      "title": "Die Dinge, die alle beschäftigen",
+      "eyebrowPrague": "Beantwortet, bevor du fragst",
+      "vote": {
+        "q1": "Ist Prag 2026 noch eine gute Wahl? Ich habe gelesen, dass Junggesellenabschiede verboten wurden.",
+        "q1a1": "Prag hat keine Junggesellenabschiede verboten. Die Stadt hat im November 2024 kommerzielle Pub-Crawls verboten. Das Verbot gilt im historischen Zentrum zwischen 22:00 und 06:00 Uhr. Die Strafe beträgt bis zu 100.000 CZK. Sie trifft den Veranstalter, nicht eure Gruppe. Eure Freunde dürfen zu jeder Uhrzeit von Kneipe zu Kneipe ziehen.",
+        "q1a2": "Im Zentrum gibt es außerdem Zonen mit Alkoholverbot. Eine offene Dose in der Hand kostet bis zu 10.000 CZK. Unsere Abende starten früher. Unsere Abende finden in Venues statt, nicht auf der Straße. Diese Regeln betreffen kein Stück eures Wochenendes.",
+        "q2": "Muss jeder eine App laden oder ein Konto anlegen?",
+        "q2a": "Nein. Du teilst einen Link. Deine Freunde öffnen ihn im Browser. Keine App, kein Konto, kein Passwort. Deine Daten gibst du erst vor der Buchung an.",
+        "q3": "Wer zahlt, und wann?",
+        "q3a": "Eine Person zahlt 30 Prozent Anzahlung per Karte. Die Anzahlung reserviert jede Aktivität. Den Rest zahlt die Gruppe bei Ankunft. Kostenlose Stornierung schützt euch, wenn sich die Gruppengröße ändert.",
+        "q3link": "Erstattungsrichtlinie",
+        "q4": "Wir haben kein Interesse an Stripclubs. Gibt es noch etwas anderes?",
+        "q4a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle Rafting, Schießen, Kartfahren oder Axtwerfen. Wähle ein Bierspa, eine Brauereitour oder eine Bootsfahrt. Wähle Bubble Football oder Panzerfahren. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
+        "q5": "Bucht ihr auch Flüge und Hotels?",
+        "q5a": "Nein. Trivlu schlägt auf Flüge und Hotels keine Gebühr auf. Bessere Preise findest du selbst. Trivlu zeigt realistische Preisspannen für beides. Trivlu bucht die Aktivitäten, plant das Timing und löst Probleme vor Ort.",
+        "q6": "Was, wenn jemand absagt?",
+        "q6a": "Sag uns Bescheid. Wir ändern die Buchung. Kostenlose Stornierung gilt für jede Aktivität. Achte auf den Gruppen-Mindestpreis. Manche Aktivitäten haben einen Mindestpreis für die ganze Gruppe. Trivlu zeigt ihn auf der Aktivitätskarte.",
+        "q7": "Was ist die kleinste Gruppe, die ihr annehmt?",
+        "q7a": "Eine Vierergruppe funktioniert für die meisten Aktivitäten. Kleinere Gruppen zahlen pro Person mehr bei Aktivitäten mit Gruppen-Mindestpreis. Trivlu zeigt den exakten Preis vor der Buchung.",
+        "q8": "Wie schnell antwortet ihr wirklich?",
+        "q8a": "Wir antworten innerhalb von zehn Minuten, sieben Tage die Woche. Ruf {phone} an. Oder schreib derselben Nummer auf WhatsApp."
+      },
+      "prague": {
+        "q1": "Wann ist die beste Reisezeit?",
+        "q1a": "Wähle Mai, Juni oder September. Das Wetter passt zur Moldau und den Outdoor-Aktivitäten. Die Stadt bleibt entspannt. Juli und August bringen Hitze und Menschenmassen. Der Winter ist günstig und die Bars sind exzellent. Im Winter schließen Rafting und Outdoor-Schießen.",
+        "q2": "Wie weit im Voraus sollten wir buchen?",
+        "q2a": "Bucht sechs bis acht Wochen im Voraus. Flüge kosten rund 44 Prozent weniger als last minute. Die beliebten Samstags-Slots bleiben offen. Vier Wochen gehen auch noch. Zwei Wochen funktionieren mit kleinerer Auswahl.",
+        "q3": "Organisiert ihr auch Unterkunft und Transfers?",
+        "q3a": "Trivlu bietet Flughafentransfers als Aktivität an. Hotels verkauft Trivlu nicht. Einen besseren Preis findest du selbst. Trivlu schlägt nichts auf. Wir nennen dir die Viertel, von denen aus jede Venue zu Fuß erreichbar ist.",
+        "q4": "Ist Prag sicher für eine große Gruppe?",
+        "q4a": "Ja. Achte auf Taschendiebe rund um Karlsbrücke und Altstädter Ring. Wechsle nie Geld auf der Straße. Mach den Taxipreis vor der Fahrt aus. Unsere Guides regeln alles mit den Venues. Wir buchen nur Partner-Venues.",
+        "q5": "Wir haben kein Interesse an Stripclubs. Gibt es noch etwas anderes?",
+        "q5a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle Rafting, Schießen, Kartfahren oder Axtwerfen. Wähle ein Bierspa, eine Brauereitour oder eine Bootsfahrt. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
+        "q6": "Was ist die kleinste Gruppe, die ihr annehmt?",
+        "q6a": "Eine Vierergruppe funktioniert für die meisten Aktivitäten. Kleinere Gruppen zahlen pro Person mehr bei Aktivitäten mit Gruppen-Mindestpreis. Trivlu zeigt den exakten Preis vor der Buchung.",
+        "q7": "Wie schnell antwortet ihr wirklich?",
+        "q7a": "Wir antworten innerhalb von zehn Minuten, sieben Tage die Woche. Ruf {phone} an. Oder schreib derselben Nummer auf WhatsApp."
+      }
+    },
+    "vote": {
+      "hero": {
+        "title1": "Schluss mit Chatten.",
+        "title2": "Startet das Voting",
+        "leadPre": "Plane einen ",
+        "leadEm": "JGA in Prag",
+        "leadPost": " ohne Chaos im Gruppenchat.",
+        "step1": "Erstelle eine Shortlist",
+        "step2": "Teile den Voting-Link",
+        "step3": "Buche die Gewinner",
+        "ctaSeeAll": "Alle {count} Aktivitäten ansehen",
+        "metaActivities": "{count} Aktivitäten in Prag",
+        "metaFrom": "ab {price} € pro Person",
+        "metaCancel": "Kostenlose Stornierung"
+      },
+      "deck": {
+        "stageAria": "Aktivitäten-Auswahl",
+        "coach": "Nach rechts wischen zum Hinzufügen, nach links zum Überspringen.",
+        "stampYes": "DABEI",
+        "stampNo": "NÖ",
+        "skip": "Überspringen",
+        "skipAria": "Diese Aktivität überspringen",
+        "add": "Zum Voting",
+        "addAria": "Diese Aktivität zum Voting hinzufügen",
+        "shortTitle": "Deine Demo-Shortlist",
+        "chosen": "{count} gewählt",
+        "empty": "Du hast keine Aktivitäten gewählt. Entdecke unten weitere Aktivitäten.",
+        "buildNow": "Jetzt Trip planen",
+        "buildOwn": "Eigenen Trip planen",
+        "explore": "Aktivitäten entdecken"
+      },
+      "problem": {
+        "title": "Die Gruppe zur Einigung zu bringen ist der härteste Teil des Trips",
+        "colsHd": "So sieht es normalerweise aus",
+        "c1h": "Chaos im Gruppenchat",
+        "c1p": "Jeder hat eine Meinung. Jeder wartet auf die anderen.",
+        "c1alt": "Icon eines ungelesenen Gruppenchats",
+        "c2h": "Die Zeit vergeht. Keine Entscheidung",
+        "c2p": "Der JGA rückt näher. Die Gruppe hat nichts gebucht.",
+        "c2alt": "Icon eines Kalenders mit markiertem Datum",
+        "c3h": "Flugpreise steigen jede Woche",
+        "c3p": "Jede Woche Verzögerung kostet die Gruppe echtes Geld.",
+        "c3alt": "Icon eines steigenden Preisdiagramms"
+      },
+      "band": {
+        "lblPre": "So sieht es aus mit",
+        "h": "Voting beendet. Tour in 10 Minuten gebucht",
+        "p": "Deine Gruppe stimmt ab. Trivlu baut daraus einen exakten Zeitplan, Stunde für Stunde auf eure Gruppe zugeschnitten.",
+        "timeOld": "Drei Wochen",
+        "timeNew": "10 Minuten",
+        "fine": "Kein Konto und keine Kreditkarte nötig.",
+        "visTitle": "Voting beendet",
+        "visAnswered": "11 von 11 haben abgestimmt",
+        "poll1": "AK-47-Schießen",
+        "poll2": "Bootsfahrt auf der Moldau",
+        "poll3": "Bierspa",
+        "poll4": "Gokart",
+        "poll5": "Panzerfahren",
+        "okTitle": "Buchung bestätigt",
+        "okSub": "Prag · 19.–21. Juni · 8 Jungs"
+      },
+      "steps": {
+        "title": "Plane euren Trip in 3 einfachen Schritten",
+        "lede": "Lass die Gruppe entscheiden. Du bestätigst die Gewinner.",
+        "s1h": "Erstelle eine Shortlist",
+        "s1p": "Wähle aus {count} Aktivitäten in Prag. Kein Konto, kein Formular.",
+        "s2h": "Teile einen Link. Die Gruppe stimmt ab",
+        "s2p": "Schick den Voting-Link in den Gruppenchat. Die Ergebnisse kommen per E-Mail.",
+        "s3h": "Buche die Gewinner",
+        "s3p": "Wir bestätigen jede Buchung mit der Venue. Du zahlst jetzt 30 Prozent, den Rest bei Ankunft.",
+        "done": "Erledigt. {count} gewählt."
+      },
+      "trust": {
+        "t1h": "Voting ist kostenlos",
+        "t1p": "Zahle erst, wenn du buchst.",
+        "t2h": "30 % Anzahlung",
+        "t2p": "Den Rest zahlst du bei Ankunft.",
+        "t3h": "15 Jahre in Prag",
+        "t3p": "Lokales Team. Kein Agenturaufschlag.",
+        "t4h": "Antwort in 10 Minuten",
+        "t4p": "Echte Menschen, rund um die Uhr"
+      },
+      "final": {
+        "title": "Schluss mit Diskussionen im Gruppenchat",
+        "p": "Wähle die Aktivitäten. Teile einen Link. Lass die Gruppe abstimmen.",
+        "buildNow": "Jetzt Trip planen ({count} gewählt)",
+        "fine": "Antwort in 10 Minuten · Kostenlose Stornierung · 30 % Anzahlung"
+      },
+      "sticky": {
+        "cta": "Jetzt Trip planen",
+        "note": "Kein Konto und keine Kreditkarte nötig."
+      }
+    },
+    "prague": {
+      "hero": {
+        "eyebrow": "JGA-Planer für Prag",
+        "tPre": "Prag ist ",
+        "tEm1": "neunzig Minuten entfernt",
+        "tMid": " und ",
+        "tEm2": "viermal günstiger",
+        "sub": "Prag ist die beliebteste JGA-Stadt Europas. Viel zu erleben, niedrige Preise, und fast alles liegt in Gehweite.",
+        "ctaExplore": "Aktivitäten entdecken",
+        "pf1b": "15 Jahre",
+        "pf1t": "Erfahrung in Prag. Lokales Team",
+        "pf2b": "10 Min.",
+        "pf2t": "Durchschnittliche Antwortzeit. 7 Tage die Woche",
+        "pf3b": "30 %",
+        "pf3t": "Anzahlung jetzt. Kostenlose Stornierung",
+        "pf4b": "0 €",
+        "pf4t": "Kostenlos planen und abstimmen, bevor du buchst"
+      },
+      "tiles": {
+        "title": "Vier Argumente für Prag",
+        "t1h": "Dein Geld hält viermal länger",
+        "t1alt": "Ein lila Portemonnaie mit Euroscheinen",
+        "t1b": "2,20 €",
+        "t1mid": " das Bier ",
+        "t1em": "· 9,60 € in Oslo",
+        "t2h": "Du landest am Freitag noch vor dem Abendessen",
+        "t2alt": "Ein startendes Flugzeug neben einer Uhr",
+        "t2b": "1 h 20",
+        "t2mid": " direkt ",
+        "t2em": "· ab 66 € hin und zurück",
+        "t3h": "Dinge, die du zu Hause schlicht nicht machen kannst",
+        "t3alt": "Ein Kettenpanzer, den du auf einem Gelände fahren kannst",
+        "t3b": "72 Aktivitäten",
+        "t3mid": " ",
+        "t3em": "· ab 26 €",
+        "t4h": "Alles liegt innerhalb von zwanzig Minuten zu Fuß",
+        "t4alt": "Eine Karte des Prager Zentrums mit Karlsbrücke und drei Pins",
+        "t4b": "20 Min.",
+        "t4mid": " von Ecke zu Ecke",
+        "t4em": ""
+      },
+      "bandImg": {
+        "alt": "Karlsbrücke und die Prager Skyline in der Dämmerung",
+        "caption": "Jetzt bauen, später entscheiden",
+        "small": "Nichts zu zahlen, bis die Gruppe sich einig ist. Lass sie über deine Auswahl abstimmen."
+      },
+      "rules": {
+        "eyebrow": "Die Frage, die gerade jeder stellt",
+        "title": "„Hat Prag Junggesellenabschiede verboten?“",
+        "lede": "Nein. Eine Regel hat sich 2024 geändert. Die meisten Websites erklären sie schlecht. Hier sind die Fakten.",
+        "mythBadge": "Was die Leute denken",
+        "mythH": "„JGAs sind verboten und man bekommt Strafen.“",
+        "mythP": "Schlagzeilen über ein Pub-Crawl-Verbot haben diesen Eindruck erzeugt. Kein Gesetz macht Gruppenreisen nach Prag illegal.",
+        "factBadge": "Was stimmt",
+        "factH": "Kommerzielle Pub-Crawls dürfen nachts nicht stattfinden",
+        "factP1": "Die Stadt hat kommerzielle Pub-Crawls im November 2024 verboten. Das Verbot gilt im historischen Zentrum zwischen 22:00 und 06:00 Uhr. Die Strafe beträgt bis zu 100.000 CZK. Sie trifft den Veranstalter, nicht eure Gruppe.",
+        "factP2": "Eure Freunde dürfen zu jeder Uhrzeit von Kneipe zu Kneipe ziehen.",
+        "l1b": "Trinken auf der Straße",
+        "l1t": " ist in Teilen des Zentrums verboten. Eine offene Dose in der Hand kostet bis zu 10.000 CZK. Terrassen und Biergärten bleiben legal.",
+        "l2b": "Leih-E-Scooter",
+        "l2t": " sind seit Januar 2026 aus Prag verschwunden. Räder und öffentliche Verkehrsmittel fahren weiter. Das Zentrum bleibt fußläufig.",
+        "l3b": "Kein Alkohol",
+        "l3t": " für Fahrer jeder Art, auch Radfahrer. Kein halbes Bier. Gar keins.",
+        "l4b": "Kostüme",
+        "l4t": " funktionieren in Partybars. Bessere Clubs und traditionelle Bierhallen weisen Gruppen in Partnerlook ab.",
+        "noteB": "Unsere Methode.",
+        "noteT": " Unsere Abende starten früher. Unsere Abende finden in Partner-Venues statt, nicht auf der Straße. Wir haben die Regeländerung in Prag miterlebt. Keine Trivlu-Gruppe hat je eine Strafe bekommen."
+      },
+      "final": {
+        "title": "Zeit, euer perfektes Wochenende in Prag zu bauen",
+        "p": "Wähle eure Daten. Wähle die Aktivitäten. Sieh den Preis für eure Gruppe. Das Ganze dauert zehn Minuten.",
+        "fine": "Antwort in 10 Minuten · Kostenlose Stornierung · 30 % Anzahlung"
+      }
+    },
+    "rows": {
+      "extreme": "Extrem",
+      "guns-and-bullets": "Waffen & Schießen",
+      "food-and-drink": "Essen & Trinken",
+      "czech-beer": "Tschechisches Bier",
+      "nightlife": "Nachtleben",
+      "wellness": "Chillout",
+      "stag-hot-babies-and-pranks": "Heiße Girls & Pranks",
+      "transfer": "Transfers"
+    }
+  }
+}

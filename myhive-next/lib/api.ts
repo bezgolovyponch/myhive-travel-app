@@ -50,6 +50,8 @@ export interface Activity {
   imageUrl: string;
   destinationSlug?: string | null;
   destinationId?: string | null;
+  /** Localized like every other field when the request carries a locale. */
+  destinationName?: string | null;
   categories?: ({ name: string; slug?: string } | string)[] | null;
   seoIndexable?: boolean | null;
 }
@@ -65,6 +67,8 @@ export interface TripPackage {
   savings: number;
   imageUrl: string;
   destinationSlug?: string | null;
+  /** Localized like every other field when the request carries a locale. */
+  destinationName?: string | null;
   activities?: Activity[] | null;
   seoIndexable?: boolean | null;
 }
@@ -95,26 +99,43 @@ export interface ActivityPage {
   last: boolean;
 }
 
+// Every read carries the page's locale: the backend resolves the translatable
+// fields in place (same response shape) and omits the raw translations map it
+// would otherwise return for the admin view. Distinct URLs per locale also
+// keep the ISR fetch cache separate. Defaults to English so locale-agnostic
+// callers (sitemap) get the public English view.
+function withLocale(path: string, locale: string) {
+  return `${path}${path.includes('?') ? '&' : '?'}locale=${encodeURIComponent(locale)}`;
+}
+
 export const api = {
-  getDestinations: () => get<Destination[]>('/destinations'),
-  getDestinationBySlug: (slug: string) =>
-    get<Destination>(`/destinations/slug/${encodeURIComponent(slug)}`),
-  getDestinationCategories: (destinationId: string) =>
-    get<Category[]>(`/destinations/${destinationId}/categories`),
-  getActivities: (destinationId: string) =>
-    get<Activity[]>(`/activities?destinationId=${encodeURIComponent(destinationId)}`),
-  getFeaturedActivities: () => get<Activity[]>('/activities?featured=true'),
-  getActivitiesPaged: (destinationId: string, page = 0, size = 12) =>
-    get<ActivityPage>(
-      `/activities/paged?destinationId=${encodeURIComponent(destinationId)}&page=${page}&size=${size}`
+  getDestinations: (locale = 'en') => get<Destination[]>(withLocale('/destinations', locale)),
+  getDestinationBySlug: (slug: string, locale = 'en') =>
+    get<Destination>(withLocale(`/destinations/slug/${encodeURIComponent(slug)}`, locale)),
+  getDestinationCategories: (destinationId: string, locale = 'en') =>
+    get<Category[]>(withLocale(`/destinations/${destinationId}/categories`, locale)),
+  getActivities: (destinationId: string, locale = 'en') =>
+    get<Activity[]>(
+      withLocale(`/activities?destinationId=${encodeURIComponent(destinationId)}`, locale)
     ),
-  getActivityBySlug: (slug: string) =>
-    get<Activity>(`/activities/slug/${encodeURIComponent(slug)}`),
-  getPackages: (destinationId: string) =>
-    get<TripPackage[]>(`/packages?destinationId=${encodeURIComponent(destinationId)}`),
-  getPackageBySlug: (slug: string) =>
-    get<TripPackage>(`/packages/slug/${encodeURIComponent(slug)}`),
-  getBlogPosts: () => get<BlogPost[]>('/blog'),
-  getBlogPostBySlug: (slug: string) =>
-    get<BlogPost>(`/blog/slug/${encodeURIComponent(slug)}`),
+  getFeaturedActivities: (locale = 'en') =>
+    get<Activity[]>(withLocale('/activities?featured=true', locale)),
+  getActivitiesPaged: (destinationId: string, page = 0, size = 12, locale = 'en') =>
+    get<ActivityPage>(
+      withLocale(
+        `/activities/paged?destinationId=${encodeURIComponent(destinationId)}&page=${page}&size=${size}`,
+        locale
+      )
+    ),
+  getActivityBySlug: (slug: string, locale = 'en') =>
+    get<Activity>(withLocale(`/activities/slug/${encodeURIComponent(slug)}`, locale)),
+  getPackages: (destinationId: string, locale = 'en') =>
+    get<TripPackage[]>(
+      withLocale(`/packages?destinationId=${encodeURIComponent(destinationId)}`, locale)
+    ),
+  getPackageBySlug: (slug: string, locale = 'en') =>
+    get<TripPackage>(withLocale(`/packages/slug/${encodeURIComponent(slug)}`, locale)),
+  getBlogPosts: (locale = 'en') => get<BlogPost[]>(withLocale('/blog', locale)),
+  getBlogPostBySlug: (slug: string, locale = 'en') =>
+    get<BlogPost>(withLocale(`/blog/slug/${encodeURIComponent(slug)}`, locale)),
 };

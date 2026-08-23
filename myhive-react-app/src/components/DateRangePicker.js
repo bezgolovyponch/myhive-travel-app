@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useLayoutEffect, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
+import { de } from 'react-day-picker/locale';
+import { useLocale, useT } from '../i18n';
 import './DateRangePicker.css';
+
+// Calendar locale (month/weekday names, week start) and the field's date
+// format follow the page locale. English stays react-day-picker's default.
+const DAY_PICKER_LOCALES = { de };
+const FIELD_LOCALE_TAGS = { en: 'en-US', de: 'de-DE' };
 
 function parseDate(iso) {
   return iso ? new Date(iso + 'T00:00:00') : undefined;
@@ -14,8 +21,8 @@ function toISO(date) {
   return `${y}-${m}-${d}`;
 }
 
-function formatField(date) {
-  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+function formatField(date, locale = 'en') {
+  return date.toLocaleDateString(FIELD_LOCALE_TAGS[locale] || 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function getTodayMidnight() {
@@ -53,6 +60,8 @@ const CAL_CLASSES = {
 };
 
 function DateRangePicker({ from, to, onChange, collapsible = false, popover = false }) {
+  const t = useT('datePicker');
+  const locale = useLocale();
   const [numMonths, setNumMonths] = useState(() => window.innerWidth >= 640 ? 2 : 1);
   const [hoveredDay, setHoveredDay] = useState(null);
   // Collapsible mode (inline booking panel): the calendar folds away once the range is
@@ -179,34 +188,34 @@ function DateRangePicker({ from, to, onChange, collapsible = false, popover = fa
       <div className="drp-fields" ref={fieldsRef}>
         <div className={`drp-field${activeField === 'from' ? ' drp-field--active' : ''}`}
              onClick={handleFieldClick}>
-          <div className="drp-field-label">Start</div>
+          <div className="drp-field-label">{t('startLabel')}</div>
           <div className="drp-field-row">
             <span className={`drp-field-value${!from ? ' drp-field-value--empty' : ''}`}>
-              {from ? formatField(fromDate) : 'Add date'}
+              {from ? formatField(fromDate, locale) : t('addDate')}
             </span>
             {from && (
               <button
                 className="drp-field-clear"
                 onClick={() => onChange('', '')}
                 type="button"
-                aria-label="Clear start date"
+                aria-label={t('clearStartAria')}
               >×</button>
             )}
           </div>
         </div>
         <div className={`drp-field${activeField === 'to' ? ' drp-field--active' : ''}`}
              onClick={handleFieldClick}>
-          <div className="drp-field-label">End</div>
+          <div className="drp-field-label">{t('endLabel')}</div>
           <div className="drp-field-row">
             <span className={`drp-field-value${!to ? ' drp-field-value--empty' : ''}`}>
-              {to ? formatField(toDateObj) : 'Add date'}
+              {to ? formatField(toDateObj, locale) : t('addDate')}
             </span>
             {to && (
               <button
                 className="drp-field-clear"
                 onClick={() => onChange(from, '')}
                 type="button"
-                aria-label="Clear end date"
+                aria-label={t('clearEndAria')}
               >×</button>
             )}
           </div>
@@ -227,6 +236,7 @@ function DateRangePicker({ from, to, onChange, collapsible = false, popover = fa
               modifiersClassNames={hoverModifierClassNames}
               disabled={{ before: TODAY }}
               classNames={CAL_CLASSES}
+              locale={DAY_PICKER_LOCALES[locale]}
             />
           </div>
         </div>

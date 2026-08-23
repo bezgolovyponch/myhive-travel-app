@@ -67,6 +67,10 @@ public class VoteSession {
     @Column(name = "initiator_email")
     private String initiatorEmail;
 
+    /** Locale the initiator was browsing in ("de"); null = English. Drives the language of the emails and their links. */
+    @Column(length = 8)
+    private String locale;
+
     @Column(name = "number_of_travelers", nullable = false)
     private Integer numberOfTravelers;
 

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Your Group Trip is Ready</title>
+    <title th:text="#{email.voteResult.title}">Your Group Trip is Ready</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f0f0f0; margin: 0; padding: 20px 0; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
@@ -22,15 +22,15 @@
 <body>
 <div class="container">
     <div class="header">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 56px;">
-        <h1>Your Group Trip is Ready!</h1>
-        <p th:text="'Trip to ' + ${session.destination.name}"></p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 56px;">
+        <h1 th:text="#{email.voteResult.header.title}">Your Group Trip is Ready!</h1>
+        <p th:text="#{email.common.tripTo(${session.destination.name})}"></p>
     </div>
     <div class="content">
-        <p>The 24-hour voting window has closed. Here are the activities your group chose for <strong th:text="${session.destination.name}"></strong>:</p>
+        <p th:utext="#{email.voteResult.intro(${session.destination.name})}">The 24-hour voting window has closed. Here are the activities your group chose for <strong>Bali</strong>:</p>
 
         <div th:if="${resultActivities.empty}">
-            <p style="color: #666; font-style: italic;">No activities matched the group's votes. You can still build your trip manually.</p>
+            <p style="color: #666; font-style: italic;" th:text="#{email.voteResult.empty}">No activities matched the group's votes. You can still build your trip manually.</p>
         </div>
 
         <div th:each="result : ${resultActivities}">
@@ -38,24 +38,24 @@
                 <div class="activity-info">
                     <div class="activity-name" th:text="${result.activity.name}"></div>
                     <div class="activity-meta">
-                        <span th:if="${result.activity.duration != null}" th:text="${result.activity.duration / 60} + 'h · '"></span>
-                        <span th:text="'€' + ${result.activity.price} + '/person'"></span>
+                        <span th:if="${result.activity.duration != null}" th:text="#{email.voteResult.activity.hours(${result.activity.duration / 60})} + ' · '"></span>
+                        <span th:text="#{email.voteResult.activity.perPerson('€' + ${result.activity.price})}"></span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <p style="margin-top: 20px; color: #666; font-size: 14px;">
+        <p style="margin-top: 20px; color: #666; font-size: 14px;" th:text="#{email.voteResult.openHint}">
             Open in Trip Builder to review, make changes if needed, and complete your booking.
         </p>
 
-        <a th:href="${resultUrl}" class="cta-button" style="color: #ffffff !important;">Open in Trip Builder</a>
+        <a th:href="${resultUrl}" class="cta-button" style="color: #ffffff !important;" th:text="#{email.voteResult.cta.open}">Open in Trip Builder</a>
     </div>
     <div class="footer">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 36px; margin-bottom: 10px;">
-        <p>Creating unforgettable travel experiences</p>
-        <p>This is an automated message. Please do not reply to this email.</p>
-        <p>For support, contact us at support@trivlu.com</p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 36px; margin-bottom: 10px;">
+        <p th:text="#{email.common.footer.tagline}">Creating unforgettable travel experiences</p>
+        <p th:text="#{email.common.footer.automated}">This is an automated message. Please do not reply to this email.</p>
+        <p th:text="#{email.common.footer.support}">For support, contact us at support@trivlu.com</p>
     </div>
 </div>
 </body>

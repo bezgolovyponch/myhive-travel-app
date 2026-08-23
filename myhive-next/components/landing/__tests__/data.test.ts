@@ -49,15 +49,21 @@ describe('toLandingActivity', () => {
 
 describe('buildRows', () => {
   const activities = [
-    act({ slug: 'a1', categories: [{ name: 'Extreme' }] }),
-    act({ slug: 'a2', categories: [{ name: 'Extreme' }], imageUrl: '' }),
-    act({ slug: 'a3', categories: [{ name: 'Extreme' }, { name: 'Chillout' }] }),
-    act({ slug: 'a4', categories: [{ name: 'Nightlife' }] }),
+    act({ slug: 'a1', categories: [{ name: 'Extreme', slug: 'extreme' }] }),
+    act({ slug: 'a2', categories: [{ name: 'Extreme', slug: 'extreme' }], imageUrl: '' }),
+    act({
+      slug: 'a3',
+      categories: [
+        { name: 'Extreme', slug: 'extreme' },
+        { name: 'Chillout', slug: 'wellness' },
+      ],
+    }),
+    act({ slug: 'a4', categories: [{ name: 'Nightlife', slug: 'nightlife' }] }),
   ].map(toLandingActivity);
 
-  it('groups by category in the mockup order, photographed activities first', () => {
+  it('groups by category slug in the mockup order, photographed activities first', () => {
     const rows = buildRows(activities);
-    expect(rows.map((r) => r.name)).toEqual(['Extreme', 'Nightlife', 'Chillout']);
+    expect(rows.map((r) => r.slug)).toEqual(['extreme', 'nightlife', 'wellness']);
     const extreme = rows[0];
     expect(extreme.total).toBe(3);
     expect(extreme.items.map((i) => i.slug)).toEqual(['a1', 'a3', 'a2']);
@@ -65,19 +71,25 @@ describe('buildRows', () => {
 
   it('caps a row at PER_ROW items but keeps the full count', () => {
     const many = Array.from({ length: 10 }, (_, i) =>
-      toLandingActivity(act({ slug: `x${i}`, categories: [{ name: 'Extreme' }] })),
+      toLandingActivity(act({ slug: `x${i}`, categories: [{ name: 'Extreme', slug: 'extreme' }] })),
     );
     const rows = buildRows(many);
     expect(rows[0].items).toHaveLength(PER_ROW);
     expect(rows[0].total).toBe(10);
   });
 
-  it('prefers the live category slug for the row link', () => {
-    const rows = buildRows(activities, [
-      { id: '1', name: 'Chillout', slug: 'wellness-live' },
-    ]);
-    expect(rows.find((r) => r.name === 'Chillout')?.slug).toBe('wellness-live');
-    expect(rows.find((r) => r.name === 'Extreme')?.slug).toBe('extreme');
+  it('resolves name-only category payloads through the live categories list', () => {
+    const nameOnly = [
+      toLandingActivity(act({ slug: 'n1', categories: ['Extrem'] as Activity['categories'] })),
+    ];
+    const rows = buildRows(nameOnly, [{ id: '1', name: 'Extrem', slug: 'extreme' }]);
+    expect(rows.map((r) => r.slug)).toEqual(['extreme']);
+    expect(rows[0].liveName).toBe('Extrem');
+  });
+
+  it('carries the localized live category name for label fallback', () => {
+    const rows = buildRows(activities, [{ id: '1', name: 'Nachtleben', slug: 'nightlife' }]);
+    expect(rows.find((r) => r.slug === 'nightlife')?.liveName).toBe('Nachtleben');
   });
 });
 
@@ -138,18 +150,36 @@ describe('hydratePool', () => {
   });
 });
 
-describe('buildRows category aliases', () => {
-  it("matches the live catalogue's own category names but keeps the approved labels", () => {
-    const activities = [
-      act({ slug: 'p1', categories: [{ name: 'Hot babies and pranks' }] }),
-      act({ slug: 't1', categories: [{ name: 'Transfer' }] }),
-      act({ slug: 'b1', categories: [{ name: 'Czech beer' }] }),
-    ].map(toLandingActivity);
-    const rows = buildRows(activities, [
-      { id: '1', name: 'Hot babies and pranks', slug: 'stag-live' },
-    ]);
-    expect(rows.map((r) => r.name)).toEqual(['Czech Beer', 'Pranks & Adults', 'Transfers']);
-    expect(rows.find((r) => r.name === 'Pranks & Adults')?.slug).toBe('stag-live');
-    expect(rows.find((r) => r.name === 'Transfers')?.slug).toBe('transfer');
+describe('landing dictionary', () => {
+  it('en and de carry the identical landing key structure', async () => {
+    const en = (await import('../../../legacy-src/i18n/messages/en.json')).default as Record<
+      string,
+      unknown
+    >;
+    const de = (await import('../../../legacy-src/i18n/messages/de.json')).default as Record<
+      string,
+      unknown
+    >;
+    const keys = (node: unknown, prefix = ''): string[] =>
+      node && typeof node === 'object'
+        ? Object.entries(node as Record<string, unknown>).flatMap(([k, v]) =>
+            keys(v, prefix ? `${prefix}.${k}` : k),
+          )
+        : [prefix];
+    expect(keys(de.landing).sort()).toEqual(keys(en.landing).sort());
+  });
+
+  it('every landing row slug has a dictionary label in both locales', async () => {
+    const { ROW_ORDER } = await import('../data');
+    const en = (await import('../../../legacy-src/i18n/messages/en.json')).default as {
+      landing: { rows: Record<string, string> };
+    };
+    const de = (await import('../../../legacy-src/i18n/messages/de.json')).default as {
+      landing: { rows: Record<string, string> };
+    };
+    for (const slug of ROW_ORDER) {
+      expect(en.landing.rows[slug], `en label for ${slug}`).toBeTruthy();
+      expect(de.landing.rows[slug], `de label for ${slug}`).toBeTruthy();
+    }
   });
 });

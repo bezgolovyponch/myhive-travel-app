@@ -5,9 +5,12 @@ import VoteMeta from './VoteMeta';
 import VoteTallyCard from '../../components/vote/VoteTallyCard';
 import { copyToClipboard } from '../../utils/clipboard';
 import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
+import { useT, useLocalePath } from '../../i18n';
 import './VoteWaitingPage.css';
 
 function VoteWaitingContent() {
+    const t = useT('vote');
+    const lp = useLocalePath();
     const { shareToken } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -120,15 +123,15 @@ function VoteWaitingContent() {
         if (!expiresAt) return;
         const tick = () => {
             const diff = new Date(expiresAt) - Date.now();
-            if (diff <= 0) { setTimeLeft('Processing results...'); return; }
+            if (diff <= 0) { setTimeLeft(t('waiting.processing')); return; }
             const hours = Math.floor(diff / 3_600_000);
             const minutes = Math.floor((diff % 3_600_000) / 60_000);
-            setTimeLeft(`${hours}h ${minutes}m`);
+            setTimeLeft(t('waiting.countdown', { hours, minutes }));
         };
         tick();
         const id = setInterval(tick, 60_000);
         return () => clearInterval(id);
-    }, [expiresAt]);
+    }, [expiresAt, t]);
 
     const handleClose = useCallback(() => {
         if (closing || !managerToken) return;
@@ -154,7 +157,8 @@ function VoteWaitingContent() {
     // participant-count threshold — `numberOfTravelers` is a pricing input,
     // not an expected-voter count.
 
-    const shareUrl = `${window.location.origin}/vote/${shareToken}/activities?ref=invite`;
+    // Invitees land on the same language the organizer is using.
+    const shareUrl = `${window.location.origin}${lp(`/vote/${shareToken}/activities`)}?ref=invite`;
 
     const handleCopy = () => {
         copyToClipboard(shareUrl).then(ok => {
@@ -173,8 +177,10 @@ function VoteWaitingContent() {
 
     const handleShare = () => {
         navigator.share({
-            title: session?.destinationName ? `Vote: trip to ${session.destinationName}` : 'Vote on our trip',
-            text: 'Help pick what we do — vote on the activities:',
+            title: session?.destinationName
+                ? t('waiting.shareTitleDestination', { destination: session.destinationName })
+                : t('waiting.shareTitleGeneric'),
+            text: t('waiting.shareText'),
             url: shareUrl,
         }).catch(() => {
             // User dismissed the share sheet (AbortError) or the OS rejected it — nothing to do.
@@ -183,55 +189,57 @@ function VoteWaitingContent() {
 
     if (sessionError) return (
         <div className="vote-waiting-page vote-waiting-page--error">
-            <p>Could not load session: {sessionError}</p>
+            <p>{t('waiting.sessionError', { error: sessionError })}</p>
         </div>
     );
 
     if (closing) return (
         <div className="vote-waiting-page">
-            <p>Finalising results...</p>
+            <p>{t('waiting.finalising')}</p>
         </div>
     );
 
     return (
         <div className="vote-waiting-page">
-            <h2 className="vote-waiting-title">Voting is open!</h2>
+            <h2 className="vote-waiting-title">{t('waiting.title')}</h2>
             <p className="vote-waiting-subtitle">
-                {session?.destinationName ? `Trip to ${session.destinationName}` : 'Your vote session'}
+                {session?.destinationName
+                    ? t('waiting.tripTo', { destination: session.destinationName })
+                    : t('waiting.yourSession')}
             </p>
 
             {hasVoted && (
                 <p className="vote-waiting-voted">
-                    ✓ You’ve already voted in this session.
+                    {t('waiting.alreadyVoted')}
                 </p>
             )}
 
             <div className="vote-waiting-card">
                 <div className="vote-waiting-count">{timeLeft}</div>
-                <div className="vote-waiting-card-label">until results</div>
+                <div className="vote-waiting-card-label">{t('waiting.untilResults')}</div>
             </div>
 
             <div className="vote-waiting-card">
                 <div className="vote-waiting-participants">{session ? participantCount : '...'}</div>
                 <div className="vote-waiting-card-label">
-                    {session && (participantCount === 1 ? 'person voted' : 'people voted')}
-                    {session?.numberOfTravelers > 0 && ` of ${session.numberOfTravelers}`}
+                    {session && (participantCount === 1 ? t('waiting.votedOne') : t('waiting.votedOther'))}
+                    {session?.numberOfTravelers > 0 && ` ${t('waiting.ofTotal', { total: session.numberOfTravelers })}`}
                 </div>
             </div>
 
             {tally && tally.rows.length > 0 && (
                 <VoteTallyCard
-                    title="Live results"
+                    title={t('waiting.liveResults')}
                     participantCount={tally.participantCount}
                     rows={tally.rows}
                 />
             )}
 
             {/* Primary CTA: sharing the invite link is the main thing to do here */}
-            <p className="vote-waiting-share-label">Share with friends:</p>
+            <p className="vote-waiting-share-label">{t('waiting.shareLabel')}</p>
             <input
                 readOnly
-                aria-label="Invite link"
+                aria-label={t('waiting.inviteLinkAria')}
                 value={shareUrl}
                 className="vote-waiting-share-input"
             />
@@ -247,7 +255,7 @@ function VoteWaitingContent() {
                             <polyline points="16 6 12 2 8 6" />
                             <line x1="12" y1="2" x2="12" y2="15" />
                         </svg>
-                        Share
+                        {t('waiting.share')}
                     </button>
                 )}
                 <button
@@ -255,13 +263,13 @@ function VoteWaitingContent() {
                     onClick={handleCopy}
                     className={`vote-waiting-btn ${copied ? 'vote-waiting-btn--copied' : ''}`}
                 >
-                    {copied ? '✓ Link copied!' : (
+                    {copied ? t('waiting.copied') : (
                         <>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                             </svg>
-                            {canShare ? 'Copy link' : 'Copy invite link'}
+                            {canShare ? t('waiting.copyLink') : t('waiting.copyInviteLink')}
                         </>
                     )}
                 </button>
@@ -274,21 +282,22 @@ function VoteWaitingContent() {
                     onClick={handleClose}
                     className="vote-waiting-close-btn"
                 >
-                    End voting early &amp; see results
+                    {t('waiting.endEarly')}
                 </button>
             )}
 
             <p className="vote-waiting-note">
-                Results will appear on this page after the timer ends.
+                {t('waiting.note')}
             </p>
         </div>
     );
 }
 
 function VoteWaitingPage() {
+    const t = useT('vote');
     return (
         <>
-            <VoteMeta title="Voting open"/>
+            <VoteMeta title={t('meta.waiting')}/>
             <VoteWaitingContent/>
         </>
     );

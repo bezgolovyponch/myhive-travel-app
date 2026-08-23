@@ -6,6 +6,7 @@
 // imperatively to the top card node — React re-renders the stack after each
 // swipe, which resets them for free.
 import { useEffect, useRef, useState } from 'react';
+import { useT, useLocalePath } from '../../legacy-src/i18n';
 import type { LandingActivity } from './data';
 import { BUILDER_URL } from './data';
 import type { DeckState, DeckAction } from './deck';
@@ -20,6 +21,7 @@ export function builderUrlWithPicks(picked: string[]): string {
 }
 
 function Coach({ off }: { off: boolean }) {
+  const t = useT('landing.vote.deck');
   return (
     <div className={`coach${off ? ' is-off' : ''}`}>
       <svg
@@ -44,20 +46,22 @@ function Coach({ off }: { off: boolean }) {
         <path d="M24 26v-3a3 3 0 0 1 6 0v3" />
         <path d="M30 26a3 3 0 0 1 6 0v8a10 10 0 0 1-10 10h-3a10 10 0 0 1-10-10v-6a3 3 0 0 1 5.2-2l1.8 2" />
       </svg>
-      <p className="coach__t">Swipe right to add, left to skip.</p>
+      <p className="coach__t">{t('coach')}</p>
     </div>
   );
 }
 
 function Shortlist({ deck, picked }: { deck: LandingActivity[]; picked: string[] }) {
+  const t = useT('landing.vote.deck');
+  const lp = useLocalePath();
   const chosen = deck.filter((a) => picked.includes(a.slug));
-  const href = builderUrlWithPicks(picked);
-  const primaryLabel = chosen.length ? 'Build your trip now' : 'Build your own trip';
+  const href = lp(builderUrlWithPicks(picked));
+  const ctaLabel = chosen.length ? 'Build your trip now' : 'Build your own trip';
   return (
     <div className="short">
       <div className="short__hd">
-        <h3>Your demo shortlist</h3>
-        <span className="num">{chosen.length} chosen</span>
+        <h3>{t('shortTitle')}</h3>
+        <span className="num">{t('chosen', { count: chosen.length })}</span>
       </div>
       {chosen.length ? (
         <ul className="short__list">
@@ -70,17 +74,17 @@ function Shortlist({ deck, picked }: { deck: LandingActivity[]; picked: string[]
           ))}
         </ul>
       ) : (
-        <p className="short__empty">You chose no activities. Browse more activities below.</p>
+        <p className="short__empty">{t('empty')}</p>
       )}
       <a
         className="btn btn--primary btn--block"
         href={href}
         onClick={(e) => {
           e.preventDefault();
-          trackCtaAndGo(primaryLabel, 'deck', href);
+          trackCtaAndGo(ctaLabel, 'deck', href);
         }}
       >
-        {primaryLabel}
+        {chosen.length ? t('buildNow') : t('buildOwn')}
       </a>
       <a
         className="btn btn--ghost btn--block"
@@ -88,7 +92,7 @@ function Shortlist({ deck, picked }: { deck: LandingActivity[]; picked: string[]
         href="#activities"
         onClick={() => trackCta('Explore activities', 'deck')}
       >
-        Explore activities
+        {t('explore')}
       </a>
     </div>
   );
@@ -103,6 +107,8 @@ export default function SwipeDeck({
   state: DeckState;
   dispatch: (a: DeckAction) => void;
 }) {
+  const t = useT('landing.vote.deck');
+  const tAct = useT('landing.activities');
   const stageRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
   const [touched, setTouched] = useState(false);
@@ -247,7 +253,7 @@ export default function SwipeDeck({
 
   return (
     <div className="deck">
-      <div className="deck__stage" id="deck-stage" aria-label="Activity picker" ref={stageRef}>
+      <div className="deck__stage" id="deck-stage" aria-label={t('stageAria')} ref={stageRef}>
         <span className="deck__count">
           <b>{Math.min(state.cursor + 1, deck.length)}</b> / <span>{deck.length}</span>
         </span>
@@ -276,14 +282,17 @@ export default function SwipeDeck({
               />
               <div className="dcard__shade" />
               {a.category ? <span className="dcard__chip">{a.category}</span> : null}
-              <span className="dcard__stamp dcard__stamp--yes">IN</span>
-              <span className="dcard__stamp dcard__stamp--no">NOPE</span>
+              <span className="dcard__stamp dcard__stamp--yes">{t('stampYes')}</span>
+              <span className="dcard__stamp dcard__stamp--no">{t('stampNo')}</span>
               <div className="dcard__body">
                 <div className="dcard__name">{a.name}</div>
                 <div className="dcard__meta">
-                  <i>{a.durationLabel}</i> · {a.hasGroupMin ? 'from ' : ''}€{a.price} / person
+                  <i>{a.durationLabel}</i> · {a.hasGroupMin ? `${tAct('from')} ` : ''}€{a.price}{' '}
+                  {tAct('perPerson')}
                 </div>
-                {a.minPrice ? <div className="dcard__min">min €{a.minPrice} per group</div> : null}
+                {a.minPrice ? (
+                  <div className="dcard__min">{tAct('minPerGroup', { min: a.minPrice })}</div>
+                ) : null}
               </div>
             </div>
           );
@@ -295,7 +304,7 @@ export default function SwipeDeck({
           <button
             type="button"
             className="dbtn dbtn--no"
-            aria-label="Skip this activity"
+            aria-label={t('skipAria')}
             onClick={() => {
               hideHint();
               swipeTop(false);
@@ -305,13 +314,13 @@ export default function SwipeDeck({
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
-          <span className="dctl__l">Skip</span>
+          <span className="dctl__l">{t('skip')}</span>
         </span>
         <span className="dctl dctl--yes">
           <button
             type="button"
             className="dbtn dbtn--yes"
-            aria-label="Add this activity to the vote"
+            aria-label={t('addAria')}
             onClick={() => {
               hideHint();
               swipeTop(true);
@@ -321,7 +330,7 @@ export default function SwipeDeck({
               <path d="M12 21s-8-4.9-8-10.4A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8 3.6C20 16.1 12 21 12 21Z" />
             </svg>
           </button>
-          <span className="dctl__l">Add to vote</span>
+          <span className="dctl__l">{t('add')}</span>
         </span>
       </div>
     </div>

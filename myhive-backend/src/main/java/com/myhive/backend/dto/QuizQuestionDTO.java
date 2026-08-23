@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -27,4 +28,11 @@ public class QuizQuestionDTO {
     @Valid
     @NotEmpty(message = "A question must have at least one answer")
     private List<QuizAnswerDTO> answers;
+
+    /** Per-locale overrides of prompt ({"de": {"prompt": ...}}); admin view only, null = unchanged on save. */
+    private Map<String, Map<String, String>> translations;
+
+    public QuizQuestionDTO(UUID id, String prompt, int sortOrder, List<QuizAnswerDTO> answers) {
+        this(id, prompt, sortOrder, answers, null);
+    }
 }
