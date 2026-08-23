@@ -1,4 +1,11 @@
 import {createContext, useContext, useEffect, useLayoutEffect, useReducer, useRef} from 'react';
+import {api} from '../services/api';
+import {currentLocale} from '../i18n/routes';
+
+// The saved cart snapshots each activity's name/description in the language
+// the page had when it was added. Remember that language next to the items so
+// a visit in another locale can refresh the text — see TripProvider.
+const TRIP_LOCALE_KEY = 'myhive-trip-locale';
 
 // Restoring the cart must not happen during the first render: under SSR the
 // server has no localStorage, so a client that read it while rendering produced
@@ -138,8 +145,14 @@ export function TripProvider({children}) {
     // restored below, before paint.
     const [state, dispatch] = useReducer(reducer, initialState);
     const restoredRef = useRef(false);
+    // Locale the saved cart was written in, captured before the write effects
+    // below stamp the current one over it.
+    const savedLocaleRef = useRef(null);
 
     useIsomorphicLayoutEffect(() => {
+        try {
+            savedLocaleRef.current = localStorage.getItem(TRIP_LOCALE_KEY);
+        } catch (e) { /* ignore */ }
         // Dispatched even when nothing was saved, so `restored` flips exactly
         // once and consumers can tell "no cart" from "not read yet".
         dispatch({type: 'RESTORE_FROM_STORAGE', saved: readSavedTrip()});
@@ -164,7 +177,38 @@ export function TripProvider({children}) {
             return;
         }
         localStorage.setItem('myhive-trip-items', JSON.stringify(state.tripItems));
+        localStorage.setItem(TRIP_LOCALE_KEY, currentLocale());
     }, [state.tripItems]);
+
+    // A cart saved under another locale carries that locale's names and
+    // descriptions. Re-read those fields from the API (which localizes for the
+    // current page) once per restore; prices, packages and order are kept as
+    // saved. Best-effort: a failed lookup leaves that item's text as is.
+    useEffect(() => {
+        if (!state.restored || state.tripItems.length === 0) {
+            return undefined;
+        }
+        const locale = currentLocale();
+        if ((savedLocaleRef.current || 'en') === locale) {
+            return undefined;
+        }
+        let cancelled = false;
+        const items = state.tripItems;
+        Promise.all(items.map((item) => api.getActivity(item.id).catch(() => null))).then((fresh) => {
+            if (cancelled) {
+                return;
+            }
+            const relocalized = items.map((item, i) => (fresh[i]
+                ? {...item, name: fresh[i].name, description: fresh[i].description, includes: fresh[i].includes}
+                : item));
+            dispatch({type: 'SET_TRIP_ITEMS', tripItems: relocalized});
+        });
+        return () => {
+            cancelled = true;
+        };
+        // Runs once, right after the saved cart is restored.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state.restored]);
 
     useEffect(() => {
         if (!restoredRef.current) {
