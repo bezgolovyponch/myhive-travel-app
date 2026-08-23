@@ -12,6 +12,7 @@ import './PackageDetailPage.css';
 // initial HTML; omitted in the SPA, which fetches by slug as before.
 function PackageDetailPage({pkg: injectedPkg}) {
     const t = useT('packageDetail');
+    const tMeta = useT('meta');
     const {destSlug, slug} = useParams();
     const navigate = useNavigate();
     const {dispatch} = useTrip();
@@ -39,7 +40,7 @@ function PackageDetailPage({pkg: injectedPkg}) {
     const imageUrl = pkg.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const metaDescription = pkg.description
         ? pkg.description.slice(0, 160)
-        : `${pkg.name} package in ${pkg.destinationName}`;
+        : tMeta('package.fallbackDescription', {name: pkg.name, destination: pkg.destinationName});
     const sortedActivities = pkg.activities
         ? [...pkg.activities].sort((a, b) => a.position - b.position)
         : [];
@@ -52,7 +53,7 @@ function PackageDetailPage({pkg: injectedPkg}) {
     return (
         <div className="package-detail-page">
             <PageHead>
-                <title>{pkg.name} — {pkg.destinationName} Package | Trivlu</title>
+                <title>{tMeta('package.title', {name: pkg.name, destination: pkg.destinationName})}</title>
                 <meta name="description" content={metaDescription}/>
                 <link rel="canonical" href={`${SITE_URL}/destination/${resolvedDestSlug}/package/${pkg.slug}`}/>
             </PageHead>

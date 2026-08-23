@@ -10,6 +10,7 @@ import './BlogPage.css';
 // the initial HTML; omitted in the SPA, which fetches on mount as before.
 function BlogPage({posts: injectedPosts}) {
     const t = useT('blog');
+    const tMeta = useT('meta');
     const seeded = Array.isArray(injectedPosts);
     const [posts, setPosts] = useState(seeded ? injectedPosts : []);
     const [loading, setLoading] = useState(!seeded);
@@ -27,8 +28,8 @@ function BlogPage({posts: injectedPosts}) {
     return (
         <div className="blog-page">
             <PageHead>
-                <title>Stag Do Planning Guides &amp; Ideas | Trivlu Blog</title>
-                <meta name="description" content="Guides, ideas and destination tips for planning the perfect stag do — from budgeting to the best cities in Europe."/>
+                <title>{tMeta('blog.title')}</title>
+                <meta name="description" content={tMeta('blog.description')}/>
                 <link rel="canonical" href={`${SITE_URL}/blog`}/>
             </PageHead>
             <section className="blog-section">

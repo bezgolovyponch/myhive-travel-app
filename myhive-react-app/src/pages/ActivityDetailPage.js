@@ -27,6 +27,7 @@ function formatDuration(minutes, t) {
 // in the initial HTML; omitted in the SPA, which fetches by slug as before.
 function ActivityDetailPage({activity: injectedActivity}) {
     const t = useT('activityDetail');
+    const tMeta = useT('meta');
     const {destinationSlug, slug} = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useTrip();
@@ -124,8 +125,9 @@ function ActivityDetailPage({activity: injectedActivity}) {
     return (
         <div className="activity-detail-page">
             <PageHead>
-                <title>{title} in {activity.destinationName} | Trivlu</title>
-                <meta name="description" content={activity.description || `${title} in ${activity.destinationName}`}/>
+                <title>{tMeta('activity.title', {name: title, destination: activity.destinationName})}</title>
+                <meta name="description"
+                      content={activity.description || tMeta('activity.fallbackDescription', {name: title, destination: activity.destinationName})}/>
                 <link rel="canonical" href={`${SITE_URL}/destination/${destSlug}/activity/${activity.slug}`}/>
             </PageHead>
 

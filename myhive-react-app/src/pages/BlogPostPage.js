@@ -11,6 +11,7 @@ import './BlogPostPage.css';
 // the initial HTML; omitted in the SPA, which fetches by slug as before.
 function BlogPostPage({post: injectedPost}) {
     const t = useT('blog');
+    const tMeta = useT('meta');
     const {slug} = useParams();
     const {data: post, loading, error} = useFetchBySlug(api.getBlogPostBySlug, slug, injectedPost);
 
@@ -38,7 +39,7 @@ function BlogPostPage({post: injectedPost}) {
     return (
         <div className="blog-post-page">
             <PageHead>
-                <title>{post.title} | Trivlu Blog</title>
+                <title>{tMeta('blogPost.title', {title: post.title})}</title>
                 <meta name="description" content={post.excerpt || post.title}/>
                 <link rel="canonical" href={`${SITE_URL}/blog/${post.slug}`}/>
             </PageHead>

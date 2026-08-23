@@ -32,6 +32,7 @@ import './HomePage.css';
 // still fires its cta_click before navigating.
 function HomePage({featuredActivities, voteHref}) {
     const t = useT('home');
+    const tMeta = useT('meta');
     const lp = useLocalePath();
     const navigate = useNavigate();
     const {state: catalog} = useCatalog();
@@ -47,9 +48,8 @@ function HomePage({featuredActivities, voteHref}) {
     return (
         <div className="homepage">
             <PageHead>
-                <title>Trivlu — Prague Stag Do. Planned in 10 Minutes.</title>
-                <meta name="description"
-                      content="Your group votes, we do the rest. The perfect Prague stag do weekend — activities, booking and logistics all sorted for you."/>
+                <title>{tMeta('home.title')}</title>
+                <meta name="description" content={tMeta('home.description')}/>
                 <link rel="canonical" href={`${SITE_URL}/`}/>
             </PageHead>
 

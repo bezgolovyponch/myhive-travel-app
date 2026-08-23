@@ -22,6 +22,7 @@ const VISIBLE_CATEGORY_COUNT = 12;
 // from there. Omitted in the SPA, which fetches on mount exactly as before.
 function DestinationPage({initial}) {
     const t = useT('destination');
+    const tMeta = useT('meta');
     const {slug} = useParams();
     const {state: trip} = useTrip();
   const location = useLocation();
@@ -194,7 +195,7 @@ function DestinationPage({initial}) {
         <PageHead>
             <title>{destination.name} — Trivlu</title>
             <meta name="description"
-                  content={destination.description || `Explore activities and experiences in ${destination.name} with Trivlu.`}/>
+                  content={destination.description || tMeta('destination.description', {name: destination.name})}/>
             <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
         </PageHead>
       {/* The catalog carried no h1 outside its loading/error states, which the SSR

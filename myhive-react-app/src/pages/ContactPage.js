@@ -7,6 +7,7 @@ import './ContactPage.css';
 
 function ContactPage() {
     const t = useT('contact');
+    const tMeta = useT('meta');
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -91,9 +92,8 @@ function ContactPage() {
     return (
         <div className="contact-page">
             <PageHead>
-                <title>Contact Trivlu — Talk to the Team</title>
-                <meta name="description"
-                      content="Questions about your stag do or booking? Reach the Trivlu team by WhatsApp, Messenger or email — we're quick to reply."/>
+                <title>{tMeta('contact.title')}</title>
+                <meta name="description" content={tMeta('contact.description')}/>
                 <link rel="canonical" href={`${SITE_URL}/contact`}/>
             </PageHead>
             <section className="page-hero">

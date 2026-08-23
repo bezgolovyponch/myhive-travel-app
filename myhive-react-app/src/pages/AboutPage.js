@@ -5,12 +5,12 @@ import './AboutPage.css';
 
 function AboutPage() {
     const t = useT('about');
+    const tMeta = useT('meta');
     return (
         <div className="about-page">
             <PageHead>
-                <title>About Trivlu — Group Travel Made Easy</title>
-                <meta name="description"
-                      content="We built Trivlu so best men can plan a stag the whole group actually agrees on. Here's who we are and why."/>
+                <title>{tMeta('about.title')}</title>
+                <meta name="description" content={tMeta('about.description')}/>
                 <link rel="canonical" href={`${SITE_URL}/about`}/>
             </PageHead>
             <section className="page-hero">
