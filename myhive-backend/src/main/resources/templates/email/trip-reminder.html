@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Your Trip Is Waiting</title>
+    <title th:text="#{email.tripReminder.title}">Your Trip Is Waiting</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f0f0f0; margin: 0; padding: 20px 0; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
@@ -26,37 +26,37 @@
 <body>
 <div class="container">
     <div class="header">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 56px;">
-        <h1 th:if="${source == 'VOTE'}">Your group has voted!</h1>
-        <h1 th:unless="${source == 'VOTE'}" th:text="'Your ' + ${destinationName} + ' trip is waiting'">Your Prague trip is waiting</h1>
-        <p th:if="${source == 'VOTE'}" th:text="'Trip to ' + ${destinationName}" style="margin: 0; color: rgba(245,245,245,0.75); font-size: 14px;">Trip to Prague</p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 56px;">
+        <h1 th:if="${source == 'VOTE'}" th:text="#{email.tripReminder.header.voted}">Your group has voted!</h1>
+        <h1 th:unless="${source == 'VOTE'}" th:text="#{email.tripReminder.header.waiting(${destinationName})}">Your Prague trip is waiting</h1>
+        <p th:if="${source == 'VOTE'}" th:text="#{email.common.tripTo(${destinationName})}" style="margin: 0; color: rgba(245,245,245,0.75); font-size: 14px;">Trip to Prague</p>
     </div>
     <div class="content">
-        <p th:if="${source == 'VOTE'}">
-            The votes are in for your <strong th:text="${destinationName}">Prague</strong> trip —
+        <p th:if="${source == 'VOTE'}" th:utext="#{email.tripReminder.intro.vote(${destinationName})}">
+            The votes are in for your <strong>Prague</strong> trip —
             the winning activities are saved and ready to book whenever you are.
         </p>
-        <p th:unless="${source == 'VOTE'}">
-            You started planning a trip to <strong th:text="${destinationName}">Prague</strong>
-            for <span th:text="${travelers}">6</span> people — we saved everything so you can pick up
+        <p th:unless="${source == 'VOTE'}" th:utext="#{email.tripReminder.intro.saved(${destinationName}, ${travelers})}">
+            You started planning a trip to <strong>Prague</strong>
+            for 6 people — we saved everything so you can pick up
             right where you left off.
         </p>
 
         <!-- Saved cart -->
         <div th:if="${hasItems}">
-            <h2 style="font-size: 16px;">Your saved itinerary</h2>
+            <h2 style="font-size: 16px;" th:text="#{email.tripReminder.cart.title}">Your saved itinerary</h2>
             <table class="item-table">
                 <tr th:each="line : ${lines}">
                     <td>
                         <span th:text="${line.name}">Karting</span>
-                        <span class="group-min-note" th:if="${line.groupMinApplies}">(group minimum applies)</span>
+                        <span class="group-min-note" th:if="${line.groupMinApplies}" th:text="#{email.tripReminder.cart.groupMinApplies}">(group minimum applies)</span>
                     </td>
                     <td class="price-cell">
-                        <span th:text="'€' + ${line.price} + ' / person'">€50.00 / person</span>
+                        <span th:text="#{email.tripReminder.perPerson('€' + ${line.price})}">€50.00 / person</span>
                     </td>
                 </tr>
                 <tr class="total-row">
-                    <td th:text="'Total for ' + ${travelers} + ' people'">Total for 6 people</td>
+                    <td th:text="#{email.tripReminder.cart.total(${travelers})}">Total for 6 people</td>
                     <td class="price-cell" th:text="'€' + ${totalPrice}">€700.00</td>
                 </tr>
             </table>
@@ -64,50 +64,50 @@
 
         <!-- No cart yet: quiz-based recommendations -->
         <div th:if="${!hasItems and !recommendations.isEmpty()}" class="section">
-            <h2>A few activities we picked for your group</h2>
+            <h2 th:text="#{email.tripReminder.recs.title}">A few activities we picked for your group</h2>
             <table class="item-table">
                 <tr th:each="rec : ${recommendations}">
                     <td th:text="${rec.name}">Beer Bike</td>
-                    <td class="price-cell" th:text="'€' + ${rec.price} + ' / person'">€35.00 / person</td>
+                    <td class="price-cell" th:text="#{email.tripReminder.perPerson('€' + ${rec.price})}">€35.00 / person</td>
                 </tr>
             </table>
         </div>
 
-        <p th:if="${!hasItems and recommendations.isEmpty()}" class="muted">
+        <p th:if="${!hasItems and recommendations.isEmpty()}" class="muted" th:text="#{email.tripReminder.noItems}">
             Your trip details are saved — jump back in and pick the activities your group will love.
         </p>
 
         <!-- Stage 2 (QUIZ) / stage 1 (VOTE): reassurance + consultation -->
         <div th:if="${showConsultation}" class="section">
-            <h2>Need a hand?</h2>
+            <h2 th:text="#{email.tripReminder.consult.title}">Need a hand?</h2>
             <p style="margin: 0; font-size: 14px;">
-                Planning for a group can be a lot. Tell us what you have in mind and we'll put the
-                itinerary together with you — no strings attached.
-                <a th:href="${contactUrl}">Get in touch</a>.
+                <span th:text="#{email.tripReminder.consult.body}">Planning for a group can be a lot. Tell us what you have in mind and we'll put the
+                itinerary together with you — no strings attached.</span>
+                <a th:href="${contactUrl}" th:text="#{email.tripReminder.consult.link}">Get in touch</a>.
             </p>
         </div>
 
         <!-- Final touch: honest urgency -->
-        <p th:if="${lastTouch}">
+        <p th:if="${lastTouch}" th:text="#{email.tripReminder.lastTouch}">
             One last nudge from us — popular dates and time slots fill up early, so booking ahead
             keeps your group's first choices available. This is the last reminder we'll send.
         </p>
 
         <a th:href="${restoreUrl}" class="cta-button" style="color: #ffffff !important;"
-           th:text="${source == 'VOTE'} ? 'Book the winning trip' : 'Continue planning your trip'">Continue planning your trip</a>
+           th:text="${source == 'VOTE'} ? #{email.tripReminder.cta.book} : #{email.tripReminder.cta.continue}">Continue planning your trip</a>
 
         <p class="muted">
-            This link opens your saved trip on any device.
-            Questions? Email us at
+            <span th:text="#{email.tripReminder.linkHint}">This link opens your saved trip on any device.</span>
+            <span th:text="#{email.common.questions}">Questions? Email us at</span>
             <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@trivlu.com</a>.
         </p>
     </div>
     <div class="footer">
-        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 36px; margin-bottom: 10px;">
-        <p>Creating unforgettable travel experiences</p>
-        <p>You're getting this because you saved a trip on trivlu.com.</p>
-        <p><a th:href="${unsubscribeUrl}">Unsubscribe from trip reminders</a></p>
-        <p>For support, contact us at support@trivlu.com</p>
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 36px; margin-bottom: 10px;">
+        <p th:text="#{email.common.footer.tagline}">Creating unforgettable travel experiences</p>
+        <p th:text="#{email.tripReminder.footer.reason}">You're getting this because you saved a trip on trivlu.com.</p>
+        <p><a th:href="${unsubscribeUrl}" th:text="#{email.tripReminder.footer.unsubscribe}">Unsubscribe from trip reminders</a></p>
+        <p th:text="#{email.common.footer.support}">For support, contact us at support@trivlu.com</p>
     </div>
 </div>
 </body>

@@ -1,15 +1,17 @@
 import {WHATSAPP_URL} from '../../services/config';
 import {pushEvent} from '../../utils/analytics';
+import {useT} from '../../i18n';
 import './ContactCtaSection.css';
 
 function ContactCtaSection() {
+    const t = useT('home');
     return (
         <section className="contact-cta">
             <div className="contact-cta-card">
                 <div className="contact-cta-text">
-                    <h2 className="contact-cta-title">We're just a message away</h2>
+                    <h2 className="contact-cta-title">{t('contactCta.title')}</h2>
                     <p className="contact-cta-sub">
-                        Chat with our team on WhatsApp — ask anything, we'll help plan the perfect stag do.
+                        {t('contactCta.subtitle')}
                     </p>
                     <div className="contact-cta-wa-wrap">
                         <a
@@ -19,7 +21,7 @@ function ContactCtaSection() {
                             rel="noopener noreferrer"
                             onClick={() => pushEvent('contact_click', {channel: 'whatsapp'})}
                         >
-                            <i className="ph ph-whatsapp-logo" aria-hidden="true"/> Chat on WhatsApp
+                            <i className="ph ph-whatsapp-logo" aria-hidden="true"/> {t('contactCta.whatsappCta')}
                         </a>
                     </div>
                 </div>

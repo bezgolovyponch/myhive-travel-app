@@ -11,7 +11,8 @@
     "dev": "node scripts/dev.mjs",
     "prebuild": "node scripts/sync-legacy.mjs",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -19,6 +20,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "bootstrap": "^5.3.8",
     "next": "^15.5.0",
+    "next-intl": "^4.13.7",
     "oidc-client-ts": "^3.5.0",
     "react": "^19.2.3",
     "react-bootstrap": "^2.10.10",
@@ -34,6 +36,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.11"
   }
 }

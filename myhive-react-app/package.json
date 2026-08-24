@@ -34,7 +34,7 @@
   },
   "jest": {
     "transformIgnorePatterns": [
-      "[/\\\\]node_modules[/\\\\](?!(react-day-picker|date-fns|react-markdown|remark-.*|rehype-.*|micromark.*|mdast-.*|unist-.*|unified|bail|is-plain-obj|trough|vfile.*|hast-.*|property-information|html-url-attributes|space-separated-tokens|comma-separated-tokens|devlop|estree-util-is-identifier-name|ccount|escape-string-regexp|markdown-table|trim-lines|decode-named-character-reference|character-entities.*|longest-streak|zwitch)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
+      "[/\\\\]node_modules[/\\\\](?!(react-day-picker|date-fns|date-fns-jalali|react-markdown|remark-.*|rehype-.*|micromark.*|mdast-.*|unist-.*|unified|bail|is-plain-obj|trough|vfile.*|hast-.*|property-information|html-url-attributes|space-separated-tokens|comma-separated-tokens|devlop|estree-util-is-identifier-name|ccount|escape-string-regexp|markdown-table|trim-lines|decode-named-character-reference|character-entities.*|longest-streak|zwitch)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
       "^.+\\.module\\.(css|sass|scss)$"
     ],
     "moduleNameMapper": {

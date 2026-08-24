@@ -8,6 +8,7 @@ import {getRef} from '../utils/attribution';
 import {funnelParams} from '../utils/funnel';
 import {clearSetupDraft, readSetupDraft, writeSetupDraft} from '../utils/setupDraft';
 import {generateUuid} from '../utils/uuid';
+import {useT} from '../i18n';
 import './ContactForm.css';
 import DateRangePicker from './DateRangePicker';
 
@@ -21,6 +22,7 @@ function todayLocalIso() {
 function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null }) {
     const {state: catalog} = useCatalog();
     const {state, dispatch} = useTrip();
+    const t = useT('tripSetup');
     const [travelers, setTravelers] = useState('1');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -136,10 +138,10 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
             isOpen
             onClose={handleCancel}
             closeOnBackdrop
-            title="Set Up Your Trip"
+            title={t('title')}
             footer={
                 <>
-                    <button className="btn btn--ghost" onClick={handleCancel}>Cancel</button>
+                    <button className="btn btn--ghost" onClick={handleCancel}>{t('cancel')}</button>
                     {/* type=submit + form attr: routes the click through the form so
                         native constraint validation runs. */}
                     <button
@@ -148,21 +150,21 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                         className="btn btn--primary"
                         disabled={isVoteMode && !voteFormValid}
                     >
-                        {isVoteMode ? 'Continue' : 'Confirm'}
+                        {isVoteMode ? t('continue') : t('confirm')}
                     </button>
                 </>
             }
         >
                     <form id={formId} className="contact-form" onSubmit={handleSubmit}>
                         <div className="form-group">
-                            <label htmlFor="tripTravelers">Number of Travelers *</label>
+                            <label htmlFor="tripTravelers">{t('travelersLabel')}</label>
                             {/* Stepper: − / editable number / +. No upper cap — big groups
                                 are typed directly. */}
                             <div className="travelers-control">
                                 <button
                                     type="button"
                                     className="travelers-step"
-                                    aria-label="Decrease travelers"
+                                    aria-label={t('decreaseAria')}
                                     disabled={(parseInt(travelers, 10) || 1) <= 1}
                                     onClick={() => setTravelers(String(Math.max(1, (parseInt(travelers, 10) || 1) - 1)))}
                                 >−</button>
@@ -178,7 +180,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                                 <button
                                     type="button"
                                     className="travelers-step"
-                                    aria-label="Increase travelers"
+                                    aria-label={t('increaseAria')}
                                     onClick={() => setTravelers(String(Math.max(1, (parseInt(travelers, 10) || 1) + 1)))}
                                 >+</button>
                             </div>

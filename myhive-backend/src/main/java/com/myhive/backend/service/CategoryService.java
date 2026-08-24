@@ -13,6 +13,7 @@ import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.repository.QuizAnswerWeightRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,10 +36,17 @@ public class CategoryService {
     private final DestinationRepository destinationRepository;
     private final VoteSessionRepository voteSessionRepository;
 
+    // Without a locale: admin/raw view (base name + translations map). With
+    // one: public view, name resolved for that locale. See ActivityService.
+
     public List<CategoryDTO> getAllCategories() {
+        return getAllCategories(null);
+    }
+
+    public List<CategoryDTO> getAllCategories(String locale) {
         return categoryRepository.findAll().stream()
-                .sorted(Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(this::convertToDTO)
+                .map(c -> convertToDTO(c, locale))
+                .sorted(Comparator.comparing(CategoryDTO::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
@@ -48,15 +56,23 @@ public class CategoryService {
     }
 
     public CategoryDTO getCategoryById(UUID id) {
+        return getCategoryById(id, null);
+    }
+
+    public CategoryDTO getCategoryById(UUID id, String locale) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
-        return convertToDTO(category);
+        return convertToDTO(category, locale);
     }
 
     public CategoryDTO getCategoryBySlug(String slug) {
+        return getCategoryBySlug(slug, null);
+    }
+
+    public CategoryDTO getCategoryBySlug(String slug, String locale) {
         Category category = categoryRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-        return convertToDTO(category);
+        return convertToDTO(category, locale);
     }
 
     public CategoryUsageDTO getCategoryUsage(UUID id) {
@@ -94,6 +110,10 @@ public class CategoryService {
 
         SlugAssigner.assignOnUpdate(category, dto.getSlug(), dto.getName(), category.getName(), categoryRepository);
         category.setName(dto.getName());
+        // null = "unchanged" (see ActivityService.applyDtoToEntity).
+        if (dto.getTranslations() != null) {
+            category.setTranslations(dto.getTranslations());
+        }
         return convertToDTO(categoryRepository.save(category));
     }
 
@@ -111,10 +131,18 @@ public class CategoryService {
     }
 
     private CategoryDTO convertToDTO(Category category) {
+        return convertToDTO(category, null);
+    }
+
+    private CategoryDTO convertToDTO(Category category, String locale) {
+        String lc = Translations.normalize(locale);
         CategoryDTO dto = new CategoryDTO();
         dto.setId(category.getId());
-        dto.setName(category.getName());
+        dto.setName(Translations.pick(category.getTranslations(), lc, "name", category.getName()));
         dto.setSlug(category.getSlug());
+        if (locale == null) {
+            dto.setTranslations(category.getTranslations());
+        }
         return dto;
     }
 }

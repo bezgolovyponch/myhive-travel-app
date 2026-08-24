@@ -3,10 +3,12 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
+import { useT } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './QuizPage.css';
 
 function QuizContent() {
+  const t = useT('vote');
   const { shareToken } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ function QuizContent() {
         setQuiz(data);
       } catch (e) {
         if (!cancelled) {
-          setError(e.message || 'Failed to load quiz');
+          setError(e.message || t('quiz.loadFailed'));
         }
       }
     }
@@ -53,13 +55,13 @@ function QuizContent() {
     return () => {
       cancelled = true;
     };
-  }, [isOrganizer, setup, shareToken, navigate]);
+  }, [isOrganizer, setup, shareToken, navigate, t]);
 
   if (error) {
     return <div className="quiz-page-error">{error}</div>;
   }
   if (!quiz) {
-    return <div className="quiz-page-loading">Loading quiz…</div>;
+    return <div className="quiz-page-loading">{t('quiz.loading')}</div>;
   }
 
   const question = quiz.questions[stepIndex];
@@ -110,7 +112,7 @@ function QuizContent() {
             <div className="quiz-progress-track">
               <div className="quiz-progress-fill" style={{width: `${Math.round((done / total) * 100)}%`}}/>
             </div>
-            <span className="quiz-progress-label">{stepIndex + 1} / {quiz.questions.length}</span>
+            <span className="quiz-progress-label">{t('quiz.progress', { current: stepIndex + 1, total: quiz.questions.length })}</span>
           </div>
         );
       })()}
@@ -132,9 +134,10 @@ function QuizContent() {
 }
 
 export default function QuizPage() {
+    const t = useT('vote');
     return (
         <>
-            <VoteMeta title="Group quiz"/>
+            <VoteMeta title={t('meta.quiz')}/>
             <QuizContent/>
         </>
     );

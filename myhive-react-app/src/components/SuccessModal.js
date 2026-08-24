@@ -4,8 +4,10 @@ import {WHATSAPP_URL, PAYMENTS_ENABLED} from '../services/config';
 import {paymentApi} from '../services/paymentApi';
 import {useTurnstileWidget} from '../hooks/useTurnstileWidget';
 import {pushEvent, navigateAfterEvents} from '../utils/analytics';
+import {useT} from '../i18n';
 
 function SuccessModal({isOpen, onClose, userName, userEmail, bookingId, tripId, userRole}) {
+    const t = useT('contact');
     // The 30% deposit is a real charge, so it is Turnstile-gated; the widget only renders
     // when this success screen belongs to a booking that can still be paid (bookingId set)
     // and online payment is enabled.
@@ -31,7 +33,7 @@ function SuccessModal({isOpen, onClose, userName, userEmail, bookingId, tripId, 
             // document before the container dispatches it.
             navigateAfterEvents(checkoutUrl);
         } catch (error) {
-            setDepositError(error.message || 'Failed to start payment. Please try again.');
+            setDepositError(error.message || t('bookingSuccess.paymentError'));
             setIsRedirecting(false);
         }
     };
@@ -40,55 +42,55 @@ function SuccessModal({isOpen, onClose, userName, userEmail, bookingId, tripId, 
         <AppModal
             isOpen={isOpen}
             onClose={onClose}
-            title="Booking Submitted Successfully!"
+            title={t('bookingSuccess.title')}
             footer={
                 <button className="btn btn--primary" onClick={onClose}>
-                    Got it!
+                    {t('bookingSuccess.gotIt')}
                 </button>
             }
         >
             <div className="success-message">
-                <h4>Thank you, {userName}!</h4>
-                <p>Your travel booking has been submitted successfully.</p>
-                <p>We will contact you soon at <strong>{userEmail}</strong> to confirm the details.</p>
+                <h4>{t('bookingSuccess.thankYou', {name: userName})}</h4>
+                <p>{t('bookingSuccess.submitted')}</p>
+                <p>{t('bookingSuccess.contactTextBefore')} <strong>{userEmail}</strong> {t('bookingSuccess.contactTextAfter')}</p>
             </div>
 
             <div className="next-steps">
-                <h5>What happens next?</h5>
+                <h5>{t('bookingSuccess.nextStepsTitle')}</h5>
                 <ul>
-                    <li>Our team will review your booking request</li>
-                    <li>We'll contact you via email to confirm details</li>
-                    <li>We'll provide personalized recommendations</li>
-                    <li>We'll finalize your travel itinerary</li>
+                    <li>{t('bookingSuccess.step1')}</li>
+                    <li>{t('bookingSuccess.step2')}</li>
+                    <li>{t('bookingSuccess.step3')}</li>
+                    <li>{t('bookingSuccess.step4')}</li>
                 </ul>
             </div>
 
             {PAYMENTS_ENABLED && bookingId && (
                 <div className="success-deposit">
                     <div ref={containerRef} className="turnstile-widget"/>
-                    <h5>Want to lock your trip in right away?</h5>
+                    <h5>{t('bookingSuccess.depositTitle')}</h5>
                     <button
                         type="button"
                         className="btn btn--primary success-deposit-btn"
                         onClick={handleDepositClick}
                         disabled={!turnstileToken || isRedirecting}
                     >
-                        {isRedirecting ? 'Redirecting…' : 'Pay 30% deposit now'}
+                        {isRedirecting ? t('bookingSuccess.redirecting') : t('bookingSuccess.payDeposit')}
                     </button>
                     {depositError && <div className="form-error">{depositError}</div>}
                 </div>
             )}
 
             <div className="success-whatsapp">
-                <h5>Contact us to get details about your trip</h5>
+                <h5>{t('bookingSuccess.whatsappTitle')}</h5>
                 <a
                     className="success-whatsapp-link"
                     href={WHATSAPP_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="Contact us on WhatsApp"
+                    aria-label={t('bookingSuccess.whatsappAria')}
                 >
-                    <i className="ph ph-whatsapp-logo" aria-hidden="true"/> WhatsApp us
+                    <i className="ph ph-whatsapp-logo" aria-hidden="true"/> {t('bookingSuccess.whatsappUs')}
                 </a>
             </div>
         </AppModal>

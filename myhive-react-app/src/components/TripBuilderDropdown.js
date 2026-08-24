@@ -4,11 +4,13 @@ import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
 import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import TripSetupModal from './TripSetupModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
+import {useT} from '../i18n';
 
 function TripBuilderDropdown() {
     const {state, dispatch} = useTrip();
     const navigate = useNavigate();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
+    const t = useT('tripDropdown');
 
     if (!state.tripBuilderModalOpen) return null;
 
@@ -28,8 +30,8 @@ function TripBuilderDropdown() {
     return (
         <div className="trip-builder-dropdown">
             <div className="trip-builder-dropdown-header">
-                <h3>Trip Builder</h3>
-                <button type="button" className="app-modal-close-btn" aria-label="Close"
+                <h3>{t('title')}</h3>
+                <button type="button" className="app-modal-close-btn" aria-label={t('closeAria')}
                         onClick={() => dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'})}>×
                 </button>
             </div>
@@ -42,12 +44,12 @@ function TripBuilderDropdown() {
                                     <div className="trip-modal-package-header">
                                         <span className="trip-modal-package-name">{group.packageName}</span>
                                         {group.packageDiscountPct > 0 && (
-                                            <span className="trip-modal-package-discount">{group.packageDiscountPct}% off</span>
+                                            <span className="trip-modal-package-discount">{t('percentOff', {pct: group.packageDiscountPct})}</span>
                                         )}
                                         <button
                                             type="button"
                                             className="trip-modal-item-remove"
-                                            aria-label={`Remove ${group.packageName}`}
+                                            aria-label={t('removeAria', {name: group.packageName})}
                                             onClick={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
                                         >×
                                         </button>
@@ -75,7 +77,7 @@ function TripBuilderDropdown() {
                                     <button
                                         type="button"
                                         className="trip-modal-item-remove"
-                                        aria-label={`Remove ${item.name || item.title}`}
+                                        aria-label={t('removeAria', {name: item.name || item.title})}
                                         onClick={() => dispatch({type: 'REMOVE_FROM_TRIP', activityId: item.id})}
                                     >×
                                     </button>
@@ -85,9 +87,9 @@ function TripBuilderDropdown() {
                     </>
                 ) : (
                     <div className="empty-trip-state">
-                        <p>No activities added yet. Browse and add activities to build your trip!</p>
+                        <p>{t('emptyState')}</p>
                         <button className="trip-builder-vote-btn" onClick={openVoteSetup}>
-                            Vote together &amp; build a trip
+                            {t('voteTogether')}
                         </button>
                         <TripSetupModal
                             isVoteMode={true}
@@ -102,11 +104,11 @@ function TripBuilderDropdown() {
             {state.tripItems.length > 0 && (
                 <div className="trip-builder-dropdown-footer">
                     <div className="trip-modal-total">
-                        <span>Total ({travelers} {travelers === 1 ? 'person' : 'people'})</span>
+                        <span>{travelers === 1 ? t('totalOne', {count: travelers}) : t('totalOther', {count: travelers})}</span>
                         <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
                     </div>
                     <button className="trip-builder-complete-btn" onClick={handleComplete}>
-                        Continue
+                        {t('continue')}
                     </button>
                 </div>
             )}

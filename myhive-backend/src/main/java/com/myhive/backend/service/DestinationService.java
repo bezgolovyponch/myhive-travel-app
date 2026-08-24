@@ -9,15 +9,16 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,9 +30,16 @@ public class DestinationService {
     private final DestinationRepository destinationRepository;
     private final CategoryRepository categoryRepository;
 
+    // Without a locale: admin/raw view (base fields + translations map). With
+    // one: public view, fields resolved for that locale. See ActivityService.
+
     public List<DestinationDTO> getAllDestinations() {
+        return getAllDestinations(null);
+    }
+
+    public List<DestinationDTO> getAllDestinations(String locale) {
         return destinationRepository.findAll().stream()
-                .map(this::convertToDTO)
+                .map(d -> convertToDTO(d, locale))
                 .toList();
     }
 
@@ -41,22 +49,25 @@ public class DestinationService {
     }
 
     public DestinationDTO getDestinationById(UUID id) {
+        return getDestinationById(id, null);
+    }
+
+    public DestinationDTO getDestinationById(UUID id, String locale) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
-        DestinationDTO dto = convertToDTO(destination);
-        dto.setAssignedCategories(
-                destination.getCategories().stream()
-                        .sorted(Comparator.comparing(c -> c.getName().toLowerCase()))
-                        .map(this::categoryToDTO)
-                        .toList()
-        );
+        DestinationDTO dto = convertToDTO(destination, locale);
+        dto.setAssignedCategories(CategoryResolver.toDTOs(destination.getCategories(), Translations.normalize(locale)));
         return dto;
     }
 
     public DestinationDTO getDestinationBySlug(String slug) {
+        return getDestinationBySlug(slug, null);
+    }
+
+    public DestinationDTO getDestinationBySlug(String slug, String locale) {
         Destination destination = destinationRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination not found"));
-        return convertToDTO(destination);
+        return convertToDTO(destination, locale);
     }
 
     @Transactional
@@ -84,6 +95,10 @@ public class DestinationService {
         destination.setImageUrl(dto.getImageUrl());
         destination.setRating(dto.getRating());
         destination.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
+        // null = "unchanged" (see ActivityService.applyDtoToEntity).
+        if (dto.getTranslations() != null) {
+            destination.setTranslations(dto.getTranslations());
+        }
     }
 
     @Transactional
@@ -111,15 +126,17 @@ public class DestinationService {
     }
 
     public List<CategoryDTO> getCategoriesForDestination(UUID id) {
+        return getCategoriesForDestination(id, null);
+    }
+
+    public List<CategoryDTO> getCategoriesForDestination(UUID id, String locale) {
         Destination destination = destinationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Destination", id));
+        String lc = Translations.normalize(locale);
 
         Set<Category> explicit = destination.getCategories();
         if (!explicit.isEmpty()) {
-            return explicit.stream()
-                    .sorted(Comparator.comparing(c -> c.getName().toLowerCase()))
-                    .map(this::categoryToDTO)
-                    .toList();
+            return CategoryResolver.toDTOs(explicit, lc);
         }
 
         List<Activity> activities = destination.getActivities();
@@ -127,34 +144,31 @@ public class DestinationService {
             return List.of();
         }
 
-        return activities.stream()
-                .flatMap(a -> a.getCategories().stream())
-                .distinct()
-                .sorted(Comparator.comparing(c -> c.getName().toLowerCase()))
-                .map(this::categoryToDTO)
-                .toList();
-    }
-
-    private CategoryDTO categoryToDTO(Category category) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(category.getId());
-        dto.setName(category.getName());
-        dto.setSlug(category.getSlug());
-        return dto;
+        return CategoryResolver.toDTOs(
+                activities.stream().flatMap(a -> a.getCategories().stream()).distinct().toList(), lc);
     }
 
     private DestinationDTO convertToDTO(Destination destination) {
+        return convertToDTO(destination, null);
+    }
+
+    private DestinationDTO convertToDTO(Destination destination, String locale) {
+        String lc = Translations.normalize(locale);
+        Map<String, Map<String, String>> tr = destination.getTranslations();
         DestinationDTO dto = new DestinationDTO();
         dto.setId(destination.getId());
         dto.setSlug(destination.getSlug());
-        dto.setName(destination.getName());
-        dto.setDescription(destination.getDescription());
-        dto.setCountry(destination.getCountry());
-        dto.setCity(destination.getCity());
+        dto.setName(Translations.pick(tr, lc, "name", destination.getName()));
+        dto.setDescription(Translations.pick(tr, lc, "description", destination.getDescription()));
+        dto.setCountry(Translations.pick(tr, lc, "country", destination.getCountry()));
+        dto.setCity(Translations.pick(tr, lc, "city", destination.getCity()));
         dto.setImageUrl(destination.getImageUrl());
         dto.setRating(destination.getRating());
         dto.setActivityCount(destination.getActivities() != null ? destination.getActivities().size() : 0);
         dto.setSeoIndexable(destination.isSeoIndexable());
+        if (locale == null) {
+            dto.setTranslations(tr);
+        }
         return dto;
     }
 }

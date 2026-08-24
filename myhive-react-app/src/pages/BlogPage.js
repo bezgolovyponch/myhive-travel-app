@@ -3,11 +3,14 @@ import {useEffect, useState} from 'react';
 import {Link} from 'react-router-dom';
 import api from '../services/api';
 import {SITE_URL} from '../services/config';
+import {useT} from '../i18n';
 import './BlogPage.css';
 
 // `posts` is supplied by the server renderer (Next.js SSR) so the listing is in
 // the initial HTML; omitted in the SPA, which fetches on mount as before.
 function BlogPage({posts: injectedPosts}) {
+    const t = useT('blog');
+    const tMeta = useT('meta');
     const seeded = Array.isArray(injectedPosts);
     const [posts, setPosts] = useState(seeded ? injectedPosts : []);
     const [loading, setLoading] = useState(!seeded);
@@ -25,20 +28,19 @@ function BlogPage({posts: injectedPosts}) {
     return (
         <div className="blog-page">
             <PageHead>
-                <title>Stag Do Planning Guides &amp; Ideas | Trivlu Blog</title>
-                <meta name="description" content="Guides, ideas and destination tips for planning the perfect stag do — from budgeting to the best cities in Europe."/>
+                <title>{tMeta('blog.title')}</title>
+                <meta name="description" content={tMeta('blog.description')}/>
                 <link rel="canonical" href={`${SITE_URL}/blog`}/>
             </PageHead>
             <section className="blog-section">
                 {/* The listing had no h1 at all, which the SSR smoke checks flag
                     (exactly one per page). Kept inside .blog-section so the
                     existing layout is unchanged. */}
-                <h1>The Stag Do Playbook</h1>
+                <h1>{t('listTitle')}</h1>
                 {loading ? (
-                    <p style={{color: 'var(--text-muted)'}}>Loading posts...</p>
+                    <p style={{color: 'var(--text-muted)'}}>{t('loadingPosts')}</p>
                 ) : posts.length === 0 ? (
-                    <p style={{color: 'var(--text-muted)'}}>No blog posts yet. Check back
-                        soon!</p>
+                    <p style={{color: 'var(--text-muted)'}}>{t('emptyState')}</p>
                 ) : (
                     <div className="blog-grid">
                         {posts.map(post => (

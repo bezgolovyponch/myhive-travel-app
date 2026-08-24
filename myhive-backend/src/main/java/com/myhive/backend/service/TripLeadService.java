@@ -22,6 +22,7 @@ import com.myhive.backend.repository.TripLeadActivityRepository;
 import com.myhive.backend.repository.TripLeadRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -76,6 +77,7 @@ public class TripLeadService {
             tripLeadRepository.save(active);
         }
         TripLead lead = newLead(email);
+        lead.setLocale(Translations.normalize(request.getLocale()));
         applySetup(lead, request.getDestinationId(), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), request.getBudget());
         lead.setLastActivityAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -196,6 +198,7 @@ public class TripLeadService {
                 .orElseGet(() -> newLead(email));
         lead.setSource(TripLeadSource.VOTE);
         lead.setVoteSessionId(session.getId());
+        lead.setLocale(session.getLocale());
         lead.setDestination(session.getDestination());
         lead.setNumberOfTravelers(session.getNumberOfTravelers());
         lead.setStartDate(session.getStartDate());

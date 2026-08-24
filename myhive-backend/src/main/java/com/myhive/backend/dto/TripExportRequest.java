@@ -34,6 +34,10 @@ public class TripExportRequest {
     @Email(message = "Invalid email format")
     private String userEmail;
 
+    /** Locale the customer is browsing in ("de"); drives the language of the confirmation emails. Null = English. */
+    @Size(max = 8)
+    private String locale;
+
     @NotBlank(message = "Customer name is required")
     @Size(max = 120, message = "Customer name must not exceed 120 characters")
     private String customerName;

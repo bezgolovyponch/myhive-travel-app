@@ -8,19 +8,20 @@ import { getOrCreateVoterToken } from '../../utils/voterToken';
 import { funnelParams } from '../../utils/funnel';
 import { getAttribution } from '../../utils/attribution';
 import { getCookie } from '../../utils/cookies';
+import { useT } from '../../i18n';
 import './StartGroupVoteModal.css';
 
 // Pure so the validation rules can be reasoned about (and tested) independent
 // of component state wiring. Email is intentionally not asked here — it is
 // collected on the booking page instead.
-function validate({ needsDates, voteStartDate, voteEndDate }) {
+function validate({ needsDates, voteStartDate, voteEndDate }, t) {
     const errors = {};
 
     if (needsDates) {
         if (!voteStartDate || !voteEndDate) {
-            errors.dates = 'Trip dates are required';
+            errors.dates = t('start.errors.datesRequired');
         } else if (voteEndDate < voteStartDate) {
-            errors.dates = 'End date must be on or after the start date';
+            errors.dates = t('start.errors.endBeforeStart');
         }
     }
 
@@ -34,6 +35,7 @@ function StartGroupVoteModal({
     isOpen, onClose, destinationId, activityIds, numberOfTravelers, startDate, endDate,
     voteMode = 'CART', quizResponses = null, budget = null, onLaunched,
 }) {
+    const t = useT('voteComponents');
     const navigate = useNavigate();
     const [voteStartDate, setVoteStartDate] = useState(startDate || '');
     const [voteEndDate, setVoteEndDate] = useState(endDate || '');
@@ -61,7 +63,7 @@ function StartGroupVoteModal({
             return;
         }
 
-        const nextErrors = validate({ needsDates, voteStartDate, voteEndDate });
+        const nextErrors = validate({ needsDates, voteStartDate, voteEndDate }, t);
         setErrors(nextErrors);
         if (Object.keys(nextErrors).length > 0) {
             return;
@@ -129,7 +131,7 @@ function StartGroupVoteModal({
                 navigate(`/vote/${session.shareToken}/waiting`);
             }
         } catch (e) {
-            setApiError(e.message || 'Failed to create the vote. Please try again.');
+            setApiError(e.message || t('start.errors.createFailed'));
             setSubmitting(false);
         }
     };
@@ -139,7 +141,7 @@ function StartGroupVoteModal({
             isOpen={isOpen}
             onClose={handleClose}
             closeOnBackdrop
-            title="Start group vote"
+            title={t('start.title')}
             contentClassName="start-vote-modal"
             footer={(
                 <button
@@ -148,13 +150,12 @@ function StartGroupVoteModal({
                     onClick={handleCreate}
                     disabled={submitting}
                 >
-                    {submitting ? 'Creating…' : 'Create vote'}
+                    {submitting ? t('start.creating') : t('start.create')}
                 </button>
             )}
         >
             <p className="start-vote-modal-sub">
-                Share the link with your mates and watch the results live.
-                Voting closes automatically after 24 hours.
+                {t('start.sub')}
             </p>
             <label htmlFor="start-vote-groom">Who&apos;s the stag? <span className="optional">(optional)</span></label>
             <input
@@ -167,18 +168,18 @@ function StartGroupVoteModal({
             />
             {needsDates && (
                 <>
-                    <label htmlFor="start-vote-start-date">Trip dates</label>
+                    <label htmlFor="start-vote-start-date">{t('start.tripDates')}</label>
                     <div className="start-vote-modal-dates">
                         <input
                             id="start-vote-start-date"
-                            aria-label="Start date"
+                            aria-label={t('start.startDate')}
                             type="date"
                             value={voteStartDate}
                             onChange={(e) => setVoteStartDate(e.target.value)}
                         />
                         <input
                             id="start-vote-end-date"
-                            aria-label="End date"
+                            aria-label={t('start.endDate')}
                             type="date"
                             value={voteEndDate}
                             onChange={(e) => setVoteEndDate(e.target.value)}

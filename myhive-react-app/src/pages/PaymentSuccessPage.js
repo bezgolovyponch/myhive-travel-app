@@ -3,9 +3,11 @@ import {Link, useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import {WHATSAPP_URL} from '../services/config';
 import {pushEvent} from '../utils/analytics';
+import {useT} from '../i18n';
 import './PaymentReturnPages.css';
 
 function PaymentSuccessPage() {
+    const t = useT('payment');
     const [params] = useSearchParams();
     const booking = params.get('booking');
     const {dispatch} = useTrip();
@@ -59,22 +61,22 @@ function PaymentSuccessPage() {
 
     return (
         <div className="payment-return">
-            <h1>Thank you — your payment is on its way!</h1>
-            <p>We're confirming your payment with our provider. You'll get an email once it's processed.</p>
-            {booking && <p className="payment-return__ref">Booking reference: {booking}</p>}
+            <h1>{t('success.title')}</h1>
+            <p>{t('success.body')}</p>
+            {booking && <p className="payment-return__ref">{t('success.bookingReference', {booking})}</p>}
             <div className="success-whatsapp">
-                <h5>Contact us to get details about your trip</h5>
+                <h5>{t('success.contactHeading')}</h5>
                 <a
                     className="success-whatsapp-link"
                     href={WHATSAPP_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="Contact us on WhatsApp"
+                    aria-label={t('success.whatsappAria')}
                 >
-                    <i className="ph ph-whatsapp-logo" aria-hidden="true"/> WhatsApp us
+                    <i className="ph ph-whatsapp-logo" aria-hidden="true"/> {t('success.whatsappUs')}
                 </a>
             </div>
-            <Link to="/" className="btn btn--primary">Back to home</Link>
+            <Link to="/" className="btn btn--primary">{t('backToHome')}</Link>
         </div>
     );
 }

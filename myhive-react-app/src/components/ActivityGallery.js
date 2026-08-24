@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useModalA11y} from '../hooks/useModalA11y';
 import {DEFAULT_ACTIVITY_IMAGE} from '../utils/format';
+import {useT} from '../i18n';
 import './ActivityGallery.css';
 
 const MAX_THUMBS = 4;
@@ -9,6 +10,7 @@ const MAX_THUMBS = 4;
 // to four thumbnails (layout adapts via data-count), with a fullscreen
 // lightbox (prev/next, thumbnail strip, arrow-key navigation).
 function ActivityGallery({images, title}) {
+    const t = useT('cards');
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const isOpen = lightboxIndex !== null;
     const contentRef = useModalA11y(isOpen, () => setLightboxIndex(null));
@@ -58,7 +60,7 @@ function ActivityGallery({images, title}) {
                 type="button"
                 className="ag-main"
                 onClick={() => setLightboxIndex(0)}
-                aria-label={`Open photo 1 of ${photos.length}`}
+                aria-label={t('openPhoto', {num: 1, total: photos.length})}
             >
                 <img src={photos[0]} alt={title}/>
             </button>
@@ -70,12 +72,12 @@ function ActivityGallery({images, title}) {
                             className="ag-cell"
                             key={src}
                             onClick={() => setLightboxIndex(i + 1)}
-                            aria-label={`Open photo ${i + 2} of ${photos.length}`}
+                            aria-label={t('openPhoto', {num: i + 2, total: photos.length})}
                         >
                             <img src={src} alt={`${title} ${i + 2}`}/>
                             {showSeeAll && i === thumbs.length - 1 && (
                                 <span className="ag-see-all">
-                                    <i className="ph ph-images" aria-hidden="true"/> See all photos ({photos.length})
+                                    <i className="ph ph-images" aria-hidden="true"/> {t('seeAllPhotos', {count: photos.length})}
                                 </span>
                             )}
                         </button>
@@ -88,7 +90,7 @@ function ActivityGallery({images, title}) {
                     className="ag-lightbox"
                     role="dialog"
                     aria-modal="true"
-                    aria-label={`${title} photos`}
+                    aria-label={t('photosAria', {title})}
                     ref={contentRef}
                     onClick={(e) => {
                         if (e.target === e.currentTarget) {
@@ -102,20 +104,20 @@ function ActivityGallery({images, title}) {
                             type="button"
                             className="ag-lb-close"
                             onClick={() => setLightboxIndex(null)}
-                            aria-label="Close"
+                            aria-label={t('close')}
                         >
                             <i className="ph ph-x" aria-hidden="true"/>
                         </button>
                     </div>
                     <div className="ag-lb-stage">
                         {photos.length > 1 && (
-                            <button type="button" className="ag-lb-nav" onClick={() => step(-1)} aria-label="Previous photo">
+                            <button type="button" className="ag-lb-nav" onClick={() => step(-1)} aria-label={t('previousPhoto')}>
                                 <i className="ph ph-caret-left" aria-hidden="true"/>
                             </button>
                         )}
-                        <img src={photos[lightboxIndex]} alt={`${title} ${lightboxIndex + 1} of ${photos.length}`}/>
+                        <img src={photos[lightboxIndex]} alt={t('photoAlt', {title, num: lightboxIndex + 1, total: photos.length})}/>
                         {photos.length > 1 && (
-                            <button type="button" className="ag-lb-nav" onClick={() => step(1)} aria-label="Next photo">
+                            <button type="button" className="ag-lb-nav" onClick={() => step(1)} aria-label={t('nextPhoto')}>
                                 <i className="ph ph-caret-right" aria-hidden="true"/>
                             </button>
                         )}
@@ -128,7 +130,7 @@ function ActivityGallery({images, title}) {
                                     key={src}
                                     className={i === lightboxIndex ? 'active' : ''}
                                     onClick={() => setLightboxIndex(i)}
-                                    aria-label={`Go to photo ${i + 1}`}
+                                    aria-label={t('goToPhoto', {num: i + 1})}
                                 >
                                     <img src={src} alt=""/>
                                 </button>

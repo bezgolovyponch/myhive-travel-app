@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { localeField } from '../i18n/routes';
 
 const leadApi = {
   // Fire-and-forget capture at quiz-vote setup; server dedups by email.
@@ -6,7 +7,8 @@ const leadApi = {
     const response = await fetch(`${API_BASE_URL}/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, destinationId, numberOfTravelers, startDate, endDate, budget }),
+      // locale: language of the reminder emails and their links.
+      body: JSON.stringify({ email, destinationId, numberOfTravelers, startDate, endDate, budget, ...localeField() }),
     });
     if (!response.ok) throw new Error('Failed to save trip lead');
     return response.json();

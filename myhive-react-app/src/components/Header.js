@@ -2,9 +2,11 @@ import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
+import LanguageSwitcher from './LanguageSwitcher';
 import TripBuilderDropdown from './TripBuilderDropdown';
 import TripSetupModal from './TripSetupModal';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
+import {useLocalePath, useT} from '../i18n';
 import './Header.css';
 
 function Header() {
@@ -13,6 +15,8 @@ function Header() {
   const {state: catalog} = useCatalog();
   const {state, dispatch} = useTrip();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const t = useT('header');
+  const lp = useLocalePath();
 
   const handleTripBuilderClick = () => {
       if (state.tripBuilderModalOpen) {
@@ -41,9 +45,12 @@ function Header() {
   // actual item name), so the header only shows breadcrumbs on destination pages.
   const isDetailPage = /^\/destination\/[^/?]+\/(activity|package)\//.test(location.pathname);
   const showBreadcrumbs = Boolean(destinationSlug) && !isDetailPage;
-  const currentTabLabel = (new URLSearchParams(location.search).get('tab') || 'activities')
-      .replace('-', ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+  const tabValue = new URLSearchParams(location.search).get('tab') || 'activities';
+  const currentTabLabel = ['activities', 'trip-builder', 'packages'].includes(tabValue)
+      ? t('tab.' + tabValue)
+      : tabValue
+          .replace('-', ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase());
 
   // The Complete Booking flow is a focused checkout: the global header (and its
   // breadcrumb subheader) collapse away so nothing competes with the form.
@@ -63,28 +70,28 @@ function Header() {
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
           <a
-              href="/#activities"
+              href={lp('/') + '#activities'}
               onClick={(e) => {
                 e.preventDefault();
                 setMobileNavOpen(false);
                 scrollToHomeSection(navigate, 'activities');
               }}
           >
-            Activities
+            {t('nav.activities')}
           </a>
-          <Link to="/about" onClick={() => setMobileNavOpen(false)}>About</Link>
-          <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
-          <Link to="/contact" onClick={() => setMobileNavOpen(false)}>Contact</Link>
+          <Link to="/about" onClick={() => setMobileNavOpen(false)}>{t('nav.about')}</Link>
+          <Link to="/blog" onClick={() => setMobileNavOpen(false)}>{t('nav.blog')}</Link>
+          <Link to="/contact" onClick={() => setMobileNavOpen(false)}>{t('nav.contact')}</Link>
         </nav>
         <TripSetupModal/>
       </div>
       {showBreadcrumbs && (
           <div className="breadcrumbs">
             <div className="breadcrumbs-content">
-              <Link className="breadcrumb-item" to="/">Home</Link>
+              <Link className="breadcrumb-item" to="/">{t('breadcrumb.home')}</Link>
               <span className="breadcrumb-separator">&gt;</span>
               <Link className="breadcrumb-item" to={`/destination/${destinationSlug}?tab=activities`}>
-                {destination?.name || 'Destination'}
+                {destination?.name || t('breadcrumb.destination')}
               </Link>
               <span className="breadcrumb-separator">&gt;</span>
               <span className="breadcrumb-item current">{currentTabLabel}</span>
@@ -95,13 +102,16 @@ function Header() {
       {/* Pinned action cluster: burger + cart stay fixed at the top-right of the
           viewport on every page, even as the header bar above scrolls away. */}
       <div className="header-actions">
+        <LanguageSwitcher/>
         <div className="trip-builder-wrapper">
           <button
               className="cart-btn"
               onClick={handleTripBuilderClick}
               aria-label={state.tripItems.length > 0
-                  ? `Cart, ${state.tripItems.length} item${state.tripItems.length === 1 ? '' : 's'}`
-                  : 'Cart'}
+                  ? (state.tripItems.length === 1
+                      ? t('cartAriaOne', {count: state.tripItems.length})
+                      : t('cartAriaOther', {count: state.tripItems.length}))
+                  : t('cartAria')}
           >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
@@ -119,7 +129,7 @@ function Header() {
         <button
             type="button"
             className="hamburger-btn"
-            aria-label="Menu"
+            aria-label={t('menuAria')}
             aria-expanded={mobileNavOpen}
             onClick={handleBurgerClick}
         >

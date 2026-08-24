@@ -1,8 +1,10 @@
 import {Link} from 'react-router-dom';
 import {formatAmount} from '../utils/format';
+import {useT} from '../i18n';
 import './PackageCard.css';
 
 function PackageCard({pkg}) {
+    const t = useT('cards');
     const savings = Number(pkg.savings) || 0;
     return (
         <Link to={`/destination/${pkg.destinationSlug}/package/${pkg.slug}`} className="card package-card">
@@ -18,7 +20,7 @@ function PackageCard({pkg}) {
                     <span className="package-original">{formatAmount(pkg.originalPrice)}</span>
                     <span className="package-discounted">{formatAmount(pkg.discountedPrice)}</span>
                     {savings > 0 && (
-                        <span className="package-savings">Save {formatAmount(savings)}</span>
+                        <span className="package-savings">{t('saveAmount', {amount: formatAmount(savings)})}</span>
                     )}
                 </div>
             </div>

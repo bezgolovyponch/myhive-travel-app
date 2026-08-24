@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { routing } from '../i18n/routing';
 
 // Indexing is opt-in via ALLOW_INDEXING=true (read at BUILD time): previews and
 // misconfigured deploys serve Disallow-all by default, and promoting this app
@@ -35,9 +36,15 @@ export default function robots(): MetadataRoute.Robots {
   // public pages open; service flows (admin, voting steps, payment) closed.
   // Next owns the sitemap (app/sitemap.ts) — single implementation, spec §2.
   const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trivlu.com';
+  // Service flows exist under every locale prefix too (/de/vote/...).
+  const serviceFlows = ['/admin', '/vote', '/payment'];
+  const prefixes = routing.locales
+    .filter((l) => l !== routing.defaultLocale)
+    .map((l) => `/${l}`);
+  const disallow = serviceFlows.flatMap((p) => [p, ...prefixes.map((pre) => pre + p)]);
   return {
     rules: [
-      { userAgent: '*', disallow: ['/admin', '/vote', '/payment'] },
+      { userAgent: '*', disallow },
       { userAgent: AI_TRAINING_BOTS, disallow: '/' },
     ],
     sitemap: `${site}/sitemap.xml`,

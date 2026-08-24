@@ -39,4 +39,7 @@ public class VoteSessionCartCreateRequest {
 
     @Size(max = 100)
     private String groomName;
+
+    /** Locale the initiator is browsing in ("de"); drives the language of the vote emails. Null = English. */
+    @Size(max = 8) private String locale;
 }

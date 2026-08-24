@@ -42,6 +42,7 @@ import com.myhive.backend.repository.VoteSessionOpenRepository;
 import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import com.myhive.backend.repository.VoteSessionResultActivityRepository;
+import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -115,7 +116,7 @@ public class VoteSessionService {
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(),
-                request.getGroomName());
+                request.getGroomName(), request.getLocale());
 
         persistBallot(session, request.getActivityIds(), activitiesById);
 
@@ -152,7 +153,7 @@ public class VoteSessionService {
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.CART, null,
-                request.getGroomName());
+                request.getGroomName(), request.getLocale());
 
         persistBallot(session, activityIds, activitiesById);
         sendVoteCreatedConfirmationQuietly(session);
@@ -164,12 +165,13 @@ public class VoteSessionService {
 
     private VoteSession newSession(Destination destination, String initiatorEmail, Integer numberOfTravelers,
                                    LocalDate startDate, LocalDate endDate,
-                                   VoteMode voteMode, BigDecimal budget, String groomName) {
+                                   VoteMode voteMode, BigDecimal budget, String groomName, String locale) {
         VoteSession session = new VoteSession();
         session.setShareToken(UUID.randomUUID());
         session.setManagerToken(UUID.randomUUID());
         session.setDestination(destination);
         session.setInitiatorEmail(initiatorEmail);
+        session.setLocale(Translations.normalize(locale));
         session.setNumberOfTravelers(numberOfTravelers);
         session.setStartDate(startDate);
         session.setEndDate(endDate);
@@ -273,13 +275,26 @@ public class VoteSessionService {
         }
     }
 
+    // Read methods take the request locale (en/de/…) and resolve the translatable
+    // content (destination/activity names, descriptions, quiz copy) for it; the
+    // no-locale overloads serve English.
+
     public VoteSessionResponse getSession(UUID shareToken) {
+        return getSession(shareToken, null);
+    }
+
+    public VoteSessionResponse getSession(UUID shareToken, String locale) {
         VoteSession session = findByShareToken(shareToken);
         long count = voteActivityLikeRepository.countDistinctVoterTokensBySessionId(session.getId());
-        return toResponse(session, count);
+        return toResponse(session, count, null, Translations.normalize(locale));
     }
 
     public List<VoteActivityResponse> getActivities(UUID shareToken) {
+        return getActivities(shareToken, null);
+    }
+
+    public List<VoteActivityResponse> getActivities(UUID shareToken, String locale) {
+        String lc = Translations.normalize(locale);
         VoteSession session = findByShareToken(shareToken);
         String destinationSlug = session.getDestination().getSlug();
 
@@ -287,7 +302,7 @@ public class VoteSessionService {
                 .findBySessionIdOrderBySortOrder(session.getId());
         if (!curated.isEmpty()) {
             return curated.stream()
-                    .map(row -> toActivityResponse(row.getActivity(), destinationSlug))
+                    .map(row -> toActivityResponse(row.getActivity(), destinationSlug, lc))
                     .toList();
         }
 
@@ -299,13 +314,17 @@ public class VoteSessionService {
         List<Activity> activities = activityRepository.findByDestinationIdAndCategoriesIdIn(
                 session.getDestination().getId(), categoryIds);
         return activities.stream()
-                .map(activity -> toActivityResponse(activity, destinationSlug))
+                .map(activity -> toActivityResponse(activity, destinationSlug, lc))
                 .toList();
     }
 
     public PublicQuizDTO getParticipantQuiz(UUID shareToken) {
+        return getParticipantQuiz(shareToken, null);
+    }
+
+    public PublicQuizDTO getParticipantQuiz(UUID shareToken, String locale) {
         VoteSession session = findByShareToken(shareToken);
-        return quizService.getPublicQuiz(session.getDestination().getId());
+        return quizService.getPublicQuiz(session.getDestination().getId(), locale);
     }
 
     @Transactional
@@ -434,6 +453,11 @@ public class VoteSessionService {
     }
 
     public VoteResultResponse getResult(UUID shareToken) {
+        return getResult(shareToken, null);
+    }
+
+    public VoteResultResponse getResult(UUID shareToken, String locale) {
+        String lc = Translations.normalize(locale);
         VoteSession session = findByShareToken(shareToken);
         if (session.getStatus() != VoteSessionStatus.COMPLETED) {
             throw new ResultNotReadyException("Result not available yet");
@@ -457,10 +481,16 @@ public class VoteSessionService {
             long skip = counts == null ? 0 : counts.getSkipCount();
             String destinationSlug = activity.getDestination() == null
                     ? null : activity.getDestination().getSlug();
-            return new ResultActivityDTO(activityId, curated.getActivityName(),
+            // The curated row snapshots the English name at vote time; the live entity
+            // carries the translations, so the localized name wins when present.
+            Map<String, Map<String, String>> tr = activity.getTranslations();
+            return new ResultActivityDTO(activityId,
+                    Translations.pick(tr, lc, "name", curated.getActivityName()),
                     curated.getPrice(), activity.getMinPrice(), like, skip,
                     activity.getSlug(), destinationSlug, activity.getImageUrl(),
-                    activity.getDuration(), activity.getDescription(), activity.getIncludes());
+                    activity.getDuration(),
+                    Translations.pick(tr, lc, "description", activity.getDescription()),
+                    Translations.pick(tr, lc, "includes", activity.getIncludes()));
         }).toList();
 
         BigDecimal travelers = BigDecimal.valueOf(session.getNumberOfTravelers());
@@ -473,14 +503,16 @@ public class VoteSessionService {
 
         List<SuggestionDTO> suggestions = session.getVoteMode() == VoteMode.CART
                 ? List.of()
-                : voteSuggestionsService.buildSuggestions(session);
+                : voteSuggestionsService.buildSuggestions(session, locale);
 
         long participantCount = voteActivityLikeRepository
                 .countDistinctVoterTokensBySessionId(session.getId());
 
+        Destination destination = session.getDestination();
         return new VoteResultResponse(result, suggestions, session.getNumberOfTravelers(),
                 totalPrice, budget, remaining,
-                session.getDestination().getName(), session.getDestination().getSlug(),
+                Translations.pick(destination.getTranslations(), lc, "name", destination.getName()),
+                destination.getSlug(),
                 session.getStartDate(), session.getEndDate(),
                 session.getVoteMode().name(), participantCount);
     }
@@ -492,6 +524,11 @@ public class VoteSessionService {
      * scoring and budget trimming, not a simple like count.
      */
     public VoteTallyResponse getTally(UUID shareToken, UUID voterToken, UUID managerToken) {
+        return getTally(shareToken, voterToken, managerToken, null);
+    }
+
+    public VoteTallyResponse getTally(UUID shareToken, UUID voterToken, UUID managerToken, String locale) {
+        String lc = Translations.normalize(locale);
         VoteSession session = findByShareToken(shareToken);
         if (session.getVoteMode() != VoteMode.CART) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -516,7 +553,7 @@ public class VoteSessionService {
                 .sorted(cartRankingOrder(counts))
                 .map(row -> new VoteTallyResponse.TallyRow(
                         row.getActivity().getId(),
-                        row.getActivityName(),
+                        Translations.pick(row.getActivity().getTranslations(), lc, "name", row.getActivityName()),
                         row.getPrice(),
                         likeCountOf(counts, row)))
                 .toList();
@@ -712,11 +749,16 @@ public class VoteSessionService {
     }
 
     private VoteSessionResponse toResponse(VoteSession session, long participantCount, UUID managerToken) {
+        return toResponse(session, participantCount, managerToken, null);
+    }
+
+    private VoteSessionResponse toResponse(VoteSession session, long participantCount, UUID managerToken, String lc) {
         int travelers = session.getNumberOfTravelers() != null ? session.getNumberOfTravelers() : 0;
         Instant expiresAt = session.getExpiresAt().toInstant(ZoneOffset.UTC);
+        Destination destination = session.getDestination();
         return new VoteSessionResponse(
                 session.getShareToken(),
-                session.getDestination().getName(),
+                Translations.pick(destination.getTranslations(), lc, "name", destination.getName()),
                 session.getDestination().getSlug(),
                 session.getStatus().name(),
                 expiresAt,
@@ -751,11 +793,11 @@ public class VoteSessionService {
         return line;
     }
 
-    private VoteActivityResponse toActivityResponse(Activity activity, String destinationSlug) {
+    private VoteActivityResponse toActivityResponse(Activity activity, String destinationSlug, String lc) {
         return new VoteActivityResponse(
                 activity.getId(),
-                activity.getName(),
-                activity.getDescription(),
+                Translations.pick(activity.getTranslations(), lc, "name", activity.getName()),
+                Translations.pick(activity.getTranslations(), lc, "description", activity.getDescription()),
                 activity.getPrice(),
                 activity.getMinPrice(),
                 activity.getDuration(),

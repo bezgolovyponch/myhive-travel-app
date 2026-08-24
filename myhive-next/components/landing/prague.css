@@ -1,0 +1,281 @@
+/* Prague destination landing (v74, desktop sticky-right) — page-specific
+   styles. Scoped under .tl--prague; shared pieces live in landing.css. */
+
+/* header: compact mobile variant (icon-only phone, CTA stays) */
+@media (max-width: 960px) {
+  .tl--prague .hdr__tel {
+    display: inline-grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: #ffffff0f;
+    color: var(--text);
+  }
+  .tl--prague .hdr__num { display: none; }
+  .tl--prague .hdr .btn { padding: 0.6rem 1rem; font-size: 0.88rem; }
+  .tl--prague .hdr__wa { width: 2.2rem; height: 2.2rem; }
+  .tl--prague .hdr__in { gap: 0.5rem; }
+}
+
+/* ---------- hero: the claim, then the numbers that back it ---------- */
+.tl--prague .hero {
+  position: relative;
+  min-height: min(96svh, 880px);
+  display: flex;
+  align-items: flex-end;
+  padding-top: calc(var(--head-h) + 3rem);
+  padding-bottom: 0;
+  overflow: hidden;
+}
+.tl--prague .hero__bg {
+  position: absolute;
+  inset: 0;
+  background: url(/landing/prague-hero.webp) center 30% / cover no-repeat var(--bg);
+  z-index: 0;
+}
+.tl--prague .hero__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(16, 13, 21, 0.9) 0%, rgba(16, 13, 21, 0.76) 34%, rgba(16, 13, 21, 0.42) 58%, rgba(16, 13, 21, 0.12) 82%, rgba(16, 13, 21, 0) 100%),
+    linear-gradient(180deg, rgba(16, 13, 21, 0.58) 0%, rgba(16, 13, 21, 0.28) 34%, rgba(16, 13, 21, 0.68) 76%, #16131c 100%);
+}
+.tl--prague .hero__in {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: var(--pad);
+}
+.tl--prague .hero__eyebrow {
+  font-family: var(--tally);
+  font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--brand-ll);
+  margin: 0 0 0.9rem;
+  text-shadow: 0 1px 8px #000;
+}
+.tl--prague .hero__title {
+  font-size: clamp(2.5rem, 6.6vw, 5rem);
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+  max-width: 16ch;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.28);
+}
+.tl--prague .hero__title em { font-style: normal; color: var(--brand-ll); }
+.tl--prague .hero__sub {
+  color: #f0edf5;
+  font-size: clamp(1.02rem, 1.7vw, 1.22rem);
+  max-width: 52ch;
+  margin: 1.25rem 0 0;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.38);
+}
+.tl--prague .hero__cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0 2.75rem; }
+.tl--prague .hero__pf {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid #ffffff26;
+  background: #16131cbf;
+  backdrop-filter: blur(8px);
+  margin-inline: calc(var(--pad) * -1);
+  padding-inline: var(--pad);
+}
+/* four figures, each with the promise it stands for */
+.tl--prague .pf__i { padding: 1.35rem clamp(0.5rem, 2vw, 1.4rem); border-left: 1px solid #ffffff1a; }
+.tl--prague .pf__i:first-child { border-left: 0; padding-left: 0; }
+.tl--prague .pf__i b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(1.35rem, 2.9vw, 2rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #fff;
+}
+.tl--prague .pf__i span { display: block; font-size: 0.82rem; line-height: 1.45; color: var(--muted-l); margin-top: 0.45rem; text-wrap: pretty; }
+@media (max-width: 720px) {
+  .tl--prague .hero { min-height: auto; align-items: flex-start; }
+  .tl--prague .hero__pf { grid-template-columns: 1fr; padding-block: 0.5rem; }
+  .tl--prague .pf__i { border-left: 0; border-top: 1px solid #ffffff1a; padding: 0.85rem 0; display: flex; align-items: baseline; gap: 0.75rem; }
+  .tl--prague .pf__i:first-child { border-top: 0; }
+  .tl--prague .pf__i b { font-size: 1.4rem; flex: none; }
+  .tl--prague .pf__i span { margin-top: 0; max-width: 34ch; }
+}
+
+/* ---------- the argument: four tiles ---------- */
+.tl--prague .args { display: flex; flex-direction: column; }
+.tl--prague .args__hd { flex: none; }
+.tl--prague .tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(0.5rem, 1.3vw, 1.1rem);
+  margin-top: clamp(0.9rem, 3.5vh, 2.25rem);
+}
+@media (max-width: 900px) {
+  .tl--prague .args { min-height: 100svh; }
+  .tl--prague .tiles { flex: 1; min-height: 0; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+}
+.tl--prague .tile {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(0.75rem, 2vw, 1.6rem);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: radial-gradient(120% 90% at 78% 88%, #534ab726, #26243000 62%), linear-gradient(180deg, #232130, #1b1822);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.tl--prague .tile:hover { border-color: var(--brand-l); transform: translateY(-2px); }
+.tl--prague .tile__h { flex: none; font-size: clamp(0.95rem, 1.75vw, 1.4rem); line-height: 1.1; max-width: 21ch; letter-spacing: -0.025em; }
+/* the render takes every pixel the copy does not, so no dead middle */
+.tl--prague .tile__ic {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  object-position: 50% 100%;
+  margin: clamp(0.6rem, 2vh, 1.2rem) 0;
+}
+.tl--prague .tile__n {
+  flex: none;
+  margin: 0;
+  padding-top: clamp(0.4rem, 1vh, 0.7rem);
+  border-top: 1px solid var(--line-soft);
+  font-family: var(--tally);
+  font-size: clamp(0.7rem, 0.92vw, 0.86rem);
+  line-height: 1.35;
+  color: var(--text);
+}
+.tl--prague .tile__n b { color: var(--brand-ic); font-weight: 600; }
+.tl--prague .tile__n em { font-style: normal; color: var(--muted); }
+@media (max-width: 640px) {
+  .tl--prague .tile { padding: 0.7rem 0.7rem 0.75rem; border-radius: var(--r-lg); }
+  .tl--prague .tile__h { max-width: none; }
+}
+/* landscape and other short viewports: grow instead of crushing the tiles */
+@media (max-height: 520px) {
+  .tl--prague .args { min-height: auto; }
+  .tl--prague .tile { min-height: 14rem; }
+}
+
+/* ---------- the 2026 rules ---------- */
+.tl--prague .rules { background: var(--bg-alt); border-block: 1px solid var(--line); position: relative; overflow: hidden; }
+.tl--prague .rules::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url(https://wsrv.nl/?url=https%3A%2F%2Fimages.unsplash.com%2Fphoto-1715388302950-6ad4ad794d07%3Ffm%3Djpg%26q%3D60%26w%3D1600%26auto%3Dformat%26fit%3Dcrop&w=1600&output=webp&q=74) center 40% / cover no-repeat;
+  opacity: 0.13;
+}
+.tl--prague .rules::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, #1b1822f2, #1b1822d9 45%, #1b1822f7);
+}
+.tl--prague .rules > .shell { position: relative; z-index: 1; }
+.tl--prague .rules__grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.5rem, 4vw, 3rem); margin-top: 2.25rem; }
+.tl--prague .rules__card { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 1.35rem; background: var(--card); }
+.tl--prague .rules__badge {
+  display: inline-block;
+  font-family: var(--tally);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--r-full);
+  margin-bottom: 0.85rem;
+}
+.tl--prague .rules__badge--myth { background: #ff54591f; border: 1px solid #ff545966; color: #ff9a9d; }
+.tl--prague .rules__badge--fact { background: #4caf501f; border: 1px solid #4caf5066; color: #8fdc93; }
+.tl--prague .rules__card h4 { font-size: 1.08rem; margin-bottom: 0.6rem; }
+.tl--prague .rules__card p { margin: 0; color: var(--muted-l); font-size: 0.93rem; }
+.tl--prague .rules__card p + p { margin-top: 0.6rem; }
+.tl--prague .rules__list { list-style: none; margin: 1.5rem 0 0; padding: 0; display: grid; gap: 0.85rem; }
+/* the bold lead stays inline with the sentence: absolute marker, not flex */
+.tl--prague .rules__list li { position: relative; padding-left: 1.65rem; font-size: 0.92rem; line-height: 1.55; color: var(--muted-l); }
+.tl--prague .rules__list li b { color: var(--text); font-weight: 600; }
+.tl--prague .rules__list li::before { content: '→'; position: absolute; left: 0; top: 0; color: var(--brand-l); }
+@media (max-width: 760px) {
+  .tl--prague .rules__grid { grid-template-columns: 1fr; }
+}
+.tl--prague .note {
+  margin-top: 1.75rem;
+  max-width: 70ch;
+  padding: 0.85rem 1rem;
+  border-radius: var(--r);
+  background: #534ab71f;
+  border-left: 2px solid var(--brand-l);
+  font-size: 0.88rem;
+  color: var(--muted-l);
+}
+.tl--prague .note b { color: #fff; font-weight: 600; }
+
+/* ---------- photography bands ---------- */
+.tl--prague .band-img { position: relative; margin: 0 0 clamp(1.5rem, 3vw, 2.5rem); overflow: hidden; }
+.tl--prague #why-prague { padding-block: clamp(2rem, 5vh, 4rem) clamp(1.5rem, 3vw, 2.5rem); }
+.tl--prague #costs { padding-top: clamp(1.5rem, 3vw, 2.5rem); }
+.tl--prague .band-img img { display: block; width: 100%; height: clamp(17rem, 34vw, 28rem); object-fit: cover; object-position: center 55%; }
+.tl--prague .band-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, #16131ce6, #16131c40 30%, #16131c26 60%, #16131c 100%);
+}
+.tl--prague .band-img figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding: 0 var(--pad) clamp(1.25rem, 3vw, 2rem);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 2.6vw, 2rem);
+  letter-spacing: -0.025em;
+  color: #fff;
+  text-shadow: 0 2px 14px #000;
+}
+.tl--prague .band-img figcaption small {
+  display: block;
+  margin-top: 0.4rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: #d6d2e0;
+  letter-spacing: 0;
+  text-shadow: 0 1px 8px #000;
+}
+.tl--prague .band-img__cta { display: block; margin-top: 1.15rem; }
+.tl--prague .band-img__cta .btn { text-shadow: none; letter-spacing: 0; }
+
+/* ---------- final CTA over the night photograph ---------- */
+.tl--prague .final {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(11, 10, 14, 0.72) 0%, rgba(11, 10, 14, 0.62) 34%, rgba(11, 10, 14, 0.82) 100%),
+    url(/landing/prague-final.webp) center 46% / cover no-repeat;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: #fff;
+  overflow: hidden;
+}
+.tl--prague .final .shell { position: relative; z-index: 1; padding-block: clamp(4rem, 8vw, 6rem); }
+.tl--prague .final h2 { max-width: 20ch; margin-inline: auto; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.32); }
+.tl--prague .final p { color: #ece7f6; margin: 1rem auto 2rem; max-width: 46ch; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.28); }
+.tl--prague .final__fine { color: #d8d2e5; }

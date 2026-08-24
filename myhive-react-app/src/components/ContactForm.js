@@ -5,10 +5,12 @@ import AppModal from './AppModal';
 import EmailConsentNote from './EmailConsentNote';
 import {computeTripTotal} from '../utils/tripPricing';
 import {formatPrice} from '../utils/format';
+import {useT} from '../i18n';
 
-function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking', inline = false,
+function ContactForm({isOpen, onClose, onSubmit, submitLabel, inline = false,
                       tripData, initialValues, isSubmitting, submitError,
                       onEmailChange, showConsentNote = false}) {
+    const t = useT('contact');
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -50,33 +52,33 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
         const newErrors = {};
 
         if (!formData.fullName.trim()) {
-            newErrors.fullName = 'Full name is required';
+            newErrors.fullName = t('booking.validation.fullNameRequired');
         }
 
         if (!formData.email.trim()) {
-            newErrors.email = 'Email is required';
+            newErrors.email = t('booking.validation.emailRequired');
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email is invalid';
+            newErrors.email = t('booking.validation.emailInvalid');
         }
 
         if (!formData.phone.trim()) {
-            newErrors.phone = 'Phone number is required';
+            newErrors.phone = t('booking.validation.phoneRequired');
         } else if (!/^\+?[\d\s\-()]+$/.test(formData.phone)) {
-            newErrors.phone = 'Phone number is invalid';
+            newErrors.phone = t('booking.validation.phoneInvalid');
         }
 
         if (!formData.startDate) {
-            newErrors.startDate = 'Start date is required';
+            newErrors.startDate = t('booking.validation.startDateRequired');
         }
 
         if (!formData.endDate) {
-            newErrors.endDate = 'End date is required';
+            newErrors.endDate = t('booking.validation.endDateRequired');
         } else if (formData.startDate && formData.endDate && new Date(formData.endDate) <= new Date(formData.startDate)) {
-            newErrors.endDate = 'End date must be after start date (minimum 1 night)';
+            newErrors.endDate = t('booking.validation.endDateAfterStart');
         }
 
         if (formData.numberOfTravelers < 1) {
-            newErrors.numberOfTravelers = 'Number of travelers must be at least 1';
+            newErrors.numberOfTravelers = t('booking.validation.travelersMin');
         }
 
         setErrors(newErrors);
@@ -109,12 +111,12 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                         visible in the column right next to the form. */}
                     {!inline && (
                         <div className="trip-summary">
-                            <h4>Trip Summary</h4>
+                            <h4>{t('booking.summaryTitle')}</h4>
                             {tripData.destinationName && (
-                                <p><strong>Destination:</strong> {tripData.destinationName}</p>
+                                <p><strong>{t('booking.destinationLabel')}</strong> {tripData.destinationName}</p>
                             )}
-                            <p><strong>Activities:</strong> {tripData.tripItems.length} selected</p>
-                            <p><strong>Estimated Total:</strong> {formatPrice(computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1))}</p>
+                            <p><strong>{t('booking.activitiesLabel')}</strong> {t('booking.activitiesSelected', {count: tripData.tripItems.length})}</p>
+                            <p><strong>{t('booking.estimatedTotalLabel')}</strong> {formatPrice(computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1))}</p>
                         </div>
                     )}
 
@@ -125,28 +127,28 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                     <form id={formId} onSubmit={handleSubmit} className="contact-form">
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="fullName">Full Name *</label>
+                                <label htmlFor="fullName">{t('booking.fullNameLabel')}</label>
                                 <input
                                     type="text" id="fullName" name="fullName"
                                     value={formData.fullName} onChange={handleInputChange}
                                     className={errors.fullName ? 'error' : ''}
-                                    placeholder="John Doe"
+                                    placeholder={t('booking.fullNamePlaceholder')}
                                 />
                                 {errors.fullName && <span className="error-message">{errors.fullName}</span>}
                             </div>
                             <div className="form-group">
-                                <label htmlFor="email">Email Address *</label>
+                                <label htmlFor="email">{t('booking.emailLabel')}</label>
                                 <input
                                     type="email" id="email" name="email"
                                     value={formData.email} onChange={handleInputChange}
                                     className={errors.email ? 'error' : ''}
-                                    placeholder="john@example.com"
+                                    placeholder={t('booking.emailPlaceholder')}
                                 />
                                 {errors.email && <span className="error-message">{errors.email}</span>}
                                 {showConsentNote && (
                                     <>
                                         <p className="email-value-note">
-                                            We&apos;ll save your trip to this address so you can pick it up anytime.
+                                            {t('booking.emailSaveNote')}
                                         </p>
                                         <EmailConsentNote />
                                     </>
@@ -156,23 +158,23 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="phone">Phone Number *</label>
+                                <label htmlFor="phone">{t('booking.phoneLabel')}</label>
                                 <input
                                     type="tel" id="phone" name="phone"
                                     value={formData.phone} onChange={handleInputChange}
                                     className={errors.phone ? 'error' : ''}
-                                    placeholder="+1 234 567 8900"
+                                    placeholder={t('booking.phonePlaceholder')}
                                 />
                                 {errors.phone && <span className="error-message">{errors.phone}</span>}
                             </div>
                             <div className="form-group">
-                                <label htmlFor="numberOfTravelers">Number of Travelers *</label>
+                                <label htmlFor="numberOfTravelers">{t('booking.travelersLabel')}</label>
                                 {/* Same compact − / n / + stepper as the trip setup modal */}
                                 <div className="travelers-control">
                                     <button
                                         type="button"
                                         className="travelers-step"
-                                        aria-label="Decrease travelers"
+                                        aria-label={t('booking.decreaseTravelers')}
                                         disabled={(parseInt(formData.numberOfTravelers, 10) || 1) <= 1}
                                         onClick={() => setFormData(prev => ({
                                             ...prev,
@@ -188,7 +190,7 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
                                     <button
                                         type="button"
                                         className="travelers-step"
-                                        aria-label="Increase travelers"
+                                        aria-label={t('booking.increaseTravelers')}
                                         onClick={() => setFormData(prev => ({
                                             ...prev,
                                             numberOfTravelers: Math.min(20, (parseInt(prev.numberOfTravelers, 10) || 1) + 1),
@@ -215,37 +217,37 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="contactMethod">Preferred Contact Method *</label>
+                                <label htmlFor="contactMethod">{t('booking.contactMethodLabel')}</label>
                                 <select id="contactMethod" name="contactMethod"
                                         value={formData.contactMethod} onChange={handleInputChange}>
-                                    <option value="email">Email</option>
-                                    <option value="phone">Phone</option>
-                                    <option value="whatsapp">WhatsApp</option>
-                                    <option value="both">Both</option>
+                                    <option value="email">{t('booking.contactMethodOptions.email')}</option>
+                                    <option value="phone">{t('booking.contactMethodOptions.phone')}</option>
+                                    <option value="whatsapp">{t('booking.contactMethodOptions.whatsapp')}</option>
+                                    <option value="both">{t('booking.contactMethodOptions.both')}</option>
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label htmlFor="hearAboutUs">How did you hear about us?</label>
+                                <label htmlFor="hearAboutUs">{t('booking.hearAboutUsLabel')}</label>
                                 <select id="hearAboutUs" name="hearAboutUs"
                                         value={formData.hearAboutUs} onChange={handleInputChange}>
-                                    <option value="">Select an option</option>
-                                    <option value="search">Search Engine</option>
-                                    <option value="social">Social Media</option>
-                                    <option value="friend">Friend/Family</option>
-                                    <option value="ad">Advertisement</option>
-                                    <option value="blog">Blog/Article</option>
-                                    <option value="other">Other</option>
+                                    <option value="">{t('booking.hearAboutUsOptions.placeholder')}</option>
+                                    <option value="search">{t('booking.hearAboutUsOptions.search')}</option>
+                                    <option value="social">{t('booking.hearAboutUsOptions.social')}</option>
+                                    <option value="friend">{t('booking.hearAboutUsOptions.friend')}</option>
+                                    <option value="ad">{t('booking.hearAboutUsOptions.ad')}</option>
+                                    <option value="blog">{t('booking.hearAboutUsOptions.blog')}</option>
+                                    <option value="other">{t('booking.hearAboutUsOptions.other')}</option>
                                 </select>
                             </div>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="specialRequirements">Special Requirements or Notes</label>
+                            <label htmlFor="specialRequirements">{t('booking.specialRequirementsLabel')}</label>
                             <textarea
                                 id="specialRequirements" name="specialRequirements"
                                 value={formData.specialRequirements} onChange={handleInputChange}
                                 rows={inline ? 2 : 3}
-                                placeholder="Any special dietary requirements, accessibility needs, or other preferences..."
+                                placeholder={t('booking.specialRequirementsPlaceholder')}
                             />
                         </div>
                     </form>
@@ -255,10 +257,10 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
     const footer = (
         <>
             <button type="button" className="btn btn--secondary" onClick={guardedClose} disabled={isSubmitting}>
-                Cancel
+                {t('booking.cancel')}
             </button>
             <button type="submit" form={formId} className="btn btn--primary" disabled={isSubmitting}>
-                {isSubmitting ? 'Submitting...' : submitLabel}
+                {isSubmitting ? t('booking.submitting') : (submitLabel ?? t('booking.submitLabel'))}
             </button>
         </>
     );
@@ -267,9 +269,9 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
         // Trip Builder renders the form in place of its browse column — no overlay.
         return (
             <div className="contact-form-panel">
-                <h3 className="contact-form-panel__title">Complete Your Booking</h3>
+                <h3 className="contact-form-panel__title">{t('booking.title')}</h3>
                 <p className="contact-form-panel__step">
-                    Step 1 of 2 — we confirm availability, then you pay a 30% deposit.
+                    {t('booking.step')}
                 </p>
                 <div className="contact-form-panel__body">{body}</div>
                 <div className="contact-form-panel__footer">{footer}</div>
@@ -281,7 +283,7 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel = 'Submit Booking',
         <AppModal
             isOpen
             onClose={guardedClose}
-            title="Complete Your Booking"
+            title={t('booking.title')}
             contentClassName="contact-form-modal"
             footer={footer}
         >

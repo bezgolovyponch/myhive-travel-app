@@ -12,11 +12,13 @@ import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.util.MoneyMath;
+import com.myhive.backend.util.Translations;
 import jakarta.mail.internet.MimeMessage;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -26,10 +28,12 @@ import org.thymeleaf.context.Context;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -44,9 +48,39 @@ import java.util.UUID;
 @Slf4j
 public class EmailService {
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy");
-    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' HH:mm 'UTC'");
     private static final String SUPPORT_EMAIL = "support@trivlu.com";
+
+    // Customer-facing emails render in the locale the customer was browsing in
+    // (VoteSession/TripLead/Booking.locale, null = English): the Thymeleaf
+    // context carries the Locale so the templates' #{...} keys resolve from
+    // messages_<locale>.properties, subjects come from the same bundle, dates
+    // are spelled in that language, and links into the frontend carry the
+    // locale prefix (/de/...). Staff notifications stay English.
+    private static Locale localeOf(String code) {
+        String lc = Translations.normalize(code);
+        return lc == null ? Locale.ENGLISH : Locale.forLanguageTag(lc);
+    }
+
+    /** "" for English, "/de" otherwise — the frontend's URL prefix for that locale. */
+    private static String localePrefix(String code) {
+        String lc = Translations.normalize(code);
+        return lc == null ? "" : "/" + lc;
+    }
+
+    private static String formatDate(LocalDate date, Locale locale) {
+        String pattern = Locale.GERMAN.getLanguage().equals(locale.getLanguage()) ? "d. MMMM yyyy" : "MMMM d, yyyy";
+        return date.format(DateTimeFormatter.ofPattern(pattern, locale));
+    }
+
+    private static String formatDateTime(LocalDateTime dateTime, Locale locale) {
+        String pattern = Locale.GERMAN.getLanguage().equals(locale.getLanguage())
+                ? "d. MMMM yyyy 'um' HH:mm 'UTC'" : "MMMM d, yyyy 'at' HH:mm 'UTC'";
+        return dateTime.format(DateTimeFormatter.ofPattern(pattern, locale));
+    }
+
+    private String msg(Locale locale, String key, Object... args) {
+        return messageSource.getMessage(key, args, locale);
+    }
 
     public static class DestinationView {
         public String destinationName;
@@ -87,12 +121,15 @@ public class EmailService {
             Map<String, Object> variables,
             Map<String, String> headers,
             String description,
-            boolean synchronous) {
+            boolean synchronous,
+            /** Rendering locale for the template's #{...} keys; null = English. */
+            Locale locale) {
     }
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final AsyncMailSender asyncMailSender;
+    private final MessageSource messageSource;
 
     @Value("${app.email.enabled:false}")
     private boolean emailEnabled;
@@ -117,11 +154,14 @@ public class EmailService {
     /** Overload that also renders a payment summary (deposit paid / balance due) — used by the deposit flow. */
     public void sendItineraryConfirmation(String toEmail, String customerName, TripExportRequest tripData,
             String tripId, BigDecimal amountPaid, BigDecimal totalAmount) {
+        // The customer's locale rides on the request (set by the booking form, or copied
+        // from the Booking when PaymentService rebuilds the request after a deposit).
+        Locale locale = localeOf(tripData.getLocale());
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("customerName", customerName);
         variables.put("tripData", tripData);
         variables.put("destinationViews", buildDestinationViews(tripData));
-        variables.put("bookingDate", LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")));
+        variables.put("bookingDate", formatDate(LocalDate.now(), locale));
         variables.put("tripId", tripId);
         // Payment status — only present when a deposit has actually been collected (not for leads).
         boolean depositPaid = amountPaid != null && amountPaid.signum() > 0;
@@ -134,9 +174,10 @@ public class EmailService {
 
         send(EmailSpec.builder()
                 .to(toEmail)
-                .subject("Your Trivlu Travel Itinerary Confirmation")
+                .subject(msg(locale, "email.itinerary.subject"))
                 .template("itinerary-confirmation")
                 .variables(variables)
+                .locale(locale)
                 .description("itinerary confirmation to " + maskEmail(toEmail))
                 .build());
     }
@@ -197,42 +238,53 @@ public class EmailService {
     }
 
     public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String frontendUrl) {
+        Locale locale = localeOf(session.getLocale());
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("session", session);
         variables.put("resultActivities", resultActivities);
-        variables.put("resultUrl", resultUrlFor(session, frontendUrl));
+        variables.put("resultUrl", resultUrlFor(session, frontendUrl + localePrefix(session.getLocale())));
 
         send(EmailSpec.builder()
                 .to(session.getInitiatorEmail())
-                .subject("Your group trip to " + session.getDestination().getName() + " is ready!")
+                .subject(msg(locale, "email.voteResult.subject", session.getDestination().getName()))
                 .template("vote-result")
                 .variables(variables)
+                .locale(locale)
                 .description("vote result to " + maskEmail(session.getInitiatorEmail()))
                 .build());
     }
 
     public void sendVoteCreatedConfirmation(VoteSession session, String frontendUrl) {
+        Locale locale = localeOf(session.getLocale());
+        String base = frontendUrl + localePrefix(session.getLocale());
         String shareToken = session.getShareToken().toString();
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("session", session);
-        variables.put("inviteUrl", frontendUrl + "/vote/" + shareToken + "/activities?ref=invite");
-        variables.put("dashboardUrl", frontendUrl + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken());
+        variables.put("inviteUrl", base + "/vote/" + shareToken + "/activities?ref=invite");
+        variables.put("dashboardUrl", base + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken());
         variables.put("supportEmail", SUPPORT_EMAIL);
-        variables.put("startDate", session.getStartDate().format(DATE_FORMAT));
-        variables.put("endDate", session.getEndDate().format(DATE_FORMAT));
-        variables.put("expiresAt", session.getExpiresAt().format(DATE_TIME_FORMAT));
+        variables.put("startDate", formatDate(session.getStartDate(), locale));
+        variables.put("endDate", formatDate(session.getEndDate(), locale));
+        variables.put("expiresAt", formatDateTime(session.getExpiresAt(), locale));
 
         send(EmailSpec.builder()
                 .to(session.getInitiatorEmail())
-                .subject("Your group vote for " + session.getDestination().getName() + " is live")
+                .subject(msg(locale, "email.voteCreated.subject", session.getDestination().getName()))
                 .template("vote-created")
                 .variables(variables)
+                .locale(locale)
                 .description("vote-created confirmation to " + maskEmail(session.getInitiatorEmail()))
                 .build());
     }
 
     public void sendPaymentReceived(String toEmail, String customerName, String tripId,
             BigDecimal amountPaid, BigDecimal totalAmount, boolean fullyPaid) {
+        sendPaymentReceived(toEmail, customerName, tripId, amountPaid, totalAmount, fullyPaid, null);
+    }
+
+    public void sendPaymentReceived(String toEmail, String customerName, String tripId,
+            BigDecimal amountPaid, BigDecimal totalAmount, boolean fullyPaid, String localeCode) {
+        Locale locale = localeOf(localeCode);
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("customerName", customerName);
         variables.put("tripId", tripId);
@@ -242,9 +294,10 @@ public class EmailService {
 
         send(EmailSpec.builder()
                 .to(toEmail)
-                .subject(fullyPaid ? "Your trip is fully paid 🎉" : "We received your payment")
+                .subject(msg(locale, fullyPaid ? "email.paymentReceived.subject.full" : "email.paymentReceived.subject.partial"))
                 .template("payment-received")
                 .variables(variables)
+                .locale(locale)
                 .description("payment received to " + maskEmail(toEmail))
                 .build());
     }
@@ -277,8 +330,10 @@ public class EmailService {
 
     public void sendTripReminder(TripLead lead, int stage, List<TripLeadActivity> items,
             List<VotePoolActivityDTO> recommendations, String frontendUrl) {
+        Locale locale = localeOf(lead.getLocale());
+        String base = frontendUrl + localePrefix(lead.getLocale());
         String destinationName = lead.getDestination() == null
-                ? "your trip" : lead.getDestination().getName();
+                ? msg(locale, "email.tripReminder.yourTrip") : lead.getDestination().getName();
         int travelers = lead.getNumberOfTravelers() == null || lead.getNumberOfTravelers() < 1
                 ? 1 : lead.getNumberOfTravelers();
         List<ReminderLineView> lines = items.stream()
@@ -301,17 +356,18 @@ public class EmailService {
         variables.put("lines", lines);
         variables.put("totalPrice", totalPrice);
         variables.put("recommendations", recommendations);
-        variables.put("restoreUrl", restoreUrlFor(lead, frontendUrl));
-        variables.put("contactUrl", frontendUrl + "/contact");
-        variables.put("unsubscribeUrl", frontendUrl + "/unsubscribe?token=" + lead.getUnsubscribeToken());
+        variables.put("restoreUrl", restoreUrlFor(lead, base));
+        variables.put("contactUrl", base + "/contact");
+        variables.put("unsubscribeUrl", base + "/unsubscribe?token=" + lead.getUnsubscribeToken());
         variables.put("supportEmail", SUPPORT_EMAIL);
 
         send(EmailSpec.builder()
                 .to(lead.getEmail())
-                .subject(reminderSubject(lead.getSource(), stage, destinationName))
+                .subject(reminderSubject(locale, lead.getSource(), stage, destinationName))
                 .template("trip-reminder")
                 .variables(variables)
                 .headers(unsubscribeHeaders(lead))
+                .locale(locale)
                 .description("trip reminder (stage " + stage + ") to " + maskEmail(lead.getEmail()))
                 .build());
     }
@@ -337,17 +393,18 @@ public class EmailService {
                 + "?tab=trip-builder&restore=" + lead.getRestoreToken();
     }
 
-    private static String reminderSubject(TripLeadSource source, int stage, String destinationName) {
+    private String reminderSubject(Locale locale, TripLeadSource source, int stage, String destinationName) {
+        String key;
         if (source == TripLeadSource.VOTE) {
-            return stage == 1
-                    ? "Your group voted — ready to book " + destinationName + "?"
-                    : "Still thinking it over? Your " + destinationName + " trip is saved";
+            key = stage == 1 ? "email.tripReminder.subject.vote1" : "email.tripReminder.subject.vote2";
+        } else {
+            key = switch (stage) {
+                case 1 -> "email.tripReminder.subject.quiz1";
+                case 2 -> "email.tripReminder.subject.quiz2";
+                default -> "email.tripReminder.subject.quiz3";
+            };
         }
-        return switch (stage) {
-            case 1 -> "Your " + destinationName + " trip is waiting";
-            case 2 -> "Need a hand planning " + destinationName + "?";
-            default -> "Last call — your saved " + destinationName + " trip";
-        };
+        return msg(locale, key, destinationName);
     }
 
     private Map<String, String> unsubscribeHeaders(TripLead lead) {
@@ -386,7 +443,7 @@ public class EmailService {
                 }
             }
 
-            Context context = new Context();
+            Context context = new Context(spec.locale() == null ? Locale.ENGLISH : spec.locale());
             spec.variables().forEach(context::setVariable);
             helper.setText(templateEngine.process(spec.template(), context), true);
 

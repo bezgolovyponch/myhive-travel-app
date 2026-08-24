@@ -3,6 +3,7 @@ import {useLocation} from 'react-router-dom';
 import {WHATSAPP_URL} from '../services/config';
 import {openWhatsApp} from '../utils/openWhatsApp';
 import {pushEvent} from '../utils/analytics';
+import {useT} from '../i18n';
 import './WhatsAppWidget.css';
 
 // Full-screen fixed flows (swipe deck / quiz) where the FAB would sit on top
@@ -72,6 +73,7 @@ function useConsentBarClearance() {
 // Floating "chat with us" FAB — opens the WhatsApp conversation directly.
 function WhatsAppWidget() {
     const {pathname} = useLocation();
+    const t = useT('whatsapp');
     useConsentBarClearance();
     if (FULL_SCREEN_ROUTES.some(re => re.test(pathname))) {
         return null;
@@ -95,7 +97,7 @@ function WhatsAppWidget() {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Chat with us on WhatsApp"
+            aria-label={t('chatAria')}
             onClick={openChat}
         >
             {/* Official WhatsApp glyph (filled bubble + handset), inlined so it

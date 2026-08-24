@@ -5,6 +5,17 @@ import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import {HelmetProvider} from 'react-helmet-async';
 import {AppProviders} from './context/AppProviders';
 import Layout from './components/Layout';
+import {DEFAULT_LOCALE, splitLocale} from './i18n/routes';
+
+// The Next shell mounts this SPA under the locale prefix too (/de/vote/...).
+// BrowserRouter's basename makes every route match and every <Link>/navigate
+// locale-aware without touching the route table; on the bare (English) URLs
+// and in the standalone CRA build it is simply ''.
+function routerBasename() {
+    if (typeof window === 'undefined') return '';
+    const {locale} = splitLocale(window.location.pathname);
+    return locale === DEFAULT_LOCALE ? '' : `/${locale}`;
+}
 
 // Admin pages + the OIDC client are heavy and irrelevant to public visitors —
 // load that whole subtree only when /admin is actually opened. A failed chunk
@@ -20,7 +31,7 @@ const AdminApp = lazy(() => import('./AdminApp').catch(() => ({
 function App() {
     return (
         <HelmetProvider>
-            <Router>
+            <Router basename={routerBasename()}>
                 <Routes>
                     {/* Admin routes — single AuthProvider instance */}
                     <Route path="/admin/*" element={

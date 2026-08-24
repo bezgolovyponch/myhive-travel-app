@@ -49,6 +49,10 @@ public class Booking {
     @Column(name = "user_email")
     private String userEmail;
 
+    /** Locale the customer was browsing in ("de"); null = English. Drives the language of the customer emails. */
+    @Column(length = 8)
+    private String locale;
+
     @Column(name = "stripe_session_id", unique = true)
     private String stripeSessionId;
 

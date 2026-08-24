@@ -1,5 +1,6 @@
 package com.myhive.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -35,4 +37,8 @@ public class BlogPostDTO {
     private LocalDate date;
     private LocalDateTime createdAt;
     private Boolean seoIndexable;
+
+    /** Raw per-locale overrides — present on the admin (no-locale) view only; localized reads fold them into the fields above. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Map<String, Map<String, String>> translations;
 }

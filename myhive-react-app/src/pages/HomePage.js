@@ -14,6 +14,7 @@ import VoteDemoCard from '../components/home/VoteDemoCard';
 import StickyVoteCta from '../components/home/StickyVoteCta';
 import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
 import {pushEvent, navigateAfterEvents} from '../utils/analytics';
+import {useLocalePath, useT} from '../i18n';
 import './HomePage.css';
 
 // Two props exist only for the server-rendered copy of this page (Next.js Ф1);
@@ -30,6 +31,9 @@ import './HomePage.css';
 // same modal, so the funnel stays intact. Analytics are unaffected — every CTA
 // still fires its cta_click before navigating.
 function HomePage({featuredActivities, voteHref}) {
+    const t = useT('home');
+    const tMeta = useT('meta');
+    const lp = useLocalePath();
     const navigate = useNavigate();
     const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
@@ -44,9 +48,8 @@ function HomePage({featuredActivities, voteHref}) {
     return (
         <div className="homepage">
             <PageHead>
-                <title>Trivlu — Prague Stag Do. Planned in 10 Minutes.</title>
-                <meta name="description"
-                      content="Your group votes, we do the rest. The perfect Prague stag do weekend — activities, booking and logistics all sorted for you."/>
+                <title>{tMeta('home.title')}</title>
+                <meta name="description" content={tMeta('home.description')}/>
                 <link rel="canonical" href={`${SITE_URL}/`}/>
             </PageHead>
 
@@ -55,9 +58,9 @@ function HomePage({featuredActivities, voteHref}) {
                 <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">Prague Stag Do. Planned in 10 minutes.</h1>
+                        <h1 className="hero-title">{t('hero.title')}</h1>
                         <p className="hero-subtitle">
-                            Your group votes, we do the rest.
+                            {t('hero.subtitle')}
                         </p>
 
                         <VoteDemoCard/>
@@ -70,18 +73,18 @@ function HomePage({featuredActivities, voteHref}) {
                                     startVote();
                                 }}
                             >
-                                <i className="ph ph-check-square" aria-hidden="true"/> Start Group Vote
+                                <i className="ph ph-check-square" aria-hidden="true"/> {t('hero.startVoteCta')}
                             </button>
                             <a
                                 className="hp-btn-secondary"
-                                href={`/destination/${exploreActivitiesSlug}?tab=activities`}
+                                href={lp(`/destination/${exploreActivitiesSlug}?tab=activities`)}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'});
                                     navigate(`/destination/${exploreActivitiesSlug}?tab=activities`);
                                 }}
                             >
-                                Explore activities
+                                {t('hero.exploreCta')}
                             </a>
                         </div>
                     </div>

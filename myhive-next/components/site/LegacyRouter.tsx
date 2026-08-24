@@ -11,6 +11,13 @@ import { Router } from 'react-router-dom';
 import type { To } from 'react-router-dom';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+// The legacy components think in locale-free URLs ('/destination/prague'), so
+// the bridge strips the locale prefix from every location it feeds INTO the
+// router and re-adds it to every href/navigation coming OUT. Route patterns,
+// useParams and pathname-sniffing (Header breadcrumbs) all keep working on
+// /de/... URLs without any per-component change.
+import { useLocale } from '../../legacy-src/i18n';
+import { localizeHref, splitLocale } from '../../legacy-src/i18n/routes';
 
 function toHref(to: To): string {
   if (typeof to === 'string') return to;
@@ -42,13 +49,14 @@ type BridgeLocation = {
 
 export default function LegacyRouter({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const locale = useLocale();
 
   // The server has no window, so the first render knows only the pathname.
   // Deliberately not reading search/hash here: usePathname is prerender-safe
   // while useSearchParams would force this subtree out of the static HTML,
   // which is the one thing these pages exist to produce.
   const [location, setLocation] = useState<BridgeLocation>(() => ({
-    pathname,
+    pathname: splitLocale(pathname).pathname,
     search: '',
     hash: '',
     state: null,
@@ -61,7 +69,8 @@ export default function LegacyRouter({ children }: { children: React.ReactNode }
   // re-run on the update.
   useEffect(() => {
     const sync = () => {
-      const { pathname: p, search, hash } = window.location;
+      const { search, hash } = window.location;
+      const p = splitLocale(window.location.pathname).pathname;
       setLocation((prev) =>
         prev.pathname === p && prev.search === search && prev.hash === hash
           ? prev
@@ -79,18 +88,18 @@ export default function LegacyRouter({ children }: { children: React.ReactNode }
 
   const navigator = useMemo(
     () => ({
-      createHref: toHref,
+      createHref: (to: To) => localizeHref(toHref(to), locale),
       go: (delta: number) => window.history.go(delta),
 
       push: (to: To) => {
-        const url = new URL(toHref(to), window.location.origin);
+        const url = new URL(localizeHref(toHref(to), locale), window.location.origin);
         // Same-document target: don't reload. scrollToHomeSection() calls
         // navigate('/') unconditionally before scrolling, so on '/' a reload
         // here would throw away the smooth scroll it was about to do.
         if (url.pathname === window.location.pathname) {
           window.history.pushState(null, '', url);
           setLocation({
-            pathname: url.pathname,
+            pathname: splitLocale(url.pathname).pathname,
             search: url.search,
             hash: url.hash,
             state: null,
@@ -102,11 +111,11 @@ export default function LegacyRouter({ children }: { children: React.ReactNode }
       },
 
       replace: (to: To) => {
-        const url = new URL(toHref(to), window.location.origin);
+        const url = new URL(localizeHref(toHref(to), locale), window.location.origin);
         if (url.pathname === window.location.pathname) {
           window.history.replaceState(null, '', url);
           setLocation({
-            pathname: url.pathname,
+            pathname: splitLocale(url.pathname).pathname,
             search: url.search,
             hash: url.hash,
             state: null,
@@ -117,7 +126,7 @@ export default function LegacyRouter({ children }: { children: React.ReactNode }
         leaveDocument(() => window.location.replace(url));
       },
     }),
-    []
+    [locale]
   );
 
   return (
