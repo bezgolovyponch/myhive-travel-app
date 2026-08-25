@@ -1,4 +1,4 @@
-import {render, screen} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {HelmetProvider} from 'react-helmet-async';
@@ -101,4 +101,39 @@ test('switching to Trip Builder removes the tab nav', async () => {
 
     expect(await screen.findByText(/start building your trip/i)).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+});
+
+// ---------------------------------------------------------------------------
+// ?category= deep link (landing category rows open "the category page")
+// ---------------------------------------------------------------------------
+
+describe('?category= deep link', () => {
+    test('a known slug applies the filter: the filtered page is fetched and its chip activates', async () => {
+        api.getDestinationBySlug.mockResolvedValue({id: 'd1', name: 'Prague', slug: 'prague'});
+        api.getCategoriesForDestination.mockResolvedValue([{slug: 'extreme', name: 'extreme'}]);
+        api.getPackagesByDestination.mockResolvedValue([]);
+        api.getActivities.mockResolvedValue([]);
+        api.getActivitiesPaged.mockResolvedValue({content: [], totalElements: 0, last: true});
+
+        renderPage('/destination/prague?tab=activities&category=extreme');
+
+        const chip = await screen.findByRole('button', {name: 'Extreme'});
+        // The filter applies in an effect once destination + categories land.
+        await waitFor(() => expect(chip).toHaveClass('active'));
+        expect(api.getActivitiesPaged).toHaveBeenCalledWith('d1', expect.objectContaining({
+            categorySlug: 'extreme',
+        }));
+    });
+
+    test('an unknown slug degrades to the full list', async () => {
+        mockHappyPathApi();
+
+        renderPage('/destination/prague?tab=activities&category=no-such-category');
+
+        expect(await screen.findByRole('button', {name: 'All'})).toHaveClass('active');
+        const filtered = api.getActivitiesPaged.mock.calls.filter(
+            ([, opts]) => opts.categorySlug === 'no-such-category'
+        );
+        expect(filtered).toHaveLength(0);
+    });
 });

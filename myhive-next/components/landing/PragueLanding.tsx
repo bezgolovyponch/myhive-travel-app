@@ -17,7 +17,7 @@ import WhyUsSection from './WhyUsSection';
 import ReviewsSection from './ReviewsSection';
 import FaqSection from './FaqSection';
 import { trackCta, trackCtaAndGo } from './analytics';
-import { BUILDER_URL, PHONE_DISPLAY, PHONE_HREF, type ActivityRow } from './data';
+import { builderUrl, PHONE_DISPLAY, PHONE_HREF, type ActivityRow } from './data';
 import type { Pool } from './engine';
 
 const TILE_IMAGES = [
@@ -43,7 +43,7 @@ export default function PragueLanding({
   const tCalc = useT('landing.calc');
   const tChrome = useT('landing.chrome');
   const lp = useLocalePath();
-  const builderHref = lp(BUILDER_URL);
+  const builderHref = lp(builderUrl(destinationSlug));
 
   const builderLink = (block: string, label: string, className: string) => (
     <a
@@ -167,7 +167,7 @@ export default function PragueLanding({
           <p className="t-eyebrow">{tCalc('eyebrow')}</p>
           <h2 className="t-h2">{tCalc('title')}</h2>
           <p className="t-lede">{tCalc('lede')}</p>
-          <TripCalculator pool={pool} />
+          <TripCalculator pool={pool} destinationSlug={destinationSlug} />
         </div>
       </section>
 

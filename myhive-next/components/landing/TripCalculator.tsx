@@ -13,7 +13,7 @@ import {
   type Pool,
   type Programme,
 } from './engine';
-import { BUILDER_URL, poolImageUrl } from './data';
+import { builderUrl, poolImageUrl } from './data';
 import { trackCtaAndGo } from './analytics';
 
 const ARRIVE_PH = '/landing/arrive.webp';
@@ -149,7 +149,13 @@ function CityCompare({ nights }: { nights: number }) {
   );
 }
 
-export default function TripCalculator({ pool }: { pool: Pool }) {
+export default function TripCalculator({
+  pool,
+  destinationSlug,
+}: {
+  pool: Pool;
+  destinationSlug: string;
+}) {
   const t = useT('landing.calc');
   const lp = useLocalePath();
   const [days, setDays] = useState(2);
@@ -179,7 +185,7 @@ export default function TripCalculator({ pool }: { pool: Pool }) {
     return () => mq.removeEventListener('change', sync);
   }, []);
 
-  const builderHref = lp(BUILDER_URL);
+  const builderHref = lp(builderUrl(destinationSlug));
   const controls = (
     <aside className="tc-ctrl">
       <div className="tc-field">

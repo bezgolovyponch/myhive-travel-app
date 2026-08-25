@@ -936,7 +936,7 @@
       "final": {
         "title": "Schluss mit Diskussionen im Gruppenchat",
         "p": "Wähle die Aktivitäten. Teile einen Link. Lass die Gruppe abstimmen.",
-        "buildNow": "Jetzt Trip planen ({count} gewählt)",
+        "buildNow": "Jetzt Trip planen",
         "fine": "Antwort in 10 Minuten · Kostenlose Stornierung · 30 % Anzahlung"
       },
       "sticky": {

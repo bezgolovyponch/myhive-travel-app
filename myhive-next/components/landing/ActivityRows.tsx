@@ -9,34 +9,39 @@
 // (?locale= on the server fetch); UI strings come from the landing dictionary.
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import type { ActivityRow, LandingActivity } from './data';
-import { BUILDER_URL, categoryLink } from './data';
+import { builderUrl, categoryLink } from './data';
 
 function ActivityCard({
   a,
+  destinationSlug,
   showChip,
   picked,
   onToggle,
 }: {
   a: LandingActivity;
+  destinationSlug: string;
   showChip: boolean;
   picked?: boolean;
   onToggle?: (slug: string) => void;
 }) {
   const t = useT('landing.activities');
   const lp = useLocalePath();
+  const activityHref = lp(`/destination/${destinationSlug}/activity/${a.slug}`);
   return (
     <article className={`acard${picked ? ' is-picked' : ''}`}>
-      <div className="acard__ph">
+      <a className="acard__ph" href={activityHref} tabIndex={-1} aria-hidden="true">
         {a.imageUrl ? (
           <img src={a.imageUrl} alt={a.name} loading="lazy" decoding="async" />
         ) : (
           <span className="acard__noimg">{t('photoComing')}</span>
         )}
         {showChip && a.category ? <span className="acard__cat">{a.category}</span> : null}
-      </div>
+      </a>
       <div className="acard__bd">
         <h3 className="acard__nm" title={a.name}>
-          {a.name}
+          <a className="acard__link" href={activityHref}>
+            {a.name}
+          </a>
         </h3>
         <div className="acard__dur">{a.durationLabel ?? ' '}</div>
         <div className="acard__pr">
@@ -56,7 +61,7 @@ function ActivityCard({
               {picked ? t('added') : t('addToTrip')}
             </button>
           ) : (
-            <a className="btn btn--primary" href={lp(`${BUILDER_URL}&add=${a.slug}`)}>
+            <a className="btn btn--primary" href={lp(`${builderUrl(destinationSlug)}&add=${a.slug}`)}>
               {t('addToTrip')}
             </a>
           )}
@@ -105,6 +110,7 @@ export default function ActivityRows({
               <ActivityCard
                 key={a.slug}
                 a={a}
+                destinationSlug={destinationSlug}
                 showChip={showChip}
                 picked={picked?.includes(a.slug)}
                 onToggle={onToggle}

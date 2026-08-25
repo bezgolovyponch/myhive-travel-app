@@ -29,6 +29,10 @@ function DestinationPage({initial}) {
   const navigate = useNavigate();
     useTripDeepLink();
     const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
+    // Deep-linked category filter (?category=<slug>) — how the landing pages'
+    // category rows open "the category page". Applied by an effect below once
+    // the categories list is known, so an unknown slug degrades to 'all'.
+    const categoryParam = new URLSearchParams(location.search).get('category');
     // Mount TripBuilder only once its tab has been opened — it fetches the
     // destination's activity catalog on mount, which is wasted on visitors
     // who never leave the Activities tab. Once activated it stays mounted
@@ -156,6 +160,23 @@ function DestinationPage({initial}) {
             setFilterLoading(false);
         }
     };
+
+    // Apply the deep-linked category once the destination and its categories
+    // have loaded (both the SPA fetch and the server-seeded first paint).
+    // Guarded by the categories list so a stale/foreign slug falls back to the
+    // full list instead of fetching an empty page. Later manual filter clicks
+    // don't refire this — the deps only change with the URL or a new load.
+    useEffect(() => {
+        if (!destination || !categoryParam) {
+            return;
+        }
+        if (!categories.some((c) => c.slug === categoryParam)) {
+            return;
+        }
+        handleFilterChange(categoryParam);
+        // handleFilterChange is recreated per render but only reads stable refs.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categoryParam, destination, categories]);
 
     const handleLoadMore = async () => {
         setListError(false);

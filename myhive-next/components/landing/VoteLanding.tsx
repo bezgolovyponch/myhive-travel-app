@@ -19,10 +19,16 @@ import TripCalculator from './TripCalculator';
 import WhyUsSection from './WhyUsSection';
 import ReviewsSection from './ReviewsSection';
 import FaqSection from './FaqSection';
-import SwipeDeck, { builderUrlWithPicks } from './SwipeDeck';
+import SwipeDeck from './SwipeDeck';
 import { deckReducer, initialDeck } from './deck';
 import { trackCta, trackCtaAndGo } from './analytics';
-import { PHONE_DISPLAY, PHONE_HREF, type ActivityRow, type LandingActivity } from './data';
+import {
+  builderUrlWithPicks,
+  PHONE_DISPLAY,
+  PHONE_HREF,
+  type ActivityRow,
+  type LandingActivity,
+} from './data';
 import type { Pool } from './engine';
 
 // The three drawn numerals: same 90×120 box, monoline skeleton, hairline only.
@@ -61,7 +67,7 @@ export default function VoteLanding({
   const lp = useLocalePath();
   const [state, dispatch] = useReducer(deckReducer, undefined, initialDeck);
   const picked = state.picked;
-  const builderHref = lp(builderUrlWithPicks(picked));
+  const builderHref = lp(builderUrlWithPicks(destinationSlug, picked));
 
   const goToBuilder = (label: string, block: string) => trackCtaAndGo(label, block, builderHref);
 
@@ -177,7 +183,7 @@ export default function VoteLanding({
           </div>
 
           {/* the signature: a live deck, zero inputs required */}
-          <SwipeDeck deck={deck} state={state} dispatch={dispatch} />
+          <SwipeDeck deck={deck} state={state} dispatch={dispatch} destinationSlug={destinationSlug} />
         </div>
       </section>
 
@@ -347,7 +353,7 @@ export default function VoteLanding({
       <hr className="rule" />
 
       {/* ══════════ COSTS ══════════ */}
-      <CostsSection pool={pool} />
+      <CostsSection pool={pool} destinationSlug={destinationSlug} />
 
       <hr className="rule" />
 
@@ -379,9 +385,7 @@ export default function VoteLanding({
                 }
               }}
             >
-              {picked.length > 0
-                ? t('final.buildNow', { count: picked.length })
-                : tChrome('startVote')}
+              {picked.length > 0 ? t('final.buildNow') : tChrome('startVote')}
             </button>
             <a
               className="btn btn--ghost btn--lg"
@@ -419,7 +423,7 @@ export default function VoteLanding({
   );
 }
 
-function CostsSection({ pool }: { pool: Pool }) {
+function CostsSection({ pool, destinationSlug }: { pool: Pool; destinationSlug: string }) {
   const t = useT('landing.calc');
   return (
     <section id="costs">
@@ -427,7 +431,7 @@ function CostsSection({ pool }: { pool: Pool }) {
         <p className="t-eyebrow">{t('eyebrow')}</p>
         <h2 className="t-h2">{t('title')}</h2>
         <p className="t-lede">{t('lede')}</p>
-        <TripCalculator pool={pool} />
+        <TripCalculator pool={pool} destinationSlug={destinationSlug} />
       </div>
     </section>
   );

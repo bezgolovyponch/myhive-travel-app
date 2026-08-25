@@ -8,17 +8,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import type { LandingActivity } from './data';
-import { BUILDER_URL } from './data';
+import { builderUrlWithPicks } from './data';
 import type { DeckState, DeckAction } from './deck';
 import { isDeckFinished } from './deck';
 import { trackCta, trackCtaAndGo } from './analytics';
 
 const FLY_MS = 300;
 const SWIPE_THRESHOLD_PX = 95;
-
-export function builderUrlWithPicks(picked: string[]): string {
-  return picked.length ? `${BUILDER_URL}&picks=${picked.join(',')}` : BUILDER_URL;
-}
 
 function Coach({ off }: { off: boolean }) {
   const t = useT('landing.vote.deck');
@@ -51,11 +47,19 @@ function Coach({ off }: { off: boolean }) {
   );
 }
 
-function Shortlist({ deck, picked }: { deck: LandingActivity[]; picked: string[] }) {
+function Shortlist({
+  deck,
+  picked,
+  destinationSlug,
+}: {
+  deck: LandingActivity[];
+  picked: string[];
+  destinationSlug: string;
+}) {
   const t = useT('landing.vote.deck');
   const lp = useLocalePath();
   const chosen = deck.filter((a) => picked.includes(a.slug));
-  const href = lp(builderUrlWithPicks(picked));
+  const href = lp(builderUrlWithPicks(destinationSlug, picked));
   const ctaLabel = chosen.length ? 'Build your trip now' : 'Build your own trip';
   return (
     <div className="short">
@@ -102,10 +106,12 @@ export default function SwipeDeck({
   deck,
   state,
   dispatch,
+  destinationSlug,
 }: {
   deck: LandingActivity[];
   state: DeckState;
   dispatch: (a: DeckAction) => void;
+  destinationSlug: string;
 }) {
   const t = useT('landing.vote.deck');
   const tAct = useT('landing.activities');
@@ -243,7 +249,7 @@ export default function SwipeDeck({
     return (
       <div className="deck">
         <div className="deck__stage" style={{ height: 'auto' }} id="deck-stage">
-          <Shortlist deck={deck} picked={state.picked} />
+          <Shortlist deck={deck} picked={state.picked} destinationSlug={destinationSlug} />
         </div>
       </div>
     );

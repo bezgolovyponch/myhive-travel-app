@@ -946,7 +946,7 @@
       "final": {
         "title": "Stop debating in the group chat",
         "p": "Choose the activities. Send one link. Let the group vote.",
-        "buildNow": "Build your trip now ({count} chosen)",
+        "buildNow": "Build your trip now",
         "fine": "Reply in 10 minutes · Free cancellation · 30% deposit"
       },
       "sticky": {
