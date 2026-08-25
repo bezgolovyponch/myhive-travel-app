@@ -15,11 +15,20 @@ export function builderUrl(destinationSlug: string): string {
   return `/destination/${destinationSlug}?tab=trip-builder`;
 }
 
-// Landing selections ride along as query params; TripBuilder.js consumes
-// `picks` (comma-separated slugs) and `add` (one slug) into the shared cart.
+// Landing selections ride along as query params: TripBuilder.js consumes
+// `picks` (comma-separated slugs); useTripDeepLink consumes `add` (one slug)
+// with the same semantics as a legacy Add-to-trip click.
 export function builderUrlWithPicks(destinationSlug: string, picked: string[]): string {
   const base = builderUrl(destinationSlug);
   return picked.length ? `${base}&picks=${picked.join(',')}` : base;
+}
+
+export function builderUrlWithAdd(destinationSlug: string, activitySlug: string): string {
+  return `${builderUrl(destinationSlug)}&add=${activitySlug}`;
+}
+
+export function activityLink(destinationSlug: string, activitySlug: string): string {
+  return `/destination/${destinationSlug}/activity/${activitySlug}`;
 }
 export const PHONE_DISPLAY = '+420 795 518 597';
 export const PHONE_HREF = 'tel:+420795518597';

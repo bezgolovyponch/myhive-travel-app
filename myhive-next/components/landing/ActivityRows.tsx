@@ -9,7 +9,7 @@
 // (?locale= on the server fetch); UI strings come from the landing dictionary.
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import type { ActivityRow, LandingActivity } from './data';
-import { builderUrl, categoryLink } from './data';
+import { activityLink, builderUrlWithAdd, categoryLink } from './data';
 
 function ActivityCard({
   a,
@@ -26,17 +26,23 @@ function ActivityCard({
 }) {
   const t = useT('landing.activities');
   const lp = useLocalePath();
-  const activityHref = lp(`/destination/${destinationSlug}/activity/${a.slug}`);
+  const activityHref = lp(activityLink(destinationSlug, a.slug));
   return (
     <article className={`acard${picked ? ' is-picked' : ''}`}>
-      <a className="acard__ph" href={activityHref} tabIndex={-1} aria-hidden="true">
+      <div className="acard__ph">
         {a.imageUrl ? (
-          <img src={a.imageUrl} alt={a.name} loading="lazy" decoding="async" />
+          // aria-hidden + tabIndex -1: the name link below is the card's one
+          // accessible link; a second stop on the same href is noise. The chip
+          // stays OUTSIDE the anchor so assistive tech still reads the category
+          // and a tap on it doesn't navigate.
+          <a href={activityHref} tabIndex={-1} aria-hidden="true">
+            <img src={a.imageUrl} alt={a.name} loading="lazy" decoding="async" />
+          </a>
         ) : (
           <span className="acard__noimg">{t('photoComing')}</span>
         )}
         {showChip && a.category ? <span className="acard__cat">{a.category}</span> : null}
-      </a>
+      </div>
       <div className="acard__bd">
         <h3 className="acard__nm" title={a.name}>
           <a className="acard__link" href={activityHref}>
@@ -61,7 +67,7 @@ function ActivityCard({
               {picked ? t('added') : t('addToTrip')}
             </button>
           ) : (
-            <a className="btn btn--primary" href={lp(`${builderUrl(destinationSlug)}&add=${a.slug}`)}>
+            <a className="btn btn--primary" href={lp(builderUrlWithAdd(destinationSlug, a.slug))}>
               {t('addToTrip')}
             </a>
           )}

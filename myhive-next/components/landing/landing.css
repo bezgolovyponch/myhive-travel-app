@@ -327,9 +327,8 @@ body:has(.tl) {
   color: #b8e6bb;
   box-shadow: none;
 }
-/* The photo and the name are links to the activity's own page; an anchor is
-   inline by default, so the photo one needs its block box back. */
-.tl .acard__ph { position: relative; display: block; aspect-ratio: 4/3; background: var(--card-2); overflow: hidden; flex: none; min-height: 0; }
+.tl .acard__ph { position: relative; aspect-ratio: 4/3; background: var(--card-2); overflow: hidden; flex: none; min-height: 0; }
+/* The photo and the name link to the activity's own page. */
 .tl .acard__link { color: inherit; text-decoration: none; }
 .tl .acard__link:hover { color: var(--brand-ic); }
 .tl .acard__ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center center; }

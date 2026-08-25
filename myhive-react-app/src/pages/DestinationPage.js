@@ -28,11 +28,16 @@ function DestinationPage({initial}) {
   const location = useLocation();
   const navigate = useNavigate();
     useTripDeepLink();
-    const currentTab = new URLSearchParams(location.search).get('tab') || 'activities';
+    const searchParams = new URLSearchParams(location.search);
+    const currentTab = searchParams.get('tab') || 'activities';
     // Deep-linked category filter (?category=<slug>) — how the landing pages'
-    // category rows open "the category page". Applied by an effect below once
-    // the categories list is known, so an unknown slug degrades to 'all'.
-    const categoryParam = new URLSearchParams(location.search).get('category');
+    // category rows open "the category page". Validated against the categories
+    // list wherever it is applied, so an unknown slug degrades to 'all'.
+    const categoryParam = searchParams.get('category');
+    // Ref, not an effect dep: the mount fetch below must read the param without
+    // retriggering a full destination reload if the search string ever changes.
+    const categoryParamRef = useRef(categoryParam);
+    categoryParamRef.current = categoryParam;
     // Mount TripBuilder only once its tab has been opened — it fetches the
     // destination's activity catalog on mount, which is wasted on visitors
     // who never leave the Activities tab. Once activated it stays mounted
@@ -102,15 +107,20 @@ function DestinationPage({initial}) {
         setLoading(true);
           setError(false);
           setListError(false);
-          setCurrentFilter('all');
           const destData = await api.getDestinationBySlug(slug);
           const categoriesData = await api.getCategoriesForDestination(destData.id);
           if (cancelled) {
               return;
           }
+          // Fetch page 0 with the deep-linked category directly — seeding 'all'
+          // and letting the effect below re-filter would cost a second request.
+          const urlCategory = categoryParamRef.current;
+          const initialFilter =
+              urlCategory && categoriesData.some((c) => c.slug === urlCategory) ? urlCategory : 'all';
+          setCurrentFilter(initialFilter);
         setDestination(destData);
           setCategories(categoriesData);
-          await fetchActivitiesPage(destData.id, 0, 'all', true);
+          await fetchActivitiesPage(destData.id, 0, initialFilter, true);
           try {
               const pkgData = await api.getPackagesByDestination(destData.id);
               if (!cancelled) {
@@ -161,20 +171,23 @@ function DestinationPage({initial}) {
         }
     };
 
-    // Apply the deep-linked category once the destination and its categories
-    // have loaded (both the SPA fetch and the server-seeded first paint).
-    // Guarded by the categories list so a stale/foreign slug falls back to the
-    // full list instead of fetching an empty page. Later manual filter clicks
-    // don't refire this — the deps only change with the URL or a new load.
+    // Apply the deep-linked category on the server-seeded first paint (the SPA
+    // fetch above already seeds page 0 with it, and the currentFilter guard
+    // keeps this from re-fetching what that path loaded). Guarded by the
+    // categories list so a stale/foreign slug falls back to the full list
+    // instead of fetching an empty page. Later manual filter clicks don't
+    // refire this — the deps only change with the URL or a new load.
     useEffect(() => {
-        if (!destination || !categoryParam) {
+        if (!destination || !categoryParam || categoryParam === currentFilter) {
             return;
         }
         if (!categories.some((c) => c.slug === categoryParam)) {
             return;
         }
         handleFilterChange(categoryParam);
-        // handleFilterChange is recreated per render but only reads stable refs.
+        // handleFilterChange is recreated per render but only reads stable refs;
+        // currentFilter is deliberately read without being a dep, so a manual
+        // chip click away from the deep link doesn't snap back.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [categoryParam, destination, categories]);
 

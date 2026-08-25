@@ -144,24 +144,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // effect would re-seed travelers/dates/budget over the user's edits.
   const voteSession = searchParams.get('voteSession');
 
-  // Landing handoff: ?picks=slug,slug (the vote landing's shortlist) and
-  // ?add=slug (a landing catalogue card) seed the shared cart. Slugs resolve
-  // against this destination's own catalog, so the effect waits for it; adds
-  // are silent (the builder is already on screen — no setup modal, and
-  // ADD_TO_TRIP dedupes repeats by id). Waits for the saved-cart restore too:
+  // Landing handoff: ?picks=slug,slug — the vote landing's shortlist — seeds
+  // the shared cart. (?add= is NOT handled here: useTripDeepLink already owns
+  // it page-wide with the legacy click semantics.) Slugs resolve against this
+  // destination's own catalog, so the effect waits for it; adds are silent
+  // (the builder is already on screen — no setup modal, and ADD_TO_TRIP
+  // dedupes repeats by id). Waits for the saved-cart restore too:
   // RESTORE_FROM_STORAGE replaces tripItems wholesale, wiping earlier adds.
-  // The params are then stripped so removing a seeded item survives a reload.
+  // The param is then stripped so removing a seeded item survives a reload.
   const picksParam = searchParams.get('picks');
-  const addParam = searchParams.get('add');
   useEffect(() => {
-    if ((!picksParam && !addParam) || !state.restored || browseActivities.length === 0) {
+    if (!picksParam || !state.restored || browseActivities.length === 0) {
         return;
     }
-    const slugs = [
-        ...(picksParam ? picksParam.split(',') : []),
-        ...(addParam ? [addParam] : []),
-    ].map(s => s.trim()).filter(Boolean);
-    slugs.forEach(slug => {
+    picksParam.split(',').map(s => s.trim()).filter(Boolean).forEach(slug => {
         const activity = browseActivities.find(a => a.slug === slug);
         if (activity) {
             dispatch({type: 'ADD_TO_TRIP', activity, silent: true});
@@ -169,12 +165,11 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     });
     const next = new URLSearchParams(searchParams);
     next.delete('picks');
-    next.delete('add');
     setSearchParams(next, {replace: true});
     // searchParams/setSearchParams change identity per navigation; the param
-    // strings above are the real inputs.
+    // string above is the real input.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [picksParam, addParam, state.restored, browseActivities, dispatch]);
+  }, [picksParam, state.restored, browseActivities, dispatch]);
   // Annotation token: an explicit URL param (shared link) takes priority, else
   // fall back to the vote session this browser itself started (read once on
   // mount — StartGroupVoteModal writes it, handleContactSubmit and the

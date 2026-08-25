@@ -1592,10 +1592,11 @@ describe('vote button after a completed QUIZ vote', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Landing handoff: ?picks= / ?add= seed the cart from the URL
+// Landing handoff: ?picks= seeds the cart from the URL (?add= stays owned by
+// useTripDeepLink, which DestinationPage mounts page-wide)
 // ---------------------------------------------------------------------------
 
-describe('landing handoff via ?picks= and ?add=', () => {
+describe('landing handoff via ?picks=', () => {
     const kayak = { ...activity1, slug: 'kayaking' };
     const pub = { ...activity2, slug: 'pub-crawl' };
 
@@ -1628,9 +1629,9 @@ describe('landing handoff via ?picks= and ?add=', () => {
         expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_TO_TRIP', activity: pub, silent: true });
     });
 
-    test('add= seeds a single activity and unknown slugs are ignored', async () => {
+    test('unknown pick slugs are ignored, known ones still seed', async () => {
         api.getActivities.mockResolvedValue([kayak, pub]);
-        const dispatch = renderWithParams('?tab=trip-builder&add=pub-crawl&picks=gone-from-catalog');
+        const dispatch = renderWithParams('?tab=trip-builder&picks=gone-from-catalog,pub-crawl');
 
         await waitFor(() => {
             expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_TO_TRIP', activity: pub, silent: true });
@@ -1639,13 +1640,13 @@ describe('landing handoff via ?picks= and ?add=', () => {
         expect(adds).toHaveLength(1);
     });
 
-    test('the params are stripped from the URL after seeding, tab survives', async () => {
+    test('picks is stripped from the URL after seeding; tab and add survive', async () => {
         api.getActivities.mockResolvedValue([kayak]);
-        renderWithParams('?tab=trip-builder&picks=kayaking&add=kayaking');
+        renderWithParams('?tab=trip-builder&picks=kayaking&add=left-for-deep-link-hook');
 
         await waitFor(() => {
             expect(screen.getByTestId('handoff-location').textContent).toBe(
-                '/destination/prague?tab=trip-builder'
+                '/destination/prague?tab=trip-builder&add=left-for-deep-link-hook'
             );
         });
     });
