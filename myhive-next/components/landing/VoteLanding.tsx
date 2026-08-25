@@ -30,6 +30,7 @@ import {
   type LandingActivity,
 } from './data';
 import type { Pool } from './engine';
+import { VOTE_FLOW_PATH } from '../../lib/routes';
 
 // The three drawn numerals: same 90×120 box, monoline skeleton, hairline only.
 const STEP_FIGURES = [
@@ -39,12 +40,6 @@ const STEP_FIGURES = [
 ];
 
 const DEMO_POLL_PCT = [89, 78, 67, 56, 44];
-
-function scrollToDeck() {
-  document
-    .getElementById('deck-stage')
-    ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
 
 export default function VoteLanding({
   rows,
@@ -68,8 +63,26 @@ export default function VoteLanding({
   const [state, dispatch] = useReducer(deckReducer, undefined, initialDeck);
   const picked = state.picked;
   const builderHref = lp(builderUrlWithPicks(destinationSlug, picked));
+  // "Start group vote" behaves exactly like the homepage's CTA of the same name
+  // (components/site/LegacyHomePage.tsx): it enters the vote funnel. It used to
+  // scroll to the swipe deck, which read as the CTA doing nothing but jumping
+  // the page upward.
+  const voteHref = lp(VOTE_FLOW_PATH);
 
   const goToBuilder = (label: string, block: string) => trackCtaAndGo(label, block, builderHref);
+
+  const voteLink = (block: string, className: string) => (
+    <a
+      className={className}
+      href={voteHref}
+      onClick={(e) => {
+        e.preventDefault();
+        trackCtaAndGo('Start group vote', block, voteHref);
+      }}
+    >
+      {tChrome('startVote')}
+    </a>
+  );
 
   const steps = [
     { h: t('steps.s1h'), p: t('steps.s1p', { count: totalActivities }) },
@@ -109,16 +122,7 @@ export default function VoteLanding({
           </button>
         }
       >
-        <button
-          className="btn btn--primary"
-          type="button"
-          onClick={() => {
-            trackCta('Start group vote', 'header');
-            scrollToDeck();
-          }}
-        >
-          {tChrome('startVote')}
-        </button>
+        {voteLink('header', 'btn btn--primary')}
       </LandingHeader>
 
       {/* ══════════ HERO ══════════ */}
@@ -156,16 +160,7 @@ export default function VoteLanding({
             </div>
 
             <div className="hero__cta">
-              <button
-                className="btn btn--primary btn--lg"
-                type="button"
-                onClick={() => {
-                  trackCta('Start group vote', 'hero');
-                  scrollToDeck();
-                }}
-              >
-                {tChrome('startVote')}
-              </button>
+              {voteLink('hero', 'btn btn--primary btn--lg')}
               <a
                 className="btn btn--ghost btn--lg"
                 href="#activities"
@@ -233,13 +228,7 @@ export default function VoteLanding({
                 <strong>{t('band.timeNew')}</strong>
               </div>
               <div className="band__cta">
-                <button
-                  className="btn btn--primary btn--lg"
-                  type="button"
-                  onClick={() => goToBuilder('Start group vote', 'band')}
-                >
-                  {tChrome('startVote')}
-                </button>
+                {voteLink('band', 'btn btn--primary btn--lg')}
               </div>
               <p className="band__fine">{t('band.fine')}</p>
             </div>
@@ -299,18 +288,7 @@ export default function VoteLanding({
               );
             })}
           </div>
-          <div className="cta-row">
-            <button
-              className="btn btn--primary btn--lg"
-              type="button"
-              onClick={() => {
-                trackCta('Start group vote', 'steps');
-                scrollToDeck();
-              }}
-            >
-              {tChrome('startVote')}
-            </button>
-          </div>
+          <div className="cta-row">{voteLink('steps', 'btn btn--primary btn--lg')}</div>
         </div>
       </section>
 
@@ -373,20 +351,22 @@ export default function VoteLanding({
           <h2>{t('final.title')}</h2>
           <p>{t('final.p')}</p>
           <div className="final__row">
-            <button
-              className="btn btn--primary btn--lg"
-              type="button"
-              onClick={() => {
-                if (picked.length > 0) {
+            {/* With a shortlist the group has already voted here, so this
+                continues to the builder; empty, it enters the vote funnel. */}
+            {picked.length > 0 ? (
+              <a
+                className="btn btn--primary btn--lg"
+                href={builderHref}
+                onClick={(e) => {
+                  e.preventDefault();
                   goToBuilder('Build your trip now', 'final');
-                } else {
-                  trackCta('Start group vote', 'final');
-                  scrollToDeck();
-                }
-              }}
-            >
-              {picked.length > 0 ? t('final.buildNow') : tChrome('startVote')}
-            </button>
+                }}
+              >
+                {t('final.buildNow')}
+              </a>
+            ) : (
+              voteLink('final', 'btn btn--primary btn--lg')
+            )}
             <a
               className="btn btn--ghost btn--lg"
               href={PHONE_HREF}
