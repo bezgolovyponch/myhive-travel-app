@@ -9,26 +9,35 @@
 // (?locale= on the server fetch); UI strings come from the landing dictionary.
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import type { ActivityRow, LandingActivity } from './data';
-import { BUILDER_URL, categoryLink } from './data';
+import { activityLink, builderUrlWithAdd, categoryLink } from './data';
 
 function ActivityCard({
   a,
+  destinationSlug,
   showChip,
   picked,
   onToggle,
 }: {
   a: LandingActivity;
+  destinationSlug: string;
   showChip: boolean;
   picked?: boolean;
   onToggle?: (slug: string) => void;
 }) {
   const t = useT('landing.activities');
   const lp = useLocalePath();
+  const activityHref = lp(activityLink(destinationSlug, a.slug));
   return (
     <article className={`acard${picked ? ' is-picked' : ''}`}>
       <div className="acard__ph">
         {a.imageUrl ? (
-          <img src={a.imageUrl} alt={a.name} loading="lazy" decoding="async" />
+          // aria-hidden + tabIndex -1: the name link below is the card's one
+          // accessible link; a second stop on the same href is noise. The chip
+          // stays OUTSIDE the anchor so assistive tech still reads the category
+          // and a tap on it doesn't navigate.
+          <a href={activityHref} tabIndex={-1} aria-hidden="true">
+            <img src={a.imageUrl} alt={a.name} loading="lazy" decoding="async" />
+          </a>
         ) : (
           <span className="acard__noimg">{t('photoComing')}</span>
         )}
@@ -36,7 +45,9 @@ function ActivityCard({
       </div>
       <div className="acard__bd">
         <h3 className="acard__nm" title={a.name}>
-          {a.name}
+          <a className="acard__link" href={activityHref}>
+            {a.name}
+          </a>
         </h3>
         <div className="acard__dur">{a.durationLabel ?? ' '}</div>
         <div className="acard__pr">
@@ -56,7 +67,7 @@ function ActivityCard({
               {picked ? t('added') : t('addToTrip')}
             </button>
           ) : (
-            <a className="btn btn--primary" href={lp(`${BUILDER_URL}&add=${a.slug}`)}>
+            <a className="btn btn--primary" href={lp(builderUrlWithAdd(destinationSlug, a.slug))}>
               {t('addToTrip')}
             </a>
           )}
@@ -105,6 +116,7 @@ export default function ActivityRows({
               <ActivityCard
                 key={a.slug}
                 a={a}
+                destinationSlug={destinationSlug}
                 showChip={showChip}
                 picked={picked?.includes(a.slug)}
                 onToggle={onToggle}

@@ -13,6 +13,12 @@ export default function useTripDeepLink() {
     const navigate = useNavigate();
     const {dispatch} = useTrip();
     const handledRef = useRef(false);
+    // strip() runs after an async fetch; by then another consumer (the trip
+    // builder's ?picks= seeding) may have rewritten the query. Rebuilding from
+    // the effect's captured location.search would resurrect params that
+    // consumer already removed, so strip reads the latest location instead.
+    const locationRef = useRef(location);
+    locationRef.current = location;
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -25,10 +31,11 @@ export default function useTripDeepLink() {
 
         let cancelled = false;
         const strip = () => {
-            const next = new URLSearchParams(location.search);
+            const current = locationRef.current;
+            const next = new URLSearchParams(current.search);
             next.delete('add');
             next.delete('addPackage');
-            navigate({pathname: location.pathname, search: next.toString()}, {replace: true});
+            navigate({pathname: current.pathname, search: next.toString()}, {replace: true});
         };
 
         (async () => {

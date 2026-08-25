@@ -8,7 +8,28 @@ import type { Pool, PoolItem, Kind } from './engine';
 
 export const IMG_BASE = 'https://img.trivlu.com/';
 
-export const BUILDER_URL = '/?tab=trip-builder';
+// The real trip builder is the destination page's SPA-owned tab — the same
+// place the main header's cart continues to. The homepage ignores ?tab=, so
+// landing CTAs must never point there.
+export function builderUrl(destinationSlug: string): string {
+  return `/destination/${destinationSlug}?tab=trip-builder`;
+}
+
+// Landing selections ride along as query params: TripBuilder.js consumes
+// `picks` (comma-separated slugs); useTripDeepLink consumes `add` (one slug)
+// with the same semantics as a legacy Add-to-trip click.
+export function builderUrlWithPicks(destinationSlug: string, picked: string[]): string {
+  const base = builderUrl(destinationSlug);
+  return picked.length ? `${base}&picks=${picked.join(',')}` : base;
+}
+
+export function builderUrlWithAdd(destinationSlug: string, activitySlug: string): string {
+  return `${builderUrl(destinationSlug)}&add=${activitySlug}`;
+}
+
+export function activityLink(destinationSlug: string, activitySlug: string): string {
+  return `/destination/${destinationSlug}/activity/${activitySlug}`;
+}
 export const PHONE_DISPLAY = '+420 795 518 597';
 export const PHONE_HREF = 'tel:+420795518597';
 export const WHATSAPP_HREF =

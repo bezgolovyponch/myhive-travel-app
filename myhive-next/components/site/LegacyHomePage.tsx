@@ -6,14 +6,12 @@
 // server-renders into the initial HTML; only the hooks hydrate.
 import HomePage from '../../legacy-src/pages/HomePage';
 import { localizePath, useLocale } from '../../legacy-src/i18n';
+import { VOTE_FLOW_PATH } from '../../lib/routes';
 
 // The SSR page's CTAs hand the vote funnel to /vote/new rather than opening the
-// setup modal in place: the modal's confirm passes its setup through
-// react-router location state, which no full page load can carry. See the
-// HomePage prop comment. It is a hard navigation (window.location), so the
-// locale prefix has to be baked in here — LegacyRouter only localizes
-// react-router links.
-const VOTE_PATH = '/vote/new';
+// setup modal in place — see lib/routes.ts and the HomePage prop comment. The
+// locale prefix has to be baked in here: it is a hard navigation, and
+// LegacyRouter only localizes react-router links.
 
 export interface LegacyActivity {
   id: string;
@@ -23,5 +21,7 @@ export interface LegacyActivity {
 
 export default function LegacyHomePage({ activities }: { activities: LegacyActivity[] }) {
   const locale = useLocale();
-  return <HomePage featuredActivities={activities} voteHref={localizePath(VOTE_PATH, locale)} />;
+  return (
+    <HomePage featuredActivities={activities} voteHref={localizePath(VOTE_FLOW_PATH, locale)} />
+  );
 }

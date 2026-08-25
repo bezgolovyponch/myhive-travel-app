@@ -132,7 +132,11 @@
   background: radial-gradient(120% 90% at 78% 88%, #534ab726, #26243000 62%), linear-gradient(180deg, #232130, #1b1822);
   transition: border-color 0.2s, transform 0.2s;
 }
-.tl--prague .tile:hover { border-color: var(--brand-l); transform: translateY(-2px); }
+/* Pointer devices only: on touch the :hover state sticks after a tap and the
+   tile — which is not interactive — lights up as if it were clickable. */
+@media (hover: hover) {
+  .tl--prague .tile:hover { border-color: var(--brand-l); transform: translateY(-2px); }
+}
 .tl--prague .tile__h { flex: none; font-size: clamp(0.95rem, 1.75vw, 1.4rem); line-height: 1.1; max-width: 21ch; letter-spacing: -0.025em; }
 /* the render takes every pixel the copy does not, so no dead middle */
 .tl--prague .tile__ic {

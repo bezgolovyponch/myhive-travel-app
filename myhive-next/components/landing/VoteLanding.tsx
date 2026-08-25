@@ -19,11 +19,18 @@ import TripCalculator from './TripCalculator';
 import WhyUsSection from './WhyUsSection';
 import ReviewsSection from './ReviewsSection';
 import FaqSection from './FaqSection';
-import SwipeDeck, { builderUrlWithPicks } from './SwipeDeck';
+import SwipeDeck from './SwipeDeck';
 import { deckReducer, initialDeck } from './deck';
 import { trackCta, trackCtaAndGo } from './analytics';
-import { PHONE_DISPLAY, PHONE_HREF, type ActivityRow, type LandingActivity } from './data';
+import {
+  builderUrlWithPicks,
+  PHONE_DISPLAY,
+  PHONE_HREF,
+  type ActivityRow,
+  type LandingActivity,
+} from './data';
 import type { Pool } from './engine';
+import { VOTE_FLOW_PATH } from '../../lib/routes';
 
 // The three drawn numerals: same 90×120 box, monoline skeleton, hairline only.
 const STEP_FIGURES = [
@@ -33,12 +40,6 @@ const STEP_FIGURES = [
 ];
 
 const DEMO_POLL_PCT = [89, 78, 67, 56, 44];
-
-function scrollToDeck() {
-  document
-    .getElementById('deck-stage')
-    ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
 
 export default function VoteLanding({
   rows,
@@ -61,9 +62,27 @@ export default function VoteLanding({
   const lp = useLocalePath();
   const [state, dispatch] = useReducer(deckReducer, undefined, initialDeck);
   const picked = state.picked;
-  const builderHref = lp(builderUrlWithPicks(picked));
+  const builderHref = lp(builderUrlWithPicks(destinationSlug, picked));
+  // "Start group vote" behaves exactly like the homepage's CTA of the same name
+  // (components/site/LegacyHomePage.tsx): it enters the vote funnel. It used to
+  // scroll to the swipe deck, which read as the CTA doing nothing but jumping
+  // the page upward.
+  const voteHref = lp(VOTE_FLOW_PATH);
 
   const goToBuilder = (label: string, block: string) => trackCtaAndGo(label, block, builderHref);
+
+  const voteLink = (block: string, className: string) => (
+    <a
+      className={className}
+      href={voteHref}
+      onClick={(e) => {
+        e.preventDefault();
+        trackCtaAndGo('Start group vote', block, voteHref);
+      }}
+    >
+      {tChrome('startVote')}
+    </a>
+  );
 
   const steps = [
     { h: t('steps.s1h'), p: t('steps.s1p', { count: totalActivities }) },
@@ -103,16 +122,7 @@ export default function VoteLanding({
           </button>
         }
       >
-        <button
-          className="btn btn--primary"
-          type="button"
-          onClick={() => {
-            trackCta('Start group vote', 'header');
-            scrollToDeck();
-          }}
-        >
-          {tChrome('startVote')}
-        </button>
+        {voteLink('header', 'btn btn--primary')}
       </LandingHeader>
 
       {/* ══════════ HERO ══════════ */}
@@ -150,16 +160,7 @@ export default function VoteLanding({
             </div>
 
             <div className="hero__cta">
-              <button
-                className="btn btn--primary btn--lg"
-                type="button"
-                onClick={() => {
-                  trackCta('Start group vote', 'hero');
-                  scrollToDeck();
-                }}
-              >
-                {tChrome('startVote')}
-              </button>
+              {voteLink('hero', 'btn btn--primary btn--lg')}
               <a
                 className="btn btn--ghost btn--lg"
                 href="#activities"
@@ -177,7 +178,7 @@ export default function VoteLanding({
           </div>
 
           {/* the signature: a live deck, zero inputs required */}
-          <SwipeDeck deck={deck} state={state} dispatch={dispatch} />
+          <SwipeDeck deck={deck} state={state} dispatch={dispatch} destinationSlug={destinationSlug} />
         </div>
       </section>
 
@@ -227,13 +228,7 @@ export default function VoteLanding({
                 <strong>{t('band.timeNew')}</strong>
               </div>
               <div className="band__cta">
-                <button
-                  className="btn btn--primary btn--lg"
-                  type="button"
-                  onClick={() => goToBuilder('Start group vote', 'band')}
-                >
-                  {tChrome('startVote')}
-                </button>
+                {voteLink('band', 'btn btn--primary btn--lg')}
               </div>
               <p className="band__fine">{t('band.fine')}</p>
             </div>
@@ -293,18 +288,7 @@ export default function VoteLanding({
               );
             })}
           </div>
-          <div className="cta-row">
-            <button
-              className="btn btn--primary btn--lg"
-              type="button"
-              onClick={() => {
-                trackCta('Start group vote', 'steps');
-                scrollToDeck();
-              }}
-            >
-              {tChrome('startVote')}
-            </button>
-          </div>
+          <div className="cta-row">{voteLink('steps', 'btn btn--primary btn--lg')}</div>
         </div>
       </section>
 
@@ -347,7 +331,7 @@ export default function VoteLanding({
       <hr className="rule" />
 
       {/* ══════════ COSTS ══════════ */}
-      <CostsSection pool={pool} />
+      <CostsSection pool={pool} destinationSlug={destinationSlug} />
 
       <hr className="rule" />
 
@@ -367,22 +351,22 @@ export default function VoteLanding({
           <h2>{t('final.title')}</h2>
           <p>{t('final.p')}</p>
           <div className="final__row">
-            <button
-              className="btn btn--primary btn--lg"
-              type="button"
-              onClick={() => {
-                if (picked.length > 0) {
+            {/* With a shortlist the group has already voted here, so this
+                continues to the builder; empty, it enters the vote funnel. */}
+            {picked.length > 0 ? (
+              <a
+                className="btn btn--primary btn--lg"
+                href={builderHref}
+                onClick={(e) => {
+                  e.preventDefault();
                   goToBuilder('Build your trip now', 'final');
-                } else {
-                  trackCta('Start group vote', 'final');
-                  scrollToDeck();
-                }
-              }}
-            >
-              {picked.length > 0
-                ? t('final.buildNow', { count: picked.length })
-                : tChrome('startVote')}
-            </button>
+                }}
+              >
+                {t('final.buildNow')}
+              </a>
+            ) : (
+              voteLink('final', 'btn btn--primary btn--lg')
+            )}
             <a
               className="btn btn--ghost btn--lg"
               href={PHONE_HREF}
@@ -419,7 +403,7 @@ export default function VoteLanding({
   );
 }
 
-function CostsSection({ pool }: { pool: Pool }) {
+function CostsSection({ pool, destinationSlug }: { pool: Pool; destinationSlug: string }) {
   const t = useT('landing.calc');
   return (
     <section id="costs">
@@ -427,7 +411,7 @@ function CostsSection({ pool }: { pool: Pool }) {
         <p className="t-eyebrow">{t('eyebrow')}</p>
         <h2 className="t-h2">{t('title')}</h2>
         <p className="t-lede">{t('lede')}</p>
-        <TripCalculator pool={pool} />
+        <TripCalculator pool={pool} destinationSlug={destinationSlug} />
       </div>
     </section>
   );

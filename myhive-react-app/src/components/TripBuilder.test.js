@@ -1590,3 +1590,77 @@ describe('vote button after a completed QUIZ vote', () => {
         expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
     });
 });
+
+// ---------------------------------------------------------------------------
+// Landing handoff: ?picks= seeds the cart from the URL (?add= stays owned by
+// useTripDeepLink, which DestinationPage mounts page-wide)
+// ---------------------------------------------------------------------------
+
+describe('landing handoff via ?picks=', () => {
+    const kayak = { ...activity1, slug: 'kayaking' };
+    const pub = { ...activity2, slug: 'pub-crawl' };
+
+    function LandingLocationProbe() {
+        const location = useLocation();
+        return <div data-testid="handoff-location">{location.pathname + location.search}</div>;
+    }
+
+    function renderWithParams(search, { restored = true, tripItems = [] } = {}) {
+        const dispatch = jest.fn();
+        const state = buildTripState({ tripItems, restored });
+        render(
+            <MemoryRouter initialEntries={[`/destination/prague${search}`]}>
+                <TripContext.Provider value={{ state, dispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                    <LandingLocationProbe />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+        return dispatch;
+    }
+
+    test('picks resolve against the catalog and are added silently', async () => {
+        api.getActivities.mockResolvedValue([kayak, pub]);
+        const dispatch = renderWithParams('?tab=trip-builder&picks=kayaking,pub-crawl');
+
+        await waitFor(() => {
+            expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_TO_TRIP', activity: kayak, silent: true });
+        });
+        expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_TO_TRIP', activity: pub, silent: true });
+    });
+
+    test('unknown pick slugs are ignored, known ones still seed', async () => {
+        api.getActivities.mockResolvedValue([kayak, pub]);
+        const dispatch = renderWithParams('?tab=trip-builder&picks=gone-from-catalog,pub-crawl');
+
+        await waitFor(() => {
+            expect(dispatch).toHaveBeenCalledWith({ type: 'ADD_TO_TRIP', activity: pub, silent: true });
+        });
+        const adds = dispatch.mock.calls.filter(([a]) => a.type === 'ADD_TO_TRIP');
+        expect(adds).toHaveLength(1);
+    });
+
+    test('picks is stripped from the URL after seeding; tab and add survive', async () => {
+        api.getActivities.mockResolvedValue([kayak]);
+        renderWithParams('?tab=trip-builder&picks=kayaking&add=left-for-deep-link-hook');
+
+        await waitFor(() => {
+            expect(screen.getByTestId('handoff-location').textContent).toBe(
+                '/destination/prague?tab=trip-builder&add=left-for-deep-link-hook'
+            );
+        });
+    });
+
+    test('waits for the saved-cart restore so RESTORE_FROM_STORAGE cannot wipe the seed', async () => {
+        api.getActivities.mockResolvedValue([kayak]);
+        const dispatch = renderWithParams('?tab=trip-builder&picks=kayaking', { restored: false });
+
+        // The catalog resolves, but the effect must hold until restored flips.
+        await waitFor(() => {
+            expect(api.getActivities).toHaveBeenCalled();
+        });
+        expect(dispatch).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'ADD_TO_TRIP' })
+        );
+    });
+});

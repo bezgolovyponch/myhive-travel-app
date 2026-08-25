@@ -143,6 +143,33 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // changes on every navigation (e.g. ?tab= switches) and re-running this
   // effect would re-seed travelers/dates/budget over the user's edits.
   const voteSession = searchParams.get('voteSession');
+
+  // Landing handoff: ?picks=slug,slug — the vote landing's shortlist — seeds
+  // the shared cart. (?add= is NOT handled here: useTripDeepLink already owns
+  // it page-wide with the legacy click semantics.) Slugs resolve against this
+  // destination's own catalog, so the effect waits for it; adds are silent
+  // (the builder is already on screen — no setup modal, and ADD_TO_TRIP
+  // dedupes repeats by id). Waits for the saved-cart restore too:
+  // RESTORE_FROM_STORAGE replaces tripItems wholesale, wiping earlier adds.
+  // The param is then stripped so removing a seeded item survives a reload.
+  const picksParam = searchParams.get('picks');
+  useEffect(() => {
+    if (!picksParam || !state.restored || browseActivities.length === 0) {
+        return;
+    }
+    picksParam.split(',').map(s => s.trim()).filter(Boolean).forEach(slug => {
+        const activity = browseActivities.find(a => a.slug === slug);
+        if (activity) {
+            dispatch({type: 'ADD_TO_TRIP', activity, silent: true});
+        }
+    });
+    const next = new URLSearchParams(searchParams);
+    next.delete('picks');
+    setSearchParams(next, {replace: true});
+    // searchParams/setSearchParams change identity per navigation; the param
+    // string above is the real input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picksParam, state.restored, browseActivities, dispatch]);
   // Annotation token: an explicit URL param (shared link) takes priority, else
   // fall back to the vote session this browser itself started (read once on
   // mount — StartGroupVoteModal writes it, handleContactSubmit and the
