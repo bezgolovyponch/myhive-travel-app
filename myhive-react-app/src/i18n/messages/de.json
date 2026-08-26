@@ -704,7 +704,7 @@
       },
       "prague": {
         "title": "Trivlu. Warum Prag die beste JGA-Stadt Europas ist.",
-        "description": "Prag liegt neunzig Minuten entfernt. Das Bier kostet 2,20 €. Trivlu bietet 72 lokale Aktivitäten. Lies fünf Gründe, echte Preise und ein komplettes Beispiel-Wochenende."
+        "description": "Prag liegt 90 Minuten entfernt. Das Bier kostet 2,20 €. Trivlu bietet 72 lokale Aktivitäten. Lies fünf Gründe, echte Preise und ein komplettes Beispiel-Wochenende."
       }
     },
     "chrome": {
@@ -948,9 +948,9 @@
       "hero": {
         "eyebrow": "JGA-Planer für Prag",
         "tPre": "Prag ist ",
-        "tEm1": "neunzig Minuten entfernt",
+        "tEm1": "90 Minuten entfernt",
         "tMid": " und ",
-        "tEm2": "viermal günstiger",
+        "tEm2": "4-mal günstiger",
         "sub": "Prag ist die beliebteste JGA-Stadt Europas. Viel zu erleben, niedrige Preise, und fast alles liegt in Gehweite.",
         "ctaExplore": "Aktivitäten entdecken",
         "pf1b": "15 Jahre",
@@ -964,7 +964,7 @@
       },
       "tiles": {
         "title": "Vier Argumente für Prag",
-        "t1h": "Dein Geld hält viermal länger",
+        "t1h": "Dein Geld hält 4-mal länger",
         "t1alt": "Ein lila Portemonnaie mit Euroscheinen",
         "t1b": "2,20 €",
         "t1mid": " das Bier ",
@@ -979,7 +979,7 @@
         "t3b": "72 Aktivitäten",
         "t3mid": " ",
         "t3em": "· ab 26 €",
-        "t4h": "Alles liegt innerhalb von zwanzig Minuten zu Fuß",
+        "t4h": "Alles liegt innerhalb von 20 Minuten zu Fuß",
         "t4alt": "Eine Karte des Prager Zentrums mit Karlsbrücke und drei Pins",
         "t4b": "20 Min.",
         "t4mid": " von Ecke zu Ecke",
