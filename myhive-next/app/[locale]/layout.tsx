@@ -61,24 +61,30 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-KB7BJLDS';
 // GTM runs ONLY on the canonical domain (allowlist, not the CRA's localhost
 // blocklist): the Ф0 preview URL must not pump QA traffic into the production
 // container/ad audiences, and localhost still throws a cross-origin "Script
-// error." — Consent Mode v2 / CookieYes load through the GTM container itself.
+// error."
 //
-// Because the whole stack arrives through the container, that gate is also why a
-// preview shows no cookie banner, no events and no Meta Pixel: none of them are
-// loaded by this app directly. NEXT_PUBLIC_GTM_FORCE=true lifts the host check so
-// a preview (or localhost) can verify the stack before the domain cutover.
-// Whatever it collects lands in the container NEXT_PUBLIC_GTM_ID names, so point
-// that at a test container when the production numbers matter.
+// The consent banner (CookieScript) no longer arrives through the container: it
+// is loaded directly below, synchronously and BEFORE the GTM snippet, so its
+// Google Consent Mode v2 defaults are in place when gtm.js starts. It shares
+// the same canonical-domain gate — a preview therefore shows no cookie banner
+// and no events. NEXT_PUBLIC_GTM_FORCE=true lifts the host check so a preview
+// (or localhost) can verify the stack before the domain cutover. Whatever it
+// collects lands in the container NEXT_PUBLIC_GTM_ID names, so point that at a
+// test container when the production numbers matter.
 //
-// Forcing it is necessary but NOT sufficient, and the difference is invisible:
-// CookieYes keeps its own domain allowlist, so on a host it does not recognise
-// the banner still renders while window.getCkyConsent never initialises —
-// measured on localhost, undefined even after clicking Accept, against a
-// function under www.trivlu.com. utils/consent.js is deny-by-default, so
-// ad_storage is never granted and the Meta Pixel stays blocked no matter what
-// the visitor clicks. A forced host has to be added in the CookieYes dashboard
-// too before "the banner appeared" means the consent stack actually works.
+// Forcing it is necessary but NOT sufficient: CookieScript serves a per-account
+// banner and only counts/works on domains registered in its dashboard, so on an
+// unregistered forced host the banner may not appear or the consent API may not
+// initialise. utils/consent.js is deny-by-default, so ad_storage is never
+// granted in that state — add the host in the CookieScript dashboard before
+// "the banner appeared" means the consent stack actually works.
 const GTM_FORCED = process.env.NEXT_PUBLIC_GTM_FORCE === 'true';
+
+// CookieScript account snippet (dashboard: cookie-script.com). The banner
+// translates itself into the visitor's language; data-cs-lang overrides that
+// per page so the banner always matches the page locale (en at the root, /de).
+const COOKIESCRIPT_SRC =
+  'https://cdn.cookie-script.com/s/02e924b8b583bd45774ea56e837d191b.js';
 
 // Lifting the host gate must never silently fall back to the production
 // container: everything the QA session clicks would land in the real GA4
@@ -159,6 +165,14 @@ export default async function RootLayout({
             in the root layout is what actually works. GTM and the consent stack
             it pulls must start at parse time; afterInteractive would hold the
             banner until hydration and undercount bounces. */}
+        {/* CookieScript first and deliberately synchronous (no async): Google
+            Consent Mode v2 defaults must be set before gtm.js executes, and a
+            blocking script ahead of the GTM snippet is the only ordering the
+            browser guarantees. Same canonical gate as the noscript iframe —
+            previews/localhost get no banner unless GTM is forced. */}
+        {(isCanonicalDeploy() || GTM_FORCED) && (
+          <script src={COOKIESCRIPT_SRC} charSet="UTF-8" data-cs-lang={locale} />
+        )}
         <script dangerouslySetInnerHTML={{ __html: GTM_SNIPPET }} />
         {/* Turnstile (render=explicit) is in <head> too, and as a plain async
             script rather than next/script: beforeInteractive emitted a loader

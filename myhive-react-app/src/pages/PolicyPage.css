@@ -41,7 +41,7 @@
     color: var(--text-muted);
 }
 
-/* "Consent Preferences" reuses CookieYes' .cky-banner-element hook; style it as
+/* "Consent Preferences" reuses CookieScript's .csconsentlink hook; style it as
    a regular button rather than the default footer-link look. */
 .policy-section button.policy-consent-link {
     background: var(--brand);

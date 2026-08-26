@@ -19,9 +19,9 @@ test('links to the legal policy pages', () => {
     expect(screen.getByRole('link', {name: /privacy policy/i})).toHaveAttribute('href', '/privacy-policy');
 });
 
-test('exposes a CookieYes revisit element for reopening the consent banner', () => {
+test('exposes a CookieScript revisit element for reopening the consent banner', () => {
     renderFooter();
 
     const revisit = screen.getByRole('button', {name: /cookie settings/i});
-    expect(revisit).toHaveClass('cky-banner-element');
+    expect(revisit).toHaveClass('csconsentlink');
 });

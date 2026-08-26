@@ -2,11 +2,10 @@ import PageHead from '../components/PageHead';
 import {SITE_URL} from '../services/config';
 import './PolicyPage.css';
 
-// Static Cookie Policy content generated with CookieYes. Kept as plain content
-// (not the CookieYes embed script, which only renders when present in the page
-// at parse time) so it renders reliably on this SPA route. The cookie list is
-// maintained manually; the "Consent Preferences" control reuses CookieYes'
-// .cky-banner-element hook to reopen the consent banner.
+// Static Cookie Policy content (originally generated with CookieYes, kept as
+// plain content so it renders reliably on this SPA route). The cookie list is
+// maintained manually; the "Consent Preferences" control reuses CookieScript's
+// .csconsentlink hook to reopen the consent banner.
 function CookiePolicyPage() {
     return (
         <div className="policy-page">
@@ -60,7 +59,7 @@ function CookiePolicyPage() {
 
                 <h2>Manage cookie preferences</h2>
                 <p>
-                    <button type="button" className="cky-banner-element policy-consent-link">
+                    <button type="button" className="csconsentlink policy-consent-link">
                         Consent Preferences
                     </button>
                 </p>

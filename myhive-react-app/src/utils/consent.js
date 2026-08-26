@@ -1,14 +1,17 @@
-// signal: 'ad_storage' -> CookieYes 'advertisement'; 'analytics_storage' -> 'analytics'.
-// Deny-by-default: returns false unless CookieYes explicitly reports the category granted.
-//
-// IMPORTANT: The exact CookieYes accessor (getCkyConsent) must be validated against the
-// live CookieYes integration during GTM/dashboard setup. Until then this is deny-by-default,
-// which is the safe failure mode.
+// signal: 'ad_storage' -> CookieScript 'targeting'; 'analytics_storage' -> 'performance'.
+// Deny-by-default: returns false unless CookieScript explicitly reports the
+// category granted. currentState().categories lists ONLY the agreed categories
+// (see help.cookie-script.com, Custom Functions), so a simple includes() is the
+// whole check; any missing API (blocked script, localhost, old cache) fails
+// closed.
 export function hasConsent(signal) {
-  const category = signal === 'ad_storage' ? 'advertisement' : 'analytics';
+  const category = signal === 'ad_storage' ? 'targeting' : 'performance';
   try {
-    const consent = typeof window.getCkyConsent === 'function' ? window.getCkyConsent() : null;
-    return !!(consent && consent.categories && consent.categories[category] === true);
+    const instance = window.CookieScript && window.CookieScript.instance;
+    const state = instance && typeof instance.currentState === 'function'
+      ? instance.currentState()
+      : null;
+    return !!(state && Array.isArray(state.categories) && state.categories.includes(category));
   } catch (_e) {
     return false;
   }

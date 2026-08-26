@@ -68,16 +68,16 @@
 }
 
 .footer-legal a,
-.footer-legal button.cky-banner-element {
+.footer-legal button.csconsentlink {
     color: var(--text-muted);
     text-decoration: none;
     font-size: 0.8125rem;
     transition: color 150ms;
 }
 
-/* The CookieYes "Cookie settings" revisit control is a button (no navigable
+/* The CookieScript "Cookie settings" revisit control is a button (no navigable
    href); style it to match the surrounding footer links. */
-.footer-legal button.cky-banner-element {
+.footer-legal button.csconsentlink {
     background: none;
     border: none;
     padding: 0;
@@ -86,7 +86,7 @@
 }
 
 .footer-legal a:hover,
-.footer-legal button.cky-banner-element:hover {
+.footer-legal button.csconsentlink:hover {
     color: var(--brand);
 }
 

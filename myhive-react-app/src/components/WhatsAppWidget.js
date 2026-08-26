@@ -18,15 +18,15 @@ const FULL_SCREEN_ROUTES = [
 // offset above it there so it never covers that primary CTA.
 const ADD_BAR_ROUTE = /^\/destination\/[^/]+\/activity\/[^/]+$/;
 
-// CookieYes' consent bar is a fixed z-index 9999999 sheet anchored to the bottom
-// of the viewport. On a phone it is ~390px tall — full width, over half the
-// screen — so the FAB sat underneath it: invisible and untappable until the
-// visitor consented. It arrives via GTM, which index.html skips on localhost,
-// so it never shows up in local dev; only production has it.
+// The consent banner (CookieScript, #cookiescript_injected) is a fixed sheet
+// anchored to the bottom of the viewport; on a phone it can cover half the
+// screen, burying the FAB: invisible and untappable until the visitor
+// consented. Its loader is skipped on localhost (same guard as GTM), so it
+// never shows up in local dev; only production has it.
 // We publish its height and the FAB floats clear of it (never over it: the
 // consent controls must stay reachable).
-const CONSENT_BAR = '.cky-consent-container';
-const CONSENT_HEIGHT_VAR = '--cky-consent-h';
+const CONSENT_BAR = '#cookiescript_injected';
+const CONSENT_HEIGHT_VAR = '--consent-bar-h';
 
 function useConsentBarClearance() {
     useEffect(() => {
@@ -41,8 +41,8 @@ function useConsentBarClearance() {
             root.style.setProperty(CONSENT_HEIGHT_VAR, `${height}px`);
         };
 
-        // The bar is injected (and later torn down) asynchronously by GTM, and
-        // resizes when "Customise" expands it — watch both events.
+        // The bar is injected (and later torn down) asynchronously by the
+        // consent script, and resizes when "Customise" expands it — watch both.
         const track = () => {
             barObserver?.disconnect();
             barObserver = null;

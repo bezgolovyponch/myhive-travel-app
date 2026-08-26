@@ -19,9 +19,9 @@ test('renders the policy content statically (no injected script)', () => {
     expect(container.querySelector('script')).toBeNull();
 });
 
-test('exposes a CookieYes revisit control to reopen the consent banner', () => {
+test('exposes a CookieScript revisit control to reopen the consent banner', () => {
     renderPage();
 
     const revisit = screen.getByRole('button', {name: /consent preferences/i});
-    expect(revisit).toHaveClass('cky-banner-element');
+    expect(revisit).toHaveClass('csconsentlink');
 });

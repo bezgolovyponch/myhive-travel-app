@@ -28,9 +28,9 @@ function Footer() {
                     <Link to="/refund-policy">{t('legal.refundPolicy')}</Link>
                     <Link to="/cookie-policy">{t('legal.cookiePolicy')}</Link>
                     <Link to="/privacy-policy">{t('legal.privacyPolicy')}</Link>
-                    {/* CookieYes binds the click handler to .cky-banner-element to reopen
+                    {/* CookieScript binds the click handler to .csconsentlink to reopen
                         the consent banner — no JS of ours needed. */}
-                    <button type="button" className="cky-banner-element">{t('legal.cookieSettings')}</button>
+                    <button type="button" className="csconsentlink">{t('legal.cookieSettings')}</button>
                 </nav>
                 <p>&copy; {new Date().getFullYear()} {t('copyright')}</p>
             </div>

@@ -2,11 +2,11 @@
     position: fixed;
     right: 16px;
     /* --fab-bottom is the resting offset (raised by the sticky CTA / Add-to-Trip
-       bar below); --cky-consent-h is the live height of the CookieYes consent
-       sheet, published by WhatsAppWidget.js, so the FAB floats clear of it
-       instead of being buried under its z-index 9999999 backdrop. */
+       bar below); --consent-bar-h is the live height of the CookieScript
+       consent sheet, published by WhatsAppWidget.js, so the FAB floats clear
+       of it instead of being buried under its backdrop. */
     --fab-bottom: 16px;
-    bottom: calc(var(--fab-bottom) + var(--cky-consent-h, 0px));
+    bottom: calc(var(--fab-bottom) + var(--consent-bar-h, 0px));
     z-index: 60; /* under .app-modal overlays (z-index: 70 in styles/global.css) */
     /* 64px matches the pissup WhatsApp FAB (same size on desktop and mobile). */
     width: 64px;
