@@ -737,7 +737,7 @@
     },
     "activities": {
       "eyebrow": "Was du buchen kannst",
-      "title": "{count} Aktivitäten. Wählt aus, was eure Gruppe will",
+      "title": "{count} Aktivitäten. Wähle aus, was deine Gruppe will",
       "ledeVote": "Von Panzerfahren über Bootstouren bis Spa — hier findet jede Gruppe etwas.",
       "ledePrague": "Von Panzerfahren über Stripclubs bis Spa — bei uns findet jeder JGA seinen Stil.",
       "inCatalogue": "{count} im Katalog",
@@ -752,13 +752,13 @@
     "calc": {
       "eyebrow": "Ein Wochenende für jedes Budget",
       "title": "Sieh, was dein Budget wirklich kauft",
-      "lede": "Sag uns, wie lange ihr bleibt und wie viel ihr ausgeben wollt. Wir bauen ein Beispiel-Wochenende aus dem echten Katalog.",
+      "lede": "Sag uns, wie lange du bleibst und wie viel du ausgeben willst. Wir bauen ein Beispiel-Wochenende aus dem echten Katalog.",
       "exampleWeekend": "Ein Beispiel-Wochenende",
       "exampleTrip": "Ein Beispiel-Trip über {days} Tage",
       "activitiesCount": "{count} Aktivitäten",
       "sub": "Eine von vielen Möglichkeiten. Alles später im Trip-Planer änderbar.",
       "perPerson": "Pro Person",
-      "note": "Nur das Programm. Flüge und Betten bucht ihr selbst. Preise gelten ab acht Personen.",
+      "note": "Nur das Programm. Flüge und Betten buchst du selbst. Preise gelten ab acht Personen.",
       "howManyDays": "Wie viele Tage",
       "activitiesPerDay": "Aktivitäten pro Tag",
       "budgetPerPerson": "Budget pro Person",
@@ -775,7 +775,7 @@
       "compareWith": "Vergleiche Prag mit",
       "breakdown": "Bier {beer} € · Bett {bed} € · Essen {food} €",
       "prague": "Prag",
-      "saves": "Eure 10er-Gruppe spart",
+      "saves": "Deine 10er-Gruppe spart",
       "source": "Bier und Essen: Numbeo, August 2026. Eine Mahlzeit ist ein Abendessen im günstigen Restaurant. Hotels: zentrales Drei-Sterne-Doppelzimmer, geteilt durch zwei Personen.",
       "joyAlt": "Männer stoßen an der Bar mit Bier an"
     },
@@ -783,8 +783,8 @@
       "title": "Neue Firma. Erfahrenes Team",
       "eyebrowPrague": "Über uns",
       "p1": "Wir haben fünfzehn Jahre lang Junggesellenabschiede in Prag organisiert.",
-      "p2Vote": "Mit Trivlu hast du zwei Vorteile: Du zahlst den Venue-Preis ohne Agenturaufschlag. Und du sprichst direkt mit der Person, die eure Aktivitäten bucht. Unser Team sitzt in Prag und hilft dir jederzeit gern.",
-      "p2Prague": "Mit Trivlu hast du zwei Vorteile: Du zahlst den Venue-Preis ohne Agenturaufschlag. Und du sprichst direkt mit der Person, die eure Aktivitäten bucht.",
+      "p2Vote": "Mit Trivlu hast du zwei Vorteile: Du zahlst den Venue-Preis ohne Agenturaufschlag. Und du sprichst direkt mit der Person, die deine Aktivitäten bucht. Unser Team sitzt in Prag und hilft dir jederzeit gern.",
+      "p2Prague": "Mit Trivlu hast du zwei Vorteile: Du zahlst den Venue-Preis ohne Agenturaufschlag. Und du sprichst direkt mit der Person, die deine Aktivitäten bucht.",
       "p3Prague": "Unser Team sitzt in Prag und hilft dir jederzeit gern.",
       "g1": "Zahle jetzt 30 Prozent Anzahlung. Den Rest später.",
       "g2": "Kostenlose Stornierung für jede Aktivität.",
@@ -816,12 +816,12 @@
       "eyebrowPrague": "Beantwortet, bevor du fragst",
       "vote": {
         "q1": "Ist Prag 2026 noch eine gute Wahl? Ich habe gelesen, dass Junggesellenabschiede verboten wurden.",
-        "q1a1": "Prag hat keine Junggesellenabschiede verboten. Die Stadt hat im November 2024 kommerzielle Pub-Crawls verboten. Das Verbot gilt im historischen Zentrum zwischen 22:00 und 06:00 Uhr. Die Strafe beträgt bis zu 100.000 CZK. Sie trifft den Veranstalter, nicht eure Gruppe. Eure Freunde dürfen zu jeder Uhrzeit von Kneipe zu Kneipe ziehen.",
-        "q1a2": "Im Zentrum gibt es außerdem Zonen mit Alkoholverbot. Eine offene Dose in der Hand kostet bis zu 10.000 CZK. Unsere Abende starten früher. Unsere Abende finden in Venues statt, nicht auf der Straße. Diese Regeln betreffen kein Stück eures Wochenendes.",
+        "q1a1": "Prag hat keine Junggesellenabschiede verboten. Die Stadt hat im November 2024 kommerzielle Pub-Crawls verboten. Das Verbot gilt im historischen Zentrum zwischen 22:00 und 06:00 Uhr. Die Strafe beträgt bis zu 100.000 CZK. Sie trifft den Veranstalter, nicht deine Gruppe. Deine Freunde dürfen zu jeder Uhrzeit von Kneipe zu Kneipe ziehen.",
+        "q1a2": "Im Zentrum gibt es außerdem Zonen mit Alkoholverbot. Eine offene Dose in der Hand kostet bis zu 10.000 CZK. Unsere Abende starten früher. Unsere Abende finden in Venues statt, nicht auf der Straße. Diese Regeln betreffen kein Stück deines Wochenendes.",
         "q2": "Muss jeder eine App laden oder ein Konto anlegen?",
         "q2a": "Nein. Du teilst einen Link. Deine Freunde öffnen ihn im Browser. Keine App, kein Konto, kein Passwort. Deine Daten gibst du erst vor der Buchung an.",
         "q3": "Wer zahlt, und wann?",
-        "q3a": "Eine Person zahlt 30 Prozent Anzahlung per Karte. Die Anzahlung reserviert jede Aktivität. Den Rest zahlt die Gruppe bei Ankunft. Kostenlose Stornierung schützt euch, wenn sich die Gruppengröße ändert.",
+        "q3a": "Eine Person zahlt 30 Prozent Anzahlung per Karte. Die Anzahlung reserviert jede Aktivität. Den Rest zahlt die Gruppe bei Ankunft. Kostenlose Stornierung schützt dich, wenn sich die Gruppengröße ändert.",
         "q3link": "Erstattungsrichtlinie",
         "q4": "Wir haben kein Interesse an Stripclubs. Gibt es noch etwas anderes?",
         "q4a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle Rafting, Schießen, Kartfahren oder Axtwerfen. Wähle ein Bierspa, eine Brauereitour oder eine Bootsfahrt. Wähle Bubble Football oder Panzerfahren. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
@@ -838,7 +838,7 @@
         "q1": "Wann ist die beste Reisezeit?",
         "q1a": "Wähle Mai, Juni oder September. Das Wetter passt zur Moldau und den Outdoor-Aktivitäten. Die Stadt bleibt entspannt. Juli und August bringen Hitze und Menschenmassen. Der Winter ist günstig und die Bars sind exzellent. Im Winter schließen Rafting und Outdoor-Schießen.",
         "q2": "Wie weit im Voraus sollten wir buchen?",
-        "q2a": "Bucht sechs bis acht Wochen im Voraus. Flüge kosten rund 44 Prozent weniger als last minute. Die beliebten Samstags-Slots bleiben offen. Vier Wochen gehen auch noch. Zwei Wochen funktionieren mit kleinerer Auswahl.",
+        "q2a": "Buche sechs bis acht Wochen im Voraus. Flüge kosten rund 44 Prozent weniger als last minute. Die beliebten Samstags-Slots bleiben offen. Vier Wochen gehen auch noch. Zwei Wochen funktionieren mit kleinerer Auswahl.",
         "q3": "Organisiert ihr auch Unterkunft und Transfers?",
         "q3a": "Trivlu bietet Flughafentransfers als Aktivität an. Hotels verkauft Trivlu nicht. Einen besseren Preis findest du selbst. Trivlu schlägt nichts auf. Wir nennen dir die Viertel, von denen aus jede Venue zu Fuß erreichbar ist.",
         "q4": "Ist Prag sicher für eine große Gruppe?",
@@ -854,7 +854,7 @@
     "vote": {
       "hero": {
         "title1": "Schluss mit Chatten.",
-        "title2": "Startet das Voting",
+        "title2": "Starte das Voting",
         "leadPre": "Plane einen ",
         "leadEm": "JGA in Prag",
         "leadPost": " ohne Chaos im Gruppenchat.",
@@ -898,7 +898,7 @@
       "band": {
         "lblPre": "So sieht es aus mit",
         "h": "Voting beendet. Tour in 10 Minuten gebucht",
-        "p": "Deine Gruppe stimmt ab. Trivlu baut daraus einen exakten Zeitplan, Stunde für Stunde auf eure Gruppe zugeschnitten.",
+        "p": "Deine Gruppe stimmt ab. Trivlu baut daraus einen exakten Zeitplan, Stunde für Stunde auf deine Gruppe zugeschnitten.",
         "timeOld": "Drei Wochen",
         "timeNew": "10 Minuten",
         "fine": "Kein Konto und keine Kreditkarte nötig.",
@@ -913,7 +913,7 @@
         "okSub": "Prag · 19.–21. Juni · 8 Jungs"
       },
       "steps": {
-        "title": "Plane euren Trip in 3 einfachen Schritten",
+        "title": "Plane deinen Trip in 3 einfachen Schritten",
         "lede": "Lass die Gruppe entscheiden. Du bestätigst die Gewinner.",
         "s1h": "Erstelle eine Shortlist",
         "s1p": "Wähle aus {count} Aktivitäten in Prag. Kein Konto, kein Formular.",
@@ -999,8 +999,8 @@
         "mythP": "Schlagzeilen über ein Pub-Crawl-Verbot haben diesen Eindruck erzeugt. Kein Gesetz macht Gruppenreisen nach Prag illegal.",
         "factBadge": "Was stimmt",
         "factH": "Kommerzielle Pub-Crawls dürfen nachts nicht stattfinden",
-        "factP1": "Die Stadt hat kommerzielle Pub-Crawls im November 2024 verboten. Das Verbot gilt im historischen Zentrum zwischen 22:00 und 06:00 Uhr. Die Strafe beträgt bis zu 100.000 CZK. Sie trifft den Veranstalter, nicht eure Gruppe.",
-        "factP2": "Eure Freunde dürfen zu jeder Uhrzeit von Kneipe zu Kneipe ziehen.",
+        "factP1": "Die Stadt hat kommerzielle Pub-Crawls im November 2024 verboten. Das Verbot gilt im historischen Zentrum zwischen 22:00 und 06:00 Uhr. Die Strafe beträgt bis zu 100.000 CZK. Sie trifft den Veranstalter, nicht deine Gruppe.",
+        "factP2": "Deine Freunde dürfen zu jeder Uhrzeit von Kneipe zu Kneipe ziehen.",
         "l1b": "Trinken auf der Straße",
         "l1t": " ist in Teilen des Zentrums verboten. Eine offene Dose in der Hand kostet bis zu 10.000 CZK. Terrassen und Biergärten bleiben legal.",
         "l2b": "Leih-E-Scooter",
@@ -1013,8 +1013,8 @@
         "noteT": " Unsere Abende starten früher. Unsere Abende finden in Partner-Venues statt, nicht auf der Straße. Wir haben die Regeländerung in Prag miterlebt. Keine Trivlu-Gruppe hat je eine Strafe bekommen."
       },
       "final": {
-        "title": "Zeit, euer perfektes Wochenende in Prag zu bauen",
-        "p": "Wähle eure Daten. Wähle die Aktivitäten. Sieh den Preis für eure Gruppe. Das Ganze dauert zehn Minuten.",
+        "title": "Zeit, dein perfektes Wochenende in Prag zu bauen",
+        "p": "Wähle deine Daten. Wähle die Aktivitäten. Sieh den Preis für deine Gruppe. Das Ganze dauert zehn Minuten.",
         "fine": "Antwort in 10 Minuten · Kostenlose Stornierung · 30 % Anzahlung"
       }
     },
