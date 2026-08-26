@@ -25,7 +25,9 @@ function todayLocalIso() {
 //  - onTripConfirm lets the opener continue somewhere (the trip builder) once
 //    the setup is stored; the SPA needs no such hook because SET_TRIP_SETUP
 //    opens the cart dropdown in place.
-function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null, clearOnCancel = true, onTripConfirm }) {
+// The vote callbacks default to no-ops: only vote mode reaches them, and a
+// trip-mode caller (the landings) should not have to pass stubs.
+function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm = () => {}, onVoteCancel = () => {}, preselectedDestination = null, clearOnCancel = true, onTripConfirm }) {
     const {state: catalog} = useCatalog();
     const {state, dispatch} = useTrip();
     const t = useT('tripSetup');

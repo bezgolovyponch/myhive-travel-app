@@ -8,6 +8,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api, type Activity, type Category } from '@/lib/api';
 import { DEFAULT_DESTINATION_SLUG, pageMetadata } from '@/lib/seo';
 import PragueLanding from '@/components/landing/PragueLanding';
+import LegacyProviders, { type LegacyDestination } from '@/components/site/LegacyProviders';
 import { buildRows, hydratePool, toLandingActivity } from '@/components/landing/data';
 
 export const revalidate = 3600;
@@ -31,6 +32,7 @@ async function loadCatalogue(locale: string): Promise<{
   activities: Activity[];
   categories: Category[];
   destinationSlug: string;
+  destinations: LegacyDestination[];
 }> {
   try {
     const destinations = (await api.getDestinations(locale)) ?? [];
@@ -38,30 +40,48 @@ async function loadCatalogue(locale: string): Promise<{
       destinations.find((d) => d.slug === 'prague') ??
       destinations.find((d) => d.slug === DEFAULT_DESTINATION_SLUG) ??
       destinations[0];
-    if (!prague) return { activities: [], categories: [], destinationSlug: 'prague' };
+    if (!prague)
+      return {
+        activities: [],
+        categories: [],
+        destinationSlug: 'prague',
+        destinations: [],
+      };
     const [activities, categories] = await Promise.all([
       api.getActivities(prague.id, locale).then((a) => a ?? []),
       api.getDestinationCategories(prague.id, locale).then((c) => c ?? []),
     ]);
-    return { activities, categories, destinationSlug: prague.slug };
+    return {
+      activities,
+      categories,
+      destinationSlug: prague.slug,
+      destinations,
+    };
   } catch {
     // Backend unreachable: render the page on curated fallbacks rather than 500.
-    return { activities: [], categories: [], destinationSlug: 'prague' };
+    return {
+      activities: [],
+      categories: [],
+      destinationSlug: 'prague',
+      destinations: [],
+    };
   }
 }
 
 export default async function PragueLandingPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const { activities, categories, destinationSlug } = await loadCatalogue(locale);
+  const { activities, categories, destinationSlug, destinations } = await loadCatalogue(locale);
   const landing = activities.map(toLandingActivity);
 
   return (
-    <PragueLanding
-      rows={buildRows(landing, categories)}
-      pool={hydratePool(landing)}
-      totalActivities={landing.length || FALLBACK_TOTAL}
-      destinationSlug={destinationSlug}
-    />
+    <LegacyProviders destinations={destinations}>
+      <PragueLanding
+        rows={buildRows(landing, categories)}
+        pool={hydratePool(landing)}
+        totalActivities={landing.length || FALLBACK_TOTAL}
+        destinationSlug={destinationSlug}
+      />
+    </LegacyProviders>
   );
 }

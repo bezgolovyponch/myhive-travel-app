@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import type { LandingActivity } from './data';
-import { builderUrlWithPicks } from './data';
+import { builderUrl } from './data';
 import type { DeckState, DeckAction } from './deck';
 import { isDeckFinished } from './deck';
 import { trackCta, trackCtaAndGo } from './analytics';
@@ -59,7 +59,7 @@ function Shortlist({
   const t = useT('landing.vote.deck');
   const lp = useLocalePath();
   const chosen = deck.filter((a) => picked.includes(a.slug));
-  const href = lp(builderUrlWithPicks(destinationSlug, picked));
+  const href = lp(builderUrl(destinationSlug));
   const ctaLabel = chosen.length ? 'Build your trip now' : 'Build your own trip';
   return (
     <div className="short">
@@ -107,11 +107,16 @@ export default function SwipeDeck({
   state,
   dispatch,
   destinationSlug,
+  picked,
+  onAdd,
 }: {
   deck: LandingActivity[];
   state: DeckState;
   dispatch: (a: DeckAction) => void;
   destinationSlug: string;
+  /** Slugs already in the trip cart — the shortlist below the deck. */
+  picked: string[];
+  onAdd: (slug: string) => void;
 }) {
   const t = useT('landing.vote.deck');
   const tAct = useT('landing.activities');
@@ -141,6 +146,7 @@ export default function SwipeDeck({
     setTimeout(() => {
       busyRef.current = false;
       dispatch({ type: 'swipe', yes: isYes, id });
+      if (isYes) onAdd(id);
     }, FLY_MS);
   };
 
@@ -148,9 +154,7 @@ export default function SwipeDeck({
     if (busyRef.current || state.cursor >= deck.length) return;
     const el = topCard();
     if (!el) return;
-    const stamp = el.querySelector<HTMLElement>(
-      isYes ? '.dcard__stamp--yes' : '.dcard__stamp--no',
-    );
+    const stamp = el.querySelector<HTMLElement>(isYes ? '.dcard__stamp--yes' : '.dcard__stamp--no');
     if (stamp) stamp.style.opacity = '1';
     fly(el, deck[state.cursor].slug, isYes);
   };
@@ -249,7 +253,7 @@ export default function SwipeDeck({
     return (
       <div className="deck">
         <div className="deck__stage" style={{ height: 'auto' }} id="deck-stage">
-          <Shortlist deck={deck} picked={state.picked} destinationSlug={destinationSlug} />
+          <Shortlist deck={deck} picked={picked} destinationSlug={destinationSlug} />
         </div>
       </div>
     );

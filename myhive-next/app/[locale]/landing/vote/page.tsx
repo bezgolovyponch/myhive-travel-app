@@ -7,12 +7,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api, type Activity, type Category } from '@/lib/api';
 import { DEFAULT_DESTINATION_SLUG, pageMetadata } from '@/lib/seo';
 import VoteLanding from '@/components/landing/VoteLanding';
-import {
-  buildDeck,
-  buildRows,
-  hydratePool,
-  toLandingActivity,
-} from '@/components/landing/data';
+import LegacyProviders, { type LegacyDestination } from '@/components/site/LegacyProviders';
+import { buildDeck, buildRows, hydratePool, toLandingActivity } from '@/components/landing/data';
 
 export const revalidate = 3600;
 
@@ -38,38 +34,51 @@ async function loadCatalogue(locale: string): Promise<{
   activities: Activity[];
   categories: Category[];
   destinationSlug: string;
+  destinations: LegacyDestination[];
 }> {
   try {
     const destinations = (await api.getDestinations(locale)) ?? [];
-    const main =
-      destinations.find((d) => d.slug === DEFAULT_DESTINATION_SLUG) ?? destinations[0];
-    if (!main) return { activities: [], categories: [], destinationSlug: DEFAULT_DESTINATION_SLUG };
+    const main = destinations.find((d) => d.slug === DEFAULT_DESTINATION_SLUG) ?? destinations[0];
+    if (!main)
+      return {
+        activities: [],
+        categories: [],
+        destinationSlug: DEFAULT_DESTINATION_SLUG,
+        destinations: [],
+      };
     const [activities, categories] = await Promise.all([
       api.getActivities(main.id, locale).then((a) => a ?? []),
       api.getDestinationCategories(main.id, locale).then((c) => c ?? []),
     ]);
-    return { activities, categories, destinationSlug: main.slug };
+    return { activities, categories, destinationSlug: main.slug, destinations };
   } catch {
     // Backend unreachable: render the page on curated fallbacks rather than 500.
-    return { activities: [], categories: [], destinationSlug: DEFAULT_DESTINATION_SLUG };
+    return {
+      activities: [],
+      categories: [],
+      destinationSlug: DEFAULT_DESTINATION_SLUG,
+      destinations: [],
+    };
   }
 }
 
 export default async function VoteLandingPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const { activities, categories, destinationSlug } = await loadCatalogue(locale);
+  const { activities, categories, destinationSlug, destinations } = await loadCatalogue(locale);
   const landing = activities.map(toLandingActivity);
   const prices = landing.map((a) => a.price).filter((p) => p > 0);
 
   return (
-    <VoteLanding
-      rows={buildRows(landing, categories)}
-      deck={buildDeck(landing)}
-      pool={hydratePool(landing)}
-      totalActivities={landing.length || FALLBACK_TOTAL}
-      fromPrice={prices.length ? Math.min(...prices) : FALLBACK_FROM_PRICE}
-      destinationSlug={destinationSlug}
-    />
+    <LegacyProviders destinations={destinations}>
+      <VoteLanding
+        rows={buildRows(landing, categories)}
+        deck={buildDeck(landing)}
+        pool={hydratePool(landing)}
+        totalActivities={landing.length || FALLBACK_TOTAL}
+        fromPrice={prices.length ? Math.min(...prices) : FALLBACK_FROM_PRICE}
+        destinationSlug={destinationSlug}
+      />
+    </LegacyProviders>
   );
 }

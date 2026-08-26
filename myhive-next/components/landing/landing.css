@@ -835,3 +835,84 @@ body:has(.tl) {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Header cart button + badge. Shared: both landings carry the real trip cart
+   (see LandingCart.tsx), so this moved out of home.css. */
+.tl .hdr__cart {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #ffffff0f;
+  color: var(--text);
+  flex: none;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.tl .hdr__cart:hover { transform: translateY(-1px); border-color: var(--brand-l); background: #ffffff16; }
+.tl .hdr__cart svg { width: 1.25rem; height: 1.25rem; }
+.tl .hdr__cart-count {
+  position: absolute;
+  right: -0.28rem;
+  top: -0.3rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--brand-ll);
+  color: #16131c;
+  border: 2px solid #16131c;
+  font-family: var(--display);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tl .hdr__cart-count:empty { display: none; }
+
+/* Cart panel — the landing's paint over the site's real cart state. Deliberately
+   not the SPA's TripBuilderDropdown markup: that reaches for main's token
+   vocabulary, which a landing does not load. */
+.tl .lcart { position: relative; flex: none; }
+
+.tl .lcart__panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  z-index: 60;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--card);
+  box-shadow: 0 1.5rem 3rem #00000066;
+  text-align: left;
+}
+
+.tl .lcart__hd { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.tl .lcart__hd h3 { font-family: var(--display); font-size: 1rem; margin: 0; }
+.tl .lcart__x,
+.tl .lcart__rm {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.4rem;
+}
+.tl .lcart__x:hover, .tl .lcart__rm:hover { color: var(--text); background: #ffffff12; }
+
+.tl .lcart__list { list-style: none; margin: 0.7rem 0; padding: 0; display: grid; gap: 0.45rem; }
+.tl .lcart__list li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.5rem; font-size: 0.86rem; }
+.tl .lcart__nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl .lcart__pr { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.tl .lcart__ft { display: grid; gap: 0.55rem; border-top: 1px solid var(--line); padding-top: 0.7rem; font-size: 0.86rem; }
+.tl .lcart__empty { display: grid; gap: 0.6rem; margin-top: 0.7rem; }
+.tl .lcart__empty p { color: var(--muted); font-size: 0.86rem; margin: 0; }

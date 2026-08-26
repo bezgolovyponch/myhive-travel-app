@@ -18,13 +18,34 @@ import ReviewsSection from './ReviewsSection';
 import FaqSection from './FaqSection';
 import { trackCta, trackCtaAndGo } from './analytics';
 import { builderUrl, PHONE_DISPLAY, PHONE_HREF, type ActivityRow } from './data';
+import { useLandingCart } from './useLandingCart';
 import type { Pool } from './engine';
 
 const TILE_IMAGES = [
-  { key: 't1', src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/wallet.webp', w: 480, h: 336 },
-  { key: 't2', src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/plane.webp', w: 480, h: 317 },
-  { key: 't3', src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/tank.webp', w: 480, h: 331 },
-  { key: 't4', src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/map.webp', w: 480, h: 322 },
+  {
+    key: 't1',
+    src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/wallet.webp',
+    w: 480,
+    h: 336,
+  },
+  {
+    key: 't2',
+    src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/plane.webp',
+    w: 480,
+    h: 317,
+  },
+  {
+    key: 't3',
+    src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/tank.webp',
+    w: 480,
+    h: 331,
+  },
+  {
+    key: 't4',
+    src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/map.webp',
+    w: 480,
+    h: 322,
+  },
 ] as const;
 
 export default function PragueLanding({
@@ -44,14 +65,22 @@ export default function PragueLanding({
   const tChrome = useT('landing.chrome');
   const lp = useLocalePath();
   const builderHref = lp(builderUrl(destinationSlug));
+  const cart = useLandingCart(
+    destinationSlug,
+    rows.flatMap((r) => r.items),
+  );
 
+  // Same first step as the main site: ask travelers/dates before the builder.
+  // The modal (LandingCart mounts it) continues from there — to the cart panel
+  // when there is a shortlist, to the builder when there is not.
   const builderLink = (block: string, label: string, className: string) => (
     <a
       className={className}
       href={builderHref}
       onClick={(e) => {
         e.preventDefault();
-        trackCtaAndGo(label, block, builderHref);
+        trackCta(label, block);
+        cart.openSetup();
       }}
     >
       {tChrome('buildTrip')}
@@ -60,7 +89,9 @@ export default function PragueLanding({
 
   return (
     <div className={`tl tl--prague ${inter.variable}`} id="top">
-      <LandingHeader>{builderLink('header', 'Build your trip', 'btn btn--primary')}</LandingHeader>
+      <LandingHeader destinationSlug={destinationSlug}>
+        {builderLink('header', 'Build your trip', 'btn btn--primary')}
+      </LandingHeader>
 
       {/* ══════════ HERO ══════════ */}
       <section className="hero">
@@ -102,7 +133,13 @@ export default function PragueLanding({
           <p className="t-eyebrow">{tAct('eyebrow')}</p>
           <h2 className="t-h2">{tAct('title', { count: totalActivities })}</h2>
           <p className="t-lede">{tAct('ledePrague')}</p>
-          <ActivityRows rows={rows} destinationSlug={destinationSlug} showChip />
+          <ActivityRows
+            rows={rows}
+            destinationSlug={destinationSlug}
+            showChip
+            picked={cart.picked}
+            onToggle={cart.toggle}
+          />
           <div className="grid__more">
             <a
               className="btn btn--ghost btn--lg"

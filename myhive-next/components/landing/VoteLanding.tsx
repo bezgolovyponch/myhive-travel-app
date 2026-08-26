@@ -23,13 +23,14 @@ import SwipeDeck from './SwipeDeck';
 import { deckReducer, initialDeck } from './deck';
 import { trackCta, trackCtaAndGo } from './analytics';
 import {
-  builderUrlWithPicks,
+  builderUrl,
   PHONE_DISPLAY,
   PHONE_HREF,
   type ActivityRow,
   type LandingActivity,
 } from './data';
 import type { Pool } from './engine';
+import { useLandingCart } from './useLandingCart';
 import { VOTE_FLOW_PATH } from '../../lib/routes';
 
 // The three drawn numerals: same 90×120 box, monoline skeleton, hairline only.
@@ -61,15 +62,24 @@ export default function VoteLanding({
   const tChrome = useT('landing.chrome');
   const lp = useLocalePath();
   const [state, dispatch] = useReducer(deckReducer, undefined, initialDeck);
-  const picked = state.picked;
-  const builderHref = lp(builderUrlWithPicks(destinationSlug, picked));
+  // The shortlist is the site's trip cart, so the header badge, the deck, the
+  // builder and a returning visitor's saved cart are all the same list.
+  const cart = useLandingCart(destinationSlug, deck);
+  const picked = cart.picked;
+  const builderHref = lp(builderUrl(destinationSlug));
   // "Start group vote" behaves exactly like the homepage's CTA of the same name
   // (components/site/LegacyHomePage.tsx): it enters the vote funnel. It used to
   // scroll to the swipe deck, which read as the CTA doing nothing but jumping
   // the page upward.
   const voteHref = lp(VOTE_FLOW_PATH);
 
-  const goToBuilder = (label: string, block: string) => trackCtaAndGo(label, block, builderHref);
+  // Ask travelers/dates before the builder, the way the main site does on the
+  // first add. LandingCart mounts the modal; its confirm opens the cart panel,
+  // or continues to the builder when there is nothing to show there.
+  const goToBuilder = (label: string, block: string) => {
+    trackCta(label, block);
+    cart.openSetup();
+  };
 
   const voteLink = (block: string, className: string) => (
     <a
@@ -92,36 +102,7 @@ export default function VoteLanding({
 
   return (
     <div className={`tl tl--home ${inter.variable}`} id="top">
-      <LandingHeader
-        cart={
-          <button
-            className="hdr__cart"
-            type="button"
-            aria-label={tChrome(picked.length === 1 ? 'cartAriaOne' : 'cartAriaOther', {
-              count: picked.length,
-            })}
-            onClick={() => {
-              if (picked.length > 0) goToBuilder('Cart', 'header');
-              else document.getElementById('activities')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="9" cy="20" r="1" />
-              <circle cx="19" cy="20" r="1" />
-              <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6" />
-            </svg>
-            <span className="hdr__cart-count">{picked.length > 0 ? picked.length : ''}</span>
-          </button>
-        }
-      >
+      <LandingHeader destinationSlug={destinationSlug}>
         {voteLink('header', 'btn btn--primary')}
       </LandingHeader>
 
@@ -178,7 +159,14 @@ export default function VoteLanding({
           </div>
 
           {/* the signature: a live deck, zero inputs required */}
-          <SwipeDeck deck={deck} state={state} dispatch={dispatch} destinationSlug={destinationSlug} />
+          <SwipeDeck
+            deck={deck}
+            state={state}
+            dispatch={dispatch}
+            destinationSlug={destinationSlug}
+            picked={picked}
+            onAdd={cart.add}
+          />
         </div>
       </section>
 
@@ -227,9 +215,7 @@ export default function VoteLanding({
                 <em>{t('band.timeOld')}</em>
                 <strong>{t('band.timeNew')}</strong>
               </div>
-              <div className="band__cta">
-                {voteLink('band', 'btn btn--primary btn--lg')}
-              </div>
+              <div className="band__cta">{voteLink('band', 'btn btn--primary btn--lg')}</div>
               <p className="band__fine">{t('band.fine')}</p>
             </div>
             <div className="band__vis">
@@ -314,7 +300,7 @@ export default function VoteLanding({
             rows={rows}
             destinationSlug={destinationSlug}
             picked={picked}
-            onToggle={(id) => dispatch({ type: 'toggle', id })}
+            onToggle={cart.toggle}
           />
           <div className="grid__more">
             <a

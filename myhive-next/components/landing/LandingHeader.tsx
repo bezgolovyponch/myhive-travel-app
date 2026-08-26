@@ -9,14 +9,16 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useT } from '../../legacy-src/i18n';
 import TrivluLogo, { PhoneIcon, WhatsAppIcon } from './TrivluLogo';
 import LandingLanguageSwitcher from './LandingLanguageSwitcher';
+import LandingCart from './LandingCart';
 import { PHONE_DISPLAY, PHONE_HREF, WHATSAPP_HREF } from './data';
 
 export default function LandingHeader({
   children,
-  cart,
+  destinationSlug,
 }: {
   children?: ReactNode;
-  cart?: ReactNode;
+  /** The cart's Continue button navigates by it, so every landing passes it. */
+  destinationSlug: string;
 }) {
   const [stuck, setStuck] = useState(false);
   const t = useT('landing.chrome');
@@ -50,7 +52,7 @@ export default function LandingHeader({
         </a>
         {children}
         <LandingLanguageSwitcher />
-        {cart}
+        <LandingCart destinationSlug={destinationSlug} />
       </div>
     </header>
   );
