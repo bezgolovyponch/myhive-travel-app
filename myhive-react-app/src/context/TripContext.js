@@ -102,6 +102,11 @@ export function reducer(state, action) {
             return {...state, tripBudget: action.budget};
         case 'CLOSE_TRIP_SETUP_MODAL':
             return {...state, tripSetupModalOpen: false};
+        // Opening the setup modal without adding anything: the landing pages ask
+        // for travelers/dates from a CTA, where the visitor's shortlist (or an
+        // empty cart) must survive the modal either way.
+        case 'OPEN_TRIP_SETUP':
+            return {...state, tripSetupModalOpen: true};
         case 'CANCEL_TRIP_SETUP':
             return {...state, tripItems: [], tripBudget: null, tripSetupModalOpen: false};
         case 'ADD_PACKAGE_TO_TRIP': {

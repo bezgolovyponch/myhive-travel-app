@@ -1,62 +1,7 @@
-:root {
-    /* Brand = the main button purple (the old aubergine tone is retired) */
-    --brand: #534AB7;
-    --brand-dark: #433B96;
-    /* Homepage-redesign purple, promoted to a global token: activity CTAs across
-       the catalog and detail pages use it so all pages match the main page. */
-    --purple: #534AB7;
-    --purple-l: #7F77DD;
-    /* Accent retired the old orange (#FF5722): all accents now use the CTA
-       purple so prices, the cart dot, and discount badges match the buttons. */
-    --accent: #534AB7;
-    --green: #4CAF50;
-    --gray: #999;
-    --white: #fff;
-
-    /* Surfaces & Text (Dark Theme) */
-    --bg: #1f2121;
-    --surface: #262828;
-    --text: #f5f5f5;
-    --text-muted: rgba(167, 169, 169, 0.7);
-    --border: rgba(119, 124, 124, 0.3);
-    --card-border: rgba(119, 124, 124, 0.15);
-    --error: rgba(255, 84, 89, 1);
-
-    /* Teal accents */
-    --primary: #32b8c6;
-    --primary-hover: #2da6b2;
-    --primary-active: #2996a1;
-    /* Text on teal buttons — white for readability on the dark theme. */
-    --primary-text: #fff;
-    --focus-ring: 0 0 0 3px rgba(50, 184, 198, 0.4);
-
-    /* Subtle tints */
-    --tint-blue: rgba(29, 78, 216, 0.15);
-    --tint-orange: rgba(194, 65, 12, 0.15);
-
-    /* Typography */
-    --font: "FKGroteskNeue", "Geist", "Inter", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-
-    /* Spacing (rem-based, scales with root) */
-    --gap-xs: 0.25rem;
-    --gap-sm: 0.5rem;
-    --gap: 1rem;
-    --gap-lg: 1.5rem;
-    --gap-xl: 2rem;
-    --gap-2xl: 3rem;
-    --gap-3xl: 5rem;
-
-    /* Misc */
-    --radius: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-full: 9999px;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-    --page-padding: clamp(1rem, 5vw, 10%);
-    --header-height: 5rem;
-}
+/* Tokens live in tokens.css so components with their own stylesheets can be
+   rendered without this file — see the note there. @import keeps them first
+   in the cascade, exactly where the :root block used to be. */
+@import './tokens.css';
 
 /* Base */
 *, *::before, *::after {
@@ -320,106 +265,12 @@ textarea {
     color: var(--text);
 }
 
-/* Modal */
-.app-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 70;
-}
-
-.app-modal.hidden {
-    display: none !important;
-}
-.app-modal-content {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    max-width: 720px;
-    width: 95%;
-    max-height: 90vh;
-    box-shadow: var(--shadow-lg);
-    /* Header and footer stay pinned; only the body scrolls, so action
-       buttons are always visible even when the calendar is open */
-    display: flex;
-    flex-direction: column;
-}
+/* Modal chrome lives in components/AppModal.css so the landings can pull it in
+   without this stylesheet. Only the global chat-widget interaction stays here. */
 
 /* The floating WhatsApp FAB must never cover modal action buttons */
 body:has(.app-modal) .trv-chat-fab {
     display: none;
-}
-.app-modal-header {
-    padding: 0.75rem var(--gap-lg);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--bg);
-    flex-shrink: 0;
-}
-
-.app-modal-header h2 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin: 0;
-}
-.app-modal-close-btn {
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: var(--gap-xs);
-}
-
-.app-modal-close-btn:hover {
-    color: var(--text);
-}
-
-.app-modal-body {
-    padding: var(--gap-lg);
-    overflow-y: auto;
-    flex: 1 1 auto;
-    min-height: 0;
-}
-.app-modal-footer {
-    padding: var(--gap);
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--gap-sm);
-    flex-shrink: 0;
-}
-
-/* Mobile: bottom sheet so the pinned footer sits at the thumb */
-@media (max-width: 768px) {
-    .app-modal {
-        align-items: flex-end;
-        /* The sheet is bottom-anchored, so its anchor has to be the *visible*
-           bottom edge. `inset: 0` pins to the layout viewport, which on iOS
-           Safari runs on behind the bottom toolbar — the sheet's footer
-           (Cancel / Continue) and the row above it ended up underneath it,
-           while the content was already sized in dvh. bottom:auto releases
-           the inherited inset so height can take over; 100dvh tracks the
-           toolbar as it shows and hides. */
-        bottom: auto;
-        height: 100dvh;
-    }
-
-    .app-modal-content {
-        width: 100%;
-        max-width: none;
-        max-height: 92dvh;
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    }
-
-    /* Keep the action buttons clear of the home indicator / browser bar */
-    .app-modal-footer {
-        padding-bottom: calc(var(--gap) + env(safe-area-inset-bottom));
-    }
 }
 
 /* Utilities */

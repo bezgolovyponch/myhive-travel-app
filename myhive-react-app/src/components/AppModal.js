@@ -1,6 +1,10 @@
 import {useEffect, useId, useRef} from 'react';
 import {useModalA11y} from '../hooks/useModalA11y';
 import {useT} from '../i18n';
+// AppModal.css is written against the design tokens, so it brings them along:
+// this component renders on pages that never load global.css (the landings).
+import '../styles/tokens.css';
+import './AppModal.css';
 
 // iOS Safari lays fixed elements out against the *large* viewport, so a
 // bottom-anchored sheet can sit far below the visible bottom edge: on a 14 Pro

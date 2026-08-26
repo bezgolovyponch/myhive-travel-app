@@ -18,7 +18,14 @@ function todayLocalIso() {
     return `${now.getFullYear()}-${month}-${day}`;
 }
 
-function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null }) {
+// clearOnCancel / onTripConfirm exist for the landing pages, which open this
+// modal from a CTA instead of from the first add to the cart:
+//  - clearOnCancel=false dismisses without CANCEL_TRIP_SETUP's cart wipe, which
+//    would otherwise throw away a shortlist built by swiping.
+//  - onTripConfirm lets the opener continue somewhere (the trip builder) once
+//    the setup is stored; the SPA needs no such hook because SET_TRIP_SETUP
+//    opens the cart dropdown in place.
+function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null, clearOnCancel = true, onTripConfirm }) {
     const {state: catalog} = useCatalog();
     const {state, dispatch} = useTrip();
     const t = useT('tripSetup');
@@ -80,7 +87,7 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
         if (isVoteMode) {
             onVoteCancel();
         } else {
-            dispatch({type: 'CANCEL_TRIP_SETUP'});
+            dispatch({type: clearOnCancel ? 'CANCEL_TRIP_SETUP' : 'CLOSE_TRIP_SETUP_MODAL'});
         }
     };
 
@@ -122,6 +129,9 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, o
                 startDate: startDate,
                 endDate: endDate
             });
+            if (onTripConfirm) {
+                onTripConfirm({travelers: travelersNum, startDate, endDate, destination});
+            }
         }
     };
 

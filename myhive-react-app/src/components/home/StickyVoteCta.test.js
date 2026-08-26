@@ -78,7 +78,7 @@ test('sticky CTA z-index stays below the app-modal overlay', () => {
     const fs = require('fs');
     const path = require('path');
     const ctaCss = fs.readFileSync(path.join(__dirname, 'StickyVoteCta.css'), 'utf8');
-    const globalCss = fs.readFileSync(path.join(__dirname, '../../styles/global.css'), 'utf8');
+    const globalCss = fs.readFileSync(path.join(__dirname, '../AppModal.css'), 'utf8');
 
     const ctaZ = Number(ctaCss.match(/\.sticky-vote-cta\s*{[^}]*?z-index:\s*(\d+)/)[1]);
     const modalZ = Number(globalCss.match(/\.app-modal\s*{[^}]*?z-index:\s*(\d+)/)[1]);

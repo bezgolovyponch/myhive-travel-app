@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatDurationLabel,
   toLandingActivity,
+  toCartItem,
   buildRows,
   buildDeck,
   hydratePool,
@@ -28,6 +29,39 @@ describe('formatDurationLabel', () => {
     expect(formatDurationLabel(90)).toBe('1.5 h');
     expect(formatDurationLabel(120)).toBe('2 h');
     expect(formatDurationLabel(null)).toBeNull();
+  });
+});
+
+// A landing add is a real cart add, so the payload has to carry everything the
+// cart, the dropdown and the pricing helpers read — the id to dedupe on, the
+// destination slug the dropdown's Continue button navigates by, and minPrice
+// for the group-minimum floor.
+describe('toCartItem', () => {
+  it('builds the payload the SPA cart expects', () => {
+    const landing = toLandingActivity(
+      act({
+        id: 'a1',
+        slug: 'beer-spa',
+        name: 'Beer Spa',
+        price: 59,
+        minPrice: 400,
+        imageUrl: 'https://img.trivlu.com/spa.jpg',
+      }),
+    );
+
+    expect(toCartItem(landing, 'prague')).toEqual({
+      id: 'a1',
+      slug: 'beer-spa',
+      name: 'Beer Spa',
+      price: 59,
+      minPrice: 400,
+      imageUrl: 'https://img.trivlu.com/spa.jpg',
+      destinationSlug: 'prague',
+    });
+  });
+
+  it('keeps the API id on the landing model', () => {
+    expect(toLandingActivity(act({ id: 'abc' })).id).toBe('abc');
   });
 });
 

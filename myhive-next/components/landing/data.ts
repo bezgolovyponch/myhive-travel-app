@@ -36,6 +36,7 @@ export const WHATSAPP_HREF =
   "https://wa.me/420795518597?text=Hi%20Trivlu%2C%20I%27d%20like%20some%20help%20planning%20our%20bachelor%20party.";
 
 export interface LandingActivity {
+  id: string; // API id — the cart dedupes on it, so adds must carry it
   slug: string;
   name: string;
   category: string | null; // primary category name, localized by the backend (photo chip)
@@ -69,6 +70,7 @@ export function toLandingActivity(a: Activity): LandingActivity {
   const cats = categoryNames(a);
   const hasGroupMin = a.minPrice != null && a.minPrice > 0;
   return {
+    id: a.id,
     slug: a.slug,
     name: a.name,
     category: cats[0] ?? null,
@@ -79,6 +81,32 @@ export function toLandingActivity(a: Activity): LandingActivity {
     minPrice: hasGroupMin ? a.minPrice! : null,
     durationLabel: formatDurationLabel(a.duration),
     imageUrl: a.imageUrl || '',
+  };
+}
+
+// A landing add IS a cart add — same reducer, same localStorage — so the
+// payload has to look like the ones ActivityCard dispatches on the main site.
+// destinationSlug comes from the page rather than the record: the dropdown's
+// Continue button navigates by it, and the API omits it on nested activities.
+export interface CartActivity {
+  id: string;
+  slug: string;
+  name: string;
+  price: number;
+  minPrice: number | null;
+  imageUrl: string;
+  destinationSlug: string;
+}
+
+export function toCartItem(a: LandingActivity, destinationSlug: string): CartActivity {
+  return {
+    id: a.id,
+    slug: a.slug,
+    name: a.name,
+    price: a.price,
+    minPrice: a.minPrice,
+    imageUrl: a.imageUrl,
+    destinationSlug,
   };
 }
 

@@ -21,7 +21,7 @@ function LocationProbe() {
     return <div data-testid="location">{location.pathname + location.search}</div>;
 }
 
-function renderDropdown(tripStateOverrides = {}) {
+function renderDropdown(tripStateOverrides = {}, props = {}) {
     const mockDispatch = jest.fn();
     const tripState = {
         ...tripInitialState,
@@ -33,7 +33,7 @@ function renderDropdown(tripStateOverrides = {}) {
         <MemoryRouter initialEntries={['/']}>
             <CatalogContext.Provider value={{state: {destinations: []}, dispatch: jest.fn()}}>
                 <TripContext.Provider value={{state: tripState, dispatch: mockDispatch}}>
-                    <TripBuilderDropdown/>
+                    <TripBuilderDropdown {...props}/>
                     <LocationProbe/>
                 </TripContext.Provider>
             </CatalogContext.Provider>
@@ -68,5 +68,17 @@ describe('TripBuilderDropdown with an empty cart', () => {
 
         expect(screen.getByRole('button', {name: /Vote together/i})).toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    });
+
+    // Pages rendered outside the SPA (the marketing landings) pass voteHref for
+    // the same reason HomePage does: opening the vote modal in place would hand
+    // its setup to /vote/new/quiz through router location state, which the full
+    // page load out of a landing destroys — QuizPage would bounce to '/'.
+    it('hands the vote funnel to voteHref instead of opening the modal in place', () => {
+        renderDropdown({tripItems: []}, {voteHref: '/de/vote/new'});
+
+        const link = screen.getByRole('link', {name: /Vote together/i});
+        expect(link).toHaveAttribute('href', '/de/vote/new');
+        expect(screen.queryByRole('button', {name: /Vote together/i})).not.toBeInTheDocument();
     });
 });

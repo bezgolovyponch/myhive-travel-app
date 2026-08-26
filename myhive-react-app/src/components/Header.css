@@ -235,64 +235,8 @@
     border: 2px solid var(--brand);
 }
 
-/* Anchored to the fixed .header-actions cluster: drops below the cluster and
-   pins its right edge to the cluster's right edge (= screen right inset), so it
-   opens hard against the right side instead of drifting toward centre. */
-.trip-builder-dropdown {
-    position: absolute;
-    top: calc(100% + 0.75rem);
-    right: 0;
-    width: min(22.5rem, calc(100vw - 2 * var(--page-padding)));
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    z-index: 100;
-    border: 1px solid var(--card-border);
-    /* Column so the items list scrolls while header + footer stay pinned. */
-    display: flex;
-    flex-direction: column;
-    max-height: min(32rem, calc(100vh - 6rem));
-    overflow: hidden;
-}
-
-.trip-builder-dropdown-header {
-    padding: var(--gap) 1.25rem;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-.trip-builder-dropdown-header h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text);
-    margin: 0;
-}
-
-.trip-builder-dropdown-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: var(--gap);
-    /* Only the items list scrolls; the total + Continue live in the pinned
-       footer below. */
-    overflow-y: auto;
-    flex: 1;
-    min-height: 0;
-}
-
-/* Pinned footer: Total + Continue always visible at the bottom of the cart. */
-.trip-builder-dropdown-footer {
-    flex-shrink: 0;
-    padding: var(--gap);
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    background: var(--surface);
-}
+/* .trip-builder-dropdown* lives in components/TripBuilderDropdown.css so the
+   landings can pull the cart panel in without this stylesheet. */
 
 .trip-builder-complete-btn {
     width: 100%;
@@ -570,10 +514,5 @@
 
     .nav-links a:first-child {
         border-top: none;
-    }
-
-    .trip-builder-dropdown {
-        right: 0;
-        width: min(18.75rem, calc(100vw - 1rem));
     }
 }

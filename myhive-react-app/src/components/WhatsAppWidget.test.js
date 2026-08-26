@@ -118,7 +118,7 @@ test('widget z-index stays below the app-modal overlay', () => {
     const fs = require('fs');
     const path = require('path');
     const widgetCss = fs.readFileSync(path.join(__dirname, 'WhatsAppWidget.css'), 'utf8');
-    const globalCss = fs.readFileSync(path.join(__dirname, '../styles/global.css'), 'utf8');
+    const globalCss = fs.readFileSync(path.join(__dirname, 'AppModal.css'), 'utf8');
 
     // Lazy [^}]*? so we grab the first z-index declaration in the block, not a
     // number mentioned later in a comment.

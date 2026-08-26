@@ -5,8 +5,14 @@ import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import TripSetupModal from './TripSetupModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import {useT} from '../i18n';
+import './TripBuilderDropdown.css';
 
-function TripBuilderDropdown() {
+// voteHref: where the empty state's vote CTA goes instead of opening the setup
+// modal in place. Pages outside the SPA (the marketing landings) must pass it —
+// the modal's confirm hands its setup to /vote/new/quiz through react-router
+// location state, and the full page load out of such a page destroys it. Same
+// prop, same reason as HomePage's.
+function TripBuilderDropdown({voteHref}) {
     const {state, dispatch} = useTrip();
     const navigate = useNavigate();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
@@ -88,16 +94,24 @@ function TripBuilderDropdown() {
                 ) : (
                     <div className="empty-trip-state">
                         <p>{t('emptyState')}</p>
-                        <button className="trip-builder-vote-btn" onClick={openVoteSetup}>
-                            {t('voteTogether')}
-                        </button>
-                        <TripSetupModal
-                            isVoteMode={true}
-                            voteOpen={voteSetupOpen}
-                            onVoteConfirm={handleVoteConfirm}
-                            onVoteCancel={closeVoteSetup}
-                            preselectedDestination={preselectedDestination}
-                        />
+                        {voteHref ? (
+                            <a className="trip-builder-vote-btn" href={voteHref}>
+                                {t('voteTogether')}
+                            </a>
+                        ) : (
+                            <>
+                                <button className="trip-builder-vote-btn" onClick={openVoteSetup}>
+                                    {t('voteTogether')}
+                                </button>
+                                <TripSetupModal
+                                    isVoteMode={true}
+                                    voteOpen={voteSetupOpen}
+                                    onVoteConfirm={handleVoteConfirm}
+                                    onVoteCancel={closeVoteSetup}
+                                    preselectedDestination={preselectedDestination}
+                                />
+                            </>
+                        )}
                     </div>
                 )}
             </div>

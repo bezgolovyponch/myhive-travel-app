@@ -89,13 +89,13 @@ function renderVoteModal(catalogState = baseCatalogState, tripState = baseTripSt
   return { ...result, mockDispatch };
 }
 
-function renderTripModal(catalogState = singleDestCatalogState, tripStateOverrides = {}) {
+function renderTripModal(catalogState = singleDestCatalogState, tripStateOverrides = {}, props = {}) {
   const mockDispatch = jest.fn();
   const tripState = {...tripInitialState, tripSetupModalOpen: true, ...tripStateOverrides};
   const result = render(
     <CatalogContext.Provider value={{ state: catalogState, dispatch: jest.fn() }}>
       <TripContext.Provider value={{ state: tripState, dispatch: mockDispatch }}>
-        <TripSetupModal />
+        <TripSetupModal {...props} />
       </TripContext.Provider>
     </CatalogContext.Provider>
   );
@@ -220,6 +220,54 @@ test('vote mode with prefilled setup is ready to continue without an email', asy
     startDate: expectedStart,
     endDate: expectedEnd,
   }));
+});
+
+// Landing pages open this modal from a CTA, with a shortlist the visitor
+// already built by swiping. CANCEL_TRIP_SETUP empties the cart, which is right
+// when the modal follows a first add and wrong here.
+describe('landing usage', () => {
+  const cartItem = { id: 'a1', name: 'Kayaking', price: 38 };
+
+  test('clearOnCancel={false} dismisses without clearing the cart', () => {
+    const { mockDispatch } = renderTripModal(
+      singleDestCatalogState,
+      { tripItems: [cartItem] },
+      { clearOnCancel: false }
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_SETUP_MODAL' });
+    expect(mockDispatch).not.toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
+  });
+
+  test('default cancel still clears the cart (main-site behaviour)', () => {
+    const { mockDispatch } = renderTripModal(singleDestCatalogState, { tripItems: [cartItem] });
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
+  });
+
+  test('onTripConfirm fires with the setup after it is stored', async () => {
+    const onTripConfirm = jest.fn();
+    const startDate = isoDaysFromNow(20);
+    const endDate = isoDaysFromNow(24);
+    const { mockDispatch } = renderTripModal(
+      singleDestCatalogState,
+      { tripTravelers: 3, tripStartDate: startDate, tripEndDate: endDate },
+      { onTripConfirm }
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /confirm/i }));
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'SET_TRIP_SETUP' })
+    );
+    expect(onTripConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ travelers: 3, startDate, endDate })
+    );
+  });
 });
 
 test('confirm is enabled once dates are set (no email needed) and payload has no email', () => {

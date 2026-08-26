@@ -134,6 +134,26 @@ describe('reducer — trip setup actions', () => {
         });
     });
 
+    // Landing pages open the setup modal from a CTA rather than from the first
+    // add, so they need a way in that neither adds an item nor disturbs a
+    // shortlist the visitor already built by swiping.
+    describe('OPEN_TRIP_SETUP', () => {
+        it('opens the setup modal, leaving the cart untouched', () => {
+            const prev = {...initialState, tripItems: [activity1, activity2]};
+            const state = reducer(prev, {type: 'OPEN_TRIP_SETUP'});
+
+            expect(state.tripSetupModalOpen).toBe(true);
+            expect(state.tripItems).toEqual([activity1, activity2]);
+        });
+
+        it('opens on an empty cart too', () => {
+            const state = reducer(initialState, {type: 'OPEN_TRIP_SETUP'});
+
+            expect(state.tripSetupModalOpen).toBe(true);
+            expect(state.tripItems).toEqual([]);
+        });
+    });
+
     describe('SET_TRIP_ID', () => {
         it('sets tripId and leaves other state untouched', () => {
             const expectedId = 'new-uuid-abc';
