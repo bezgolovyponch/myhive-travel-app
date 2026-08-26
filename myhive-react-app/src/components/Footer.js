@@ -28,9 +28,16 @@ function Footer() {
                     <Link to="/refund-policy">{t('legal.refundPolicy')}</Link>
                     <Link to="/cookie-policy">{t('legal.cookiePolicy')}</Link>
                     <Link to="/privacy-policy">{t('legal.privacyPolicy')}</Link>
-                    {/* CookieScript binds the click handler to .csconsentlink to reopen
-                        the consent banner — no JS of ours needed. */}
-                    <button type="button" className="csconsentlink">{t('legal.cookieSettings')}</button>
+                    {/* Reopens the CookieScript consent banner. The .csconsentlink
+                        class is their documented hook, but its binding pass can
+                        miss nodes hydrated after the script initialises — the
+                        API call is the reliable path (verified on prod), the
+                        class stays as a harmless second wire. */}
+                    <button
+                        type="button"
+                        className="csconsentlink"
+                        onClick={() => window.CookieScript?.instance?.show()}
+                    >{t('legal.cookieSettings')}</button>
                 </nav>
                 <p>&copy; {new Date().getFullYear()} {t('copyright')}</p>
             </div>

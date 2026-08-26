@@ -59,7 +59,11 @@ function CookiePolicyPage() {
 
                 <h2>Manage cookie preferences</h2>
                 <p>
-                    <button type="button" className="csconsentlink policy-consent-link">
+                    <button
+                        type="button"
+                        className="csconsentlink policy-consent-link"
+                        onClick={() => window.CookieScript?.instance?.show()}
+                    >
                         Consent Preferences
                     </button>
                 </p>
