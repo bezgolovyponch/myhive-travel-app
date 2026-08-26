@@ -218,7 +218,7 @@
     "groupMinimum": "Gruppen-Mindestbetrag {amount}",
     "moreInfo": "Mehr Infos",
     "added": "Hinzugefügt",
-    "addToTrip": "Zum Trip hinzufügen",
+    "addToTrip": "Hinzufügen",
     "saveAmount": "Spare {amount}",
     "badgePopular": "Beliebt",
     "previous": "Zurück",
@@ -419,8 +419,8 @@
     "perPerson": "/ Person",
     "groupMinimum": "Gruppen-Mindestbetrag {amount}",
     "groupPriceFrom": "Gruppenpreis · ab",
-    "addToTrip": "Zum Trip hinzufügen",
-    "addedToTrip": "Zum Trip hinzugefügt",
+    "addToTrip": "Hinzufügen",
+    "addedToTrip": "Hinzugefügt",
     "help": {
       "textBefore": "Noch unsicher?",
       "linkLabel": "Chatte mit unserem Team",
@@ -437,7 +437,7 @@
     "includesLabel": "Enthält:",
     "youSave": "Du sparst {amount}",
     "percentOff": "({pct}% Rabatt)",
-    "addToTrip": "Zum Trip hinzufügen"
+    "addToTrip": "Hinzufügen"
   },
   "blog": {
     "listTitle": "Das JGA-Playbook",
@@ -742,7 +742,7 @@
       "ledePrague": "Von Panzerfahren über Stripclubs bis Spa — bei uns findet jeder JGA seinen Stil.",
       "inCatalogue": "{count} im Katalog",
       "viewAll": "Alle {count} Aktivitäten ansehen →",
-      "addToTrip": "Zum Trip hinzufügen",
+      "addToTrip": "Hinzufügen",
       "added": "Hinzugefügt ✓",
       "photoComing": "Foto folgt bald",
       "perPerson": "/ Person",
