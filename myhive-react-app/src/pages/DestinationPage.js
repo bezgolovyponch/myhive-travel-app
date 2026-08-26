@@ -247,7 +247,10 @@ function DestinationPage({initial}) {
               } : undefined}
           >
               <h1>{t('heroTitle', {name: destination.name})}</h1>
-              {destination.description && <p>{destination.description}</p>}
+              {/* The catalog description has grown into a full SEO essay — far
+                  too long for a hero. Deliberately not rendered until the copy
+                  is reworked (truncate? collapsible? shorter field?); it still
+                  feeds the meta description above. */}
           </div>
       )}
       {/* Tab bar hides on the Trip Builder tab (and during checkout) so nothing
