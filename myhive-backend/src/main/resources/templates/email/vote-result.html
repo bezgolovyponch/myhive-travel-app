@@ -39,7 +39,7 @@
                     <div class="activity-name" th:text="${result.activity.name}"></div>
                     <div class="activity-meta">
                         <span th:if="${result.activity.duration != null}" th:text="#{email.voteResult.activity.hours(${result.activity.duration / 60})} + ' · '"></span>
-                        <span th:text="#{email.voteResult.activity.perPerson('€' + ${result.activity.price})}"></span>
+                        <span th:text="#{email.voteResult.activity.perPerson(${#messages.msg('email.common.amount', #numbers.formatDecimal(result.activity.price, 1, 2))})}"></span>
                     </div>
                 </div>
             </div>

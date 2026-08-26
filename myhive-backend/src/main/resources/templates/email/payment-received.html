@@ -35,11 +35,11 @@
             </div>
             <div class="amount-block">
                 <div class="amount-label" th:text="#{email.paymentReceived.label.paid}">Paid so far</div>
-                <div class="amount-value" th:text="'€' + ${amountPaid}"></div>
+                <div class="amount-value" th:text="#{email.common.amount(${#numbers.formatDecimal(amountPaid, 1, 2)})}"></div>
             </div>
             <div class="amount-block">
                 <div class="amount-label" th:text="#{email.paymentReceived.label.total}">Trip total</div>
-                <div class="amount-value" th:text="'€' + ${totalAmount}"></div>
+                <div class="amount-value" th:text="#{email.common.amount(${#numbers.formatDecimal(totalAmount, 1, 2)})}"></div>
             </div>
         </div>
     </div>

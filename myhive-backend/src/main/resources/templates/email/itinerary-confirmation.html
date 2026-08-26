@@ -134,9 +134,9 @@
         <!-- Payment summary — shown only when a deposit has been collected (not for lead bookings). -->
         <div class="section" th:if="${depositPaid}">
             <h2 th:text="#{email.itinerary.payment.title}">Payment</h2>
-            <p><strong th:text="#{email.itinerary.payment.depositPaid}">Deposit paid:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(amountPaid, 1, 2)}">0.00</span></span></p>
-            <p th:if="${totalAmount != null}"><strong th:text="#{email.itinerary.payment.tripTotal}">Trip total:</strong> €<span th:text="${#numbers.formatDecimal(totalAmount, 1, 2)}">0.00</span></p>
-            <p th:if="${balanceDue != null}"><strong th:text="#{email.itinerary.payment.balanceDue}">Balance due:</strong> €<span th:text="${#numbers.formatDecimal(balanceDue, 1, 2)}">0.00</span></p>
+            <p><strong th:text="#{email.itinerary.payment.depositPaid}">Deposit paid:</strong> <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(amountPaid, 1, 2)})}">€0.00</span></p>
+            <p th:if="${totalAmount != null}"><strong th:text="#{email.itinerary.payment.tripTotal}">Trip total:</strong> <span th:text="#{email.common.amount(${#numbers.formatDecimal(totalAmount, 1, 2)})}">€0.00</span></p>
+            <p th:if="${balanceDue != null}"><strong th:text="#{email.itinerary.payment.balanceDue}">Balance due:</strong> <span th:text="#{email.common.amount(${#numbers.formatDecimal(balanceDue, 1, 2)})}">€0.00</span></p>
         </div>
 
         <!-- Destinations and Activities -->
@@ -161,15 +161,15 @@
                         <p><strong th:text="#{email.itinerary.activity.category}">Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
                         <p><strong th:text="#{email.itinerary.activity.description}">Description:</strong> <span th:text="${line.activity.description ?: #messages.msg('email.itinerary.activity.noDescription')}">Description</span></p>
                         <p><strong th:text="#{email.itinerary.activity.duration}">Duration:</strong> <span th:text="#{email.itinerary.activity.durationHours(${line.activity.duration ?: 0})}">0 hours</span></p>
-                        <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                        <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)})}">€0.00</span></p>
                         <p th:if="${line.groupMinApplies}"><strong th:text="#{email.itinerary.activity.groupMin}">Group minimum:</strong>
-                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
+                            <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.minPrice, 1, 2)})}">€0.00</span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
                     </div>
-                    <p><strong th:text="#{email.itinerary.package.subtotal}">Subtotal:</strong> €<span th:text="${#numbers.formatDecimal(packageGroup.subtotal, 1, 2)}">0.00</span></p>
+                    <p><strong th:text="#{email.itinerary.package.subtotal}">Subtotal:</strong> <span th:text="#{email.common.amount(${#numbers.formatDecimal(packageGroup.subtotal, 1, 2)})}">€0.00</span></p>
                     <p class="discount"><strong th:text="#{email.itinerary.package.discount(${packageGroup.discountPct})}">Package discount (−0%):</strong>
-                        −€<span th:text="${#numbers.formatDecimal(packageGroup.subtotal - packageGroup.discounted, 1, 2)}">0.00</span>
+                        −<span th:text="#{email.common.amount(${#numbers.formatDecimal(packageGroup.subtotal - packageGroup.discounted, 1, 2)})}">€0.00</span>
                     </p>
-                    <p><strong th:text="#{email.itinerary.package.total}">Package total:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(packageGroup.discounted, 1, 2)}">0.00</span></span></p>
+                    <p><strong th:text="#{email.itinerary.package.total}">Package total:</strong> <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(packageGroup.discounted, 1, 2)})}">€0.00</span></p>
                 </div>
 
                 <!-- Standalone activities -->
@@ -180,9 +180,9 @@
                         <p><strong th:text="#{email.itinerary.activity.category}">Category:</strong> <span th:text="${line.activity.category}">Category</span></p>
                         <p><strong th:text="#{email.itinerary.activity.description}">Description:</strong> <span th:text="${line.activity.description ?: #messages.msg('email.itinerary.activity.noDescription')}">Description</span></p>
                         <p><strong th:text="#{email.itinerary.activity.duration}">Duration:</strong> <span th:text="#{email.itinerary.activity.durationHours(${line.activity.duration ?: 0})}">0 hours</span></p>
-                        <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></span></p>
+                        <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)})}">€0.00</span></p>
                         <p th:if="${line.groupMinApplies}"><strong th:text="#{email.itinerary.activity.groupMin}">Group minimum:</strong>
-                            <span class="price">€<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span></span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
+                            <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.minPrice, 1, 2)})}">€0.00</span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
                     </div>
                 </div>
             </div>

@@ -52,12 +52,12 @@
                         <span class="group-min-note" th:if="${line.groupMinApplies}" th:text="#{email.tripReminder.cart.groupMinApplies}">(group minimum applies)</span>
                     </td>
                     <td class="price-cell">
-                        <span th:text="#{email.tripReminder.perPerson('€' + ${line.price})}">€50.00 / person</span>
+                        <span th:text="#{email.tripReminder.perPerson(${#messages.msg('email.common.amount', #numbers.formatDecimal(line.price, 1, 2))})}">€50.00 / person</span>
                     </td>
                 </tr>
                 <tr class="total-row">
                     <td th:text="#{email.tripReminder.cart.total(${travelers})}">Total for 6 people</td>
-                    <td class="price-cell" th:text="'€' + ${totalPrice}">€700.00</td>
+                    <td class="price-cell" th:text="#{email.common.amount(${#numbers.formatDecimal(totalPrice, 1, 2)})}">€700.00</td>
                 </tr>
             </table>
         </div>
@@ -68,7 +68,7 @@
             <table class="item-table">
                 <tr th:each="rec : ${recommendations}">
                     <td th:text="${rec.name}">Beer Bike</td>
-                    <td class="price-cell" th:text="#{email.tripReminder.perPerson('€' + ${rec.price})}">€35.00 / person</td>
+                    <td class="price-cell" th:text="#{email.tripReminder.perPerson(${#messages.msg('email.common.amount', #numbers.formatDecimal(rec.price, 1, 2))})}">€35.00 / person</td>
                 </tr>
             </table>
         </div>
