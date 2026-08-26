@@ -9,13 +9,17 @@
 // the JSON files can later feed next-intl unchanged when components migrate.
 import { createContext, useCallback, useContext } from 'react';
 import en from './messages/en.json';
-import { DEFAULT_LOCALE, localizePath } from './routes';
+import { DEFAULT_LOCALE, bindSsrLocale, localizePath } from './routes';
 
 export { DEFAULT_LOCALE, SUPPORTED_LOCALES, localizePath, localizeHref, splitLocale } from './routes';
 
 const LocaleContext = createContext({ locale: DEFAULT_LOCALE, messages: en });
 
 export function LocaleProvider({ locale, messages, children }) {
+  // Server renders have no URL to read the locale from — bind it for the
+  // hook-free helpers (currentLocale and the formatters built on it) so the
+  // initial HTML matches what the client hydrates. See routes.js.
+  bindSsrLocale(locale);
   return (
     <LocaleContext.Provider value={{ locale, messages: messages || en }}>
       {children}

@@ -26,10 +26,28 @@ export function splitLocale(pathname) {
   return { locale: DEFAULT_LOCALE, pathname };
 }
 
-/** Locale of the current page, read from the URL prefix; the default outside a browser (tests, SSR). */
+// The locale of the render in progress on the SERVER, bound by LocaleProvider
+// (i18n/index.js) as it renders. Without it, server-side currentLocale() fell
+// back to English while the client resolved 'de' from the URL — every
+// formatAmount/formatDate in the initial HTML disagreed with hydration
+// (€109 vs 109 €), React threw #418 and client-rendered the whole tree from
+// scratch, wiping DOM that non-React scripts (the consent banner) had already
+// injected. Module state is safe here: the legacy tree renders synchronously
+// under its provider, and the browser never reads it (URL wins there).
+let ssrLocale = DEFAULT_LOCALE;
+
+/** Called by LocaleProvider during render; a no-op signal for everything else. */
+export function bindSsrLocale(locale) {
+  ssrLocale = locale || DEFAULT_LOCALE;
+}
+
+/** Locale of the current page: URL prefix in the browser, the provider-bound locale during SSR. */
 export function currentLocale() {
+  if (typeof window === 'undefined') {
+    return ssrLocale;
+  }
   // Tests stub window.location with partial objects; no pathname = default.
-  const pathname = typeof window === 'undefined' ? null : window.location?.pathname;
+  const pathname = window.location?.pathname;
   return pathname ? splitLocale(pathname).locale : DEFAULT_LOCALE;
 }
 
