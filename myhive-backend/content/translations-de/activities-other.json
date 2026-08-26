@@ -1,0 +1,354 @@
+{
+  "activities": {
+    "banana-boat": {
+      "name": "Bananenboot",
+      "description": "Genieße eine adrenalingeladene Bananenboot-Fahrt vor der Küste Teneriffas, bei der du hinter einem starken Motorboot über die Wellen hüpfst, spritzt und rast. Diese spaßige Gruppenaktivität ist perfekt für Familien und Freunde, die ein aufregendes und unvergessliches Abenteuer auf dem Meer suchen.",
+      "includes": "Sicherheitseinweisung; Schwimmweste; Versicherung; Bananenboot-Fahrt (10 Minuten); Begleitboot; Betreuung durch Instruktor"
+    },
+    "buggy-safari": {
+      "name": "Buggy-Safari",
+      "description": "Erlebe eine aufregende Buggy-Safari durch die Vulkanlandschaften Teneriffas mit einer spannenden Fahrt Richtung Teide oder einer malerischen Sonnenuntergangstour. Dieses Offroad-Erlebnis verbindet Adrenalin, atemberaubende Ausblicke und unvergessliche Stopps entlang der bekanntesten Routen der Insel. Buggy-Kapazität: 2 / 4 / 6 Sitze (140 EUR / 240 EUR / 340 EUR pro Buggy)",
+      "includes": "Buggy-Miete; Geführte Tour; Kraftstoff; Sicherheitseinweisung; Stopp am Teide / an Aussichtspunkten; Instruktor-Guide. Fahrer braucht gültigen Führerschein; Optionen: Tagestour zum Teide oder Sonnenuntergangstour."
+    },
+    "car-rental": {
+      "name": "Mietwagen",
+      "description": "Miete ein Auto auf Teneriffa zu günstigen Tagespreisen mit bequemer Lieferung ans Hotel — eine große Fahrzeugauswahl für alle Reisebedürfnisse.",
+      "includes": "Lieferung ans Hotel; Keine Kaution erforderlich; Versicherung inklusive; Preise ab Fiat Panda 40 € pro Tag, Fiat 500 45 €, VW Polo 52–60 € und 7–9-Sitzer-Vans bis 120 € pro Tag."
+    },
+    "crazy-ufo": {
+      "name": "Crazy UFO",
+      "description": "Erlebe das Crazy UFO, eine schnelle und aufregende aufblasbare Wasserfahrt, die vor Teneriffa über die Wellen wirbelt, rutscht und hüpft. Diese actiongeladene Gruppenaktivität ist perfekt für Familien und Freunde, die Spaß und Adrenalin auf dem Ozean suchen.",
+      "includes": "Sicherheitseinweisung; Schwimmweste; Speedboot-Transfer; Crazy-UFO-Fahrt (25 Minuten); Betreuung durch Instruktor; Versicherung"
+    },
+    "fly-fish": {
+      "name": "Fly Fish",
+      "description": "Genieße den Fly Fish, eine energiegeladene aufblasbare Fahrt, die abhebt, springt und über die Wellen gleitet — ein unvergessliches Fluggefühl. Perfekt für Gruppen verbindet diese Wasseraktivität auf Teneriffa Tempo, Spritzer und Adrenalin in einem aufregenden Erlebnis.",
+      "includes": "Dauer insgesamt 45 Minuten; Sicherheitseinweisung; Schwimmweste; Speedboot-Transfer; Fly-Fish-Fahrt (10 Minuten); Betreuung durch Instruktor; Versicherung"
+    },
+    "jet-ski-adventure": {
+      "name": "Jetski-Abenteuer",
+      "description": "Jetski-Abenteuer auf Teneriffa mit schnellen Fahrten entlang der Atlantikküste und atemberaubenden Vulkanblicken. Erlebe eine aufregende Wasseraktivität mit Sonne, Meer und Adrenalin auf der Insel.",
+      "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); Jetski-Miete; Sicherheitseinweisung & Instruktor; Schwimmweste & Schutzausrüstung; Kraftstoff inklusive; Geführte Küstenfahrt; Wasserdichte Tasche; Drink pro Person"
+    },
+    "loro-parque": {
+      "name": "Loro Parque",
+      "description": "Besuche den Loro Parque, eine der berühmtesten Tierattraktionen Teneriffas, mit unglaublichen Tiershows und vielfältigen Arten aus aller Welt. Erkunde wunderschön gestaltete Lebensräume und genieße einen unvergesslichen Tag für alle Altersgruppen.",
+      "includes": "Parkeintritt; Tieranlagen; Delfinshow; Orca-Show; Pinguinarium; Botanische Gärten; Ganztagesbesuch"
+    },
+    "luxury-spa-session": {
+      "name": "Luxus-Spa-Session",
+      "description": "Gönn dir eine Luxus-Spa-Session für ultimative Entspannung und Regeneration. Genieße Premium-Anwendungen in ruhiger Umgebung für ein belebendes Wellness-Erlebnis.",
+      "includes": "Spa-Zugang; Ruhebereich; Sauna; Dampfbad; Handtücher; Premium-Pflegeprodukte"
+    },
+    "ocean-fishing": {
+      "name": "Hochseeangeln",
+      "description": "Genieße ein aufregendes Hochseeangel-Erlebnis mit fachkundiger Anleitung und atemberaubendem Blick aufs offene Meer. Dieser 4-stündige Ausflug ist perfekt für alle Könnensstufen und verbindet Abenteuer mit professioneller Betreuung.",
+      "includes": "Professioneller Betreuer; Angelausrüstung; Köder; Zubehör; Kalte Getränke. Max. 8 Personen pro Boot."
+    },
+    "paraceiling": {
+      "name": "Parasailing",
+      "description": "Erlebe einen adrenalingeladenen Parasailing-Flug mit atemberaubendem Blick über Ozean und Küste. Genieße eine ruhige Bootsfahrt, bevor du für ein einzigartiges 15-minütiges Flugerlebnis abhebst.",
+      "includes": "Bootsfahrt (40 Min.); Parasailing-Flug (15 Minuten); Sicherheitsausrüstung; Instruktor-Guide"
+    },
+    "private-boat-lunch-strip": {
+      "name": "Privates Boot-Lunch & Strip",
+      "description": "Genieße ein privates Lunch auf dem Boot mit Unterhaltung an Bord in entspannter Meeresatmosphäre. Diese besondere Option verbindet Essen auf See mit einer kurzen Live-Performance für einen unvergesslichen Ausflug.",
+      "includes": "Lunch auf dem Boot; Privater Rahmen; Oben-ohne-Hostess; 15-minütige Tanzperformance"
+    },
+    "private-yacht-tour-whale-watching": {
+      "name": "Private Yachttour / Whale Watching",
+      "description": "Genieße eine private Yachttour mit Whale Watching, Schnorcheln und atemberaubendem Meerblick. Dieses 3-stündige Erlebnis verbindet Begegnungen mit Meerestieren mit Essen, Getränken und Entspannung auf See.",
+      "includes": "Wal- & Schildkrötensichtungen; Schwimmen (30 Minuten); Schnorcheln; Abwechslungsreiches lokales Essen; Getränke (Wein/Bier – 2 inklusive); Sandwiches; Snacks; Obst\nOptionale Extras: Paella (sehr groß) – 40 €"
+    },
+    "quad-safari-tour": {
+      "name": "Quad-Safari-Tour",
+      "description": "Erlebe ein aufregendes Quad-Abenteuer durch die raue Landschaft Teneriffas mit malerischen Offroad-Routen und atemberaubenden Aussichtspunkten. Diese geführte Tour verbindet Adrenalin, Natur und unvergessliche Inselkulisse. Einzelquad: 90 EUR / Doppelquad: 95 EUR",
+      "includes": "Quad-Miete; Geführte Tour; Sicherheitseinweisung; Helm; Kraftstoff; Aussichtsstopps; Instruktor-Guide. Fahrer braucht gültigen Führerschein; Geeignet für 1 oder 2 Fahrer pro Quad"
+    },
+    "siam-park": {
+      "name": "Siam Park",
+      "description": "Besuche den Siam Park auf Teneriffa, seit 10 Jahren in Folge der beste Wasserpark der Welt. Genieße aufregende Rutschen, entspannte Flussfahrten und eine tropische, thailändisch inspirierte Kulisse — perfekt für alle Altersgruppen.",
+      "includes": "Parkeintritt; Zugang zu den Rutschen; Lazy River; Wellenbad; Sonnenliegen; Umkleiden"
+    },
+    "stand-up-paddle": {
+      "name": "Stand-up-Paddling",
+      "description": "Genieße Stand-up-Paddling, einen entspannten und spaßigen Wassersport, der weltweit beliebt geworden ist. Leicht zu lernen und für alle Altersgruppen geeignet — eine großartige Art, den Ozean zu erkunden und dabei aktiv zu bleiben.",
+      "includes": "Stand-up-Paddle-Board; Paddel; Sicherheitseinweisung; Schwimmweste (falls erforderlich)"
+    },
+    "sunset-boat-party": {
+      "name": "Sunset-Bootsparty",
+      "description": "Komm zu einer lebhaften Sunset-Bootsparty mit atemberaubendem Meerblick, Musik und unvergesslicher Stimmung. Dieses Erlebnis verbindet Entspannung und Unterhaltung, während du in die goldene Stunde hineinschipperst.",
+      "includes": "Bootsfahrt; Sonnenuntergangsblick; Musik; Welcome Drink; Partystimmung"
+    },
+    "tandem-paragliding": {
+      "name": "Tandem-Gleitschirmfliegen",
+      "description": "Erlebe den Nervenkitzel des Tandem-Gleitschirmfliegens über der atemberaubenden Küste und den Vulkanlandschaften Teneriffas mit einem zertifizierten Profipiloten. Genieße einen ruhigen, malerischen Flug mit atemberaubendem Blick auf den Atlantik und den Teide.",
+      "includes": "Profipilot; Gleitschirmausrüstung; Sicherheitseinweisung; Versicherung; Hotelabholung (bei einigen Optionen); Flug vom Startplatz am Berg"
+    },
+    "teide-national-park-tour": {
+      "name": "Teide-Nationalpark-Tour",
+      "description": "Erkunde den Teide-Nationalpark mit atemberaubenden Vulkanlandschaften und Panoramablick auf den berühmten Gipfel Teneriffas. Diese geführte Tour bietet eine unvergessliche Reise durch eines der einzigartigsten Naturwunder Spaniens.",
+      "includes": "Transport; Geführte Tour; Nationalparkbesuch; Fotostopps"
+    },
+    "thermal-spa": {
+      "name": "Thermal-Spa",
+      "description": "Entspanne in einem Premium-Thermalzirkel auf Teneriffa mit beheizten Pools, Whirlpools, Saunen und Hydrotherapie-Zonen für die totale Regeneration. Dieses Wellness-Erlebnis ist ideal für Stressabbau, bessere Durchblutung und tiefe Entspannung in ruhiger Luxusumgebung.",
+      "includes": "Zugang zum Thermalzirkel; Beheizte Pools; Whirlpool; Sauna; Dampfbad; Ruhebereich; Hydromassage-Düsen; Umkleiden; Handtücher (je nach Tickettyp)"
+    },
+    "whale-whatching": {
+      "name": "Whale Watching",
+      "description": "Komm zu einer Whale-Watching-Tour auf einem geräumigen Katamaran mit unglaublichen Begegnungen mit Meerestieren und malerischem Meerblick. Wähle aus flexiblen Dauern und genieße eine komfortable gemeinsame Fahrt mit Essen, Getränken und Schwimmen.",
+      "includes": "Walsichtungen; Katamaranfahrt; Essen; Getränke; Schwimmstopp; Hotelabholung.\nGemeinsame Touren, 2 / 3 / 4,5 Stunden Dauer, Kapazität 70–120 Gäste (Freebird, Maxicat)"
+    },
+    "4x4-off-road-challenge": {
+      "name": "4x4-Offroad-Challenge",
+      "description": "Nimm es direkt vor Krakau mit Schlammpisten und rauem Gelände auf — in einem kraftvollen 4x4-Fahrerlebnis für Adrenalin und Teamwork. Lerne Offroad-Fahrtechniken unter fachkundiger Aufsicht in echter JGA-Abenteuerkulisse.",
+      "includes": "4x4-Fahrzeugmiete; Offroad-Fahrerlebnis; Zertifizierter Instruktor; Sicherheitsausrüstung; Rücktransfers; Fahr-Challenge"
+    },
+    "airsoft-combat": {
+      "name": "Airsoft-Gefecht",
+      "description": "Nimm in Krakau an einem realistischen Gefechtserlebnis im Militärstil teil — mit Replika-Waffen, taktischen Szenarien und kompletter Kampfausrüstung. Eine energiegeladene JGA-Aktivität, perfekt für kompetitive Gruppen.",
+      "includes": "Airsoft-Waffen; 800 BB-Kugeln pro Person; Sicherheitsausrüstung; Taktische Spielszenarien; Zertifizierte Instruktoren; Private Rücktransfers; Lokaler Guide"
+    },
+    "all-you-can-drink-strip-club": {
+      "name": "All-you-can-drink-Stripclub",
+      "description": "Genieße VIP-Zugang zu einem der angesagtesten Stripclubs Krakaus mit unbegrenzten Getränken, privater Lounge und Live-Bühnenunterhaltung. Eine beliebte JGA-Wahl für Gruppen, die eine wilde Nacht in Krakau wollen.",
+      "includes": "Stripclub-Eintritt; VIP-Lounge-Zugang; 1 Stunde Open Bar; Bühnenshow; Lokaler Guide"
+    },
+    "axe-throwing-2": {
+      "name": "Axtwerfen",
+      "description": "Teste deine Zielsicherheit und tritt gegen die Jungs an — bei einem aufregenden Axtwerf-Erlebnis in Krakau. Eine spaßige und kompetitive JGA-Aktivität, geleitet von professionellen Instruktoren mit echten Äxten und Zielscheiben.",
+      "includes": "10 Axtwurf-Runden; Sicherheitsausrüstung; Qualifizierter Instruktor; Wettkampf-Erlebnis; Lokaler Guide"
+    },
+    "babes-in-oil": {
+      "name": "Babes in Oil",
+      "description": "Genieße eine wilde private JGA-Show in Krakau mit zwei Performerinnen, Ölwrestling-Unterhaltung, Bier und einer urkomischen Mitmachrunde für den Bräutigam. Eines der unvergesslichsten Erwachsenen-JGA-Erlebnisse Krakaus.",
+      "includes": "Privater Raum; Ölwrestling-Show; 2 Bier pro Person; 2 Performerinnen; Mitmachen des Bräutigams; Lokaler Guide"
+    },
+    "booze-cruise-party-boat": {
+      "name": "Booze-Cruise-Partyboot",
+      "description": "Stich in Krakau auf der Weichsel in See — mit einem privaten Partyboot-Erlebnis, bei dem du deine eigenen Getränke mitbringst und an den bekanntesten Vierteln der Stadt vorbeischipperst. Eine entspannte und doch spaßige JGA-Aktivität mit toller Aussicht und Partystimmung an Bord.",
+      "includes": "Private Flussfahrt; Bootsmiete; Musikanlage (AUX); Eigene Getränke mitbringen; Malerischer Stadtblick; Lokaler Guide"
+    },
+    "bowling-beers": {
+      "name": "Bowling & Bier",
+      "description": "Starte deine JGA-Nacht in Krakau mit einer entspannten Bowling-Session in einer zentralen Location, die freundschaftlichen Wettkampf mit Drinks und toller Atmosphäre verbindet. Das perfekte Warm-up vor dem Nachtleben.",
+      "includes": "Bowlingbahn-Miete; Bowlingschuhe; 2 Bier pro Person; Gruppenspiel; Lokaler Guide"
+    },
+    "brewery-beer-tasting": {
+      "name": "Brauerei-Bierverkostung",
+      "description": "Genieße eine richtige JGA-Biersession in Krakau mit Brauereiverkostungen und großen lokalen Bieren in einer aktiven Bierfabrik. Eine perfekte Tagesaktivität für Gruppen, die großartiges Bier und gute Atmosphäre wollen.",
+      "includes": "5 Bierproben pro Person; 4 große Biere pro Person; Brauerei-Erlebnis; Lokaler Guide"
+    },
+    "bubble-football-2": {
+      "name": "Bubble Football",
+      "description": "Spiele in Krakau chaotischen Fünf-gegen-fünf-Fußball in riesigen aufblasbaren Zorbs — eine urkomische und energiegeladene JGA-Aktivität. Hüpfe, krache zusammen und schieße Tore im Wettkampf gegen die Jungs.",
+      "includes": "Bubble-Football-Spiel; Zorb-Anzüge; Ausrüstung; Indoor-/Outdoor-Platz; Private Rücktransfers; Lokaler Guide"
+    },
+    "casino-vip": {
+      "name": "Casino VIP",
+      "description": "Genieße eine stilvolle Casino-Nacht in Krakau mit Spielchips, Drinks und VIP-Service in einem der Top-Casinos der Stadt. Eine elegante JGA-Option mit Roulette, Karten und Nachtleben-Atmosphäre.",
+      "includes": "Casino-Eintritt; Spielchips; 2 Drinks pro Person; VIP-Erlebnis; Lokaler Guide"
+    },
+    "communist-tour": {
+      "name": "Kommunismus-Tour",
+      "description": "Reise zurück in der Zeit mit einer geführten Tour durch die kommunistische Ära Krakaus — mit historischen Vierteln, traditionellem Essen, Wodka-Shots und lokaler Kultur aus Polens sowjetischer Vergangenheit. Eine einzigartige JGA-Aktivität, die Sightseeing mit Drinks und authentischen Erlebnissen verbindet.",
+      "includes": "Privater Hin- und Rücktransport; Wodka-Shots; Traditionelle Mahlzeit; Sightseeing-Tour; Lizenzierter Guide; Besuch des kommunistischen Viertels"
+    },
+    "dinner-reservations": {
+      "name": "Dinner-Reservierung",
+      "description": "Sichere dir ohne Aufwand einen Tisch in einem Top-Restaurant in Krakau — vorab organisiertes, JGA-freundliches Essen vor einer großen Nacht. Perfekt für Gruppen, die einen reibungslosen Start in den Abend wollen.",
+      "includes": "Tischreservierung; Restaurantbuchung; Lokaler Guide; Dinner-Organisation"
+    },
+    "drunk-bride-prank": {
+      "name": "Betrunkene-Braut-Prank",
+      "description": "Schocke den Bräutigam mit einem urkomischen Fake-Hochzeits-Prank in Krakau: Eine „betrunkene Braut“ folgt ihm und behauptet, sie hätten letzte Nacht geheiratet. Ein lustiges JGA-Extra, das garantiert den Bräutigam blamiert und die ganze Gruppe unterhält.",
+      "includes": "Fake-Braut-Schauspielerin; 3 Shots für den Bräutigam; Hochzeits-Prank-Szenario; Handschellen-Prank; Lokaler Guide"
+    },
+    "escape-room": {
+      "name": "Escape Room",
+      "description": "Teste Teamwork und Problemlösungsfähigkeiten in einem thematischen Escape Room in Krakau. Löse gemeinsam Rätsel und entkomme innerhalb des Zeitlimits — eine spaßige, immersive JGA-Aktivität.",
+      "includes": "Escape-Room-Spiel; 60 Minuten Spielzeit; Spielleiter; Privates Erlebnis; Rätsel-Challenge"
+    },
+    "football-match": {
+      "name": "Fußballspiel",
+      "description": "Genieße eine kompetitive Fußball-Session in Krakau auf einem Indoor- oder Outdoor-Platz — perfekt für JGA-Gruppen, die etwas Action am Tag und freundschaftliche Rivalität wollen.",
+      "includes": "Platzmiete; Fußballausrüstung; Umkleiden; Duschen; Mineralwasser; Lokaler Guide"
+    },
+    "indoor-go-karting": {
+      "name": "Indoor-Go-Kart",
+      "description": "Tritt in Krakau gegen die Jungs in einer Highspeed-Go-Kart-Challenge an — mit Zeitläufen, Qualifying und einer finalen Meisterschaftsrunde. Eine kompetitive JGA-Aktivität, perfekt für Adrenalin und Angeberrechte.",
+      "includes": "3 Rennrunden; Kart-Ausrüstung; Schutzausrüstung; Professioneller Instruktor; Wettkampfformat; Rücktransfers"
+    },
+    "kalashnikov-shooting": {
+      "name": "Kalaschnikow-Schießen",
+      "description": "Nimm direkt vor Krakau ein adrenalingeladenes Schießerlebnis in Angriff — mit starken Schusswaffen wie der legendären AK-47, Glock-Pistole, Flinte und Trainingsgewehr. Eine Pflicht-JGA-Aktivität für Gruppen, die Action und Wettkampf suchen.",
+      "includes": "AK-47-Schießen; Glock-Pistole; Flinten-Erlebnis; Trainingsgewehr; Sicherheitsausrüstung; Qualifizierter Instruktor; Rücktransfers; Lokaler Guide"
+    },
+    "katowice-airport-transfer": {
+      "name": "Flughafentransfer Katowice",
+      "description": "Genieße stressfreien Gruppentransport vom Flughafen Katowice zu deiner Unterkunft in Krakau mit komfortablem privatem Transfer. Ein einfacher und effizienter Start in dein JGA-Wochenende ohne Stress.",
+      "includes": "Flughafentransfer; Privater Gruppentransport; Professioneller Fahrer; Direkte Ankunft am Hotel"
+    },
+    "krakow-bike-city-tour": {
+      "name": "Krakau-Fahrradtour",
+      "description": "Erkunde Krakau auf zwei Rädern mit einer entspannten geführten Fahrradtour durch versteckte Gassen, Uferwege und die wichtigsten Wahrzeichen. Eine großartige Art, mehr von der Stadt zu sehen und dabei mit den Jungs aktiv zu bleiben.",
+      "includes": "Geführte Fahrradtour durch versteckte Gassen, Uferwege und die wichtigsten Wahrzeichen Krakaus"
+    },
+    "laser-tag-2": {
+      "name": "Lasertag",
+      "description": "Betritt in Krakau eine futuristische Arena und kämpfe in einem energiegeladenen Lasertag-Wettbewerb mit Laser-Sturmgewehren in einer labyrinthartigen Kampfzone. Eine spaßige, rasante JGA-Aktivität für alle Könnensstufen.",
+      "includes": "Lasertag-Ausrüstung; 4 Spielrunden; Schutzausrüstung; Punktezählsystem; Private Rücktransfers; Lokaler Guide"
+    },
+    "nightlife-tour": {
+      "name": "Nachtleben-Tour",
+      "description": "Erlebe das beste Nachtleben Krakaus mit einer geführten JGA-Tour durch Top-Kneipen, Bars, Stripclubs und Nachtclubs. Genieße VIP-Eintritt, Drinks, reservierte Tische und unvergessliche Partystimmung in einem der Top-JGA-Ziele Europas.",
+      "includes": "Lokaler Guide; 3 Shots pro Person; Stripclub-Eintritt; Nachtclub-Eintritt; VIP-Tischreservierung; Flaschen mit Mixern; Kneipentour-Erlebnis"
+    },
+    "paintball-assault": {
+      "name": "Paintball-Sturmangriff",
+      "description": "Bilde Teams und kämpfe in Krakau in einem energiegeladenen Paintball-Krieg. Die Gruppe teilt sich auf und kämpft über thematische Gefechtszonen mit kompletter Ausrüstung, Strategie und adrenalingeladener Action.",
+      "includes": "2 Stunden Paintball; Komplette Ausrüstung; 200 Paintballs pro Person; Schutzausrüstung; Private Rücktransfers; Lokaler Guide"
+    },
+    "playboy-party-spa": {
+      "name": "Playboy-Party-Spa",
+      "description": "Entspanne stilvoll mit einem privaten Spa-Erlebnis in Krakau mit Whirlpool, Sauna und einer Live-Stripshow — die ultimative JGA-Balance aus Chillen und Unterhaltung. Ein VIP-Wellness-Party-Erlebnis im Stadtzentrum.",
+      "includes": "Privater Spa-Zugang; Whirlpool & Sauna; 15-minütige Stripshow; Rücktransfers; Exklusive Gruppennutzung; Lokaler Guide"
+    },
+    "rolly-polly-stripper-prank": {
+      "name": "Rolly-Polly-Stripper-Prank",
+      "description": "Bring eine urkomische Überraschung in dein JGA-Wochenende in Krakau — mit einem privaten Strip-Prank im Zimmer und einer komödiantischen Live-Performance, die auf Lacher und Unterhaltung ausgelegt ist. Ein spaßiger Twist auf die klassische JGA-Unterhaltung.",
+      "includes": "Stripshow im Zimmer; 15-minütige Performance; Überraschungsauftritt; Comedy-Unterhaltung; Lokale Performerin"
+    },
+    "sexy-hitchhiker": {
+      "name": "Sexy Anhalterin",
+      "description": "Bring einen Überraschungs-Twist in deinen JGA-Transport in Krakau: Ein inszeniertes „Anhalterin mitnehmen“ wird zur privaten Strip-Performance an Bord. Ein spaßiges und unerwartetes Unterhaltungs-Extra für Gruppentransfers.",
+      "includes": "Stripshow an Bord; Überraschungs-Anhalterin-Nummer; 15-minütige Performance; Unterhaltungs-Extra; Transfer-Erlebnis"
+    },
+    "sexy-maid": {
+      "name": "Sexy Zimmermädchen",
+      "description": "Starte den JGA-Tag in Krakau mit einer frechen Überraschung: Ein „sexy Zimmermädchen“ kommt für eine private Strip-Performance ins Zimmer. Ein spaßiger, leichtherziger JGA-Prank mit verführerischem Twist, um den Bräutigam stilvoll zu wecken.",
+      "includes": "Stripshow im Zimmer; 3 Tanzperformances; Überraschungsbesuch Sexy Zimmermädchen; Lokale Unterhaltung"
+    },
+    "sightbeering-tour": {
+      "name": "SightBEERing-Tour",
+      "description": "Erkunde die Highlights Krakaus mit einer entspannten geführten Stadtführung kombiniert mit Bierstopps und einem Brauereibesuch. Die perfekte JGA-freundliche Mischung aus Sightseeing und Drinks in einem Erlebnis.",
+      "includes": "Geführte Stadtführung; Brauereibesuch; 2 Bierstopps; Bierverkostungen; Lokaler Guide"
+    },
+    "special-forces-shooting": {
+      "name": "Spezialkräfte-Schießen",
+      "description": "Nimm in Krakau ein hochadrenalines Schießerlebnis in Angriff, entwickelt mit ehemaligen Spezialkräfte-Instruktoren — mit mehreren Schusswaffen wie Glock-Pistolen, Maschinengewehren und Flinten. Eine JGA-Aktivität der Spitzenklasse für ernsthaften Wettkampf und Action.",
+      "includes": "Glock-Pistolen-Schießen; Sportpistole; Maschinengewehr-Schießen; Pump-Action-Flinte; Sicherheitsausrüstung; Qualifizierte Instruktoren; Rücktransfers; Lokaler Guide"
+    },
+    "stag-kidnapping-prank": {
+      "name": "Bräutigam-Entführungs-Prank",
+      "description": "Schocke den Bräutigam mit dem ultimativen JGA-Prank in Krakau, bevor die Nacht mit Stripclub-Eintritt, Drinks und einer privaten Bühnenshow endet. Ein urkomisches und unvergessliches JGA-Erlebnis voller Überraschungen.",
+      "includes": "Entführungs-Prank; Stripclub-Eintritt; Shots pro Person; Private Stripshow; Tischreservierung; Lokaler Guide"
+    },
+    "steak-tits": {
+      "name": "Steak & Tits",
+      "description": "Genieße eine legendäre JGA-Nacht in Krakau mit privatem Steak-Dinner, Drinks und einer exklusiven Stripshow für deine Gruppe. Eines der beliebtesten JGA-Erlebnisse Krakaus, das großartiges Essen mit unvergesslicher Unterhaltung verbindet.",
+      "includes": "Steak-Menü; Pommes; 2 Drinks pro Person; Privater Raum; Stripshow; Lokaler Guide"
+    },
+    "strip-bus": {
+      "name": "Strip-Bus",
+      "description": "Mach die Fahrt zur Party — mit einem privaten Strip-Partybus-Erlebnis in Krakau mit Musik, Sekt, Discolicht und einer Live-Stripshow an Bord. Die ultimative fahrende JGA-Party für Gruppen, die die Nacht stilvoll beginnen wollen.",
+      "includes": "Privater Partybus; Fahrer; 2 Flaschen Sekt; Stripshow; Discolicht; Soundsystem; Lokaler Guide"
+    },
+    "strip-hummer": {
+      "name": "Strip-Hummer",
+      "description": "Feiere durch Krakau in einer Luxus-Hummer-Limousine mit Musik, Licht, Drinks und einer Live-Stripshow an Bord. Das ultimative fahrende JGA-Party-Erlebnis, das Nachtleben, Transport und Unterhaltung in einer Fahrt vereint.",
+      "includes": "Hummer-Limousinenfahrt; Fahrer; 2 Flaschen Sekt; Stripshow (15 Minuten); Partybeleuchtung; Soundsystem; Lokaler Guide"
+    },
+    "tottie-strip-tour": {
+      "name": "Tottie-Strip-Tour",
+      "description": "Erlebe das beste Erwachsenen-Nachtleben Krakaus mit einer geführten JGA-Tour durch mehrere Top-Stripclubs und Nachtleben-Locations. Inklusive VIP-Eintritt, Drinks und einer ganzen Nacht Unterhaltung in den angesagtesten Spots der Stadt.",
+      "includes": "3 Stripclub-Eintritte; VIP-Zugang; 3 Wodka-Shots pro Person; Lokaler Guide; Nachtleben-Tour; Club-Hopping-Erlebnis"
+    },
+    "vip-strip-limo": {
+      "name": "VIP-Strip-Limo",
+      "description": "Komm in Krakau stilvoll an — mit einem Luxus-Limousinen-Erlebnis mit Sekt, privater Stripshow und VIP-JGA-Vibes vom Moment der Landung an. Eines der ultimativen Party-Upgrades für ein unvergessliches JGA-Wochenende in Krakau.",
+      "includes": "Limousinenfahrt; Fahrer; Flasche Sekt; Stripshow; Lokaler Guide; VIP-JGA-Erlebnis"
+    },
+    "vodka-tasting": {
+      "name": "Wodka-Verkostung",
+      "description": "Entdecke Polens Wodka-Kultur in Krakau mit einer geführten Verkostung mit lokalen Premium-Spirituosen, Snacks und Expertenwissen in einer zentralen Wodka-Bar. Das perfekte JGA-Warm-up vor einer großen Nacht.",
+      "includes": "10 Wodka-Shots pro Person; Snacks; Polnische Wurst; Barkeeper; Lokaler Guide; Wodka-Verkostungs-Erlebnis"
+    },
+    "white-water-rafting": {
+      "name": "Wildwasser-Rafting",
+      "description": "Nimm direkt vor Krakau ein adrenalingeladenes Rafting-Erlebnis auf einer professionellen Wildwasserstrecke in Olympia-Qualität in Angriff. Perfekt für JGA-Gruppen, die rasantes Teamwork, Nervenkitzel und ein ernsthaftes Katermittel suchen.",
+      "includes": "Wildwasser-Rafting-Session; Sicherheitsausrüstung; Qualifizierter Instruktor; Neoprenanzüge (falls nötig); Rücktransfers; Lokaler Guide"
+    },
+    "wieliczka-salt-mine-tour": {
+      "name": "Salzbergwerk-Wieliczka-Tour",
+      "description": "Entdecke das UNESCO-Welterbe Salzbergwerk Wieliczka bei Krakau mit einer geführten Untertage-Tour durch historische Stollen, Kammern und aus Salz gehauene Skulpturen. Ein einzigartiges, JGA-taugliches Kulturerlebnis und eine großartige Kater-Erholungsaktivität.",
+      "includes": "Geführte Untertage-Tour; Privater Hin- und Rücktransport; Fahrer/Guide; Bergwerkseintritt; Gruppenerlebnis"
+    },
+    "big-bachelor-breakfast": {
+      "name": "Großes Junggesellen-Frühstück",
+      "description": "Starte den Tag mit einem unbegrenzten Wochenendfrühstück in der LDC Kitchen — ein entspanntes Spätvormittags-Festmahl an mehreren Standorten der Stadt. Perfekt für JGA-Gruppen: Dieser lässige Brunch läuft bis in den Nachmittag, damit du stilvoll regenerieren und auftanken kannst.",
+      "includes": "Unbegrenztes Frühstück; Pancakes; Omeletts; Eier-Muffins; Brunch-Erlebnis"
+    },
+    "dubai-atlantis-water-park": {
+      "name": "Atlantis-Wasserpark Dubai",
+      "description": "Erlebe eine der ikonischsten Attraktionen Dubais im Atlantis Aquaventure Waterpark auf der weltberühmten Palm Jumeirah. Genieße rekordverdächtige Rutschen, adrenalingeladene Fahrten, Begegnungen mit Meerestieren und einen atemberaubenden Privatstrand — die ultimative Aktivität für einen unvergesslichen Dubai-Urlaub.",
+      "includes": "Wasserpark-Eintritt; Zugang zu allen Fahrgeschäften & Rutschen; Zugang zum Privatstrand; Hai- & Rochen-Beobachtungsbereiche"
+    },
+    "dubai-city-tour": {
+      "name": "Dubai-Stadttour",
+      "description": "Entdecke die Highlights Dubais mit einer geführten Stadttour zu den weltberühmten Wahrzeichen, Luxus-Hotspots und kulturellen Attraktionen. Sieh ikonische Sehenswürdigkeiten wie Burj Khalifa, Burj Al Arab und den Dubai Miracle Garden für das ultimative Dubai-Urlaubserlebnis.",
+      "includes": "Geführte Stadttour; Transport; Besuch der wichtigsten Wahrzeichen; Fotostopps; Lokales Sightseeing-Erlebnis"
+    },
+    "dubai-ferrari-world-tour": {
+      "name": "Ferrari-World-Tour Dubai",
+      "description": "Erlebe aufregende Fahrten und Highspeed-Attraktionen in der Ferrari World Abu Dhabi, Heimat weltberühmter Achterbahnen und immersiver Simulatoren. Ein perfekter adrenalingeladener Tagesausflug während deines Dubai-Urlaubs.",
+      "includes": "Ferrari-World-Eintritt; Zugang zu den Achterbahnen; Simulator-Fahrten; Themenpark-Attraktionen"
+    },
+    "dubai-helicopter-tour": {
+      "name": "Dubai-Helikoptertour",
+      "description": "Genieße atemberaubende Luftaufnahmen von Dubai bei einem aufregenden Helikopterflug über die ikonischsten Wahrzeichen der Stadt, darunter Burj Khalifa und Burj Al Arab. Ein unvergessliches Erlebnis für jeden Dubai-Urlaub oder jedes JGA-Wochenende.",
+      "includes": "15-minütiger Helikopterflug; Rücktransfers; Blick auf die Stadt aus der Luft; Sicherheitseinweisung"
+    },
+    "dubai-ski-super-pass": {
+      "name": "Ski Dubai Super Pass",
+      "description": "Genieße unbegrenzten Zugang zu den Schneepark-Attraktionen von Ski Dubai, dem berühmten Indoor-Skiresort des Nahen Ostens. Erlebe Schneefahrten, Rodeln, Sessellifte und Winterspaß im Herzen Dubais.",
+      "includes": "Schneepark-Zugang; Unbegrenzter Zugang zu den Fahrgeschäften; Sessellift-Fahrt; Rodeln; Schneeaktivitäten"
+    },
+    "dubai-xline-zipline": {
+      "name": "XLine-Zipline Dubai",
+      "description": "Wage dich an die längste urbane Zipline der Welt an der XLine Dubai Marina und flieg mit Highspeed-Blick über Wolkenkratzer und die Marina-Skyline quer durch Dubai. Ein echter Bucket-List-Adrenalinkick für JGA-Gruppen.",
+      "includes": "Zipline-Erlebnis; Sicherheitseinweisung; Komplette Ausrüstung; Professionelle Betreuung; Action-Cam-Aufnahmen"
+    },
+    "morning-desert-safari": {
+      "name": "Morgen-Wüstensafari",
+      "description": "Entflieh der Stadt und erkunde die atemberaubende Wüste Dubais mit einer aufregenden Morgensafari mit Dünenfahrt, Sandski und Kamelreiten. Ein Pflicht-Outdoor-Abenteuer während deines Dubai-Urlaubs.",
+      "includes": "4x4-Wüstensafari; Dünenfahrt; Sandski; Kamelreiten; Rücktransfers"
+    },
+    "night-club-entry": {
+      "name": "Nachtclub-Eintritt",
+      "description": "Genieße eine unvergessliche Nacht in Dubai mit Eintritt in einige der angesagtesten Bars und Nachtclubs der Stadt. Feiere mit deiner Gruppe, während ein lokaler Guide dich zu den besten Nachtleben-Spots Dubais bringt.",
+      "includes": "Nachtclub-Eintritt; Lokaler Nachtleben-Guide; Bar-Besuche; Club-Zugang; Party-Erlebnis"
+    },
+    "platinum-dinner-safari": {
+      "name": "Platinum-Dinner-Safari",
+      "description": "Entdecke die Schönheit der arabischen Wüste mit einem Premium-Safari-Erlebnis in Dubai mit luxuriösen Wüstenfahrten, kultureller Unterhaltung und einem unvergesslichen Dinner unter den Sternen. Genieße lokale Traditionen wie Musik, Tanz, Kaffeezubereitung und authentische Küche.",
+      "includes": "Luxus-Wüstensafari; Dinner-Erlebnis; Kulturelle Unterhaltung; Traditionelle Musik & Tanz; Kaffeezubereitungs-Erlebnis; Rücktransfers"
+    },
+    "soho-garden-stag-night": {
+      "name": "Soho-Garden-JGA-Nacht",
+      "description": "Feiere im Soho Garden Meydan in Dubai — mit JGA-Gruppeneintritt in eine der Top-House-&-Techno-Locations der Stadt, mit internationalen DJs und einer vollen Tanzfläche bis spät in die Nacht.",
+      "includes": "JGA-Eintritt; Club-Zugang; DJ-Sets; Priority-Eintritt; Gruppenabend"
+    },
+    "topgolf-challenge": {
+      "name": "Topgolf-Challenge",
+      "description": "Genieße eine kompetitive JGA-Session im Topgolf Dubai: Schlage Bälle mit Mikrochip aus klimatisierten Abschlagboxen mit Blick auf die Skyline und genieße dabei Essen, Drinks und Gruppenwettkampf.",
+      "includes": "Abschlagbox-Miete; Golfspiel; Ausrüstung; Gruppenwettkampf; Essens- & Getränkeoptionen"
+    },
+    "yacht-party": {
+      "name": "Yachtparty",
+      "description": "Miete eine private Yacht in Dubai und schippere an den ikonischen Ausblicken der Palm Jumeirah vorbei, während du Musik, Sonnenbaden und Drinks an Deck genießt — das ultimative JGA-Gruppenerlebnis auf dem Wasser.",
+      "includes": "Private Yachtmiete; Crew; Musikanlage; Küstenfahrt; Fotomöglichkeiten"
+    }
+  }
+}

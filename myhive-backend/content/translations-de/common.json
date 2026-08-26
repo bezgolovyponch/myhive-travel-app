@@ -1,0 +1,93 @@
+{
+  "destinations": {
+    "prague": {
+      "name": "Prag",
+      "country": "Tschechien",
+      "city": "Prag",
+      "description": "Die Stadt der hundert Türme trägt noch einen zweiten, weniger offiziellen Titel: Europas JGA-Hauptstadt. Prag packt alles, was ein Gruppenwochenende braucht, in eine fußläufige, biergetränkte Stadt — weltberühmtes tschechisches Pils zu Preisen, die sich immer noch wie ein Druckfehler anfühlen, eine mittelalterliche Altstadt, die auf jedem Foto spektakulär aussieht, und ein Nachtleben, das bis zum Sonnenaufgang läuft. Trivlus Prag-Katalog umfasst mehr als 70 Aktivitäten aus Schießen, Extremsport, tschechischer Bierkultur, Essen und Trinken, Chillout-Sessions zum Regenerieren, Nachtleben und Pranks: eine AK-47 abfeuern, im BMP-1 mitfahren, Wildwasser raften, im Bier-Spa entspannen, beim mittelalterlichen Bankett schlemmen oder über die Moldau schippern — bei den meisten Buchungen übernehmen Trivlu-Guides und Transport die Logistik. Bau das Programm um den Bräutigam herum, halte Adrenalin und Erholung im Gleichgewicht und lass Prag tun, was Prag am besten kann."
+    },
+    "tenerife": {
+      "name": "Teneriffa",
+      "country": "Spanien",
+      "city": "Santa Cruz de Tenerife",
+      "description": "Vulkanische Abenteuer und Strandpartys"
+    },
+    "dubai": {
+      "name": "Dubai",
+      "country": "VAE",
+      "city": "Dubai",
+      "description": "Die Stadt des Goldes"
+    },
+    "krakow": {
+      "name": "Krakau",
+      "country": "Polen",
+      "city": "Krakau",
+      "description": "Stadt der Könige"
+    }
+  },
+  "categories": {
+    "wellness": {
+      "name": "Chillout"
+    },
+    "czech-beer": {
+      "name": "Tschechisches Bier"
+    },
+    "extreme": {
+      "name": "Extrem"
+    },
+    "food-and-drink": {
+      "name": "Essen & Trinken"
+    },
+    "guns-and-bullets": {
+      "name": "Waffen & Schießen"
+    },
+    "stag-hot-babies-and-pranks": {
+      "name": "Heiße Girls & Pranks"
+    },
+    "nightlife": {
+      "name": "Nachtleben"
+    },
+    "transfer": {
+      "name": "Transfer"
+    }
+  },
+  "packages": {},
+  "blog": {
+    "top-5-group-travel-destinations-for-2026": {
+      "title": "Top 5 Reiseziele für Gruppenreisen 2026",
+      "category": "Reiseziele",
+      "excerpt": "Von den Kopfsteinpflastergassen Prags bis zu den Vulkanlandschaften Teneriffas: Entdecke die angesagtesten Ziele für dein nächstes Gruppenabenteuer.",
+      "content": "Eine Gruppenreise zu planen kann überwältigend wirken, aber das richtige Reiseziel macht den Unterschied. Wir haben die fünf besten Orte für Gruppenabenteuer 2026 zusammengestellt — nach Aktivitätenvielfalt, Preis-Leistung und Gruppentauglichkeit.\nPrag bleibt die Nummer eins für Gruppen. Mit seiner atemberaubenden Architektur, dem pulsierenden Nachtleben und unglaublich günstigen Preisen bietet es für jeden Reisetyp etwas. Stadtführungen durch die Altstadt, Bootsfahrten auf der Moldau und Kneipentouren durch jahrhundertealte Bierhallen machen es ideal für Gruppen jeder Größe.\nTeneriffa bringt Vulkanlandschaften, Strandpartys und Sonne das ganze Jahr. Gruppen lieben die Mischung aus Abenteuer wie einer Wanderung auf den Teide und Entspannung an schwarzen Sandstränden. Dank der vielen Mikroklimazonen der Insel findest du zu jeder Jahreszeit das perfekte Wetter.\nBali bleibt das ultimative Gruppen-Retreat. Von gemeinsamen Villen mit Privatpool über Gruppen-Surfkurse bis zu Tempeltouren liefert die Insel der Götter unvergessliche gemeinsame Erlebnisse zu Preisen, die das Budget nicht sprengen.\nDubai bietet luxuriöse Gruppenerlebnisse wie keine andere Stadt. Wüstensafaris, Dinner auf Dachterrassen und Wasserparks ergeben die perfekte Mischung aus Entspannung und Abenteuer. Gruppenpakete vieler Attraktionen machen es erschwinglicher, als man denkt.\nNew York City rundet unsere Liste ab — mit endlosen Unterhaltungsmöglichkeiten. Broadway-Shows, kulinarische Touren durch die vielfältigen Viertel und ikonische Wahrzeichen sorgen dafür, dass jeder in deiner Gruppe etwas findet, das ihm gefällt."
+    },
+    "how-to-plan-a-stress-free-group-trip": {
+      "title": "So planst du eine stressfreie Gruppenreise",
+      "category": "Tipps",
+      "excerpt": "Terminpläne, Budgets und Vorlieben einer ganzen Gruppe unter einen Hut zu bringen, kann überfordern. Hier sind unsere besten Tipps, damit alle zufrieden bleiben.",
+      "content": "Bei Gruppenreisen sollte es um Erinnerungen gehen, nicht um Logistik. Und doch wird die Planung allzu oft zur Reibungsquelle. So bleibt alles von Anfang bis Ende entspannt.\nLeg früh ein gemeinsames Budget fest. Geld ist die Konfliktquelle Nummer eins bei Gruppenreisen. Nutze ein gemeinsames Dokument oder eine App, in der alle ihre Schmerzgrenze eintragen, und plane dann Aktivitäten, die in den Rahmen der Gruppe passen.\nBestimme einen Reiseleiter, aber verteile die Verantwortung. Eine Person sollte nicht alle Entscheidungen tragen. Vergib Rollen: Jemand recherchiert Unterkünfte, jemand kümmert sich um Aktivitäten, jemand um den Transport.\nPlane freie Zeit ein. Nicht jede Minute muss verplant sein. Einige der besten Momente auf Gruppenreisen passieren spontan. Plane die wichtigsten Aktivitäten gemeinsam mit der Gruppe, aber lass Lücken, in denen jeder allein oder in kleineren Gruppen losziehen kann.\nNutze Technik zu deinem Vorteil. Tools wie der Trip-Planer von MyHive lassen alle Aktivitäten durchstöbern und darüber abstimmen — so werden Gruppenentscheidungen demokratisch und machen Spaß, statt im Chaos zu enden.\nUnd schließlich: Klärt früh die Erwartungen an die Kommunikation. Richte einen einzigen Gruppenchat ein, einige dich mit der Gruppe auf Antwortzeiten für Entscheidungen und setze eine Frist für verbindliche Zusagen. Klare Kommunikation verhindert Überraschungen in letzter Minute."
+    },
+    "why-ai-is-changing-the-way-we-travel-together": {
+      "title": "Warum KI verändert, wie wir gemeinsam reisen",
+      "category": "Technologie",
+      "excerpt": "Künstliche Intelligenz verwandelt die Planung von Gruppenreisen von einem logistischen Albtraum in ein nahtloses Erlebnis. So geht das.",
+      "content": "Künstliche Intelligenz ist im Reisebereich längst mehr als ein Schlagwort — sie verändert grundlegend, wie Gruppen gemeinsam planen, buchen und reisen.\nKlassische Gruppenreiseplanung bedeutete endloses Hin und Her in Nachrichten, Tabellen zum Erfassen der Vorlieben und einen Kompromiss nach dem anderen. KI ändert das, indem sie die Vorlieben aller gleichzeitig analysiert und Programme vorschlägt, die die Zufriedenheit der Gruppe maximieren.\nSmarte Empfehlungssysteme verstehen inzwischen, dass ein Ziel wie Bali beides bietet, wenn die eine Hälfte der Gruppe Abenteuer und die andere Entspannung will. Diese Algorithmen berücksichtigen Budgetgrenzen, Reisedaten und sogar Ernährungsvorlieben, um persönliche Gruppenerlebnisse zu erstellen.\nAuch die Preisoptimierung in Echtzeit verändert alles. KI beobachtet Flug- und Unterkunftspreise auf Hunderten von Plattformen, meldet Gruppen den besten Buchungszeitpunkt und findet Angebote, die ins Budget aller passen.\nSprachbarrieren lösen sich ebenfalls auf. KI-gestützte Übersetzungstools bedeuten, dass Gruppen selbstbewusst Ziele erkunden können, deren Sprache sie nicht sprechen — und damit eine Welt abseits der ausgetretenen Pfade öffnen.\nBei MyHive bauen wir die Zukunft der Gruppenerlebnisse. Unser KI-gestützter Trip-Planer findet nicht nur Aktivitäten — er erstellt stimmige Programme, die Gruppen näher zusammenbringen und dabei individuelle Vorlieben respektieren."
+    },
+    "bali-on-a-budget-a-group-travel-guide": {
+      "title": "Bali mit kleinem Budget: Ein Guide für Gruppenreisen",
+      "category": "Guides",
+      "excerpt": "Du denkst, Bali ist zu teuer für einen Gruppentrip? Denk noch mal nach. Wir zeigen, wie du die Insel der Götter erlebst, ohne das Budget zu sprengen.",
+      "content": "Bali gilt als Luxusziel, aber clevere Gruppen erleben die Magie der Insel der Götter, ohne ein Vermögen auszugeben. Hier ist dein kompletter Budget-Guide.\nBei der Unterkunft sparen Gruppen am meisten. Statt einzelner Hotelzimmer mietest du eine gemeinsame Villa. Eine traumhafte Villa mit 4 Schlafzimmern und Privatpool kostet, auf 8 Personen aufgeteilt, schon ab 30 € pro Person und Nacht. Gegenden wie Canggu und Ubud bieten das beste Preis-Leistungs-Verhältnis.\nIss wie die Einheimischen, und dein Essensbudget schrumpft drastisch. Warungs (lokale Restaurants) servieren fantastische indonesische Gerichte für 2–3 € pro Mahlzeit. Heb dir die schicken Restaurants für ein oder zwei besondere Gruppenabende auf und kocht das Frühstück gemeinsam in der Villa.\nTransport auf Bali ist günstig, wenn man ihn teilt. Miete für rund 30–40 € am Tag einen privaten Fahrer und teile die Kosten in der Gruppe. So erkundet die Gruppe Tempel, Reisterrassen und Strände im eigenen Tempo.\nViele der besten Erlebnisse auf Bali sind kostenlos oder fast kostenlos. Schau dir den Sonnenuntergang am Tempel Tanah Lot an, erkunde die Reisterrassen von Tegallalang, spazier durch den Affenwald von Ubud oder verbring einfach den Tag an einem der wunderschönen Strände der Insel.\nBei Aktivitäten lohnt sich die Suche nach Gruppenrabatten. Wildwasser-Rafting, Schnorchelausflüge und Kochkurse bieten ab 6 Personen oft günstigere Preise pro Kopf. Buche über deine Unterkunft, um die besten Angebote zu bekommen."
+    },
+    "the-rise-of-multi-traveler-experiences": {
+      "title": "Der Aufstieg der Gruppenerlebnisse",
+      "category": "Trends",
+      "excerpt": "Solo-Reisen hatten ihren Moment. Jetzt rücken gemeinsame Erlebnisse in den Mittelpunkt. Warum Reisen mit anderen der neue Trend ist.",
+      "content": "Jahrelang dominierte das Solo-Reisen die Debatte. Instagram-Feeds waren voll von einsamen Abenteurern an exotischen Orten, und „sich selbst finden“ auf Solo-Reisen wurde zum kulturellen Mantra. Doch das Blatt wendet sich.\nNach der Pandemie sehnen sich die Menschen mehr denn je nach Verbindung. Durch Remote-Arbeit sind Freundeskreise über Städte und Länder verstreut — bewusst geplante Gruppentrips werden dadurch bedeutsamer und nötiger als je zuvor.\nGruppenerlebnisse gehen über klassische Gruppenreisen hinaus. Sie sind individuell anpassbare, flexible Abenteuer, bei denen die Gruppe das Programm gestaltet, statt einem starren Zeitplan zu folgen. Denk an gemeinsame Villen mit kuratiertem Aktivitätenmenü, nicht an Bustouren mit nummerierten Aufklebern.\nAuch wirtschaftlich ergibt das Sinn. Geteilte Unterkunft, geteilter Transport und Gruppenpreise bei Aktivitäten bedeuten: Alle bekommen mehr Erlebnis für weniger Geld. Eine Luxusvilla, durch acht geteilt, kostet oft weniger als ein Hotelzimmer der Mittelklasse.\nSocial Media entwickelt sich mit diesem Wandel. Geteilte Fotoalben, Gruppenreise-Accounts und gemeinsam erstellte Inhalte werden zur neuen Normalität. Die besten Reisegeschichten sind nicht mehr solo — sie sind kollektiv.\nGenau deshalb haben wir MyHive gebaut. Tools für die Solo-Reiseplanung gibt es überall, aber Plattformen speziell für die Gruppenkoordination existierten praktisch nicht. Das ändern wir."
+    },
+    "weekend-getaway-ideas-for-large-groups": {
+      "title": "Ideen für Wochenendtrips mit großen Gruppen",
+      "category": "Reiseziele",
+      "excerpt": "Du planst einen Wochenendausflug für 10+ Leute? Diese Ziele und Aktivitäten sind perfekt für große Gruppen mit Lust auf Abenteuer.",
+      "content": "Ein Wochenende für 10 oder mehr Personen zu planen, bringt besondere Herausforderungen mit sich — aber es lohnt sich. Hier sind unsere liebsten Ziele und Formate für große Gruppen.\nLandhäuser zur Miete sind der Goldstandard für Gruppenwochenenden. Plattformen bieten inzwischen Unterkünfte für 15–20 Personen, komplett mit Spielezimmer, Whirlpool und großen Küchen. Die gemeinsamen Wohnbereiche werden zu natürlichen Treffpunkten, während private Schlafzimmer Rückzug bieten.\nWochenenden mit Aktivitäts-Fokus funktionieren hervorragend für große Gruppen. Buche ein Surf-Wochenende, eine Weinverkostungstour oder ein Koch-Retreat. Eine gemeinsame Aktivität gibt dem Wochenende Struktur, ohne überplant zu wirken.\nStädtetrips klappen auch mit großen Gruppen, wenn man clever plant. Buche verbundene Zimmer oder Apartments im selben Haus, wähle ein Viertel mit vielen Restaurants und plane ein, zwei Gruppenaktivitäten — mit Zeit, in kleineren Grüppchen loszuziehen.\nFestival-Wochenenden sind perfekt für große Gruppen. Musikfestivals, Food-Festivals und Kulturevents bieten Unterhaltung frei Haus und ein gemeinsames Erlebnis, das die Gruppe zusammenschweißt. Buche die Unterkunft früh und lege einen Treffpunkt fest, an dem sich alle leicht wiederfinden.\nWelches Format du auch wählst: Der Schlüssel ist Balance. Große Gruppen brauchen eine Mischung aus gemeinsamer Zeit und Freiheit. Plane die Pflichtmomente als ganze Gruppe, aber lass natürliche Untergruppen für Mahlzeiten und Pausen entstehen. Die besten Trips mit großen Gruppen fühlen sich mühelos an — auch wenn hinter den Kulissen sorgfältig geplant wurde."
+    }
+  }
+}

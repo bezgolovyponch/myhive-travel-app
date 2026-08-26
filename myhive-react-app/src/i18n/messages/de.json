@@ -111,7 +111,7 @@
     "percentOff": "{pct}% Rabatt",
     "removeAria": "{name} entfernen",
     "emptyState": "Noch keine Aktivitäten hinzugefügt. Stöbere durch die Aktivitäten und stell dir deinen Trip zusammen!",
-    "voteTogether": "Stimmt gemeinsam ab & plant euren Trip",
+    "voteTogether": "Stimm gemeinsam ab & plane deinen Trip",
     "totalOne": "Gesamt ({count} Person)",
     "totalOther": "Gesamt ({count} Personen)",
     "continue": "Weiter"
@@ -410,7 +410,7 @@
       "meetingPointDefault": "Zentral: {place} — genauer Treffpunkt wird bei der Buchung bestätigt.",
       "cityCentreFallback": "Stadtzentrum",
       "availabilityLabel": "Verfügbarkeit",
-      "availabilityDefault": "Täglich · flexible Startzeiten, abgestimmt auf eure Gruppe.",
+      "availabilityDefault": "Täglich · flexible Startzeiten, abgestimmt auf deine Gruppe.",
       "cancellationLabel": "Stornierung",
       "cancellationDefault": "Kostenlose Änderungen bis 14 Tage vorher. Alle Bedingungen in unserer Rückerstattungsrichtlinie.",
       "refundPolicyLink": "Rückerstattungsrichtlinie"
@@ -561,7 +561,7 @@
     "responses": {
       "default": "Ich helfe dir, den perfekten Gruppentrip zu planen! Was interessiert dich am meisten?",
       "nightlife": "Für episches Nachtleben schau in die Kategorie Nachtleben bei den Aktivitäten — Kneipentouren, Club-Eintritte und Bootspartys sind Gruppenfavoriten.",
-      "adventure": "Abenteuer wartet! Stöbere in der Kategorie Abenteuer nach Kartfahren, Wassersport und Adrenalin-Aktivitäten, die eure Gruppe zusammen machen kann.",
+      "adventure": "Abenteuer wartet! Stöbere in der Kategorie Abenteuer nach Kartfahren, Wassersport und Adrenalin-Aktivitäten, die deine Gruppe zusammen machen kann.",
       "relax": "Perfekt zum Runterkommen — schau nach Spa, Beachclub und entspannten Tagesaktivitäten, um die großen Nächte auszugleichen.",
       "packages": "Unsere Pakete bündeln mehrere Aktivitäten mit Rabatt — schau auf der Reiseziel-Seite in den Tab Pakete und passe jedes davon im Trip-Planer an!",
       "suggestPackages": "Pakete sind der einfachste Start — eine fertige Mischung aus Aktivitäten mit Rabatt, die du im Trip-Planer trotzdem anpassen kannst!",
@@ -569,7 +569,7 @@
       "suggestAddMore": "Füge noch ein paar hinzu für das volle Erlebnis!",
       "suggestBalanced": "Das sieht nach einem richtig ausgewogenen Trip aus!",
       "suggestDefault": "Starte mit den vorgestellten Aktivitäten auf der Startseite — sie sind bei Gruppen am beliebtesten. Füge alles, was dir gefällt, zum Trip-Planer hinzu!",
-      "prices": "Preise stehen pro Person auf jeder Aktivitätskarte, und Pakete geben dir Rabatt, wenn du mehrere Aktivitäten zusammen buchst. Der Trip-Planer rechnet alles für eure Gruppengröße zusammen.",
+      "prices": "Preise stehen pro Person auf jeder Aktivitätskarte, und Pakete geben dir Rabatt, wenn du mehrere Aktivitäten zusammen buchst. Der Trip-Planer rechnet alles für deine Gruppengröße zusammen.",
       "groups": "Hier ist alles für Gruppen gemacht! Du kannst aus dem Trip-Planer sogar ein Gruppen-Voting starten, damit die ganze Crew die Aktivitäten gemeinsam auswählt.",
       "hello": "Hallo! Ich helfe dir, den perfekten Trip zu planen. Suchst du Abenteuer, Nachtleben, Entspannung oder eine Mischung aus allem?"
     },
@@ -658,7 +658,7 @@
       "processing": "Ergebnisse werden verarbeitet...",
       "countdown": "{hours} Std. {minutes} Min.",
       "shareTitleDestination": "Voting: Trip nach {destination}",
-      "shareTitleGeneric": "Stimmt über unseren Trip ab",
+      "shareTitleGeneric": "Stimm über unseren Trip ab",
       "shareText": "Hilf mit zu entscheiden, was wir machen — stimm über die Aktivitäten ab:",
       "sessionError": "Session konnte nicht geladen werden: {error}",
       "finalising": "Ergebnisse werden finalisiert...",

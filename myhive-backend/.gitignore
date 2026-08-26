@@ -47,6 +47,9 @@ credentials/
 ### Service Account Keys & Certificates ###
 service-account-key.json
 *.json
+# The blanket *.json above is for credentials; the translation corpus is
+# content, not a secret — keep it versioned.
+!content/**/*.json
 *.pem
 *.p12
 *.key

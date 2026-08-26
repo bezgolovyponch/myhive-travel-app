@@ -1,0 +1,84 @@
+{
+  "activities": {
+    "stag-challenge-2": {
+      "name": "Stag Challenge",
+      "description": "Der Schwergewichts-Titelkampf unter Prags Kneipentouren. Die Stag Challenge führt deine Gruppe in drei Stunden durch vier Bars, ein Trivlu-Guide gibt das Tempo vor: eine Stunde Macháček-Trinkspiel, eine Flasche Jägermeister auf dem Tisch, Burger und Pommes, damit alle aufrecht bleiben, das Shot-Glücksrad mit drei Shots pro Person, eine Stunde unbegrenzt Bier, Wein und Cocktails, eine Stunde „King of the Ring“, Tischfußball und zum Abschluss freier Eintritt in einen Nachtclub. Biere entlang der Route sind ebenfalls inklusive. Eine strukturierte Eskalation — erst Spiele, dann Chaos — genau das, was eine richtige JGA-Nacht braucht: Schwung, Strafen und einen Guide, der dafür sorgt, dass die Gruppe geschlossen im Club ankommt. Prags Nachtleben, im Sturm genommen.",
+      "includes": "Trivlu-Guide; Lokale Tipps; Freier Eintritt in ausgewählte Clubs in Prag; Eine Stunde Macháček-Spiel; Tischreservierung; Flasche Jägermeister; 1 Softdrink; 2 Bier pro Person; Burger pro Person; Pommes pro Person; 3 Shots zur Auswahl; Shot-Glücksrad; 3 Shots pro Person (vom Glücksrad bestimmt); Eine Stunde unbegrenzt Bier, Wein, Cocktails; Eine Stunde „King of the Ring“; Tischfußball; Nachtclub-Eintritt"
+    },
+    "stag-nappy-change": {
+      "name": "Windelwechsel für den Bräutigam",
+      "description": "Irgendwo zwischen Roast und Initiationsritus liegt der Windelwechsel. Bei diesem 30-minütigen Prank im Club wird der Bräutigam in eine Windel gesteckt und vor der gesamten Gruppe mit einer humorvollen Erwachsenen-Rollenspiel-Performance bedacht, komplett mit 15-minütiger Show und Drinks inklusive, während seine Würde offiziell in den Ruhestand geht. Ein Trivlu-Guide organisiert das Setup, damit die Überraschung perfekt sitzt. Bewusst übertrieben: leichtfüßig, laut und peinlich genau so, wie JGA-Traditionen es verlangen, während die Handys der Gruppe jede Phase der Akzeptanzreise des Bräutigams festhalten. Hat der Bräutigam jahrelang ausgeteilt, ist dies der Abend, an dem die Bilanz ausgeglichen wird. Buchen, Geheimnis bewahren und die Windel den Rest erledigen lassen.",
+      "includes": "Trivlu-Guide; 15 Min. Stripshow; Drink pro Person; Windelwechsel"
+    },
+    "stag-ring-challenge": {
+      "name": "Ring-Challenge für den Bräutigam",
+      "description": "Der Bräutigam hat eine große Klappe; der Ring findet es heraus. Die Ring-Challenge ist ein beaufsichtigtes Kampfsport-Erlebnis, bei dem der Bräutigam für ein kontrolliertes Sparring mit einer professionellen Kämpferin in den Ring steigt — komplette Boxausrüstung inklusive, von Handschuhen und Shorts bis Mundschutz, Schienbeinschonern und Helm. Ein qualifizierter Instruktor macht die Sicherheitseinweisung, ein Ringrichter kontrolliert jede Runde, privater Hin- und Rücktransport ist inklusive, und ein Trivlu-Guide überwacht den Tag. Die Kontrolle ist der Punkt: Adrenalin mit Regeln, nicht Leichtsinn — und der Anblick des Bräutigams, der entdeckt, wie viel Technik zählt, ist die Buchung allein wert. Zwei Stunden von Tür zu Tür, ein demütiger Bräutigam und eine Gruppe, die die Nacherzählung noch Jahre lang schiedsrichtert.",
+      "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); Qualifizierter Instruktor; Ringrichter; Boxausrüstung für den Bräutigam (Boxhandschuhe, Boxshorts, Mundschutz, Schienbeinschoner, Boxhelm); Professionelle Kämpferin; Sicherheitseinweisung"
+    },
+    "steak-and-private-show": {
+      "name": "Steak & Private Show",
+      "description": "Erst Steak, dann Spektakel. Dieser 100-minütige Abend setzt deine Gruppe in einem privaten Restaurantbereich im Zentrum Prags an den Tisch — für ein richtiges Steak mit Pommes, Sauce und zwei Bier pro Person — ein Dinner, das sich ernst nimmt. Dann schaltet der Raum einen Gang hoch: eine private 15-minütige Show für deine Gruppe, mit einem Spotlight-Moment für einen ausgewählten Gast, und alle wissen, welchen. Ein Trivlu-Guide bucht den Raum und hält das Timing. Das Format, das JGA-Dinner funktionieren lässt: gutes Essen ohne Kompromisse, Unterhaltung ohne Location-Wechsel und ein privater Rahmen, in dem die Gruppe genau so laut sein kann, wie der Anlass es verlangt. Solide, einfach und verlässlich das erste Highlight des Abends.",
+      "includes": "Trivlu-Guide; Steak pro Person; Pommes pro Person; Sauce pro Person; 2 Bier pro Person; 15 Minuten Stripshow"
+    },
+    "succulent-bbq-ribs": {
+      "name": "Saftige BBQ-Rippchen",
+      "description": "Ein halbes Kilo Rippchen pro Person, und niemand urteilt. Dieses Dinner bucht deiner Gruppe einen reservierten Tisch für ein richtiges Barbecue-Festmahl: 500 Gramm saftige Rippchen pro Person, Pommes dazu und zwei Bier pro Kopf, serviert in einem entspannten Restaurant, das für lange, laute Tische gemacht ist. Ein Trivlu-Guide bringt die Gruppe rein und unter. Plane großzügig ein paar Stunden ein — gute Rippchen verdienen Hingabe, und das ist Fingerfood in seiner ernstesten Form. Unter den JGA-Dinnern ein verlässlicher Publikumsliebling: keine Menü-Debatten, keine winzigen Portionen, nur Fleisch, Bier und ein Tisch, der stetig schmutziger und fröhlicher wird. Der ideale Tankstopp vor einer großen Prager Nacht — schwer genug für eine Grundlage, locker genug, dass sich niemand benehmen muss.",
+      "includes": "Trivlu-Guide; Tischreservierung; 500 g Rippchen pro Person; Pommes pro Person; 2 Bier pro Person"
+    },
+    "swimming-beer-bike": {
+      "name": "Schwimmendes Beer Bike",
+      "description": "Das Beer Bike, nur schwimmend. Prags schwimmendes Beer Bike setzt deine Gruppe für 90 Minuten aufs Wasser — mit unbegrenzt Bier, einem Kapitän, der die wichtigen Richtungsentscheidungen trifft, und der Stadt, die vorbeizieht, während du trittst, einschenkst und generell nicht viel hilfst. Ein Trivlu-Guide bringt alle an Bord und die Zapfhähne zum Laufen. Die seltene Aktivität, die Sightseeing, Trinken und leichte Bewegung in Proportionen kombiniert, die eine JGA-Gruppe tatsächlich gutheißen kann — das Treten ist im Geiste optional, das Bier nicht. Allein die Neuheit macht es zum Highlight: Viele Städte haben Kneipentouren, sehr wenige lassen dich eine davon den Fluss hinunter steuern. Rechne mit Gesang, rechne mit Spritzern, rechne mit dem Gruppenfoto des Wochenendes. Neunzig Minuten auf dem Wasser, null Fahrer nötig.",
+      "includes": "Trivlu-Guide; Bootsfahrt; Kapitän; Unbegrenzt Bier"
+    },
+    "tiki-boat": {
+      "name": "Tiki-Boot",
+      "description": "Eine Tropenbar, die unerklärlicherweise durch Mitteleuropa schippert. Das Tiki-Boot gibt deiner Gruppe eine 90-minütige Fahrt durch Prag mit unbegrenzt Bier die ganze Zeit, einem Kapitän, der die Navigation übernimmt, und ikonischen Blicken auf Karlsbrücke und Prager Burg, die am Deck vorbeiziehen. Ein Trivlu-Guide bringt alle an Bord. Der Kontrast ist der ganze Charme: Tiki-Bar-Atmosphäre, tschechische Flussufer und eine Skyline, die absolut nicht weiß, was sie von deiner Gruppe halten soll. Einer der mühelosesten Siege in einem JGA-Programm — kein Können, kein Zeitplan, nur 90 Minuten kaltes Bier, warme Vibes und die beste Fotokulisse der Stadt. Durstig an Bord, begeistert von Bord, und danach streiten, ob die Burg oder die dritte Runde das Highlight war.",
+      "includes": "Trivlu-Guide; 90 Min. Bootsfahrt; 90 Min. unbegrenzt Bier; Kapitän"
+    },
+    "unlimited-paintball-experience": {
+      "name": "Unbegrenztes Gummiball-Paintball",
+      "description": "Kein Schusszählen, keine Munitionsrationierung — nur unbegrenzt Gummibälle und eine volle Stunde, um sie zu verbrauchen. Das Gummiball-Paintball-Erlebnis schickt deine Gruppe durch schnelle, wiederholbare Gefechte, bei denen die Munition nie ausgeht — und das verändert das Spiel komplett: Niemand versteckt sich, um Schüsse zu sparen, jede Runde ist volle Kraft voraus, und die Revanchen kommen, bis die Stunde um ist. Gummibälle bedeuten weniger Sauerei als klassische Farbe, mit dem ganzen Adrenalin und dem befriedigenden Klatschen eines Volltreffers. Danach gibt es ein Bier oder einen Softdrink für jeden Spieler, und ein Trivlu-Guide managt die Session von Anfang bis Ende. Das Format für Gruppen, denen normales Paintball zu höflich war — pure Masse, pures Chaos und eine sehr demokratische Verteilung angeknackster Egos. Feuer frei.",
+      "includes": "Trivlu-Guide; 1 Stunde Spiel; Unbegrenzt Gummibälle; Bier oder Softdrink pro Person"
+    },
+    "vip-cabaret-night-package": {
+      "name": "VIP-Cabaret-Nacht-Paket",
+      "description": "Die große Nacht als All-in-one, richtig zusammengestellt. Das VIP-Cabaret-Nacht-Paket umfasst den Eintritt in eines der Top-Adult-Venues Prags mit reserviertem Tisch, eine 10-minütige Show und — das Herzstück — den Bräutigam selbst für 10 Minuten im Rampenlicht auf der Bühne, was er sich garantiert nicht selbst aussuchen würde. Der Tisch bekommt eine 0,7-Liter-Flasche Spirituosen deiner Wahl, der Bräutigam trinkt die ganze Nacht Bier aufs Haus und geht mit einem Erinnerungs-T-Shirt als Beweis, dass alles wirklich passiert ist. Ein Trivlu-Guide organisiert Eintritt, Plätze und Timing über den dreistündigen Abend. Das Format für die Abschlussnacht: keine Logistik, keine Schlangen, eine Location, alles inklusive — die Gruppe setzt sich zusammen hin, und die Nacht passiert einfach um sie herum.",
+      "includes": "Trivlu-Guide; Stripclub-Eintritt; Tischreservierung im Stripclub; 10 Min. Lesben-Show; 10 Min. Bräutigam-Show auf der Bühne; Flasche 0,7 l Spirituose (nach Wahl); Unbegrenzt Bier für den Bräutigam; T-Shirt für den Bräutigam"
+    },
+    "vip-club-entrance": {
+      "name": "VIP-Club-Eintritt",
+      "description": "Schlange überspringen, Kompromisse überspringen. Der VIP-Club-Eintritt führt deine Gruppe an der Schlange vorbei in einen der gehobenen Clubs Prags, wo Top-DJs hauptsächlich House auflegen — die Art Tracks, die eine Tanzfläche füllen und voll halten. Dein Tisch ist reserviert, Flaschenservice ist inklusive, und ein Trivlu-Guide regelt den Eintritt, damit die Nacht an der Tür beginnt statt davor. Für eine JGA-Gruppe löst es das klassische Problem am Ende der Nacht: zehn Leute, eine Türpolitik, null Geduld. Mit VIP-Eintritt kommt die Gruppe zusammen an, sitzt zusammen und hält die ganze Nacht ihre eigene Ecke im Club. Schick anziehen, die Flaschen einteilen und den DJ die Arbeit machen lassen — das Schlusskapitel einer Prager Nacht, richtig gemacht.",
+      "includes": "Trivlu-Guide; Tischreservierung; Flaschenservice; VIP-Eintritt Nachtclub"
+    },
+    "vr-gaming": {
+      "name": "VR-Gaming",
+      "description": "Zwei Stunden in Prags Virtual-Reality-Spielplatz, und dank der Lage im Stadtzentrum passt es in jedes Programm. Deine Gruppe bekommt zwei volle Stunden Spielzeit an modernsten VR-Setups mit privater Chill-out-Zone zum Zurückziehen, dazu zwei Bier oder Softdrinks pro Person fürs Zuschauen zwischen den Runden — was die halbe Unterhaltung ist, denn einem erwachsenen Mann beim Fuchteln gegen unsichtbare Feinde zuzusehen, wird nie alt. Ein Trivlu-Guide bucht alles. VR ist der Geheimtipp der JGA-Wochenenden: wirklich kompetitiv, von außen endlos lustig und komplett wetterfest. Es funktioniert als Nachmittags-Session, als katerfreundlicher Morgen oder als Turnier vor dem Dinner und garantiert, dass die Gruppe mit mindestens einem Video rausgeht, das auf der Hochzeit wieder auftaucht. Headsets auf, Würde ab.",
+      "includes": "Trivlu-Guide; 2 Std. Spielzeit; 2 Bier oder Softdrinks pro Person"
+    },
+    "water-gun-battle": {
+      "name": "Wasserpistolen-Schlacht",
+      "description": "Hol die Wasserpistolen raus und sieh zu, wie erwachsene Männer es viel zu ernst nehmen. Die Wasserpistolen-Schlacht gibt deiner Gruppe eine volle Stunde rasanten Teamkampf — einfache Taktik, ständiges Durchnässen und die reinste Form kompetitiven Unsinns — mit privatem Transport inklusive und einem Drink für jeden Kämpfer, wenn der Waffenstillstand ausgerufen wird. Ein Trivlu-Guide organisiert die Session, du entscheidest nur über Teams und Taktik. Das leichtherzigste Kampfformat auf der Prag-Liste: null blaue Flecken, null Könnenshürde und maximale Comedy, besonders sobald die Allianzen zerbrechen. Perfekt für warmes Wetter und Gruppen mit gemischtem Fitnesslevel — es verbrennt Energie, kühlt alle ab und produziert die Art durchnässtes, grinsendes Gruppenfoto, das ein JGA-Wochenende besser zusammenfasst als jedes Nachtclub-Bild.",
+      "includes": "Trivlu-Guide; Privater Transport; 1 Stunde Spiel; Drink pro Person"
+    },
+    "wellness-spa": {
+      "name": "Wellness & Spa",
+      "description": "Jedes richtige JGA-Programm braucht einen Erholungsslot, und das hier ist er, gut gemacht. Das Wellness-&-Spa-Erlebnis kommt mit einem dreistündigen Spa-Pass für Saunen, Pools und Ruhebereiche, mit Duschen, Umkleiden und Schließfächern, alles geregelt — plus privatem Hin- und Rücktransport und einem Trivlu-Guide, damit niemand mit Kopfschmerzen irgendwohin navigieren muss. Das Format ist herrlich einfach: Hitze, Wasser, Stille, wiederholen. Die cleverste Buchung für den Tag nach der großen Nacht — die Gruppe sammelt sich langsam, die Saunen tun ihre Arbeit, und in der letzten Stunde diskutieren alle über Dinnerpläne statt über Reue. Prags Nachtleben fordert seinen Tribut; hier zahlst du ihn zurück. Buche es in die Mitte des Wochenendes und dank dir später selbst.",
+      "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); 3 Std. Spa-Pass; Eintritt Aqua- und Saunabereich; Duschen; Umkleiden und Schließfächer"
+    },
+    "whiskey-tasting": {
+      "name": "Whiskey-Verkostung",
+      "description": "Eine Stunde, fünf Whiskys, vier Länder. Diese geführte Verkostung setzt deine Gruppe in einer gemütlichen Prager Bar an einen reservierten Tisch und führt dich durch fünf Drams aus Irland, Schottland, den USA und Tschechien — ja, tschechischen Whisky gibt es, und herauszufinden, wie er sich schlägt, ist der halbe Spaß. Die Stunde verbindet Verkostung mit Geschichten, ausgelegt für komplette Anfänger wie für erfahrene Whiskey-Trinker, und optionale Snacks halten das Ganze zivilisiert. Ein Trivlu-Guide organisiert alles. Der ideale Gangwechsel am frühen Abend eines JGA-Wochenendes: Die Gruppe setzt sich, die Gläser reihen sich auf, und eine Stunde später gehen alle mit einem neuen Favoriten und mehreren selbstbewusst vertretenen Meinungen. Eine kurze, warme, gesellige Session, die den ganzen folgenden Abend aufwertet.",
+      "includes": "Trivlu-Guide; Tischreservierung; 5 Gläser Whisky zur Verkostung pro Person"
+    },
+    "wine-tasting": {
+      "name": "Weinverkostung",
+      "description": "Für den Abend, an dem die Gruppe beschließt, kultiviert zu sein — oder es zumindest zu versuchen. Diese Weinverkostung leitet ein professioneller französischer Sommelier in einem eleganten Prager Restaurant und arbeitet sich durch eine kuratierte Auswahl europäischer und südamerikanischer Weine: weiß, schäumend, rosé und rot, jeder ordentlich vorgestellt. Das Erlebnis beginnt mit Tapas — Käse und Wurst mit Brot — und umfasst ein Zwei-Gänge-Menü pro Person, mit reserviertem Tisch und abgedeckten öffentlichen Verkehrsmitteln. Ein Trivlu-Guide koordiniert den Abend. Plane drei Stunden ein: ein langes, entspanntes Sitzen, bei dem die Geschichten des Sommeliers so gut sind wie die Weine. Das eleganteste Kapitel des JGA-Wochenendes, ideal für Gruppen, die inmitten des Chaos einen wirklich kultivierten Abend wollen — und beim letzten Glas haben alle starke Meinungen und exakt null Vokabular.",
+      "includes": "Trivlu-Guide; Öffentliche Verkehrsmittel; Tapas: Käse & Wurst mit Brot; 2-Gänge-Menü pro Person; Weinauswahl (weiß, schäumend, rosé, rot); Tischreservierung; Sommelier; Weinpräsentation"
+    },
+    "xxl-cabaret-comedy-show": {
+      "name": "XXL-Cabaret-Comedy-Show",
+      "description": "Cabaret mit aufgedrehter Lautstärke. Die XXL-Cabaret-Comedy-Show ist eine lebhafte Erwachsenen-Bühnenshow in Prag, die Comedy, Tanz und Theaternummern zu einer Stunde herrlich unernster Unterhaltung mischt — und das Ganze mit einer vollen Stunde unbegrenzt Bier plus einer 15-minütigen Show für deine Gruppe unterfüttert. Ein Trivlu-Guide bucht alles. Das Format ist für JGA-Gruppen gemacht: Es braucht keine Konzentration, belohnt Begeisterung hart an der Grenze zum Zwischenruf und wird mit jeder Runde des unbegrenzten Biers lustiger. Buche es als Brücke zwischen Dinner und Clubs — die Gruppe kommt als Publikum, geht als Chor, und das Schwungproblem der Nacht ist endgültig gelöst. Eine Stunde, große Lacher, größere Performer.",
+      "includes": "Trivlu-Guide; 15 Min. Stripshow; Eine Stunde unbegrenzt Bier"
+    }
+  }
+}
