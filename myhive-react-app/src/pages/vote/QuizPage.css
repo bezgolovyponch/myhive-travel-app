@@ -86,7 +86,10 @@
   }
 }
 
+/* Press feedback for touch: highlight only while the finger is down — the tap
+   still flashes the answer, but nothing carries over to the next question */
 .quiz-answer:active:not(:disabled) {
+  border-color: var(--primary, #32b8c6);
   transform: translateY(0);
 }
 
