@@ -76,9 +76,14 @@
   transition: transform 0.1s, border-color 0.15s, background 0.15s;
 }
 
-.quiz-answer:hover:not(:disabled) {
-  border-color: var(--primary, #32b8c6);
-  transform: translateY(-1px);
+/* Hover only on devices that truly hover: on touch screens :hover sticks to
+   the last tap point, so the next question's answer in the same spot rendered
+   as pre-selected */
+@media (hover: hover) {
+  .quiz-answer:hover:not(:disabled) {
+    border-color: var(--primary, #32b8c6);
+    transform: translateY(-1px);
+  }
 }
 
 .quiz-answer:active:not(:disabled) {
