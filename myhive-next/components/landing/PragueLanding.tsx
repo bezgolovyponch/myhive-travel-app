@@ -10,6 +10,7 @@ import './prague.css';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import { inter } from './fonts';
 import LandingHeader from './LandingHeader';
+import LandingCart from './LandingCart';
 import LandingFooter from './LandingFooter';
 import ActivityRows from './ActivityRows';
 import TripCalculator from './TripCalculator';
@@ -17,8 +18,9 @@ import WhyUsSection from './WhyUsSection';
 import ReviewsSection from './ReviewsSection';
 import FaqSection from './FaqSection';
 import { trackCta, trackCtaAndGo } from './analytics';
-import { builderUrl, PHONE_DISPLAY, PHONE_HREF, type ActivityRow } from './data';
+import { PHONE_DISPLAY, PHONE_HREF, type ActivityRow } from './data';
 import type { Pool } from './engine';
+import { VOTE_FLOW_PATH } from '../../lib/routes';
 
 const TILE_IMAGES = [
   { key: 't1', src: 'https://raw.githubusercontent.com/cyrudi/sandbox/main/wallet.webp', w: 480, h: 336 },
@@ -43,15 +45,21 @@ export default function PragueLanding({
   const tCalc = useT('landing.calc');
   const tChrome = useT('landing.chrome');
   const lp = useLocalePath();
-  const builderHref = lp(builderUrl(destinationSlug));
+  // The primary CTA behaves exactly like the homepage's (LegacyHomePage.tsx):
+  // it enters the vote funnel, whose first screen is the travelers/dates setup
+  // popup. It cannot open that popup in place — the confirm handler passes the
+  // setup to /vote/new/quiz through react-router location state, which the full
+  // page load out of this server-rendered page drops. /vote/new exists for
+  // exactly that: it mounts the SPA and opens the same modal.
+  const voteHref = lp(VOTE_FLOW_PATH);
 
-  const builderLink = (block: string, label: string, className: string) => (
+  const ctaLink = (block: string, label: string, className: string) => (
     <a
       className={className}
-      href={builderHref}
+      href={voteHref}
       onClick={(e) => {
         e.preventDefault();
-        trackCtaAndGo(label, block, builderHref);
+        trackCtaAndGo(label, block, voteHref);
       }}
     >
       {tChrome('buildTrip')}
@@ -60,7 +68,9 @@ export default function PragueLanding({
 
   return (
     <div className={`tl tl--prague ${inter.variable}`} id="top">
-      <LandingHeader>{builderLink('header', 'Build your trip', 'btn btn--primary')}</LandingHeader>
+      <LandingHeader cart={<LandingCart />}>
+        {ctaLink('header', 'Build your trip', 'btn btn--primary')}
+      </LandingHeader>
 
       {/* ══════════ HERO ══════════ */}
       <section className="hero">
@@ -76,7 +86,7 @@ export default function PragueLanding({
           </h1>
           <p className="hero__sub">{t('hero.sub')}</p>
           <div className="hero__cta">
-            {builderLink('hero', 'Build your trip', 'btn btn--primary btn--lg')}
+            {ctaLink('hero', 'Build your trip', 'btn btn--primary btn--lg')}
             <a
               className="btn btn--ghost btn--lg"
               href="#activities"
@@ -156,7 +166,7 @@ export default function PragueLanding({
           {t('bandImg.caption')}
           <small>{t('bandImg.small')}</small>
           <span className="band-img__cta">
-            {builderLink('band', 'Build your trip', 'btn btn--primary')}
+            {ctaLink('band', 'Build your trip', 'btn btn--primary')}
           </span>
         </figcaption>
       </figure>
@@ -223,7 +233,7 @@ export default function PragueLanding({
           <h2>{t('final.title')}</h2>
           <p>{t('final.p')}</p>
           <div className="final__row">
-            {builderLink('final', 'Build your trip', 'btn btn--primary btn--lg')}
+            {ctaLink('final', 'Build your trip', 'btn btn--primary btn--lg')}
             <a
               className="btn btn--ghost btn--lg"
               href={PHONE_HREF}

@@ -1,0 +1,248 @@
+/* The cart dropdown's styles, lifted out of Header.css so the mounts outside
+   the SPA chrome (the landings, which render their own header) can import
+   just these rules. Behaviour and paint stay shared with the main header. */
+
+/* Static (not relative): the cart dropdown anchors to the fixed .header-actions
+   cluster's right edge — the true screen edge — rather than to the cart button,
+   which now sits left of the burger and would pull the dropdown toward centre. */
+.trip-builder-wrapper {
+    position: static;
+    z-index: 1;
+}
+
+/* Anchored to the fixed .header-actions cluster: drops below the cluster and
+   pins its right edge to the cluster's right edge (= screen right inset), so it
+   opens hard against the right side instead of drifting toward centre. */
+.trip-builder-dropdown {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
+    width: min(22.5rem, calc(100vw - 2 * var(--page-padding)));
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    border: 1px solid var(--card-border);
+    /* Column so the items list scrolls while header + footer stay pinned. */
+    display: flex;
+    flex-direction: column;
+    max-height: min(32rem, calc(100vh - 6rem));
+    overflow: hidden;
+}
+
+.trip-builder-dropdown-header {
+    padding: var(--gap) 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.trip-builder-dropdown-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.trip-builder-dropdown-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: var(--gap);
+    /* Only the items list scrolls; the total + Continue live in the pinned
+       footer below. */
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Pinned footer: Total + Continue always visible at the bottom of the cart. */
+.trip-builder-dropdown-footer {
+    flex-shrink: 0;
+    padding: var(--gap);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: var(--surface);
+}
+
+.trip-builder-complete-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--brand);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 150ms;
+}
+
+.trip-builder-complete-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* The only action in the empty Trip Builder — filled purple, matching the
+   other primary CTAs. */
+.trip-builder-vote-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--purple, #534AB7);
+    color: var(--white);
+    border: 2px solid var(--purple, #534AB7);
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+
+.trip-builder-vote-btn:hover {
+    background: var(--purple-l, #7F77DD);
+    border-color: var(--purple-l, #7F77DD);
+}
+
+/* Trip Builder Modal Items (used in Header dropdown) */
+.trip-modal-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.trip-modal-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--tint-blue);
+    border-radius: var(--radius);
+}
+
+.trip-modal-item-image {
+    width: 3.75rem;
+    height: 3.75rem;
+    border-radius: var(--radius);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.trip-modal-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    min-width: 0;
+}
+
+.trip-modal-item-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.trip-modal-item-price {
+    font-size: 0.75rem;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.trip-modal-item-remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: var(--gap-xs) var(--gap-sm);
+    flex-shrink: 0;
+    transition: color 150ms;
+}
+
+.trip-modal-item-remove:hover {
+    color: var(--error);
+}
+
+.trip-modal-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.trip-modal-total-price {
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.trip-modal-package-group {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.trip-modal-package-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.trip-modal-package-name {
+    flex: 1;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.trip-modal-package-discount {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #2ecc71;
+    background: rgba(46, 204, 113, 0.12);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+.trip-modal-item--indented {
+    padding-left: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.empty-trip-state {
+    text-align: center;
+    padding: var(--gap-xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap);
+}
+
+.empty-trip-state h3 {
+    font-size: clamp(1rem, 1.5vw, 1.125rem);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.empty-trip-state p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .trip-builder-dropdown {
+        right: 0;
+        width: min(18.75rem, calc(100vw - 1rem));
+    }
+}

@@ -5,8 +5,20 @@ import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import TripSetupModal from './TripSetupModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import {useT} from '../i18n';
+// Imported here rather than inherited from global.css, so this component paints
+// the same on the landings, which cannot load global.css. AppModal.css is for
+// the close button below, which reuses .app-modal-close-btn.
+import '../styles/tokens.css';
+import './AppModal.css';
+import './TripBuilderDropdown.css';
 
-function TripBuilderDropdown() {
+// `voteHref` is for the mounts outside the SPA (the landings). There the
+// in-place vote setup cannot work: its confirm handler hands the setup to
+// /vote/new/quiz through react-router location state, which the full page load
+// out of a server-rendered page drops. Given an href, the empty-state CTA
+// navigates into the funnel instead — the same reason HomePage takes one — and
+// the modal is never mounted, so the landing needs none of its stylesheets.
+function TripBuilderDropdown({voteHref = null}) {
     const {state, dispatch} = useTrip();
     const navigate = useNavigate();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
@@ -88,16 +100,24 @@ function TripBuilderDropdown() {
                 ) : (
                     <div className="empty-trip-state">
                         <p>{t('emptyState')}</p>
-                        <button className="trip-builder-vote-btn" onClick={openVoteSetup}>
-                            {t('voteTogether')}
-                        </button>
-                        <TripSetupModal
-                            isVoteMode={true}
-                            voteOpen={voteSetupOpen}
-                            onVoteConfirm={handleVoteConfirm}
-                            onVoteCancel={closeVoteSetup}
-                            preselectedDestination={preselectedDestination}
-                        />
+                        {voteHref ? (
+                            <a className="trip-builder-vote-btn" href={voteHref}>
+                                {t('voteTogether')}
+                            </a>
+                        ) : (
+                            <>
+                                <button className="trip-builder-vote-btn" onClick={openVoteSetup}>
+                                    {t('voteTogether')}
+                                </button>
+                                <TripSetupModal
+                                    isVoteMode={true}
+                                    voteOpen={voteSetupOpen}
+                                    onVoteConfirm={handleVoteConfirm}
+                                    onVoteCancel={closeVoteSetup}
+                                    preselectedDestination={preselectedDestination}
+                                />
+                            </>
+                        )}
                     </div>
                 )}
             </div>

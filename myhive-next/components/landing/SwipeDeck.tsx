@@ -106,11 +106,15 @@ export default function SwipeDeck({
   deck,
   state,
   dispatch,
+  picked,
   destinationSlug,
 }: {
   deck: LandingActivity[];
   state: DeckState;
   dispatch: (a: DeckAction) => void;
+  // Slugs already in the cart. Passed in rather than read off DeckState: the
+  // picks live in TripContext now, so the deck no longer knows them.
+  picked: string[];
   destinationSlug: string;
 }) {
   const t = useT('landing.vote.deck');
@@ -249,7 +253,7 @@ export default function SwipeDeck({
     return (
       <div className="deck">
         <div className="deck__stage" style={{ height: 'auto' }} id="deck-stage">
-          <Shortlist deck={deck} picked={state.picked} destinationSlug={destinationSlug} />
+          <Shortlist deck={deck} picked={picked} destinationSlug={destinationSlug} />
         </div>
       </div>
     );

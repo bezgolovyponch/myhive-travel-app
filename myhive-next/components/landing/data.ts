@@ -36,6 +36,9 @@ export const WHATSAPP_HREF =
   "https://wa.me/420795518597?text=Hi%20Trivlu%2C%20I%27d%20like%20some%20help%20planning%20our%20bachelor%20party.";
 
 export interface LandingActivity {
+  // The cart keys on id, so a landing pick can become a real trip item — see
+  // toCartItem. The rest of the landing addresses activities by slug.
+  id: string;
   slug: string;
   name: string;
   category: string | null; // primary category name, localized by the backend (photo chip)
@@ -46,6 +49,21 @@ export interface LandingActivity {
   minPrice: number | null;
   durationLabel: string | null;
   imageUrl: string;
+}
+
+// A landing pick, in the shape TripContext's cart stores. `slug` is not part of
+// that shape but rides along: it is how the landing recognises its own cards as
+// already picked, and how a cart restored from localStorage still highlights
+// them on the next visit.
+export function toCartItem(a: LandingActivity, destinationSlug: string) {
+  return {
+    id: a.id,
+    slug: a.slug,
+    name: a.name,
+    price: a.price,
+    imageUrl: a.imageUrl,
+    destinationSlug,
+  };
 }
 
 export function formatDurationLabel(minutes: number | null | undefined): string | null {
@@ -69,6 +87,7 @@ export function toLandingActivity(a: Activity): LandingActivity {
   const cats = categoryNames(a);
   const hasGroupMin = a.minPrice != null && a.minPrice > 0;
   return {
+    id: a.id,
     slug: a.slug,
     name: a.name,
     category: cats[0] ?? null,

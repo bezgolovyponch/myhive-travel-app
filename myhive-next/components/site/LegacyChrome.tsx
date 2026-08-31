@@ -18,8 +18,6 @@
 // it out of this import graph is what makes server rendering possible at all.
 import { HelmetProvider } from 'react-helmet-async';
 import { PageHeadEnabledContext } from '../../legacy-src/components/PageHead';
-import { CatalogProvider } from '../../legacy-src/context/CatalogContext';
-import { TripProvider } from '../../legacy-src/context/TripContext';
 import {
   DestinationModalProvider,
   useDestinationModal,
@@ -31,15 +29,11 @@ import WhatsAppWidget from '../../legacy-src/components/WhatsAppWidget';
 import AppModal from '../../legacy-src/components/AppModal';
 import { useT } from '../../legacy-src/i18n';
 import { useTripLeadSync } from '../../legacy-src/hooks/useTripLeadSync';
-import LegacyRouter from './LegacyRouter';
+import LegacyProviders, { type LegacyDestination } from './LegacyProviders';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../legacy-src/styles/global.css';
 
-export interface LegacyDestination {
-  id: string;
-  slug: string;
-  name: string;
-}
+export type { LegacyDestination };
 
 // Hooks that must run inside the providers, so they cannot live in the root.
 function ChromeInner({ children }: { children: React.ReactNode }) {
@@ -93,16 +87,12 @@ export default function LegacyChrome({
     // this tree may reach for it.
     <PageHeadEnabledContext.Provider value={false}>
     <HelmetProvider>
-      <LegacyRouter>
-        <CatalogProvider initialDestinations={destinations}>
-          <TripProvider>
-            <DestinationModalProvider>
-              <AttributionCapture />
-              <ChromeInner>{children}</ChromeInner>
-            </DestinationModalProvider>
-          </TripProvider>
-        </CatalogProvider>
-      </LegacyRouter>
+      <LegacyProviders destinations={destinations}>
+        <DestinationModalProvider>
+          <AttributionCapture />
+          <ChromeInner>{children}</ChromeInner>
+        </DestinationModalProvider>
+      </LegacyProviders>
     </HelmetProvider>
     </PageHeadEnabledContext.Provider>
   );

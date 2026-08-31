@@ -1,6 +1,7 @@
 import {useEffect, useId, useRef} from 'react';
 import {useModalA11y} from '../hooks/useModalA11y';
 import {useT} from '../i18n';
+import './AppModal.css';
 
 // iOS Safari lays fixed elements out against the *large* viewport, so a
 // bottom-anchored sheet can sit far below the visible bottom edge: on a 14 Pro
