@@ -33,12 +33,12 @@ jest.mock('./DateRangePicker', () =>
 );
 
 jest.mock('../utils/analytics', () => ({ pushEvent: jest.fn() }));
-jest.mock('../utils/attribution', () => ({ getRef: jest.fn() }));
+jest.mock('../utils/attribution', () => ({ getRef: jest.fn(), getAttribution: jest.fn() }));
 jest.mock('../utils/consent', () => ({ hasConsent: jest.fn() }));
 jest.mock('../utils/uuid', () => ({ generateUuid: jest.fn() }));
 
 const { pushEvent } = require('../utils/analytics');
-const { getRef } = require('../utils/attribution');
+const { getRef, getAttribution } = require('../utils/attribution');
 const { hasConsent } = require('../utils/consent');
 const { generateUuid } = require('../utils/uuid');
 
@@ -106,6 +106,7 @@ beforeEach(() => {
   // CRA sets resetMocks: true — mock implementations are reset before every test.
   // Re-establish the defaults here so every test starts with a clean but working state.
   getRef.mockReturnValue(null);
+  getAttribution.mockReturnValue({});
   hasConsent.mockReturnValue(false);
   generateUuid.mockReturnValue('test-uuid-1234');
 });

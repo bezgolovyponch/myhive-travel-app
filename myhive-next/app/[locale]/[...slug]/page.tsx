@@ -5,12 +5,15 @@ import LegacyAppShim from '@/components/LegacyAppShim';
 import { SPA_EXACT, SPA_NESTED } from '../../../legacy-src/i18n/routes';
 
 // Required catch-all: Ф1 serves the public URLs as Server Components (they win
-// route resolution); everything else — admin, vote, payment, and any SPA-state
-// deep link — still mounts the whole legacy SPA, which does its own client-side
+// route resolution); everything else — admin, payment, and any SPA-state deep
+// link — still mounts the whole legacy SPA, which does its own client-side
 // routing (BrowserRouter reads the real URL, taking the locale prefix as its
 // basename). Client-side navigation INSIDE the SPA can still reach public URLs
 // (react-router owns history once mounted); only fresh page loads hit the SSR
-// pages.
+// pages. /vote/:token has its own SSR shell (app/[locale]/vote/[shareToken])
+// for real OG tags on share links, which wins route resolution over this
+// catch-all; 'vote' stays in SPA_NESTED so the bare /vote form is still a real
+// 404 here.
 // The SPA legitimately owns only the service flows; every public URL has an
 // SSR page that wins route resolution. Anything else is a real 404 — mounting
 // the SPA unconditionally turned unknown URLs into soft 404s (HTTP 200).

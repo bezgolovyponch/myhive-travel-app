@@ -57,6 +57,11 @@ test('A14: vote_opened fires once on mount with correct params', async () => {
 
     expect(pushEvent).toHaveBeenCalledTimes(1);
     expect(pushEvent).toHaveBeenCalledWith('vote_opened', {
+        nights: undefined,
+        group_size: undefined,
+        activities_count: undefined,
+        vote_id: 'tok-abc',
+        source_campaign: undefined,
         trip_id: 'tok-abc',
         user_role: 'participant',
     });
@@ -72,6 +77,11 @@ test('A14: vote_opened fires once even when already-voted redirect triggers', as
 
     expect(pushEvent).toHaveBeenCalledTimes(1);
     expect(pushEvent).toHaveBeenCalledWith('vote_opened', {
+        nights: undefined,
+        group_size: undefined,
+        activities_count: undefined,
+        vote_id: 'tok-abc',
+        source_campaign: undefined,
         trip_id: 'tok-abc',
         user_role: 'participant',
     });
@@ -115,6 +125,11 @@ test('A14: vote_opened fires again for a different shareToken when component sta
 
     expect(pushEvent).toHaveBeenCalledTimes(1);
     expect(pushEvent).toHaveBeenCalledWith('vote_opened', {
+        nights: undefined,
+        group_size: undefined,
+        activities_count: undefined,
+        vote_id: 'tok-first',
+        source_campaign: undefined,
         trip_id: 'tok-first',
         user_role: 'participant',
     });
@@ -129,6 +144,11 @@ test('A14: vote_opened fires again for a different shareToken when component sta
     });
 
     expect(pushEvent).toHaveBeenCalledWith('vote_opened', {
+        nights: undefined,
+        group_size: undefined,
+        activities_count: undefined,
+        vote_id: 'tok-second',
+        source_campaign: undefined,
         trip_id: 'tok-second',
         user_role: 'participant',
     });
@@ -142,6 +162,18 @@ test('A14: vote_opened fires again for a different shareToken when component sta
         // Still only 2 total calls
         expect(pushEvent).toHaveBeenCalledTimes(2);
     });
+});
+
+test('fires the recordOpen beacon once on mount inside the vote_opened dedup effect', async () => {
+    voteApi.getActivities.mockResolvedValue(TWO_ACTIVITIES);
+    voteApi.recordOpen.mockResolvedValue(undefined);
+
+    renderAt('/vote/tok-abc/activities');
+
+    await screen.findByLabelText('Like');
+
+    expect(voteApi.recordOpen).toHaveBeenCalledTimes(1);
+    expect(voteApi.recordOpen).toHaveBeenCalledWith('tok-abc', expect.any(String));
 });
 
 // --- A15: vote_completed ---
@@ -163,6 +195,11 @@ test('A15: vote_completed fires once after all cards are swiped and castVotes re
 
     expect(pushEvent).toHaveBeenCalledTimes(1);
     expect(pushEvent).toHaveBeenCalledWith('vote_completed', {
+        nights: undefined,
+        group_size: undefined,
+        activities_count: undefined,
+        vote_id: 'tok-abc',
+        source_campaign: undefined,
         trip_id: 'tok-abc',
         user_role: 'participant',
     });

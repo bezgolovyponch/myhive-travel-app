@@ -5,6 +5,9 @@ import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
 import { clearTripLead } from '../../utils/tripLead';
 import { getOrCreateVoterToken } from '../../utils/voterToken';
+import { funnelParams } from '../../utils/funnel';
+import { getAttribution } from '../../utils/attribution';
+import { getCookie } from '../../utils/cookies';
 import { useT } from '../../i18n';
 import './StartGroupVoteModal.css';
 
@@ -36,6 +39,7 @@ function StartGroupVoteModal({
     const navigate = useNavigate();
     const [voteStartDate, setVoteStartDate] = useState(startDate || '');
     const [voteEndDate, setVoteEndDate] = useState(endDate || '');
+    const [groomName, setGroomName] = useState('');
     const [errors, setErrors] = useState({});
     const [apiError, setApiError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
@@ -80,6 +84,10 @@ function StartGroupVoteModal({
                     voterToken: getOrCreateVoterToken(),
                     quizResponses,
                     activityIds,
+                    fbp: getCookie('_fbp'),
+                    fbc: getCookie('_fbc'),
+                    fbclid: getAttribution().fbclid,
+                    groomName: groomName.trim() || undefined,
                 })
                 : await voteApi.createCartSession({
                     destinationId,
@@ -87,6 +95,10 @@ function StartGroupVoteModal({
                     startDate: resolvedStart,
                     endDate: resolvedEnd,
                     activityIds,
+                    fbp: getCookie('_fbp'),
+                    fbc: getCookie('_fbc'),
+                    fbclid: getAttribution().fbclid,
+                    groomName: groomName.trim() || undefined,
                 });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
             if (session.managerToken) {
@@ -100,6 +112,13 @@ function StartGroupVoteModal({
             // Mirrors CuratePage's A12 vote_launched (QUIZ) — same field names,
             // shareToken as trip_id, organizer is always the creator here.
             pushEvent('vote_launched', {
+                ...funnelParams({
+                    startDate: needsDates ? voteStartDate : startDate,
+                    endDate: needsDates ? voteEndDate : endDate,
+                    groupSize: numberOfTravelers,
+                    activitiesCount: activityIds.length,
+                    voteId: session.shareToken,
+                }),
                 trip_id: session.shareToken,
                 user_role: 'organizer',
                 selected_count: activityIds.length,
@@ -138,6 +157,15 @@ function StartGroupVoteModal({
             <p className="start-vote-modal-sub">
                 {t('start.sub')}
             </p>
+            <label htmlFor="start-vote-groom">Who&apos;s the stag? <span className="optional">(optional)</span></label>
+            <input
+                id="start-vote-groom"
+                type="text"
+                maxLength={100}
+                placeholder="e.g. Tom"
+                value={groomName}
+                onChange={(e) => setGroomName(e.target.value)}
+            />
             {needsDates && (
                 <>
                     <label htmlFor="start-vote-start-date">{t('start.tripDates')}</label>

@@ -111,4 +111,23 @@ class SecurityConfigIntegrationTest {
                         .content("{\"status\": \"CONFIRMED\"}"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void votesExport_fallsUnderAdminOnlyCatchAll() throws Exception {
+        // /admin/votes/export has no dedicated matcher, so it falls to the /admin/** ADMIN-only rule.
+        mockMvc.perform(get("/admin/votes/export").with(managerJwt()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/admin/votes/export").with(adminJwt()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void firstTouchReport_fallsUnderAdminBookingsRule_allowsManager() throws Exception {
+        // /admin/bookings/first-touch-report matches /admin/bookings/** (ADMIN or MANAGER),
+        // not the PATCH-only /admin/bookings/*/status ADMIN-only rule.
+        mockMvc.perform(get("/admin/bookings/first-touch-report"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/admin/bookings/first-touch-report").with(managerJwt()))
+                .andExpect(status().isOk());
+    }
 }

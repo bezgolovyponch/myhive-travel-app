@@ -23,13 +23,13 @@ const voteApi = {
 
   // Atomic session creation
   async createSession({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
-                        budget, voterToken, quizResponses, activityIds }) {
+                        budget, voterToken, quizResponses, activityIds, fbp, fbc, fbclid, groomName }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
-        budget, voterToken, quizResponses, activityIds,
+        budget, voterToken, quizResponses, activityIds, fbp, fbc, fbclid, groomName,
         // Language of the organizer's emails (vote created / result) and their links.
         ...localeField(),
       }),
@@ -113,12 +113,13 @@ const voteApi = {
 
   // Cart-seeded session creation (no quiz) — the ballot is the initiator's cart.
   async createCartSession({ destinationId, initiatorEmail, numberOfTravelers,
-                            startDate, endDate, activityIds }) {
+                            startDate, endDate, activityIds, fbp, fbc, fbclid, groomName }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, activityIds,
+        fbp, fbc, fbclid, groomName,
         ...localeField(),
       }),
     });
@@ -127,6 +128,15 @@ const voteApi = {
       throw new Error(body.message || 'Failed to create vote session');
     }
     return response.json();
+  },
+
+  // Best-effort open beacon — failures must never block the vote UI.
+  recordOpen(shareToken, voterToken) {
+    return fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/opens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterToken }),
+    }).catch(() => {});
   },
 
   // Live tally (CART sessions): server requires that voterToken has voted, or a managerToken.

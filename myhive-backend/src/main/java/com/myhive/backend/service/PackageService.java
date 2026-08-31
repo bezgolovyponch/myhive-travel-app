@@ -140,7 +140,9 @@ public class PackageService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal discounted = MoneyMath.applyDiscountPct(original, p.getDiscountPct());
+        BigDecimal discounted = MoneyMath.applyDiscountPct(original, p.getDiscountPct())
+                .setScale(0, RoundingMode.HALF_UP)
+                .setScale(2, RoundingMode.UNNECESSARY);
         BigDecimal savings = original.subtract(discounted);
         dto.setOriginalPrice(original);
         dto.setDiscountedPrice(discounted);

@@ -140,6 +140,15 @@ public class Booking {
     @Column(name = "consultation_requested", nullable = false, columnDefinition = "boolean not null default false")
     private boolean consultationRequested;
 
+    @Column(name = "first_touch_at")
+    private LocalDateTime firstTouchAt;
+
+    @Column(name = "first_utm_source")
+    private String firstUtmSource;
+
+    @Column(name = "first_utm_campaign")
+    private String firstUtmCampaign;
+
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<BookingItem> bookingItems;
 }

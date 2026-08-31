@@ -28,6 +28,18 @@ public class VoteSessionCartCreateRequest {
     @Size(max = 50, message = "activityIds may not exceed 50")
     private List<UUID> activityIds;
 
+    @Size(max = 128)
+    private String fbp;
+
+    @Size(max = 256)
+    private String fbc;
+
+    @Size(max = 256)
+    private String fbclid;
+
+    @Size(max = 100)
+    private String groomName;
+
     /** Locale the initiator is browsing in ("de"); drives the language of the vote emails. Null = English. */
     @Size(max = 8) private String locale;
 }

@@ -21,6 +21,7 @@ import com.myhive.backend.entity.QuizQuestion;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
+import com.myhive.backend.entity.VoteSessionOpen;
 import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
@@ -37,6 +38,7 @@ import com.myhive.backend.repository.QuizAnswerRepository;
 import com.myhive.backend.repository.QuizQuestionRepository;
 import com.myhive.backend.repository.VoteActivityLikeRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
+import com.myhive.backend.repository.VoteSessionOpenRepository;
 import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import com.myhive.backend.repository.VoteSessionResultActivityRepository;
@@ -44,6 +46,7 @@ import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -86,6 +89,8 @@ public class VoteSessionService {
     private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
     private final VoteSuggestionsService voteSuggestionsService;
     private final TripLeadService tripLeadService;
+    private final MetaCapiService metaCapiService;
+    private final VoteSessionOpenRepository voteSessionOpenRepository;
 
     @Value("${app.frontend.url:https://trivlu.com}")
     private String frontendUrl;
@@ -110,7 +115,8 @@ public class VoteSessionService {
                 loadAndValidateDestinationActivities(destination, request.getActivityIds());
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
-                request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(), request.getLocale());
+                request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(),
+                request.getGroomName(), request.getLocale());
 
         persistBallot(session, request.getActivityIds(), activitiesById);
 
@@ -126,6 +132,7 @@ public class VoteSessionService {
         }
 
         sendVoteCreatedConfirmationQuietly(session);
+        sendStartGroupVoteCapiEventQuietly(session, request.getFbp(), request.getFbc(), request.getFbclid());
 
         long participantCount = voteActivityLikeRepository
                 .countDistinctVoterTokensBySessionId(session.getId());
@@ -145,10 +152,12 @@ public class VoteSessionService {
         Map<UUID, Activity> activitiesById = loadAndValidateDestinationActivities(destination, activityIds);
 
         VoteSession session = newSession(destination, request.getInitiatorEmail(), request.getNumberOfTravelers(),
-                request.getStartDate(), request.getEndDate(), VoteMode.CART, null, request.getLocale());
+                request.getStartDate(), request.getEndDate(), VoteMode.CART, null,
+                request.getGroomName(), request.getLocale());
 
         persistBallot(session, activityIds, activitiesById);
         sendVoteCreatedConfirmationQuietly(session);
+        sendStartGroupVoteCapiEventQuietly(session, request.getFbp(), request.getFbc(), request.getFbclid());
 
         // A brand-new session has no voters yet.
         return toResponse(session, 0, session.getManagerToken());
@@ -156,7 +165,7 @@ public class VoteSessionService {
 
     private VoteSession newSession(Destination destination, String initiatorEmail, Integer numberOfTravelers,
                                    LocalDate startDate, LocalDate endDate,
-                                   VoteMode voteMode, BigDecimal budget, String locale) {
+                                   VoteMode voteMode, BigDecimal budget, String groomName, String locale) {
         VoteSession session = new VoteSession();
         session.setShareToken(UUID.randomUUID());
         session.setManagerToken(UUID.randomUUID());
@@ -170,6 +179,7 @@ public class VoteSessionService {
         session.setVoteMode(voteMode);
         session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
         session.setBudget(budget);
+        session.setGroomName(groomName);
         return voteSessionRepository.save(session);
     }
 
@@ -247,6 +257,20 @@ public class VoteSessionService {
         } catch (Exception e) {
             // A failed confirmation email must never fail session creation — log and move on.
             log.error("Failed to send vote-created confirmation for session {}: {}",
+                    session.getId(), e.getMessage(), e);
+        }
+    }
+
+    /** MetaCapiService is itself fire-and-forget, but a client-side bug there must still never fail creation. */
+    private void sendStartGroupVoteCapiEventQuietly(VoteSession session, String fbp, String fbc, String fbclid) {
+        try {
+            metaCapiService.sendEvent(MetaCapiService.MetaCapiEvent.of(
+                            "start_group_vote", session.getShareToken().toString())
+                    .email(session.getInitiatorEmail())
+                    .fbp(fbp)
+                    .fbc(MetaCapiService.fbcFrom(fbc, fbclid)));
+        } catch (Exception e) {
+            log.error("Failed to send start_group_vote CAPI event for session {}: {}",
                     session.getId(), e.getMessage(), e);
         }
     }
@@ -405,6 +429,27 @@ public class VoteSessionService {
     public long getParticipantCount(UUID shareToken) {
         VoteSession session = findByShareToken(shareToken);
         return voteActivityLikeRepository.countDistinctVoterTokensBySessionId(session.getId());
+    }
+
+    /**
+     * Records a distinct-device open of a vote link — the "invited (opened)" proxy metric, since
+     * true invite counts don't exist in a share-link model. Idempotent per (session, voterToken);
+     * best-effort from the caller's perspective, so this must never throw for a duplicate open.
+     */
+    @Transactional
+    public void recordOpen(UUID shareToken, UUID voterToken) {
+        VoteSession session = findByShareToken(shareToken);
+        if (voteSessionOpenRepository.existsBySessionIdAndVoterToken(session.getId(), voterToken)) {
+            return;
+        }
+        try {
+            VoteSessionOpen open = new VoteSessionOpen();
+            open.setSession(session);
+            open.setVoterToken(voterToken);
+            voteSessionOpenRepository.save(open);
+        } catch (DataIntegrityViolationException ignored) {
+            // concurrent first-open race — unique constraint already recorded it
+        }
     }
 
     public VoteResultResponse getResult(UUID shareToken) {
@@ -720,7 +765,8 @@ public class VoteSessionService {
                 participantCount,
                 travelers,
                 managerToken,
-                session.getVoteMode().name());
+                session.getVoteMode().name(),
+                session.getGroomName());
     }
 
     private Set<UUID> resolveDestinationCategoryIds(Destination destination) {

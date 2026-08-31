@@ -32,6 +32,7 @@ function PaymentSuccessPage() {
             value: Number.isFinite(value) ? value : undefined,
             currency: params.get('currency') || undefined,
             trip_id: params.get('trip_id') || undefined,
+            event_id: params.get('event_id') || undefined,
         });
         // params is derived from the URL, stable for this mount; booking is the meaningful trigger.
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import AttributionCapture from './AttributionCapture';
-import { captureFromUrl } from '../utils/attribution';
+import { captureFromUrl, captureFirstTouch } from '../utils/attribution';
 
-jest.mock('../utils/attribution', () => ({ captureFromUrl: jest.fn() }));
+jest.mock('../utils/attribution', () => ({ captureFromUrl: jest.fn(), captureFirstTouch: jest.fn() }));
 
 function Nav({ to }) {
   const navigate = useNavigate();
@@ -21,6 +21,8 @@ test('captures on mount with the initial search string', () => {
   );
   expect(captureFromUrl).toHaveBeenCalledTimes(1);
   expect(captureFromUrl).toHaveBeenCalledWith('?utm_source=fb&utm_medium=paid_social', expect.any(String));
+  expect(captureFirstTouch).toHaveBeenCalledTimes(1);
+  expect(captureFirstTouch).toHaveBeenCalledWith('?utm_source=fb&utm_medium=paid_social', expect.any(String));
 });
 
 test('re-captures on SPA navigation to a new search', async () => {

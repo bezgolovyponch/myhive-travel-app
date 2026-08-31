@@ -52,4 +52,7 @@ public class BookingDTO {
     private BigDecimal amountPaid;
     private BigDecimal depositAmount;
     private List<PaymentLinkDTO> paymentLinks;
+    private LocalDateTime firstTouchAt;
+    private String firstUtmSource;
+    private String firstUtmCampaign;
 }

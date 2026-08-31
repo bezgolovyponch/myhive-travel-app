@@ -17,6 +17,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -81,6 +82,27 @@ public class TripExportRequest {
     private String fbclid;
 
     private String referrer;
+
+    @JsonProperty("event_id")
+    @Size(max = 64)
+    private String eventId;
+
+    @Size(max = 128)
+    private String fbp;
+
+    @Size(max = 256)
+    private String fbc;
+
+    @JsonProperty("first_touch_at")
+    private LocalDateTime firstTouchAt;
+
+    @JsonProperty("first_utm_source")
+    @Size(max = 255)
+    private String firstUtmSource;
+
+    @JsonProperty("first_utm_campaign")
+    @Size(max = 255)
+    private String firstUtmCampaign;
 
     @Data
     @NoArgsConstructor

@@ -73,6 +73,22 @@ class PackageServiceTest {
     }
 
     @Test
+    void getBySlugRoundsDiscountedPriceToWholeEuros() {
+        // 523.08 - 15% = 444.618 -> must surface as 445.00, not 444.62
+        activity1.setPrice(new BigDecimal("523.08"));
+        pkg.getPackageActivities().clear();
+        pkg.getPackageActivities().add(new PackageActivity(pkg, activity1, 0));
+        pkg.setDiscountPct(new BigDecimal("15.00"));
+        when(packageRepository.findBySlug("test-package")).thenReturn(Optional.of(pkg));
+
+        PackageDTO dto = packageService.getPackageBySlug("test-package");
+
+        assertThat(dto.getDiscountedPrice()).isEqualByComparingTo("445.00");
+        assertThat(dto.getSavings())
+                .isEqualByComparingTo(dto.getOriginalPrice().subtract(dto.getDiscountedPrice()));
+    }
+
+    @Test
     void getBySlugThrowsWhenMissing() {
         when(packageRepository.findBySlug("missing")).thenReturn(Optional.empty());
 

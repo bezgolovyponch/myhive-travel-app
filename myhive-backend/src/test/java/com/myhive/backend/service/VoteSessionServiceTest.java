@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
+import com.myhive.backend.dto.VoteSessionCartCreateRequest;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.entity.Activity;
@@ -59,6 +60,10 @@ class VoteSessionServiceTest {
     @Mock private com.myhive.backend.repository.VoteSessionActivityRepository voteSessionActivityRepository;
     @Mock private com.myhive.backend.repository.VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
     @Mock private com.myhive.backend.repository.VoteSessionResultActivityRepository resultActivityRepository;
+    @Mock private com.myhive.backend.service.VoteSuggestionsService voteSuggestionsService;
+    @Mock private com.myhive.backend.service.TripLeadService tripLeadService;
+    @Mock private MetaCapiService metaCapiService;
+    @Mock private com.myhive.backend.repository.VoteSessionOpenRepository voteSessionOpenRepository;
 
     @InjectMocks
     private VoteSessionService voteSessionService;
@@ -421,5 +426,109 @@ class VoteSessionServiceTest {
         VoteSessionResponse response = voteSessionService.createSession(request);
 
         assertThat(response.getShareToken()).isNotNull();
+    }
+
+    @Test
+    void createSession_sendsStartGroupVoteCapiEvent() {
+        ReflectionTestUtils.setField(voteSessionService, "frontendUrl", "https://trivlu.com");
+        VoteSessionCreateRequest request = happyPathCreateSetup();
+        request.setFbp("fb.1.111.aaa");
+        request.setFbc("fb.1.222.bbb");
+
+        voteSessionService.createSession(request);
+
+        ArgumentCaptor<MetaCapiService.MetaCapiEvent> captor =
+                ArgumentCaptor.forClass(MetaCapiService.MetaCapiEvent.class);
+        verify(metaCapiService).sendEvent(captor.capture());
+        MetaCapiService.MetaCapiEvent event = captor.getValue();
+        assertThat(event.eventName).isEqualTo("start_group_vote");
+        assertThat(event.email).isEqualTo("alice@example.com");
+        assertThat(event.fbp).isEqualTo("fb.1.111.aaa");
+        assertThat(event.fbc).isEqualTo("fb.1.222.bbb");
+    }
+
+    private VoteSessionCartCreateRequest happyPathCartCreateSetup() {
+        UUID destId = UUID.randomUUID();
+        UUID activityId = UUID.randomUUID();
+
+        Destination destination = new Destination();
+        destination.setId(destId);
+        destination.setName("Bali");
+        destination.setSlug("bali");
+
+        Activity activity = new Activity();
+        activity.setId(activityId);
+        activity.setDestination(destination);
+        activity.setName("Surfing");
+        activity.setPrice(new BigDecimal("65"));
+
+        when(destinationRepository.findById(destId)).thenReturn(Optional.of(destination));
+        when(activityRepository.findAllById(any())).thenReturn(List.of(activity));
+        when(voteSessionRepository.save(any())).thenAnswer(i -> {
+            VoteSession saved = i.getArgument(0);
+            if (saved.getId() == null) {
+                saved.setId(UUID.randomUUID());
+            }
+            return saved;
+        });
+
+        VoteSessionCartCreateRequest request = new VoteSessionCartCreateRequest();
+        request.setDestinationId(destId);
+        request.setInitiatorEmail("bob@example.com");
+        request.setNumberOfTravelers(2);
+        request.setStartDate(LocalDate.of(2026, 8, 1));
+        request.setEndDate(LocalDate.of(2026, 8, 10));
+        request.setActivityIds(List.of(activityId));
+        return request;
+    }
+
+    @Test
+    void createCartSession_sendsStartGroupVoteCapiEvent() {
+        VoteSessionCartCreateRequest request = happyPathCartCreateSetup();
+        request.setFbclid("clickid123");
+
+        voteSessionService.createCartSession(request);
+
+        ArgumentCaptor<MetaCapiService.MetaCapiEvent> captor =
+                ArgumentCaptor.forClass(MetaCapiService.MetaCapiEvent.class);
+        verify(metaCapiService).sendEvent(captor.capture());
+        MetaCapiService.MetaCapiEvent event = captor.getValue();
+        assertThat(event.eventName).isEqualTo("start_group_vote");
+        assertThat(event.email).isEqualTo("bob@example.com");
+        assertThat(event.fbc).startsWith("fb.1.").endsWith(".clickid123");
+    }
+
+    @Test
+    void recordOpen_isIdempotentPerVoterToken() {
+        UUID shareToken = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID voterToken = UUID.randomUUID();
+
+        VoteSession session = new VoteSession();
+        session.setId(sessionId);
+        session.setShareToken(shareToken);
+
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(session));
+        when(voteSessionOpenRepository.existsBySessionIdAndVoterToken(sessionId, voterToken))
+                .thenReturn(false, true);
+
+        voteSessionService.recordOpen(shareToken, voterToken);
+        voteSessionService.recordOpen(shareToken, voterToken);
+
+        verify(voteSessionOpenRepository, org.mockito.Mockito.times(1)).save(any());
+    }
+
+    @Test
+    void createCartSession_persistsGroomName() {
+        VoteSessionCartCreateRequest request = happyPathCartCreateSetup();
+        request.setGroomName("Tom");
+
+        ArgumentCaptor<VoteSession> sessionCaptor = ArgumentCaptor.forClass(VoteSession.class);
+
+        VoteSessionResponse response = voteSessionService.createCartSession(request);
+
+        verify(voteSessionRepository, org.mockito.Mockito.atLeastOnce()).save(sessionCaptor.capture());
+        assertThat(sessionCaptor.getValue().getGroomName()).isEqualTo("Tom");
+        assertThat(response.getGroomName()).isEqualTo("Tom");
     }
 }

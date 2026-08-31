@@ -1,4 +1,4 @@
-import { captureFromUrl, getAttribution, getRef, MAX_AGE_MS } from './attribution';
+import { captureFromUrl, getAttribution, getRef, MAX_AGE_MS, captureFirstTouch, getFirstTouch } from './attribution';
 
 beforeEach(() => {
   localStorage.clear();
@@ -155,5 +155,21 @@ describe('idempotency', () => {
 
     expect(getRef()).toBe('invite');
     expect(getAttribution(1000)).toEqual({});
+  });
+});
+
+describe('first touch', () => {
+  beforeEach(() => localStorage.clear());
+
+  test('records the very first visit with its params', () => {
+    captureFirstTouch('?utm_source=fb&utm_campaign=summer', 'https://facebook.com', 1000);
+    expect(getFirstTouch()).toEqual({ ts: 1000, utm_source: 'fb', utm_campaign: 'summer', referrer: 'https://facebook.com' });
+  });
+
+  test('is never overwritten by later visits', () => {
+    captureFirstTouch('', '', 1000);
+    captureFirstTouch('?utm_source=ig&utm_campaign=late', 'https://instagram.com', 2000);
+    expect(getFirstTouch().ts).toBe(1000);
+    expect(getFirstTouch().utm_source).toBeUndefined();
   });
 });

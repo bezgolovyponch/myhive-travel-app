@@ -47,7 +47,7 @@ test('renders all homepage sections', async () => {
   renderHome();
 
   expect(screen.getByRole('heading', {level: 1, name: 'Prague Stag Do. Planned in 10 minutes.'})).toBeInTheDocument();
-  expect(screen.getByText('Stag Do Specialists')).toBeInTheDocument();
+  expect(screen.getByText('15 years in Prague')).toBeInTheDocument();
   expect(screen.getByText('Let the group decide. You just book it.')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
   expect(screen.getByText('View All Activities')).toHaveAttribute('href', '/destination/prague');

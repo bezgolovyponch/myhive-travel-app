@@ -7,10 +7,12 @@ import {capitalizeFirst, formatDate, formatPrice} from '../utils/format';
 import {computeTripTotal, groupMinApplied, groupTripItems, lineTotal} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
-import {getAttribution, getRef} from '../utils/attribution';
+import {getAttribution, getRef, getFirstTouch} from '../utils/attribution';
+import {getCookie} from '../utils/cookies';
 import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
 import {clearTripLead} from '../utils/tripLead';
+import {funnelParams} from '../utils/funnel';
 import {useTripLeadRestore} from '../hooks/useTripLeadRestore';
 import {useEmailLeadCapture} from '../hooks/useEmailLeadCapture';
 import ContactForm from './ContactForm';
@@ -303,6 +305,13 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     }
     sessionStorage.setItem(viewedKey, '1');
     const checkoutParams = withUserRole({
+      ...funnelParams({
+        startDate: state.tripStartDate,
+        endDate: state.tripEndDate,
+        groupSize: state.tripTravelers,
+        activitiesCount: state.tripItems.length,
+        voteId: localStorage.getItem('myhive-trip-vote-session') || undefined,
+      }),
       trip_id: tripId,
       value: computeTripTotal(state.tripItems, state.tripTravelers || 1),
       currency: 'EUR',
@@ -405,7 +414,18 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     if (!sessionStorage.getItem(formViewedKey)) {
       sessionStorage.setItem(formViewedKey, '1');
       const tripTotal = computeTripTotal(state.tripItems, travelers);
-      pushEvent('booking_form_viewed', withUserRole({ trip_id: tripId, value: tripTotal, currency: 'EUR' }));
+      pushEvent('booking_form_viewed', withUserRole({
+        ...funnelParams({
+          startDate: state.tripStartDate,
+          endDate: state.tripEndDate,
+          groupSize: state.tripTravelers,
+          activitiesCount: state.tripItems.length,
+          voteId: localStorage.getItem('myhive-trip-vote-session') || undefined,
+        }),
+        trip_id: tripId,
+        value: tripTotal,
+        currency: 'EUR',
+      }));
     }
 
     // A13 — vote_skipped: in the quiz flow, heading into booking without
@@ -420,7 +440,17 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       const skipKey = `myhive-vote-skipped-${tripId}`;
       if (!sessionStorage.getItem(skipKey)) {
         sessionStorage.setItem(skipKey, '1');
-        pushEvent('vote_skipped', { trip_id: tripId, selected_count: standalone.length });
+        pushEvent('vote_skipped', {
+          ...funnelParams({
+            startDate: state.tripStartDate,
+            endDate: state.tripEndDate,
+            groupSize: state.tripTravelers,
+            activitiesCount: state.tripItems.length,
+            voteId: localStorage.getItem('myhive-trip-vote-session') || undefined,
+          }),
+          trip_id: tripId,
+          selected_count: standalone.length,
+        });
       }
     }
 
@@ -431,6 +461,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // Shared trip → booking payload, used by both the lead ("Submit Booking") and the 30% deposit flow.
   const buildBookingData = (contactData) => {
     const attribution = getAttribution();
+    const firstTouch = getFirstTouch();
     return {
       tripName: 'Booking',
       userEmail: contactData.email,
@@ -466,6 +497,9 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       tripId: effectiveTripId,
       ...attribution,
       ref: getRef(),
+      first_touch_at: firstTouch ? new Date(firstTouch.ts).toISOString().slice(0, 19) : undefined,
+      first_utm_source: firstTouch?.utm_source,
+      first_utm_campaign: firstTouch?.utm_campaign,
     };
   };
 
@@ -479,7 +513,15 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     setSubmitError(null);
 
     try {
-      const bookingData = buildBookingData(contactData);
+      // One event_id shared by the API payload and the dataLayer push, so
+      // Meta's browser Pixel Lead and server CAPI Lead dedup against each other.
+      const leadEventId = generateUuid();
+      const bookingData = {
+        ...buildBookingData(contactData),
+        event_id: leadEventId,
+        fbp: getCookie('_fbp'),
+        fbc: getCookie('_fbc'),
+      };
 
       const booking = await api.createBookingFromTrip(bookingData);
 
@@ -492,6 +534,13 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         sessionStorage.setItem(dedupKey, '1');
         const destinationSlug = state.tripItems[0]?.destinationSlug || '';
         pushEvent('booking_submitted', withUserRole({
+          ...funnelParams({
+            startDate: state.tripStartDate,
+            endDate: state.tripEndDate,
+            groupSize: state.tripTravelers,
+            activitiesCount: state.tripItems.length,
+            voteId: localStorage.getItem('myhive-trip-vote-session') || undefined,
+          }),
           trip_id: effectiveTripId,
           value: computeTripTotal(state.tripItems, submittedTravelers),
           currency: 'EUR',
@@ -500,6 +549,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           group_size: submittedTravelers,
           ...getAttribution(),
           ref: getRef(),
+          event_id: leadEventId,
+          user_email: contactData.email,
         }));
       }
 

@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,6 +61,9 @@ class BookingServiceTest {
 
     @Mock
     private StripeGateway stripeGateway;
+
+    @Mock
+    private MetaCapiService metaCapiService;
 
     @InjectMocks
     private BookingService bookingService;
@@ -509,6 +513,83 @@ class BookingServiceTest {
         assertThat(result.getUtmMedium()).isEqualTo(expectedUtmMedium);
         assertThat(result.getUtmCampaign()).isEqualTo(expectedUtmCampaign);
         assertThat(result.getRef()).isEqualTo(expectedRef);
+    }
+
+    @Test
+    void createBookingFromExport_withFirstTouch_persistsAndReturnsFirstTouchFields() {
+        LocalDateTime expectedFirstTouchAt = LocalDateTime.of(2026, 1, 5, 10, 30, 0);
+        String expectedFirstUtmSource = "facebook";
+        String expectedFirstUtmCampaign = "launch";
+
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        request.setFirstTouchAt(expectedFirstTouchAt);
+        request.setFirstUtmSource(expectedFirstUtmSource);
+        request.setFirstUtmCampaign(expectedFirstUtmCampaign);
+
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        BookingDTO result = bookingService.createBookingFromExport(request);
+
+        ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(captor.capture());
+        Booking saved = captor.getValue();
+        assertThat(saved.getFirstTouchAt()).isEqualTo(expectedFirstTouchAt);
+        assertThat(saved.getFirstUtmSource()).isEqualTo(expectedFirstUtmSource);
+        assertThat(saved.getFirstUtmCampaign()).isEqualTo(expectedFirstUtmCampaign);
+        // First touch must also be surfaced on the returned DTO (admin booking card / CSV export).
+        assertThat(result.getFirstTouchAt()).isEqualTo(expectedFirstTouchAt);
+        assertThat(result.getFirstUtmSource()).isEqualTo(expectedFirstUtmSource);
+        assertThat(result.getFirstUtmCampaign()).isEqualTo(expectedFirstUtmCampaign);
+    }
+
+    @Test
+    void createBookingFromExport_sendsLeadCapiEventWithBookingTotalAndGeneratedId() {
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        UUID savedId = UUID.randomUUID();
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(savedId);
+            return b;
+        });
+
+        BookingDTO result = bookingService.createBookingFromExport(request);
+
+        ArgumentCaptor<MetaCapiService.MetaCapiEvent> captor =
+                ArgumentCaptor.forClass(MetaCapiService.MetaCapiEvent.class);
+        verify(metaCapiService).sendEvent(captor.capture());
+        MetaCapiService.MetaCapiEvent event = captor.getValue();
+        assertThat(event.eventName).isEqualTo("Lead");
+        assertThat(event.eventId).isEqualTo(savedId.toString());
+        assertThat(event.value).isEqualByComparingTo(result.getTotalAmount());
+        assertThat(event.email).isEqualTo("user@test.com");
+    }
+
+    @Test
+    void createBookingFromExport_leadCapiEventUsesRequestEventIdWhenPresent() {
+        TripExportRequest request = TestDataFactory.tripExportRequest();
+        request.setEventId("client-generated-event-id");
+        UUID activityId = request.getDestinations().getFirst().getActivities().getFirst().getActivityId();
+        when(activityRepository.findById(activityId)).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+
+        bookingService.createBookingFromExport(request);
+
+        ArgumentCaptor<MetaCapiService.MetaCapiEvent> captor =
+                ArgumentCaptor.forClass(MetaCapiService.MetaCapiEvent.class);
+        verify(metaCapiService).sendEvent(captor.capture());
+        assertThat(captor.getValue().eventId).isEqualTo("client-generated-event-id");
     }
 
     @Test

@@ -56,6 +56,7 @@ public class BookingService {
     private final EmailService emailService;
     private final BookingPaymentShareRepository shareRepository;
     private final StripeGateway stripeGateway;
+    private final MetaCapiService metaCapiService;
 
     @Transactional
     public BookingDTO createBooking(CreateBookingRequest request) {
@@ -211,6 +212,9 @@ public class BookingService {
         booking.setGclid(request.getGclid());
         booking.setFbclid(request.getFbclid());
         booking.setReferrer(request.getReferrer());
+        booking.setFirstTouchAt(request.getFirstTouchAt());
+        booking.setFirstUtmSource(request.getFirstUtmSource());
+        booking.setFirstUtmCampaign(request.getFirstUtmCampaign());
 
         booking.setBookingItems(items);
         BigDecimal total = calculateTotal(items);
@@ -327,6 +331,20 @@ public class BookingService {
             log.error("Failed to send booking notification for booking: {}. Error: {}", saved.getId(), e.getMessage(), e);
         }
 
+        try {
+            metaCapiService.sendEvent(MetaCapiService.MetaCapiEvent.of(
+                            "Lead",
+                            request.getEventId() != null && !request.getEventId().isBlank()
+                                    ? request.getEventId()
+                                    : saved.getId().toString())
+                    .value(saved.getTotalAmount(), "EUR")
+                    .email(saved.getUserEmail())
+                    .fbp(request.getFbp())
+                    .fbc(MetaCapiService.fbcFrom(request.getFbc(), request.getFbclid())));
+        } catch (Exception e) {
+            log.error("Failed to send Lead CAPI event for booking {}: {}", saved.getId(), e.getMessage(), e);
+        }
+
         return convertToDTO(saved);
     }
 
@@ -419,6 +437,9 @@ public class BookingService {
         dto.setGclid(booking.getGclid());
         dto.setFbclid(booking.getFbclid());
         dto.setReferrer(booking.getReferrer());
+        dto.setFirstTouchAt(booking.getFirstTouchAt());
+        dto.setFirstUtmSource(booking.getFirstUtmSource());
+        dto.setFirstUtmCampaign(booking.getFirstUtmCampaign());
 
         if (booking.getBookingItems() != null) {
             dto.setItems(booking.getBookingItems().stream()

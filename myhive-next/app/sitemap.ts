@@ -40,6 +40,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/refund-policy`, priority: 0.2 },
   ];
   pushLocalized(urls, '/', 1);
+  // Campaign landings: indexed for organic traffic by product decision,
+  // 2026-08-23. Fully localized (en + /de), so they get the hreflang set.
+  pushLocalized(urls, '/landing/vote', 0.8);
+  pushLocalized(urls, '/landing/prague', 0.8);
   pushLocalized(urls, '/blog', 0.8);
   pushLocalized(urls, '/about', 0.5);
   pushLocalized(urls, '/contact', 0.5);

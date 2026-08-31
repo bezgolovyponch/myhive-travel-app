@@ -39,4 +39,25 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * Backs {@link com.myhive.backend.service.MetaCapiService}'s off-thread HTTP dispatch.
+     *
+     * <p>Kept separate from {@code emailTaskExecutor}: Meta CAPI calls are analytics, not
+     * transactional. Under pressure this pool should drop work rather than apply back-pressure
+     * to request threads, so it uses {@link ThreadPoolExecutor.DiscardPolicy} instead of
+     * {@code CallerRunsPolicy}.
+     */
+    @Bean(name = "metaCapiTaskExecutor")
+    public Executor metaCapiTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("meta-capi-");
+        // Analytics is best-effort: under pressure drop, never block request threads.
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
+        executor.initialize();
+        return executor;
+    }
 }

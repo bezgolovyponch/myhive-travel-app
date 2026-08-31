@@ -1,5 +1,6 @@
 const ATTRIBUTION_KEY = 'myhive-attribution';
 const REF_KEY = 'myhive-ref';
+const FIRST_TOUCH_KEY = 'myhive-first-touch';
 const ATTRIBUTION_PARAMS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'];
 
 export const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
@@ -67,6 +68,38 @@ export function getAttribution(nowMs = Date.now()) {
 export function getRef() {
   try {
     return localStorage.getItem(REF_KEY);
+  } catch (_e) {
+    return null;
+  }
+}
+
+// First-touch: written exactly once — the first visit this browser ever makes —
+// param-less direct visits included (the date itself is the point).
+export function captureFirstTouch(search, referrer, nowMs = Date.now()) {
+  try {
+    if (localStorage.getItem(FIRST_TOUCH_KEY) !== null) {
+      return;
+    }
+    const params = new URLSearchParams(search);
+    const record = { ts: nowMs };
+    const source = params.get('utm_source');
+    const campaign = params.get('utm_campaign');
+    if (source) record.utm_source = source;
+    if (campaign) record.utm_campaign = campaign;
+    if (referrer) record.referrer = referrer;
+    localStorage.setItem(FIRST_TOUCH_KEY, JSON.stringify(record));
+  } catch (_e) {
+    // localStorage unavailable / quota exceeded — first touch is best-effort.
+  }
+}
+
+// Returns the stored first-touch record, or null if unset/malformed.
+export function getFirstTouch() {
+  try {
+    const raw = localStorage.getItem(FIRST_TOUCH_KEY);
+    if (raw === null) return null;
+    const parsed = JSON.parse(raw);
+    return Number.isFinite(parsed.ts) ? parsed : null;
   } catch (_e) {
     return null;
   }

@@ -52,6 +52,7 @@ class PaymentServiceTest {
     @Mock private StripeGateway stripeGateway;
     @Mock private com.myhive.backend.config.StripeProperties stripeProperties;
     @Mock private EmailService emailService;
+    @Mock private MetaCapiService metaCapiService;
 
     private PaymentService paymentService;
 
@@ -64,7 +65,7 @@ class PaymentServiceTest {
                 "http://localhost:3000");
         paymentService = new PaymentService(bookingService, bookingRepository, shareRepository,
                 processedEventRepository, voteSessionService, stripeGateway, stripeProperties, emailService,
-                frontendUrlResolver);
+                frontendUrlResolver, metaCapiService);
     }
 
     @Test
@@ -274,7 +275,8 @@ class PaymentServiceTest {
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
         when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of());
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
+        ArgumentCaptor<BookingPaymentShare> shareCaptor = ArgumentCaptor.forClass(BookingPaymentShare.class);
+        when(shareRepository.save(shareCaptor.capture())).thenAnswer(inv -> {
             BookingPaymentShare s = inv.getArgument(0);
             if (s.getId() == null) {
                 s.setId(UUID.randomUUID());
@@ -293,9 +295,15 @@ class PaymentServiceTest {
 
         // Return URL carries the purchase params so PaymentSuccessPage can fire the
         // payment_completed analytics event with real revenue (value/currency) + trip_id.
+        // event_id is the SAME UUID.nameUUIDFromBytes("purchase:"+shareId) the CAPI Purchase event
+        // fired from handlePaymentSucceeded carries — this is the browser/server Meta dedup key.
+        UUID shareId = shareCaptor.getValue().getId();
+        String expectedEventId = UUID.nameUUIDFromBytes(
+                ("purchase:" + shareId).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
         assertThat(successUrl.getValue())
                 .isEqualTo(expectedOrigin + "/payment/success?booking=" + booking.getId()
-                        + "&value=30.00&currency=EUR&trip_id=TRV-SUBDOM1");
+                        + "&value=30.00&currency=EUR&trip_id=TRV-SUBDOM1"
+                        + "&event_id=" + expectedEventId);
         assertThat(cancelUrl.getValue()).isEqualTo(expectedOrigin + "/payment/cancelled");
     }
 
@@ -311,7 +319,8 @@ class PaymentServiceTest {
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
         when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of());
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(shareRepository.save(any(BookingPaymentShare.class))).thenAnswer(inv -> {
+        ArgumentCaptor<BookingPaymentShare> shareCaptor = ArgumentCaptor.forClass(BookingPaymentShare.class);
+        when(shareRepository.save(shareCaptor.capture())).thenAnswer(inv -> {
             BookingPaymentShare s = inv.getArgument(0);
             if (s.getId() == null) {
                 s.setId(UUID.randomUUID());
@@ -328,9 +337,13 @@ class PaymentServiceTest {
 
         paymentService.createBookingDepositSession(booking.getId(), "https://prague.trivlu.com.evil.com");
 
+        UUID shareId = shareCaptor.getValue().getId();
+        String expectedEventId = UUID.nameUUIDFromBytes(
+                ("purchase:" + shareId).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
         assertThat(successUrl.getValue())
                 .isEqualTo(expectedFallback + "/payment/success?booking=" + booking.getId()
-                        + "&value=30.00&currency=EUR&trip_id=TRV-EVIL0001");
+                        + "&value=30.00&currency=EUR&trip_id=TRV-EVIL0001"
+                        + "&event_id=" + expectedEventId);
         assertThat(cancelUrl.getValue()).isEqualTo(expectedFallback + "/payment/cancelled");
     }
 
@@ -428,6 +441,47 @@ class PaymentServiceTest {
                 any(TripExportRequest.class), anyString(),
                 any(java.math.BigDecimal.class), any(java.math.BigDecimal.class));
         verify(emailService, never()).sendBookingNotification(any(Booking.class), any(TripExportRequest.class));
+    }
+
+    @Test
+    void handleStripeEvent_paymentSucceeded_sendsPurchaseCapiEventWithDerivedEventId() {
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-CAPI1");
+        booking.setUserEmail("init@test.com");
+        booking.setCustomerName("Init");
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setTotalAmount(new BigDecimal("100.00"));
+        booking.setAmountPaid(BigDecimal.ZERO);
+        booking.setVoteSessionId(UUID.randomUUID());
+
+        BookingPaymentShare deposit = new BookingPaymentShare();
+        deposit.setId(UUID.randomUUID());
+        deposit.setBooking(booking);
+        deposit.setType(PaymentShareType.DEPOSIT);
+        deposit.setAmount(new BigDecimal("30.00"));
+        deposit.setPaid(false);
+
+        when(processedEventRepository.existsById("evt_capi")).thenReturn(false);
+        when(stripeGateway.constructEvent("body", "sig"))
+                .thenReturn(paidEvent("evt_capi", deposit.getId().toString(), 3000L));
+        when(shareRepository.findById(deposit.getId())).thenReturn(Optional.of(deposit));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of(deposit));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(bookingService.toExportRequest(booking)).thenReturn(new TripExportRequest());
+
+        paymentService.handleStripeEvent("body", "sig");
+
+        String expectedEventId = UUID.nameUUIDFromBytes(
+                ("purchase:" + deposit.getId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        org.mockito.ArgumentCaptor<MetaCapiService.MetaCapiEvent> captor =
+                org.mockito.ArgumentCaptor.forClass(MetaCapiService.MetaCapiEvent.class);
+        verify(metaCapiService).sendEvent(captor.capture());
+        MetaCapiService.MetaCapiEvent event = captor.getValue();
+        assertThat(event.eventName).isEqualTo("Purchase");
+        assertThat(event.eventId).isEqualTo(expectedEventId);
+        assertThat(event.value).isEqualByComparingTo(deposit.getAmount());
+        assertThat(event.email).isEqualTo("payer@example.com");
     }
 
     @Test

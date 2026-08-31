@@ -43,6 +43,7 @@ jest.mock('../utils/userRole', () => ({ resolveUserRole: jest.fn() }));
 jest.mock('../utils/attribution', () => ({
     getAttribution: jest.fn(),
     getRef: jest.fn(),
+    getFirstTouch: jest.fn(),
 }));
 
 jest.mock('../utils/uuid', () => ({ generateUuid: jest.fn() }));
@@ -83,7 +84,7 @@ jest.mock('./DateRangePicker', () =>
 const api = require('../services/api').default;
 const { pushEvent, navigateAfterEvents } = require('../utils/analytics');
 const { resolveUserRole } = require('../utils/userRole');
-const { getAttribution, getRef } = require('../utils/attribution');
+const { getAttribution, getRef, getFirstTouch } = require('../utils/attribution');
 const { generateUuid } = require('../utils/uuid');
 
 // ---------------------------------------------------------------------------
@@ -188,6 +189,7 @@ beforeEach(() => {
     voteApi.buildPool.mockResolvedValue({ pool: [] });
     getAttribution.mockReturnValue({ utm_source: 'facebook', utm_medium: 'cpc' });
     getRef.mockReturnValue('ref-abc');
+    getFirstTouch.mockReturnValue(null);
     generateUuid.mockReturnValue('fresh-uuid');
     resolveUserRole.mockReturnValue('organizer');
 
@@ -215,6 +217,11 @@ beforeEach(() => {
 
 afterEach(() => {
     localStorage.clear();
+    // jsdom's cookie jar persists across tests in this file otherwise.
+    document.cookie.split('; ').forEach(c => {
+        const name = c.split('=')[0];
+        if (name) document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -451,6 +458,24 @@ test('A18: booking_submitted fires after a successful createBookingFromTrip', as
     expect(params.utm_source).toBe('facebook');
     expect(params.utm_medium).toBe('cpc');
     expect(params.ref).toBe('ref-abc');
+    expect(params.user_email).toBe('jane@example.com');
+});
+
+test('A18/A19: booking_submitted event_id matches the Lead event_id sent to createBookingFromTrip', async () => {
+    const user = userEvent.setup();
+    renderTripBuilder();
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    const [, params] = pushEvent.mock.calls.find(([event]) => event === 'booking_submitted');
+    expect(bookingData.event_id).toBeTruthy();
+    expect(params.event_id).toBe(bookingData.event_id);
 });
 
 test('A18: booking_submitted does NOT fire on createBookingFromTrip failure', async () => {
@@ -585,6 +610,27 @@ test('A19: createBookingFromTrip is called with tripId, attribution, and ref', a
     expect(bookingData.utm_source).toBe('facebook');
     expect(bookingData.utm_medium).toBe('cpc');
     expect(bookingData.ref).toBe('ref-abc');
+    // No _fbp/_fbc cookies in jsdom by default — getCookie returns null.
+    expect(bookingData.fbp).toBeNull();
+    expect(bookingData.fbc).toBeNull();
+});
+
+test('A19: createBookingFromTrip carries fbp/fbc read from cookies', async () => {
+    document.cookie = '_fbp=fb.1.111.222';
+    document.cookie = '_fbc=fb.1.111.abc';
+    const user = userEvent.setup();
+    renderTripBuilder();
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    expect(bookingData.fbp).toBe('fb.1.111.222');
+    expect(bookingData.fbc).toBe('fb.1.111.abc');
 });
 
 test('A19: createBookingFromTrip uses voteSession as tripId when param is set', async () => {
@@ -616,6 +662,42 @@ test('A19: createBookingFromTrip includes ref: null when getRef returns null', a
 
     const [bookingData] = api.createBookingFromTrip.mock.calls[0];
     expect(bookingData.ref).toBeNull();
+});
+
+test('A19: createBookingFromTrip includes first-touch fields when getFirstTouch has a record', async () => {
+    getFirstTouch.mockReturnValue({ ts: 1000, utm_source: 'fb', utm_campaign: 'summer', referrer: 'https://facebook.com' });
+    const user = userEvent.setup();
+    renderTripBuilder();
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    expect(bookingData.first_touch_at).toBe(new Date(1000).toISOString().slice(0, 19));
+    expect(bookingData.first_utm_source).toBe('fb');
+    expect(bookingData.first_utm_campaign).toBe('summer');
+});
+
+test('A19: createBookingFromTrip omits first-touch fields when getFirstTouch returns null', async () => {
+    getFirstTouch.mockReturnValue(null);
+    const user = userEvent.setup();
+    renderTripBuilder();
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    expect(bookingData.first_touch_at).toBeUndefined();
+    expect(bookingData.first_utm_source).toBeUndefined();
+    expect(bookingData.first_utm_campaign).toBeUndefined();
 });
 
 // ---------------------------------------------------------------------------
@@ -1329,6 +1411,11 @@ describe('quiz mode: vote_skipped on Complete Booking', () => {
         await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
 
         expect(pushEvent).toHaveBeenCalledWith('vote_skipped', {
+            nights: undefined,
+            group_size: 2,
+            activities_count: 2,
+            vote_id: undefined,
+            source_campaign: undefined,
             trip_id: 'ctx-trip-id',
             selected_count: 2,
         });
@@ -1387,6 +1474,11 @@ describe('quiz mode: vote_skipped on Complete Booking', () => {
         await user.click(screen.getByRole('button', { name: /Complete Booking/i }));
 
         expect(pushEvent).toHaveBeenCalledWith('vote_skipped', {
+            nights: undefined,
+            group_size: 2,
+            activities_count: 2,
+            vote_id: undefined,
+            source_campaign: undefined,
             trip_id: 'ctx-trip-id',
             selected_count: 1,
         });
