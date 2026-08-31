@@ -83,7 +83,13 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm = 
         if (isVoteMode) {
             onVoteCancel();
         } else {
-            dispatch({type: 'CANCEL_TRIP_SETUP'});
+            // Close, don't cancel: dismissing this dialog must not throw away a
+            // cart the user has already filled — on the vote landing that is a
+            // whole swiped shortlist. CANCEL_TRIP_SETUP still empties the trip,
+            // but it is now reserved for the deliberate clears (lead submit,
+            // payment success). The draft written above means a reopen still
+            // has the travelers/dates they had typed.
+            dispatch({type: 'CLOSE_TRIP_SETUP_MODAL'});
         }
     };
 

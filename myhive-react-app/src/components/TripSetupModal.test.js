@@ -498,14 +498,19 @@ test('modal_abandoned reflects has_dates and has_travelers correctly', () => {
   });
 });
 
-test('trip/direct mode cancel fires modal_abandoned with vote_mode false and dispatches CANCEL_TRIP_SETUP', () => {
+// Dismissing only closes the dialog: it must not throw away what the user has
+// already put in the cart. CANCEL_TRIP_SETUP still exists and still empties the
+// trip, but it belongs to the deliberate clears (lead submit, payment success),
+// not to a dismissed modal.
+test('trip/direct mode cancel fires modal_abandoned with vote_mode false and closes without emptying the cart', () => {
   const { mockDispatch } = renderTripModal();
   fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
   expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', expect.objectContaining({
     modal: 'trip_setup', vote_mode: 'TRIP',
   }));
-  expect(mockDispatch).toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
+  expect(mockDispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_SETUP_MODAL' });
+  expect(mockDispatch).not.toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
 });
 
 // ---------------------------------------------------------------------------
