@@ -7,7 +7,7 @@ import { useT } from '../../legacy-src/i18n';
 import { PHONE_DISPLAY, PHONE_HREF, WHATSAPP_HREF } from './data';
 import { trackCta } from './analytics';
 
-const SELLER_AVATAR = 'https://img.trivlu.com/hero_stag_do_prague.png';
+const SELLER_AVATAR = '/landing/martin.webp';
 
 export default function WhyUsSection({ variant }: { variant: 'vote' | 'prague' }) {
   const t = useT('landing.why');
@@ -36,7 +36,7 @@ export default function WhyUsSection({ variant }: { variant: 'vote' | 'prague' }
           </div>
           <aside className="seller">
             <div className="seller__top">
-              <img className="seller__av" src={SELLER_AVATAR} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+              <img className="seller__av" src={SELLER_AVATAR} alt={t('sellerName')} loading="lazy" decoding="async" />
               <div>
                 <div className="seller__nm">{t('sellerName')}</div>
                 <div className="seller__rl">{t('sellerRole')}</div>
