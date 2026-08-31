@@ -89,13 +89,13 @@ function renderVoteModal(catalogState = baseCatalogState, tripState = baseTripSt
   return { ...result, mockDispatch };
 }
 
-function renderTripModal(catalogState = singleDestCatalogState, tripStateOverrides = {}) {
+function renderTripModal(catalogState = singleDestCatalogState, tripStateOverrides = {}, props = {}) {
   const mockDispatch = jest.fn();
   const tripState = {...tripInitialState, tripSetupModalOpen: true, ...tripStateOverrides};
   const result = render(
     <CatalogContext.Provider value={{ state: catalogState, dispatch: jest.fn() }}>
       <TripContext.Provider value={{ state: tripState, dispatch: mockDispatch }}>
-        <TripSetupModal />
+        <TripSetupModal {...props} />
       </TripContext.Provider>
     </CatalogContext.Provider>
   );
@@ -498,17 +498,23 @@ test('modal_abandoned reflects has_dates and has_travelers correctly', () => {
   });
 });
 
-// Dismissing only closes the dialog: it must not throw away what the user has
-// already put in the cart. CANCEL_TRIP_SETUP still exists and still empties the
-// trip, but it belongs to the deliberate clears (lead submit, payment success),
-// not to a dismissed modal.
-test('trip/direct mode cancel fires modal_abandoned with vote_mode false and closes without emptying the cart', () => {
+test('trip/direct mode cancel fires modal_abandoned with vote_mode false and dispatches CANCEL_TRIP_SETUP', () => {
   const { mockDispatch } = renderTripModal();
   fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
   expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', expect.objectContaining({
     modal: 'trip_setup', vote_mode: 'TRIP',
   }));
+  expect(mockDispatch).toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
+});
+
+// The landings opt out: there the cart is a shortlist the visitor swiped
+// together, and one stray dismiss throwing all of it away is too costly. Inside
+// the app the cancel-clears behaviour is unchanged.
+test('clearOnCancel=false closes the modal without emptying the cart', () => {
+  const { mockDispatch } = renderTripModal(singleDestCatalogState, {}, { clearOnCancel: false });
+  fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
   expect(mockDispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_SETUP_MODAL' });
   expect(mockDispatch).not.toHaveBeenCalledWith({ type: 'CANCEL_TRIP_SETUP' });
 });

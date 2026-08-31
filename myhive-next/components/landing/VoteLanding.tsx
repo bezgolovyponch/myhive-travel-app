@@ -428,8 +428,10 @@ export default function VoteLanding({
       {/* The first add's travelers/dates modal, same as a destination page's.
           Mounted here at the page root, NOT inside LandingCart: .hdr carries a
           backdrop-filter, which makes it the containing block for fixed
-          descendants and would trap the overlay inside the header bar. */}
-      <TripSetupModal />
+          descendants and would trap the overlay inside the header bar.
+          clearOnCancel=false: in the app a dismiss empties the trip, but here
+          that would throw away a shortlist the visitor swiped together. */}
+      <TripSetupModal clearOnCancel={false} />
     </div>
   );
 }

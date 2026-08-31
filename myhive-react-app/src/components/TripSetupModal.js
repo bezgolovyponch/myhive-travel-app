@@ -21,7 +21,11 @@ function todayLocalIso() {
 // The vote-mode callbacks default to null: in trip mode (Header, and the vote
 // landing's first-add modal) the component is rendered prop-less, and only the
 // isVoteMode branches ever call them.
-function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm = null, onVoteCancel = null, preselectedDestination = null }) {
+// `clearOnCancel` defaults to true, which is the long-standing behaviour inside
+// the app: dismissing the first-add setup empties the trip. The landings pass
+// false — there the cart is a shortlist the visitor swiped together, and losing
+// all of it to one stray dismiss is too costly.
+function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm = null, onVoteCancel = null, preselectedDestination = null, clearOnCancel = true }) {
     const {state: catalog} = useCatalog();
     const {state, dispatch} = useTrip();
     const t = useT('tripSetup');
@@ -83,13 +87,9 @@ function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm = 
         if (isVoteMode) {
             onVoteCancel();
         } else {
-            // Close, don't cancel: dismissing this dialog must not throw away a
-            // cart the user has already filled — on the vote landing that is a
-            // whole swiped shortlist. CANCEL_TRIP_SETUP still empties the trip,
-            // but it is now reserved for the deliberate clears (lead submit,
-            // payment success). The draft written above means a reopen still
-            // has the travelers/dates they had typed.
-            dispatch({type: 'CLOSE_TRIP_SETUP_MODAL'});
+            // Either way the draft written above means a reopen still has the
+            // travelers and dates the user had typed.
+            dispatch({type: clearOnCancel ? 'CANCEL_TRIP_SETUP' : 'CLOSE_TRIP_SETUP_MODAL'});
         }
     };
 
