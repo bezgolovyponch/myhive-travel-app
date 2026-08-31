@@ -264,6 +264,50 @@ body:has(.tl) {
 .tl .hdr__wa:hover { transform: translateY(-1px); background: #1fbc5a; color: #06280f; }
 .tl .hdr__wa svg { width: 1.35rem; height: 1.35rem; }
 
+/* header: cart button + mobile variant (phone shown as text, CTA hidden) */
+.tl .hdr__cart {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #ffffff0f;
+  color: var(--text);
+  flex: none;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.tl .hdr__cart:hover { transform: translateY(-1px); border-color: var(--brand-l); background: #ffffff16; }
+.tl .hdr__cart svg { width: 1.25rem; height: 1.25rem; }
+.tl .hdr__cart-count {
+  position: absolute;
+  right: -0.28rem;
+  top: -0.3rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--brand-ll);
+  color: #16131c;
+  border: 2px solid #16131c;
+  font-family: var(--display);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tl .hdr__cart-count:empty { display: none; }
+/* Relative, unlike the SPA's static wrapper: there the cart dropdown anchors
+   to the fixed .header-actions cluster, here .hdr spans the whole viewport,
+   so the panel would open flush against the screen edge. */
+.tl .trip-builder-wrapper { position: relative; }
+@media (max-width: 960px) {
+  .tl .hdr__cart { width: 2.4rem; height: 2.4rem; }
+}
+
 /* ---------- activities: one row per category, six cards deep ---------- */
 .tl .arow { padding-block: 0; margin-top: 1.9rem; }
 .tl .arow:first-child { margin-top: 2.1rem; }

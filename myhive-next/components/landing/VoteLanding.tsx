@@ -6,13 +6,16 @@
 // buttons — drives the header cart, step 1's done flag, the sticky bar and the
 // final CTA. All copy comes from the landing dictionary (en/de); cta_click
 // labels stay English so analytics never fragments by locale.
-import { useReducer } from 'react';
+import { useMemo, useReducer } from 'react';
 import './landing.css';
 import './home.css';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
+import { useTrip } from '../../legacy-src/context/TripContext';
 import { inter } from './fonts';
 import LandingHeader from './LandingHeader';
+import LandingCart from './LandingCart';
 import LandingFooter from './LandingFooter';
+import TripSetupModal from '../../legacy-src/components/TripSetupModal';
 import TrivluLogo from './TrivluLogo';
 import ActivityRows from './ActivityRows';
 import TripCalculator from './TripCalculator';
@@ -20,10 +23,11 @@ import WhyUsSection from './WhyUsSection';
 import ReviewsSection from './ReviewsSection';
 import FaqSection from './FaqSection';
 import SwipeDeck from './SwipeDeck';
-import { deckReducer, initialDeck } from './deck';
+import { deckReducer, initialDeck, type DeckAction } from './deck';
 import { trackCta, trackCtaAndGo } from './analytics';
 import {
   builderUrlWithPicks,
+  toCartItem,
   PHONE_DISPLAY,
   PHONE_HREF,
   type ActivityRow,
@@ -60,8 +64,45 @@ export default function VoteLanding({
   const tAct = useT('landing.activities');
   const tChrome = useT('landing.chrome');
   const lp = useLocalePath();
-  const [state, dispatch] = useReducer(deckReducer, undefined, initialDeck);
-  const picked = state.picked;
+  const [state, deckDispatch] = useReducer(deckReducer, undefined, initialDeck);
+
+  // Picks are the real cart: the header badge, the cart panel, step 1's done
+  // flag and the trip builder all read this one list, and it survives a reload
+  // because TripProvider persists it. The deck reducer only tracks which card
+  // is on top.
+  const { state: trip, dispatch: tripDispatch } = useTrip();
+  const bySlug = useMemo(
+    () => new Map([...deck, ...rows.flatMap((r) => r.items)].map((a) => [a.slug, a])),
+    [deck, rows]
+  );
+  const picked = useMemo(
+    () => trip.tripItems.map((i: { slug?: string }) => i.slug).filter(Boolean) as string[],
+    [trip.tripItems]
+  );
+
+  // Not silent: the first add pops the travelers/dates modal and later ones open
+  // the cart panel, exactly as on a destination page. Dismissing that modal runs
+  // CANCEL_TRIP_SETUP, which empties the cart — also as on a destination page.
+  const addPick = (slug: string) => {
+    const activity = bySlug.get(slug);
+    if (!activity) return;
+    tripDispatch({ type: 'ADD_TO_TRIP', activity: toCartItem(activity, destinationSlug) });
+  };
+  const togglePick = (slug: string) => {
+    const activity = bySlug.get(slug);
+    if (!activity) return;
+    if (picked.includes(slug)) {
+      tripDispatch({ type: 'REMOVE_FROM_TRIP', activityId: activity.id });
+    } else {
+      addPick(slug);
+    }
+  };
+  // The deck advances on every swipe; only a right-swipe is a pick.
+  const dispatch = (action: DeckAction) => {
+    deckDispatch(action);
+    if (action.type === 'swipe' && action.yes) addPick(action.id);
+  };
+
   const builderHref = lp(builderUrlWithPicks(destinationSlug, picked));
   // "Start group vote" behaves exactly like the homepage's CTA of the same name
   // (components/site/LegacyHomePage.tsx): it enters the vote funnel. It used to
@@ -92,36 +133,7 @@ export default function VoteLanding({
 
   return (
     <div className={`tl tl--home ${inter.variable}`} id="top">
-      <LandingHeader
-        cart={
-          <button
-            className="hdr__cart"
-            type="button"
-            aria-label={tChrome(picked.length === 1 ? 'cartAriaOne' : 'cartAriaOther', {
-              count: picked.length,
-            })}
-            onClick={() => {
-              if (picked.length > 0) goToBuilder('Cart', 'header');
-              else document.getElementById('activities')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="9" cy="20" r="1" />
-              <circle cx="19" cy="20" r="1" />
-              <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6" />
-            </svg>
-            <span className="hdr__cart-count">{picked.length > 0 ? picked.length : ''}</span>
-          </button>
-        }
-      >
+      <LandingHeader cart={<LandingCart />}>
         {voteLink('header', 'btn btn--primary')}
       </LandingHeader>
 
@@ -178,7 +190,13 @@ export default function VoteLanding({
           </div>
 
           {/* the signature: a live deck, zero inputs required */}
-          <SwipeDeck deck={deck} state={state} dispatch={dispatch} destinationSlug={destinationSlug} />
+          <SwipeDeck
+            deck={deck}
+            state={state}
+            dispatch={dispatch}
+            picked={picked}
+            destinationSlug={destinationSlug}
+          />
         </div>
       </section>
 
@@ -314,7 +332,7 @@ export default function VoteLanding({
             rows={rows}
             destinationSlug={destinationSlug}
             picked={picked}
-            onToggle={(id) => dispatch({ type: 'toggle', id })}
+            onToggle={togglePick}
           />
           <div className="grid__more">
             <a
@@ -390,15 +408,28 @@ export default function VoteLanding({
 
       {/* ══════════ STICKY MOBILE BAR ══════════ */}
       <div className="sticky">
-        <button
-          className="btn btn--primary"
-          type="button"
-          onClick={() => goToBuilder('Build your trip now', 'sticky')}
-        >
-          {t('sticky.cta')}
-        </button>
+        {/* Same branch as the final CTA: with a shortlist there is a trip to
+            continue to, empty it enters the vote funnel — otherwise the bar
+            dropped visitors into an empty builder. */}
+        {picked.length > 0 ? (
+          <button
+            className="btn btn--primary"
+            type="button"
+            onClick={() => goToBuilder('Build your trip now', 'sticky')}
+          >
+            {t('sticky.cta')}
+          </button>
+        ) : (
+          voteLink('sticky', 'btn btn--primary')
+        )}
         <span className="sticky__note">{t('sticky.note')}</span>
       </div>
+
+      {/* The first add's travelers/dates modal, same as a destination page's.
+          Mounted here at the page root, NOT inside LandingCart: .hdr carries a
+          backdrop-filter, which makes it the containing block for fixed
+          descendants and would trap the overlay inside the header bar. */}
+      <TripSetupModal />
     </div>
   );
 }

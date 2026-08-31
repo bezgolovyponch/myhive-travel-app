@@ -178,12 +178,22 @@
 /* Travelers stepper: round − / + buttons around an editable count. */
 /* Segmented − / count / + control: one contiguous group, the input ends
    right at the + button. */
+/* Lives here rather than global.css so the setup modal keeps its field
+   spacing on the landings, which cannot load global.css. Every .form-group
+   in the app is inside a form that pulls in this stylesheet. */
+.form-group {
+    margin-bottom: var(--gap);
+}
+
 .travelers-control {
     display: inline-flex;
     align-items: stretch;
 }
 
-.travelers-step {
+/* Qualified by the container rather than bare: a host that resets bare elements
+   — the landings' `.tl button { border: 0; background: none }` — out-ranks a
+   lone .travelers-step and strips the stepper's frame. */
+.travelers-control .travelers-step {
     width: 2.5rem;
     border: 1px solid var(--border);
     background: transparent;
@@ -198,22 +208,22 @@
     transition: background 150ms, border-color 150ms;
 }
 
-.travelers-step:first-child {
+.travelers-control .travelers-step:first-child {
     border-radius: var(--radius) 0 0 var(--radius);
     border-right: none;
 }
 
-.travelers-step:last-child {
+.travelers-control .travelers-step:last-child {
     border-radius: 0 var(--radius) var(--radius) 0;
     border-left: none;
 }
 
-.travelers-step:hover:not(:disabled) {
+.travelers-control .travelers-step:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.5);
 }
 
-.travelers-step:disabled {
+.travelers-control .travelers-step:disabled {
     opacity: 0.35;
     cursor: not-allowed;
 }

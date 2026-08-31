@@ -21,7 +21,7 @@ function LocationProbe() {
     return <div data-testid="location">{location.pathname + location.search}</div>;
 }
 
-function renderDropdown(tripStateOverrides = {}) {
+function renderDropdown(tripStateOverrides = {}, props = {}) {
     const mockDispatch = jest.fn();
     const tripState = {
         ...tripInitialState,
@@ -33,7 +33,7 @@ function renderDropdown(tripStateOverrides = {}) {
         <MemoryRouter initialEntries={['/']}>
             <CatalogContext.Provider value={{state: {destinations: []}, dispatch: jest.fn()}}>
                 <TripContext.Provider value={{state: tripState, dispatch: mockDispatch}}>
-                    <TripBuilderDropdown/>
+                    <TripBuilderDropdown {...props}/>
                     <LocationProbe/>
                 </TripContext.Provider>
             </CatalogContext.Provider>
@@ -68,5 +68,19 @@ describe('TripBuilderDropdown with an empty cart', () => {
 
         expect(screen.getByRole('button', {name: /Vote together/i})).toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+    });
+});
+
+// Mounted outside the SPA (the landings), the in-place vote setup cannot work:
+// its confirm handler hands the setup to /vote/new/quiz through react-router
+// location state, which the full page load out of a server-rendered page drops.
+// voteHref makes the empty-state CTA navigate into the funnel instead — the same
+// reason HomePage takes one.
+describe('TripBuilderDropdown with voteHref', () => {
+    it('turns the empty-state vote CTA into a link to the funnel', () => {
+        renderDropdown({tripItems: []}, {voteHref: '/de/vote/new'});
+
+        expect(screen.getByRole('link', {name: /Vote together/i})).toHaveAttribute('href', '/de/vote/new');
+        expect(screen.queryByRole('button', {name: /Vote together/i})).not.toBeInTheDocument();
     });
 });

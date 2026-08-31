@@ -1,42 +1,6 @@
 /* Home landing (v58 "Skip chatting. Start voting.") — page-specific styles.
    Scoped under .tl--home; shared pieces live in landing.css. */
 
-/* header: cart button + mobile variant (phone shown as text, CTA hidden) */
-.tl--home .hdr__cart {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: #ffffff0f;
-  color: var(--text);
-  flex: none;
-  transition: transform 0.15s, border-color 0.15s, background 0.15s;
-}
-.tl--home .hdr__cart:hover { transform: translateY(-1px); border-color: var(--brand-l); background: #ffffff16; }
-.tl--home .hdr__cart svg { width: 1.25rem; height: 1.25rem; }
-.tl--home .hdr__cart-count {
-  position: absolute;
-  right: -0.28rem;
-  top: -0.3rem;
-  min-width: 1.15rem;
-  height: 1.15rem;
-  padding: 0 0.25rem;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: var(--brand-ll);
-  color: #16131c;
-  border: 2px solid #16131c;
-  font-family: var(--display);
-  font-size: 0.62rem;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.tl--home .hdr__cart-count:empty { display: none; }
 @media (max-width: 960px) {
   .tl--home .hdr__tel {
     display: inline-flex;
@@ -56,7 +20,6 @@
   .tl--home .hdr__num { display: inline; }
   .tl--home .hdr .btn { display: none; }
   .tl--home .hdr__wa { width: 2.4rem; height: 2.4rem; }
-  .tl--home .hdr__cart { width: 2.4rem; height: 2.4rem; }
   .tl--home .hdr__in { gap: 0.6rem; }
 }
 

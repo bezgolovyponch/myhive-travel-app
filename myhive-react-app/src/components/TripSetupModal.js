@@ -18,7 +18,10 @@ function todayLocalIso() {
     return `${now.getFullYear()}-${month}-${day}`;
 }
 
-function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm, onVoteCancel, preselectedDestination = null }) {
+// The vote-mode callbacks default to null: in trip mode (Header, and the vote
+// landing's first-add modal) the component is rendered prop-less, and only the
+// isVoteMode branches ever call them.
+function TripSetupModal({ isVoteMode = false, voteOpen = false, onVoteConfirm = null, onVoteCancel = null, preselectedDestination = null }) {
     const {state: catalog} = useCatalog();
     const {state, dispatch} = useTrip();
     const t = useT('tripSetup');

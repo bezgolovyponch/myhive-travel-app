@@ -69,7 +69,7 @@ describe('AppModal', () => {
 describe('mobile bottom-sheet anchoring', () => {
     const fs = require('fs');
     const path = require('path');
-    const css = fs.readFileSync(path.join(__dirname, '../styles/global.css'), 'utf8');
+    const css = fs.readFileSync(path.join(__dirname, 'AppModal.css'), 'utf8');
     const mobileBlock = css.match(/@media\s*\(max-width:\s*768px\)\s*{[\s\S]*?\n}/)[0];
     const modalRule = mobileBlock.match(/\.app-modal\s*{[^}]*}/)[0];
 

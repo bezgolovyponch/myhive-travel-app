@@ -1,6 +1,7 @@
 import {useEffect, useId, useRef} from 'react';
 import {useModalA11y} from '../hooks/useModalA11y';
 import {useT} from '../i18n';
+import './AppModal.css';
 
 // iOS Safari lays fixed elements out against the *large* viewport, so a
 // bottom-anchored sheet can sit far below the visible bottom edge: on a 14 Pro
@@ -63,6 +64,11 @@ function AppModal({
         return null;
     }
 
+    // Rendered in place, not portalled to <body>. The landings scope their whole
+    // design system under .tl and carry no .btn rules of main's, so a portalled
+    // dialog lost its footer buttons entirely; in place they pick up .tl's.
+    // position:fixed still resolves against the viewport there — .tl's
+    // overflow:clip is not a containing block for fixed descendants.
     return (
         <div
             ref={overlayRef}
