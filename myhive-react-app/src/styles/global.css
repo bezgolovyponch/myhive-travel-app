@@ -202,10 +202,6 @@ a:hover {
 }
 
 /* Form */
-.form-group {
-    margin-bottom: var(--gap);
-}
-
 /* Bootstrap Modal override */
 .modal-content {
     background: var(--surface);

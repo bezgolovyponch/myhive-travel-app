@@ -15,6 +15,7 @@ import { inter } from './fonts';
 import LandingHeader from './LandingHeader';
 import LandingCart from './LandingCart';
 import LandingFooter from './LandingFooter';
+import TripSetupModal from '../../legacy-src/components/TripSetupModal';
 import TrivluLogo from './TrivluLogo';
 import ActivityRows from './ActivityRows';
 import TripCalculator from './TripCalculator';
@@ -79,13 +80,13 @@ export default function VoteLanding({
     [trip.tripItems]
   );
 
+  // Not silent: the first add pops the travelers/dates modal and later ones open
+  // the cart panel, exactly as on a destination page. Dismissing that modal runs
+  // CANCEL_TRIP_SETUP, which empties the cart — also as on a destination page.
   const addPick = (slug: string) => {
     const activity = bySlug.get(slug);
     if (!activity) return;
-    // silent: an add here must not interrupt the visitor. On a detail page the
-    // first add pops the travelers/dates modal; landing on that mid-swipe would
-    // stop the deck dead.
-    tripDispatch({ type: 'ADD_TO_TRIP', activity: toCartItem(activity, destinationSlug), silent: true });
+    tripDispatch({ type: 'ADD_TO_TRIP', activity: toCartItem(activity, destinationSlug) });
   };
   const togglePick = (slug: string) => {
     const activity = bySlug.get(slug);
@@ -423,6 +424,12 @@ export default function VoteLanding({
         )}
         <span className="sticky__note">{t('sticky.note')}</span>
       </div>
+
+      {/* The first add's travelers/dates modal, same as a destination page's.
+          Mounted here at the page root, NOT inside LandingCart: .hdr carries a
+          backdrop-filter, which makes it the containing block for fixed
+          descendants and would trap the overlay inside the header bar. */}
+      <TripSetupModal />
     </div>
   );
 }
