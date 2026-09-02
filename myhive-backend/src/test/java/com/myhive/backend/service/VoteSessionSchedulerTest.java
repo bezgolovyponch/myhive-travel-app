@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ class VoteSessionSchedulerTest {
 
     @Mock private VoteSessionRepository voteSessionRepository;
     @Mock private VoteSessionService voteSessionService;
+    @Mock private VoteProgressNotifier voteProgressNotifier;
 
     @InjectMocks
     private VoteSessionScheduler scheduler;
@@ -89,5 +91,61 @@ class VoteSessionSchedulerTest {
         scheduler.cleanupOldSessions();
 
         verify(voteSessionRepository).deleteByStatusAndExpiresAtBefore(eq(VoteSessionStatus.COMPLETED), any());
+    }
+
+    private void enableProgressEmails() {
+        ReflectionTestUtils.setField(scheduler, "organizerEmailsEnabled", true);
+        ReflectionTestUtils.setField(scheduler, "emailEnabled", true);
+    }
+
+    @Test
+    void sendOrganizerProgressEmails_delegatesRemindersThenHalfwayPerCandidate() {
+        enableProgressEmails();
+        UUID reminderId = UUID.randomUUID();
+        UUID halfwayId = UUID.randomUUID();
+        when(voteProgressNotifier.reminderCandidateIds()).thenReturn(List.of(reminderId));
+        when(voteProgressNotifier.halfwayCandidateIds()).thenReturn(List.of(halfwayId));
+
+        scheduler.sendOrganizerProgressEmails();
+
+        verify(voteProgressNotifier).sendReminderIfDue(reminderId);
+        verify(voteProgressNotifier).sendHalfwayIfDue(halfwayId);
+    }
+
+    @Test
+    void sendOrganizerProgressEmails_continuesOnError() {
+        enableProgressEmails();
+        UUID failing = UUID.randomUUID();
+        UUID healthy = UUID.randomUUID();
+        when(voteProgressNotifier.reminderCandidateIds()).thenReturn(List.of());
+        when(voteProgressNotifier.halfwayCandidateIds()).thenReturn(List.of(failing, healthy));
+        doThrow(new RuntimeException("boom")).when(voteProgressNotifier).sendHalfwayIfDue(failing);
+
+        scheduler.sendOrganizerProgressEmails();
+
+        verify(voteProgressNotifier).sendHalfwayIfDue(healthy);
+    }
+
+    @Test
+    void sendOrganizerProgressEmails_noopWhenKillSwitchOff() {
+        ReflectionTestUtils.setField(scheduler, "organizerEmailsEnabled", false);
+        ReflectionTestUtils.setField(scheduler, "emailEnabled", true);
+
+        scheduler.sendOrganizerProgressEmails();
+
+        verify(voteProgressNotifier, never()).reminderCandidateIds();
+        verify(voteProgressNotifier, never()).halfwayCandidateIds();
+    }
+
+    @Test
+    void sendOrganizerProgressEmails_noopWhenEmailDisabled() {
+        // A disabled mailer must not burn the one-shot markers.
+        ReflectionTestUtils.setField(scheduler, "organizerEmailsEnabled", true);
+        ReflectionTestUtils.setField(scheduler, "emailEnabled", false);
+
+        scheduler.sendOrganizerProgressEmails();
+
+        verify(voteProgressNotifier, never()).reminderCandidateIds();
+        verify(voteProgressNotifier, never()).halfwayCandidateIds();
     }
 }
