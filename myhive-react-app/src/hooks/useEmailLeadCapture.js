@@ -1,9 +1,9 @@
 import {useEffect, useRef} from 'react';
 import leadApi from '../services/leadApi';
 import {writeTripLead} from '../utils/tripLead';
+import {emailFormat} from '../utils/validators';
 
 const CAPTURE_DEBOUNCE_MS = 2000;
-const EMAIL_RE = /\S+@\S+\.\S+/;
 
 /**
  * Debounced lead capture at an email input: once a valid address sits
@@ -28,7 +28,7 @@ export function useEmailLeadCapture(context) {
   const capture = (email) => {
     clearTimeout(timerRef.current);
     const trimmed = (email || '').trim();
-    if (!EMAIL_RE.test(trimmed) || capturedRef.current === trimmed) {
+    if (emailFormat(trimmed) !== undefined || capturedRef.current === trimmed) {
       return;
     }
     timerRef.current = setTimeout(() => {

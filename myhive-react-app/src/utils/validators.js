@@ -18,3 +18,12 @@ export function discountRange(value, message = 'Discount must be between 0 and 1
     if (!Number.isFinite(n) || n < 0 || n > 100) return message;
     return undefined;
 }
+
+// Deliberately permissive (anything@anything.tld): the server's @Email is the
+// authority; this only stops obvious typos before a request is made.
+const EMAIL_RE = /\S+@\S+\.\S+/;
+
+export function emailFormat(value, message = 'Please check the email address.') {
+    const trimmed = typeof value === 'string' ? value.trim() : '';
+    return EMAIL_RE.test(trimmed) ? undefined : message;
+}

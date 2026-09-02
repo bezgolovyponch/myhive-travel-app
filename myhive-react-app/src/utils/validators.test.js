@@ -1,4 +1,4 @@
-import {required, slugFormat, discountRange} from './validators';
+import {required, slugFormat, discountRange, emailFormat} from './validators';
 
 describe('required', () => {
     it('returns a message for null/undefined/empty/whitespace', () => {
@@ -51,5 +51,24 @@ describe('discountRange', () => {
         expect(discountRange('abc')).toBeTruthy();
         expect(discountRange(Infinity)).toBeTruthy();
         expect(discountRange(-Infinity)).toBeTruthy();
+    });
+});
+
+describe('emailFormat', () => {
+    it('accepts anything@anything.tld, ignoring surrounding whitespace', () => {
+        expect(emailFormat('sam@example.com')).toBeUndefined();
+        expect(emailFormat('  sam@example.co.uk  ')).toBeUndefined();
+    });
+
+    it('rejects empty, missing @, and missing dot after the @', () => {
+        expect(emailFormat('')).toBe('Please check the email address.');
+        expect(emailFormat('   ')).toBe('Please check the email address.');
+        expect(emailFormat(null)).toBe('Please check the email address.');
+        expect(emailFormat('sam.example.com')).toBe('Please check the email address.');
+        expect(emailFormat('sam@nowhere')).toBe('Please check the email address.');
+    });
+
+    it('supports a custom message', () => {
+        expect(emailFormat('nope', 'Bad email')).toBe('Bad email');
     });
 });
