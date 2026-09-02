@@ -11,11 +11,12 @@ import './landing.css';
 import './home.css';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import { useTrip } from '../../legacy-src/context/TripContext';
+import { useStartGroupVote } from '../../legacy-src/hooks/useStartGroupVote';
 import { inter } from './fonts';
 import LandingHeader from './LandingHeader';
 import LandingCart from './LandingCart';
 import LandingFooter from './LandingFooter';
-import TripSetupModal from '../../legacy-src/components/TripSetupModal';
+import TripSetupModal from './setupModal';
 import TrivluLogo from './TrivluLogo';
 import ActivityRows from './ActivityRows';
 import TripCalculator from './TripCalculator';
@@ -80,13 +81,18 @@ export default function VoteLanding({
     [trip.tripItems]
   );
 
-  // Not silent: the first add pops the travelers/dates modal and later ones open
-  // the cart panel, exactly as on a destination page. Dismissing that modal runs
-  // CANCEL_TRIP_SETUP, which empties the cart — also as on a destination page.
+  // The first add pops the travelers/dates modal (dismissing it runs
+  // CANCEL_TRIP_SETUP, which empties the cart — as on a destination page).
+  // Later adds are silent: only the header badge ticks up. Opening the cart
+  // panel on every add read as "it threw me into the trip builder".
   const addPick = (slug: string) => {
     const activity = bySlug.get(slug);
     if (!activity) return;
-    tripDispatch({ type: 'ADD_TO_TRIP', activity: toCartItem(activity, destinationSlug) });
+    tripDispatch({
+      type: 'ADD_TO_TRIP',
+      activity: toCartItem(activity, destinationSlug),
+      silent: trip.tripItems.length > 0,
+    });
   };
   const togglePick = (slug: string) => {
     const activity = bySlug.get(slug);
@@ -104,10 +110,13 @@ export default function VoteLanding({
   };
 
   const builderHref = lp(builderUrlWithPicks(destinationSlug, picked));
-  // "Start group vote" behaves exactly like the homepage's CTA of the same name
-  // (components/site/LegacyHomePage.tsx): it enters the vote funnel. It used to
-  // scroll to the swipe deck, which read as the CTA doing nothing but jumping
-  // the page upward.
+  // "Start group vote" behaves exactly like the homepage's CTA of the same
+  // name: it opens the travelers/dates setup modal in place — no page hop. The
+  // confirm survives leaving this server-rendered page because
+  // useStartGroupVote carries the setup through /vote/new's query string. The
+  // anchor keeps a real href for crawlers and no-JS.
+  const { voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination } =
+    useStartGroupVote();
   const voteHref = lp(VOTE_FLOW_PATH);
 
   const goToBuilder = (label: string, block: string) => trackCtaAndGo(label, block, builderHref);
@@ -118,7 +127,8 @@ export default function VoteLanding({
       href={voteHref}
       onClick={(e) => {
         e.preventDefault();
-        trackCtaAndGo('Start group vote', block, voteHref);
+        trackCta('Start group vote', block);
+        openVoteSetup();
       }}
     >
       {tChrome('startVote')}
@@ -425,11 +435,19 @@ export default function VoteLanding({
         <span className="sticky__note">{t('sticky.note')}</span>
       </div>
 
-      {/* The first add's travelers/dates modal, same as a destination page's.
-          Mounted here at the page root, NOT inside LandingCart: .hdr carries a
-          backdrop-filter, which makes it the containing block for fixed
-          descendants and would trap the overlay inside the header bar. */}
+      {/* Both setup modals — the first add's trip modal and the CTA's vote
+          modal — same as the homepage's. Mounted here at the page root, NOT
+          inside LandingHeader: .hdr carries a backdrop-filter, which makes it
+          the containing block for fixed descendants and would trap the
+          overlays inside the header bar. */}
       <TripSetupModal />
+      <TripSetupModal
+        isVoteMode={true}
+        voteOpen={voteSetupOpen}
+        onVoteConfirm={handleVoteConfirm}
+        onVoteCancel={closeVoteSetup}
+        preselectedDestination={preselectedDestination}
+      />
     </div>
   );
 }

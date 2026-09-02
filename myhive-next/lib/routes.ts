@@ -1,10 +1,11 @@
 // Paths that server-rendered pages hand off to the SPA. Kept here so the
-// homepage and the landings cannot drift apart.
+// landings cannot drift apart.
 
-// The group-vote funnel entry. Server-rendered pages cannot open the vote setup
-// modal in place: its confirm handler passes the setup through react-router
-// location state, which no full page load can carry. /vote/new exists for
-// exactly this reason — it mounts the SPA and opens the modal. Callers must
-// localize it (localizePath / useLocalePath): this is a hard navigation, so
-// LegacyRouter never sees it to add the prefix itself.
+// The group-vote funnel entry. The landings' CTAs open the vote setup modal in
+// place and only use this as the anchors' crawlable href (and as the cart
+// panel's empty-state CTA target — see LandingCart.tsx); a confirmed setup
+// travels in /vote/new's query string (legacy-src/utils/voteSetup.js), which
+// survives the full page load out of a server-rendered page. Callers must
+// localize it (localizePath / useLocalePath): a hard navigation never passes
+// through LegacyRouter, so nothing adds the prefix for them.
 export const VOTE_FLOW_PATH = '/vote/new';

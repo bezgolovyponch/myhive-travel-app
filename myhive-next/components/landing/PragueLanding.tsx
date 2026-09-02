@@ -5,9 +5,13 @@
 // ninety minutes away and four times cheaper". All copy comes from the landing
 // dictionary (en/de); cta_click labels stay English so analytics never
 // fragments by locale.
+import { useMemo } from 'react';
 import './landing.css';
 import './prague.css';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
+import { useTrip } from '../../legacy-src/context/TripContext';
+import { useStartGroupVote } from '../../legacy-src/hooks/useStartGroupVote';
+import TripSetupModal from './setupModal';
 import { inter } from './fonts';
 import LandingHeader from './LandingHeader';
 import LandingCart from './LandingCart';
@@ -17,8 +21,8 @@ import TripCalculator from './TripCalculator';
 import WhyUsSection from './WhyUsSection';
 import ReviewsSection from './ReviewsSection';
 import FaqSection from './FaqSection';
-import { trackCta, trackCtaAndGo } from './analytics';
-import { PHONE_DISPLAY, PHONE_HREF, type ActivityRow } from './data';
+import { trackCta } from './analytics';
+import { toCartItem, PHONE_DISPLAY, PHONE_HREF, type ActivityRow } from './data';
 import type { Pool } from './engine';
 import { VOTE_FLOW_PATH } from '../../lib/routes';
 
@@ -45,13 +49,40 @@ export default function PragueLanding({
   const tCalc = useT('landing.calc');
   const tChrome = useT('landing.chrome');
   const lp = useLocalePath();
-  // The primary CTA behaves exactly like the homepage's (LegacyHomePage.tsx):
-  // it enters the vote funnel, whose first screen is the travelers/dates setup
-  // popup. It cannot open that popup in place — the confirm handler passes the
-  // setup to /vote/new/quiz through react-router location state, which the full
-  // page load out of this server-rendered page drops. /vote/new exists for
-  // exactly that: it mounts the SPA and opens the same modal.
+  // The primary CTA behaves exactly like the homepage's "Start Group Vote": it
+  // opens the travelers/dates setup modal in place — no page hop. The confirm
+  // survives leaving this server-rendered page because useStartGroupVote
+  // carries the setup through /vote/new's query string. The anchor keeps a
+  // real href for crawlers and no-JS.
+  const { voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination } =
+    useStartGroupVote();
   const voteHref = lp(VOTE_FLOW_PATH);
+
+  // Adds are real cart adds, exactly as on the vote landing: the first pops the
+  // travelers/dates modal, later ones only tick the header badge up — never a
+  // hop to the trip builder.
+  const { state: trip, dispatch: tripDispatch } = useTrip();
+  const bySlug = useMemo(
+    () => new Map(rows.flatMap((r) => r.items).map((a) => [a.slug, a])),
+    [rows]
+  );
+  const picked = useMemo(
+    () => trip.tripItems.map((i: { slug?: string }) => i.slug).filter(Boolean) as string[],
+    [trip.tripItems]
+  );
+  const togglePick = (slug: string) => {
+    const activity = bySlug.get(slug);
+    if (!activity) return;
+    if (picked.includes(slug)) {
+      tripDispatch({ type: 'REMOVE_FROM_TRIP', activityId: activity.id });
+    } else {
+      tripDispatch({
+        type: 'ADD_TO_TRIP',
+        activity: toCartItem(activity, destinationSlug),
+        silent: trip.tripItems.length > 0,
+      });
+    }
+  };
 
   const ctaLink = (block: string, label: string, className: string) => (
     <a
@@ -59,7 +90,8 @@ export default function PragueLanding({
       href={voteHref}
       onClick={(e) => {
         e.preventDefault();
-        trackCtaAndGo(label, block, voteHref);
+        trackCta(label, block);
+        openVoteSetup();
       }}
     >
       {tChrome('buildTrip')}
@@ -112,7 +144,13 @@ export default function PragueLanding({
           <p className="t-eyebrow">{tAct('eyebrow')}</p>
           <h2 className="t-h2">{tAct('title', { count: totalActivities })}</h2>
           <p className="t-lede">{tAct('ledePrague')}</p>
-          <ActivityRows rows={rows} destinationSlug={destinationSlug} showChip />
+          <ActivityRows
+            rows={rows}
+            destinationSlug={destinationSlug}
+            showChip
+            picked={picked}
+            onToggle={togglePick}
+          />
           <div className="grid__more">
             <a
               className="btn btn--ghost btn--lg"
@@ -253,6 +291,20 @@ export default function PragueLanding({
           { href: '#costs', labelKey: 'exampleWeekend' },
           { href: '#rules', labelKey: 'rules' },
         ]}
+      />
+
+      {/* Both setup modals — the first add's trip modal and the CTA's vote
+          modal — same as the homepage's. Mounted at the page root, NOT inside
+          LandingHeader: .hdr carries a backdrop-filter, which makes it the
+          containing block for fixed descendants and would trap the overlays
+          inside the header bar. */}
+      <TripSetupModal />
+      <TripSetupModal
+        isVoteMode={true}
+        voteOpen={voteSetupOpen}
+        onVoteConfirm={handleVoteConfirm}
+        onVoteCancel={closeVoteSetup}
+        preselectedDestination={preselectedDestination}
       />
     </div>
   );
