@@ -713,4 +713,74 @@ class EmailServiceTest {
         assertThat(contexts.get(0).getVariable("restoreUrl")).isEqualTo(expectedRestoreUrl);
         assertThat(contexts.get(1).getVariable("restoreUrl")).isEqualTo("https://trivlu.com");
     }
+
+    @Test
+    void sendVoteHalfway_subjectCountsVotersAgainstTravelers() throws Exception {
+        String expectedSubject = "6 of 12 have voted";
+        VoteSession session = halfwaySession("alice@example.com");
+
+        MimeMessage realMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        when(templateEngine.process(eq("vote-halfway"), any())).thenReturn("<html>halfway</html>");
+
+        emailService.sendVoteHalfway(session, 6, List.of(), "https://trivlu.com");
+
+        assertThat(realMessage.getSubject()).isEqualTo(expectedSubject);
+        assertThat(realMessage.getAllRecipients()[0].toString()).isEqualTo("alice@example.com");
+        verify(asyncMailSender).send(eq(realMessage), anyString());
+    }
+
+    @Test
+    void sendVoteHalfway_passesManagerDashboardUrlAndStandings() throws Exception {
+        VoteSession session = halfwaySession("alice@example.com");
+        String expectedDashboardUrl = "https://trivlu.com/vote/" + session.getShareToken()
+                + "/waiting?manager=" + session.getManagerToken();
+        List<EmailService.VoteStandingView> expectedStandings =
+                List.of(new EmailService.VoteStandingView("Bar Crawl", 4));
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-halfway"), contextCaptor.capture())).thenReturn("<html>x</html>");
+
+        emailService.sendVoteHalfway(session, 6, expectedStandings, "https://trivlu.com");
+
+        Context context = contextCaptor.getValue();
+        assertThat(context.getVariable("dashboardUrl")).isEqualTo(expectedDashboardUrl);
+        assertThat(context.getVariable("standings")).isSameAs(expectedStandings);
+        assertThat(context.getVariable("voters")).isEqualTo(6L);
+        assertThat(context.getVariable("travelers")).isEqualTo(12);
+    }
+
+    @Test
+    void sendVoteHalfway_germanSessionUsesGermanSubjectAndLocalePrefix() throws Exception {
+        VoteSession session = halfwaySession("alice@example.com");
+        session.setLocale("de");
+        String expectedDashboardUrl = "https://trivlu.com/de/vote/" + session.getShareToken()
+                + "/waiting?manager=" + session.getManagerToken();
+
+        MimeMessage realMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-halfway"), contextCaptor.capture())).thenReturn("<html>x</html>");
+
+        emailService.sendVoteHalfway(session, 6, List.of(), "https://trivlu.com");
+
+        assertThat(realMessage.getSubject()).isEqualTo("6 von 12 haben abgestimmt");
+        assertThat(contextCaptor.getValue().getVariable("dashboardUrl")).isEqualTo(expectedDashboardUrl);
+    }
+
+    private static VoteSession halfwaySession(String email) {
+        Destination destination = new Destination();
+        destination.setName("Prague");
+        destination.setSlug("prague");
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setManagerToken(UUID.randomUUID());
+        session.setDestination(destination);
+        session.setInitiatorEmail(email);
+        session.setNumberOfTravelers(12);
+        session.setExpiresAt(LocalDateTime.of(2026, 8, 2, 12, 0));
+        return session;
+    }
 }

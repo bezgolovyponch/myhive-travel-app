@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{email.voteHalfway.title}">Half your group has voted</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f0f0f0; margin: 0; padding: 20px 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
+        .header { background: #6A1B9A; color: white; padding: 32px 30px; text-align: center; border-bottom: 3px solid #4A148C; }
+        .header h1 { margin: 12px 0 8px; font-size: 22px; font-weight: 700; color: #f5f5f5; }
+        .header p { margin: 0; color: rgba(245,245,245,0.75); font-size: 14px; }
+        .content { padding: 30px; }
+        .section { margin: 20px 0; padding: 18px 20px; border-left: 4px solid #6A1B9A; background: #f8f9fa; border-radius: 0 6px 6px 0; }
+        .section h2 { margin: 0 0 12px; font-size: 16px; color: #1f2121; }
+        .standings { width: 100%; border-collapse: collapse; }
+        .standings td { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #e0e0e0; }
+        .standings td.likes { text-align: right; color: #6A1B9A; font-weight: 600; white-space: nowrap; }
+        .cta-button { display: block; width: fit-content; margin: 30px auto; padding: 14px 32px; background: #6A1B9A; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; text-align: center; }
+        .muted { color: #666; font-size: 14px; }
+        .footer { background: #4A148C; padding: 24px 20px; text-align: center; border-top: 3px solid #6A1B9A; }
+        .footer p { color: rgba(245,245,245,0.6); font-size: 12px; margin: 4px 0; }
+        .footer a { color: rgba(245,245,245,0.85); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 56px;">
+        <h1 th:text="#{email.voteHalfway.header.title(${voters}, ${travelers})}">6 of 12 have voted</h1>
+        <p th:text="#{email.common.tripTo(${session.destination.name})}">Trip to Prague</p>
+    </div>
+    <div class="content">
+        <p th:utext="#{email.voteHalfway.intro(${session.destination.name})}">Half your group has voted for <strong>Prague</strong>. Here is where things stand right now &mdash; the final results come when the vote closes.</p>
+
+        <div class="section">
+            <h2 th:text="#{email.voteHalfway.standings.title}">Current standings</h2>
+            <table class="standings">
+                <tr th:each="row : ${standings}">
+                    <td th:text="${row.name}">Bar Crawl</td>
+                    <td class="likes" th:text="#{email.voteHalfway.standings.likes(${row.likes})}">4 &hearts;</td>
+                </tr>
+            </table>
+        </div>
+
+        <a th:href="${dashboardUrl}" class="cta-button" style="color: #ffffff !important;" th:text="#{email.voteHalfway.cta.results}">See live results</a>
+
+        <p class="muted" th:text="#{email.voteHalfway.closes(${expiresAt})}">Voting closes automatically on August 2, 2026 at 12:00 UTC.</p>
+        <p class="muted">
+            <span th:text="#{email.common.questions}">Questions? Email us at</span>
+            <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@trivlu.com</a>.
+        </p>
+    </div>
+    <div class="footer">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 36px; margin-bottom: 10px;">
+        <p th:text="#{email.common.footer.tagline}">Creating unforgettable travel experiences</p>
+        <p th:text="#{email.common.footer.automated}">This is an automated message. Please do not reply to this email.</p>
+        <p th:text="#{email.common.footer.support}">For support, contact us at support@trivlu.com</p>
+    </div>
+</div>
+</body>
+</html>

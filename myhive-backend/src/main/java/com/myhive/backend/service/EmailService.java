@@ -111,6 +111,17 @@ public class EmailService {
         }
     }
 
+    /** One ranked line of the halfway email's standings table. */
+    public static class VoteStandingView {
+        public final String name;
+        public final long likes;
+
+        public VoteStandingView(String name, long likes) {
+            this.name = name;
+            this.likes = likes;
+        }
+    }
+
     /** Everything that varies between the outbound emails; {@link #send(EmailSpec)} does the rest. */
     @Builder
     private record EmailSpec(
@@ -257,11 +268,10 @@ public class EmailService {
     public void sendVoteCreatedConfirmation(VoteSession session, String frontendUrl) {
         Locale locale = localeOf(session.getLocale());
         String base = frontendUrl + localePrefix(session.getLocale());
-        String shareToken = session.getShareToken().toString();
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("session", session);
-        variables.put("inviteUrl", base + "/vote/" + shareToken + "/activities?ref=invite");
-        variables.put("dashboardUrl", base + "/vote/" + shareToken + "/waiting?manager=" + session.getManagerToken());
+        variables.put("inviteUrl", inviteUrlFor(session, base));
+        variables.put("dashboardUrl", dashboardUrlFor(session, base));
         variables.put("supportEmail", SUPPORT_EMAIL);
         variables.put("startDate", formatDate(session.getStartDate(), locale));
         variables.put("endDate", formatDate(session.getEndDate(), locale));
@@ -275,6 +285,38 @@ public class EmailService {
                 .locale(locale)
                 .description("vote-created confirmation to " + maskEmail(session.getInitiatorEmail()))
                 .build());
+    }
+
+    public void sendVoteHalfway(VoteSession session, long voters, List<VoteStandingView> standings, String frontendUrl) {
+        Locale locale = localeOf(session.getLocale());
+        String base = frontendUrl + localePrefix(session.getLocale());
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("session", session);
+        variables.put("voters", voters);
+        variables.put("travelers", session.getNumberOfTravelers());
+        variables.put("standings", standings);
+        variables.put("dashboardUrl", dashboardUrlFor(session, base));
+        variables.put("expiresAt", formatDateTime(session.getExpiresAt(), locale));
+        variables.put("supportEmail", SUPPORT_EMAIL);
+
+        send(EmailSpec.builder()
+                .to(session.getInitiatorEmail())
+                .subject(msg(locale, "email.voteHalfway.subject", voters, session.getNumberOfTravelers()))
+                .template("vote-halfway")
+                .variables(variables)
+                .locale(locale)
+                .description("vote halfway update to " + maskEmail(session.getInitiatorEmail()))
+                .build());
+    }
+
+    /** Participant swipe deck; ?ref=invite marks shared-link arrivals in analytics. */
+    private static String inviteUrlFor(VoteSession session, String base) {
+        return base + "/vote/" + session.getShareToken() + "/activities?ref=invite";
+    }
+
+    /** Waiting page with the manager token, which the page adopts so the organizer can manage from any device. */
+    private static String dashboardUrlFor(VoteSession session, String base) {
+        return base + "/vote/" + session.getShareToken() + "/waiting?manager=" + session.getManagerToken();
     }
 
     public void sendPaymentReceived(String toEmail, String customerName, String tripId,
