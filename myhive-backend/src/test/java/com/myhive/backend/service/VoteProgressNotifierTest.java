@@ -13,6 +13,7 @@ import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -41,8 +43,10 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+// Not @Transactional: the point of these tests is that the one-shot marker is COMMITTED before
+// the email hand-off, which a shared test transaction would hide (and the notifier's own
+// transaction per call is what makes the second call a no-op). State is cleaned per test instead.
 @SpringBootTest
-@Transactional
 @Import({TestSecurityConfig.class, MockEmailServiceConfig.class})
 class VoteProgressNotifierTest {
 
@@ -53,6 +57,8 @@ class VoteProgressNotifierTest {
     @Autowired private ActivityRepository activityRepository;
     @Autowired private EmailService emailService;
 
+    private final List<UUID> createdSessionIds = new ArrayList<>();
+
     private Destination prague;
     private Activity barCrawl;
     private Activity karting;
@@ -60,11 +66,19 @@ class VoteProgressNotifierTest {
     @BeforeEach
     void setUp() {
         reset(emailService);
+        createdSessionIds.clear();
         prague = destinationRepository.save(TestDataFactory.destination("Prague"));
         barCrawl = activityRepository.saveAndFlush(
                 TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
         karting = activityRepository.saveAndFlush(
                 TestDataFactory.activity(prague, "Karting", new BigDecimal("60.00")));
+    }
+
+    // Rows outlive the test without a rollback, and another test class wipes activities and
+    // destinations wholesale — leftover sessions would break its deleteAll with an FK violation.
+    @AfterEach
+    void tearDown() {
+        voteSessionRepository.deleteAllById(createdSessionIds);
     }
 
     private static LocalDateTime hoursFromNow(int hours) {
@@ -81,6 +95,7 @@ class VoteProgressNotifierTest {
         request.setActivityIds(Arrays.asList(barCrawl.getId(), karting.getId()));
         VoteSessionResponse response = voteSessionService.createCartSession(request);
         VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        createdSessionIds.add(session.getId());
         session.setExpiresAt(expiresAt);
         return voteSessionRepository.saveAndFlush(session);
     }
@@ -103,6 +118,7 @@ class VoteProgressNotifierTest {
         return item;
     }
 
+    /** Fresh read outside the notifier's transaction — proves the marker was committed, not just set. */
     private VoteSession reload(VoteSession session) {
         return voteSessionRepository.findById(session.getId()).orElseThrow();
     }
@@ -252,6 +268,40 @@ class VoteProgressNotifierTest {
         List<UUID> ids = notifier.reminderCandidateIds();
 
         assertThat(ids).contains(due.getId()).doesNotContain(early.getId(), noEmail.getId());
+    }
+
+    // ---- one-shot claim (the guard against the organizer closing mid-send) ----
+
+    // @Transactional here only because a @Modifying query needs one; these two assert the
+    // claim's WHERE clause directly, which is what keeps a stale snapshot from resurrecting
+    // a session the organizer closed between the notifier's read and its write.
+    @Test
+    @Transactional
+    void claimHalfwayEmail_winsOnceThenLoses() {
+        VoteSession session = activeSession(4, hoursFromNow(20), "organizer@example.com");
+
+        int firstClaim = voteSessionRepository.claimHalfwayEmail(
+                session.getId(), VoteSessionStatus.ACTIVE, LocalDateTime.now(ZoneOffset.UTC));
+        int secondClaim = voteSessionRepository.claimHalfwayEmail(
+                session.getId(), VoteSessionStatus.ACTIVE, LocalDateTime.now(ZoneOffset.UTC));
+
+        assertThat(firstClaim).isEqualTo(1);
+        assertThat(secondClaim).isZero();
+    }
+
+    @Test
+    @Transactional
+    void claimHalfwayEmail_refusesAClosedSessionAndLeavesItsStatusAlone() {
+        VoteSession session = activeSession(4, hoursFromNow(20), "organizer@example.com");
+        session.setStatus(VoteSessionStatus.COMPLETED); // organizer ended the vote early
+        voteSessionRepository.saveAndFlush(session);
+
+        int claimed = voteSessionRepository.claimHalfwayEmail(
+                session.getId(), VoteSessionStatus.ACTIVE, LocalDateTime.now(ZoneOffset.UTC));
+
+        assertThat(claimed).isZero();
+        assertThat(voteSessionRepository.findById(session.getId()).orElseThrow().getStatus())
+                .isEqualTo(VoteSessionStatus.COMPLETED);
     }
 
     @Test

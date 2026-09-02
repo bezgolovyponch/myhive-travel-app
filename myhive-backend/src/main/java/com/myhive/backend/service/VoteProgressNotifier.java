@@ -50,10 +50,12 @@ public class VoteProgressNotifier {
 
     @Transactional(readOnly = true)
     public List<UUID> reminderCandidateIds() {
-        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).plus(REMINDER_LEAD);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        // Lower bound too: a session past its deadline is about to be closed and mailed its
+        // results, so "closes in about 12 hours" must not go out minutes before them.
         return idsOf(voteSessionRepository
-                .findByStatusAndInitiatorEmailIsNotNullAndReminderEmailSentAtIsNullAndExpiresAtBefore(
-                        VoteSessionStatus.ACTIVE, cutoff));
+                .findByStatusAndInitiatorEmailIsNotNullAndReminderEmailSentAtIsNullAndExpiresAtBetween(
+                        VoteSessionStatus.ACTIVE, now, now.plus(REMINDER_LEAD)));
     }
 
     /** Email 1: fires once when at least half the group (ceil) has voted and not everyone has. */
@@ -69,8 +71,10 @@ public class VoteProgressNotifier {
             return;
         }
         List<EmailService.VoteStandingView> standings = standingsOf(session);
-        session.setHalfwayEmailSentAt(LocalDateTime.now(ZoneOffset.UTC));
-        voteSessionRepository.saveAndFlush(session);
+        if (voteSessionRepository.claimHalfwayEmail(
+                session.getId(), VoteSessionStatus.ACTIVE, LocalDateTime.now(ZoneOffset.UTC)) != 1) {
+            return; // someone else claimed it, or the session closed while we were reading
+        }
         sendQuietly("halfway", session,
                 () -> emailService.sendVoteHalfway(session, voters, standings, frontendUrl));
     }
@@ -86,12 +90,16 @@ public class VoteProgressNotifier {
         if (session.getExpiresAt().isAfter(now.plus(REMINDER_LEAD))) {
             return; // more than 12 h left — not due yet
         }
+        if (!session.getExpiresAt().isAfter(now)) {
+            return; // already past the deadline — the results email is what goes out next
+        }
         long missing = session.getNumberOfTravelers() - voterCount(session);
         if (missing <= 0) {
             return;
         }
-        session.setReminderEmailSentAt(now);
-        voteSessionRepository.saveAndFlush(session);
+        if (voteSessionRepository.claimReminderEmail(session.getId(), VoteSessionStatus.ACTIVE, now) != 1) {
+            return; // someone else claimed it, or the session closed while we were reading
+        }
         sendQuietly("reminder", session, () -> emailService.sendVoteReminder(session, missing, frontendUrl));
     }
 

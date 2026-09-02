@@ -28,7 +28,7 @@ export function useEmailLeadCapture(context) {
   const capture = (email) => {
     clearTimeout(timerRef.current);
     const trimmed = (email || '').trim();
-    if (emailFormat(trimmed) !== undefined || capturedRef.current === trimmed) {
+    if (emailFormat(trimmed) || capturedRef.current === trimmed) {
       return;
     }
     timerRef.current = setTimeout(() => {

@@ -257,7 +257,7 @@ public class EmailService {
 
         send(EmailSpec.builder()
                 .to(session.getInitiatorEmail())
-                .subject(msg(locale, "email.voteResult.subject", session.getDestination().getName()))
+                .subject(msg(locale, "email.voteResult.subject"))
                 .template("vote-result")
                 .variables(variables)
                 .locale(locale)

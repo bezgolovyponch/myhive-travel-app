@@ -17,8 +17,8 @@ import java.util.UUID;
 @Setter
 public class VoteSessionCartCreateRequest {
     @NotNull private UUID destinationId;
-    // Optional: the modal no longer asks for it — the organizer's email is
-    // collected later on the booking page.
+    // Optional on the API; the Create-vote modal's email step supplies it, and the
+    // booking page still captures an address for organizers who skip the vote.
     @Email private String initiatorEmail;
     @NotNull @Min(1) @Max(50) private Integer numberOfTravelers;
     @NotNull private LocalDate startDate;

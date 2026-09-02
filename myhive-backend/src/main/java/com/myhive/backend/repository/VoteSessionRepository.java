@@ -24,9 +24,30 @@ public interface VoteSessionRepository extends JpaRepository<VoteSession, UUID> 
     /** Organizer halfway email candidates: open, emailed, not yet notified — the count check happens in Java. */
     List<VoteSession> findByStatusAndInitiatorEmailIsNotNullAndHalfwayEmailSentAtIsNull(VoteSessionStatus status);
 
-    /** Organizer reminder candidates: open, emailed, not yet reminded, closing before {@code cutoff}. */
-    List<VoteSession> findByStatusAndInitiatorEmailIsNotNullAndReminderEmailSentAtIsNullAndExpiresAtBefore(
-            VoteSessionStatus status, LocalDateTime cutoff);
+    /** Organizer reminder candidates: open, emailed, not yet reminded, closing between now and {@code cutoff}. */
+    List<VoteSession> findByStatusAndInitiatorEmailIsNotNullAndReminderEmailSentAtIsNullAndExpiresAtBetween(
+            VoteSessionStatus status, LocalDateTime from, LocalDateTime cutoff);
+
+    /**
+     * Claims the halfway email for this session: sets the marker only if the session is still open
+     * and unclaimed, returning 1 when this caller won the claim. A targeted UPDATE, not a full-row
+     * save of a stale snapshot — the organizer can close the session from a web thread at any moment,
+     * and saving the whole row would write its old status back over COMPLETED.
+     */
+    @Modifying
+    @Query("UPDATE VoteSession s SET s.halfwayEmailSentAt = :now "
+            + "WHERE s.id = :id AND s.status = :status AND s.halfwayEmailSentAt IS NULL")
+    int claimHalfwayEmail(@Param("id") UUID id,
+                          @Param("status") VoteSessionStatus status,
+                          @Param("now") LocalDateTime now);
+
+    /** Same one-shot claim for the 12 h reminder; see {@link #claimHalfwayEmail}. */
+    @Modifying
+    @Query("UPDATE VoteSession s SET s.reminderEmailSentAt = :now "
+            + "WHERE s.id = :id AND s.status = :status AND s.reminderEmailSentAt IS NULL")
+    int claimReminderEmail(@Param("id") UUID id,
+                           @Param("status") VoteSessionStatus status,
+                           @Param("now") LocalDateTime now);
 
     /** Pessimistic write lock to serialize deposit creation per session, preventing duplicate
      *  bookings/checkout sessions from a double-submit (M1). */

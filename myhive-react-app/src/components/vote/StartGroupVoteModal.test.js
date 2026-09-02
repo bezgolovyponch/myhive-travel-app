@@ -227,6 +227,73 @@ test('closing on the email step reports whether an address was typed', async () 
   });
 });
 
+test('reopening after closing on the email step starts at step 1 again', async () => {
+  const onClose = jest.fn();
+  const { rerender } = renderModal({ onClose });
+  const input = await goToEmailStep();
+  await userEvent.type(input, 'sam@nowhere');
+  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
+  expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
+
+  // The modal stays mounted between openings, so a reopen must not resume mid-flow.
+  rerender(
+    <MemoryRouter>
+      <StartGroupVoteModal
+        isOpen={false}
+        onClose={onClose}
+        destinationId="d-1"
+        activityIds={['a-1', 'a-2']}
+        numberOfTravelers={4}
+        startDate="2026-08-01"
+        endDate="2026-08-03"
+      />
+    </MemoryRouter>,
+  );
+  rerender(
+    <MemoryRouter>
+      <StartGroupVoteModal
+        isOpen
+        onClose={onClose}
+        destinationId="d-1"
+        activityIds={['a-1', 'a-2']}
+        numberOfTravelers={4}
+        startDate="2026-08-01"
+        endDate="2026-08-03"
+      />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole('button', { name: 'Create vote' })).toBeInTheDocument();
+  expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+  expect(screen.queryByText('Please check the email address.')).not.toBeInTheDocument();
+
+  // Every open counts once in the funnel: the ratio link_revealed / email_screen_view
+  // is the metric the rollback decision reads.
+  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
+  expect(pushEvent.mock.calls.filter(([name]) => name === 'email_screen_view')).toHaveLength(2);
+  // The typed address survives as a draft, like the dates in TripSetupModal.
+  expect(screen.getByLabelText('Email')).toHaveValue('sam@nowhere');
+});
+
+test('Enter in the email field submits, and a fixed address clears the error', async () => {
+  voteApi.createCartSession.mockResolvedValue({ shareToken: 't-4', managerToken: 'm-4' });
+  renderModal();
+  const input = await goToEmailStep();
+  await userEvent.type(input, 'sam@nowhere');
+  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
+  expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
+  expect(input).toHaveAttribute('aria-describedby', 'start-vote-email-error');
+
+  await userEvent.clear(input);
+  await userEvent.type(input, 'sam@example.com{Enter}');
+
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/vote/t-4/waiting'));
+  expect(screen.queryByText('Please check the email address.')).not.toBeInTheDocument();
+  expect(voteApi.createCartSession).toHaveBeenCalledWith(
+    expect.objectContaining({ initiatorEmail: 'sam@example.com' }),
+  );
+});
+
 test('does not fire modal_abandoned when closed after a successful launch', async () => {
   voteApi.createCartSession.mockResolvedValue({ shareToken: 't-1', managerToken: 'm-1' });
   const onClose = jest.fn();

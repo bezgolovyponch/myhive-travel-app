@@ -52,6 +52,19 @@ function StartGroupVoteModal({
     const needsDates = !startDate || !endDate;
     const isEmailStep = step === STEP_EMAIL;
 
+    // The modal stays mounted between openings (TripBuilder renders it with
+    // isOpen), so every open restarts at step 1 with no stale error: otherwise
+    // a reopen would land straight on the email screen, skipping the explainer
+    // and the per-open organizer_voted/email_screen_view pair. Typed values
+    // (dates, email) deliberately survive as a draft, as in TripSetupModal.
+    useEffect(() => {
+        if (isOpen) {
+            setStep(STEP_DETAILS);
+            setErrors({});
+            setApiError(null);
+        }
+    }, [isOpen]);
+
     // useModalA11y focuses the first focusable element only when the modal
     // opens; the step change happens later, so the email field focuses itself.
     useEffect(() => {
@@ -203,6 +216,7 @@ function StartGroupVoteModal({
                         spellCheck={false}
                         aria-label={t('start.email.label')}
                         aria-invalid={Boolean(errors.email)}
+                        aria-describedby={errors.email ? 'start-vote-email-error' : undefined}
                         placeholder={t('start.email.placeholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -212,7 +226,9 @@ function StartGroupVoteModal({
                             }
                         }}
                     />
-                    {errors.email && <span className="error-message" role="alert">{errors.email}</span>}
+                    {errors.email && (
+                        <span id="start-vote-email-error" className="error-message" role="alert">{errors.email}</span>
+                    )}
                     <p className="start-vote-email-helper">{t('start.email.helper')}</p>
                 </>
             ) : (
