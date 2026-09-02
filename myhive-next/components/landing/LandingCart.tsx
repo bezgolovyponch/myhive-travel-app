@@ -49,8 +49,9 @@ export default function LandingCart() {
         </svg>
         <span className="hdr__cart-count">{count > 0 ? count : ''}</span>
       </button>
-      {/* voteHref, not the in-place setup modal: this is outside the SPA, where
-          the modal's confirm cannot hand its payload to the quiz. */}
+      {/* voteHref, not the in-place setup modal: this dropdown sits inside
+          .hdr, whose backdrop-filter would trap the fixed overlay in the
+          header bar. /vote/new opens the same modal full-page. */}
       <TripBuilderDropdown voteHref={lp(VOTE_FLOW_PATH)} />
     </div>
   );

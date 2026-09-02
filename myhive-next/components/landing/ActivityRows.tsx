@@ -1,15 +1,13 @@
 'use client';
 
 // "72 activities. Pick the ones your group wants" — one horizontally
-// scrollable row per category, six cards deep. Two card modes:
-//   - link (Prague landing): "Add to trip" navigates to the trip builder
-//   - pick (vote landing): the button toggles the activity into the shared
-//     shortlist without leaving the page
+// scrollable row per category, six cards deep. On both landings "Add to trip"
+// toggles the activity into the shared cart without leaving the page.
 // Activity names/categories arrive already localized from the backend
 // (?locale= on the server fetch); UI strings come from the landing dictionary.
 import { useT, useLocalePath } from '../../legacy-src/i18n';
 import type { ActivityRow, LandingActivity } from './data';
-import { activityLink, builderUrlWithAdd, categoryLink } from './data';
+import { activityLink, categoryLink } from './data';
 
 function ActivityCard({
   a,
@@ -21,8 +19,8 @@ function ActivityCard({
   a: LandingActivity;
   destinationSlug: string;
   showChip: boolean;
-  picked?: boolean;
-  onToggle?: (slug: string) => void;
+  picked: boolean;
+  onToggle: (slug: string) => void;
 }) {
   const t = useT('landing.activities');
   const lp = useLocalePath();
@@ -57,20 +55,14 @@ function ActivityCard({
           {a.minPrice ? t('minPerGroup', { min: a.minPrice }) : ' '}
         </div>
         <div className="acard__row">
-          {onToggle ? (
-            <button
-              type="button"
-              className="btn btn--primary js-add-trip"
-              aria-pressed={picked ? 'true' : 'false'}
-              onClick={() => onToggle(a.slug)}
-            >
-              {picked ? t('added') : t('addToTrip')}
-            </button>
-          ) : (
-            <a className="btn btn--primary" href={lp(builderUrlWithAdd(destinationSlug, a.slug))}>
-              {t('addToTrip')}
-            </a>
-          )}
+          <button
+            type="button"
+            className="btn btn--primary js-add-trip"
+            aria-pressed={picked ? 'true' : 'false'}
+            onClick={() => onToggle(a.slug)}
+          >
+            {picked ? t('added') : t('addToTrip')}
+          </button>
         </div>
       </div>
     </article>
@@ -87,8 +79,8 @@ export default function ActivityRows({
   rows: ActivityRow[];
   destinationSlug: string;
   showChip?: boolean;
-  picked?: string[];
-  onToggle?: (slug: string) => void;
+  picked: string[];
+  onToggle: (slug: string) => void;
 }) {
   const t = useT('landing.activities');
   const tRows = useT('landing.rows');
@@ -118,7 +110,7 @@ export default function ActivityRows({
                 a={a}
                 destinationSlug={destinationSlug}
                 showChip={showChip}
-                picked={picked?.includes(a.slug)}
+                picked={picked.includes(a.slug)}
                 onToggle={onToggle}
               />
             ))}
