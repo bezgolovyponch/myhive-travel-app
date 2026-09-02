@@ -518,12 +518,12 @@ public class VoteSessionService {
                 .collect(Collectors.toMap(ActivityVoteCount::getActivityId, c -> c));
 
         List<VoteTallyResponse.TallyRow> rows = curated.stream()
-                .sorted(cartRankingOrder(counts))
+                .sorted(VoteRanking.byLikes(counts))
                 .map(row -> new VoteTallyResponse.TallyRow(
                         row.getActivity().getId(),
                         Translations.pick(row.getActivity().getTranslations(), lc, "name", row.getActivityName()),
                         row.getPrice(),
-                        likeCountOf(counts, row)))
+                        VoteRanking.likeCountOf(counts, row)))
                 .toList();
 
         long participantCount = voteActivityLikeRepository
@@ -629,29 +629,13 @@ public class VoteSessionService {
         // Advisory ranking: every ballot activity is kept, ordered by like count;
         // ties resolve to the initiator's original cart order.
         List<VoteSessionActivity> ranked = curated.stream()
-                .sorted(cartRankingOrder(counts))
+                .sorted(VoteRanking.byLikes(counts))
                 .toList();
         int sortOrder = 0;
         for (VoteSessionActivity row : ranked) {
             saveResultRow(session, row.getActivity(), sortOrder++);
         }
         log.info("Processed cart vote session {} — {} activities ranked", session.getId(), sortOrder);
-    }
-
-    /**
-     * CART ranking order shared by the frozen result ({@link #freezeCartRanking}) and the live
-     * tally ({@link #getTally}): like count descending, ties broken by the initiator's original
-     * cart order.
-     */
-    private Comparator<VoteSessionActivity> cartRankingOrder(Map<UUID, ActivityVoteCount> counts) {
-        return Comparator
-                .comparingLong((VoteSessionActivity row) -> likeCountOf(counts, row)).reversed()
-                .thenComparingInt(VoteSessionActivity::getSortOrder);
-    }
-
-    private long likeCountOf(Map<UUID, ActivityVoteCount> counts, VoteSessionActivity row) {
-        ActivityVoteCount count = counts.get(row.getActivity().getId());
-        return count == null ? 0 : count.getLikeCount();
     }
 
     private void freezeQuizWinners(VoteSession session, List<VoteSessionActivity> curated,
