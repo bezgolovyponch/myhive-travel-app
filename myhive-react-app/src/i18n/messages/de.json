@@ -456,6 +456,17 @@
       "endDate": "Enddatum",
       "create": "Voting erstellen",
       "creating": "Wird erstellt…",
+      "email": {
+        "title": "Deine Stimme ist gespeichert.",
+        "sub": "Wohin sollen wir die Ergebnisse schicken?",
+        "label": "E-Mail",
+        "placeholder": "du@email.com",
+        "helper": "Wir mailen dir, sobald alle abgestimmt haben. Wenn die Gruppe nicht mehr reagiert, schicken wir dir eine Erinnerung, die du direkt in den Chat kopieren kannst.",
+        "submit": "Link für deine Gruppe holen",
+        "errors": {
+          "invalid": "Bitte prüf die E-Mail-Adresse."
+        }
+      },
       "errors": {
         "datesRequired": "Reisedaten sind erforderlich",
         "endBeforeStart": "Das Enddatum muss am oder nach dem Startdatum liegen",

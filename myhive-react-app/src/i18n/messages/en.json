@@ -466,6 +466,17 @@
       "endDate": "End date",
       "create": "Create vote",
       "creating": "Creating…",
+      "email": {
+        "title": "Your vote is saved.",
+        "sub": "Where should we send the results?",
+        "label": "Email",
+        "placeholder": "you@email.com",
+        "helper": "We will email you when everyone has voted. If the group stops responding, we will send you a reminder message you can paste into the chat.",
+        "submit": "Get the link for your group",
+        "errors": {
+          "invalid": "Please check the email address."
+        }
+      },
       "errors": {
         "datesRequired": "Trip dates are required",
         "endBeforeStart": "End date must be on or after the start date",

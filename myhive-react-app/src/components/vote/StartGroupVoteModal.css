@@ -31,3 +31,43 @@
     color: #d33;
     font-size: 0.85rem;
 }
+
+/* Email step — the one-input screen: heading 28px/700, sub 17px muted,
+   input 56px, helper 14px muted, full-width primary button, nothing else. */
+.start-vote-modal--email .app-modal-header {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.start-vote-modal--email .app-modal-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.start-vote-email-sub {
+    margin: 0 0 1rem;
+    font-size: 1.0625rem;
+    color: var(--text-muted);
+}
+
+.start-vote-modal--email input.start-vote-email-input {
+    height: 56px;
+    padding: 0 1rem;
+    font-size: 1rem; /* ≥16px so iOS Safari does not zoom the field */
+    border-radius: 10px;
+}
+
+.start-vote-email-helper {
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.start-vote-email-footer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
