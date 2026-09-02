@@ -21,6 +21,13 @@ public interface VoteSessionRepository extends JpaRepository<VoteSession, UUID> 
 
     List<VoteSession> findByStatusAndExpiresAtBefore(VoteSessionStatus status, LocalDateTime time);
 
+    /** Organizer halfway email candidates: open, emailed, not yet notified — the count check happens in Java. */
+    List<VoteSession> findByStatusAndInitiatorEmailIsNotNullAndHalfwayEmailSentAtIsNull(VoteSessionStatus status);
+
+    /** Organizer reminder candidates: open, emailed, not yet reminded, closing before {@code cutoff}. */
+    List<VoteSession> findByStatusAndInitiatorEmailIsNotNullAndReminderEmailSentAtIsNullAndExpiresAtBefore(
+            VoteSessionStatus status, LocalDateTime cutoff);
+
     /** Pessimistic write lock to serialize deposit creation per session, preventing duplicate
      *  bookings/checkout sessions from a double-submit (M1). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

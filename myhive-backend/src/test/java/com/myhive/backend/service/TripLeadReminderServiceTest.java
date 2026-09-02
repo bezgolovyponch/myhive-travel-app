@@ -1,6 +1,7 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
+import com.myhive.backend.config.MockEmailServiceConfig;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.EmailSuppression;
@@ -15,10 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -29,24 +27,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 
 // Not @Transactional: processReminder manages its own transaction; state is cleaned per test.
 @SpringBootTest
-@Import({TestSecurityConfig.class, TripLeadReminderServiceTest.MockConfig.class})
+@Import({TestSecurityConfig.class, MockEmailServiceConfig.class})
 class TripLeadReminderServiceTest {
-
-    @TestConfiguration
-    static class MockConfig {
-        @Bean
-        @Primary
-        public EmailService emailService() {
-            return mock(EmailService.class);
-        }
-    }
 
     @Autowired private TripLeadReminderService reminderService;
     @Autowired private TripLeadRepository tripLeadRepository;
