@@ -276,6 +276,14 @@
       "title": "Our Story",
       "p1": "It started with a weekend trip that almost didn't happen. Too many group chats, conflicting preferences, and last-minute cancellations nearly derailed what should have been a simple getaway.",
       "p2": "That experience sparked an idea: what if there was a platform that made planning group adventures as fun as the adventures themselves? Trivlu is the answer — the first AI-powered trip maker built specifically for multi-traveler experiences."
+    },
+    "company": {
+      "title": "Company",
+      "legalName": "Legal entity",
+      "address": "Registered address",
+      "companyId": "Company ID (IČO)",
+      "registration": "Registration",
+      "contact": "Contact"
     }
   },
   "contact": {

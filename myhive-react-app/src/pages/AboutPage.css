@@ -70,3 +70,36 @@
         gap: var(--gap);
     }
 }
+
+.about-company-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.5rem 1.5rem;
+    margin: 0 auto;
+    text-align: left;
+    max-width: 36rem;
+}
+
+.about-company-facts > div {
+    display: contents;
+}
+
+.about-company-facts dt {
+    font-weight: 600;
+}
+
+.about-company-facts dd {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+    .about-company-facts {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+
+    .about-company-facts dd {
+        margin-bottom: 0.75rem;
+    }
+}

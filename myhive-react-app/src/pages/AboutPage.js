@@ -1,6 +1,7 @@
 import PageHead from '../components/PageHead';
 import {SITE_URL} from '../services/config';
 import {useT} from '../i18n';
+import {COMPANY} from '../legal/companyInfo';
 import './AboutPage.css';
 
 function AboutPage() {
@@ -46,6 +47,32 @@ function AboutPage() {
                 <h2>{t('story.title')}</h2>
                 <p>{t('story.p1')}</p>
                 <p>{t('story.p2')}</p>
+            </section>
+
+            <section className="about-section about-company">
+                <h2>{t('company.title')}</h2>
+                <dl className="about-company-facts">
+                    <div>
+                        <dt>{t('company.legalName')}</dt>
+                        <dd>{COMPANY.legalName}</dd>
+                    </div>
+                    <div>
+                        <dt>{t('company.address')}</dt>
+                        <dd>{COMPANY.address}</dd>
+                    </div>
+                    <div>
+                        <dt>{t('company.companyId')}</dt>
+                        <dd>{COMPANY.companyId}</dd>
+                    </div>
+                    <div>
+                        <dt>{t('company.registration')}</dt>
+                        <dd>{COMPANY.registration}</dd>
+                    </div>
+                    <div>
+                        <dt>{t('company.contact')}</dt>
+                        <dd><a href={`mailto:${COMPANY.contactEmail}`}>{COMPANY.contactEmail}</a></dd>
+                    </div>
+                </dl>
             </section>
         </div>
     );

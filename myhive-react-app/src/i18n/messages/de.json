@@ -266,6 +266,14 @@
       "title": "Unsere Geschichte",
       "p1": "Alles begann mit einem Wochenendtrip, der fast nicht stattgefunden hätte. Zu viele Gruppenchats, widersprüchliche Wünsche und Absagen in letzter Minute hätten einen eigentlich simplen Kurztrip beinahe zum Scheitern gebracht.",
       "p2": "Diese Erfahrung brachte die Idee: Was wäre, wenn eine Plattform das Planen von Gruppenabenteuern genauso viel Spaß machen würde wie die Abenteuer selbst? Trivlu ist die Antwort — der erste KI-gestützte Reiseplaner, der speziell für Gruppenerlebnisse gebaut wurde."
+    },
+    "company": {
+      "title": "Unternehmen",
+      "legalName": "Rechtsträger",
+      "address": "Sitz",
+      "companyId": "IČO",
+      "registration": "Registrierung",
+      "contact": "Kontakt"
     }
   },
   "contact": {
