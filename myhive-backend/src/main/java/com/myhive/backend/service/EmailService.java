@@ -309,6 +309,31 @@ public class EmailService {
                 .build());
     }
 
+    public void sendVoteReminder(VoteSession session, long missing, String frontendUrl) {
+        Locale locale = localeOf(session.getLocale());
+        String base = frontendUrl + localePrefix(session.getLocale());
+        String destinationName = session.getDestination().getName();
+        String inviteUrl = inviteUrlFor(session, base);
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("session", session);
+        variables.put("missing", missing);
+        variables.put("travelers", session.getNumberOfTravelers());
+        variables.put("pasteText", msg(locale, "email.voteReminder.paste", missing, destinationName, inviteUrl));
+        variables.put("inviteUrl", inviteUrl);
+        variables.put("dashboardUrl", dashboardUrlFor(session, base));
+        variables.put("supportEmail", SUPPORT_EMAIL);
+
+        String subjectKey = missing == 1 ? "email.voteReminder.subject.one" : "email.voteReminder.subject";
+        send(EmailSpec.builder()
+                .to(session.getInitiatorEmail())
+                .subject(msg(locale, subjectKey, missing))
+                .template("vote-reminder")
+                .variables(variables)
+                .locale(locale)
+                .description("vote reminder to " + maskEmail(session.getInitiatorEmail()))
+                .build());
+    }
+
     /** Participant swipe deck; ?ref=invite marks shared-link arrivals in analytics. */
     private static String inviteUrlFor(VoteSession session, String base) {
         return base + "/vote/" + session.getShareToken() + "/activities?ref=invite";

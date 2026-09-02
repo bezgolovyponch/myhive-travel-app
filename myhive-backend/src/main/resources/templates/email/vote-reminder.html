@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="#{email.voteReminder.title}">Your group needs a nudge</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f0f0f0; margin: 0; padding: 20px 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
+        .header { background: #6A1B9A; color: white; padding: 32px 30px; text-align: center; border-bottom: 3px solid #4A148C; }
+        .header h1 { margin: 12px 0 8px; font-size: 22px; font-weight: 700; color: #f5f5f5; }
+        .header p { margin: 0; color: rgba(245,245,245,0.75); font-size: 14px; }
+        .content { padding: 30px; }
+        .invite-label { margin-bottom: 4px; font-weight: 600; }
+        .invite-box { word-break: break-word; font-size: 14px; color: #1f2121; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 14px; margin: 8px 0 0; }
+        .cta-button { display: block; width: fit-content; margin: 30px auto; padding: 14px 32px; background: #6A1B9A; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; text-align: center; }
+        .muted { color: #666; font-size: 14px; }
+        .footer { background: #4A148C; padding: 24px 20px; text-align: center; border-top: 3px solid #6A1B9A; }
+        .footer p { color: rgba(245,245,245,0.6); font-size: 12px; margin: 4px 0; }
+        .footer a { color: rgba(245,245,245,0.85); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 56px;">
+        <h1 th:text="#{email.voteReminder.header.title(${missing}, ${travelers})}">5 of 12 have not voted yet</h1>
+        <p th:text="#{email.common.tripTo(${session.destination.name})}">Trip to Prague</p>
+    </div>
+    <div class="content">
+        <p th:utext="#{email.voteReminder.intro(${session.destination.name}, ${missing}, ${travelers})}">Voting for <strong>Prague</strong> closes in about 12 hours and 5 of 12 people have not voted yet. Paste this into your group chat:</p>
+
+        <p class="invite-label" th:text="#{email.voteReminder.paste.label}">Ready to paste:</p>
+        <p class="invite-box" th:text="${pasteText}">Hey, 5 of you still haven't voted for our Prague trip. It takes a minute and voting closes soon: https://trivlu.com/vote/tok/activities?ref=invite</p>
+
+        <a th:href="${dashboardUrl}" class="cta-button" style="color: #ffffff !important;" th:text="#{email.voteReminder.cta.dashboard}">Open your vote dashboard</a>
+
+        <p class="muted">
+            <span th:text="#{email.common.questions}">Questions? Email us at</span>
+            <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@trivlu.com</a>.
+        </p>
+    </div>
+    <div class="footer">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" th:alt="#{email.common.logoAlt}" style="max-height: 36px; margin-bottom: 10px;">
+        <p th:text="#{email.common.footer.tagline}">Creating unforgettable travel experiences</p>
+        <p th:text="#{email.common.footer.automated}">This is an automated message. Please do not reply to this email.</p>
+        <p th:text="#{email.common.footer.support}">For support, contact us at support@trivlu.com</p>
+    </div>
+</div>
+</body>
+</html>

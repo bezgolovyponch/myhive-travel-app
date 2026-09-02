@@ -770,6 +770,55 @@ class EmailServiceTest {
         assertThat(contextCaptor.getValue().getVariable("dashboardUrl")).isEqualTo(expectedDashboardUrl);
     }
 
+    @Test
+    void sendVoteReminder_pluralSubjectNamesTheMissingCount() throws Exception {
+        String expectedSubject = "5 people have not voted yet";
+        VoteSession session = halfwaySession("alice@example.com");
+
+        MimeMessage realMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        when(templateEngine.process(eq("vote-reminder"), any())).thenReturn("<html>x</html>");
+
+        emailService.sendVoteReminder(session, 5, "https://trivlu.com");
+
+        assertThat(realMessage.getSubject()).isEqualTo(expectedSubject);
+        verify(asyncMailSender).send(eq(realMessage), anyString());
+    }
+
+    @Test
+    void sendVoteReminder_singularSubjectForOneMissingVoter() throws Exception {
+        String expectedSubject = "1 person has not voted yet";
+        VoteSession session = halfwaySession("alice@example.com");
+
+        MimeMessage realMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        when(templateEngine.process(eq("vote-reminder"), any())).thenReturn("<html>x</html>");
+
+        emailService.sendVoteReminder(session, 1, "https://trivlu.com");
+
+        assertThat(realMessage.getSubject()).isEqualTo(expectedSubject);
+    }
+
+    @Test
+    void sendVoteReminder_pasteTextCarriesCountDestinationAndInviteLink() throws Exception {
+        VoteSession session = halfwaySession("alice@example.com");
+        String expectedInviteUrl = "https://trivlu.com/vote/" + session.getShareToken() + "/activities?ref=invite";
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-reminder"), contextCaptor.capture())).thenReturn("<html>x</html>");
+
+        emailService.sendVoteReminder(session, 3, "https://trivlu.com");
+
+        Context context = contextCaptor.getValue();
+        assertThat((String) context.getVariable("pasteText"))
+                .startsWith("Hey, 3 of you still haven't voted for our Prague trip.")
+                .endsWith(expectedInviteUrl);
+        assertThat(context.getVariable("inviteUrl")).isEqualTo(expectedInviteUrl);
+        assertThat(context.getVariable("missing")).isEqualTo(3L);
+    }
+
     private static VoteSession halfwaySession(String email) {
         Destination destination = new Destination();
         destination.setName("Prague");
