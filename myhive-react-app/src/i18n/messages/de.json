@@ -125,7 +125,7 @@
     },
     "featured": {
       "heading": "70+ Aktivitäten. Für jede Gruppe das Richtige.",
-      "subtitle": "Von Panzerfahren über Stripclubs bis Spa — bei uns findet jeder JGA seinen Stil.",
+      "subtitle": "Von Panzerfahren über Stripclubs zum Spa — bei uns findet jeder JGA seinen Stil.",
       "viewAllCta": "Alle Aktivitäten ansehen"
     },
     "howItWorks": {
@@ -642,7 +642,7 @@
       "nothingPicked": "Du hast nichts ausgewählt. Fang von vorn an und swipe nach rechts, worüber die Gruppe abstimmen soll.",
       "startOver": "Von vorn beginnen",
       "title": "Wähle Aktivitäten, über die die Gruppe abstimmt",
-      "subtitle": "Nach rechts swipen zum Aufnehmen, nach links zum Überspringen"
+      "subtitle": "Nach rechts swipen, um aufzunehmen, nach links, um zu überspringen."
     },
     "activities": {
       "submitFailed": "Stimmen konnten nicht gesendet werden. Bitte versuch es erneut.",
@@ -709,7 +709,7 @@
     },
     "chrome": {
       "waAria": "Schreib uns auf WhatsApp",
-      "startVote": "Gruppen-Voting starten",
+      "startVote": "Gruppen-Voting",
       "buildTrip": "Trip planen",
       "cartAriaOne": "Ausgewählte Aktivitäten. {count} Eintrag",
       "cartAriaOther": "Ausgewählte Aktivitäten. {count} Einträge",
@@ -738,8 +738,8 @@
     "activities": {
       "eyebrow": "Was du buchen kannst",
       "title": "{count} Aktivitäten. Wähle aus, was deine Gruppe will",
-      "ledeVote": "Von Panzerfahren über Bootstouren bis Spa — hier findet jede Gruppe etwas.",
-      "ledePrague": "Von Panzerfahren über Stripclubs bis Spa — bei uns findet jeder JGA seinen Stil.",
+      "ledeVote": "Von Panzerfahren über Bootstouren zum Spa — hier findet jede Gruppe etwas.",
+      "ledePrague": "Von Panzerfahren über Stripclubs zum Spa — bei uns findet jeder JGA seinen Stil.",
       "inCatalogue": "{count} im Katalog",
       "viewAll": "Alle {count} Aktivitäten ansehen →",
       "addToTrip": "Hinzufügen",
@@ -824,7 +824,7 @@
         "q3a": "Eine Person zahlt 30 Prozent Anzahlung per Karte. Die Anzahlung reserviert jede Aktivität. Den Rest zahlt die Gruppe bei Ankunft. Kostenlose Stornierung schützt dich, wenn sich die Gruppengröße ändert.",
         "q3link": "Erstattungsrichtlinie",
         "q4": "Wir haben kein Interesse an Stripclubs. Gibt es noch etwas anderes?",
-        "q4a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle Rafting, Schießen, Kartfahren oder Axtwerfen. Wähle ein Bierspa, eine Brauereitour oder eine Bootsfahrt. Wähle Bubble Football oder Panzerfahren. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
+        "q4a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle Rafting, Schießen, Kartfahren oder Axtwerfen. Wähle ein Bierspa, eine Brauereitour oder eine Bootsfahrt. Wähle Bubble-Fußball oder Panzerfahren. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
         "q5": "Bucht ihr auch Flüge und Hotels?",
         "q5a": "Nein. Trivlu schlägt auf Flüge und Hotels keine Gebühr auf. Bessere Preise findest du selbst. Trivlu zeigt realistische Preisspannen für beides. Trivlu bucht die Aktivitäten, plant das Timing und löst Probleme vor Ort.",
         "q6": "Was, wenn jemand absagt?",
@@ -861,7 +861,7 @@
         "step1": "Erstelle eine Shortlist",
         "step2": "Teile den Voting-Link",
         "step3": "Buche die Gewinner",
-        "ctaSeeAll": "Alle {count} Aktivitäten ansehen",
+        "ctaSeeAll": "Alle {count} Aktivitäten",
         "metaActivities": "{count} Aktivitäten in Prag",
         "metaFrom": "ab {price} € pro Person",
         "metaCancel": "Kostenlose Stornierung"
