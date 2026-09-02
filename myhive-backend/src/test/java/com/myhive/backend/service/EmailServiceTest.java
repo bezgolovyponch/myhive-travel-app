@@ -819,6 +819,20 @@ class EmailServiceTest {
         assertThat(context.getVariable("missing")).isEqualTo(3L);
     }
 
+    @Test
+    void sendVoteResult_subjectIsResultsAreReady() throws Exception {
+        String expectedSubject = "Results are ready";
+        VoteSession session = halfwaySession("alice@example.com");
+
+        MimeMessage realMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        when(templateEngine.process(eq("vote-result"), any())).thenReturn("<html>x</html>");
+
+        emailService.sendVoteResult(session, List.of(), "https://trivlu.com");
+
+        assertThat(realMessage.getSubject()).isEqualTo(expectedSubject);
+    }
+
     private static VoteSession halfwaySession(String email) {
         Destination destination = new Destination();
         destination.setName("Prague");
