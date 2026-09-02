@@ -13,33 +13,25 @@ import ContactCtaSection from '../components/home/ContactCtaSection';
 import VoteDemoCard from '../components/home/VoteDemoCard';
 import StickyVoteCta from '../components/home/StickyVoteCta';
 import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
-import {pushEvent, navigateAfterEvents} from '../utils/analytics';
+import {pushEvent} from '../utils/analytics';
 import {useLocalePath, useT} from '../i18n';
 import './HomePage.css';
 
-// Two props exist only for the server-rendered copy of this page (Next.js Ф1);
-// both are omitted in the SPA, which behaves exactly as before.
+// `featuredActivities` exists only for the server-rendered copy of this page
+// (Next.js Ф1) — forwarded to the grid so it reaches the initial HTML instead
+// of arriving in an effect no crawler runs. The SPA omits it.
 //
-// `featuredActivities` — forwarded to the grid so it reaches the initial HTML
-// instead of arriving in an effect no crawler runs.
-//
-// `voteHref` — where the "Start Group Vote" CTAs go instead of opening the setup
-// modal in place. The modal's confirm handler hands the setup to /vote/new/quiz
-// through react-router location state, which cannot survive the full page load
-// that leaving a server-rendered page requires; QuizPage bounces to '/' without
-// it. /vote/new exists for exactly this reason: it mounts the SPA and opens the
-// same modal, so the funnel stays intact. Analytics are unaffected — every CTA
-// still fires its cta_click before navigating.
-function HomePage({featuredActivities, voteHref}) {
+// "Start Group Vote" opens the setup modal in place on both mounts: the confirm
+// handler carries the setup through /vote/new's query string (useStartGroupVote),
+// which survives the full page load a server-rendered mount makes.
+function HomePage({featuredActivities}) {
     const t = useT('home');
     const tMeta = useT('meta');
     const lp = useLocalePath();
     const navigate = useNavigate();
     const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
-    // navigateAfterEvents, not a bare assign: the cta_click pushed immediately
-    // before this must survive leaving the document.
-    const startVote = voteHref ? () => navigateAfterEvents(voteHref) : openVoteSetup;
+    const startVote = openVoteSetup;
     // "Explore activities" goes to the catalog — the default destination's
     // activities listing — rather than scrolling to the homepage teaser.
     const exploreActivitiesSlug =

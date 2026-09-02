@@ -12,12 +12,11 @@ import '../styles/tokens.css';
 import './AppModal.css';
 import './TripBuilderDropdown.css';
 
-// `voteHref` is for the mounts outside the SPA (the landings). There the
-// in-place vote setup cannot work: its confirm handler hands the setup to
-// /vote/new/quiz through react-router location state, which the full page load
-// out of a server-rendered page drops. Given an href, the empty-state CTA
-// navigates into the funnel instead — the same reason HomePage takes one — and
-// the modal is never mounted, so the landing needs none of its stylesheets.
+// `voteHref` is for the landings, where this dropdown lives inside a header
+// that carries a backdrop-filter — the containing block for fixed descendants,
+// which would trap the setup modal inside the header bar. Given an href, the
+// empty-state CTA navigates to /vote/new (which opens the same modal) instead
+// of mounting it here.
 function TripBuilderDropdown({voteHref = null}) {
     const {state, dispatch} = useTrip();
     const navigate = useNavigate();

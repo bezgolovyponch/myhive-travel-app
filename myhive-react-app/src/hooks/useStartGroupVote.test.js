@@ -42,15 +42,31 @@ test('openVoteSetup flips voteSetupOpen', () => {
   expect(result.current.voteSetupOpen).toBe(true);
 });
 
-test('confirm navigates to the quiz without creating a lead and without email in state', () => {
+test('confirm enters /vote/new with the setup in the URL, without creating a lead or leaking email', () => {
     const {result, dispatch} = renderStartGroupVote();
     act(() => result.current.handleVoteConfirm({
         travelers: 8, startDate: '2026-09-04', endDate: '2026-09-06',
         destination: {id: 'd1', slug: 'prague'}, budget: null,
     }));
     expect(leadApi.createLead).not.toHaveBeenCalled();
+    // The URL carries the setup so it survives the full page load out of a
+    // server-rendered mount; the state rides along for the SPA's client hop.
+    expect(mockNavigate).toHaveBeenCalledWith(
+        '/vote/new?travelers=8&start=2026-09-04&end=2026-09-06&dest=prague',
+        {state: {setup: expect.not.objectContaining({email: expect.anything()})}},
+    );
+    expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
+});
+
+test('continueToQuiz hands the setup to the quiz via location state', () => {
+    const {result, dispatch} = renderStartGroupVote();
+    act(() => result.current.continueToQuiz({
+        travelers: 8, startDate: '2026-09-04', endDate: '2026-09-06',
+        destination: {id: 'd1', slug: 'prague'}, budget: null, email: 'x@y.z',
+    }, {replace: true}));
     expect(mockNavigate).toHaveBeenCalledWith('/vote/new/quiz', {
         state: {setup: expect.not.objectContaining({email: expect.anything()})},
+        replace: true,
     });
     expect(dispatch).toHaveBeenCalledWith({ type: 'CLOSE_TRIP_BUILDER_MODAL' });
 });

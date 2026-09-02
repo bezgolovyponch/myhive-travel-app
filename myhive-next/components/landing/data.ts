@@ -23,10 +23,6 @@ export function builderUrlWithPicks(destinationSlug: string, picked: string[]): 
   return picked.length ? `${base}&picks=${picked.join(',')}` : base;
 }
 
-export function builderUrlWithAdd(destinationSlug: string, activitySlug: string): string {
-  return `${builderUrl(destinationSlug)}&add=${activitySlug}`;
-}
-
 export function activityLink(destinationSlug: string, activitySlug: string): string {
   return `/destination/${destinationSlug}/activity/${activitySlug}`;
 }
