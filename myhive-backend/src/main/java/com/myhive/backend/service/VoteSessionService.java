@@ -161,7 +161,11 @@ public class VoteSessionService {
         session.setShareToken(UUID.randomUUID());
         session.setManagerToken(UUID.randomUUID());
         session.setDestination(destination);
-        session.setInitiatorEmail(initiatorEmail);
+        String email = normalizeEmail(initiatorEmail);
+        session.setInitiatorEmail(email);
+        if (email != null) {
+            session.setEmailCapturedAt(LocalDateTime.now(ZoneOffset.UTC));
+        }
         session.setLocale(Translations.normalize(locale));
         session.setNumberOfTravelers(numberOfTravelers);
         session.setStartDate(startDate);
@@ -171,6 +175,15 @@ public class VoteSessionService {
         session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
         session.setBudget(budget);
         return voteSessionRepository.save(session);
+    }
+
+    /** Trimmed address, or null for null/blank — a blank email must never read as "captured". */
+    private static String normalizeEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+        String trimmed = email.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private void validateQuizResponses(Destination destination, List<QuizResponseDTO> responses) {
@@ -240,7 +253,7 @@ public class VoteSessionService {
 
     private void sendVoteCreatedConfirmationQuietly(VoteSession session) {
         if (session.getInitiatorEmail() == null || session.getInitiatorEmail().isBlank()) {
-            return; // organizer email is collected on the booking page, not at creation
+            return; // no organizer email on this session (API-created or legacy) — nothing to confirm to
         }
         try {
             emailService.sendVoteCreatedConfirmation(session, frontendUrl);

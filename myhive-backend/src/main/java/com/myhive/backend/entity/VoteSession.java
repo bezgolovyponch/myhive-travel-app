@@ -63,7 +63,7 @@ public class VoteSession {
     @JoinColumn(name = "destination_id", nullable = false)
     private Destination destination;
 
-    // Nullable: collected on the booking page, not at vote creation.
+    // Nullable on the API; the Create-vote modal's email step fills it since 2026-09.
     @Column(name = "initiator_email")
     private String initiatorEmail;
 
@@ -108,6 +108,18 @@ public class VoteSession {
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
+    /** When the organizer's email was stored; null when no email was ever captured. */
+    @Column(name = "email_captured_at")
+    private LocalDateTime emailCapturedAt;
+
+    /** One-shot marker for the "half the group has voted" organizer email. */
+    @Column(name = "halfway_email_sent_at")
+    private LocalDateTime halfwayEmailSentAt;
+
+    /** One-shot marker for the "N people have not voted yet" organizer reminder. */
+    @Column(name = "reminder_email_sent_at")
+    private LocalDateTime reminderEmailSentAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

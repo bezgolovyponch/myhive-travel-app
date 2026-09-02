@@ -140,6 +140,35 @@ class VoteSessionCartCreateTest {
                 .hasMessageContaining("endDate must be on or after startDate");
     }
 
+    @Test
+    void createCartSession_stampsEmailCaptureTimeWhenEmailPresent() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        request.setInitiatorEmail("organizer@example.com");
+
+        VoteSessionResponse response = voteSessionService.createCartSession(request);
+
+        VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        assertThat(session.getEmailCapturedAt()).isNotNull();
+    }
+
+    @Test
+    void createCartSession_leavesCaptureTimeNullWithoutEmail() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        request.setInitiatorEmail(null);
+
+        VoteSessionResponse response = voteSessionService.createCartSession(request);
+
+        VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        assertThat(session.getInitiatorEmail()).isNull();
+        assertThat(session.getEmailCapturedAt()).isNull();
+    }
+
     private VoteSessionCartCreateRequest cartRequest(UUID destinationId, List<UUID> activityIds) {
         VoteSessionCartCreateRequest request = new VoteSessionCartCreateRequest();
         request.setDestinationId(destinationId);

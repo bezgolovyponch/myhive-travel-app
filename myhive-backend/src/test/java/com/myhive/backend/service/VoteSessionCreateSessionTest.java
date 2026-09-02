@@ -221,6 +221,41 @@ class VoteSessionCreateSessionTest {
                 .containsExactly(a2.getId(), a1.getId());
     }
 
+    @Test
+    void createSession_storesTrimmedEmailAndCaptureTime() {
+        String expectedEmail = "organizer@example.com";
+        Destination destination = newDestination("Prague");
+        Category nightlife = newCategory("Nightlife", "nightlife");
+        attachCategory(destination, nightlife);
+        Activity activity = newActivity(destination, "Tank Driving", new BigDecimal("150.00"), Set.of(nightlife));
+        VoteSessionCreateRequest request = baseRequest(destination.getId());
+        request.setInitiatorEmail("  " + expectedEmail + "  ");
+        request.setActivityIds(List.of(activity.getId()));
+
+        VoteSessionResponse response = voteSessionService.createSession(request);
+
+        VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        assertThat(session.getInitiatorEmail()).isEqualTo(expectedEmail);
+        assertThat(session.getEmailCapturedAt()).isNotNull();
+    }
+
+    @Test
+    void createSession_blankEmailIsStoredAsNullWithoutCaptureTime() {
+        Destination destination = newDestination("Prague");
+        Category nightlife = newCategory("Nightlife", "nightlife");
+        attachCategory(destination, nightlife);
+        Activity activity = newActivity(destination, "Tank Driving", new BigDecimal("150.00"), Set.of(nightlife));
+        VoteSessionCreateRequest request = baseRequest(destination.getId());
+        request.setInitiatorEmail("   ");
+        request.setActivityIds(List.of(activity.getId()));
+
+        VoteSessionResponse response = voteSessionService.createSession(request);
+
+        VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        assertThat(session.getInitiatorEmail()).isNull();
+        assertThat(session.getEmailCapturedAt()).isNull();
+    }
+
     private VoteSessionCreateRequest baseRequest(UUID destinationId) {
         VoteSessionCreateRequest req = new VoteSessionCreateRequest();
         req.setDestinationId(destinationId);
