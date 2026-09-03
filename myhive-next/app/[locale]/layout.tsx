@@ -27,6 +27,13 @@ export async function generateMetadata({
     title,
     description,
     manifest: '/manifest.json',
+    // Mobile Safari's data detectors rewrite plain-text phone numbers into
+    // tel: anchors while parsing the SSR HTML — React 19 then fails hydration
+    // ("server rendered text didn't match") and regenerates the tree on the
+    // client, which destroys the CookieScript banner already injected into
+    // <body>. Only real Safari does this (not Playwright WebKit), so it never
+    // shows up in local or emulated checks.
+    formatDetection: { telephone: false },
     icons: {
       icon: [
         { url: '/favicon.ico', sizes: 'any' },
