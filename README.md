@@ -9,10 +9,18 @@ Travel booking platform — Spring Boot 4.0 backend + React 19 frontend.
 cd myhive-backend
 ./gradlew bootRun --args='--spring.profiles.active=dev'
 
-# Frontend (port 3000)
-cd myhive-react-app
-npm install && npm start
+# Frontend (port 3000) — canonical Next.js app
+cd myhive-next
+npm install
+cp .env.local.example .env.local     # Windows: copy .env.local.example .env.local
+npm run dev
 ```
+
+Open http://localhost:3000 (German: `/de`). Details, env contract and gotchas:
+[`myhive-next/README.md`](myhive-next/README.md#running-locally). The standalone
+CRA dev server (`cd myhive-react-app && npm install && npm start`) serves the same
+UI English-only and is kept as a rollback — it takes the same port 3000, so run
+one or the other.
 
 Dev uses H2 in-memory database with sample data (5 destinations, activities, bookings).
 

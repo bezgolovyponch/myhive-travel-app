@@ -5,6 +5,48 @@ a Next.js App Router shell that serves the legacy CRA SPA on every route, on the
 current URLs. Later phases add SSR pages for public URLs (the reason this
 migration exists — SEO план v3: crawlers currently get an empty JS shell).
 
+## Running locally
+
+Node 20.20 (`.node-version`). The app needs the backend running: every `/api/*`
+call and every server-side read in `lib/api.ts` goes to `BACKEND_URL`.
+
+```bash
+# 1. Backend on :8080 — H2 in memory, sample data, email disabled
+cd myhive-backend
+./gradlew bootRun --args='--spring.profiles.active=dev'
+
+# 2. Frontend on :3000 — in a second terminal
+cd myhive-next
+npm install
+cp .env.local.example .env.local     # Windows: copy .env.local.example .env.local
+npm run dev
+```
+
+Open http://localhost:3000 (German: http://localhost:3000/de). `npm run dev`
+syncs `legacy-src/` first and then keeps watching `myhive-react-app/src`, so
+edits to the CRA sources hot-reload — see the sync model below.
+
+Notes and gotchas:
+
+- **Port 3000 is shared with the standalone CRA dev server** (`myhive-react-app
+  && npm start`). Run one or the other, never both.
+- **No `.env.local` still boots**: `BACKEND_URL` falls back to
+  `http://localhost:8080`. What breaks without it is the contact form (no
+  Turnstile sitekey) and the `/admin` login (no Auth0 values).
+- **`BACKEND_URL` is read at build time**, so `next dev` picks up a change only
+  after restarting the dev server, and `next build` only after a rebuild.
+- **API calls 404 or hang?** Check who actually owns port 8080 before blaming
+  the app (`netstat -ano | findstr :8080`) — other desktop software squats it.
+- **Analytics stays silent on localhost** by design (GTM only initialises on
+  `*.trivlu.com`); see [Analytics](#analytics) to force it on.
+
+Production-like check:
+
+```bash
+npm run build && npm start          # needs BACKEND_URL set — the build throws without it
+node scripts/smoke.mjs http://localhost:3000   # titles, H1s, canonicals, 404s, sitemap, robots
+```
+
 ## Sync model — don't edit `legacy-src/` or `public/`
 
 Both directories are **generated** (gitignored) by `scripts/sync-legacy.mjs`,
