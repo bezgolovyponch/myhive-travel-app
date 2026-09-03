@@ -144,7 +144,6 @@ export function TripProvider({children}) {
     // Starts from the same empty state the server renders; the saved cart is
     // restored below, before paint.
     const [state, dispatch] = useReducer(reducer, initialState);
-    const restoredRef = useRef(false);
     // Locale the saved cart was written in, captured before the write effects
     // below stamp the current one over it.
     const savedLocaleRef = useRef(null);
@@ -156,29 +155,34 @@ export function TripProvider({children}) {
         // Dispatched even when nothing was saved, so `restored` flips exactly
         // once and consumers can tell "no cart" from "not read yet".
         dispatch({type: 'RESTORE_FROM_STORAGE', saved: readSavedTrip()});
-        restoredRef.current = true;
     }, []);
 
     // The writers below must never run before the read above, or mounting would
-    // persist the empty initial state over a saved cart. Layout effects commit
-    // before passive ones so the ordering already holds; the guard keeps that
-    // from being an invisible dependency of a one-line refactor.
+    // persist the empty initial state over a saved cart. They are gated on the
+    // restored *state*, not on a ref set inside the layout effect: the ref
+    // flips while that effect runs, but the passive writers of the very same
+    // commit still close over the pre-restore render's empty tripItems — and
+    // wrote exactly that over the saved cart. The flag arrives together with
+    // the items, one commit later, so the first write is the restored cart.
+    // Losing the race was only invisible because the next commit rewrote the
+    // real items; a second mount (the SPA shim, StrictMode in dev) re-read the
+    // storage in between and restored the emptied cart for good.
     useEffect(() => {
-        if (!restoredRef.current) {
+        if (!state.restored) {
             return;
         }
         if (state.tripId !== null) {
             localStorage.setItem('myhive-trip-id', state.tripId);
         }
-    }, [state.tripId]);
+    }, [state.restored, state.tripId]);
 
     useEffect(() => {
-        if (!restoredRef.current) {
+        if (!state.restored) {
             return;
         }
         localStorage.setItem('myhive-trip-items', JSON.stringify(state.tripItems));
         localStorage.setItem(TRIP_LOCALE_KEY, currentLocale());
-    }, [state.tripItems]);
+    }, [state.restored, state.tripItems]);
 
     // A cart saved under another locale carries that locale's names and
     // descriptions. Re-read those fields from the API (which localizes for the
@@ -211,7 +215,7 @@ export function TripProvider({children}) {
     }, [state.restored]);
 
     useEffect(() => {
-        if (!restoredRef.current) {
+        if (!state.restored) {
             return;
         }
         localStorage.setItem('myhive-trip-setup', JSON.stringify({
@@ -220,7 +224,7 @@ export function TripProvider({children}) {
             endDate: state.tripEndDate,
             budget: state.tripBudget
         }));
-    }, [state.tripTravelers, state.tripStartDate, state.tripEndDate, state.tripBudget]);
+    }, [state.restored, state.tripTravelers, state.tripStartDate, state.tripEndDate, state.tripBudget]);
 
     return (
         <TripContext.Provider value={{state, dispatch}}>

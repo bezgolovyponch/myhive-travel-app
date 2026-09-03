@@ -276,3 +276,41 @@ describe('TripProvider — tripId localStorage persistence and hydration', () =>
         expect(result.current.state.tripId).toBe(expectedId);
     });
 });
+
+describe('TripProvider — restore must win over the first persist', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    // The setItem spy below replaces the real writer, and CRA's resetMocks
+    // leaves that stub in place for the next test (silently dropping its
+    // writes) unless the original is put back here.
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    // Regression: the persist effects used to be gated by a ref flipped inside
+    // the restore *layout* effect. Layout effects commit before the passive
+    // ones of the same render, so the guard was already true when the writer
+    // from the pre-restore render ran — and wrote the empty initial cart over
+    // the saved one.
+    it('never writes the empty initial cart over the saved one', () => {
+        localStorage.setItem('myhive-trip-items', JSON.stringify([activity1, activity2]));
+        const carts = [];
+        const setItem = Storage.prototype.setItem;
+        jest.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+            if (key === 'myhive-trip-items') {
+                carts.push(JSON.parse(value));
+            }
+            setItem.call(this, key, value);
+        });
+
+        renderTripHook();
+
+        // Asserted per write, not as an exact list: an effect invoked twice
+        // (StrictMode) would write the same cart twice, and the claim here is
+        // that no write is ever the empty one — not how many writes happen.
+        expect(carts).not.toHaveLength(0);
+        carts.forEach(cart => expect(cart).toEqual([activity1, activity2]));
+    });
+});
