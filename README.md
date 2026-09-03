@@ -68,6 +68,14 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
     flow; `CART` is an advisory swipe vote (right = like, left = skip) over the traveler's own cart, ranked
     by like count with cart-order ties (skips are recorded but never affect the ranking), with no score
     cutoff and no budget knapsack — results annotate the Trip Builder itinerary and never replace the cart.
+  - The Create-vote modal asks for the organizer's address on a second step and only then creates the session,
+    so the invite link is never shown without one — `initiatorEmail` stays optional on the API but is present on
+    every session started from the UI, and storing it stamps `email_captured_at`.
+  - Organizer progress emails ride the same 5-minute tick as the expiry sweep (`VoteSessionScheduler` →
+    `VoteProgressNotifier`): "N of M have voted" once half the group has voted, and "N people have not voted yet"
+    (with ready-to-paste chat text) once the session is within 12 hours of its deadline. Each is claimed with a
+    conditional UPDATE on `halfway_email_sent_at` / `reminder_email_sent_at`, so it sends at most once per session
+    and a session closed mid-send is never resurrected. Kill switch: `VOTE_ORGANIZER_EMAILS_ENABLED`.
 - **Payments** (Stripe; public but gated per-endpoint): `POST /payments/deposit-session` (vote deposit —
   requires `X-Vote-Share-Token` + `X-Manager-Token`), `POST /payments/trip-deposit-session` (Trip Builder
   deposit — Turnstile-gated via `X-Turnstile-Token`), `POST /payments/consultation-lead`,
@@ -135,6 +143,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `AUTH0_ROLES_CLAIM`      | no          | `https://trivlu.com/roles` |
 | `FRONTEND_URL`           | for sitemap | `https://trivlu.com` (also the Stripe return-URL fallback when the request Origin is absent/untrusted) |
 | `REMINDERS_ENABLED`      | no          | `true` (kill switch for the trip-lead reminder scheduler) |
+| `VOTE_ORGANIZER_EMAILS_ENABLED` | no   | `true` (kill switch for the organizer halfway/reminder emails; independent of `REMINDERS_ENABLED`, and both no-op when `EMAIL_ENABLED` is false) |
 | `API_PUBLIC_URL`         | no          | empty — set to the backend's public base URL **including the prod context path**, e.g. `https://<backend-host>/api`, to enable RFC 8058 `List-Unsubscribe`/`List-Unsubscribe-Post` headers on reminder emails. Left empty, reminder emails still send but ship **without** those one-click headers, which Gmail/Yahoo require of bulk senders. |
 
 ### Frontend (build-time `REACT_APP_*`)
@@ -206,9 +215,13 @@ The SPA emits a consent-gated `dataLayer` event layer that GTM routes to GA4 / M
 
 - `src/utils/analytics.js` — stateless `pushEvent(event, params)`; the only code that touches `window.dataLayer`.
   Attaches a uuid `event_id` to every event (server-dedup/CAPI seed) and drops empty params (keeps `false`/`0`).
-- 13 funnel events (homepage CTAs, Trip Builder, quiz, vote flow, booking) — e.g. `cta_click`,
-  `tb_group_submitted` (email passed for Meta Advanced Matching only with `ad_storage` consent), `vote_launched`,
-  `checkout_viewed`, and `booking_submitted` (→ Meta `Lead` / GA4 `generate_lead`, the campaign-optimisation conversion).
+- 22 funnel events (homepage CTAs, Trip Builder, quiz, vote flow, organizer email screen, payment, booking) — e.g.
+  `cta_click`, `tb_group_submitted` (email passed for Meta Advanced Matching only with `ad_storage` consent),
+  `vote_launched`, `checkout_viewed`, and `booking_submitted` (→ Meta `Lead` / GA4 `generate_lead`, the
+  campaign-optimisation conversion).
+- The Create-vote email screen emits `organizer_voted` → `email_screen_view` → `contact_captured` → `link_revealed`
+  (plus `email_invalid_attempt` with `reason: empty|format`). `link_revealed / email_screen_view` is the drop-off
+  ratio the screen is judged on: below 0.69 after a month, the design doc calls for adding a skip option.
 - A `trip_id` threads the whole funnel: the vote `shareToken` for the vote flow, a client-minted UUID for the
   direct-book flow (`TripContext` + `localStorage['myhive-trip-id']`, survives cancel). `user_role` (`src/utils/userRole.js`)
   distinguishes organizer vs participant.
