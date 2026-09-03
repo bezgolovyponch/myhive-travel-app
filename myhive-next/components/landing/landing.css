@@ -66,6 +66,10 @@ body:has(.tl) {
 .tl *, .tl *::before, .tl *::after { box-sizing: border-box; }
 .tl img { max-width: 100%; display: block; }
 .tl button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+/* The reset above outguns the legacy cart's single-class selectors, stripping
+   the purple fill from its primary actions — restore them. */
+.tl .trip-builder-complete-btn,
+.tl .trip-builder-vote-btn { background: var(--brand); color: #fff; }
 .tl a { color: inherit; }
 .tl :focus-visible { outline: 2px solid var(--brand-ll); outline-offset: 3px; border-radius: 4px; }
 .tl h1, .tl h2, .tl h3, .tl h4 {
