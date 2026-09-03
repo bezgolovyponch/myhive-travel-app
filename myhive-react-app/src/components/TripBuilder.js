@@ -728,15 +728,13 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             </div>
           )}
         </div>
-        {/* Itinerary footer: the estimate (small, receipt-style) and the
-            Complete Booking action close the itinerary section; the sticky
-            rail keeps only the vote CTA. */}
+        {/* Itinerary footer: the Complete Booking action closes the itinerary
+            section; the sticky rail keeps only the vote CTA. The trip total is
+            deliberately absent here — the aggregate is revealed one step later,
+            on the booking screen, so the itinerary reads as per-line prices
+            only. */}
         {state.tripItems.length > 0 && (
             <div className="itinerary-footer">
-              <div className="itinerary-estimate">
-                <span>{t('footer.estimatedCost')}</span>
-                <span className="itinerary-estimate-price">{formatPrice(totalPrice)}</span>
-              </div>
               <button
                   className="btn btn--primary btn--full-width confirm-btn"
                   onClick={handleConfirmTrip}
@@ -754,6 +752,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             when active, otherwise the suggestions + Browse More Activities. */}
         {showContactForm ? (
             <div className="trip-booking-form" ref={bookingFormRef}>
+              {/* ContactForm renders the trip total itself in inline mode — it
+                  owns the traveler count the total has to agree with. */}
               <ContactForm
                   inline
                   isOpen

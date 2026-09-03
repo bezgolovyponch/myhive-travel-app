@@ -105,18 +105,29 @@ function ContactForm({isOpen, onClose, onSubmit, submitLabel, inline = false,
 
     if (!isOpen) return null;
 
+    // Always priced off this form's own traveler count — the stepper below can
+    // change it, and the figure the user reads has to be the one that gets
+    // submitted.
+    const tripTotal = formatPrice(computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1));
+
     const body = (
         <>
-                    {/* Inline mode skips the summary — the itinerary + total are already
-                        visible in the column right next to the form. */}
-                    {!inline && (
+                    {/* Inline mode (Trip Builder) shows the total alone — the itinerary is
+                        already on screen next to the form; the modal wraps the same figure
+                        in a summary with destination and activity count. */}
+                    {inline ? (
+                        <div className="booking-total">
+                            <span>{t('booking.tripTotalLabel')}</span>
+                            <span className="booking-total-price">{tripTotal}</span>
+                        </div>
+                    ) : (
                         <div className="trip-summary">
                             <h4>{t('booking.summaryTitle')}</h4>
                             {tripData.destinationName && (
                                 <p><strong>{t('booking.destinationLabel')}</strong> {tripData.destinationName}</p>
                             )}
                             <p><strong>{t('booking.activitiesLabel')}</strong> {t('booking.activitiesSelected', {count: tripData.tripItems.length})}</p>
-                            <p><strong>{t('booking.estimatedTotalLabel')}</strong> {formatPrice(computeTripTotal(tripData.tripItems, Number(formData.numberOfTravelers) || 1))}</p>
+                            <p><strong>{t('booking.estimatedTotalLabel')}</strong> {tripTotal}</p>
                         </div>
                     )}
 

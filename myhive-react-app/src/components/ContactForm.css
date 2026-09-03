@@ -75,6 +75,27 @@
     margin: var(--gap-xs) 0;
 }
 
+/* Inline (Trip Builder) counterpart of .trip-summary: the trip total on its
+   own, stated plainly — it is the number the user is committing to, and the
+   only place the aggregate appears in that flow. */
+.booking-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--gap-sm);
+    padding-bottom: var(--gap-sm);
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-muted);
+}
+
+.booking-total-price {
+    /* Prices are content, not actions: high-contrast neutral, emphasis via
+       weight only — not the brand purple (which reads as a link/CTA). */
+    color: var(--text);
+    font-size: 1.375rem;
+    font-weight: 600;
+}
+
 .form-error {
     background: rgba(255, 84, 89, 0.1);
     color: var(--error);

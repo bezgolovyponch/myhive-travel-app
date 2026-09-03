@@ -346,6 +346,7 @@
       "destinationLabel": "Reiseziel:",
       "activitiesLabel": "Aktivitäten:",
       "activitiesSelected": "{count} ausgewählt",
+      "tripTotalLabel": "Geschätzte Kosten",
       "estimatedTotalLabel": "Geschätzte Gesamtsumme:",
       "fullNameLabel": "Vollständiger Name *",
       "fullNamePlaceholder": "Max Mustermann",
@@ -515,7 +516,6 @@
     },
     "emptyState": "Füge Aktivitäten hinzu und stell dir deinen Trip zusammen!",
     "footer": {
-      "estimatedCost": "Geschätzte Kosten",
       "completeBooking": "Buchung abschließen",
       "sendBookingRequest": "Buchungsanfrage senden"
     },

@@ -105,6 +105,22 @@ test('never renders a deposit action — the deposit moved to the booking-confir
     expect(screen.queryByRole('button', {name: /deposit/i})).not.toBeInTheDocument();
 });
 
+test('inline mode shows the trip total and reprices it when the traveler count changes', async () => {
+    const user = userEvent.setup();
+    // €45 × 2 travelers, per renderForm's tripData/initialValues.
+    const expectedInitialTotal = '€90';
+    const expectedTotalAfterAdding = '€135';
+    renderForm({inline: true});
+
+    expect(screen.getByText('Estimated cost')).toBeInTheDocument();
+    expect(screen.getByText(expectedInitialTotal)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', {name: 'Increase travelers'}));
+
+    expect(screen.getByText(expectedTotalAfterAdding)).toBeInTheDocument();
+    expect(screen.queryByText(expectedInitialTotal)).not.toBeInTheDocument();
+});
+
 test('reports email input via onEmailChange and shows consent note when asked', () => {
     const onEmailChange = jest.fn();
     render(<ContactForm isOpen inline tripData={{tripItems: []}}

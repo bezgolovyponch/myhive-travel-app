@@ -937,15 +937,27 @@ describe('CTA emphasis around the group vote', () => {
 // ---------------------------------------------------------------------------
 
 describe('itinerary footer: estimate + Complete Booking', () => {
-    test('shows the Estimated cost line with the trip total and no rail Total', () => {
-        // 2 travelers × (€60 + €40) = €200
+    test('keeps the trip total off the itinerary until Complete Booking is clicked', () => {
+        // 2 travelers × (€60 + €40) = €200 — the aggregate stays hidden here.
         renderTripBuilder(buildTripState({ tripItems: [activity1, activity2] }));
 
-        const expectedTotal = '€200';
-        const estimateLabel = screen.getByText('Estimated cost');
-        expect(estimateLabel).toBeInTheDocument();
-        expect(screen.getByText(expectedTotal)).toBeInTheDocument();
+        const hiddenTotal = '€200';
+        expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
+        expect(screen.queryByText(hiddenTotal)).not.toBeInTheDocument();
         expect(screen.queryByText('Total')).not.toBeInTheDocument();
+        // Per-line prices are unaffected: they are what the user picks on.
+        expect(screen.getByText('€60 × 2 = €120')).toBeInTheDocument();
+    });
+
+    test('reveals the trip total on the booking step', async () => {
+        const user = userEvent.setup();
+        renderTripBuilder(buildTripState({ tripItems: [activity1, activity2] }));
+
+        await user.click(screen.getByRole('button', { name: 'Complete Booking' }));
+
+        const expectedTotal = '€200';
+        expect(await screen.findByText('Estimated cost')).toBeInTheDocument();
+        expect(screen.getByText(expectedTotal)).toBeInTheDocument();
     });
 
     test('the rail is not rendered when there is nothing to vote on and no budget', () => {

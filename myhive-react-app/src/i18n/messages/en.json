@@ -356,6 +356,7 @@
       "destinationLabel": "Destination:",
       "activitiesLabel": "Activities:",
       "activitiesSelected": "{count} selected",
+      "tripTotalLabel": "Estimated cost",
       "estimatedTotalLabel": "Estimated Total:",
       "fullNameLabel": "Full Name *",
       "fullNamePlaceholder": "John Doe",
@@ -525,7 +526,6 @@
     },
     "emptyState": "Start building your trip by adding activities!",
     "footer": {
-      "estimatedCost": "Estimated cost",
       "completeBooking": "Complete Booking",
       "sendBookingRequest": "Send booking request"
     },
