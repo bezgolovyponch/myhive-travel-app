@@ -16,3 +16,11 @@ export function getOrCreateVoterToken() {
 export function votedKey(shareToken) {
   return `myhive-voted-${shareToken}`;
 }
+
+// localStorage key recording that a finished QUIZ vote already replaced this
+// browser's cart with its winners. The ?voteSession= param outlives that first
+// mount (reloads, Back), and replacing again would discard whatever the
+// organizer added afterwards.
+export function voteAppliedKey(shareToken) {
+  return `myhive-vote-applied-${shareToken}`;
+}

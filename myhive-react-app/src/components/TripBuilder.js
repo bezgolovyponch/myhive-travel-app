@@ -11,6 +11,7 @@ import {getAttribution, getRef} from '../utils/attribution';
 import {generateUuid} from '../utils/uuid';
 import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
 import {clearTripLead} from '../utils/tripLead';
+import {voteAppliedKey} from '../utils/voterToken';
 import {useTripLeadRestore} from '../hooks/useTripLeadRestore';
 import {useEmailLeadCapture} from '../hooks/useEmailLeadCapture';
 import ContactForm from './ContactForm';
@@ -33,6 +34,41 @@ function buildVoteAnnotation(result) {
     counts[row.activityId] = row.likeCount;
   });
   return {counts, participantCount: result.participantCount};
+}
+
+// A QUIZ result's winning rows as cart items. ResultActivityDTO carries the
+// snapshot name+price plus live slug/destinationSlug/imageUrl/duration/
+// description/includes; activityId is mapped to id so TripContext keys them
+// the same as live activities.
+function voteWinnersAsTripItems(result) {
+  return (result.result || []).map(row => ({
+    id: row.activityId,
+    name: row.name,
+    price: row.price,
+    minPrice: row.minPrice,
+    slug: row.slug,
+    destinationSlug: row.destinationSlug,
+    imageUrl: row.imageUrl,
+    duration: row.duration,
+    description: row.description,
+    includes: row.includes,
+  }));
+}
+
+// Travelers, dates and budget as the organizer set them when the vote started,
+// so callers (the result email link, the End-voting button) don't dispatch them.
+function seedTripSetupFromVote(result, dispatch) {
+  if (result.numberOfTravelers && result.numberOfTravelers > 0) {
+    dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: result.numberOfTravelers});
+  }
+  if (result.startDate || result.endDate) {
+    dispatch({
+      type: 'UPDATE_TRIP_DATES',
+      startDate: result.startDate ?? '',
+      endDate: result.endDate ?? '',
+    });
+  }
+  dispatch({type: 'UPDATE_TRIP_BUDGET', budget: result.budget ?? null});
 }
 
 function TripBuilder({ destinationId, destinationSlug, destinationName }) {
@@ -183,11 +219,14 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       : payload);
   // Cart vote annotation (counts + participantCount) — display-only, never
   // mutates tripItems/localStorage. Set for CART sessions; QUIZ sessions
-  // instead hydrate the cart itself via voteResult/dispatch below.
+  // instead replace the cart itself via voteResult/dispatch below.
   const [voteAnnotation, setVoteAnnotation] = useState(null);
 
+  // Waits for the saved cart: RESTORE_FROM_STORAGE replaces tripItems wholesale,
+  // so a result applied before it would be wiped — and the package items this
+  // effect preserves are not in state yet either.
   useEffect(() => {
-    if (!annotationToken) return;
+    if (!annotationToken || !state.restored) return;
     let cancelled = false;
     setVoteError(false);
     voteApi.getResult(annotationToken)
@@ -200,40 +239,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             }
             if (!voteSession) return; // QUIZ hydration only ever runs from an explicit URL param
             setVoteResult(result);
-            // Seed trip travelers + dates from the result so callers (email link,
-            // End-voting button, etc.) don't need to dispatch these separately.
-            if (result.numberOfTravelers && result.numberOfTravelers > 0) {
-                dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: result.numberOfTravelers });
+            seedTripSetupFromVote(result, dispatch);
+            // The winners REPLACE the cart (SET_TRIP_ITEMS_FROM_VOTE keeps the
+            // package items) — the ballot was built from this very cart, so the
+            // old per-row ADD_TO_TRIP merged into itself and left every activity
+            // the group voted down sitting in the itinerary.
+            // One-shot per browser: the param survives reloads and Back, and a
+            // destructive replace on every mount would throw away whatever the
+            // organizer added after the vote. The rest of the result (suggestions,
+            // the parked vote button) keeps loading on those later mounts.
+            if (localStorage.getItem(voteAppliedKey(voteSession))) {
+                return;
             }
-            if (result.startDate || result.endDate) {
-                dispatch({
-                    type: 'UPDATE_TRIP_DATES',
-                    startDate: result.startDate ?? '',
-                    endDate: result.endDate ?? '',
-                });
-            }
-            dispatch({ type: 'UPDATE_TRIP_BUDGET', budget: result.budget ?? null });
-            // New shape: result.result[] is ResultActivityDTO with snapshot name+price
-            // plus live slug/destinationSlug/imageUrl/duration/description/includes.
-            // Map activityId → id so TripContext keys it the same as live activities.
-            (result.result || []).forEach(row => {
-                dispatch({
-                    type: 'ADD_TO_TRIP',
-                    silent: true,
-                    activity: {
-                        id: row.activityId,
-                        name: row.name,
-                        price: row.price,
-                        minPrice: row.minPrice,
-                        slug: row.slug,
-                        destinationSlug: row.destinationSlug,
-                        imageUrl: row.imageUrl,
-                        duration: row.duration,
-                        description: row.description,
-                        includes: row.includes,
-                    },
-                });
-            });
+            localStorage.setItem(voteAppliedKey(voteSession), 'true');
+            dispatch({ type: 'SET_TRIP_ITEMS_FROM_VOTE', winners: voteWinnersAsTripItems(result) });
         })
         .catch(e => {
             if (cancelled) return;
@@ -254,7 +273,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     return () => {
         cancelled = true;
     };
-  }, [annotationToken, voteSession, dispatch]);
+  }, [annotationToken, voteSession, state.restored, dispatch]);
 
   // A finished vote (CART annotation or hydrated QUIZ result) hides the vote
   // button (see voteEnded below) until the trip is booked or the initiator

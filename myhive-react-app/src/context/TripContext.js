@@ -127,6 +127,18 @@ export function reducer(state, action) {
                 tripBuilderModalOpen: !isFirstAdd || state.tripBuilderModalOpen,
             };
         }
+        case 'SET_TRIP_ITEMS_FROM_VOTE': {
+            // A finished QUIZ vote is the trip: its ballot was built from this
+            // very cart, so the winners replace it — merging them back in would
+            // leave everything the group voted down in the itinerary.
+            // Packages were never on the ballot and stay; a winner already inside
+            // one keeps its packaged copy rather than gaining a standalone
+            // duplicate (the mirror of ADD_PACKAGE_TO_TRIP above).
+            const packageItems = state.tripItems.filter(item => item.packageId);
+            const standaloneWinners = action.winners.filter(
+                winner => !packageItems.some(item => item.id === winner.id));
+            return {...state, tripItems: [...packageItems, ...standaloneWinners]};
+        }
         case 'REMOVE_PACKAGE_FROM_TRIP':
             return {...state, tripItems: state.tripItems.filter(i => i.packageId !== action.packageId)};
         case 'SET_TRIP_ID':

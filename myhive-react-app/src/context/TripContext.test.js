@@ -218,6 +218,31 @@ describe('reducer — trip builder, items and packages', () => {
         expect(state.tripItems.every(i => i.packageId === 'p1')).toBe(true);
     });
 
+    it('SET_TRIP_ITEMS_FROM_VOTE replaces the cart with the winners', () => {
+        const winners = [{id: '3', name: 'Diving', price: 50}];
+        const prev = {...initialState, tripItems: [activity1, activity2]};
+        const state = reducer(prev, {type: 'SET_TRIP_ITEMS_FROM_VOTE', winners});
+        expect(state.tripItems).toEqual(winners);
+    });
+
+    it('SET_TRIP_ITEMS_FROM_VOTE keeps package items — a package was never on the ballot', () => {
+        const packageItem = {id: '9', name: 'Brewery', price: 30, packageId: 'p1', packageName: 'Weekend'};
+        const winners = [{id: '3', name: 'Diving', price: 50}];
+        const prev = {...initialState, tripItems: [activity1, packageItem]};
+        const state = reducer(prev, {type: 'SET_TRIP_ITEMS_FROM_VOTE', winners});
+        expect(state.tripItems).toEqual([packageItem, ...winners]);
+    });
+
+    it('SET_TRIP_ITEMS_FROM_VOTE keeps the packaged copy of a winner instead of duplicating it', () => {
+        const packagedWinner = {id: '3', name: 'Diving', price: 50, packageId: 'p1', packageName: 'Weekend'};
+        const prev = {...initialState, tripItems: [activity1, packagedWinner]};
+        const state = reducer(prev, {
+            type: 'SET_TRIP_ITEMS_FROM_VOTE',
+            winners: [{id: '3', name: 'Diving', price: 50}],
+        });
+        expect(state.tripItems).toEqual([packagedWinner]);
+    });
+
     it('REMOVE_PACKAGE_FROM_TRIP removes all items belonging to a package', () => {
         const prev = {
             ...initialState,

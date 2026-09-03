@@ -68,6 +68,11 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
     flow; `CART` is an advisory swipe vote (right = like, left = skip) over the traveler's own cart, ranked
     by like count with cart-order ties (skips are recorded but never affect the ranking), with no score
     cutoff and no budget knapsack — results annotate the Trip Builder itinerary and never replace the cart.
+  - A closed `QUIZ` session does the opposite: its ballot *was* the organizer's cart, so landing on
+    `/destination/{slug}?tab=trip-builder&voteSession={shareToken}` **replaces** the cart with the winners
+    (`SET_TRIP_ITEMS_FROM_VOTE`), dropping whatever the group voted down. Package items are kept — they were
+    never on the ballot. The replacement is one-shot per browser (`myhive-vote-applied-{shareToken}`) because
+    the URL param outlives that first load, and it waits for the saved cart to be restored first.
   - The Create-vote modal asks for the organizer's address on a second step and only then creates the session,
     so the invite link is never shown without one — `initiatorEmail` stays optional on the API but is present on
     every session started from the UI, and storing it stamps `email_captured_at`.

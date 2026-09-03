@@ -122,6 +122,7 @@ function buildTripState(overrides = {}) {
         tripBudget: null,
         tripSetupModalOpen: false,
         tripBuilderModalOpen: true,
+        restored: true,
         ...overrides,
     };
 }
@@ -149,6 +150,7 @@ function renderTripBuilderWithDispatch(tripItems, dispatch, { route = '/' } = {}
         tripBudget: null,
         tripSetupModalOpen: false,
         tripBuilderModalOpen: false,
+        restored: true,
     };
     return render(
         <MemoryRouter initialEntries={[route]}>
@@ -1148,6 +1150,7 @@ describe('vote button after a completed cart vote', () => {
             tripBudget: null,
             tripSetupModalOpen: false,
             tripBuilderModalOpen: false,
+            restored: true,
         };
         return (
             <MemoryRouter initialEntries={[route]}>
@@ -1562,6 +1565,7 @@ describe('vote button after a completed QUIZ vote', () => {
             tripBudget: null,
             tripSetupModalOpen: false,
             tripBuilderModalOpen: false,
+            restored: true,
         };
         return (
             <MemoryRouter initialEntries={[route]}>
@@ -1578,9 +1582,9 @@ describe('vote button after a completed QUIZ vote', () => {
         const dispatch = jest.fn();
         render(buildTree([cartItem], dispatch));
 
-        // QUIZ hydration ran (result rows seed the cart via ADD_TO_TRIP).
+        // QUIZ hydration ran (the winners replace the cart via SET_TRIP_ITEMS).
         await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_TO_TRIP' }));
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
         });
         expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
     });
@@ -1590,7 +1594,7 @@ describe('vote button after a completed QUIZ vote', () => {
         const dispatch = jest.fn();
         const { rerender } = render(buildTree([cartItem], dispatch));
         await waitFor(() => {
-            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_TO_TRIP' }));
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
         });
 
         rerender(buildTree([], dispatch));
@@ -1600,6 +1604,130 @@ describe('vote button after a completed QUIZ vote', () => {
 
         rerender(buildTree([cartItem], dispatch));
         expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// A finished QUIZ vote is the trip: the winners REPLACE the organizer's cart.
+// The ballot was built from that same cart, so a purely additive hydration
+// left every activity the group voted down sitting in the itinerary.
+// ---------------------------------------------------------------------------
+
+describe('QUIZ vote result replaces the cart', () => {
+    const winner = { activityId: 'a-win', name: 'Bar Crawl', price: 45, minPrice: 180,
+        slug: 'bar-crawl', destinationSlug: 'prague', imageUrl: 'bar.jpg',
+        duration: '3h', description: 'Pubs.', includes: 'Guide' };
+    const quizResult = {
+        voteMode: 'QUIZ', participantCount: 2, numberOfTravelers: 2,
+        result: [winner], suggestions: [],
+    };
+    const losingCart = [
+        { id: 'a-win', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' },
+        { id: 'a-lost-1', name: 'Castle Tour', price: 35, destinationSlug: 'prague' },
+        { id: 'a-lost-2', name: 'Petrin Hike', price: 10, destinationSlug: 'prague' },
+    ];
+
+    // Tree builder (not just a render helper) so the restore test can rerender
+    // with `restored` flipped while MemoryRouter keeps its history.
+    function buildTree(tripItems, dispatch, { restored = true } = {}) {
+        const state = buildTripState({ tripItems, restored, tripBuilderModalOpen: false });
+        return (
+            <MemoryRouter initialEntries={['/?voteSession=q-1']}>
+                <TripContext.Provider value={{ state, dispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+    }
+
+    function renderWithCart(tripItems, dispatch, options = {}) {
+        return render(buildTree(tripItems, dispatch, options));
+    }
+
+    // The cart-composition rules (packages kept, no standalone duplicate of a
+    // packaged winner) live with the reducer — see TripContext.test.js.
+    test('hands the whole result to the cart-replacing action, not a per-row merge', async () => {
+        voteApi.getResult.mockResolvedValue(quizResult);
+        const dispatch = jest.fn();
+
+        renderWithCart(losingCart, dispatch);
+
+        await waitFor(() => {
+            expect(dispatch).toHaveBeenCalledWith({
+                type: 'SET_TRIP_ITEMS_FROM_VOTE',
+                winners: [{
+                    id: 'a-win', name: 'Bar Crawl', price: 45, minPrice: 180,
+                    slug: 'bar-crawl', destinationSlug: 'prague', imageUrl: 'bar.jpg',
+                    duration: '3h', description: 'Pubs.', includes: 'Guide',
+                }],
+            });
+        });
+        expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ADD_TO_TRIP' }));
+    });
+
+    test('holds until the saved cart is restored, so the restore cannot wipe the winners', async () => {
+        voteApi.getResult.mockResolvedValue(quizResult);
+        const dispatch = jest.fn();
+
+        const { rerender } = renderWithCart(losingCart, dispatch, { restored: false });
+
+        await screen.findByText('Castle Tour');
+        expect(voteApi.getResult).not.toHaveBeenCalled();
+        expect(dispatch).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
+
+        rerender(buildTree(losingCart, dispatch, { restored: true }));
+
+        await waitFor(() => {
+            expect(dispatch).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
+        });
+    });
+
+    test('marks the session applied so a later mount cannot replace the cart twice', async () => {
+        voteApi.getResult.mockResolvedValue(quizResult);
+
+        renderWithCart(losingCart, jest.fn());
+
+        await waitFor(() => {
+            expect(localStorage.getItem('myhive-vote-applied-q-1')).toBe('true');
+        });
+    });
+
+    test('a reload with the param still set keeps post-vote cart edits', async () => {
+        // The organizer already got their winners and then added an activity;
+        // replacing the cart again on the next mount would throw it away.
+        localStorage.setItem('myhive-vote-applied-q-1', 'true');
+        voteApi.getResult.mockResolvedValue(quizResult);
+        const dispatch = jest.fn();
+
+        renderWithCart([
+            { id: 'a-win', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' },
+            { id: 'a-added', name: 'Petrin Hike', price: 10, destinationSlug: 'prague' },
+        ], dispatch);
+
+        // The result is still loaded (suggestions, hidden vote button) — only the
+        // cart replacement is one-shot.
+        await waitFor(() => {
+            expect(voteApi.getResult).toHaveBeenCalled();
+        });
+        expect(dispatch).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
+        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+    });
+
+    test('a CART vote never replaces the cart — it only annotates it', async () => {
+        voteApi.getResult.mockResolvedValue({
+            voteMode: 'CART', participantCount: 5,
+            result: [{ activityId: 'a-win', name: 'Bar Crawl', price: 45, likeCount: 4 }],
+        });
+        const dispatch = jest.fn();
+
+        renderWithCart(losingCart, dispatch);
+
+        expect(await screen.findByText('♥ 4')).toBeInTheDocument();
+        expect(dispatch).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
     });
 });
 
