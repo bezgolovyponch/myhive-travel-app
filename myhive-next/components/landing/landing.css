@@ -226,14 +226,10 @@ body:has(.tl) {
   font-weight: 700;
   cursor: default;
 }
-/* Small screens: the pill collapses to the same 2.5rem circle as the other
-   header buttons — globe only, the language shows inside the opened menu. */
+/* Phones: no language switcher in the landing header at all — the /de pages
+   stay reachable by URL and from the footer. Desktop and tablet keep it. */
 @media (max-width: 480px) {
-  .tl .lang-switcher-btn {
-    width: 2.5rem;
-  }
-  .tl .lang-switcher-code,
-  .tl .lang-switcher-caret {
+  .tl .lang-switcher {
     display: none;
   }
 }
@@ -832,6 +828,31 @@ body:has(.tl) {
 .tl .final h2 { font-size: clamp(2rem, 5vw, 3.4rem); letter-spacing: -0.03em; }
 .tl .final__row { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
 .tl .final__fine { margin-top: 1.6rem; font-family: var(--tally); font-size: 0.76rem; }
+/* Final CTA over the night photograph — shared by both landing skins. Lives
+   here (not in prague.css/home.css) because each skin file loads only on its
+   own page, and the skins load after this file so they must not redefine
+   .final's background. */
+.tl--prague .final,
+.tl--home .final {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(11, 10, 14, 0.72) 0%, rgba(11, 10, 14, 0.62) 34%, rgba(11, 10, 14, 0.82) 100%),
+    url(/landing/prague-final.webp) center 46% / cover no-repeat;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: #fff;
+  overflow: hidden;
+}
+.tl--prague .final .shell,
+.tl--home .final .shell { position: relative; z-index: 1; padding-block: clamp(4rem, 8vw, 6rem); }
+.tl--prague .final h2,
+.tl--home .final h2 { max-width: 20ch; margin-inline: auto; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.32); }
+.tl--prague .final p,
+.tl--home .final p { color: #ece7f6; margin: 1rem auto 2rem; max-width: 46ch; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.28); }
+.tl--prague .final__fine,
+.tl--home .final__fine { color: #d8d2e5; }
+/* The ghost button reads as unbordered over the photograph. */
+.tl .final .btn--ghost { border-color: #fff; color: #fff; }
 .tl .ftr { border-top: 1px solid var(--line); padding-block: 2.75rem; }
 .tl .ftr__in { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.2fr; gap: 2rem; }
 .tl .ftr h4 {

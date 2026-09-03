@@ -221,6 +221,12 @@
 }
 .tl--home .dcard__stamp--yes { right: 1.1rem; color: var(--yes); border-color: var(--yes); }
 .tl--home .dcard__stamp--no { left: 1.1rem; color: var(--no); border-color: var(--no); transform: rotate(12deg); }
+/* On phones the card is narrow, so the corner stamps crowd the edges — pull
+   them toward the centre. */
+@media (max-width: 640px) {
+  .tl--home .dcard__stamp--yes { right: 2.75rem; }
+  .tl--home .dcard__stamp--no { left: 2.75rem; }
+}
 /* first-run hint: a swipe glyph and one line, nothing else */
 .tl--home .coach {
   position: absolute;
@@ -561,9 +567,10 @@
 }
 
 /* ---------- final CTA ---------- */
-.tl--home .final { background: var(--bg-alt); border-top: 1px solid var(--line); text-align: center; }
-.tl--home .final p { color: var(--muted-l); margin: 1rem auto 2rem; }
-.tl--home .final__fine { color: var(--muted); letter-spacing: 0.03em; }
+/* Background, text colours and shadows come from the shared photo-final block
+   in landing.css (.tl--home .final) — redefining them here would override it,
+   since this file loads after landing.css. */
+.tl--home .final__fine { letter-spacing: 0.03em; }
 
 /* ---------- sticky mobile bar ---------- */
 .tl--home .sticky {

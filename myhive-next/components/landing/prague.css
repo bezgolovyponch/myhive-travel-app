@@ -268,18 +268,5 @@
 .tl--prague .band-img__cta { display: block; margin-top: 1.15rem; }
 .tl--prague .band-img__cta .btn { text-shadow: none; letter-spacing: 0; }
 
-/* ---------- final CTA over the night photograph ---------- */
-.tl--prague .final {
-  position: relative;
-  background:
-    linear-gradient(180deg, rgba(11, 10, 14, 0.72) 0%, rgba(11, 10, 14, 0.62) 34%, rgba(11, 10, 14, 0.82) 100%),
-    url(/landing/prague-final.webp) center 46% / cover no-repeat;
-  border-top: 1px solid var(--line);
-  text-align: center;
-  color: #fff;
-  overflow: hidden;
-}
-.tl--prague .final .shell { position: relative; z-index: 1; padding-block: clamp(4rem, 8vw, 6rem); }
-.tl--prague .final h2 { max-width: 20ch; margin-inline: auto; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.32); }
-.tl--prague .final p { color: #ece7f6; margin: 1rem auto 2rem; max-width: 46ch; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.28); }
-.tl--prague .final__fine { color: #d8d2e5; }
+/* The final CTA over the night photograph is shared with the voting landing —
+   see the .tl--prague .final block in landing.css. */
