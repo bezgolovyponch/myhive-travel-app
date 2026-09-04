@@ -32,23 +32,37 @@
     font-size: 0.85rem;
 }
 
-/* Email step — the one-input screen: heading 28px/700, sub 17px muted,
-   input 56px, helper 14px muted, full-width primary button, nothing else. */
+/* Email step — the one-input screen: no visible heading, sub 17px white,
+   input 56px, helper 14px white, full-width primary button, nothing else.
+   The title stays in the DOM, visually hidden, so the dialog keeps its
+   accessible name (aria-labelledby); the close button is the only thing
+   left in the header, so it is pushed to the right explicitly. */
 .start-vote-modal--email .app-modal-header {
     border-bottom: none;
     padding-bottom: 0;
+    background: transparent;
 }
 
 .start-vote-modal--email .app-modal-header h2 {
-    font-size: 1.75rem;
-    font-weight: 700;
-    line-height: 1.2;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.start-vote-modal--email .app-modal-close-btn {
+    margin-left: auto;
 }
 
 .start-vote-email-sub {
     margin: 0 0 1rem;
     font-size: 1.0625rem;
-    color: var(--text-muted);
+    color: var(--text);
 }
 
 .start-vote-modal--email input.start-vote-email-input {
@@ -62,7 +76,7 @@
     margin: 0.75rem 0 0;
     font-size: 0.875rem;
     line-height: 1.5;
-    color: var(--text-muted);
+    color: var(--text);
 }
 
 .start-vote-email-footer {

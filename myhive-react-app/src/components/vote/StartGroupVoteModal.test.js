@@ -307,3 +307,26 @@ test('does not fire modal_abandoned when closed after a successful launch', asyn
 
   expect(pushEvent).not.toHaveBeenCalledWith('modal_abandoned', expect.anything());
 });
+
+// CSS imports are stubbed under Jest, so the email-step styling is checked against the stylesheet.
+test('email step hides the modal title visually and colours its copy with the primary text token', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, 'StartGroupVoteModal.css'), 'utf8');
+  const declarations = (selector) => {
+    const start = css.indexOf(selector + ' {');
+    expect(start).toBeGreaterThanOrEqual(0);
+    return css.slice(start, css.indexOf('}', start));
+  };
+
+  // Visually hidden, not removed: the h2 is still the dialog's accessible name.
+  const title = declarations('.start-vote-modal--email .app-modal-header h2');
+  expect(title).toContain('position: absolute;');
+  expect(title).toContain('width: 1px;');
+  expect(title).toContain('height: 1px;');
+  expect(title).toContain('overflow: hidden;');
+  expect(title).not.toContain('display: none');
+
+  expect(declarations('.start-vote-email-sub')).toContain('color: var(--text);');
+  expect(declarations('.start-vote-email-helper')).toContain('color: var(--text);');
+});
