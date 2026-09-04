@@ -1729,6 +1729,73 @@ describe('QUIZ vote result replaces the cart', () => {
         expect(dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
     });
+
+    // The result rows carry likeCount for QUIZ sessions too; the organizer sees
+    // the same ♥ badges and bars a CART result gets, instead of a bare list.
+    test('badges the winners with their like counts', async () => {
+        voteApi.getResult.mockResolvedValue({
+            ...quizResult,
+            result: [{ ...winner, likeCount: 2, skipCount: 0 }],
+        });
+
+        renderWithCart([{ id: 'a-win', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' }], jest.fn());
+
+        expect(await screen.findByText('♥ 2')).toBeInTheDocument();
+    });
+
+    test('keeps the badges on a later mount, after the one-shot cart replace', async () => {
+        localStorage.setItem('myhive-vote-applied-q-1', 'true');
+        voteApi.getResult.mockResolvedValue({
+            ...quizResult,
+            result: [{ ...winner, likeCount: 2, skipCount: 0 }],
+        });
+
+        renderWithCart([{ id: 'a-win', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' }], jest.fn());
+
+        expect(await screen.findByText('♥ 2')).toBeInTheDocument();
+    });
+
+    // The winners arrive in the order the backend froze them (score, then
+    // featured weight, then the budget fill) — a like-count re-sort would show
+    // a different order than the result email and pin later additions last.
+    test('keeps the winners in the order the result froze them, not sorted by like count', async () => {
+        voteApi.getResult.mockResolvedValue({
+            ...quizResult,
+            result: [
+                { ...winner, activityId: 'a-second', name: 'Castle Tour', likeCount: 2, skipCount: 0 },
+                { ...winner, activityId: 'a-first', name: 'Bar Crawl', likeCount: 3, skipCount: 2 },
+            ],
+        });
+
+        renderWithCart([
+            { id: 'a-second', name: 'Castle Tour', price: 35, destinationSlug: 'prague' },
+            { id: 'a-first', name: 'Bar Crawl', price: 45, destinationSlug: 'prague' },
+        ], jest.fn());
+
+        expect(await screen.findByText('♥ 3')).toBeInTheDocument();
+        const titles = document.querySelectorAll('.itinerary-item .itinerary-item-title');
+        expect(titles[0]).toHaveTextContent('Castle Tour');
+        expect(titles[1]).toHaveTextContent('Bar Crawl');
+    });
+
+    // Nobody voted, everyone skipped everything, or the budget rejected every
+    // winner: the result is empty. Replacing the cart with nothing would leave
+    // the organizer a blank itinerary and, through the emptied-cart reset,
+    // bring the vote button back — the shortlist stays and the vote still
+    // counts as finished.
+    test('an empty result never replaces the cart', async () => {
+        voteApi.getResult.mockResolvedValue({ ...quizResult, participantCount: 0, result: [] });
+        const dispatch = jest.fn();
+
+        renderWithCart(losingCart, dispatch);
+
+        await waitFor(() => {
+            expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+        });
+        expect(dispatch).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
+        expect(localStorage.getItem('myhive-vote-applied-q-1')).toBeNull();
+    });
 });
 
 // ---------------------------------------------------------------------------

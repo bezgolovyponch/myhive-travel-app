@@ -25,9 +25,9 @@ import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
 
-// Cart vote results carry per-activity like counts instead of a single winner —
-// reduce them into a lookup keyed by activityId, alongside the participant
-// count needed to size each item's mini progress bar.
+// Result rows carry a per-activity like count (a CART ranking or the QUIZ
+// winners alike) — reduce them into a lookup keyed by activityId, alongside
+// the participant count needed to size each item's mini progress bar.
 function buildVoteAnnotation(result) {
   const counts = {};
   (result.result || []).forEach(row => {
@@ -217,9 +217,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const withUserRole = (payload) => (annotationToken
       ? { ...payload, user_role: resolveUserRole(annotationToken) }
       : payload);
-  // Cart vote annotation (counts + participantCount) — display-only, never
-  // mutates tripItems/localStorage. Set for CART sessions; QUIZ sessions
-  // instead replace the cart itself via voteResult/dispatch below.
+  // Vote annotation (counts + participantCount) — display-only, never mutates
+  // tripItems/localStorage. Set for both modes: a CART result only annotates
+  // the cart, a QUIZ result additionally replaces it via voteResult/dispatch
+  // below, and its winners then wear their ♥ counts the same way.
   const [voteAnnotation, setVoteAnnotation] = useState(null);
 
   // Waits for the saved cart: RESTORE_FROM_STORAGE replaces tripItems wholesale,
@@ -232,12 +233,15 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     voteApi.getResult(annotationToken)
         .then(result => {
             if (cancelled) return;
-            if (result.voteMode === 'CART') {
-                // Cart votes annotate the initiator's existing cart — they never seed items.
-                setVoteAnnotation(buildVoteAnnotation(result));
-                return;
+            if (result.voteMode !== 'CART' && !voteSession) {
+                return; // QUIZ hydration only ever runs from an explicit URL param
             }
-            if (!voteSession) return; // QUIZ hydration only ever runs from an explicit URL param
+            // Both modes wear the ♥ counts. Not one-shot like the replace below:
+            // the badges belong on every mount.
+            setVoteAnnotation(buildVoteAnnotation(result));
+            if (result.voteMode === 'CART') {
+                return; // Cart votes only annotate the initiator's existing cart — they never seed items.
+            }
             setVoteResult(result);
             seedTripSetupFromVote(result, dispatch);
             // The winners REPLACE the cart (SET_TRIP_ITEMS_FROM_VOTE keeps the
@@ -251,8 +255,17 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             if (localStorage.getItem(voteAppliedKey(voteSession))) {
                 return;
             }
+            const winners = voteWinnersAsTripItems(result);
+            // An empty result (nobody voted, everyone skipped everything, or the
+            // budget rejected every winner) never replaces the cart: the organizer
+            // would face a blank itinerary, and the emptied-cart reset below would
+            // then bring the vote button back. The shortlist stays and the vote
+            // still counts as finished — voteResult is already set.
+            if (winners.length === 0) {
+                return;
+            }
             localStorage.setItem(voteAppliedKey(voteSession), 'true');
-            dispatch({ type: 'SET_TRIP_ITEMS_FROM_VOTE', winners: voteWinnersAsTripItems(result) });
+            dispatch({ type: 'SET_TRIP_ITEMS_FROM_VOTE', winners });
         })
         .catch(e => {
             if (cancelled) return;
@@ -577,10 +590,14 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   };
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
-  // Display-only ranking for a completed cart vote — ties/unballoted items keep
+  // Display-only ranking for a completed CART vote — ties/unballoted items keep
   // cart order (stable sort), unballoted land last via the `?? -1` fallback.
-  // tripItems state/localStorage are never reordered.
-  const sortedStandalone = voteAnnotation
+  // tripItems state/localStorage are never reordered. QUIZ winners (voteResult)
+  // already sit in the order the backend froze them — score, featured weight,
+  // budget fill — which a like-count sort cannot reproduce and the result email
+  // shows too, so they keep cart order.
+  const rankedByCartVote = voteAnnotation != null && voteResult == null;
+  const sortedStandalone = rankedByCartVote
       ? [...standalone].sort((a, b) =>
           (voteAnnotation.counts[b.id] ?? -1) - (voteAnnotation.counts[a.id] ?? -1))
       : standalone;
