@@ -10,26 +10,48 @@ import './AppModal.css';
 // but where it does not the sheet's actions are simply unreachable, so pin the
 // overlay to the visual viewport as well.
 //
-// Two guards, learned from the regression this replaces: pinch-zoom and some
-// keyboard states report a tiny viewport, and applying those collapsed the
-// sheet to a sliver. So ignore any zoomed state, and never accept a height
-// under half the layout viewport.
-const MIN_VIEWPORT_RATIO = 0.5;
+// The pin has to follow the viewport's offset, not only its height. With the
+// keyboard open Safari both shortens the visual viewport and pans it down to
+// reveal the focused field; a fixed overlay shortened to that height but left
+// at top:0 then sits above the panned-to region, and the field the user just
+// focused (the organizer email step focuses it itself) scrolls off the top of
+// the screen. Pinning top to offsetTop keeps the sheet on the visible bottom
+// edge — right above the keyboard — as the viewport moves.
+//
+// Two guards. Pinch-zoom shrinks the visual viewport without moving the
+// keyboard, so a zoomed state is never pinned. And below a certain height the
+// pinned sheet cannot show anything useful — header, one 56px field with the
+// body padding, and the footer with its safe-area inset need roughly this
+// much — so smaller readings (landscape with the keyboard up, transient
+// values mid-animation) leave the overlay to the CSS and to Safari's own
+// pan-to-reveal. This used to be a ratio against window.innerHeight, but iOS
+// does not shrink innerHeight for the keyboard, so any keyboard covering half
+// the screen (an iPhone 14 with the QuickType bar) switched the pin off in
+// exactly the state it exists for.
+const MIN_PINNED_HEIGHT = 240;
 
-function useVisualViewportHeight(isOpen, ref) {
+function useVisualViewportPin(isOpen, ref) {
     useEffect(() => {
         const vv = window.visualViewport;
-        if (!isOpen || !vv) {
-            return undefined;
-        }
         // Capture the element at effect-setup time so cleanup resets the same
         // node it was measuring, not whatever ref.current points at later.
         const el = ref.current;
+        if (!isOpen || !vv || !el) {
+            return undefined;
+        }
+        const reset = () => {
+            el.style.top = '';
+            el.style.height = '';
+        };
         const apply = () => {
-            if (!el) return;
             const height = Math.round(vv.height);
-            const usable = vv.scale === 1 && height >= window.innerHeight * MIN_VIEWPORT_RATIO;
-            el.style.height = usable ? `${height}px` : '';
+            const usable = vv.scale === 1 && height >= MIN_PINNED_HEIGHT;
+            if (!usable) {
+                reset();
+                return;
+            }
+            el.style.top = `${Math.round(vv.offsetTop)}px`;
+            el.style.height = `${height}px`;
         };
         apply();
         vv.addEventListener('resize', apply);
@@ -37,7 +59,7 @@ function useVisualViewportHeight(isOpen, ref) {
         return () => {
             vv.removeEventListener('resize', apply);
             vv.removeEventListener('scroll', apply);
-            if (el) el.style.height = '';
+            reset();
         };
     }, [isOpen, ref]);
 }
@@ -58,7 +80,7 @@ function AppModal({
     const titleId = useId();
     const contentRef = useModalA11y(isOpen, onClose);
     const overlayRef = useRef(null);
-    useVisualViewportHeight(isOpen, overlayRef);
+    useVisualViewportPin(isOpen, overlayRef);
 
     if (!isOpen) {
         return null;

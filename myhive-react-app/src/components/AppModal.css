@@ -93,7 +93,11 @@ body:has(.app-modal) .trv-chat-fab {
     .app-modal-content {
         width: 100%;
         max-width: none;
-        max-height: 92dvh;
+        /* The overlay is pinned to the visual viewport (AppModal.js), which
+           with the keyboard open is far shorter than any dvh value — dvh only
+           tracks the browser toolbar, not the keyboard. Cap the sheet by the
+           overlay too, or its top half overflows above the visible area. */
+        max-height: min(92dvh, 100%);
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 

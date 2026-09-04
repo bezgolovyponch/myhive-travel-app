@@ -55,3 +55,9 @@ neon_backup*.sql
 
 ### Root dev orchestrator (npm run dev) ###
 /node_modules/
+
+### Playwright MCP session logs (root) ###
+/.playwright-mcp/
+
+### Personal working notes, never committed ###
+/docs/temp/

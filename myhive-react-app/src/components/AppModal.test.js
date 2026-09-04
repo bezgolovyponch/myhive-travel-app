@@ -82,6 +82,14 @@ describe('mobile bottom-sheet anchoring', () => {
     it('keeps the sheet bottom-aligned', () => {
         expect(modalRule).toMatch(/align-items:\s*flex-end/);
     });
+
+    // Once the overlay is pinned to the visual viewport (see below) it can be
+    // far shorter than 92dvh — dvh ignores the keyboard — so the sheet has to
+    // be capped by the overlay itself or its top half overflows off screen.
+    it('caps the sheet at the overlay height so it cannot overflow the visible area', () => {
+        const contentRule = mobileBlock.match(/\.app-modal-content\s*{[^}]*}/)[0];
+        expect(contentRule).toMatch(/max-height:\s*min\(92dvh,\s*100%\)/);
+    });
 });
 
 // The sheet is bottom-anchored, and on iOS the layout viewport it pins to runs
@@ -89,10 +97,10 @@ describe('mobile bottom-sheet anchoring', () => {
 // (footer + the field above it) hangs off screen. The overlay is therefore
 // pinned to the visual viewport too.
 describe('visual viewport pinning', () => {
-    const setViewport = ({height, scale = 1, innerHeight = 932}) => {
+    const setViewport = ({height, offsetTop = 0, scale = 1, innerHeight = 932}) => {
         window.innerHeight = innerHeight;
         window.visualViewport = {
-            height, scale,
+            height, offsetTop, scale,
             addEventListener: jest.fn(),
             removeEventListener: jest.fn(),
         };
@@ -108,22 +116,63 @@ describe('visual viewport pinning', () => {
         expect(screen.getByRole('dialog')).toHaveStyle({height: '740px'});
     });
 
+    // Regression: with the keyboard open, iOS Safari both shortens the visual
+    // viewport and pans it down to reveal the focused field. Pinning only the
+    // height left the overlay at the top of the layout viewport — above the
+    // region Safari had panned to — so the organizer email field scrolled off
+    // the top of the screen the moment the keyboard opened.
+    it('follows the visual viewport offset, not just its height', () => {
+        setViewport({height: 404, offsetTop: 336, innerHeight: 740});
+        renderModal();
+        expect(screen.getByRole('dialog')).toHaveStyle({top: '336px', height: '404px'});
+    });
+
+    // iOS does not shrink window.innerHeight for the keyboard, so a guard
+    // expressed as a ratio of it switched the pin off whenever the keyboard
+    // covered half the screen — an iPhone 14 with the QuickType bar: 664
+    // visible, 336 of keyboard.
+    it('still pins when the keyboard covers more than half of innerHeight', () => {
+        setViewport({height: 328, offsetTop: 336, innerHeight: 664});
+        renderModal();
+        expect(screen.getByRole('dialog')).toHaveStyle({top: '336px', height: '328px'});
+    });
+
+    it('re-pins as the visual viewport pans', () => {
+        setViewport({height: 404, innerHeight: 740});
+        renderModal();
+        const [, onScroll] = window.visualViewport.addEventListener.mock.calls
+            .find(([type]) => type === 'scroll');
+
+        window.visualViewport.offsetTop = 200;
+        onScroll();
+
+        expect(screen.getByRole('dialog')).toHaveStyle({top: '200px'});
+    });
+
     // Regression: pinch-zoom reports a tiny viewport; honouring it collapsed
     // the sheet to a sliver.
     it('ignores zoomed states', () => {
-        setViewport({height: 300, scale: 2.5});
+        setViewport({height: 300, offsetTop: 120, scale: 2.5});
         renderModal();
-        expect(screen.getByRole('dialog').style.height).toBe('');
+        const dialog = screen.getByRole('dialog');
+        expect(dialog.style.height).toBe('');
+        expect(dialog.style.top).toBe('');
     });
 
-    it('ignores a viewport under half the layout height', () => {
-        setViewport({height: 400, innerHeight: 932});
+    // Below this the pinned sheet could not show its header, one field and
+    // the footer at once, so Safari's own pan-to-reveal serves better.
+    it('ignores a viewport too short to hold the sheet', () => {
+        setViewport({height: 200, offsetTop: 100});
         renderModal();
-        expect(screen.getByRole('dialog').style.height).toBe('');
+        const dialog = screen.getByRole('dialog');
+        expect(dialog.style.height).toBe('');
+        expect(dialog.style.top).toBe('');
     });
 
     it('does nothing where visualViewport is unavailable', () => {
         renderModal();
-        expect(screen.getByRole('dialog').style.height).toBe('');
+        const dialog = screen.getByRole('dialog');
+        expect(dialog.style.height).toBe('');
+        expect(dialog.style.top).toBe('');
     });
 });
