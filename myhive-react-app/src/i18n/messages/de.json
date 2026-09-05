@@ -737,7 +737,7 @@
     "footer": {
       "trips": "Trips",
       "company": "Unternehmen",
-      "talk": "Sprich mit einem Menschen",
+      "talk": "Direkt mit uns sprechen",
       "activities": "Aktivitäten",
       "how": "So funktioniert Trivlu",
       "prices": "Preise",
@@ -836,22 +836,22 @@
       "vote": {
         "q1": "Ist Prag 2026 noch eine gute Wahl? Ich habe gelesen, dass Junggesellenabschiede verboten wurden.",
         "q1a1": "Prag hat keine Junggesellenabschiede verboten. Die Stadt hat im November 2024 kommerzielle Pub-Crawls verboten. Das Verbot gilt im historischen Zentrum zwischen 22:00 und 06:00 Uhr. Die Strafe beträgt bis zu 100.000 CZK. Sie trifft den Veranstalter, nicht deine Gruppe. Deine Freunde dürfen zu jeder Uhrzeit von Kneipe zu Kneipe ziehen.",
-        "q1a2": "Im Zentrum gibt es außerdem Zonen mit Alkoholverbot. Eine offene Dose in der Hand kostet bis zu 10.000 CZK. Unsere Abende starten früher. Unsere Abende finden in Venues statt, nicht auf der Straße. Diese Regeln betreffen kein Stück deines Wochenendes.",
+        "q1a2": "Im Zentrum gibt es außerdem Zonen mit Alkoholverbot. Eine offene Dose in der Hand kostet bis zu 10.000 CZK. Unsere Abende starten früher und finden in Venues statt, nicht auf der Straße. Diese Regeln betreffen kein Stück deines Wochenendes.",
         "q2": "Muss jeder eine App laden oder ein Konto anlegen?",
         "q2a": "Nein. Du teilst einen Link. Deine Freunde öffnen ihn im Browser. Keine App, kein Konto, kein Passwort. Deine Daten gibst du erst vor der Buchung an.",
         "q3": "Wer zahlt, und wann?",
         "q3a": "Eine Person zahlt 30 Prozent Anzahlung per Karte. Die Anzahlung reserviert jede Aktivität. Den Rest zahlt die Gruppe bei Ankunft. Kostenlose Stornierung schützt dich, wenn sich die Gruppengröße ändert.",
         "q3link": "Erstattungsrichtlinie",
         "q4": "Wir haben kein Interesse an Stripclubs. Gibt es noch etwas anderes?",
-        "q4a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle Rafting, Schießen, Kartfahren oder Axtwerfen. Wähle ein Bierspa, eine Brauereitour oder eine Bootsfahrt. Wähle Bubble-Fußball oder Panzerfahren. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
+        "q4a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle sportliche Aktivitäten wie Rafting, Schießen, Kartfahren oder Axtwerfen, oder entspanne bei einem Bierspa, einer Brauereitour oder einer Bootsfahrt — was am besten zu deiner Gruppe passt. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
         "q5": "Bucht ihr auch Flüge und Hotels?",
-        "q5a": "Nein. Trivlu schlägt auf Flüge und Hotels keine Gebühr auf. Bessere Preise findest du selbst. Trivlu zeigt realistische Preisspannen für beides. Trivlu bucht die Aktivitäten, plant das Timing und löst Probleme vor Ort.",
+        "q5a": "Nein. Wir schlagen auf Flüge und Hotels keine Gebühr auf. Bessere Preise findest du selbst. Trivlu zeigt realistische Preisspannen für beides, bucht die Aktivitäten, plant das Timing und löst Probleme vor Ort.",
         "q6": "Was, wenn jemand absagt?",
         "q6a": "Sag uns Bescheid. Wir ändern die Buchung. Kostenlose Stornierung gilt für jede Aktivität. Achte auf den Gruppen-Mindestpreis. Manche Aktivitäten haben einen Mindestpreis für die ganze Gruppe. Trivlu zeigt ihn auf der Aktivitätskarte.",
         "q7": "Was ist die kleinste Gruppe, die ihr annehmt?",
         "q7a": "Eine Vierergruppe funktioniert für die meisten Aktivitäten. Kleinere Gruppen zahlen pro Person mehr bei Aktivitäten mit Gruppen-Mindestpreis. Trivlu zeigt den exakten Preis vor der Buchung.",
         "q8": "Wie schnell antwortet ihr wirklich?",
-        "q8a": "Wir antworten innerhalb von zehn Minuten, sieben Tage die Woche. Ruf {phone} an. Oder schreib derselben Nummer auf WhatsApp."
+        "q8a": "Wir antworten innerhalb von 10 Minuten, 7 Tage die Woche. Ruf {phone} an. Oder schreib derselben Nummer auf WhatsApp."
       },
       "prague": {
         "q1": "Wann ist die beste Reisezeit?",
@@ -863,11 +863,11 @@
         "q4": "Ist Prag sicher für eine große Gruppe?",
         "q4a": "Ja. Achte auf Taschendiebe rund um Karlsbrücke und Altstädter Ring. Wechsle nie Geld auf der Straße. Mach den Taxipreis vor der Fahrt aus. Unsere Guides regeln alles mit den Venues. Wir buchen nur Partner-Venues.",
         "q5": "Wir haben kein Interesse an Stripclubs. Gibt es noch etwas anderes?",
-        "q5a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle Rafting, Schießen, Kartfahren oder Axtwerfen. Wähle ein Bierspa, eine Brauereitour oder eine Bootsfahrt. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
+        "q5a": "Trivlu bietet 72 Aktivitäten. Nur eine von acht Kategorien enthält Adult-Entertainment. Wähle sportliche Aktivitäten wie Rafting, Schießen, Kartfahren oder Axtwerfen, oder entspanne bei einem Bierspa, einer Brauereitour oder einer Bootsfahrt — was am besten zu deiner Gruppe passt. Viele Gruppen ignorieren die Adult-Kategorie komplett.",
         "q6": "Was ist die kleinste Gruppe, die ihr annehmt?",
         "q6a": "Eine Vierergruppe funktioniert für die meisten Aktivitäten. Kleinere Gruppen zahlen pro Person mehr bei Aktivitäten mit Gruppen-Mindestpreis. Trivlu zeigt den exakten Preis vor der Buchung.",
         "q7": "Wie schnell antwortet ihr wirklich?",
-        "q7a": "Wir antworten innerhalb von zehn Minuten, sieben Tage die Woche. Ruf {phone} an. Oder schreib derselben Nummer auf WhatsApp."
+        "q7a": "Wir antworten innerhalb von 10 Minuten, 7 Tage die Woche. Ruf {phone} an. Oder schreib derselben Nummer auf WhatsApp."
       }
     },
     "vote": {
@@ -1029,7 +1029,7 @@
         "l4b": "Kostüme",
         "l4t": " funktionieren in Partybars. Bessere Clubs und traditionelle Bierhallen weisen Gruppen in Partnerlook ab.",
         "noteB": "Unsere Methode.",
-        "noteT": " Unsere Abende starten früher. Unsere Abende finden in Partner-Venues statt, nicht auf der Straße. Wir haben die Regeländerung in Prag miterlebt. Keine Trivlu-Gruppe hat je eine Strafe bekommen."
+        "noteT": " Unsere Abende starten früher und finden in Partner-Venues statt, nicht auf der Straße. Wir haben die Regeländerung in Prag miterlebt. Keine Trivlu-Gruppe hat je eine Strafe bekommen."
       },
       "final": {
         "title": "Zeit, dein perfektes Wochenende in Prag zu bauen",

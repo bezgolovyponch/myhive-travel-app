@@ -6,6 +6,7 @@
 // Activity names/categories arrive already localized from the backend
 // (?locale= on the server fetch); UI strings come from the landing dictionary.
 import { useT, useLocalePath } from '../../legacy-src/i18n';
+import { formatAmount, formatDuration } from '../../legacy-src/utils/format';
 import type { ActivityRow, LandingActivity } from './data';
 import { activityLink, categoryLink } from './data';
 
@@ -23,6 +24,7 @@ function ActivityCard({
   onToggle: (slug: string) => void;
 }) {
   const t = useT('landing.activities');
+  const tDuration = useT('activityDetail.duration');
   const lp = useLocalePath();
   const activityHref = lp(activityLink(destinationSlug, a.slug));
   return (
@@ -47,9 +49,10 @@ function ActivityCard({
             {a.name}
           </a>
         </h3>
-        <div className="acard__dur">{a.durationLabel ?? ' '}</div>
+        <div className="acard__dur">{formatDuration(a.duration, tDuration) ?? ' '}</div>
         <div className="acard__pr">
-          {a.hasGroupMin ? `${t('from')} ` : ''}€{a.price} <span>{t('perPerson')}</span>
+          {a.hasGroupMin ? `${t('from')} ` : ''}
+          {formatAmount(a.price)} <span>{t('perPerson')}</span>
         </div>
         <div className="acard__min">
           {a.minPrice ? t('minPerGroup', { min: a.minPrice }) : ' '}

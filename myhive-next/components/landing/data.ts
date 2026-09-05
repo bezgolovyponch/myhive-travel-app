@@ -43,7 +43,7 @@ export interface LandingActivity {
   price: number;
   hasGroupMin: boolean;
   minPrice: number | null;
-  durationLabel: string | null;
+  duration: number | null; // minutes; formatted per locale at render time
   imageUrl: string;
 }
 
@@ -60,13 +60,6 @@ export function toCartItem(a: LandingActivity, destinationSlug: string) {
     imageUrl: a.imageUrl,
     destinationSlug,
   };
-}
-
-export function formatDurationLabel(minutes: number | null | undefined): string | null {
-  if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return null;
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.round((minutes / 60) * 10) / 10;
-  return `${hours} h`;
 }
 
 function categoryNames(a: Activity): string[] {
@@ -92,7 +85,7 @@ export function toLandingActivity(a: Activity): LandingActivity {
     price: a.price,
     hasGroupMin,
     minPrice: hasGroupMin ? a.minPrice! : null,
-    durationLabel: formatDurationLabel(a.duration),
+    duration: a.duration != null && Number.isFinite(a.duration) && a.duration > 0 ? a.duration : null,
     imageUrl: a.imageUrl || '',
   };
 }

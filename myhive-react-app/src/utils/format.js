@@ -1,5 +1,13 @@
 import {currentLocale} from '../i18n/routes';
 
+// Numbers and dates follow the page locale (separators, month names, order);
+// English keeps en-GB.
+const LOCALE_TAGS = {en: 'en-GB', de: 'de-DE'};
+
+function localeTag() {
+    return LOCALE_TAGS[currentLocale()] || 'en-GB';
+}
+
 export function formatAmount(amount) {
     if (amount == null) return '\u2014';
     const n = Number(amount);
@@ -8,21 +16,35 @@ export function formatAmount(amount) {
     if (!Number.isFinite(n)) return '\u2014';
     // Cents only when present: whole euros render clean (\u20AC45), fractional
     // amounts keep exactly two decimals (\u20AC40.50). Never one decimal.
-    const digits = Number.isInteger(n) ? `${n}` : n.toFixed(2);
-    // German puts the sign after the number, separated by a space (45 \u20AC),
-    // and uses the decimal comma. The space is a no-break so the sign never
-    // wraps away from its number. English keeps the \u20AC45 prefix style.
+    // Thousands are grouped the locale's way (1,600 / 1.600).
+    const digits = n.toLocaleString(localeTag(), Number.isInteger(n)
+        ? {maximumFractionDigits: 0}
+        : {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    // German puts the sign after the number, separated by a space (45 \u20AC).
+    // The space is a no-break so the sign never wraps away from its number.
+    // English keeps the \u20AC45 prefix style.
     if (currentLocale() === 'de') {
-        return `${digits.replace('.', ',')}\u00A0\u20AC`;
+        return `${digits}\u00A0\u20AC`;
     }
     return `\u20AC${digits}`;
 }
 
-// Dates follow the page locale (month names, order); English keeps en-GB.
-const DATE_LOCALE_TAGS = {en: 'en-GB', de: 'de-DE'};
+/**
+ * Whole hours and minutes, never decimal hours (3h 35m, not 3.7h). `t` is a
+ * translator scoped to the `activityDetail.duration` messages, which carry the
+ * locale's unit words (h / Std.). Null when there is no usable duration.
+ */
+export function formatDuration(minutes, t) {
+    const n = Number(minutes);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    if (n < 60) return t('minutes', {minutes: n});
+    const hours = Math.floor(n / 60);
+    const rest = n % 60;
+    return rest ? t('hoursMinutes', {hours, rest}) : t('hours', {hours});
+}
 
 function dateLocaleTag() {
-    return DATE_LOCALE_TAGS[currentLocale()] || 'en-GB';
+    return localeTag();
 }
 
 export function formatDate(dateStr) {

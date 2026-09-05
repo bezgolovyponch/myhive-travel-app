@@ -14,6 +14,7 @@ import {
   type Programme,
 } from './engine';
 import { builderUrl, poolImageUrl } from './data';
+import { formatAmount } from '../../legacy-src/utils/format';
 import { trackCtaAndGo } from './analytics';
 
 const ARRIVE_PH = '/landing/arrive.webp';
@@ -41,7 +42,7 @@ function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNam
             <span className="tc-row__t">16:40</span>
             <img className="tc-row__ph" src={ARRIVE_PH} alt="" aria-hidden="true" loading="lazy" decoding="async" />
             <span className="tc-row__n">{t('airportTransfer')}</span>
-            <span className="tc-row__p">€{TRANSFER.p}</span>
+            <span className="tc-row__p">{formatAmount(TRANSFER.p)}</span>
           </div>,
         );
       }
@@ -60,7 +61,7 @@ function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNam
           decoding="async"
         />
         <span className="tc-row__n">{chosen[i].n}</span>
-        <span className="tc-row__p">€{chosen[i].p}</span>
+        <span className="tc-row__p">{formatAmount(chosen[i].p)}</span>
       </div>,
     );
   });
@@ -69,7 +70,7 @@ function ItineraryRows({ programme, prevNames }: { programme: Programme; prevNam
       <span className="tc-row__t">16:00</span>
       <img className="tc-row__ph" src={DEPART_PH} alt="" aria-hidden="true" loading="lazy" decoding="async" />
       <span className="tc-row__n">{t('airportTransfer')}</span>
-      <span className="tc-row__p">€{TRANSFER.p}</span>
+      <span className="tc-row__p">{formatAmount(TRANSFER.p)}</span>
     </div>,
   );
   return <div>{rows}</div>;
@@ -107,7 +108,7 @@ function CityCompare({ nights }: { nights: number }) {
                   {homeCity}{' '}
                   <i>{t('breakdown', { beer: c.home.beer, bed: c.home.bed, food: c.home.food })}</i>
                 </span>
-                <span className="vsrow__v">€{c.home.total}</span>
+                <span className="vsrow__v">{formatAmount(c.home.total)}</span>
                 <span className="vsrow__t">
                   <span className="vsrow__f" style={{ width: '100%' }} />
                 </span>
@@ -119,7 +120,7 @@ function CityCompare({ nights }: { nights: number }) {
                     {t('breakdown', { beer: c.prague.beer, bed: c.prague.bed, food: c.prague.food })}
                   </i>
                 </span>
-                <span className="vsrow__v">€{c.prague.total}</span>
+                <span className="vsrow__v">{formatAmount(c.prague.total)}</span>
                 <span className="vsrow__t">
                   <span
                     className="vsrow__f"
@@ -139,7 +140,7 @@ function CityCompare({ nights }: { nights: number }) {
             </figure>
             <div className="vs__save">
               <span>{t('saves')}</span>
-              <b>€{c.groupSaves.toLocaleString('en-GB')}</b>
+              <b>{formatAmount(c.groupSaves)}</b>
             </div>
           </div>
           <p className="vs__src">{t('source')}</p>
@@ -220,7 +221,7 @@ export default function TripCalculator({
       </div>
       <div className="tc-slab">
         <span>{t('budgetPerPerson')}</span>
-        <b>€{programme.spent}</b>
+        <b>{formatAmount(programme.spent)}</b>
       </div>
       <input
         aria-label={t('budgetPerPerson')}
@@ -232,8 +233,8 @@ export default function TripCalculator({
         onChange={(e) => setPct(Number(e.target.value) / Math.max(ladder.length - 1, 1))}
       />
       <div className="tc-sends">
-        <span>€{ladder[0].spent}</span>
-        <span>€{ladder[ladder.length - 1].spent}</span>
+        <span>{formatAmount(ladder[0].spent)}</span>
+        <span>{formatAmount(ladder[ladder.length - 1].spent)}</span>
       </div>
       <a
         className="btn btn--primary btn--block tc-ctrl__cta"
@@ -260,7 +261,7 @@ export default function TripCalculator({
           <ItineraryRows programme={programme} prevNames={prevNames} />
           <div className="tc-tot">
             <span>{t('perPerson')}</span>
-            <b>€{programme.spent}</b>
+            <b>{formatAmount(programme.spent)}</b>
           </div>
           <p className="tc-note">{t('note')}</p>
           {mobile ? controls : null}
