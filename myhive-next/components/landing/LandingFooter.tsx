@@ -67,7 +67,7 @@ export default function LandingFooter({
               </a>
             </li>
             <li>
-              <a href="mailto:hello@trivlu.com">hello@trivlu.com</a>
+              <a href="mailto:info@trivlu.com">info@trivlu.com</a>
             </li>
           </ul>
         </div>

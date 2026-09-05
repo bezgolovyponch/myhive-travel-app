@@ -1,4 +1,15 @@
-import {formatPrice, formatAmount, formatPricePerPerson, hasGroupMin, groupMinNote} from './format';
+import {formatPrice, formatAmount, formatDuration, formatPricePerPerson, hasGroupMin, groupMinNote} from './format';
+
+// currentLocale() reads the URL prefix in the browser; jsdom lets tests set it.
+function withPath(path, fn) {
+    const before = window.location.pathname;
+    window.history.pushState({}, '', path);
+    try {
+        fn();
+    } finally {
+        window.history.pushState({}, '', before);
+    }
+}
 
 describe('formatPrice', () => {
     it('renders numbers with the same two-decimal shape as formatAmount', () => {
@@ -44,6 +55,40 @@ describe('formatAmount', () => {
     it('renders an em-dash for non-numeric input instead of €NaN', () => {
         expect(formatAmount('abc')).toBe('—');
         expect(formatAmount(NaN)).toBe('—');
+    });
+
+    it('groups thousands the English way', () => {
+        expect(formatAmount(1600)).toBe('€1,600');
+        expect(formatAmount(1234.5)).toBe('€1,234.50');
+    });
+
+    it('puts the sign after the number with a no-break space in German', () => {
+        withPath('/de/destination/prague', () => {
+            expect(formatAmount(45)).toBe('45 €');
+            expect(formatAmount(40.5)).toBe('40,50 €');
+            expect(formatAmount(1600)).toBe('1.600 €');
+        });
+    });
+});
+
+describe('formatDuration', () => {
+    const t = (key, vars) => ({
+        minutes: `${vars.minutes}m`,
+        hours: `${vars.hours}h`,
+        hoursMinutes: `${vars.hours}h ${vars.rest}m`,
+    })[key];
+
+    it('renders minutes under an hour and whole hours plus minutes above', () => {
+        expect(formatDuration(45, t)).toBe('45m');
+        expect(formatDuration(60, t)).toBe('1h');
+        expect(formatDuration(90, t)).toBe('1h 30m');
+        expect(formatDuration(220, t)).toBe('3h 40m');
+    });
+
+    it('returns null when there is no usable duration', () => {
+        expect(formatDuration(null, t)).toBeNull();
+        expect(formatDuration(undefined, t)).toBeNull();
+        expect(formatDuration(0, t)).toBeNull();
     });
 });
 

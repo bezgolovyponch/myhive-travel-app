@@ -7,6 +7,7 @@
 // swipe, which resets them for free.
 import { useEffect, useRef, useState } from 'react';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
+import { formatAmount, formatDuration } from '../../legacy-src/utils/format';
 import type { LandingActivity } from './data';
 import { builderUrlWithPicks } from './data';
 import type { DeckState, DeckAction } from './deck';
@@ -73,7 +74,7 @@ function Shortlist({
             <li key={a.slug}>
               <img src={a.imageUrl} alt="" />
               <span className="short__nm">{a.name}</span>
-              <span className="short__pr">€{a.price}</span>
+              <span className="short__pr">{formatAmount(a.price)}</span>
             </li>
           ))}
         </ul>
@@ -119,6 +120,7 @@ export default function SwipeDeck({
 }) {
   const t = useT('landing.vote.deck');
   const tAct = useT('landing.activities');
+  const tDuration = useT('activityDetail.duration');
   const stageRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
   const [touched, setTouched] = useState(false);
@@ -297,8 +299,9 @@ export default function SwipeDeck({
               <div className="dcard__body">
                 <div className="dcard__name">{a.name}</div>
                 <div className="dcard__meta">
-                  <i>{a.durationLabel}</i> · {a.hasGroupMin ? `${tAct('from')} ` : ''}€{a.price}{' '}
-                  {tAct('perPerson')}
+                  <i>{formatDuration(a.duration, tDuration)}</i> ·{' '}
+                  {a.hasGroupMin ? `${tAct('from')} ` : ''}
+                  {formatAmount(a.price)} {tAct('perPerson')}
                 </div>
                 {a.minPrice ? (
                   <div className="dcard__min">{tAct('minPerGroup', { min: a.minPrice })}</div>

@@ -1,7 +1,7 @@
 {
   "activities": {
     "stag-challenge-2": {
-      "name": "Stag Challenge",
+      "name": "JGA-Herausforderung",
       "description": "Der Schwergewichts-Titelkampf unter Prags Kneipentouren. Die Stag Challenge führt deine Gruppe in drei Stunden durch vier Bars, ein Trivlu-Guide gibt das Tempo vor: eine Stunde Macháček-Trinkspiel, eine Flasche Jägermeister auf dem Tisch, Burger und Pommes, damit alle aufrecht bleiben, das Shot-Glücksrad mit drei Shots pro Person, eine Stunde unbegrenzt Bier, Wein und Cocktails, eine Stunde „King of the Ring“, Tischfußball und zum Abschluss freier Eintritt in einen Nachtclub. Biere entlang der Route sind ebenfalls inklusive. Eine strukturierte Eskalation — erst Spiele, dann Chaos — genau das, was eine richtige JGA-Nacht braucht: Schwung, Strafen und einen Guide, der dafür sorgt, dass die Gruppe geschlossen im Club ankommt. Prags Nachtleben, im Sturm genommen.",
       "includes": "Trivlu-Guide; Lokale Tipps; Freier Eintritt in ausgewählte Clubs in Prag; Eine Stunde Macháček-Spiel; Tischreservierung; Flasche Jägermeister; 1 Softdrink; 2 Bier pro Person; Burger pro Person; Pommes pro Person; 3 Shots zur Auswahl; Shot-Glücksrad; 3 Shots pro Person (vom Glücksrad bestimmt); Eine Stunde unbegrenzt Bier, Wein, Cocktails; Eine Stunde „King of the Ring“; Tischfußball; Nachtclub-Eintritt"
     },
@@ -11,7 +11,7 @@
       "includes": "Trivlu-Guide; 15 Min. Stripshow; Drink pro Person; Windelwechsel"
     },
     "stag-ring-challenge": {
-      "name": "Ring-Challenge für den Bräutigam",
+      "name": "Ring-Herausforderung für den Bräutigam",
       "description": "Der Bräutigam hat eine große Klappe; der Ring findet es heraus. Die Ring-Challenge ist ein beaufsichtigtes Kampfsport-Erlebnis, bei dem der Bräutigam für ein kontrolliertes Sparring mit einer professionellen Kämpferin in den Ring steigt — komplette Boxausrüstung inklusive, von Handschuhen und Shorts bis Mundschutz, Schienbeinschonern und Helm. Ein qualifizierter Instruktor macht die Sicherheitseinweisung, ein Ringrichter kontrolliert jede Runde, privater Hin- und Rücktransport ist inklusive, und ein Trivlu-Guide überwacht den Tag. Die Kontrolle ist der Punkt: Adrenalin mit Regeln, nicht Leichtsinn — und der Anblick des Bräutigams, der entdeckt, wie viel Technik zählt, ist die Buchung allein wert. Zwei Stunden von Tür zu Tür, ein demütiger Bräutigam und eine Gruppe, die die Nacherzählung noch Jahre lang schiedsrichtert.",
       "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); Qualifizierter Instruktor; Ringrichter; Boxausrüstung für den Bräutigam (Boxhandschuhe, Boxshorts, Mundschutz, Schienbeinschoner, Boxhelm); Professionelle Kämpferin; Sicherheitseinweisung"
     },
@@ -26,7 +26,7 @@
       "includes": "Trivlu-Guide; Tischreservierung; 500 g Rippchen pro Person; Pommes pro Person; 2 Bier pro Person"
     },
     "swimming-beer-bike": {
-      "name": "Schwimmendes Beer Bike",
+      "name": "Schwimmendes Beer-Bike",
       "description": "Das Beer Bike, nur schwimmend. Prags schwimmendes Beer Bike setzt deine Gruppe für 90 Minuten aufs Wasser — mit unbegrenzt Bier, einem Kapitän, der die wichtigen Richtungsentscheidungen trifft, und der Stadt, die vorbeizieht, während du trittst, einschenkst und generell nicht viel hilfst. Ein Trivlu-Guide bringt alle an Bord und die Zapfhähne zum Laufen. Die seltene Aktivität, die Sightseeing, Trinken und leichte Bewegung in Proportionen kombiniert, die eine JGA-Gruppe tatsächlich gutheißen kann — das Treten ist im Geiste optional, das Bier nicht. Allein die Neuheit macht es zum Highlight: Viele Städte haben Kneipentouren, sehr wenige lassen dich eine davon den Fluss hinunter steuern. Rechne mit Gesang, rechne mit Spritzern, rechne mit dem Gruppenfoto des Wochenendes. Neunzig Minuten auf dem Wasser, null Fahrer nötig.",
       "includes": "Trivlu-Guide; Bootsfahrt; Kapitän; Unbegrenzt Bier"
     },
@@ -41,7 +41,7 @@
       "includes": "Trivlu-Guide; 1 Stunde Spiel; Unbegrenzt Gummibälle; Bier oder Softdrink pro Person"
     },
     "vip-cabaret-night-package": {
-      "name": "VIP-Cabaret-Nacht-Paket",
+      "name": "Cabaret-Nachtpaket (VIP)",
       "description": "Die große Nacht als All-in-one, richtig zusammengestellt. Das VIP-Cabaret-Nacht-Paket umfasst den Eintritt in eines der Top-Adult-Venues Prags mit reserviertem Tisch, eine 10-minütige Show und — das Herzstück — den Bräutigam selbst für 10 Minuten im Rampenlicht auf der Bühne, was er sich garantiert nicht selbst aussuchen würde. Der Tisch bekommt eine 0,7-Liter-Flasche Spirituosen deiner Wahl, der Bräutigam trinkt die ganze Nacht Bier aufs Haus und geht mit einem Erinnerungs-T-Shirt als Beweis, dass alles wirklich passiert ist. Ein Trivlu-Guide organisiert Eintritt, Plätze und Timing über den dreistündigen Abend. Das Format für die Abschlussnacht: keine Logistik, keine Schlangen, eine Location, alles inklusive — die Gruppe setzt sich zusammen hin, und die Nacht passiert einfach um sie herum.",
       "includes": "Trivlu-Guide; Stripclub-Eintritt; Tischreservierung im Stripclub; 10 Min. Lesben-Show; 10 Min. Bräutigam-Show auf der Bühne; Flasche 0,7 l Spirituose (nach Wahl); Unbegrenzt Bier für den Bräutigam; T-Shirt für den Bräutigam"
     },

@@ -1,7 +1,7 @@
 {
   "activities": {
     "guided-cabaret-club-tour": {
-      "name": "Geführte Cabaret-Club-Tour",
+      "name": "Geführte Tour im Cabaret-Club",
       "description": "Prags Nachtleben mit jemandem, der den Stadtplan wirklich kennt. Dieser zweistündige geführte Abend führt deine Gruppe durch eine freie Auswahl an Bars, während ein lokaler Trivlu-Guide die Tipps teilt, die es nie in Reiseführer schaffen, und endet mit dem Eintritt in einen der Top-Cabaret-Clubs der Stadt — freier Eintritt in ausgewählte Locations unterwegs inklusive. Kein Eintrittspreis-Roulette, keine falschen Abzweigungen, kein Anstehen in Schlangen, die nirgendwohin führen. Das ideale Format für die erste Nacht: Du findest heraus, wo die guten Läden sind, der Guide regelt jede Tür, und die Gruppe baut Stopp für Stopp Schwung auf. Wenn du die letzte Location erreichst, ist die Nacht bereits ein Erfolg — alles danach ist Bonus.",
       "includes": "Trivlu-Guide; Stripclub-Eintritt; Geführte Tour durch Prag; Freie Auswahl an Bars; Lokale Tipps; Freier Eintritt in ausgewählte Clubs in Prag"
     },
@@ -86,7 +86,7 @@
       "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); Meet and Greet mit persönlichem Instruktor; 30 Min. Ausrüsten; Integralhelm pro Person; Funktionsunterwäsche pro Person; Leder-Motorradkombi pro Person; Sturmhaube pro Person; Handtuch pro Person; Schließfächer und Duschen mit Handtüchern und Pflegeprodukten; 5 Min. Sicherheitseinweisung; Pitbike pro Person; 30 Min. Pitbike-Training; 4 Fahrten auf der Pitbike-Strecke; Bier oder Red Bull pro Person; Qualifizierter Instruktor; Leder-Motorradstiefel pro Person; Leder-Motorradhandschuhe pro Person"
     },
     "private-game-room-session": {
-      "name": "Private Gaming-Room-Session",
+      "name": "Private Session in Gaming-Room",
       "description": "Zwei Stunden, eine private Gaming-Lounge, niemand, der dir sagt, du sollst leiser sein. Die private Gaming-Room-Session gibt deiner Gruppe einen eigenen Raum mit PlayStation 5, VR-System und Nintendo-Konsole, dazu einen Burger pro Person und drei tschechische Biere pro Spieler, damit das Turnier Treibstoff hat. Ein Trivlu-Guide bucht alles und bringt die Gruppe unter. Von da an schreibt es sich von selbst: Multiplayer-Showdowns im Turnierbaum, VR-Demütigung für die Freiwilligen und die ewige Wahrheit, dass derjenige, der am meisten redet, am wenigsten gewinnt. Ein brillanter Low-Effort-Slot für ein JGA-Programm — klimatisiert, kompetitiv und gesellig — ideal zwischen Tagesaktivitäten und einer großen Nacht oder als Erholungsprogramm am Morgen danach. Burger, Bier, Controller: die verlässlichsten zwei Stunden des JGA-Wochenendes.",
       "includes": "Trivlu-Guide; 2 Std. private Gaming-Room-Reservierung; Burger pro Person; 3 Bier pro Person; PlayStation 5 mit VR-System; Nintendo DS"
     },
@@ -96,7 +96,7 @@
       "includes": "Trivlu-Guide; 15 Min. Stripshow"
     },
     "quad-bikes": {
-      "name": "Quad fahren",
+      "name": "Quad-Fahrt",
       "description": "Schlamm, Gräben, Hindernisse und ein ehemaliges Militärgelände, das dir alles davon um die Ohren haut — Quad fahren vor Prag ist kurz, intensiv und herrlich dreckig. Jeder Fahrer bekommt eine 15-minütige Highspeed-Runde auf dem geführten Parcours, mit qualifiziertem Instruktor und kompletter Ausrüstung und Schutzausrüstung. Privater Hin- und Rücktransport ist inklusive und ein Trivlu-Guide leitet den Tag, die Gruppe kommt also einfach und fährt. Fünfzehn Minuten klingen kurz, bis man ein Quad durch zerfurchten Armeeboden gewuchtet hat; es reicht genau, um Arme schmerzen und Grinsen festfrieren zu lassen. Das Format macht es auch zu einer cleveren Wahl nach der Party — ein kurzer Adrenalinstoß, der die Gruppe aufweckt, statt sie zu erschöpfen. Rechne mit verspritzter Kleidung, umstrittenen Angeberrechten und sofortigen Forderungen nach Revanche.",
       "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); Qualifizierter Instruktor; Ausrüstung & Schutzausrüstung; 15 Min. Quad-Fahrt pro Person"
     },

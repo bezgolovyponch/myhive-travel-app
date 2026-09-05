@@ -5,7 +5,7 @@ import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL, WHATSAPP_URL} from '../services/config';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice, hasGroupMin} from '../utils/format';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatAmount, formatDuration, formatPrice, hasGroupMin} from '../utils/format';
 import {parseDescriptionBlocks} from '../utils/descriptionBlocks';
 import ActivityGallery from '../components/ActivityGallery';
 import ActivityCard from '../components/ActivityCard';
@@ -14,19 +14,11 @@ import './ActivityDetailPage.css';
 
 const MAX_MORE_ACTIVITIES = 4;
 
-function formatDuration(minutes, t) {
-    if (minutes < 60) {
-        return t('duration.minutes', {minutes});
-    }
-    const hours = Math.floor(minutes / 60);
-    const rest = minutes % 60;
-    return rest ? t('duration.hoursMinutes', {hours, rest}) : t('duration.hours', {hours});
-}
-
 // `activity` is supplied by the server renderer (Next.js SSR) so the record is
 // in the initial HTML; omitted in the SPA, which fetches by slug as before.
 function ActivityDetailPage({activity: injectedActivity}) {
     const t = useT('activityDetail');
+    const tDuration = useT('activityDetail.duration');
     const tMeta = useT('meta');
     const {destinationSlug, slug} = useParams();
     const navigate = useNavigate();
@@ -84,7 +76,7 @@ function ActivityDetailPage({activity: injectedActivity}) {
         : null;
     const category = primaryCategory ? capitalizeFirst(primaryCategory) : t('categoryFallback');
     const isAdded = state.tripItems.some(item => item.id === activity.id);
-    const durationText = activity.duration != null ? formatDuration(activity.duration, t) : null;
+    const durationText = formatDuration(activity.duration, tDuration);
     const destSlug = destinationSlug || activity.destinationSlug;
 
     const photos = activity.images && activity.images.length > 0

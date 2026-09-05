@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  formatDurationLabel,
   toLandingActivity,
   buildRows,
   buildDeck,
@@ -21,17 +20,14 @@ function act(overrides: Partial<Activity>): Activity {
   } as Activity;
 }
 
-describe('formatDurationLabel', () => {
-  it('renders minutes under an hour, hours above', () => {
-    expect(formatDurationLabel(45)).toBe('45 min');
-    expect(formatDurationLabel(60)).toBe('1 h');
-    expect(formatDurationLabel(90)).toBe('1.5 h');
-    expect(formatDurationLabel(120)).toBe('2 h');
-    expect(formatDurationLabel(null)).toBeNull();
-  });
-});
-
 describe('toLandingActivity', () => {
+  it('keeps a positive duration in minutes and drops anything else', () => {
+    expect(toLandingActivity(act({ duration: 90 })).duration).toBe(90);
+    expect(toLandingActivity(act({ duration: 0 })).duration).toBeNull();
+    expect(toLandingActivity(act({ duration: null })).duration).toBeNull();
+    expect(toLandingActivity(act({ duration: undefined })).duration).toBeNull();
+  });
+
   it('normalizes categories given as objects or strings', () => {
     const a = toLandingActivity(
       act({ categories: [{ name: 'Extreme' }, 'Chillout'] as Activity['categories'] }),

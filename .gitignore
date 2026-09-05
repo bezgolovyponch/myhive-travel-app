@@ -61,3 +61,6 @@ neon_backup*.sql
 
 ### Personal working notes, never committed ###
 /docs/temp/
+
+# Local review material and prod credentials, never committed
+fixes/

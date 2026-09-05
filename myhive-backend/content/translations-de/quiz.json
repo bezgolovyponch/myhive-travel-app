@@ -11,9 +11,9 @@
     "Nightlife": { "label": "Nachtleben" },
     "Adrenaline": { "label": "Adrenalin" },
     "Relaxed": { "label": "Entspannt" },
-    "A big part": { "label": "Ein großer Teil" },
-    "Somewhat": { "label": "Mittelmäßig" },
-    "Keep it simple": { "label": "Einfach halten" },
+    "A big part": { "label": "Sehr wichtig" },
+    "Somewhat": { "label": "50/50" },
+    "Keep it simple": { "label": "Nicht wichtig" },
     "Stylish bars and VIP clubs": { "label": "Stylische Bars und VIP-Clubs" },
     "Wild nights": { "label": "Wilde Nächte" }
   }
