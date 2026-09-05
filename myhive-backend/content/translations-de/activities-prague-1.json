@@ -41,7 +41,7 @@
       "includes": "Trivlu-Guide; 2 Würstchen pro Person; 2 Eier pro Person; 2 Streifen Bacon pro Person; 2 Hash Browns pro Person; Black und White Pudding pro Person; Tomate pro Person; Pilze pro Person; Bohnen pro Person; Toast pro Person; Orangensaft (0,2 l) pro Person; 15 Min. Stripshow"
     },
     "bubble-football": {
-      "name": "Bubble Football",
+      "name": "Bubble-Fußball",
       "description": "Nimm Fußball, entferne jede Würde, füg riesige aufblasbare Zorbs hinzu. Bubble Football in Prag steckt deine Gruppe für eine Stunde Spielzeit in riesige Blasen und lässt sie dann durch ein Match hüpfen, rempeln und rollen, das niemand ernst nehmen kann. Ein qualifizierter Instruktor und ein Schiedsrichter halten das Chaos organisiert, Ausrüstung und Schutzausrüstung werden gestellt, und wenn endlich abgepfiffen wird, gibt es für jeden Spieler ein Bier. Ein Trivlu-Guide kümmert sich um den Treffpunkt, die Gruppe kommt einfach und spielt. Eine der verlässlich lustigsten JGA-Aktivitäten überhaupt: Fitness hilft weniger, als man denkt, große Zusammenstöße tun nicht weh, und das Videomaterial ist garantiertes Gold. Perfekt als Energie-Verbrenner am Tag, bevor die Abendpläne beginnen.",
       "includes": "Trivlu-Guide; Qualifizierter Instruktor; 1 Std. Spielzeit; Ausrüstung & Schutzausrüstung; Bier pro Person; Schiedsrichter"
     },
@@ -51,7 +51,7 @@
       "includes": "Trivlu-Guide; Burger pro Person; Pommes pro Person; Sauce pro Person; 2 Bier pro Person; 15 Minuten Stripshow"
     },
     "car-demolition-in-prague": {
-      "name": "Auto zertrümmern in Prag",
+      "name": "Auto-Zertrümmern in Prag",
       "description": "In jeder Gruppe gibt es jemanden, der einfach etwas kaputtmachen will. Auto zertrümmern in Prag gibt ihm ein echtes Auto und die volle Erlaubnis. In einem kontrollierten, beaufsichtigten Rahmen mit qualifiziertem Instruktor zerlegt deine Gruppe abwechselnd ein echtes Fahrzeug, Ausrüstung und Schutzausrüstung inklusive — das Einzige, was hier zu Schaden kommt, ist das Auto. Privater Hin- und Rücktransport ist inklusive, dazu Wasser zum Abkühlen zwischen den Runden, und ein Trivlu-Guide hält den Tag am Laufen. Eine pure, befreiende Stunde aus Lärm und Glasbruch — das, was man zu Hause nie darf, und genau dafür ist ein JGA in Prag da. Bring den Frust der Gruppe mit, lass ihn im Wrack und komm mit spektakulären Fotos zum Abendessen.",
       "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); Auto zertrümmern; Qualifizierter Instruktor; Ausrüstung & Schutzausrüstung; Wasser pro Person"
     },
@@ -106,7 +106,7 @@
       "includes": "Eine Stunde kleinwüchsiger Entertainer"
     },
     "extreme-archery": {
-      "name": "Extreme Archery",
+      "name": "Bogensport Extrem",
       "description": "Paintball ohne die Sauerei, Robin Hood mit Anzeigetafel. Extreme Archery rüstet deine Gruppe mit Bögen im Olympia-Stil für eine volle Stunde Spielzeit in einer coolen Indoor-Arena im Zentrum Prags aus — einer ehemaligen Filmlocation, die von Hollywood-Produktionen wie Angelina Jolies „Wanted“ genutzt wurde und dem Showdown eine richtig cineastische Kulisse gibt. Ausrüstung und Schutzausrüstung werden gestellt, es gibt ein Kostüm für den Bräutigam, und jeder Spieler bekommt ein Bier oder einen Softdrink. Ein Trivlu-Guide hält die Session am Laufen. Das Format macht sofort süchtig: ausweichen, spannen, schießen und streiten, ob der Treffer gezählt hat. Es passt zu jedem Fitnesslevel, hinterlässt keine nennenswerten blauen Flecken und erzeugt die Art Team-Rivalität, die den Rest des Wochenendes trägt. Buche die Arena, bring deine Zielsicherheit mit.",
       "includes": "Trivlu-Guide; Ausrüstung & Schutzausrüstung; Kostüm für den Bräutigam; Bier oder Softdrink pro Person; Eine Stunde Spielzeit"
     },
@@ -116,12 +116,12 @@
       "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); Qualifizierter Instruktor; 60 Min. Spielzeit; Bier oder Wasser pro Person; Ausrüstung & Schutzausrüstung"
     },
     "footgolf": {
-      "name": "Footgolf",
+      "name": "Fußballgolf",
       "description": "Die Ruhe des Golfs, das Chaos des Fußballs — Footgolf trifft perfekt die Mitte. Deine Gruppe spielt eine 90-minütige Runde auf einem richtigen Platz direkt vor Prag, schießt Fußbälle in überdimensionale Löcher und stellt fest, dass ein feiner Chip mit den Füßen deutlich schwerer ist. Privater Hin- und Rücktransport ist inklusive und ein Trivlu-Guide hält den Tag im Zeitplan, der ganze Ausflug läuft also von selbst. Der Platz ist von April bis Oktober geöffnet — eine tolle Schönwetter-Wahl für den Tagesslot eines JGA. Keine Golf-Etikette, keine Ausrüstung zu meistern, kein Handicap nötig — nur ein leichter, geselliger Sport, bei dem Sprüche Pflicht sind und jedes Loch mindestens einen spektakulären Fehlschuss produziert. Zähl richtig, spiel um eine Strafe und klär ein für alle Mal, wer in der Gruppe wirklich einen linken Fuß hat.",
       "includes": "Trivlu-Guide; Privater Transport (Hin- und Rückfahrt); 90 Min. Footgolf-Runde"
     },
     "ford-boyard-challenge": {
-      "name": "Fort-Boyard-Challenge",
+      "name": "Fort-Boyard-Herausforderung",
       "description": "Neunzig Minuten Spiel, eine Mission und ein Team, das sie sich verdienen muss. Inspiriert vom klassischen Abenteuerformat schickt die Fort-Boyard-Challenge deine Gruppe durch eine Reihe körperlicher und geistiger Prüfungen — Rätsel zum Knacken, Challenges zum Überstehen und Momente, in denen sich jemand für den unangenehmen Teil freiwillig melden muss. Ein Trivlu-Guide leitet den Tag, der Bräutigam bekommt sein eigenes T-Shirt für den Anlass, und nach erfüllter Mission gibt es ein Bier oder einen Softdrink für alle. Ein brillantes Format für JGA-Gruppen, weil es echtes Teamwork erzwingt: Der Lauteste der Gruppe ist plötzlich nutzlos bei Rätseln, der Stille entpuppt sich als Held, und die Nachbesprechung schreibt sich von selbst. Rechne mit rund zwei Stunden insgesamt.",
       "includes": "Trivlu-Guide; 90 Minuten Spiel; Bier oder Softdrink pro Person; T-Shirt für den Bräutigam"
     },
