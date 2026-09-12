@@ -1,6 +1,6 @@
 -- Sales/ops address book: one row per normalized email ever typed into the site.
--- Hibernate `update` would create the table too; shipping it here keeps prod DDL explicit
--- and lets us backfill from the tables that already hold addresses.
+-- Prod runs Hibernate ddl-auto=validate, so this migration is the ONLY thing that creates the table:
+-- keep its column types in sync with entity/Contact.java or startup validation fails.
 CREATE TABLE IF NOT EXISTS contacts (
     id            uuid PRIMARY KEY,
     email         varchar(255) NOT NULL,
@@ -26,8 +26,9 @@ WITH touches AS (
     FROM vote_sessions
     WHERE initiator_email IS NOT NULL AND trim(initiator_email) <> ''
     UNION ALL
-    SELECT email, NULL, locale, 'TRIP_BUILDER', created_at
+    SELECT lower(trim(email)), NULL, locale, 'TRIP_BUILDER', created_at
     FROM trip_leads
+    WHERE email IS NOT NULL AND trim(email) <> ''
     UNION ALL
     SELECT lower(trim(payer_email)), NULL, NULL, 'PAYMENT', paid_at
     FROM booking_payment_shares

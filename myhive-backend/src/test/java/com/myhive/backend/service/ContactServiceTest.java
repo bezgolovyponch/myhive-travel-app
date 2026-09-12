@@ -122,4 +122,24 @@ class ContactServiceTest {
                         tuple(expectedSuppressed, true),
                         tuple(expectedActive, false));
     }
+
+    @Test
+    void findAllForExport_flagsSuppressedAddresses() {
+        String marker = UUID.randomUUID().toString().substring(0, 8);
+        String expectedSuppressed = "c-" + marker + "-x@example.com";
+        String expectedActive = "c-" + marker + "-y@example.com";
+        createdEmails.add(expectedSuppressed);
+        createdEmails.add(expectedActive);
+        contactService.touch(expectedSuppressed, ContactSource.BOOKING, null, null);
+        contactService.touch(expectedActive, ContactSource.BOOKING, null, null);
+        EmailSuppression suppression = new EmailSuppression();
+        suppression.setEmail(expectedSuppressed);
+        emailSuppressionRepository.save(suppression);
+
+        List<ContactDTO> all = contactService.findAllForExport();
+
+        assertThat(all).filteredOn(dto -> dto.getEmail().contains(marker))
+                .extracting(ContactDTO::getEmail, ContactDTO::isUnsubscribed)
+                .containsExactlyInAnyOrder(tuple(expectedSuppressed, true), tuple(expectedActive, false));
+    }
 }

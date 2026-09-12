@@ -65,7 +65,10 @@ public class Contact {
     @Column(name = "last_seen_at", nullable = false)
     private LocalDateTime lastSeenAt;
 
-    /** How many times any capture point saw this address. */
+    /**
+     * How many times any capture point saw this address. Soft signal only: incremented without
+     * locking, so concurrent touches may lose an increment.
+     */
     @Column(name = "touch_count", nullable = false)
     private int touchCount;
 }

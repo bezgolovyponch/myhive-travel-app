@@ -264,7 +264,12 @@ public class BookingService {
         return snapshot.compareTo(catalog) == 0;
     }
 
-    /** The booking's customer joins the sales address book; best-effort by ContactService contract. */
+    /**
+     * The booking's customer joins the sales address book; best-effort by ContactService contract.
+     * Commits before the outer transaction, so a contact with first_source = BOOKING can exist for a
+     * booking that was later rolled back (e.g. Stripe failed after the save) — read it as "typed an
+     * email at checkout", not "has booked".
+     */
     private void recordContact(Booking booking) {
         contactService.touch(booking.getUserEmail(), ContactSource.BOOKING,
                 booking.getCustomerName(), booking.getLocale());

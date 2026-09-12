@@ -65,7 +65,8 @@ public class ContactService {
             // The other concurrent touch() won the insert race; its write already recorded this
             // address. Never log e.getMessage()/e here — both H2 and Postgres embed the raw email
             // in the constraint-violation detail.
-            log.warn("Contact {} from {} lost a concurrent-insert race; the other write won",
+            log.warn("Contact {} from {} hit an integrity violation (most likely a concurrent insert "
+                            + "of the same address); the row was not written",
                     EmailMasker.mask(email), source);
         } catch (Exception e) {
             // Best-effort by contract — the caller's transaction must not see this failure.
@@ -83,10 +84,14 @@ public class ContactService {
         return page.map(contact -> toDto(contact, suppressed.contains(contact.getEmail())));
     }
 
+    /**
+     * Full export: scans every suppression row instead of an {@code IN} list keyed by the exported
+     * contacts, so a large export never exceeds the database's bind-parameter cap.
+     */
     @Transactional(readOnly = true)
     public List<ContactDTO> findAllForExport() {
         List<Contact> contacts = contactRepository.findAll();
-        Set<String> suppressed = suppressedEmails(contacts);
+        Set<String> suppressed = allSuppressedEmails();
         return contacts.stream()
                 .map(contact -> toDto(contact, suppressed.contains(contact.getEmail())))
                 .toList();
@@ -124,6 +129,12 @@ public class ContactService {
             return Set.of();
         }
         return emailSuppressionRepository.findByEmailIn(emails).stream()
+                .map(EmailSuppression::getEmail)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> allSuppressedEmails() {
+        return emailSuppressionRepository.findAll().stream()
                 .map(EmailSuppression::getEmail)
                 .collect(Collectors.toSet());
     }

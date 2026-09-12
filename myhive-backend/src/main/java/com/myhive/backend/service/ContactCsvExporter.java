@@ -44,7 +44,7 @@ public class ContactCsvExporter {
 
     private static String[] toRow(ContactDTO c) {
         return new String[] {
-                CsvCells.sanitize(c.getEmail()),
+                CsvCells.sanitize(CsvCells.nullSafe(c.getEmail())),
                 CsvCells.sanitize(CsvCells.nullSafe(c.getName())),
                 CsvCells.nullSafe(c.getLocale()),
                 c.getFirstSource().name(),
