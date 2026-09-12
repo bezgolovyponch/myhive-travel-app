@@ -14,7 +14,9 @@ import com.myhive.backend.model.BookingStatus;
 import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.VoteMode;
+import jakarta.mail.Message;
 import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import org.thymeleaf.context.IContext;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -242,7 +245,7 @@ class EmailServiceTest {
     }
 
     @Test
-    void sendNewContactsDigest_sendsSynchronouslyToBookingsAddress() {
+    void sendNewContactsDigest_sendsSynchronouslyToBookingsAddress() throws Exception {
         ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", "Anna", "de",
                 ContactSource.VOTE, ContactSource.BOOKING,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 9, 0), 2, false);
@@ -254,6 +257,7 @@ class EmailServiceTest {
 
         // Synchronous on purpose: the scheduler stamps rows only after a confirmed delivery.
         verify(mailSender).send(mimeMessage);
+        verify(mimeMessage).setRecipient(eq(Message.RecipientType.TO), eq(new InternetAddress("booking@trivlu.com")));
         verifyNoInteractions(asyncMailSender);
     }
 
@@ -267,6 +271,54 @@ class EmailServiceTest {
         assertThatThrownBy(() -> emailService.sendNewContactsDigest(List.of(contact), "https://trivlu.com"))
                 .isInstanceOf(EmailSendException.class);
         verifyNoInteractions(mailSender);
+    }
+
+    @Test
+    void sendNewContactsDigest_mapsSourcesLocaleAndTimestampIntoRows() {
+        String expectedSource = "VOTE → BOOKING";
+        String expectedFirstSeen = "2026-09-12 08:30 UTC";
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", "Anna", "de",
+                ContactSource.VOTE, ContactSource.BOOKING,
+                LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 9, 0), 2, false);
+        when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
+        ArgumentCaptor<IContext> context = ArgumentCaptor.forClass(IContext.class);
+        when(templateEngine.process(eq("contacts-digest"), context.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendNewContactsDigest(List.of(contact), "https://trivlu.com");
+
+        List<EmailService.ContactDigestRow> rows = digestRows(context.getValue());
+        assertThat(rows).singleElement().satisfies(row -> {
+            assertThat(row.source).isEqualTo(expectedSource);
+            assertThat(row.locale).isEqualTo("DE");
+            assertThat(row.firstSeen).isEqualTo(expectedFirstSeen);
+            assertThat(row.name).isEqualTo("Anna");
+        });
+        assertThat(context.getValue().getVariable("heading")).isEqualTo("1 new contact");
+    }
+
+    @Test
+    void sendNewContactsDigest_defaultsNullNameAndLocale() {
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null,
+                ContactSource.VOTE, ContactSource.VOTE,
+                LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 8, 30), 1, true);
+        when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
+        ArgumentCaptor<IContext> context = ArgumentCaptor.forClass(IContext.class);
+        when(templateEngine.process(eq("contacts-digest"), context.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendNewContactsDigest(List.of(contact), "https://trivlu.com");
+
+        List<EmailService.ContactDigestRow> rows = digestRows(context.getValue());
+        assertThat(rows).singleElement().satisfies(row -> {
+            assertThat(row.name).isEmpty();
+            assertThat(row.locale).isEqualTo("EN");
+            assertThat(row.source).isEqualTo("VOTE");
+            assertThat(row.unsubscribed).isTrue();
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<EmailService.ContactDigestRow> digestRows(IContext context) {
+        return (List<EmailService.ContactDigestRow>) context.getVariable("contacts");
     }
 
     @Test

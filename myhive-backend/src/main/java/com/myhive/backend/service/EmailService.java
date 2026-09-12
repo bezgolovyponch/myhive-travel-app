@@ -280,14 +280,14 @@ public class EmailService {
     public void sendNewContactsDigest(List<ContactDTO> contacts, String frontendUrl) {
         String digestDate = LocalDate.now(ZoneOffset.UTC).toString();
         List<ContactDigestRow> rows = contacts.stream().map(EmailService::toDigestRow).toList();
+        String noun = rows.size() == 1 ? " new contact" : " new contacts";
 
         Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("count", rows.size());
+        variables.put("heading", rows.size() + noun);
         variables.put("digestDate", digestDate);
         variables.put("adminUrl", frontendUrl + "/admin/contacts");
         variables.put("contacts", rows);
 
-        String noun = rows.size() == 1 ? " new contact" : " new contacts";
         send(EmailSpec.builder()
                 .to(bookingsToEmail)
                 .subject(rows.size() + noun + " on Trivlu — " + digestDate)

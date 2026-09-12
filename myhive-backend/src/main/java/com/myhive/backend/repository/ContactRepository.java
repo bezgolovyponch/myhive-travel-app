@@ -22,8 +22,8 @@ public interface ContactRepository extends JpaRepository<Contact, UUID> {
     Page<Contact> findByEmailContainingIgnoreCaseOrNameContainingIgnoreCase(
             String email, String name, Pageable pageable);
 
-    /** Contacts the daily digest has not reported yet, oldest first. */
-    List<Contact> findByDigestSentAtIsNullOrderByFirstSeenAtAsc();
+    /** Contacts the daily digest has not reported yet, oldest first, ties broken by email. */
+    List<Contact> findByDigestSentAtIsNullOrderByFirstSeenAtAscEmailAsc();
 
     @Modifying
     @Query("update Contact c set c.digestSentAt = :sentAt where c.id in :ids")

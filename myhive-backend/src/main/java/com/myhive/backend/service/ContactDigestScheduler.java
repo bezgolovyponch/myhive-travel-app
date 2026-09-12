@@ -14,7 +14,10 @@ import java.util.UUID;
 
 /**
  * Once a day, mails sales every contact captured since the previous digest. Rows are stamped as
- * reported only after the email was delivered, so a failed send simply retries tomorrow.
+ * reported only after the email was delivered, so a failed send simply retries tomorrow. Delivery
+ * is at-least-once: if stamping fails after a successful send, tomorrow's digest repeats those
+ * rows. Assumes a single backend instance (Render runs one) — a second instance would double-mail,
+ * which is why there is no send claim like VoteProgressNotifier's.
  */
 @Component
 @RequiredArgsConstructor
@@ -36,7 +39,7 @@ public class ContactDigestScheduler {
     private String frontendUrl;
 
     /** 07:00 UTC daily — start of the working day in Berlin, before the inbox fills up. */
-    @Scheduled(cron = "0 0 7 * * *")
+    @Scheduled(cron = "0 0 7 * * *", zone = "UTC")
     public void sendDailyDigest() {
         if (!digestEnabled || !emailEnabled) {
             return;
@@ -54,7 +57,12 @@ public class ContactDigestScheduler {
             return;
         }
         List<UUID> ids = fresh.stream().map(ContactDTO::getId).toList();
-        contactService.markDigested(ids, LocalDateTime.now(ZoneOffset.UTC));
-        log.info("Contacts digest sent with {} contacts", ids.size());
+        try {
+            contactService.markDigested(ids, LocalDateTime.now(ZoneOffset.UTC));
+            log.info("Contacts digest sent with {} contacts", ids.size());
+        } catch (Exception e) {
+            // Delivered but not stamped: at-least-once, tomorrow's digest repeats these rows.
+            log.error("Contacts digest delivered but {} rows could not be stamped; they will be re-sent", ids.size(), e);
+        }
     }
 }

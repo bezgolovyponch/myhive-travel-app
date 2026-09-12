@@ -14,7 +14,7 @@ class ContactsDigestTemplateRenderTest {
     void rendersEveryRowAndTheAdminLink() {
         String expectedAdminUrl = "https://trivlu.com/admin/contacts";
         Context context = new Context(Locale.ENGLISH);
-        context.setVariable("count", 2);
+        context.setVariable("heading", "2 new contacts");
         context.setVariable("digestDate", "2026-09-13");
         context.setVariable("adminUrl", expectedAdminUrl);
         context.setVariable("contacts", List.of(

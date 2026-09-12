@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,6 +79,16 @@ class ContactDigestSchedulerTest {
         scheduler.sendDailyDigest();
 
         verify(contactService, never()).markDigested(anyCollection(), any());
+    }
+
+    @Test
+    void sendDailyDigest_stampFails_logsAndDoesNotThrow() {
+        when(contactService.findUndigested()).thenReturn(List.of(contact()));
+        doThrow(new RuntimeException("db down")).when(contactService).markDigested(anyCollection(), any());
+
+        assertThatCode(() -> scheduler.sendDailyDigest()).doesNotThrowAnyException();
+
+        verify(emailService).sendNewContactsDigest(any(), eq(FRONTEND_URL));
     }
 
     @Test

@@ -92,17 +92,17 @@ public class ContactService {
      */
     @Transactional(readOnly = true)
     public List<ContactDTO> findAllForExport() {
-        List<Contact> contacts = contactRepository.findAll();
-        Set<String> suppressed = allSuppressedEmails();
-        return contacts.stream()
-                .map(contact -> toDto(contact, suppressed.contains(contact.getEmail())))
-                .toList();
+        return toDtosWithSuppression(contactRepository.findAll());
     }
 
     /** Contacts the daily digest has not reported yet, oldest first, with the opt-out flag filled in. */
     @Transactional(readOnly = true)
     public List<ContactDTO> findUndigested() {
-        List<Contact> contacts = contactRepository.findByDigestSentAtIsNullOrderByFirstSeenAtAsc();
+        return toDtosWithSuppression(contactRepository.findByDigestSentAtIsNullOrderByFirstSeenAtAscEmailAsc());
+    }
+
+    /** Shared by every read that needs the opt-out flag: builds the suppression set once, then maps. */
+    private List<ContactDTO> toDtosWithSuppression(List<Contact> contacts) {
         Set<String> suppressed = allSuppressedEmails();
         return contacts.stream()
                 .map(contact -> toDto(contact, suppressed.contains(contact.getEmail())))

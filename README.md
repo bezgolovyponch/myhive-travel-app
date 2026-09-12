@@ -152,10 +152,12 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `AUTH0_ISSUER_URI`       | yes         | -                        |
 | `AUTH0_AUDIENCE`         | yes         | `https://api.trivlu.com` |
 | `AUTH0_ROLES_CLAIM`      | no          | `https://trivlu.com/roles` |
-| `FRONTEND_URL`           | for sitemap | `https://trivlu.com` (also the Stripe return-URL fallback when the request Origin is absent/untrusted) |
+| `FRONTEND_URL`           | for sitemap | `https://trivlu.com` (also the Stripe return-URL fallback when the request Origin is absent/untrusted, and email links — admin CTA in the contacts digest) |
 | `REMINDERS_ENABLED`      | no          | `true` (kill switch for the trip-lead reminder scheduler) |
 | `VOTE_ORGANIZER_EMAILS_ENABLED` | no   | `true` (kill switch for the organizer halfway/reminder emails; independent of `REMINDERS_ENABLED`, and both no-op when `EMAIL_ENABLED` is false) |
 | `API_PUBLIC_URL`         | no          | empty — set to the backend's public base URL **including the prod context path**, e.g. `https://<backend-host>/api`, to enable RFC 8058 `List-Unsubscribe`/`List-Unsubscribe-Post` headers on reminder emails. Left empty, reminder emails still send but ship **without** those one-click headers, which Gmail/Yahoo require of bulk senders. |
+| `CONTACTS_DIGEST_ENABLED` | no         | `true` (kill switch for the daily new-contacts digest) |
+| `EMAIL_BOOKINGS_TO`      | no          | `booking@trivlu.com` (recipient of booking notifications and the daily contacts digest) |
 
 ### Frontend (build-time `REACT_APP_*`)
 

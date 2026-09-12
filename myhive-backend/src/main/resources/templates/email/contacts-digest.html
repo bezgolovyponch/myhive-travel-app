@@ -21,7 +21,7 @@
 <div class="container">
     <div class="header">
         <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 60px; margin-bottom: 16px;">
-        <h1 th:text="${count + (count == 1 ? ' new contact' : ' new contacts')}">2 new contacts</h1>
+        <h1 th:text="${heading}">2 new contacts</h1>
         <p>Addresses captured on Trivlu since the last digest · <span th:text="${digestDate}">2026-09-13</span></p>
     </div>
     <div class="content">
