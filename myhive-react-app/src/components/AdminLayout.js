@@ -34,6 +34,11 @@ function AdminLayout() {
                         <Nav.Link as={NavLink} to="/admin/blog">
                             Blog
                         </Nav.Link>
+                        {user?.roles?.includes('ADMIN') && (
+                            <Nav.Link as={NavLink} to="/admin/contacts">
+                                Contacts
+                            </Nav.Link>
+                        )}
                     </Nav>
                     <Nav className="d-flex align-items-center gap-3">
                         <span className="text-muted small d-none d-md-inline">{user?.email}</span>

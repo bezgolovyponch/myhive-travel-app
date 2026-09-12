@@ -42,6 +42,25 @@ export function createAdminApi(getAccessToken) {
         throw await parseApiError(response, fallbackMessage);
     }
 
+    async function downloadCsv(url, fallbackFilename, errorMessage) {
+        const token = await getAccessToken();
+        const response = await fetch(url, {
+            headers: {Authorization: `Bearer ${token}`},
+        });
+        await handleError(response, errorMessage);
+        const blob = await response.blob();
+        const filename = parseContentDispositionFilename(response.headers.get('content-disposition'))
+            || fallbackFilename;
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+    }
+
     return {
         async getBookings() {
             const response = await fetch(`${API_BASE_URL}/admin/bookings`, {
@@ -128,25 +147,28 @@ export function createAdminApi(getAccessToken) {
         },
 
         async exportActivitiesCsv(destinationId) {
-            const token = await getAccessToken();
             const url = destinationId
                 ? `${API_BASE_URL}/admin/activities/export?destinationId=${encodeURIComponent(destinationId)}`
                 : `${API_BASE_URL}/admin/activities/export`;
-            const response = await fetch(url, {
-                headers: {Authorization: `Bearer ${token}`},
+            await downloadCsv(url, `activities-${new Date().toISOString().slice(0, 10)}.csv`,
+                'Failed to export activities');
+        },
+
+        async getContactsPaged(page = 0, size = 20, q = '') {
+            const params = new URLSearchParams({page, size});
+            if (q) {
+                params.append('q', q);
+            }
+            const response = await fetch(`${API_BASE_URL}/admin/contacts?${params}`, {
+                headers: await authHeaders(),
             });
-            await handleError(response, 'Failed to export activities');
-            const blob = await response.blob();
-            const filename = parseContentDispositionFilename(response.headers.get('content-disposition'))
-                || `activities-${new Date().toISOString().slice(0, 10)}.csv`;
-            const objectUrl = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = objectUrl;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(objectUrl);
+            await handleError(response, 'Failed to fetch contacts');
+            return response.json();
+        },
+
+        async exportContactsCsv() {
+            await downloadCsv(`${API_BASE_URL}/admin/contacts/export`,
+                `contacts-${new Date().toISOString().slice(0, 10)}.csv`, 'Failed to export contacts');
         },
 
         async previewActivityImport(file) {

@@ -9,6 +9,7 @@ import AdminPackages from './pages/AdminPackages';
 import AdminCategories from './pages/AdminCategories';
 import AdminDestinations from './pages/AdminDestinations';
 import AdminBlog from './pages/AdminBlog';
+import AdminContacts from './pages/AdminContacts';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function AdminIndex() {
@@ -37,6 +38,8 @@ function AdminApp() {
                     <Route path="categories" element={<AdminCategories/>}/>
                     <Route path="destinations" element={<AdminDestinations/>}/>
                     <Route path="blog" element={<AdminBlog/>}/>
+                    <Route path="contacts"
+                           element={<ProtectedRoute requiredRole={['ADMIN']}><AdminContacts/></ProtectedRoute>}/>
                 </Route>
             </Routes>
         </AuthProvider>
