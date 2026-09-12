@@ -11,6 +11,7 @@ import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.CategoryUsageDTO;
+import com.myhive.backend.dto.ContactDTO;
 import com.myhive.backend.dto.DestinationDTO;
 import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.dto.QuizDTO;
@@ -19,6 +20,8 @@ import com.myhive.backend.service.ActivityService;
 import com.myhive.backend.service.BlogPostService;
 import com.myhive.backend.service.BookingService;
 import com.myhive.backend.service.CategoryService;
+import com.myhive.backend.service.ContactCsvExporter;
+import com.myhive.backend.service.ContactService;
 import com.myhive.backend.service.DestinationService;
 import com.myhive.backend.service.ImageUploadService;
 import com.myhive.backend.service.PackageService;
@@ -73,6 +76,8 @@ public class AdminController {
     private final Optional<ImageUploadService> imageUploadService;
     private final ActivityCsvExporter activityCsvExporter;
     private final ActivityCsvImporter activityCsvImporter;
+    private final ContactService contactService;
+    private final ContactCsvExporter contactCsvExporter;
 
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
@@ -89,6 +94,26 @@ public class AdminController {
     @GetMapping("/bookings/stats")
     public ResponseEntity<BookingStatsDTO> getBookingStats() {
         return ResponseEntity.ok(bookingService.getBookingStats());
+    }
+
+    // ── Contacts (sales/ops address book) ──────────────────────────────────
+
+    @GetMapping("/contacts")
+    public ResponseEntity<Page<ContactDTO>> getContacts(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageRequest pageRequest = PageRequest.of(page, Math.min(size, 100), Sort.by("lastSeenAt").descending());
+        return ResponseEntity.ok(contactService.search(q, pageRequest));
+    }
+
+    @GetMapping(value = "/contacts/export", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<byte[]> exportContacts() {
+        byte[] body = contactCsvExporter.exportAll().getBytes(StandardCharsets.UTF_8);
+        String filename = "contacts-" + LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(body);
     }
 
     @PostMapping("/bookings/{id}/payment-link")

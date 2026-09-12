@@ -82,6 +82,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/admin/bookings/*/status").hasRole("ADMIN")
                         // Bookings (view + create a payment link): ADMIN or MANAGER
                         .requestMatchers("/admin/bookings/**").hasAnyRole("ADMIN", "MANAGER")
+                        // Contacts (customer PII): ADMIN only — deliberately not MANAGER
+                        .requestMatchers("/admin/contacts/**").hasRole("ADMIN")
                         // Admin endpoints — everything else: ADMIN only
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Everything else requires authentication
