@@ -15,6 +15,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -141,5 +143,47 @@ class ContactServiceTest {
         assertThat(all).filteredOn(dto -> dto.getEmail().contains(marker))
                 .extracting(ContactDTO::getEmail, ContactDTO::isUnsubscribed)
                 .containsExactlyInAnyOrder(tuple(expectedSuppressed, true), tuple(expectedActive, false));
+    }
+
+    @Test
+    void findUndigested_returnsOnlyUnstampedContactsOldestFirst() {
+        String marker = UUID.randomUUID().toString().substring(0, 8);
+        String expectedOlder = "c-" + marker + "-older@example.com";
+        String expectedNewer = "c-" + marker + "-newer@example.com";
+        String stamped = "c-" + marker + "-stamped@example.com";
+        createdEmails.add(expectedOlder);
+        createdEmails.add(expectedNewer);
+        createdEmails.add(stamped);
+        contactService.touch(expectedOlder, ContactSource.VOTE, null, null);
+        contactService.touch(expectedNewer, ContactSource.VOTE, null, null);
+        contactService.touch(stamped, ContactSource.VOTE, null, null);
+        Contact stampedRow = contactRepository.findByEmail(stamped).orElseThrow();
+        stampedRow.setDigestSentAt(LocalDateTime.now(ZoneOffset.UTC));
+        contactRepository.save(stampedRow);
+
+        List<ContactDTO> fresh = contactService.findUndigested();
+
+        assertThat(fresh).filteredOn(dto -> dto.getEmail().contains(marker))
+                .extracting(ContactDTO::getEmail)
+                .containsExactly(expectedOlder, expectedNewer);
+    }
+
+    @Test
+    void markDigested_stampsOnlyTheGivenIds() {
+        String marker = UUID.randomUUID().toString().substring(0, 8);
+        String expectedStamped = "c-" + marker + "-a@example.com";
+        String expectedUntouched = "c-" + marker + "-b@example.com";
+        createdEmails.add(expectedStamped);
+        createdEmails.add(expectedUntouched);
+        contactService.touch(expectedStamped, ContactSource.BOOKING, null, null);
+        contactService.touch(expectedUntouched, ContactSource.BOOKING, null, null);
+        UUID stampedId = contactRepository.findByEmail(expectedStamped).orElseThrow().getId();
+        LocalDateTime expectedSentAt = LocalDateTime.of(2026, 9, 13, 7, 0);
+
+        contactService.markDigested(List.of(stampedId), expectedSentAt);
+
+        assertThat(contactRepository.findByEmail(expectedStamped).orElseThrow().getDigestSentAt())
+                .isEqualTo(expectedSentAt);
+        assertThat(contactRepository.findByEmail(expectedUntouched).orElseThrow().getDigestSentAt()).isNull();
     }
 }

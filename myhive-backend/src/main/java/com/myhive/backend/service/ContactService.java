@@ -20,9 +20,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -95,6 +97,25 @@ public class ContactService {
         return contacts.stream()
                 .map(contact -> toDto(contact, suppressed.contains(contact.getEmail())))
                 .toList();
+    }
+
+    /** Contacts the daily digest has not reported yet, oldest first, with the opt-out flag filled in. */
+    @Transactional(readOnly = true)
+    public List<ContactDTO> findUndigested() {
+        List<Contact> contacts = contactRepository.findByDigestSentAtIsNullOrderByFirstSeenAtAsc();
+        Set<String> suppressed = allSuppressedEmails();
+        return contacts.stream()
+                .map(contact -> toDto(contact, suppressed.contains(contact.getEmail())))
+                .toList();
+    }
+
+    /** Called only after the digest email was actually delivered — an unsent digest must not consume rows. */
+    @Transactional
+    public void markDigested(Collection<UUID> ids, LocalDateTime sentAt) {
+        if (ids.isEmpty()) {
+            return;
+        }
+        contactRepository.markDigested(ids, sentAt);
     }
 
     private void upsert(String email, ContactSource source, String name, String locale) {

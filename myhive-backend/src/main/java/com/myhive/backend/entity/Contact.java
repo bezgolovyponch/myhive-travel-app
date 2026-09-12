@@ -71,4 +71,8 @@ public class Contact {
      */
     @Column(name = "touch_count", nullable = false)
     private int touchCount;
+
+    /** When this row was last included in the daily "new contacts" digest; null = not yet reported. */
+    @Column(name = "digest_sent_at")
+    private LocalDateTime digestSentAt;
 }
