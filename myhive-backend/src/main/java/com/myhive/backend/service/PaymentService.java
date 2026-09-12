@@ -14,6 +14,7 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ConflictException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.payment.StripeGateway;
 import com.myhive.backend.payment.StripeRefs.CheckoutSessionRef;
@@ -60,11 +61,12 @@ public class PaymentService {
     private final StripeProperties stripeProperties;
     private final EmailService emailService;
     private final FrontendUrlResolver frontendUrlResolver;
+    private final ContactService contactService;
 
     public PaymentService(BookingService bookingService, BookingRepository bookingRepository,
             BookingPaymentShareRepository shareRepository, ProcessedStripeEventRepository processedEventRepository,
             VoteSessionService voteSessionService, StripeGateway stripeGateway, StripeProperties stripeProperties,
-            EmailService emailService, FrontendUrlResolver frontendUrlResolver) {
+            EmailService emailService, FrontendUrlResolver frontendUrlResolver, ContactService contactService) {
         this.bookingService = bookingService;
         this.bookingRepository = bookingRepository;
         this.shareRepository = shareRepository;
@@ -74,6 +76,7 @@ public class PaymentService {
         this.stripeProperties = stripeProperties;
         this.emailService = emailService;
         this.frontendUrlResolver = frontendUrlResolver;
+        this.contactService = contactService;
     }
 
     @Transactional
@@ -283,6 +286,7 @@ public class PaymentService {
         shareRepository.save(share);
 
         Booking booking = share.getBooking();
+        contactService.touch(event.payerEmail(), ContactSource.PAYMENT, null, booking.getLocale());
         // M2: status/fully-paid is decided on NET money held — refunded shares are excluded so a
         // refund mid-collection cannot push a booking to PAID.
         BigDecimal paidSum = shareRepository.findByBookingId(booking.getId()).stream()

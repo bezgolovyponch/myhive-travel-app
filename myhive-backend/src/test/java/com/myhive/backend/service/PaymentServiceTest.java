@@ -24,6 +24,7 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ConflictException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.payment.StripeGateway;
 import com.myhive.backend.payment.StripeRefs.CheckoutSessionRef;
@@ -52,6 +53,7 @@ class PaymentServiceTest {
     @Mock private StripeGateway stripeGateway;
     @Mock private com.myhive.backend.config.StripeProperties stripeProperties;
     @Mock private EmailService emailService;
+    @Mock private ContactService contactService;
 
     private PaymentService paymentService;
 
@@ -64,7 +66,7 @@ class PaymentServiceTest {
                 "http://localhost:3000");
         paymentService = new PaymentService(bookingService, bookingRepository, shareRepository,
                 processedEventRepository, voteSessionService, stripeGateway, stripeProperties, emailService,
-                frontendUrlResolver);
+                frontendUrlResolver, contactService);
     }
 
     @Test
@@ -466,6 +468,37 @@ class PaymentServiceTest {
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.PAID);
         assertThat(booking.getPaidAt()).isNotNull();
         verify(emailService).sendPaymentReceived(any(), any(), any(), any(), any(), eq(true), any());
+    }
+
+    @Test
+    void handleStripeEvent_sharePaid_recordsPayerAsContact() {
+        String expectedPayerEmail = "payer@example.com";
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTripId("TRV-3");
+        booking.setUserEmail("init@test.com");
+        booking.setLocale("de");
+        booking.setStatus(BookingStatus.DEPOSIT_PAID);
+        booking.setTotalAmount(new BigDecimal("100.00"));
+        booking.setAmountPaid(new BigDecimal("30.00"));
+
+        BookingPaymentShare full = new BookingPaymentShare();
+        full.setId(UUID.randomUUID());
+        full.setBooking(booking);
+        full.setType(PaymentShareType.BALANCE_FULL);
+        full.setAmount(new BigDecimal("70.00"));
+        full.setPaid(false);
+
+        when(processedEventRepository.existsById("evt_3")).thenReturn(false);
+        when(stripeGateway.constructEvent("b", "s"))
+                .thenReturn(paidEvent("evt_3", full.getId().toString(), 7000L));
+        when(shareRepository.findById(full.getId())).thenReturn(Optional.of(full));
+        when(shareRepository.findByBookingId(booking.getId())).thenReturn(java.util.List.of(full));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        paymentService.handleStripeEvent("b", "s");
+
+        verify(contactService).touch(expectedPayerEmail, ContactSource.PAYMENT, null, "de");
     }
 
     @Test
