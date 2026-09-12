@@ -43,7 +43,7 @@ ranked AS (
 INSERT INTO contacts (id, email, name, locale, first_source, last_source, first_seen_at, last_seen_at, touch_count)
 SELECT gen_random_uuid(),
        f.email,
-       (SELECT max(t.name) FROM touches t WHERE t.email = f.email AND t.name IS NOT NULL AND trim(t.name) <> ''),
+       (SELECT t.name FROM touches t WHERE t.email = f.email AND t.name IS NOT NULL AND trim(t.name) <> '' ORDER BY t.seen_at DESC NULLS LAST LIMIT 1),
        COALESCE(l.locale, f.locale),
        f.source,
        l.source,
