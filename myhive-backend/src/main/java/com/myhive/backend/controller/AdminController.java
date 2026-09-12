@@ -103,7 +103,9 @@ public class AdminController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        PageRequest pageRequest = PageRequest.of(page, Math.min(size, 100), Sort.by("lastSeenAt").descending());
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by("lastSeenAt").descending());
         return ResponseEntity.ok(contactService.search(q, pageRequest));
     }
 

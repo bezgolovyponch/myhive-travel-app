@@ -73,6 +73,14 @@ class AdminContactsControllerTest {
     }
 
     @Test
+    void listContacts_outOfRangePaging_isClampedNot500() throws Exception {
+        mockMvc.perform(get("/admin/contacts").param("page", "-1").param("size", "0").with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.number", is(0)))
+                .andExpect(jsonPath("$.size", is(1)));
+    }
+
+    @Test
     void exportContacts_admin_returnsCsvAttachment() throws Exception {
         String expectedEmail = seedContact("csv");
 
