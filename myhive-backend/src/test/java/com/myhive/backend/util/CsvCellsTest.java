@@ -19,6 +19,7 @@ class CsvCellsTest {
         assertThat(CsvCells.sanitize("-x")).isEqualTo("'-x");
         assertThat(CsvCells.sanitize("@me")).isEqualTo("'@me");
         assertThat(CsvCells.sanitize("\tx")).isEqualTo("'\tx");
+        assertThat(CsvCells.sanitize("\rx")).isEqualTo("'\rx");
         assertThat(CsvCells.sanitize("plain")).isEqualTo("plain");
         assertThat(CsvCells.sanitize("")).isEmpty();
     }

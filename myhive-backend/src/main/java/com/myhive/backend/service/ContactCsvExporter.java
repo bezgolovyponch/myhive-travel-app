@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ContactCsvExporter {
 
-    static final String[] HEADER = {
+    private static final String[] HEADER = {
             "email", "name", "locale", "first_source", "last_source",
             "first_seen_at", "last_seen_at", "touch_count", "unsubscribed"
     };
@@ -44,7 +44,7 @@ public class ContactCsvExporter {
 
     private static String[] toRow(ContactDTO c) {
         return new String[] {
-                c.getEmail(),
+                CsvCells.sanitize(c.getEmail()),
                 CsvCells.sanitize(CsvCells.nullSafe(c.getName())),
                 CsvCells.nullSafe(c.getLocale()),
                 c.getFirstSource().name(),
