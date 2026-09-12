@@ -3,6 +3,7 @@ package com.myhive.backend.service.activity;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.util.CsvCells;
 import com.opencsv.CSVWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -63,16 +64,16 @@ public class ActivityCsvExporter {
     private String[] toRow(Activity a) {
         return new String[]{
                 String.valueOf(a.getId()),
-                nullSafe(a.getSlug()),
-                a.getDestination() == null ? "" : nullSafe(a.getDestination().getSlug()),
-                sanitize(nullSafe(a.getName())),
-                sanitize(nullSafe(a.getDescription())),
+                CsvCells.nullSafe(a.getSlug()),
+                a.getDestination() == null ? "" : CsvCells.nullSafe(a.getDestination().getSlug()),
+                CsvCells.sanitize(CsvCells.nullSafe(a.getName())),
+                CsvCells.sanitize(CsvCells.nullSafe(a.getDescription())),
                 formatPrice(a.getPrice()),
                 formatPrice(a.getMinPrice()),
                 a.getDuration() == null ? "" : a.getDuration().toString(),
                 joinCategorySlugs(a),
-                nullSafe(a.getImageUrl()),
-                sanitize(nullSafe(a.getIncludes())),
+                CsvCells.nullSafe(a.getImageUrl()),
+                CsvCells.sanitize(CsvCells.nullSafe(a.getIncludes())),
                 String.valueOf(a.getFeaturedWeight())
         };
     }
@@ -92,20 +93,5 @@ public class ActivityCsvExporter {
             return "";
         }
         return price.setScale(2, RoundingMode.HALF_UP).toPlainString();
-    }
-
-    private String nullSafe(String s) {
-        return s == null ? "" : s;
-    }
-
-    private String sanitize(String s) {
-        if (s.isEmpty()) {
-            return s;
-        }
-        char c = s.charAt(0);
-        if (c == '=' || c == '+' || c == '-' || c == '@' || c == '\t' || c == '\r') {
-            return "'" + s;
-        }
-        return s;
     }
 }
