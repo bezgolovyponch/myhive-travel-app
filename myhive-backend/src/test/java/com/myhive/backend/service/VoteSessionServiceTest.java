@@ -59,6 +59,7 @@ class VoteSessionServiceTest {
     @Mock private com.myhive.backend.repository.VoteSessionActivityRepository voteSessionActivityRepository;
     @Mock private com.myhive.backend.repository.VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
     @Mock private com.myhive.backend.repository.VoteSessionResultActivityRepository resultActivityRepository;
+    @Mock private ContactService contactService;
 
     @InjectMocks
     private VoteSessionService voteSessionService;

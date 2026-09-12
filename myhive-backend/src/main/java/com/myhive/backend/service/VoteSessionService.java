@@ -27,6 +27,7 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
+import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
@@ -86,6 +87,7 @@ public class VoteSessionService {
     private final VoteSessionQuizResponseRepository voteSessionQuizResponseRepository;
     private final VoteSuggestionsService voteSuggestionsService;
     private final TripLeadService tripLeadService;
+    private final ContactService contactService;
 
     @Value("${app.frontend.url:https://trivlu.com}")
     private String frontendUrl;
@@ -174,7 +176,9 @@ public class VoteSessionService {
         session.setVoteMode(voteMode);
         session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
         session.setBudget(budget);
-        return voteSessionRepository.save(session);
+        VoteSession saved = voteSessionRepository.save(session);
+        contactService.touch(saved.getInitiatorEmail(), ContactSource.VOTE, null, saved.getLocale());
+        return saved;
     }
 
     /** Trimmed address, or null for null/blank — a blank email must never read as "captured". */

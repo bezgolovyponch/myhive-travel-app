@@ -12,6 +12,7 @@ import com.myhive.backend.entity.TripLeadActivity;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.exception.ResourceNotFoundException;
+import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.TripLeadStatus;
 import com.myhive.backend.repository.ActivityRepository;
@@ -57,6 +58,7 @@ public class TripLeadService {
     private final BookingRepository bookingRepository;
     private final VoteSessionActivityRepository voteSessionActivityRepository;
     private final VoteSessionRepository voteSessionRepository;
+    private final ContactService contactService;
 
     static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
@@ -82,6 +84,7 @@ public class TripLeadService {
                 request.getStartDate(), request.getEndDate(), request.getBudget());
         lead.setLastActivityAt(LocalDateTime.now(ZoneOffset.UTC));
         lead = tripLeadRepository.save(lead);
+        contactService.touch(email, ContactSource.TRIP_BUILDER, null, lead.getLocale());
         return new TripLeadCreateResponse(lead.getId(), lead.getRestoreToken());
     }
 

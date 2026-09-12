@@ -13,6 +13,7 @@ import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.model.PaymentShareType;
 import com.myhive.backend.payment.StripeGateway;
 import com.myhive.backend.repository.ActivityRepository;
@@ -56,6 +57,7 @@ public class BookingService {
     private final EmailService emailService;
     private final BookingPaymentShareRepository shareRepository;
     private final StripeGateway stripeGateway;
+    private final ContactService contactService;
 
     @Transactional
     public BookingDTO createBooking(CreateBookingRequest request) {
@@ -86,6 +88,7 @@ public class BookingService {
         booking.setTotalAmount(calculateTotal(items));
 
         Booking savedBooking = bookingRepository.save(booking);
+        recordContact(savedBooking);
         return convertToDTO(savedBooking);
     }
 
@@ -220,6 +223,7 @@ public class BookingService {
         booking.setTotalAmount(total);
 
         Booking saved = bookingRepository.save(booking);
+        recordContact(saved);
         // Mask the customer email — PII must not land in logs unmasked (consistent with EmailService).
         log.info("Booking created successfully: id={}, email={}, items={}, total={}",
                 saved.getId(), EmailMasker.mask(saved.getUserEmail()),
@@ -258,6 +262,12 @@ public class BookingService {
             return snapshot == null && catalog == null;
         }
         return snapshot.compareTo(catalog) == 0;
+    }
+
+    /** The booking's customer joins the sales address book; best-effort by ContactService contract. */
+    private void recordContact(Booking booking) {
+        contactService.touch(booking.getUserEmail(), ContactSource.BOOKING,
+                booking.getCustomerName(), booking.getLocale());
     }
 
     /**

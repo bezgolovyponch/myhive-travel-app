@@ -61,6 +61,9 @@ class BookingServiceTest {
     @Mock
     private StripeGateway stripeGateway;
 
+    @Mock
+    private ContactService contactService;
+
     @InjectMocks
     private BookingService bookingService;
 
