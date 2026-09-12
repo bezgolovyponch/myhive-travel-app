@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -28,4 +29,10 @@ public interface ContactRepository extends JpaRepository<Contact, UUID> {
     @Modifying
     @Query("update Contact c set c.digestSentAt = :sentAt where c.id in :ids")
     int markDigested(@Param("ids") Collection<UUID> ids, @Param("sentAt") LocalDateTime sentAt);
+
+    /** Test/ops helper: firstSeenAt is updatable=false on the entity, so this is the only way to move it. */
+    @Modifying
+    @Transactional
+    @Query("update Contact c set c.firstSeenAt = :firstSeenAt where c.email = :email")
+    int overrideFirstSeenAt(@Param("email") String email, @Param("firstSeenAt") LocalDateTime firstSeenAt);
 }

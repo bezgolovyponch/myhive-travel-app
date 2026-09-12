@@ -161,11 +161,25 @@ class ContactServiceTest {
         stampedRow.setDigestSentAt(LocalDateTime.now(ZoneOffset.UTC));
         contactRepository.save(stampedRow);
 
+        // touch() stamps firstSeenAt from the wall clock, which on this OS can land two calls on the
+        // same millisecond; pin explicit, distinct timestamps so the sort order is deterministic.
+        LocalDateTime base = LocalDateTime.of(2026, 9, 10, 12, 0);
+        stampFirstSeen(expectedOlder, base.minusHours(2));
+        stampFirstSeen(expectedNewer, base.minusHours(1));
+
         List<ContactDTO> fresh = contactService.findUndigested();
 
         assertThat(fresh).filteredOn(dto -> dto.getEmail().contains(marker))
                 .extracting(ContactDTO::getEmail)
                 .containsExactly(expectedOlder, expectedNewer);
+    }
+
+    /**
+     * firstSeenAt is {@code updatable = false} on {@link Contact}, so a normal load/save cannot move
+     * it — this goes through {@link ContactRepository#overrideFirstSeenAt}, a JPQL update, instead.
+     */
+    private void stampFirstSeen(String email, LocalDateTime firstSeenAt) {
+        contactRepository.overrideFirstSeenAt(email, firstSeenAt);
     }
 
     @Test
