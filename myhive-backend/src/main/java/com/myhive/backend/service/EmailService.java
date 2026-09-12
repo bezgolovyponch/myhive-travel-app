@@ -1,5 +1,6 @@
 package com.myhive.backend.service;
 
+import com.myhive.backend.dto.ContactDTO;
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.dto.VotePoolActivityDTO;
@@ -29,6 +30,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -49,6 +51,9 @@ import java.util.UUID;
 public class EmailService {
 
     private static final String SUPPORT_EMAIL = "support@trivlu.com";
+
+    // Templates have no #temporals, so the digest's timestamps are pre-formatted in Java.
+    private static final DateTimeFormatter DIGEST_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'");
 
     // Customer-facing emails render in the locale the customer was browsing in
     // (VoteSession/TripLead/Booking.locale, null = English): the Thymeleaf
@@ -119,6 +124,26 @@ public class EmailService {
         public VoteStandingView(String name, long likes) {
             this.name = name;
             this.likes = likes;
+        }
+    }
+
+    /** One line of the daily new-contacts digest; dates are pre-formatted because the templates have no #temporals. */
+    public static class ContactDigestRow {
+        public final String email;
+        public final String name;
+        public final String source;
+        public final String firstSeen;
+        public final String locale;
+        public final boolean unsubscribed;
+
+        public ContactDigestRow(String email, String name, String source, String firstSeen,
+                                String locale, boolean unsubscribed) {
+            this.email = email;
+            this.name = name;
+            this.source = source;
+            this.firstSeen = firstSeen;
+            this.locale = locale;
+            this.unsubscribed = unsubscribed;
         }
     }
 
@@ -246,6 +271,41 @@ public class EmailService {
                 // surface to the user rather than being swallowed by the fire-and-forget async sender.
                 .synchronous(true)
                 .build());
+    }
+
+    /**
+     * Daily "new contacts" digest for sales. Synchronous by design: the scheduler stamps the rows as
+     * reported only when this returns normally, so a failed delivery re-queues them for tomorrow.
+     */
+    public void sendNewContactsDigest(List<ContactDTO> contacts, String frontendUrl) {
+        String digestDate = LocalDate.now(ZoneOffset.UTC).toString();
+        List<ContactDigestRow> rows = contacts.stream().map(EmailService::toDigestRow).toList();
+
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("count", rows.size());
+        variables.put("digestDate", digestDate);
+        variables.put("adminUrl", frontendUrl + "/admin/contacts");
+        variables.put("contacts", rows);
+
+        String noun = rows.size() == 1 ? " new contact" : " new contacts";
+        send(EmailSpec.builder()
+                .to(bookingsToEmail)
+                .subject(rows.size() + noun + " on Trivlu — " + digestDate)
+                .template("contacts-digest")
+                .variables(variables)
+                // Counts only — the addresses themselves must not reach the logs.
+                .description("new contacts digest (" + rows.size() + " contacts)")
+                .synchronous(true)
+                .build());
+    }
+
+    private static ContactDigestRow toDigestRow(ContactDTO c) {
+        String source = c.getFirstSource() == c.getLastSource()
+                ? c.getFirstSource().name()
+                : c.getFirstSource().name() + " → " + c.getLastSource().name();
+        String locale = c.getLocale() == null ? "EN" : c.getLocale().toUpperCase(Locale.ROOT);
+        return new ContactDigestRow(c.getEmail(), c.getName() == null ? "" : c.getName(), source,
+                DIGEST_TIMESTAMP.format(c.getFirstSeenAt()), locale, c.isUnsubscribed());
     }
 
     public void sendVoteResult(VoteSession session, List<VoteSessionResultActivity> resultActivities, String frontendUrl) {

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>New contacts on Trivlu</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 680px; margin: 0 auto; background: white; }
+        .header { background: #6A1B9A; color: white; padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { text-align: left; font-size: 12px; text-transform: uppercase; color: #555; padding: 8px; border-bottom: 2px solid #e0e0e0; }
+        td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .muted { color: #888; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; background: #6c757d; color: white; }
+        .cta { display: inline-block; margin-top: 24px; padding: 12px 20px; background: #6A1B9A; color: white !important; text-decoration: none; border-radius: 4px; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="https://trivlu.com/logo-white.png" alt="Trivlu Travel" style="max-height: 60px; margin-bottom: 16px;">
+        <h1 th:text="${count + (count == 1 ? ' new contact' : ' new contacts')}">2 new contacts</h1>
+        <p>Addresses captured on Trivlu since the last digest · <span th:text="${digestDate}">2026-09-13</span></p>
+    </div>
+    <div class="content">
+        <table>
+            <thead>
+            <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Source</th>
+                <th>First seen</th>
+                <th>Lang</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${contacts}">
+                <td>
+                    <a th:href="'mailto:' + ${c.email}" th:text="${c.email}">anna@example.com</a>
+                    <span class="badge" th:if="${c.unsubscribed}">Unsubscribed</span>
+                </td>
+                <td><span th:text="${c.name}" th:classappend="${c.name == ''} ? 'muted'">Anna Example</span></td>
+                <td th:text="${c.source}">VOTE</td>
+                <td th:text="${c.firstSeen}">2026-09-12 08:30 UTC</td>
+                <td th:text="${c.locale}">DE</td>
+            </tr>
+            </tbody>
+        </table>
+        <a class="cta" th:href="${adminUrl}">Open the contacts list</a>
+    </div>
+    <div class="footer">
+        <p>Contacts marked "Unsubscribed" opted out of automated emails — reach out manually only if there is an active request.</p>
+    </div>
+</div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
+import com.myhive.backend.dto.ContactDTO;
 import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Booking;
@@ -10,6 +11,7 @@ import com.myhive.backend.entity.TripLeadActivity;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.model.BookingStatus;
+import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.VoteMode;
 import jakarta.mail.Session;
@@ -237,6 +239,34 @@ class EmailServiceTest {
         // NOT be handed to the fire-and-forget async sender.
         verify(mailSender).send(mimeMessage);
         verifyNoInteractions(asyncMailSender);
+    }
+
+    @Test
+    void sendNewContactsDigest_sendsSynchronouslyToBookingsAddress() {
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", "Anna", "de",
+                ContactSource.VOTE, ContactSource.BOOKING,
+                LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 9, 0), 2, false);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(templateEngine.process(eq("contacts-digest"), any())).thenReturn("<html>ok</html>");
+
+        emailService.sendNewContactsDigest(List.of(contact), "https://trivlu.com");
+
+        // Synchronous on purpose: the scheduler stamps rows only after a confirmed delivery.
+        verify(mailSender).send(mimeMessage);
+        verifyNoInteractions(asyncMailSender);
+    }
+
+    @Test
+    void sendNewContactsDigest_whenEmailDisabled_throwsSoRowsStayQueued() {
+        ReflectionTestUtils.setField(emailService, "emailEnabled", false);
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null,
+                ContactSource.VOTE, ContactSource.VOTE,
+                LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 8, 30), 1, false);
+
+        assertThatThrownBy(() -> emailService.sendNewContactsDigest(List.of(contact), "https://trivlu.com"))
+                .isInstanceOf(EmailSendException.class);
+        verifyNoInteractions(mailSender);
     }
 
     @Test
