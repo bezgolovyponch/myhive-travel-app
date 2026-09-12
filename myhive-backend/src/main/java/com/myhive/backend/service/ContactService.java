@@ -9,6 +9,7 @@ import com.myhive.backend.repository.EmailSuppressionRepository;
 import com.myhive.backend.util.EmailMasker;
 import com.myhive.backend.util.Translations;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -50,7 +51,8 @@ public class ContactService {
      * Records that {@code rawEmail} was entered at {@code source}. Runs in its own transaction and
      * never throws: a failed contact write must not break the flow that captured the address.
      * Null/blank emails are ignored; a blank {@code name} or an English/blank {@code locale} leaves
-     * the stored value untouched.
+     * the stored value untouched. A concurrent-insert race on the unique email constraint is logged
+     * at WARN with only the masked email — never the exception body, which embeds the raw address.
      */
     public void touch(String rawEmail, ContactSource source, String name, String locale) {
         String email = normalizeEmail(rawEmail);
@@ -59,6 +61,12 @@ public class ContactService {
         }
         try {
             requiresNew.executeWithoutResult(status -> upsert(email, source, name, locale));
+        } catch (DataIntegrityViolationException e) {
+            // The other concurrent touch() won the insert race; its write already recorded this
+            // address. Never log e.getMessage()/e here — both H2 and Postgres embed the raw email
+            // in the constraint-violation detail.
+            log.warn("Contact {} from {} lost a concurrent-insert race; the other write won",
+                    EmailMasker.mask(email), source);
         } catch (Exception e) {
             // Best-effort by contract — the caller's transaction must not see this failure.
             log.error("Failed to record contact {} from {}: {}",
