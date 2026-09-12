@@ -1,6 +1,8 @@
 package com.myhive.backend.controller;
 
 import com.myhive.backend.dto.ContactRequest;
+import com.myhive.backend.model.ContactSource;
+import com.myhive.backend.service.ContactService;
 import com.myhive.backend.service.EmailService;
 import com.myhive.backend.service.TurnstileService;
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ public class ContactController {
 
     private final EmailService emailService;
     private final TurnstileService turnstileService;
+    private final ContactService contactService;
 
     @PostMapping
     public ResponseEntity<Map<String, String>> submitContactForm(@Valid @RequestBody ContactRequest request) {
@@ -27,6 +30,7 @@ public class ContactController {
             return ResponseEntity.badRequest().body(Map.of("message", "Captcha verification failed"));
         }
         emailService.sendContactNotification(request);
+        contactService.touch(request.getEmail(), ContactSource.CONTACT_FORM, request.getName(), null);
         return ResponseEntity.ok(Map.of("message", "Message sent successfully"));
     }
 }

@@ -2,6 +2,8 @@ package com.myhive.backend.controller;
 
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.ContactRequest;
+import com.myhive.backend.model.ContactSource;
+import com.myhive.backend.service.ContactService;
 import com.myhive.backend.service.EmailService;
 import com.myhive.backend.service.TurnstileService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -43,6 +47,12 @@ class ContactControllerTest {
             when(mock.verifyToken(anyString())).thenReturn(true);
             return mock;
         }
+
+        @Bean
+        @Primary
+        public ContactService contactService() {
+            return mock(ContactService.class);
+        }
     }
 
     @Autowired
@@ -54,10 +64,14 @@ class ContactControllerTest {
     @Autowired
     private TurnstileService turnstileService;
 
+    @Autowired
+    private ContactService contactService;
+
     @BeforeEach
     void setUp() {
         reset(emailService);
         reset(turnstileService);
+        reset(contactService);
         when(turnstileService.verifyToken(anyString())).thenReturn(true);
     }
 
@@ -190,5 +204,45 @@ class ContactControllerTest {
                                 }
                                 """))
                 .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void submitContactForm_validRequest_recordsContact() throws Exception {
+        String expectedEmail = "john@example.com";
+        String expectedName = "John Doe";
+        mockMvc.perform(post("/contact")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "name": "John Doe",
+                                    "email": "john@example.com",
+                                    "subject": "Group Trip Inquiry",
+                                    "message": "I'd like to plan a trip for 10 people.",
+                                    "turnstileToken": "test-token"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        verify(contactService).touch(eq(expectedEmail), eq(ContactSource.CONTACT_FORM), eq(expectedName), isNull());
+    }
+
+    @Test
+    void submitContactForm_invalidCaptcha_doesNotRecordContact() throws Exception {
+        when(turnstileService.verifyToken(anyString())).thenReturn(false);
+
+        mockMvc.perform(post("/contact")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "name": "John Doe",
+                                    "email": "john@example.com",
+                                    "subject": "Support",
+                                    "message": "Help me",
+                                    "turnstileToken": "bad"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(contactService);
     }
 }
