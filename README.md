@@ -99,6 +99,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
   on a 10-minute tick (QUIZ 1h/24h/72h, VOTE 24h/72h from last activity); stops on booking, new vote, or suppression;
   leads deleted 30 days after last touch. Kill switch: `REMINDERS_ENABLED`.
 - **Contacts (ADMIN only)**: `GET /admin/contacts?q=&page=&size=` (paged, searches email/name, newest activity first, `unsubscribed` flag from `email_suppressions`) and `GET /admin/contacts/export` (CSV, UTF-8 BOM, formula-injection safe). Rows are upserted by `ContactService.touch` from every email capture point — Trip Builder lead, vote creation, booking, contact form, Stripe payer — and are never auto-deleted. Prod table + backfill: Flyway `V5__contacts.sql`.
+- **Contacts digest**: `ContactDigestScheduler` mails `app.email.bookings-to` (default `booking@trivlu.com`) once a day at 07:00 UTC with every contact whose `digest_sent_at` is still null, then stamps those rows; a failed send leaves them queued for the next run. Kill switch `CONTACTS_DIGEST_ENABLED` (default `true`); no-op when email is disabled. Prod column: Flyway `V6__contacts_digest_sent_at.sql`.
 
 **Admin** (Auth0 JWT, ADMIN/MANAGER role; categories require ADMIN):
 
