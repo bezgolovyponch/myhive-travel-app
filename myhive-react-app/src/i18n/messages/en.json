@@ -468,20 +468,29 @@
   },
   "voteComponents": {
     "start": {
-      "title": "Start group vote",
-      "sub": "Share the link with your mates and watch the results live. Voting closes automatically after 24 hours.",
+      "title": "Start the vote for {destination}",
+      "titleGeneric": "Start the vote",
+      "summary": {
+        "activitiesOne": "{count} activity",
+        "activitiesOther": "{count} activities",
+        "peopleOne": "{count} person",
+        "peopleOther": "{count} people",
+        "closes": "closes in 24 h"
+      },
+      "benefits": {
+        "seeWhoVoted": "See who has voted",
+        "followLive": "Follow the poll live",
+        "editActivities": "Edit chosen activities"
+      },
       "tripDates": "Trip dates",
       "startDate": "Start date",
       "endDate": "End date",
       "create": "Create vote",
       "creating": "Creating…",
+      "noSpam": "No account needed. No spam.",
       "email": {
-        "title": "Your vote is saved.",
-        "sub": "Where should we send the results?",
-        "label": "Email",
-        "placeholder": "you@email.com",
-        "helper": "We will email you when everyone has voted. If the group stops responding, we will send you a reminder message you can paste into the chat.",
-        "submit": "Get the link for your group",
+        "label": "Send the results to",
+        "placeholder": "name@email.com",
         "errors": {
           "invalid": "Please check the email address."
         }

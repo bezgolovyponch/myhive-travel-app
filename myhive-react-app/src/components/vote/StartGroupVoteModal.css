@@ -1,87 +1,194 @@
-.start-vote-modal label {
-    display: block;
-    margin-top: 0.75rem;
-    margin-bottom: 0.25rem;
-    font-weight: 600;
-}
-
-.start-vote-modal input {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-}
-
-.start-vote-modal input.error {
-    border-color: #d33;
-}
-
-.start-vote-modal-sub {
-    margin: 0 0 0.5rem;
-    font-size: 0.9rem;
-    opacity: 0.8;
-}
-
-.start-vote-modal-dates {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.start-vote-modal .error-message {
-    color: #d33;
-    font-size: 0.85rem;
-}
-
-/* Email step — the one-input screen: no visible heading, sub 17px white,
-   input 56px, helper 14px white, full-width primary button, nothing else.
-   The title stays in the DOM, visually hidden, so the dialog keeps its
-   accessible name (aria-labelledby); the close button is the only thing
-   left in the header, so it is pushed to the right explicitly. */
-.start-vote-modal--email .app-modal-header {
+/* Start-the-vote sheet: one screen — big destination heading, a one-line
+   trip summary, three benefit ticks, a divider, the results-email field and
+   the primary button. Everything sits on the dark tokens; the shared AppModal
+   header/footer chrome (borders, header tint) is stripped so the sheet reads
+   as a single card. */
+.start-vote-modal .app-modal-header {
+    padding: var(--gap-lg) var(--gap-lg) 0;
     border-bottom: none;
-    padding-bottom: 0;
     background: transparent;
+    align-items: flex-start;
+    gap: var(--gap);
 }
 
-.start-vote-modal--email .app-modal-header h2 {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
+.start-vote-modal .app-modal-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+/* A thin, larger × than the shared 1.25rem default — the heading is big
+   enough that the default glyph looked stuck to it. */
+.start-vote-modal .app-modal-close-btn {
+    font-size: 1.75rem;
+    line-height: 1;
+    font-weight: 300;
+    margin: -0.125rem -0.25rem 0 0;
+}
+
+.start-vote-modal .app-modal-body {
+    padding-top: var(--gap-sm);
+}
+
+.start-vote-summary {
+    margin: 0 0 var(--gap);
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.start-vote-benefits {
+    list-style: none;
+    margin: 0;
     padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
 }
 
-.start-vote-modal--email .app-modal-close-btn {
-    margin-left: auto;
-}
-
-.start-vote-email-sub {
-    margin: 0 0 1rem;
+.start-vote-benefits li {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
     font-size: 1.0625rem;
     color: var(--text);
 }
 
-.start-vote-modal--email input.start-vote-email-input {
-    height: 56px;
-    padding: 0 1rem;
-    font-size: 1rem; /* ≥16px so iOS Safari does not zoom the field */
-    border-radius: 10px;
+.start-vote-benefits svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    color: var(--purple-l);
 }
 
-.start-vote-email-helper {
-    margin: 0.75rem 0 0;
-    font-size: 0.875rem;
-    line-height: 1.5;
+.start-vote-dates {
+    margin-top: var(--gap);
+}
+
+.start-vote-dates label {
+    display: block;
+    margin-bottom: var(--gap-xs);
+    font-weight: 500;
+}
+
+.start-vote-modal-dates {
+    display: flex;
+    gap: var(--gap-sm);
+}
+
+.start-vote-modal-dates input {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 48px;
+    padding: 0 var(--gap-sm);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.start-vote-divider {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: var(--gap-lg) 0 var(--gap);
+}
+
+.start-vote-email-label {
+    display: block;
+    margin-bottom: var(--gap-sm);
+    font-size: 1.0625rem;
+    font-weight: 500;
     color: var(--text);
 }
 
-.start-vote-email-footer {
+/* The envelope sits inside the field; the input is padded past it. */
+.start-vote-email-field {
+    position: relative;
+}
+
+.start-vote-email-field svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    width: 1.375rem;
+    height: 1.375rem;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.start-vote-email-field input.start-vote-email-input {
+    width: 100%;
+    height: 56px;
+    padding: 0 1rem 0 3rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem; /* ≥16px so iOS Safari does not zoom the field */
+}
+
+.start-vote-email-field input.start-vote-email-input::placeholder {
+    color: var(--text-muted);
+}
+
+.start-vote-email-field input.start-vote-email-input:focus {
+    outline: none;
+    border-color: var(--purple-l);
+    box-shadow: 0 0 0 3px rgba(127, 119, 221, 0.3);
+}
+
+.start-vote-email-field.error input.start-vote-email-input {
+    border-color: var(--error);
+}
+
+.start-vote-modal .error-message {
+    display: block;
+    margin-top: var(--gap-xs);
+    color: var(--error);
+    font-size: 0.875rem;
+}
+
+/* Footer aligns with the body's 24px gutters (the shared footer uses 16px),
+   so the button lines up with the field above it. */
+.start-vote-modal .app-modal-footer {
+    padding: var(--gap-sm) var(--gap-lg) var(--gap-lg);
+    border-top: none;
+}
+
+@media (max-width: 768px) {
+    .start-vote-modal .app-modal-footer {
+        padding-bottom: calc(var(--gap-lg) + env(safe-area-inset-bottom));
+    }
+}
+
+/* A single-column form: on desktop cap the dialog well below the shared
+   720px so the field and button don't stretch across the whole width. */
+@media (min-width: 769px) {
+    .app-modal-content.start-vote-modal {
+        max-width: 480px;
+    }
+}
+
+.start-vote-footer {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--gap-sm);
+}
+
+/* Tall primary: the sheet's single action, matched to the 56px field. */
+.start-vote-footer .btn.btn--primary {
+    min-height: 56px;
+    border-radius: 10px;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.start-vote-note {
+    margin: 0;
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--text-muted);
 }

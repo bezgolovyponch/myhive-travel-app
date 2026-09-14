@@ -39,13 +39,21 @@
     .homepage-has-sticky-cta .trv-chat-fab { --fab-bottom: 76px; }
 }
 
-/* On phones the trip view pins the vote rail to the bottom of the viewport;
-   the FAB would overlap its CTA, so hide the FAB while that bar is on
-   screen — the user is mid-checkout, not seeking chat. Desktop keeps the
-   FAB: the rail is a top-right sidebar there, nowhere near it. */
+/* On phones the trip view pins the vote rail to the bottom of the viewport
+   (TripBuilder.css, max-width 768px); the FAB floats above it so it never
+   covers the "Start group vote" CTA yet stays reachable — the trip builder is
+   where visitors have questions. Offsets track the rail's two heights: the
+   vote button only, or the vote-session budget panel above it (same estimates
+   as the .trip-builder-main bottom reservations). The rail pads itself for the
+   safe area, so the FAB has to clear that too. Desktop keeps the resting
+   offset: the rail is a top-right sidebar there, nowhere near the FAB. */
 @media (max-width: 768px) {
     body:has(.trip-builder-rail) .trv-chat-fab {
-        display: none;
+        --fab-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    body:has(.trip-builder-layout--budget .trip-builder-rail) .trv-chat-fab {
+        --fab-bottom: calc(15rem + env(safe-area-inset-bottom, 0px));
     }
 }
 
