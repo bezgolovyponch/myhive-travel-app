@@ -1004,6 +1004,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           isOpen={showVoteModal}
           onClose={() => setShowVoteModal(false)}
           destinationId={destinationId}
+          destinationName={destinationName}
           activityIds={standalone.map(item => item.id)}
           numberOfTravelers={travelers}
           startDate={state.tripStartDate}

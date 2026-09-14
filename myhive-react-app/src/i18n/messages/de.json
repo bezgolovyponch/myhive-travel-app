@@ -458,20 +458,29 @@
   },
   "voteComponents": {
     "start": {
-      "title": "Gruppen-Voting starten",
-      "sub": "Teile den Link mit deinen Jungs und verfolge die Ergebnisse live. Das Voting endet automatisch nach 24 Stunden.",
+      "title": "Voting für {destination} starten",
+      "titleGeneric": "Voting starten",
+      "summary": {
+        "activitiesOne": "{count} Aktivität",
+        "activitiesOther": "{count} Aktivitäten",
+        "peopleOne": "{count} Person",
+        "peopleOther": "{count} Personen",
+        "closes": "endet in 24 h"
+      },
+      "benefits": {
+        "seeWhoVoted": "Sehen, wer abgestimmt hat",
+        "followLive": "Voting live verfolgen",
+        "editActivities": "Gewählte Aktivitäten bearbeiten"
+      },
       "tripDates": "Reisedaten",
       "startDate": "Startdatum",
       "endDate": "Enddatum",
       "create": "Voting erstellen",
       "creating": "Wird erstellt…",
+      "noSpam": "Kein Konto nötig. Kein Spam.",
       "email": {
-        "title": "Deine Stimme ist gespeichert.",
-        "sub": "Wohin sollen wir die Ergebnisse schicken?",
-        "label": "E-Mail",
-        "placeholder": "du@email.com",
-        "helper": "Wir mailen dir, sobald alle abgestimmt haben. Wenn die Gruppe nicht mehr reagiert, schicken wir dir eine Erinnerung, die du direkt in den Chat kopieren kannst.",
-        "submit": "Link für deine Gruppe holen",
+        "label": "Ergebnisse senden an",
+        "placeholder": "name@email.com",
         "errors": {
           "invalid": "Bitte prüf die E-Mail-Adresse."
         }
