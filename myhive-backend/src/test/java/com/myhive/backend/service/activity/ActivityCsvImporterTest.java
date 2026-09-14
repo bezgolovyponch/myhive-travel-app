@@ -10,9 +10,12 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.CsvImportException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.service.ImageUploadService;
+import com.myhive.backend.service.RemoteImageFetcher;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,8 +43,24 @@ class ActivityCsvImporterTest {
     @Mock
     private CategoryRepository categoryRepository;
 
-    @InjectMocks
+    @Mock
+    private DestinationRepository destinationRepository;
+
+    @Mock
+    private ImageUploadService imageUploadService;
+
+    @Mock
+    private RemoteImageFetcher remoteImageFetcher;
+
     private ActivityCsvImporter importer;
+
+    @BeforeEach
+    void setUp() {
+        ActivityImportWriter writer = new ActivityImportWriter(
+                activityRepository, categoryRepository, destinationRepository);
+        importer = new ActivityCsvImporter(activityRepository, categoryRepository, destinationRepository,
+                writer, Optional.of(imageUploadService), remoteImageFetcher);
+    }
 
     private String header() {
         return "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes\n";
@@ -128,7 +147,9 @@ class ActivityCsvImporterTest {
     }
 
     @Test
-    void preview_rowWithBlankId_producesMissingIdError() {
+    void preview_rowWithBlankId_isTreatedAsCreateAndValidatesDestination() {
+        // Blank id = create (see ActivityCsvImporterCreateTest); an unknown destination is the
+        // only thing wrong with this row, so that must be the sole error.
         String csv = header() + row("", "s", "d", "n", "", "1.00", "", "", "", "");
 
         ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
@@ -136,7 +157,7 @@ class ActivityCsvImporterTest {
         assertThat(preview.token()).isNull();
         assertThat(preview.errors())
                 .extracting(ActivityImportPreviewDTO.RowError::code)
-                .contains(ImportErrorCode.MISSING_ID);
+                .containsExactly(ImportErrorCode.UNKNOWN_DESTINATION);
     }
 
     @Test

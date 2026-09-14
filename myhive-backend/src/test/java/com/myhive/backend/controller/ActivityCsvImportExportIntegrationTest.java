@@ -227,6 +227,114 @@ class ActivityCsvImportExportIntegrationTest {
                 .andExpect(jsonPath("$.errors[0].csvRowNumber").value(2));
     }
 
+    private static final String CSV_HEADER =
+            "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes\n";
+
+    private String applyAndReturnJson(String token) throws Exception {
+        return mockMvc.perform(post("/admin/activities/import/apply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"" + token + "\"}")
+                        .with(adminJwt()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    private String previewAndReturnToken(String csv, int expectedCreates) throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", csv.getBytes());
+        MvcResult previewResult = mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.rowsToCreate").value(expectedCreates))
+                .andReturn();
+        return objectMapper.readTree(previewResult.getResponse().getContentAsString()).get("token").asText();
+    }
+
+    @Test
+    void importCreate_blankIdRow_createsActivityWithAutoSlugAndCategories() throws Exception {
+        String expectedName = "Volcano sunrise trek";
+        String csv = CSV_HEADER
+                + ",,bali,\"" + expectedName + "\",\"Early start\",\"75.00\",240,beach,,\"Guide;Breakfast\"\n";
+
+        String token = previewAndReturnToken(csv, 1);
+        String json = applyAndReturnJson(token);
+
+        JsonNode result = objectMapper.readTree(json);
+        assertThat(result.get("rowsCreated").asInt()).isEqualTo(1);
+        assertThat(result.get("rowsUpdated").asInt()).isZero();
+        Activity created = activityRepository.findBySlug("volcano-sunrise-trek").orElseThrow();
+        assertThat(created.getName()).isEqualTo(expectedName);
+        assertThat(created.getDestination().getId()).isEqualTo(destination.getId());
+        assertThat(created.getPrice()).isEqualByComparingTo("75.00");
+        assertThat(created.getDuration()).isEqualTo(240);
+        assertThat(created.getIncludes()).isEqualTo("Guide;Breakfast");
+        assertThat(created.getCategories()).extracting(Category::getSlug).containsExactly("beach");
+        assertThat(created.isSeoIndexable()).isFalse();
+    }
+
+    @Test
+    void importCreate_twoRowsWithSameName_getDistinctSlugs() throws Exception {
+        String csv = CSV_HEADER
+                + ",,bali,\"Kayak tour\",\"\",\"30.00\",,,,\"\"\n"
+                + ",,bali,\"Kayak tour\",\"\",\"35.00\",,,,\"\"\n";
+
+        String token = previewAndReturnToken(csv, 2);
+        applyAndReturnJson(token);
+
+        assertThat(activityRepository.findBySlug("kayak-tour")).isPresent();
+        assertThat(activityRepository.findAll())
+                .filteredOn(a -> "Kayak tour".equals(a.getName()))
+                .extracting(Activity::getSlug)
+                .hasSize(2)
+                .doesNotHaveDuplicates();
+    }
+
+    @Test
+    void importCreate_exportedFileRoundTrip_createsNothing() throws Exception {
+        MvcResult exportResult = mockMvc.perform(get("/admin/activities/export").with(adminJwt()))
+                .andExpect(status().isOk()).andReturn();
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", exportResult.getResponse().getContentAsByteArray());
+
+        mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rowsToCreate").value(0))
+                .andExpect(jsonPath("$.rowsToUpdate").value(0))
+                .andExpect(jsonPath("$.rowsUnchanged").value(1));
+    }
+
+    @Test
+    void importPreview_newRowWithRemoteImageWhenR2NotConfigured_returnsUploadUnavailableError() throws Exception {
+        // The test profile has no R2 credentials, so the ImageUploadService bean is absent.
+        String csv = CSV_HEADER
+                + ",,bali,\"Hike\",\"\",\"30.00\",,,https://example.com/hike.jpg,\"\"\n";
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", csv.getBytes());
+
+        mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value(nullValue()))
+                .andExpect(jsonPath("$.errors[0].code").value("IMAGE_UPLOAD_UNAVAILABLE"))
+                .andExpect(jsonPath("$.errors[0].csvRowNumber").value(2));
+    }
+
+    @Test
+    void importPreview_newRowWithUnknownDestination_returnsRowError() throws Exception {
+        String csv = CSV_HEADER + ",,atlantis,\"Hike\",\"\",\"30.00\",,,,\"\"\n";
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", csv.getBytes());
+
+        mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value(nullValue()))
+                .andExpect(jsonPath("$.errors[0].code").value("UNKNOWN_DESTINATION"))
+                .andExpect(jsonPath("$.errors[0].field").value("destination_slug"));
+    }
+
     @AfterEach
     void tearDown() {
         // Clean up rows committed by tests that bypass the class-level @Transactional rollback.

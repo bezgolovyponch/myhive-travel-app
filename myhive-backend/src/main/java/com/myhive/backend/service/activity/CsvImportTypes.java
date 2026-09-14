@@ -7,7 +7,7 @@ import java.util.UUID;
 
 /**
  * Internal record types shared between the CSV import helpers
- * (parser, validator, differ) and the orchestrator. Package-private
+ * (parser, validator, differ, writer) and the orchestrator. Package-private
  * by design — these are not part of the public API.
  */
 final class CsvImportTypes {
@@ -29,6 +29,12 @@ record RawRow(int csvRowNumber, String[] values, Map<String, Integer> headerInde
     }
 }
 
+/**
+ * One CSV row that passed validation. {@code activityId} is null for rows with a blank
+ * {@code id} cell: those create a new activity instead of updating an existing one, and
+ * for them {@code csvSlug}/{@code csvDestinationSlug}/{@code csvImageUrl} are inputs rather
+ * than read-only echoes.
+ */
 record ValidatedRow(
         int csvRowNumber,
         UUID activityId,
@@ -44,9 +50,12 @@ record ValidatedRow(
         // Optional mutable field: null means "column absent from CSV; do not update".
         // BigDecimal.ZERO means "blank cell -> clear the minimum". Otherwise the new value.
         BigDecimal minPrice,
-        // read-only fields captured for warning comparison:
+        // Read-only for updates (warning if changed); inputs for creates.
         String csvSlug,
         String csvDestinationSlug,
         String csvImageUrl
 ) {
+    boolean isNew() {
+        return activityId == null;
+    }
 }

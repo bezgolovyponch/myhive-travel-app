@@ -32,6 +32,11 @@ final class PreviewTokenCache {
         return token.toString();
     }
 
+    /** Returns the entry without removing it, or empty if missing. Caller checks expiry. */
+    Optional<Entry> peek(UUID token) {
+        return Optional.ofNullable(cache.get(token));
+    }
+
     /** Removes and returns the entry, or empty if missing. Caller checks expiry. */
     Optional<Entry> consume(UUID token) {
         return Optional.ofNullable(cache.remove(token));

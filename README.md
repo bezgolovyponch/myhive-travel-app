@@ -107,6 +107,13 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
   `/admin/upload`
 - `POST /admin/bookings/{id}/payment-link` — ADMIN/MANAGER creates a Stripe Payment Link for an editable
   amount (balance/add-on) on any non-CANCELLED booking; single-use (deactivated after one completed payment)
+- **Activities CSV (ADMIN only)**: `GET /admin/activities/export[?destinationId=]` (UTF-8 BOM, formula-injection
+  safe) and the two-step `POST /admin/activities/import/preview` → `POST /admin/activities/import/apply` flow.
+  Rows with an `id` update that activity; rows with a blank `id` create one (`destination_slug` required, blank
+  `slug` generated from the name, `image_url` may be any public http(s) URL — it is downloaded and re-hosted in R2
+  on apply, SSRF-guarded and capped at 50 remote images / 60 s per import). A create whose name already exists in
+  its destination is rejected (`NAME_EXISTS`). Apply is all-or-nothing; a failed image download keeps the preview
+  token valid for a retry. Design: `docs/superpowers/specs/2026-04-20-activities-csv-import-export-design.md`.
 - Paged list endpoints: `/admin/*/paged?page=0&size=10`
 
 ## Services

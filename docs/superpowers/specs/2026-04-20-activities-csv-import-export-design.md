@@ -4,6 +4,8 @@
 **Scope:** Admin-only bulk editing of existing activities via CSV round-trip (export → edit (e.g., with AI) → import).
 **Out of scope for v1:** creating new activities via import, deleting activities via import, undo/rollback of a completed import.
 
+> **Amendment 2026-09-14 (v2):** creating activities via import is now supported — see [Creating activities (v2)](#creating-activities-v2) at the end. Statements below that say "update-only" / "blank id is an error" describe v1 and are superseded by that section. Deletion via import remains out of scope.
+
 ## Goals
 
 - Admin exports the full activities table as a CSV file.
@@ -124,7 +126,7 @@ Failure returns standard error response with a specific code (e.g., `TOKEN_EXPIR
 
 | Code | Condition |
 |---|---|
-| `MISSING_ID` | `id` cell is blank |
+| ~~`MISSING_ID`~~ | v1 only — since v2 a blank `id` means *create* (see below) |
 | `INVALID_UUID` | `id` is not a valid UUID |
 | `ROW_NOT_FOUND` | No activity with this `id` in DB |
 | `DUPLICATE_ID` | Same `id` appears on multiple rows |
@@ -186,7 +188,7 @@ During apply, the button shows a spinner and is disabled.
 |---|---|
 | Empty `category_slugs` cell | Remove all categories from that activity |
 | Non-empty `category_slugs` | Full replacement of category set (not merge) |
-| Row without `id` | `MISSING_ID` error |
+| Row without `id` | v1: `MISSING_ID` error. v2: creates a new activity (see below) |
 | Duplicate `id` in file | `DUPLICATE_ID` error with all row numbers |
 | `\r\n` vs `\n` line endings | Both accepted |
 | UTF-8 BOM | Stripped on import |
@@ -247,3 +249,29 @@ Minimum: snapshot test that the modal opens and Apply is disabled with errors. O
 - Add `@Version` and/or `updatedAt` to `Activity` for proper optimistic locking.
 - Extend to `Destination` and `Category` import/export if the pattern proves useful.
 - Consider a "dry-run with diff" export that only includes changed rows for auditing.
+
+## Creating activities (v2)
+
+**Date:** 2026-09-14. **Branch:** `feat/csv-import-create`.
+
+**Marker:** a row whose `id` cell is blank creates a new activity. A file may mix updates (rows with an `id`) and creates. A non-blank `id` that is not in the DB is still `ROW_NOT_FOUND` — a typo in an id must never silently become a duplicate activity.
+
+**Column semantics for create rows** (all other columns behave as for updates):
+
+| Column | Create-row rule |
+|---|---|
+| `destination_slug` | Required, must exist. `DESTINATION_REQUIRED` / `UNKNOWN_DESTINATION` errors. |
+| `slug` | Optional. Blank = generated from `name`. A custom slug is normalised with `SlugUtils.generateSlug` (same as the admin form) and the preview shows the normalised value; if it is already taken (DB or earlier row in the file) it gets a numeric suffix and the preview warns `SLUG_TAKEN`. Un-slugifiable name/slug (e.g. emoji only) is `INVALID_SLUG`; > 300 chars is `FIELD_TOO_LONG`. |
+| `image_url` | Optional. Any public `http(s)` URL (`INVALID_URL` otherwise, max 500 chars). On apply the backend downloads it and re-hosts it in R2 through the normal `ImageUploadService` pipeline (resize, JPEG). A URL already under `R2_PUBLIC_URL` is stored as-is. When uploads are not configured (dev/test) any external URL is `IMAGE_UPLOAD_UNAVAILABLE`. More than 50 remote images in one file is `TOO_MANY_IMAGES`. |
+| `min_price`, `featured_weight` | Optional columns as for updates; absent or blank = no minimum / weight 0. |
+| `featured`, `seo_indexable`, `translations` | Not in the CSV; new activities get `false` / `false` / none (not indexed until an admin opts in). |
+
+**Duplicate guards.** `NAME_EXISTS` (error): the destination already has an activity with this name (case-insensitive). This is deliberately an error, not a warning — an exported file whose `id` column a spreadsheet blanked would otherwise preview as N creates and re-create the catalog. `DUPLICATE_NAME` (warning): the same name appears on two create rows for one destination within the file.
+
+**Apply pipeline.** `ActivityCsvImporter.apply` peeks at the token, downloads and re-hosts every remote image (outside any DB transaction, with a 60 s wall-clock budget per import), *then* consumes the token atomically and calls `ActivityImportWriter.write` — one transaction that applies updates first, then creates. Any image failure raises `IMAGE_FETCH_FAILED` with the row number and URL before anything is written, and the token stays valid so Apply can be retried; objects already uploaded for earlier rows become harmless orphans in R2.
+
+**`RemoteImageFetcher` (SSRF surface).** http/https only; every hop (max 3 redirects) must resolve to a public address (loopback, RFC 1918, link-local, CGNAT, unique-local, NAT64-embedded private, benchmarking and reserved ranges rejected); the whole request (headers and body) is bounded by 10 s and the body by 10 MB via a capped `BodySubscriber`; the response must declare `image/*`. Residual risk: DNS is resolved once for the check and again by the client (rebinding window covered by the JVM's 30 s positive DNS cache; admin-only surface).
+
+**Preview DTO additions:** `rowsToCreate`, `creates[]` (`csvRowNumber`, `name`, `destinationSlug`, `slug` or null for auto, `price`, `categorySlugs`, `imageUrl`). **Result DTO:** `rowsCreated` next to `rowsUpdated`.
+
+**UI.** The import modal shows a "N to create" badge and a "New activities" table (row, name, destination, slug/auto, price, categories, image yes/none); the Apply button reads "Apply 2 updates, 1 new"; on `TOKEN_NOT_FOUND`/`TOKEN_EXPIRED` it disables Apply and tells the admin to go Back and preview again, on any other failure Apply stays enabled for a retry.

@@ -21,6 +21,9 @@ public interface ActivityRepository extends SluggedRepository<Activity> {
 
     List<Activity> findByDestinationId(UUID destinationId);
 
+    /** CSV import duplicate guard: does this destination already have an activity with this name? */
+    boolean existsByDestinationSlugAndNameIgnoreCase(String destinationSlug, String name);
+
     List<Activity> findByCategoriesSlug(String categorySlug);
 
     List<Activity> findByCategoriesId(UUID categoryId);

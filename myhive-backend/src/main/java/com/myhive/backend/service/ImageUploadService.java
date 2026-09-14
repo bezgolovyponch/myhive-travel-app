@@ -66,12 +66,19 @@ public class ImageUploadService {
     private String publicUrl;
 
     public String uploadImage(MultipartFile file) throws IOException {
-        byte[] originalBytes = file.getBytes();
+        return uploadImage(file.getBytes(), file.getContentType(), file.getOriginalFilename());
+    }
+
+    /**
+     * Same pipeline as the multipart upload for bytes that arrived some other way (e.g. a CSV
+     * import downloading a remote image). Returns the public URL of the stored object.
+     */
+    public String uploadImage(byte[] originalBytes, String contentType, String originalFilename) throws IOException {
         Dimension size = probeDimensions(originalBytes);
         if (size == null) {
             // A format ImageIO cannot decode (e.g. SVG) — store the original untouched.
-            String key = UUID.randomUUID() + extensionOf(file.getOriginalFilename());
-            putObject(key, file.getContentType(), originalBytes);
+            String key = UUID.randomUUID() + extensionOf(originalFilename);
+            putObject(key, contentType, originalBytes);
             return publicUrl + "/" + key;
         }
         if ((long) size.width * size.height > MAX_PIXELS) {
@@ -84,6 +91,14 @@ public class ImageUploadService {
         String key = UUID.randomUUID() + ".jpg";
         putObject(key, "image/jpeg", compressForWeb(decoded));
         return publicUrl + "/" + key;
+    }
+
+    /** True when the URL already points into our bucket, so it needs no re-hosting. */
+    public boolean isHostedUrl(String url) {
+        if (url == null || publicUrl == null || publicUrl.isBlank()) {
+            return false;
+        }
+        return url.startsWith(publicUrl + "/");
     }
 
     /**

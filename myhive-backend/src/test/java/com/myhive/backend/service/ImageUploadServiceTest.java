@@ -148,6 +148,31 @@ class ImageUploadServiceTest {
     }
 
     @Test
+    void uploadImage_fromBytes_compressesLikeMultipartUpload() throws IOException {
+        String url = imageUploadService.uploadImage(jpegBytes(3200, 2000), "image/jpeg", "remote.jpg");
+
+        assertThat(url).startsWith("https://img.test/").endsWith(".jpg");
+        BufferedImage stored = ImageIO.read(new ByteArrayInputStream(capturedBody()));
+        assertThat(stored.getWidth()).isEqualTo(1600);
+    }
+
+    @Test
+    void isHostedUrl_recognisesOnlyUrlsUnderThePublicBase() {
+        assertThat(imageUploadService.isHostedUrl("https://img.test/abc.jpg")).isTrue();
+        assertThat(imageUploadService.isHostedUrl("https://img.test.evil.com/abc.jpg")).isFalse();
+        assertThat(imageUploadService.isHostedUrl("https://example.com/abc.jpg")).isFalse();
+        assertThat(imageUploadService.isHostedUrl("")).isFalse();
+        assertThat(imageUploadService.isHostedUrl(null)).isFalse();
+    }
+
+    @Test
+    void isHostedUrl_withoutConfiguredPublicBase_isAlwaysFalse() {
+        ReflectionTestUtils.setField(imageUploadService, "publicUrl", "");
+
+        assertThat(imageUploadService.isHostedUrl("https://img.test/abc.jpg")).isFalse();
+    }
+
+    @Test
     void recompressExistingImages_recompressesOnlyOversizedDecodableObjects() throws IOException {
         // One oversized image (fake 2MB listing size), one already-small object, one undecodable.
         S3Object big = S3Object.builder().key("big.jpg").size(2_000_000L).build();
