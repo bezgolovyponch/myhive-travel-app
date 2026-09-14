@@ -19,7 +19,8 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-const SUBMIT = 'Get the link for your group';
+const SUBMIT = 'Create vote';
+const EMAIL = 'Send the results to';
 
 function renderModal(props = {}) {
   return render(
@@ -28,6 +29,7 @@ function renderModal(props = {}) {
         isOpen
         onClose={jest.fn()}
         destinationId="d-1"
+        destinationName="Prague"
         activityIds={['a-1', 'a-2']}
         numberOfTravelers={4}
         startDate="2026-08-01"
@@ -38,15 +40,8 @@ function renderModal(props = {}) {
   );
 }
 
-// Step 1 → step 2: the email screen only appears after "Create vote".
-async function goToEmailStep() {
-  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
-  return screen.getByLabelText('Email');
-}
-
 async function launchWith(email) {
-  const input = await goToEmailStep();
-  await userEvent.type(input, email);
+  await userEvent.type(screen.getByLabelText(EMAIL), email);
   await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
 }
 
@@ -54,48 +49,56 @@ afterEach(() => {
   localStorage.clear();
 });
 
-test('step 1 has no email input; "Create vote" reveals the one-input email screen', async () => {
+test('one screen: destination title, trip summary, benefits, email field and Create vote', async () => {
   renderModal();
-  expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
 
-  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
-
-  expect(screen.getByRole('heading', { name: 'Your vote is saved.' })).toBeInTheDocument();
-  expect(screen.getByText('Where should we send the results?')).toBeInTheDocument();
-  const input = screen.getByLabelText('Email');
+  expect(screen.getByRole('heading', { name: 'Start the vote for Prague' })).toBeInTheDocument();
+  expect(screen.getByText('2 activities · 4 people · closes in 24 h')).toBeInTheDocument();
+  expect(screen.getByText('See who has voted')).toBeInTheDocument();
+  expect(screen.getByText('Follow the poll live')).toBeInTheDocument();
+  expect(screen.getByText('Edit chosen activities')).toBeInTheDocument();
+  const input = screen.getByLabelText(EMAIL);
   expect(input).toHaveAttribute('type', 'email');
   expect(input).toHaveAttribute('autocomplete', 'email');
-  await waitFor(() => expect(input).toHaveFocus());
+  expect(input).toHaveAttribute('placeholder', 'name@email.com');
   expect(screen.getAllByRole('textbox')).toHaveLength(1);
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-  expect(screen.getByText(/reminder message you can paste into the chat/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: SUBMIT })).toBeInTheDocument();
+  expect(screen.getByText('No account needed. No spam.')).toBeInTheDocument();
   expect(voteApi.createCartSession).not.toHaveBeenCalled();
-  expect(pushEvent).toHaveBeenCalledWith('organizer_voted', { vote_mode: 'CART', selected_count: 2 });
+  // The email field is on the first (only) screen, so a view counts on open.
   expect(pushEvent).toHaveBeenCalledWith('email_screen_view', { vote_mode: 'CART' });
+});
+
+test('singular summary and a generic title without a destination name', () => {
+  renderModal({ destinationName: undefined, activityIds: ['a-1'], numberOfTravelers: 1 });
+
+  expect(screen.getByRole('heading', { name: 'Start the vote' })).toBeInTheDocument();
+  expect(screen.getByText('1 activity · 1 person · closes in 24 h')).toBeInTheDocument();
 });
 
 test('empty email shows the error, keeps focus and never calls the API', async () => {
   renderModal();
-  await goToEmailStep();
 
   await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
 
   expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
-  expect(screen.getByLabelText('Email')).toHaveFocus();
+  expect(screen.getByLabelText(EMAIL)).toHaveFocus();
   expect(voteApi.createCartSession).not.toHaveBeenCalled();
   expect(pushEvent).toHaveBeenCalledWith('email_invalid_attempt', { vote_mode: 'CART', reason: 'empty' });
+  expect(pushEvent).not.toHaveBeenCalledWith('organizer_voted', expect.anything());
 });
 
 test('malformed email keeps the typed value', async () => {
   renderModal();
-  const input = await goToEmailStep();
+  const input = screen.getByLabelText(EMAIL);
   await userEvent.type(input, 'sam@nowhere');
 
   await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
 
   expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
   expect(input).toHaveValue('sam@nowhere');
+  expect(input).toHaveAttribute('aria-describedby', 'start-vote-email-error');
   expect(pushEvent).toHaveBeenCalledWith('email_invalid_attempt', { vote_mode: 'CART', reason: 'format' });
   expect(voteApi.createCartSession).not.toHaveBeenCalled();
 });
@@ -118,6 +121,7 @@ test('valid email creates the session with initiatorEmail, stores tokens, fires 
   expect(localStorage.getItem('myhive-manager-t-1')).toBe('m-1');
   expect(localStorage.getItem('myhive-initiator-t-1')).toBe('true');
   expect(localStorage.getItem('myhive-trip-vote-session')).toBe('t-1');
+  expect(pushEvent).toHaveBeenCalledWith('organizer_voted', { vote_mode: 'CART', selected_count: 2 });
   expect(pushEvent).toHaveBeenCalledWith('contact_captured', {
     trip_id: 't-1', vote_mode: 'CART', source: 'vote_email_screen',
   });
@@ -126,6 +130,7 @@ test('valid email creates the session with initiatorEmail, stores tokens, fires 
   });
   expect(pushEvent).toHaveBeenCalledWith('link_revealed', { trip_id: 't-1', vote_mode: 'CART' });
   const order = pushEvent.mock.calls.map(([name]) => name);
+  expect(order.indexOf('organizer_voted')).toBeLessThan(order.indexOf('contact_captured'));
   expect(order.indexOf('contact_captured')).toBeLessThan(order.indexOf('vote_launched'));
   expect(order.indexOf('vote_launched')).toBeLessThan(order.indexOf('link_revealed'));
 });
@@ -139,7 +144,7 @@ test('API failure keeps the email, fires no launch events, and allows a retry', 
   await launchWith('sam@example.com');
 
   expect(await screen.findByText('activityId x does not exist')).toBeInTheDocument();
-  expect(screen.getByLabelText('Email')).toHaveValue('sam@example.com');
+  expect(screen.getByLabelText(EMAIL)).toHaveValue('sam@example.com');
   expect(pushEvent).not.toHaveBeenCalledWith('vote_launched', expect.anything());
   expect(pushEvent).not.toHaveBeenCalledWith('link_revealed', expect.anything());
 
@@ -149,13 +154,12 @@ test('API failure keeps the email, fires no launch events, and allows a retry', 
   expect(voteApi.createCartSession).toHaveBeenCalledTimes(2);
 });
 
-test('missing trip dates block the email step', async () => {
+test('missing trip dates block creation even with a valid email', async () => {
   renderModal({ startDate: '', endDate: '' });
 
-  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
+  await launchWith('sam@example.com');
 
   expect(screen.getByText('Trip dates are required')).toBeInTheDocument();
-  expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
   expect(voteApi.createCartSession).not.toHaveBeenCalled();
 });
 
@@ -197,51 +201,38 @@ test('QUIZ mode creates a QUIZ session with quiz payload and email, and calls on
   expect(mockNavigate).toHaveBeenCalledWith('/vote/tok1/waiting', { state: { managerToken: 'mgr1' } });
 });
 
-test('value-promise microcopy is shown on step 1', () => {
-  renderModal();
-  expect(screen.getByText(/share the link with your mates/i)).toBeInTheDocument();
-});
-
-test('closing on step 1 fires modal_abandoned without an email', async () => {
+test('closing fires modal_abandoned reporting whether an address was typed', async () => {
   const onClose = jest.fn();
   renderModal({ onClose });
 
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-
   expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
-    modal: 'start_vote', vote_mode: 'CART', has_email: false, step: 'details',
+    modal: 'start_vote', vote_mode: 'CART', has_email: false,
   });
   expect(onClose).toHaveBeenCalled();
-});
 
-test('closing on the email step reports whether an address was typed', async () => {
-  const onClose = jest.fn();
-  renderModal({ onClose });
-  const input = await goToEmailStep();
-  await userEvent.type(input, 'sam@example.com');
-
+  await userEvent.type(screen.getByLabelText(EMAIL), 'sam@example.com');
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-
   expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
-    modal: 'start_vote', vote_mode: 'CART', has_email: true, step: 'email',
+    modal: 'start_vote', vote_mode: 'CART', has_email: true,
   });
 });
 
-test('reopening after closing on the email step starts at step 1 again', async () => {
+test('reopening clears stale errors, counts a new view, and keeps the typed draft', async () => {
   const onClose = jest.fn();
   const { rerender } = renderModal({ onClose });
-  const input = await goToEmailStep();
-  await userEvent.type(input, 'sam@nowhere');
+  await userEvent.type(screen.getByLabelText(EMAIL), 'sam@nowhere');
   await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
   expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
 
-  // The modal stays mounted between openings, so a reopen must not resume mid-flow.
+  // The modal stays mounted between openings (TripBuilder renders it with isOpen).
   rerender(
     <MemoryRouter>
       <StartGroupVoteModal
         isOpen={false}
         onClose={onClose}
         destinationId="d-1"
+        destinationName="Prague"
         activityIds={['a-1', 'a-2']}
         numberOfTravelers={4}
         startDate="2026-08-01"
@@ -255,6 +246,7 @@ test('reopening after closing on the email step starts at step 1 again', async (
         isOpen
         onClose={onClose}
         destinationId="d-1"
+        destinationName="Prague"
         activityIds={['a-1', 'a-2']}
         numberOfTravelers={4}
         startDate="2026-08-01"
@@ -263,26 +255,21 @@ test('reopening after closing on the email step starts at step 1 again', async (
     </MemoryRouter>,
   );
 
-  expect(screen.getByRole('button', { name: 'Create vote' })).toBeInTheDocument();
-  expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
   expect(screen.queryByText('Please check the email address.')).not.toBeInTheDocument();
-
   // Every open counts once in the funnel: the ratio link_revealed / email_screen_view
   // is the metric the rollback decision reads.
-  await userEvent.click(screen.getByRole('button', { name: 'Create vote' }));
   expect(pushEvent.mock.calls.filter(([name]) => name === 'email_screen_view')).toHaveLength(2);
   // The typed address survives as a draft, like the dates in TripSetupModal.
-  expect(screen.getByLabelText('Email')).toHaveValue('sam@nowhere');
+  expect(screen.getByLabelText(EMAIL)).toHaveValue('sam@nowhere');
 });
 
 test('Enter in the email field submits, and a fixed address clears the error', async () => {
   voteApi.createCartSession.mockResolvedValue({ shareToken: 't-4', managerToken: 'm-4' });
   renderModal();
-  const input = await goToEmailStep();
+  const input = screen.getByLabelText(EMAIL);
   await userEvent.type(input, 'sam@nowhere');
   await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
   expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
-  expect(input).toHaveAttribute('aria-describedby', 'start-vote-email-error');
 
   await userEvent.clear(input);
   await userEvent.type(input, 'sam@example.com{Enter}');
@@ -306,27 +293,4 @@ test('does not fire modal_abandoned when closed after a successful launch', asyn
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   expect(pushEvent).not.toHaveBeenCalledWith('modal_abandoned', expect.anything());
-});
-
-// CSS imports are stubbed under Jest, so the email-step styling is checked against the stylesheet.
-test('email step hides the modal title visually and colours its copy with the primary text token', () => {
-  const fs = require('fs');
-  const path = require('path');
-  const css = fs.readFileSync(path.join(__dirname, 'StartGroupVoteModal.css'), 'utf8');
-  const declarations = (selector) => {
-    const start = css.indexOf(selector + ' {');
-    expect(start).toBeGreaterThanOrEqual(0);
-    return css.slice(start, css.indexOf('}', start));
-  };
-
-  // Visually hidden, not removed: the h2 is still the dialog's accessible name.
-  const title = declarations('.start-vote-modal--email .app-modal-header h2');
-  expect(title).toContain('position: absolute;');
-  expect(title).toContain('width: 1px;');
-  expect(title).toContain('height: 1px;');
-  expect(title).toContain('overflow: hidden;');
-  expect(title).not.toContain('display: none');
-
-  expect(declarations('.start-vote-email-sub')).toContain('color: var(--text);');
-  expect(declarations('.start-vote-email-helper')).toContain('color: var(--text);');
 });
