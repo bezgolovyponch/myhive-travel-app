@@ -7,6 +7,8 @@ import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -103,6 +105,32 @@ class PlanValidatorTest {
                 .extracting(Violation::code).contains(ViolationCode.DAY_OVER_MINUTES);
     }
 
+    /**
+     * Every tier's minute cap is reachable, not just BASIC's: a two-item day just at
+     * {@code tier.maxMinutesPerDay()} (including the buffer) is clean, and a few minutes
+     * over that same cap reports DAY_OVER_MINUTES.
+     */
+    @ParameterizedTest
+    @EnumSource(Tier.class)
+    void dayOverMinutes_isReportedForEachTier(Tier tier) {
+        int controlMinutesPerItem = (tier.maxMinutesPerDay() - PlanValidator.BUFFER_MINUTES) / 2;
+        int overMinutesPerItem = controlMinutesPerItem + 5;
+
+        PlanDraft.PackageDraft controlPackage = pkg(tier, List.of(
+                day(1, item(Slot.AFTERNOON, activity("Control-A", controlMinutesPerItem)),
+                        item(Slot.EVENING, activity("Control-B", controlMinutesPerItem))),
+                day(brief.days())));
+        assertThat(validator.validate(new PlanDraft(List.of(controlPackage)), brief, catalog))
+                .extracting(Violation::code).doesNotContain(ViolationCode.DAY_OVER_MINUTES);
+
+        PlanDraft.PackageDraft overPackage = pkg(tier, List.of(
+                day(1, item(Slot.AFTERNOON, activity("Over-A", overMinutesPerItem)),
+                        item(Slot.EVENING, activity("Over-B", overMinutesPerItem))),
+                day(brief.days())));
+        assertThat(validator.validate(new PlanDraft(List.of(overPackage)), brief, catalog))
+                .extracting(Violation::code).contains(ViolationCode.DAY_OVER_MINUTES);
+    }
+
     @Test
     void dayOverItems_perTier() {
         List<PlanDraft.ItemDraft> items = new ArrayList<>();
@@ -115,6 +143,32 @@ class PlanValidatorTest {
         PlanDraft draft = new PlanDraft(List.of(p, validDraft().packages().get(1), validDraft().packages().get(2)));
 
         assertThat(validator.validate(draft, brief, catalog))
+                .extracting(Violation::code).contains(ViolationCode.DAY_OVER_ITEMS);
+    }
+
+    /**
+     * Every tier's item cap is reachable, not just BASIC's: a middle day (full MORNING..NIGHT
+     * window) loaded with one more item than {@code tier.maxItemsPerDay()} reports DAY_OVER_ITEMS.
+     * Slots are cycled from the 4-value {@link Slot} enum, so PREMIUM's 5th item reuses a slot
+     * (an incidental SLOT_TAKEN alongside it is fine; this test only cares about the item cap).
+     */
+    @ParameterizedTest
+    @EnumSource(Tier.class)
+    void dayOverItems_isReportedForEachTier(Tier tier) {
+        int overCapItemCount = tier.maxItemsPerDay() + 1;
+        Slot[] slots = Slot.values();
+        List<PlanDraft.ItemDraft> items = new ArrayList<>();
+        for (int i = 0; i < overCapItemCount; i++) {
+            items.add(item(slots[i % slots.length], activity("Item" + i, 10)));
+        }
+        PlanDraft.PackageDraft p = new PlanDraft.PackageDraft(tier, "T", "tag", "desc", List.of(
+                new PlanDraft.DayDraft(1, "d", "s", List.of()),
+                new PlanDraft.DayDraft(2, "d", "s", items),
+                new PlanDraft.DayDraft(3, "d", "s", List.of())));
+        Brief threeDayBrief = new Brief(3, 8, List.of("nightlife"), null, null, null, DayEdge.EVENING, DayEdge.MORNING, null);
+        PlanDraft draft = new PlanDraft(List.of(p));
+
+        assertThat(validator.validate(draft, threeDayBrief, catalog))
                 .extracting(Violation::code).contains(ViolationCode.DAY_OVER_ITEMS);
     }
 
@@ -158,6 +212,18 @@ class PlanValidatorTest {
         assertThat(violations).filteredOn(v -> v.code() == ViolationCode.EMPTY_DAY).hasSize(1);
         assertThat(violations).filteredOn(v -> v.code() == ViolationCode.EMPTY_DAY).first()
                 .extracting(Violation::dayNumber).isEqualTo(expectedEmptyDayNumber);
+    }
+
+    /** Mirrors the arrival-day case above: the last (departure) day may also be empty. */
+    @Test
+    void departureDayMayBeEmpty_isNotReported() {
+        PlanDraft.PackageDraft p = pkg(Tier.BASIC, List.of(
+                day(1, item(Slot.EVENING, activity("A", 30))),
+                day(brief.days())));
+        PlanDraft draft = new PlanDraft(List.of(p));
+
+        List<Violation> violations = validator.validate(draft, brief, catalog);
+        assertThat(violations).filteredOn(v -> v.code() == ViolationCode.EMPTY_DAY).isEmpty();
     }
 
     @Test
