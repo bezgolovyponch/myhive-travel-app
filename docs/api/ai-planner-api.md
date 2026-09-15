@@ -30,6 +30,7 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
 | 409 | `BRIEF_INCOMPLETE` | Manual generate before the agent knows days/group/preferences. Show `missingFields`. |
 | 409 | `GENERATION_IN_PROGRESS` | A generation is already running. Poll it instead. |
 | 409 | `GENERATION_NOT_READY` | `select` called on a generation that is not `READY`. |
+| 409 | `SESSION_BUSY` | Another request for this chat is still in flight (double-click). Retry once the first call returns. |
 | 429 | `SESSION_TURN_LIMIT`, `GENERATION_LIMIT` | 30 messages / 5 generations per session. Offer "start a new chat". |
 | 429 | `SESSION_DAILY_LIMIT` | 20 new sessions per IP per day. |
 | 429 | `AI_BUSY` | Queue full. Retry generation in ~10 s. |
