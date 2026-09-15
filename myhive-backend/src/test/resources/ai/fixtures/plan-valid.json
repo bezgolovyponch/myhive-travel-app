@@ -1,0 +1,12 @@
+{"packages": [
+  {"key": "BASIC", "title": "Warm-up", "tagline": "Easy does it", "description": "…",
+   "days": [{"dayNumber": 1, "title": "Landing", "summary": "…",
+             "items": [{"slot": "EVENING", "startHint": "20:00", "activityId": "ID1", "why": "Loosens everyone up"}]}]},
+  {"key": "MEDIUM", "title": "Main Event", "tagline": "…", "description": "…",
+   "days": [{"dayNumber": 1, "title": "Landing", "summary": "…",
+             "items": [{"slot": "EVENING", "startHint": null, "activityId": "ID2", "why": "…"}]}]},
+  {"key": "PREMIUM", "title": "Full Send", "tagline": "…", "description": "…",
+   "days": [{"dayNumber": 1, "title": "Landing", "summary": "…",
+             "items": [{"slot": "AFTERNOON", "startHint": null, "activityId": "ID1", "why": "…"},
+                       {"slot": "EVENING", "startHint": null, "activityId": "ID2", "why": "…"}]}]}
+]}
