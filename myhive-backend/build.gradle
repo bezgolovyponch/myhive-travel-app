@@ -73,6 +73,26 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'com.h2database:h2'
+
+    // Spring AI 2.0 (Boot 4 line): OpenAI-compatible client pointed at DashScope (Qwen)
+    implementation platform('org.springframework.ai:spring-ai-bom:2.0.1')
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+
+    // langgraph4j: checkpointed, interruptible state graph for the AI planner.
+    // Only core + postgres-saver are used; langgraph4j-spring-ai is built against Spring AI 2.0.0-M4 and is deliberately NOT used.
+    implementation platform('org.bsc.langgraph4j:langgraph4j-bom:1.8.13')
+    implementation 'org.bsc.langgraph4j:langgraph4j-core'
+    implementation 'org.bsc.langgraph4j:langgraph4j-postgres-saver'
+    // Visual graph debugger, dev profile only (see PlannerStudioConfig)
+    developmentOnly 'org.bsc.langgraph4j:langgraph4j-studio-springboot'
+
+    // Testcontainers Postgres for the checkpoint-persistence test (@Tag("docker")).
+    // Testcontainers 2.x (pinned by the Spring Boot 4 BOM) renamed these modules from
+    // org.testcontainers:junit-jupiter / :postgresql to the testcontainers-* prefixed
+    // artifacts below; the old unprefixed names no longer resolve a managed version.
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-postgresql'
 }
 
 tasks.named('test') {
