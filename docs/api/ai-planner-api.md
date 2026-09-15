@@ -72,17 +72,21 @@ contains the agent's first reply; otherwise `messages` holds only the greeting.
 
 ```json
 {
-  "message": { "role": "ASSISTANT", "content": "Nice — 8 lads, 3 days. Any budget in mind, and is anything off the table?", "at": "2026-09-15T10:01:03Z" },
+  "message": { "role": "ASSISTANT", "content": "Nice — 8 lads, 3 days. What's the vibe: karting and beer, something wild, or a bit of everything?", "at": "2026-09-15T10:01:03Z" },
   "brief": { "...Brief..." },
-  "missingFields": ["budget"],
-  "readyToGenerate": true,
+  "missingFields": ["preferences"],
+  "readyToGenerate": false,
   "generation": null
 }
 ```
 
-When the agent decides to generate (the brief is complete and the user agreed),
-`generation` is set: `{ "id": "…", "status": "QUEUED" }` and the message says
-something like "Building your three options…". Start polling.
+Generation starts **automatically** the moment the brief is complete (days, group
+size and preferences known) — there is no confirmation step. On that turn
+`readyToGenerate` is `true`, `generation` is set to `{ "id": "…", "status": "QUEUED" }`
+and the message says something like "Building your three options…". Start polling.
+If the very first message already contains everything, this happens right after the
+first reply. After packages exist, a later message regenerates automatically **only
+if it changed the brief** (e.g. "actually 6 of us"); small talk does not.
 
 ### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
 

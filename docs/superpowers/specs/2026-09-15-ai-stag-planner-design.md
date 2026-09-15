@@ -24,6 +24,7 @@ book-or-vote flows take over.
 | Interaction model | Multi-turn chat; the agent asks for what is missing | Owner wants a conversation, not a form |
 | Result persistence | Persisted; the organizer can return to the packages screen and pick again | Owner: "must be able to come back"; enables analytics |
 | Delivery of the result | Async job + polling | Qwen composition takes 10–40 s; Cloudflare/Render cut long requests |
+| When generation starts | Automatically, the moment days + group size + preferences are known; no confirmation step | Owner: "we must give the three packages right away" |
 | Package variants | Exactly three tiers with stable keys `BASIC` / `MEDIUM` / `PREMIUM`; catchy titles written by the model | Owner: "basic, medium, premium; invent names that hook" |
 | Who understands taste | The LLM, at both points (brief extraction and composition). Java never infers preferences | Owner's concern that Java candidate retrieval would be hard; catalog per city is small enough to go into the prompt whole |
 | LLM provider | Qwen via Alibaba Cloud Model Studio (DashScope) OpenAI-compatible endpoint | Owner's decision |
@@ -67,8 +68,8 @@ One compiled `StateGraph<PlannerState>` per JVM, one **thread** per chat session
 request or job executor) can resume it.
 
 ```
-START → chatTurn ─┬─(brief incomplete | action=NONE)──→ awaitUser ⏸ ──→ chatTurn
-                  └─(action=GENERATE)──→ awaitGeneration ⏸
+START → chatTurn ─┬─(brief incomplete)──→ awaitUser ⏸ ──→ chatTurn
+                  └─(brief complete → generate automatically)──→ awaitGeneration ⏸
                                               │  (resumed by the job executor)
                                               ▼
                      snapshotCatalog → compose → validate ─┬─ ok ──→ persistResult
@@ -82,7 +83,7 @@ START → chatTurn ─┬─(brief incomplete | action=NONE)──→ awaitUser 
 
 | Node | Kind | Does |
 |---|---|---|
-| `chatTurn` | LLM | Sends system prompt + catalog category list + brief-so-far + last 20 messages to the chat model. Parses `{reply, brief, missingFields, action}`. Appends the assistant message, merges the brief (model output wins per field, nulls leave the old value). |
+| `chatTurn` | LLM | Sends system prompt + catalog category list + brief-so-far + last 20 messages to the chat model. Parses `{reply, brief, missingFields}`. Appends the assistant message, merges the brief (model output wins per field, nulls leave the old value) and sets `action = GENERATE` iff the merged brief is ready — Java decides, not the model. |
 | `awaitUser` | interrupt | Graph parks here. `POST /messages` does `updateState({messages: [user msg]})` then resumes. |
 | `awaitGeneration` | interrupt | Graph parks here so the HTTP request returns 202. The job executor resumes the same thread. |
 | `snapshotCatalog` | Java | Loads all activities of the destination (localized), compacts them to `{id, name, oneLine, durationMinutes, price, minPrice, categories}`. If > 80, keeps the 80 best by category overlap with the brief then `featuredWeight`. Stores the snapshot in state so `compose`/`repair`/`validate` all see the same catalog. |
@@ -132,9 +133,15 @@ Brief {
 ```
 
 Ready to generate when `days`, `groupSize` and (`categorySlugs` non-empty **or**
-`vibe` present) are known. The model sets `action = GENERATE` only when the brief is
-ready **and** the user has agreed or asked for the plan; `missingFields` lists what
-it still needs so the frontend can show hints.
+`vibe` present) are known. **Generation starts automatically the moment the merged
+brief becomes ready** — Java decides after each chat turn, the model is never asked
+for permission and there is no "shall I build it?" step. If the first message already
+contains everything, the packages are generated right after the first reply. The
+model's reply on that turn simply says it is building the three options;
+`missingFields` lists what is still unknown so the frontend can show hints.
+After a generation, further chat regenerates **only if the merged brief changed**
+(the graph remembers the brief the last generation used); small talk never burns a
+generation. The explicit `POST /generations` stays for "try other options".
 
 ### Scheduling rules (PlanValidator)
 
