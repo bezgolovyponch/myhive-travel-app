@@ -24,6 +24,9 @@ public class PlanAssembler {
     }
 
     public AssemblyResult assemble(PlanDraft draft, Brief brief, Map<UUID, CatalogActivity> catalog, boolean degraded) {
+        if (brief.groupSize() == null) {
+            throw new IllegalArgumentException("brief.groupSize must be set before assembling a plan");
+        }
         int travelers = brief.groupSize();
         List<ComposedPlan.PackageResult> packages = new ArrayList<>();
         for (PlanDraft.PackageDraft p : draft.packages()) {

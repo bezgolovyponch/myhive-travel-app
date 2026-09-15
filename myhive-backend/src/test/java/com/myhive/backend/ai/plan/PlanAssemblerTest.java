@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PlanAssemblerTest {
 
@@ -90,5 +91,34 @@ class PlanAssemblerTest {
         assertThat(plan.packages().get(0).title()).isEqualTo(expectedTitle);
         assertThat(plan.packages().get(0).days().get(0).items().get(0).why()).isEqualTo(expectedWhy);
         assertThat(plan.degraded()).isEqualTo(expectedDegraded);
+    }
+
+    @Test
+    void assemble_throwsWhenGroupSizeIsMissing() {
+        Brief briefWithoutGroupSize = Brief.empty();
+        PlanDraft draft = new PlanDraft(List.of(pkg(Tier.BASIC), pkg(Tier.MEDIUM), pkg(Tier.PREMIUM)));
+
+        assertThatThrownBy(() -> assembler.assemble(draft, briefWithoutGroupSize, catalog, false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("groupSize");
+    }
+
+    @Test
+    void assemble_dropsUnknownActivityId_andExcludesItFromTotals() {
+        UUID known = activity("Known", "10.00", null);
+        UUID unknown = UUID.randomUUID();
+        List<PlanDraft.ItemDraft> items = List.of(
+                new PlanDraft.ItemDraft(Slot.MORNING, "10:00", known, "why"),
+                new PlanDraft.ItemDraft(Slot.AFTERNOON, "12:00", unknown, "why"));
+        PlanDraft.PackageDraft basic = new PlanDraft.PackageDraft(Tier.BASIC, "t", "tag", "desc",
+                List.of(new PlanDraft.DayDraft(1, "Day 1", "sum", items)));
+        PlanDraft draft = new PlanDraft(List.of(basic, pkg(Tier.MEDIUM, known), pkg(Tier.PREMIUM, known)));
+
+        PlanAssembler.AssemblyResult result = assembler.assemble(draft, brief, catalog, false);
+
+        ComposedPlan.PackageResult basicResult = result.plan().packages().get(0);
+        assertThat(basicResult.activityIds()).containsExactly(known);
+        assertThat(basicResult.days().get(0).items()).hasSize(1);
+        assertThat(basicResult.totalPrice()).isEqualByComparingTo("40.00");
     }
 }
