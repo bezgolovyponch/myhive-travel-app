@@ -89,4 +89,32 @@ class CatalogSnapshotterTest {
         assertThat(row.price()).isEqualByComparingTo(expectedPrice);
         assertThat(row.minPrice()).isEqualByComparingTo(expectedMinPrice);
     }
+
+    @Test
+    void oneLine_breaksOnWordBoundaryBeforeLimit() {
+        String expectedLastWord = "lighthouse";
+        String longDescription = (expectedLastWord + " ").repeat(20);
+
+        String result = CatalogSnapshotter.oneLine(longDescription);
+
+        assertThat(result).endsWith("…");
+        assertThat(result).hasSizeLessThanOrEqualTo(CatalogSnapshotter.ONE_LINE_MAX);
+        String withoutEllipsis = result.substring(0, result.length() - 1);
+        assertThat(withoutEllipsis).doesNotEndWith(" ");
+        assertThat(withoutEllipsis).hasSizeLessThan(CatalogSnapshotter.ONE_LINE_MAX - 1);
+        assertThat(withoutEllipsis).endsWith(expectedLastWord);
+        assertThat(longDescription.strip()).startsWith(withoutEllipsis);
+    }
+
+    @Test
+    void oneLine_fallsBackToHardCutWhenNoWordBoundaryExists() {
+        int expectedTruncatedLength = CatalogSnapshotter.ONE_LINE_MAX - 1;
+        String noSpaceDescription = "x".repeat(200);
+
+        String result = CatalogSnapshotter.oneLine(noSpaceDescription);
+
+        assertThat(result).hasSize(CatalogSnapshotter.ONE_LINE_MAX);
+        assertThat(result).endsWith("…");
+        assertThat(result.substring(0, expectedTruncatedLength)).isEqualTo("x".repeat(expectedTruncatedLength));
+    }
 }

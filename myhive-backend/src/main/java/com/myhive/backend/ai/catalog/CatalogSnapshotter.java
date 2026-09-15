@@ -66,6 +66,9 @@ public class CatalogSnapshotter {
                 a.getCategories().stream().map(Category::getSlug).sorted().toList());
     }
 
+    /** A word boundary found earlier than this would throw away most of the line; hard-cut instead. */
+    private static final int MIN_WORD_CUT = 40;
+
     static String oneLine(String description) {
         if (description == null) {
             return "";
@@ -75,6 +78,6 @@ public class CatalogSnapshotter {
             return flat;
         }
         int cut = flat.lastIndexOf(' ', ONE_LINE_MAX - 1);
-        return flat.substring(0, cut > 40 ? cut : ONE_LINE_MAX - 1) + "…";
+        return flat.substring(0, cut > MIN_WORD_CUT ? cut : ONE_LINE_MAX - 1) + "…";
     }
 }
