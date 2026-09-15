@@ -4,6 +4,7 @@ import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.Violation;
 import com.myhive.backend.ai.plan.ViolationCode;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -19,7 +20,12 @@ import org.springframework.ai.openai.OpenAiChatModel.ResponseFormat;
 import org.springframework.ai.openai.OpenAiChatOptions;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,8 +40,17 @@ class SpringAiLlmGatewayTest {
 
     private final ChatModel chatModel = mock(ChatModel.class);
     private final AiProperties props = new AiProperties();
-    private final SpringAiLlmGateway gateway =
-            new SpringAiLlmGateway(chatModel, new PromptRenderer(), new LlmOutputParser(), props);
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
+    private final SpringAiLlmGateway gateway = gatewayOn(executor);
+
+    @AfterEach
+    void shutDownExecutor() {
+        executor.shutdownNow();
+    }
+
+    private SpringAiLlmGateway gatewayOn(Executor llmCallExecutor) {
+        return new SpringAiLlmGateway(chatModel, new PromptRenderer(), new LlmOutputParser(), props, llmCallExecutor);
+    }
 
     private static ChatResponse response(String text, Integer promptTokens, Integer completionTokens) {
         ChatResponseMetadata metadata = ChatResponseMetadata.builder()
@@ -84,6 +99,7 @@ class SpringAiLlmGatewayTest {
         assertThat(result.usage().model()).isEqualTo(expectedModel);
         assertThat(result.usage().promptTokens()).isEqualTo(expectedPromptTokens);
         assertThat(result.usage().completionTokens()).isEqualTo(expectedCompletionTokens);
+        assertThat(result.usage().latencyMs()).isGreaterThanOrEqualTo(0L);
         OpenAiChatOptions options = capturedOptions();
         assertThat(options.getModel()).isEqualTo(expectedModel);
         assertThat(options.getResponseFormat().getType()).isEqualTo(ResponseFormat.Type.JSON_OBJECT);
@@ -109,6 +125,28 @@ class SpringAiLlmGatewayTest {
         assertThat(messages.get(1).getText()).isEqualTo("hi");
         assertThat(messages.get(2).getMessageType()).isEqualTo(MessageType.ASSISTANT);
         assertThat(messages.get(3).getText()).isEqualTo("<user>" + expectedLatestUserMessage + "</user>");
+    }
+
+    @Test
+    void chatTurn_sendsOnlyTheLastTwentyHistoryMessages() {
+        int historySize = 25;
+        int expectedMessageCount = 21;
+        String expectedLatestUserMessage = "turn " + (historySize - 1);
+        List<ChatMessage> history = new ArrayList<>();
+        for (int i = 0; i < historySize; i++) {
+            history.add(new ChatMessage(i % 2 == 0 ? ChatMessage.USER : ChatMessage.ASSISTANT, "turn " + i, "t" + i));
+        }
+        when(chatModel.call(any(Prompt.class)))
+                .thenReturn(response("{\"reply\":\"ok\",\"brief\":{},\"missingFields\":[]}"));
+
+        gateway.chatTurn(new ChatTurnRequest("en", "Prague", List.of(), Brief.empty(), history));
+
+        List<Message> messages = capturedPrompt().getInstructions();
+        assertThat(messages).hasSize(expectedMessageCount);
+        assertThat(messages.get(0).getMessageType()).isEqualTo(MessageType.SYSTEM);
+        assertThat(messages.get(1).getText()).isEqualTo("turn " + (historySize - 20));
+        assertThat(messages.get(expectedMessageCount - 1).getText())
+                .isEqualTo("<user>" + expectedLatestUserMessage + "</user>");
     }
 
     @Test
@@ -164,6 +202,26 @@ class SpringAiLlmGatewayTest {
         assertThatThrownBy(() -> gateway.composePlan(planRequest()))
                 .isInstanceOf(LlmUnavailableException.class)
                 .hasMessageContaining(expectedTimeout.toString());
+    }
+
+    @Test
+    void composePlan_wrapsAnExhaustedExecutorAsLlmUnavailable() {
+        Executor saturated = command -> {
+            throw new RejectedExecutionException("queue full");
+        };
+
+        assertThatThrownBy(() -> gatewayOn(saturated).composePlan(planRequest()))
+                .isInstanceOf(LlmUnavailableException.class)
+                .hasMessageContaining("executor saturated");
+    }
+
+    @Test
+    void composePlan_emptyResponseSurfacesAsLlmOutputException() {
+        when(chatModel.call(any(Prompt.class))).thenReturn(new ChatResponse(List.of()));
+
+        assertThatThrownBy(() -> gateway.composePlan(planRequest()))
+                .isInstanceOf(LlmOutputException.class)
+                .hasMessageContaining("no response");
     }
 
     @Test
