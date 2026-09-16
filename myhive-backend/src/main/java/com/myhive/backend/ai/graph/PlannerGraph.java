@@ -117,14 +117,23 @@ public class PlannerGraph {
                     .addConditionalEdges(AWAIT_SELECTION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
                             Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
                     .addEdge(SELECT, AWAIT_SELECTION);
-            this.compiled = workflow.compile(CompileConfig.builder()
-                    .checkpointSaver(saver)
-                    .interruptBefore(AWAIT_USER, AWAIT_GENERATION, AWAIT_SELECTION)
-                    .releaseThread(false)
-                    .build());
+            this.compiled = workflow.compile(compileConfig(saver));
         } catch (GraphStateException e) {
             throw new IllegalStateException("planner graph definition is invalid", e);
         }
+    }
+
+    /**
+     * Where a run parks, and on which saver. Shared with the dev Studio instance, which compiles the
+     * same {@link #workflow()} on its own saver - a Studio run that did not park at the {@code await*}
+     * nodes would race straight through the whole conversation and look nothing like production.
+     */
+    public static CompileConfig compileConfig(BaseCheckpointSaver saver) {
+        return CompileConfig.builder()
+                .checkpointSaver(saver)
+                .interruptBefore(AWAIT_USER, AWAIT_GENERATION, AWAIT_SELECTION)
+                .releaseThread(false)
+                .build();
     }
 
     private static String afterChatTurn(PlannerState state) {

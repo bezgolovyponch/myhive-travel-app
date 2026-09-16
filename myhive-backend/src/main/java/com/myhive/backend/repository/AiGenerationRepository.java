@@ -26,5 +26,11 @@ public interface AiGenerationRepository extends JpaRepository<AiGeneration, UUID
 
     List<AiGeneration> findByStatusAndStartedAtBefore(AiGenerationStatus status, LocalDateTime before);
 
+    /**
+     * The QUEUED half of the stale sweep. A row orphaned before its pool thread ever ran has no
+     * {@code startedAt} to age on, so it has to be aged on {@code createdAt} instead.
+     */
+    List<AiGeneration> findByStatusAndCreatedAtBefore(AiGenerationStatus status, LocalDateTime before);
+
     int deleteBySessionId(UUID sessionId);
 }

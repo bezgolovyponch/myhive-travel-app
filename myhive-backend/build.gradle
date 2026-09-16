@@ -80,10 +80,22 @@ dependencies {
 
     // langgraph4j: checkpointed, interruptible state graph for the AI planner.
     // Only core + postgres-saver are used; langgraph4j-spring-ai is built against Spring AI 2.0.0-M4 and is deliberately NOT used.
-    implementation platform('org.bsc.langgraph4j:langgraph4j-bom:1.8.13')
+    def langgraph4jBom = 'org.bsc.langgraph4j:langgraph4j-bom:1.8.13'
+    implementation platform(langgraph4jBom)
     implementation 'org.bsc.langgraph4j:langgraph4j-core'
     implementation 'org.bsc.langgraph4j:langgraph4j-postgres-saver'
-    // Visual graph debugger, dev profile only (see PlannerStudioConfig)
+    // Visual graph debugger, dev profile only (see PlannerStudioConfig), split across two jars on
+    // purpose. `langgraph4j-studio` (~64 KB, servlets + Instance types) has to be `implementation`:
+    // Gradle keeps developmentOnly off compileClasspath, so PlannerStudioConfig could not reference
+    // those types otherwise. `langgraph4j-studio-springboot` is the same servlets plus a 30 MB
+    // static/ web UI, and that stays `developmentOnly` - a jar entry under static/ is served by
+    // Spring Boot from the classpath root, so on `implementation` the prod image would both carry
+    // and publish the Studio front end. PlannerStudioConfig is @ConditionalOnClass on this jar, so
+    // it wires itself only where the UI is actually present, i.e. bootRun.
+    implementation 'org.bsc.langgraph4j:langgraph4j-studio'
+    // The BOM has to be repeated: developmentOnly extends nothing, so the version the implementation
+    // platform pins never reaches it and bootJar fails resolving the module with no version at all.
+    developmentOnly platform(langgraph4jBom)
     developmentOnly 'org.bsc.langgraph4j:langgraph4j-studio-springboot'
 
     // Testcontainers Postgres for the checkpoint-persistence test (@Tag("docker")).

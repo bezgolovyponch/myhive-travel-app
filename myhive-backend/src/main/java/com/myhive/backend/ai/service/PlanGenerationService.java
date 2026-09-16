@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -158,13 +159,22 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
         generationRepository.save(generation);
     }
 
-    /** Sweeps rows whose job thread died mid-run, so a chat is never stuck on "building your packages". */
+    /**
+     * Sweeps rows no job thread owns any more, so a chat is never stuck on "building your packages".
+     * Two ways to end up there: the thread died mid-run (RUNNING, aged on {@code startedAt}), or the
+     * process went down between the insert and {@code execute}, leaving a QUEUED row that will never
+     * be started and therefore never grows a {@code startedAt} for the first sweep to find.
+     */
     @Scheduled(fixedDelay = 60_000)
     @Transactional
     public void failStaleRunning() {
         LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(STALE_AFTER_MINUTES);
-        for (AiGeneration generation : generationRepository
-                .findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING, cutoff)) {
+        failStale(generationRepository.findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING, cutoff));
+        failStale(generationRepository.findByStatusAndCreatedAtBefore(AiGenerationStatus.QUEUED, cutoff));
+    }
+
+    private void failStale(List<AiGeneration> generations) {
+        for (AiGeneration generation : generations) {
             log.warn("planner generation {} is stale, marking it failed", generation.getId());
             self.getObject().fail(generation.getId(), "STALE");
         }

@@ -35,3 +35,38 @@ CREATE TABLE ai_generations (
     finished_at          TIMESTAMP
 );
 CREATE INDEX idx_ai_generations_session ON ai_generations (session_id, created_at);
+
+-- langgraph4j PostgresSaver tables, mirrored by hand from
+-- org.bsc.langgraph4j.checkpoint.PostgresSaver#initTable (langgraph4j 1.8.13). Prod builds the saver
+-- with createTables(false) because this schema runs on ddl-auto=validate and every table in it is
+-- versioned; the saver must not create its own behind Flyway's back. On a langgraph4j upgrade, diff
+-- initTable against this block - PostgresCheckpointPersistenceTest compares the two schemas column by
+-- column and fails when they drift. Unquoted identifiers: Postgres folds them to lg4jthread/lg4jcheckpoint.
+CREATE TABLE IF NOT EXISTS LG4JThread (
+    thread_id   UUID PRIMARY KEY,
+    thread_name VARCHAR(255),
+    is_released BOOLEAN DEFAULT FALSE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS LG4JCheckpoint (
+    checkpoint_id        UUID PRIMARY KEY,
+    parent_checkpoint_id UUID,
+    thread_id            UUID NOT NULL,
+    node_id              VARCHAR(255),
+    next_node_id         VARCHAR(255),
+    state_data           JSONB NOT NULL,
+    state_content_type   VARCHAR(100) NOT NULL,
+    saved_at             TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_thread
+        FOREIGN KEY (thread_id)
+        REFERENCES LG4JThread (thread_id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_lg4jcheckpoint_thread_id ON LG4JCheckpoint (thread_id);
+CREATE INDEX IF NOT EXISTS idx_lg4jcheckpoint_thread_id_saved_at_desc ON LG4JCheckpoint (thread_id, saved_at DESC);
+-- Not cosmetic: the saver's checkpoint upsert says ON CONFLICT (thread_name) WHERE is_released = FALSE,
+-- which Postgres can only resolve against exactly this partial unique index.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_lg4jthread_thread_name_unreleased
+    ON LG4JThread (thread_name) WHERE is_released = FALSE;

@@ -20,6 +20,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +31,7 @@ import java.util.concurrent.RejectedExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -240,13 +243,48 @@ class PlanGenerationServiceTest {
     void failStaleRunning_marksRowsStale() {
         AiGeneration stale = savedGeneration(AiGenerationStatus.RUNNING);
         stale.setStartedAt(LocalDateTime.now().minusMinutes(10));
-        when(generationRepository.findByStatusAndStartedAtBefore(any(), any())).thenReturn(List.of(stale));
+        when(generationRepository.findByStatusAndStartedAtBefore(eq(AiGenerationStatus.RUNNING), any()))
+                .thenReturn(List.of(stale));
 
         service.failStaleRunning();
 
         assertThat(stale.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
         assertThat(stale.getErrorCode()).isEqualTo("STALE");
         assertThat(stale.getSession().getStatus()).isEqualTo(AiSessionStatus.FAILED);
+    }
+
+    @Test
+    void failStaleRunning_alsoSweepsQueuedRowsOrphanedByARestart() {
+        // A restart between the insert and the pool thread leaves a QUEUED row nobody owns; it never
+        // gets a startedAt, so the RUNNING sweep can never see it and the chat waits for ever.
+        AiGeneration orphan = savedGeneration(AiGenerationStatus.QUEUED);
+        orphan.setCreatedAt(LocalDateTime.now().minusMinutes(10));
+        when(generationRepository.findByStatusAndCreatedAtBefore(eq(AiGenerationStatus.QUEUED), any()))
+                .thenReturn(List.of(orphan));
+
+        service.failStaleRunning();
+
+        assertThat(orphan.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(orphan.getErrorCode()).isEqualTo("STALE");
+        assertThat(orphan.getSession().getStatus()).isEqualTo(AiSessionStatus.FAILED);
+    }
+
+    @Test
+    void failStaleRunning_sweepsBothStatusesWithTheSameCutoff() {
+        int expectedStaleAfterMinutes = PlanGenerationService.STALE_AFTER_MINUTES;
+
+        service.failStaleRunning();
+
+        ArgumentCaptor<LocalDateTime> runningCutoff = ArgumentCaptor.captor();
+        ArgumentCaptor<LocalDateTime> queuedCutoff = ArgumentCaptor.captor();
+        verify(generationRepository)
+                .findByStatusAndStartedAtBefore(eq(AiGenerationStatus.RUNNING), runningCutoff.capture());
+        verify(generationRepository)
+                .findByStatusAndCreatedAtBefore(eq(AiGenerationStatus.QUEUED), queuedCutoff.capture());
+        LocalDateTime expectedCutoff =
+                LocalDateTime.now(ZoneOffset.UTC).minusMinutes(expectedStaleAfterMinutes);
+        assertThat(runningCutoff.getValue()).isCloseTo(expectedCutoff, within(1, ChronoUnit.MINUTES));
+        assertThat(queuedCutoff.getValue()).isEqualTo(runningCutoff.getValue());
     }
 
     @Test
