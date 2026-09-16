@@ -74,7 +74,7 @@ public class PlanAssembler {
     }
 
     /** Model text is displayed as plain text only: drop script/style blocks whole, unwrap other tags, collapse whitespace. */
-    static String clean(String text) {
+    public static String clean(String text) {
         if (text == null) {
             return null;
         }
