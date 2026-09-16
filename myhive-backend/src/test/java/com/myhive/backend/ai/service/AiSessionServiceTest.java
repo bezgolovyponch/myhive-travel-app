@@ -34,6 +34,7 @@ import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.service.TurnstileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -42,12 +43,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AiSessionServiceTest {
@@ -60,7 +65,19 @@ class AiSessionServiceTest {
     private final AiProperties props = new AiProperties();
     /** Collects the jobs {@code enqueue} submits instead of running them; the graph stays parked. */
     private final List<Runnable> submittedJobs = new ArrayList<>();
-    private final Executor executor = submittedJobs::add;
+    /** Records the order of the calls a turn makes, to pin what happens before the job is submitted. */
+    private final List<String> callOrder = new ArrayList<>();
+    private boolean executorRejects = false;
+    private final Executor executor = job -> {
+        callOrder.add("submit");
+        if (executorRejects) {
+            throw new RejectedExecutionException();
+        }
+        submittedJobs.add(job);
+    };
+    private final List<AiGeneration> savedGenerations = new ArrayList<>();
+    @SuppressWarnings("unchecked")
+    private final ObjectProvider<PlanGenerationService> generationServiceSelf = mock(ObjectProvider.class);
     private PlannerGraph graph;
     private PlanGenerationService generationService;
     private AiSessionService service;
@@ -75,7 +92,9 @@ class AiSessionServiceTest {
                 (generationId, plan, degraded, usage, attempt) ->
                         generationService.ready(generationId, plan, degraded, usage, attempt),
                 (generationId, key) -> generationService.selected(generationId, key));
-        generationService = new PlanGenerationService(generationRepository, sessionRepository, graph, executor);
+        generationService = new PlanGenerationService(generationRepository, sessionRepository, graph, executor,
+                generationServiceSelf);
+        when(generationServiceSelf.getObject()).thenReturn(generationService);
         service = new AiSessionService(props, graph, sessionRepository, generationRepository, destinationRepository,
                 generationService, turnstile, new SessionLocks(), new DailySessionCap(props),
                 new ClientIpHasher("salt"));
@@ -95,7 +114,13 @@ class AiSessionServiceTest {
             if (saved.getId() == null) {
                 saved.setId(UUID.randomUUID());
             }
+            savedGenerations.add(saved);
             return saved;
+        });
+        // view() is the last read a turn makes before it may submit a job, so it marks the boundary.
+        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(any())).thenAnswer(inv -> {
+            callOrder.add("view");
+            return Optional.empty();
         });
     }
 
@@ -167,9 +192,30 @@ class AiSessionServiceTest {
     }
 
     @Test
-    void create_withUnknownDestination_isBadRequest() {
+    void create_withUnknownDestination_isBadRequest_andCostsNoDailySlot() {
+        props.setDailySessionsPerIp(1);
+
         assertThatThrownBy(() -> service.create("atlantis", "en", null, null, "1.2.3.4"))
                 .isInstanceOf(BadRequestException.class);
+
+        // a typo in the slug must not spend one of the caller's chats for the day
+        assertThatCode(() -> service.create("prague", "en", null, null, "1.2.3.4")).doesNotThrowAnyException();
+    }
+
+    @Test
+    void message_thatHitsTheGenerationLimit_stillCountsTheTurn() {
+        AiSession session = startedSession();
+        int expectedMessageCount = 1;
+        session.setGenerationCount(AiSessionService.MAX_GENERATIONS);
+        llm.queueChat(turn("On it!", readyBrief()));
+        clearInvocations(sessionRepository);
+
+        assertThatThrownBy(() -> service.message(session.getToken(), "2 days, 6 of us, bars"))
+                .isInstanceOf(AiLimitException.class).hasFieldOrPropertyWithValue("code", "GENERATION_LIMIT");
+
+        // the model already answered, so the turn is spent whether or not the generation was allowed
+        assertThat(session.getMessageCount()).isEqualTo(expectedMessageCount);
+        verify(sessionRepository).save(session);
     }
 
     @Test
@@ -186,6 +232,55 @@ class AiSessionServiceTest {
         assertThat(session.getStatus()).isEqualTo(AiSessionStatus.GENERATING);
         assertThat(graph.snapshot(session.getToken()).state().generationId()).contains(expectedGenerationId);
         assertThat(submittedJobs).hasSize(1);
+    }
+
+    @Test
+    void message_afterARejectedGeneration_isAnsweredInChatInsteadOfBuildingAPlanInline() {
+        AiSession session = startedSession();
+        String expectedReply = "Sure, tell me more.";
+        // park the thread at awaitGeneration, then have the pool refuse the job
+        llm.queueChat(turn("On it!", readyBrief()));
+        executorRejects = true;
+        assertThatThrownBy(() -> service.message(session.getToken(), "2 days, 6 of us, bars"))
+                .isInstanceOf(AiLimitException.class).hasFieldOrPropertyWithValue("code", "AI_BUSY");
+        AiGeneration failed = savedGenerations.get(savedGenerations.size() - 1);
+        executorRejects = false;
+        llm.queueChat(turn(expectedReply, Brief.empty()));
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "anything happening?");
+
+        // The user must get an answer. With an unconditional awaitGeneration edge this resume ran a
+        // whole generation on this thread and flipped the FAILED row to READY instead.
+        assertThat(llm.planRequests).isEmpty();
+        List<ChatMessage> messages = outcome.view().state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
+        assertThat(failed.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(failed.getErrorCode()).isEqualTo("AI_BUSY");
+    }
+
+    @Test
+    void message_buildsTheViewBeforeHandingTheGraphThreadToTheJob() {
+        AiSession session = startedSession();
+        llm.queueChat(turn("On it!", readyBrief()));
+        callOrder.clear();
+
+        service.message(session.getToken(), "2 days, 6 of us, bars");
+
+        // Snapshotting after the submit would race the job's own update/resume on the same thread id.
+        assertThat(callOrder).containsExactly("view", "submit");
+    }
+
+    @Test
+    void select_whileAGenerationIsInFlight_isConflict() {
+        AiSession session = startedSession();
+        AiGeneration generation = readyGeneration(session, Tier.BASIC, UUID.randomUUID());
+        when(generationRepository.existsBySessionIdAndStatusIn(any(), any())).thenReturn(true);
+
+        // Resuming with SELECT under a queued job would stamp the old generation id over the new one
+        // and hand the job a graph thread that has already left awaitGeneration.
+        assertThatThrownBy(() -> service.select(generation.getId(), Tier.BASIC))
+                .isInstanceOf(AiConflictException.class)
+                .hasFieldOrPropertyWithValue("code", "GENERATION_IN_PROGRESS");
     }
 
     @Test

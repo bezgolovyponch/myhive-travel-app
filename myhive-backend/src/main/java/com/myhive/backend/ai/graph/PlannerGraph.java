@@ -35,7 +35,9 @@ import java.util.UUID;
  *   chatTurn         -> awaitGeneration  (action = GENERATE)  | awaitUser       (otherwise)
  *   awaitUser        -> select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
  *                                                             | chatTurn        (otherwise)
- *   awaitGeneration  -> snapshotCatalog -> compose -> validate
+ *   awaitGeneration  -> snapshotCatalog  (resume = GENERATE)  | select          (resume = SELECT)
+ *                                                             | chatTurn        (otherwise)
+ *   snapshotCatalog  -> compose -> validate
  *   validate         -> persistResult    (no violations)      | repair (first failure) | fallback
  *   repair           -> validate
  *   fallback         -> persistResult
@@ -103,7 +105,8 @@ public class PlannerGraph {
                             Map.of(ROUTE_GENERATE, AWAIT_GENERATION, ROUTE_WAIT, AWAIT_USER))
                     .addConditionalEdges(AWAIT_USER, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
                             Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
-                    .addEdge(AWAIT_GENERATION, SNAPSHOT_CATALOG)
+                    .addConditionalEdges(AWAIT_GENERATION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
+                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, SNAPSHOT_CATALOG))
                     .addEdge(SNAPSHOT_CATALOG, COMPOSE)
                     .addEdge(COMPOSE, VALIDATE)
                     .addConditionalEdges(VALIDATE, AsyncEdgeAction.edge_async(PlannerGraph::afterValidate),
@@ -129,9 +132,18 @@ public class PlannerGraph {
     }
 
     /**
-     * Both park points route the same way. The packages stay on the page while the group keeps
-     * chatting, so a selection can arrive from {@link #AWAIT_USER} just as well as from
-     * {@link #AWAIT_SELECTION}; routing it to chat instead would re-invoke the model and lose the pick.
+     * All three park points route the same way, on the reason the resuming service wrote. The packages
+     * stay on the page while the group keeps chatting, so a selection can arrive from {@link #AWAIT_USER}
+     * just as well as from {@link #AWAIT_SELECTION}; routing it to chat instead would re-invoke the model
+     * and lose the pick.
+     *
+     * <p>{@link #AWAIT_GENERATION} is routed too, rather than falling through to the generation branch:
+     * an unconditional edge there means <em>any</em> resume of a thread parked at that point builds a
+     * plan. A user message arriving after a failed or rejected generation would then run a full
+     * generation on the HTTP thread instead of being answered, and a selection arriving while a job is
+     * queued would run a second generation concurrently on the same checkpoint thread. Only
+     * {@link ResumeReason#GENERATE} reaches {@link #SNAPSHOT_CATALOG} now, and only the generation job
+     * writes it.
      */
     private static String afterWait(PlannerState state) {
         String reason = state.resumeReason().orElse("");

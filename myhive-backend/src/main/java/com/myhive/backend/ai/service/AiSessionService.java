@@ -97,10 +97,11 @@ public class AiSessionService {
         if (props.isTurnstileRequired() && (turnstileToken == null || !turnstileService.verifyToken(turnstileToken))) {
             throw new TurnstileFailedException();
         }
-        String ipHash = ipHasher.hash(clientIp);
-        dailyCap.check(ipHash);
+        // The slug is validated first: a typo must not cost the caller one of its twenty daily chats.
         Destination destination = destinationRepository.findBySlugWithCategories(destinationSlug)
                 .orElseThrow(() -> new BadRequestException("Unknown destination: " + destinationSlug));
+        String ipHash = ipHasher.hash(clientIp);
+        dailyCap.check(ipHash);
 
         // Translations.normalize() answers null for English; the planner wants a real tag everywhere.
         String translationLocale = Translations.normalize(locale);
@@ -138,13 +139,14 @@ public class AiSessionService {
             requireNoGenerationInFlight(session, "A generation is already running");
             requireGenerationsLeft(session);
             if (!PlannerGraph.AWAIT_GENERATION.equals(snapshot.next())) {
-                // Moves awaitUser/awaitSelection to awaitGeneration and parks there; no model call.
+                // Moves awaitUser/awaitSelection to awaitGeneration and parks there; no model call,
+                // because awaitGeneration is an interrupt point and only the job resumes past it.
                 graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
                 brief = graph.runUntilInterrupt(token).state().brief();
             }
-            AiGeneration generation = startGeneration(session, brief);
             touch(session);
-            return generation;
+            // Last, because it hands the graph thread to the pool.
+            return startGeneration(session, brief);
         });
     }
 
@@ -162,6 +164,10 @@ public class AiSessionService {
         }
         AiSession session = generation.getSession();
         return locks.withLock(session.getToken(), () -> {
+            // A queued or running job owns this session's graph thread and its GENERATION_ID stamp.
+            // Resuming with SELECT underneath it would stamp the wrong id and, while the thread is
+            // parked at awaitGeneration, hand the job a thread that has already moved on.
+            requireNoGenerationInFlight(session, "Your packages are being built, one moment");
             ComposedPlan plan = JsonCodec.read(generation.getResult(), ComposedPlan.class);
             ComposedPlan.PackageResult chosen = plan.packages().stream()
                     .filter(p -> p.key() == key)
@@ -211,13 +217,19 @@ public class AiSessionService {
         } catch (RuntimeException e) {
             throw new LlmCallFailedException(errorCodeOf(e), e);
         }
+        // Persisted before the generation is started: hitting GENERATION_LIMIT must not make the turn free.
         session.setMessageCount(session.getMessageCount() + 1);
-        Optional<AiGeneration> started = Optional.empty();
-        if (PlannerGraph.AWAIT_GENERATION.equals(snapshot.next())) {
-            started = Optional.of(startGeneration(session, snapshot.state().brief()));
-        }
         touch(session);
-        return new TurnOutcome(view(session), started);
+
+        // The view is built while this thread is still the only one on the graph thread. Once the job
+        // is submitted, snapshotting here would race the job's own update/resume on the same thread id.
+        SessionView view = view(session);
+        if (!PlannerGraph.AWAIT_GENERATION.equals(view.next())) {
+            return new TurnOutcome(view, Optional.empty());
+        }
+        AiGeneration started = startGeneration(session, snapshot.state().brief());
+        return new TurnOutcome(new SessionView(session, view.state(), view.next(), Optional.of(started)),
+                Optional.of(started));
     }
 
     private AiGeneration startGeneration(AiSession session, Brief brief) {

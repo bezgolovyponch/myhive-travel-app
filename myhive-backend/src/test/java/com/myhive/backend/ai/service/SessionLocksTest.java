@@ -48,7 +48,7 @@ class SessionLocksTest {
     }
 
     @Test
-    void lockIsReleasedAndForgotten_afterTheActionThrows() {
+    void lockIsReleased_afterTheActionThrows() {
         SessionLocks locks = new SessionLocks();
         UUID token = UUID.randomUUID();
         String expectedResult = "free again";
@@ -58,6 +58,33 @@ class SessionLocksTest {
         })).isInstanceOf(IllegalStateException.class);
 
         assertThat(locks.withLock(token, () -> expectedResult)).isEqualTo(expectedResult);
+    }
+
+    /**
+     * A token's lock must outlive the call that created it. Dropping it when the last visible holder
+     * released let a thread take the lock in the window between {@code unlock()} and the removal; the
+     * removal then evicted a held lock and the next caller created a fresh one and entered alongside.
+     */
+    @Test
+    void aTokenKeepsOneLockForever_soNoCallerCanBeHandedAFreshOne() {
+        SessionLocks locks = new SessionLocks();
+        UUID token = UUID.randomUUID();
+        int expectedTrackedLocks = 1;
+
+        locks.withLock(token, () -> null);
+        locks.withLock(token, () -> null);
+
+        assertThat(locks.tracked()).isEqualTo(expectedTrackedLocks);
+    }
+
+    @Test
+    void release_forgetsATokenOnceItsSessionIsGone() {
+        SessionLocks locks = new SessionLocks();
+        UUID token = UUID.randomUUID();
+        locks.withLock(token, () -> null);
+
+        locks.release(token);
+
         assertThat(locks.tracked()).isZero();
     }
 }

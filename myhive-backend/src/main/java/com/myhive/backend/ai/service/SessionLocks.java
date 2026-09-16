@@ -14,6 +14,14 @@ import java.util.function.Supplier;
  * lock never waits: a second request is told the chat is busy rather than queueing behind a model
  * call it will outlive.
  *
+ * <p>An entry is never evicted while the process lives, which is the point. Dropping it when the
+ * last visible holder released looked tidy but let two callers into the section at once: between a
+ * holder's {@code unlock()} and its {@code remove()} another thread can take the very same lock, the
+ * {@code remove()} then drops a lock that is held, and the next caller creates a fresh one and walks
+ * straight in. ({@code hasQueuedThreads()} never guarded that - a zero-wait {@code tryLock} never
+ * enqueues anyone.) The map is bounded by the number of sessions this process has served; the
+ * session TTL cleanup calls {@link #release(UUID)} when a chat is gone for good.
+ *
  * <p>Single-instance only, which is what the planner runs on today. A second backend replica would
  * need the lock in Postgres instead.
  */
@@ -31,13 +39,15 @@ public class SessionLocks {
             return action.get();
         } finally {
             lock.unlock();
-            if (!lock.hasQueuedThreads()) {
-                locks.remove(token, lock);
-            }
         }
     }
 
-    /** Live lock count; a held or contended token keeps its entry, everything else is forgotten. */
+    /** Forgets a token's lock. Only safe once the session itself is gone - an expired or deleted chat. */
+    public void release(UUID token) {
+        locks.remove(token);
+    }
+
+    /** Locks held in the map; one per session token this process has served. */
     int tracked() {
         return locks.size();
     }

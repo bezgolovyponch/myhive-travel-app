@@ -3,6 +3,7 @@ package com.myhive.backend.ai.service;
 import com.myhive.backend.ai.exception.AiLimitException;
 import com.myhive.backend.ai.graph.PlannerGraph;
 import com.myhive.backend.ai.graph.PlannerState;
+import com.myhive.backend.ai.graph.ResumeReason;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Tier;
@@ -13,8 +14,10 @@ import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
 import com.myhive.backend.repository.AiGenerationRepository;
 import com.myhive.backend.repository.AiSessionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,8 +44,16 @@ class PlanGenerationServiceTest {
     private final AiSessionRepository sessionRepository = mock(AiSessionRepository.class);
     private final PlannerGraph graph = mock(PlannerGraph.class);
     private final Executor executor = mock(Executor.class);
+    /** Stands in for the transactional proxy Spring injects; wired to the service itself in setUp. */
+    @SuppressWarnings("unchecked")
+    private final ObjectProvider<PlanGenerationService> self = mock(ObjectProvider.class);
     private final PlanGenerationService service =
-            new PlanGenerationService(generationRepository, sessionRepository, graph, executor);
+            new PlanGenerationService(generationRepository, sessionRepository, graph, executor, self);
+
+    @BeforeEach
+    void wireSelfProvider() {
+        when(self.getObject()).thenReturn(service);
+    }
 
     private static AiSession session() {
         AiSession s = new AiSession();
@@ -53,12 +64,17 @@ class PlanGenerationServiceTest {
     }
 
     private AiGeneration savedGeneration(AiGenerationStatus status) {
+        return savedGeneration(status, session());
+    }
+
+    private AiGeneration savedGeneration(AiGenerationStatus status, AiSession session) {
         AiGeneration g = new AiGeneration();
         g.setId(UUID.randomUUID());
-        g.setSession(session());
+        g.setSession(session);
         g.setStatus(status);
         when(generationRepository.findWithSessionById(g.getId())).thenReturn(Optional.of(g));
         when(generationRepository.findById(g.getId())).thenReturn(Optional.of(g));
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
         return g;
     }
 
@@ -136,7 +152,7 @@ class PlanGenerationServiceTest {
     }
 
     @Test
-    void runJob_stampsGenerationIdBeforeResuming() {
+    void runJob_stampsGenerationIdAndTheGenerateResumeReasonBeforeResuming() {
         AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
 
         service.runJob(generation.getId());
@@ -144,6 +160,33 @@ class PlanGenerationServiceTest {
         ArgumentCaptor<Map<String, Object>> update = ArgumentCaptor.captor();
         verify(graph).update(eq(generation.getSession().getToken()), update.capture());
         assertThat(update.getValue()).containsEntry(PlannerState.GENERATION_ID, generation.getId().toString());
+        // Only GENERATE reaches the generation branch, and only this job may write it.
+        assertThat(update.getValue()).containsEntry(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name());
+    }
+
+    @Test
+    void failingAJob_doesNotRewindTheSessionCountersTheRequestThreadWrote() {
+        int expectedMessageCount = 3;
+        int expectedGenerationCount = 2;
+        AiSession session = session();
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED, session);
+        // The job has been holding its copy since it started; meanwhile the request that enqueued it
+        // bumped the counters. Re-reading is what keeps a failure from handing those limits back.
+        AiSession current = session();
+        current.setId(session.getId());
+        current.setToken(session.getToken());
+        current.setMessageCount(expectedMessageCount);
+        current.setGenerationCount(expectedGenerationCount);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(current));
+        doThrow(new IllegalStateException("graph exploded")).when(graph).runUntilInterrupt(any());
+
+        service.runJob(generation.getId());
+
+        ArgumentCaptor<AiSession> saved = ArgumentCaptor.captor();
+        verify(sessionRepository).save(saved.capture());
+        assertThat(saved.getValue().getMessageCount()).isEqualTo(expectedMessageCount);
+        assertThat(saved.getValue().getGenerationCount()).isEqualTo(expectedGenerationCount);
+        assertThat(saved.getValue().getStatus()).isEqualTo(AiSessionStatus.FAILED);
     }
 
     @Test
@@ -195,9 +238,7 @@ class PlanGenerationServiceTest {
 
     @Test
     void failStaleRunning_marksRowsStale() {
-        AiGeneration stale = new AiGeneration();
-        stale.setSession(session());
-        stale.setStatus(AiGenerationStatus.RUNNING);
+        AiGeneration stale = savedGeneration(AiGenerationStatus.RUNNING);
         stale.setStartedAt(LocalDateTime.now().minusMinutes(10));
         when(generationRepository.findByStatusAndStartedAtBefore(any(), any())).thenReturn(List.of(stale));
 

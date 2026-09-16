@@ -4,6 +4,7 @@ import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.graph.nodes.PersistResultNode;
 import com.myhive.backend.ai.graph.nodes.SelectNode;
+import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.llm.ChatTurnResult;
 import com.myhive.backend.ai.llm.FakeLlmGateway;
 import com.myhive.backend.ai.llm.LlmUsage;
@@ -103,6 +104,15 @@ class PlannerGraphTest {
         return Map.of("role", "USER", "content", content, "at", "t");
     }
 
+    /**
+     * Exactly what {@code PlanGenerationService.runJob} writes before resuming a thread parked at
+     * awaitGeneration. GENERATE is the only reason that reaches the generation branch.
+     */
+    private static Map<String, Object> generationResume(UUID generationId) {
+        return Map.of(PlannerState.GENERATION_ID, generationId.toString(),
+                PlannerState.RESUME_REASON, ResumeReason.GENERATE.name());
+    }
+
     @Test
     void chatParksAtAwaitUser_untilBriefIsReady_thenGeneratesAutomatically() {
         UUID token = UUID.randomUUID();
@@ -136,7 +146,7 @@ class PlannerGraphTest {
         graph.start(token, startInputs());
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
 
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, expectedGenerationId.toString()));
+        graph.update(token, generationResume(expectedGenerationId));
         graph.runUntilInterrupt(token);
 
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
@@ -152,7 +162,7 @@ class PlannerGraphTest {
         UUID token = UUID.randomUUID();
         llm.queueChat(turn("go", readyBrief())).queuePlan(brokenDraft()).queueRepair(brokenDraft());
         graph.start(token, startInputs());
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
+        graph.update(token, generationResume(UUID.randomUUID()));
 
         graph.runUntilInterrupt(token);
 
@@ -169,7 +179,7 @@ class PlannerGraphTest {
         int expectedAttempts = 1;
         llm.queueChat(turn("go", readyBrief())).queuePlan(brokenDraft()).queueRepair(validDraft());
         graph.start(token, startInputs());
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
+        graph.update(token, generationResume(UUID.randomUUID()));
 
         graph.runUntilInterrupt(token);
 
@@ -184,7 +194,7 @@ class PlannerGraphTest {
         Tier expectedLateSelection = Tier.BASIC;
         llm.queueChat(turn("go", readyBrief())).queuePlan(validDraft(), validDraft());
         graph.start(token, startInputs());
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
+        graph.update(token, generationResume(UUID.randomUUID()));
         graph.runUntilInterrupt(token);
 
         graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.SELECT.name(),
@@ -223,7 +233,7 @@ class PlannerGraphTest {
         int expectedGroupSize = 6;
         llm.queueChat(turn("go", readyBrief())).queuePlan(validDraft(), validDraft());
         graph.start(token, startInputs());
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
+        graph.update(token, generationResume(UUID.randomUUID()));
         graph.runUntilInterrupt(token);
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
 
@@ -242,7 +252,7 @@ class PlannerGraphTest {
                 PlannerState.MESSAGES, List.of(userMessage("actually 6 of us"))));
         graph.runUntilInterrupt(token);
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
+        graph.update(token, generationResume(UUID.randomUUID()));
         graph.runUntilInterrupt(token);
         assertThat(llm.planRequests).hasSize(2);
         assertThat(llm.planRequests.get(1).brief().groupSize()).isEqualTo(expectedGroupSize);
@@ -256,7 +266,7 @@ class PlannerGraphTest {
         // greedy composer has to carry the generation on its own
         llm.queueChat(turn("go", readyBrief())).failNextPlan(new RuntimeException("boom"));
         graph.start(token, startInputs());
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
+        graph.update(token, generationResume(UUID.randomUUID()));
 
         graph.runUntilInterrupt(token);
 
@@ -273,11 +283,67 @@ class PlannerGraphTest {
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
 
         // the service forgot to stamp GENERATION_ID: the run must still complete, but store nothing
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
         graph.runUntilInterrupt(token);
 
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
         assertThat(sinks.lastPlan).isNull();
         assertThat(sinks.lastGeneration).isNull();
+    }
+
+    /** Parks a fresh thread at awaitGeneration with a ready brief, without running the generation. */
+    private UUID threadParkedAtAwaitGeneration() {
+        UUID token = UUID.randomUUID();
+        llm.queueChat(turn("go", readyBrief()));
+        graph.start(token, startInputs());
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
+        return token;
+    }
+
+    @Test
+    void awaitGeneration_resumedWithAUserMessage_answersInChatInsteadOfBuildingAPlan() {
+        UUID token = threadParkedAtAwaitGeneration();
+        String expectedReply = "Sure - what would you change?";
+        llm.queueChat(turn(expectedReply, Brief.empty()));
+
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("actually, hold on"))));
+        graph.runUntilInterrupt(token);
+
+        // an unconditional awaitGeneration -> snapshotCatalog edge would have run a whole generation
+        // on the caller's thread and never answered the message
+        assertThat(llm.planRequests).isEmpty();
+        List<ChatMessage> messages = graph.snapshot(token).state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
+    }
+
+    @Test
+    void awaitGeneration_resumedWithASelection_recordsThePickInsteadOfBuildingAPlan() {
+        UUID token = threadParkedAtAwaitGeneration();
+        Tier expectedSelection = Tier.PREMIUM;
+
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.SELECT.name(),
+                PlannerState.SELECTED_PACKAGE_KEY, expectedSelection.name(),
+                PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
+        graph.runUntilInterrupt(token);
+
+        assertThat(llm.planRequests).isEmpty();
+        assertThat(sinks.lastSelected).isEqualTo(expectedSelection);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+    }
+
+    @Test
+    void awaitGeneration_resumedWithGenerate_isTheOnlyWayIntoTheGenerationBranch() {
+        UUID token = threadParkedAtAwaitGeneration();
+        UUID expectedGenerationId = UUID.randomUUID();
+        llm.queuePlan(validDraft());
+
+        graph.update(token, generationResume(expectedGenerationId));
+        graph.runUntilInterrupt(token);
+
+        assertThat(llm.planRequests).hasSize(1);
+        assertThat(sinks.lastGeneration).isEqualTo(expectedGenerationId);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
     }
 
     @Test
