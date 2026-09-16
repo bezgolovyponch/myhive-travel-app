@@ -148,7 +148,11 @@ On `FAILED`:
 { "id": "…", "status": "FAILED", "error": { "code": "LLM_TIMEOUT", "retryable": true } }
 ```
 
-`code`: `LLM_TIMEOUT` | `LLM_UNAVAILABLE` | `LLM_INVALID_OUTPUT` | `STALE` | `INTERNAL`.
+`code`: `LLM_TIMEOUT` | `LLM_UNAVAILABLE` | `LLM_INVALID_OUTPUT` | `AI_BUSY` |
+`STALE` | `INTERNAL`. Everything but `INTERNAL` comes back `retryable: true`.
+`AI_BUSY` appears here as well as in the `429` on the request that was rejected: the
+row is persisted so a chat restored from its token still explains itself. It does
+not count against the session's five generations.
 
 ### `POST /ai/generations/{id}/select` — pick a package
 

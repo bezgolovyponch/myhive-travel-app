@@ -233,10 +233,21 @@ skipped): `./gradlew test --tests '*PostgresCheckpointPersistenceTest'`.
 **Rollout order:**
 1. Deploy with `AI_ENABLED=false` — Flyway `V7__ai_planner.sql` applies, nothing
    else changes.
-2. Set `QWEN_API_KEY` / `QWEN_BASE_URL`, then run `QwenLiveSmokeTest` once with a
+2. Set `AI_IP_SALT` to a random value before enabling. It defaults to a published
+   constant, and the daily per-IP session cap stores `sha256(salt + ip)` — with the
+   default, `sha256("trivlu-ai|<ip>")` is a lookup table anyone can rebuild.
+3. Set `QWEN_API_KEY` / `QWEN_BASE_URL`, then run `QwenLiveSmokeTest` once with a
    real key (the `qwen3.7-plus`/`qwen3.8-max` model ids and `enable_thinking`
    semantics are unverified live until then).
-3. Flip `AI_ENABLED=true` on the backend and verify with a manual `curl` session.
+4. Flip `AI_ENABLED=true` on the backend and verify with a manual `curl` session.
+
+**Single-instance assumption:** `SessionLocks` (one in-process lock per token) and
+the QUEUED stale sweep (which ages rows against *this* JVM's start time) both assume
+one backend instance. A Render deploy runs the old and new instances side by side for
+a few seconds, during which two callers could in principle enter the same chat's
+critical section or the new instance could sweep a QUEUED row the old one still owns.
+Acceptable for that window at this traffic; a second permanent replica would need the
+lock and the sweep marker moved into Postgres.
 
 ## Testing
 

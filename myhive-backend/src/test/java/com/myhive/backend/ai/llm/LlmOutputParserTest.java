@@ -42,11 +42,28 @@ class LlmOutputParserTest {
     }
 
     @Test
-    void parseChatTurn_rejectsMissingReplyOrBadEnumInBrief() {
+    void parseChatTurn_rejectsMissingReply() {
         assertThatThrownBy(() -> parser.parseChatTurn("{\"brief\":{}}"))
                 .isInstanceOf(LlmOutputException.class).hasMessageContaining("reply");
-        assertThatThrownBy(() -> parser.parseChatTurn("{\"reply\":\"x\",\"brief\":{\"budget\":\"HUGE\"}}"))
-                .isInstanceOf(LlmOutputException.class).hasMessageContaining("brief");
+    }
+
+    /**
+     * A hallucinated enum value ({@code budget: "MEDIUM"}, {@code arrival: "NIGHT"}) is one wrong field,
+     * not a wrong turn: it reads as null so BriefMerger keeps the value the brief already had, and the
+     * reply still reaches the user. Failing the parse instead spent a message and answered nothing.
+     */
+    @Test
+    void parseChatTurn_readsAnUnknownEnumValueAsNull() {
+        String expectedReply = "x";
+        int expectedDays = 3;
+
+        ChatTurnResult result = parser.parseChatTurn(
+                "{\"reply\":\"" + expectedReply + "\",\"brief\":{\"days\":3,\"budget\":\"HUGE\",\"arrival\":\"NIGHT\"}}");
+
+        assertThat(result.reply()).isEqualTo(expectedReply);
+        assertThat(result.briefUpdate().days()).isEqualTo(expectedDays);
+        assertThat(result.briefUpdate().budget()).isNull();
+        assertThat(result.briefUpdate().arrival()).isNull();
     }
 
     @Test

@@ -16,7 +16,11 @@ public class LlmOutputParser {
 
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            .configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, false);
+            // A hallucinated enum value is the model's mistake on one field, not a reason to throw the
+            // turn away: budget "MEDIUM" or arrival "NIGHT" reads as null, and BriefMerger then keeps
+            // whatever the brief already had. Failing the whole turn instead cost the user a message
+            // and an answer over a word the agent can simply ask again.
+            .configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
 
     public ChatTurnResult parseChatTurn(String raw) {
         JsonNode root = readTree(raw);
