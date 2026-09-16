@@ -84,7 +84,7 @@ awaitSelection   → select           (resume = SELECT)    | awaitGeneration (re
 select           → awaitSelection
 ```
 
-(Verbatim from `PlannerGraph`'s own class Javadoc — keep the two in sync.) All
+(Mirrors `PlannerGraph`'s own class Javadoc — keep the two in sync.) All
 three `await*` nodes are interrupt points (`interruptBefore`, no-op bodies) sharing
 one `afterWait` router keyed on the `resumeReason` state key stamped by whichever
 service resumes the thread: `SELECT` always routes to `select`; `GENERATE` routes to
@@ -112,7 +112,7 @@ model call; the graph then parks at `awaitUser` with only the seeded greeting in
 | `compose` | LLM | Planner model. Input: brief, catalog snapshot, last 10 messages, tier rules. Output: draft with three packages, each `days[].items[]` referencing catalog ids and slots. |
 | `validate` | Java | Runs `PlanValidator` (rules below) and `PlanPricer`. Writes `violations` (empty = ok) and `attempt`. |
 | `repair` | LLM | Planner model again with the draft and the list of violations, asked to fix only what is listed. Max one repair per generation. |
-| `fallback` | Java | `FallbackPlanComposer`: ranks candidates by the **billed** line (`PlanPricer.lineTotal`, i.e. the group-minimum floor already applied, not raw `price`), then category overlap with the brief, then `featuredWeight`. Reserves one tier-exclusive activity per tier — picked so it still fits that tier's per-day cap — to satisfy the "each tier has something the others don't" rule, then fills one item per day first (so no day is left empty) before topping up remaining slots up to the tier's item/minute caps. Marks `degraded = true`. |
+| `fallback` | Java | `FallbackPlanComposer`: reserves one tier-exclusive "signature" activity per tier — PREMIUM picks first, then MEDIUM, then BASIC, each taking the highest-**billed**-line (`PlanPricer.lineTotal`, group-minimum floor applied) not-yet-reserved candidate that still fits its own per-day minute cap; category match and then activity name are tie-breaks only, never the ranking key, so signature prices come out strictly BASIC < MEDIUM < PREMIUM. Everything else is a shared pool split into brief-category matches and non-matches (matches offered first when filling), each half sorted by billed line **ascending** then name. Fills one item per day first (so no day is left empty), then tops up remaining slots up to the tier's item/minute caps, taking the first pool candidate that still fits the remaining minute budget. `featuredWeight` plays no part in this node (unlike `snapshotCatalog`'s 80-cap trim). Marks `degraded = true`. |
 | `persistResult` | Java | Writes the result JSON to `ai_generations`, flips `ai_sessions.status` to `READY`. |
 | `awaitSelection` | interrupt | Graph parks until `POST /select`. Regeneration re-enters at `awaitGeneration` via `updateState` + resume. |
 | `select` | Java | Records `selected_package_key`, returns trip items. Graph reaches END but the thread is **not released** (`releaseThread(false)`) so the organizer can reopen the screen and pick another package (re-entry at `awaitSelection`). |
