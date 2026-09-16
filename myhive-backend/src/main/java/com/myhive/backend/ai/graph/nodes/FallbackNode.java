@@ -7,6 +7,7 @@ import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.FallbackPlanComposer;
 import com.myhive.backend.ai.plan.PlanAssembler;
 import com.myhive.backend.ai.plan.PlanDraft;
+import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 /** The model is out of chances: compose the packages greedily from the catalog and mark the result degraded. */
 @Component
+@Slf4j
 public class FallbackNode implements NodeAction<PlannerState> {
 
     private final FallbackPlanComposer composer;
@@ -39,11 +41,26 @@ public class FallbackNode implements NodeAction<PlannerState> {
         List<CatalogActivity> catalog = state.catalog();
         Map<UUID, CatalogActivity> byId = state.catalogById();
         PlanDraft draft = composer.compose(state.brief(), catalog, state.locale());
+        warnOnEmptyPackages(draft);
         ComposedPlan plan = assembler.assemble(draft, state.brief(), byId, true).plan();
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.DRAFT, JsonCodec.write(draft));
         update.put(PlannerState.RESULT, JsonCodec.write(plan));
         update.put(PlannerState.DEGRADED, true);
         return update;
+    }
+
+    /**
+     * The fallback is the last stop: its draft goes straight to {@code persistResult} without passing
+     * {@code validate} again, so an empty package would ship as a finished EUR 0 itinerary with nobody
+     * the wiser. It cannot be turned into a violation here without losing the plan entirely, so it is
+     * logged loudly instead - a line here means the catalog could not fill this brief at all.
+     */
+    private static void warnOnEmptyPackages(PlanDraft draft) {
+        for (PlanDraft.PackageDraft p : draft.packages()) {
+            if (p.days().stream().allMatch(day -> day.items().isEmpty())) {
+                log.warn("planner fallback composed an empty package for tier {}", p.key());
+            }
+        }
     }
 }

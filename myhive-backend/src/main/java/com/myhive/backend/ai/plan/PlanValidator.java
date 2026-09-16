@@ -59,6 +59,12 @@ public class PlanValidator {
                     "expected " + days + " days, got " + p.days().size()));
             return;
         }
+        if (p.days().stream().allMatch(day -> day.items().isEmpty())) {
+            // Every single day may legitimately be empty on its own (the edge days are exempt from
+            // EMPTY_DAY), so a package with nothing in it at all has to be caught here or a EUR 0
+            // itinerary ships as a finished package.
+            out.add(Violation.of(ViolationCode.EMPTY_PACKAGE, tier, null, "package " + tier + " has no activities"));
+        }
         Set<UUID> seen = new HashSet<>();
         for (PlanDraft.DayDraft day : p.days()) {
             validateDay(p, day, brief, catalog, seen, out);
@@ -110,10 +116,20 @@ public class PlanValidator {
         }
     }
 
-    /** Day 1 opens at the arrival edge; the last day closes at the departure edge; a one-day trip uses both. */
+    /**
+     * Day 1 opens at the arrival edge; the last day closes at the departure edge; a one-day trip uses
+     * both — and that is where the two edges can cross. The defaults alone do it: a 1-day brief with no
+     * stated edges arrives AFTERNOON and departs MORNING, which as a literal window is empty, puts every
+     * activity of the day {@link ViolationCode#SLOT_OUTSIDE_WINDOW} and leaves three empty packages
+     * (day 1 is an edge day, so {@link ViolationCode#EMPTY_DAY} never fires either). A crossed window is
+     * read as "the group is here all day": it runs from the arrival edge to NIGHT.
+     */
     static Set<Slot> allowedSlots(int dayNumber, Brief brief) {
         Slot first = dayNumber == 1 ? brief.arrivalOrDefault().slot() : Slot.MORNING;
         Slot last = dayNumber == brief.days() ? brief.departureOrDefault().slot() : Slot.NIGHT;
+        if (last.ordinal() < first.ordinal()) {
+            last = Slot.NIGHT;
+        }
         Set<Slot> allowed = EnumSet.noneOf(Slot.class);
         for (Slot slot : Slot.values()) {
             if (slot.ordinal() >= first.ordinal() && slot.ordinal() <= last.ordinal()) {

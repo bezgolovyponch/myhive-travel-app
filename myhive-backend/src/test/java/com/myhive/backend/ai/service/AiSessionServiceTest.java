@@ -226,11 +226,14 @@ class AiSessionServiceTest {
 
         AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "2 days, 6 of us, bars");
 
-        UUID expectedGenerationId = outcome.startedGeneration().orElseThrow().getId();
+        AiGeneration expectedGeneration = outcome.startedGeneration().orElseThrow();
         assertThat(outcome.view().next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
         assertThat(session.getMessageCount()).isEqualTo(expectedMessageCount);
         assertThat(session.getStatus()).isEqualTo(AiSessionStatus.GENERATING);
-        assertThat(graph.snapshot(session.getToken()).state().generationId()).contains(expectedGenerationId);
+        assertThat(expectedGeneration.getStatus()).isEqualTo(AiGenerationStatus.QUEUED);
+        // The id is stamped by the job, right before it resumes the thread; enqueue never writes to
+        // the graph, so a graph failure cannot strand a committed QUEUED row.
+        assertThat(graph.snapshot(session.getToken()).state().generationId()).isEmpty();
         assertThat(submittedJobs).hasSize(1);
     }
 
@@ -365,16 +368,20 @@ class AiSessionServiceTest {
     }
 
     @Test
-    void requestGeneration_parksAtAwaitGeneration_andStampsTheGenerationIdBeforeTheJobIsQueued() {
+    void requestGeneration_parksAtAwaitGeneration_andQueuesTheJobWithoutWritingToTheGraph() {
         AiSession session = startedSession();
+        int expectedGenerationCount = 1;
         graph.update(session.getToken(), Map.of(PlannerState.BRIEF, JsonCodec.write(readyBrief())));
 
         AiGeneration generation = service.requestGeneration(session.getToken());
 
         assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.QUEUED);
         assertThat(graph.snapshot(session.getToken()).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
-        assertThat(graph.snapshot(session.getToken()).state().generationId()).contains(generation.getId());
-        assertThat(session.getGenerationCount()).isEqualTo(1);
+        // The generation id belongs to the job: it writes it together with RESUME_REASON=GENERATE
+        // immediately before resuming, and nothing reads it in between.
+        assertThat(graph.snapshot(session.getToken()).state().generationId()).isEmpty();
+        assertThat(session.getGenerationCount()).isEqualTo(expectedGenerationCount);
+        assertThat(submittedJobs).hasSize(1);
         assertThat(llm.chatRequests).isEmpty();
     }
 

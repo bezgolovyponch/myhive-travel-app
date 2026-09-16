@@ -90,9 +90,13 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
         session.setGenerationCount(session.getGenerationCount() + 1);
         session.setStatus(AiSessionStatus.GENERATING);
         sessionRepository.save(session);
-        // The graph persists nothing it cannot attribute, so the id must be in the state before the
-        // job can resume the thread - and a pool thread can start before execute() returns.
-        stampGenerationId(session.getToken(), generationId);
+        // Deliberately no graph write here. The id belongs in the state before the thread is resumed,
+        // and runJob writes it together with RESUME_REASON=GENERATE immediately before resuming -
+        // nothing reads it in between (turn() builds its view before startGeneration, and select() is
+        // locked out while a row is in flight). Stamping it here instead put a graph call after the
+        // committed QUEUED row: a failure there left a row no job owned, which the sweeper ignores
+        // because it was created after this process started, and every later message or selection
+        // answered 409 GENERATION_IN_PROGRESS until the next restart.
         try {
             // Last statement on purpose: from here the job thread owns both the row and the graph thread.
             executor.execute(() -> runJob(generationId));
@@ -126,7 +130,9 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
         markRunning(generation);
         try {
             // GENERATE is the only reason that reaches the generation branch, and this is the only
-            // place that writes it - which is what keeps a chat turn or a selection from building a plan.
+            // resume that runs with GENERATE *from* awaitGeneration - which is what keeps a chat turn
+            // or a selection from building a plan. Every resume stamps its own reason (requestGeneration
+            // writes GENERATE too, but only to walk a parked thread forward to awaitGeneration).
             graph.update(token, Map.of(
                     PlannerState.GENERATION_ID, generationId.toString(),
                     PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
@@ -138,7 +144,10 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
             }
         } catch (RuntimeException e) {
             log.error("planner generation {} failed: {}", generationId, e.getClass().getName(), e);
-            self.getObject().fail(generationId, "INTERNAL");
+            // Not fail(): persistResult commits READY in its own transaction while the resume is still
+            // running, so anything that blows up afterwards (parking the thread, the checkpoint write)
+            // would otherwise take three finished packages off the group's screen.
+            self.getObject().failIfStillInFlight(generationId, "INTERNAL");
         }
     }
 
@@ -192,10 +201,6 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
             log.warn("planner generation {} is stale, marking it failed", generation.getId());
             self.getObject().failIfStillInFlight(generation.getId(), "STALE");
         }
-    }
-
-    private void stampGenerationId(UUID token, UUID generationId) {
-        graph.update(token, Map.of(PlannerState.GENERATION_ID, generationId.toString()));
     }
 
     private AiGenerationStatus statusOf(UUID generationId) {

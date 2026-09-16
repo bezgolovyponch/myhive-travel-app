@@ -80,6 +80,30 @@ class FallbackPlanComposerTest {
         assertThat(draft.packages()).allMatch(p -> p.days().size() == expectedDayCount);
     }
 
+    /**
+     * Final-review finding: a 1-day brief whose edges the agent never learned defaults to arrival
+     * AFTERNOON / departure MORNING. That window used to come out empty, so the composer could place
+     * nothing at all and three empty EUR 0 packages were persisted READY.
+     */
+    @Test
+    void compose_oneDayBriefWithoutEdges_fillsEveryPackage() {
+        int expectedDayCount = 1;
+        List<CatalogActivity> catalog = catalog(20);
+        Brief brief = new Brief(expectedDayCount, 6, List.of("driving"), null, null, null, null, null, null);
+        Map<UUID, CatalogActivity> byId = catalog.stream().collect(Collectors.toMap(CatalogActivity::id, Function.identity()));
+
+        PlanDraft draft = composer.compose(brief, catalog, "en");
+
+        assertThat(validator.validate(draft, brief, byId)).isEmpty();
+        PlanAssembler.AssemblyResult result = assembler.assemble(draft, brief, byId, true);
+        assertThat(result.violations()).isEmpty();
+        assertThat(draft.packages()).hasSize(Tier.values().length)
+                .allSatisfy(p -> assertThat(p.days()).hasSize(expectedDayCount)
+                        .allSatisfy(d -> assertThat(d.items()).as("tier %s day %d", p.key(), d.dayNumber()).isNotEmpty()));
+        assertThat(result.plan().packages())
+                .allSatisfy(p -> assertThat(p.totalPrice()).isGreaterThan(BigDecimal.ZERO));
+    }
+
     // Finding 1: ranking by category match before price let signature prices invert, causing TIER_ORDER
     // even on a catalog with >= 6 distinct prices.
     @Test

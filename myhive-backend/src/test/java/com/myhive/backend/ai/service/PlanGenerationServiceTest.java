@@ -41,6 +41,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class PlanGenerationServiceTest {
@@ -94,7 +95,7 @@ class PlanGenerationServiceTest {
     }
 
     @Test
-    void enqueue_savesQueuedRow_stampsGenerationIdOnTheGraph_andSubmitsJob() {
+    void enqueue_savesQueuedRow_andSubmitsJob() {
         savesWithGeneratedId();
         AiSession session = session();
         int expectedGenerationCount = 1;
@@ -106,23 +107,26 @@ class PlanGenerationServiceTest {
         assertThat(session.getGenerationCount()).isEqualTo(expectedGenerationCount);
         assertThat(session.getStatus()).isEqualTo(AiSessionStatus.GENERATING);
         verify(executor).execute(any());
-        ArgumentCaptor<Map<String, Object>> update = ArgumentCaptor.captor();
-        verify(graph).update(eq(session.getToken()), update.capture());
-        assertThat(update.getValue()).containsEntry(PlannerState.GENERATION_ID, generation.getId().toString());
     }
 
+    /**
+     * The QUEUED row is committed before the job is submitted, so anything after it that can throw
+     * strands the row: no job owns it, the sweeper skips it (it was created after this process
+     * started) and every later message or selection answers 409 GENERATION_IN_PROGRESS until the
+     * next restart. The generation id is written by {@link PlanGenerationService#runJob} instead,
+     * with the resume reason, immediately before the thread is resumed.
+     */
     @Test
-    void enqueue_stampsTheGraphBeforeTheJobCouldResumeIt() {
+    void enqueue_neverTouchesTheGraph_soAGraphFailureCannotBrickTheSession() {
         savesWithGeneratedId();
         AiSession session = session();
-        // The graph persists nothing when GENERATION_ID is missing, so the stamp must be in place
-        // before the job is handed to the pool - a job thread can start before execute() returns.
         doThrow(new UnsupportedOperationException("graph unreachable")).when(graph).update(any(), any());
 
-        assertThatThrownBy(() -> service.enqueue(session, Brief.empty()))
-                .isInstanceOf(UnsupportedOperationException.class);
+        AiGeneration generation = service.enqueue(session, Brief.empty());
 
-        verify(executor, never()).execute(any());
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.QUEUED);
+        verify(executor).execute(any());
+        verifyNoInteractions(graph);
     }
 
     @Test
@@ -222,6 +226,28 @@ class PlanGenerationServiceTest {
 
         assertThat(generation.getErrorCode()).isNull();
         assertThat(generation.getSession().getStatus()).isNotEqualTo(AiSessionStatus.FAILED);
+    }
+
+    /**
+     * persistResult commits READY from inside the resume, so a fault raised afterwards - parking the
+     * thread, the checkpoint write - arrives when the packages are already on the group's screen. An
+     * unconditional fail() there flipped a finished generation to FAILED.
+     */
+    @Test
+    void runJob_whenTheResumeThrowsAfterTheResultWasStored_leavesTheRowReady() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        AiGeneration reread = new AiGeneration();
+        reread.setId(generation.getId());
+        reread.setSession(generation.getSession());
+        reread.setStatus(AiGenerationStatus.READY);
+        doThrow(new IllegalStateException("checkpoint write failed")).when(graph).runUntilInterrupt(any());
+        when(generationRepository.findById(generation.getId())).thenReturn(Optional.of(reread));
+
+        service.runJob(generation.getId());
+
+        assertThat(reread.getStatus()).isEqualTo(AiGenerationStatus.READY);
+        assertThat(reread.getErrorCode()).isNull();
+        assertThat(reread.getSession().getStatus()).isNotEqualTo(AiSessionStatus.FAILED);
     }
 
     @Test

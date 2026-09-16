@@ -226,6 +226,43 @@ class PlanValidatorTest {
         assertThat(violations).filteredOn(v -> v.code() == ViolationCode.EMPTY_DAY).isEmpty();
     }
 
+    /**
+     * A 1-day trip with no stated edges is the default-vs-default case: arrival AFTERNOON, departure
+     * MORNING. Read literally that window is empty, which used to make every activity of the only day
+     * SLOT_OUTSIDE_WINDOW and ship three empty packages.
+     */
+    @Test
+    void oneDayTripWithDefaultEdges_allowsArrivalSlotThroughNight() {
+        Brief oneDayNoEdges = new Brief(1, 8, List.of("nightlife"), null, null, null, null, null, null);
+
+        assertThat(PlanValidator.allowedSlots(1, oneDayNoEdges))
+                .containsExactlyInAnyOrder(Slot.AFTERNOON, Slot.EVENING, Slot.NIGHT);
+    }
+
+    @Test
+    void oneDayTripWithDefaultEdges_acceptsAnEveningItem() {
+        Brief oneDayNoEdges = new Brief(1, 8, List.of("nightlife"), null, null, null, null, null, null);
+        PlanDraft.PackageDraft p = pkg(Tier.BASIC, List.of(day(1, item(Slot.EVENING, activity("A", 60)))));
+
+        assertThat(validator.validate(new PlanDraft(List.of(p)), oneDayNoEdges, catalog))
+                .extracting(Violation::code).doesNotContain(ViolationCode.SLOT_OUTSIDE_WINDOW);
+    }
+
+    /**
+     * Each day of this package may be empty on its own - both are edge days - but a package with no
+     * activity anywhere in it is a EUR 0 itinerary and must never reach the group.
+     */
+    @Test
+    void packageWithoutASingleActivity_isReported() {
+        PlanDraft.PackageDraft empty = pkg(Tier.BASIC, List.of(day(1), day(brief.days())));
+
+        List<Violation> violations = validator.validate(new PlanDraft(List.of(empty)), brief, catalog);
+
+        assertThat(violations).filteredOn(v -> v.code() == ViolationCode.EMPTY_PACKAGE).hasSize(1);
+        assertThat(validator.validate(validDraft(), brief, catalog))
+                .extracting(Violation::code).doesNotContain(ViolationCode.EMPTY_PACKAGE);
+    }
+
     @Test
     void wrongDayCountOrMissingTier_isReported() {
         PlanDraft draft = validDraft();
