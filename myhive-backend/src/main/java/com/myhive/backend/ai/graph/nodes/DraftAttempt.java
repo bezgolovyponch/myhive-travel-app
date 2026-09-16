@@ -41,6 +41,8 @@ final class DraftAttempt {
             PlanDraftResult result = call.get();
             update.put(PlannerState.DRAFT, JsonCodec.write(result.draft()));
             update.put(PlannerState.USAGE, JsonCodec.write(result.usage()));
+            // A timeout on compose followed by a clean repair is not a failed generation any more.
+            update.put(PlannerState.LAST_ERROR, "");
         } catch (RuntimeException e) {
             log.warn("planner {} failed generation={} error={}", node, state.generationId().orElse(null),
                     e.getClass().getSimpleName());

@@ -124,6 +124,8 @@ class PlannerGraphTest {
         assertThat(snap.next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
         assertThat(snap.state().brief().isReady()).isTrue();
         assertThat(llm.chatRequests.get(1).brief().isReady()).isFalse();
+        // user, assistant, user, assistant: updateState APPENDS to the messages channel, never replaces it
+        assertThat(snap.state().messages()).hasSize(4);
     }
 
     @Test
@@ -179,6 +181,7 @@ class PlannerGraphTest {
     void select_thenRegenerate_thenChatAgain_allResumeFromSelection() {
         UUID token = UUID.randomUUID();
         Tier expectedSelection = Tier.MEDIUM;
+        Tier expectedLateSelection = Tier.BASIC;
         llm.queueChat(turn("go", readyBrief())).queuePlan(validDraft(), validDraft());
         graph.start(token, startInputs());
         graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
@@ -203,6 +206,15 @@ class PlannerGraphTest {
                 PlannerState.MESSAGES, List.of(userMessage("less bars"))));
         graph.runUntilInterrupt(token);
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_USER);
+
+        // the packages are still on the page, so a pick must land even while the thread waits for chat
+        int chatTurnsBeforeLateSelection = llm.chatRequests.size();
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.SELECT.name(),
+                PlannerState.SELECTED_PACKAGE_KEY, expectedLateSelection.name()));
+        graph.runUntilInterrupt(token);
+        assertThat(sinks.lastSelected).isEqualTo(expectedLateSelection);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(llm.chatRequests).hasSize(chatTurnsBeforeLateSelection);
     }
 
     @Test
@@ -239,14 +251,33 @@ class PlannerGraphTest {
     @Test
     void llmFailureDuringCompose_marksLastErrorAndStillFallsBack() {
         UUID token = UUID.randomUUID();
+        int expectedRepairAttempts = 1;
+        // compose blows up and no repair answer is queued either, so both model legs fail and the
+        // greedy composer has to carry the generation on its own
         llm.queueChat(turn("go", readyBrief())).failNextPlan(new RuntimeException("boom"));
         graph.start(token, startInputs());
         graph.update(token, Map.of(PlannerState.GENERATION_ID, UUID.randomUUID().toString()));
 
         graph.runUntilInterrupt(token);
 
+        assertThat(llm.repairRequests).hasSize(expectedRepairAttempts);
         assertThat(sinks.lastDegraded).isTrue();
         assertThat(graph.snapshot(token).state().lastError()).contains("INTERNAL");
+    }
+
+    @Test
+    void generationWithoutGenerationId_finishesButPersistsNothing() {
+        UUID token = UUID.randomUUID();
+        llm.queueChat(turn("go", readyBrief())).queuePlan(validDraft());
+        graph.start(token, startInputs());
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
+
+        // the service forgot to stamp GENERATION_ID: the run must still complete, but store nothing
+        graph.runUntilInterrupt(token);
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(sinks.lastPlan).isNull();
+        assertThat(sinks.lastGeneration).isNull();
     }
 
     @Test

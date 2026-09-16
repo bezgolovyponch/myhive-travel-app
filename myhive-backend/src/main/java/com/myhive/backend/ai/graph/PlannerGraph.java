@@ -33,7 +33,8 @@ import java.util.UUID;
  * <pre>
  *   START            -> chatTurn
  *   chatTurn         -> awaitGeneration  (action = GENERATE)  | awaitUser       (otherwise)
- *   awaitUser        -> awaitGeneration  (resume = GENERATE)  | chatTurn        (otherwise)
+ *   awaitUser        -> select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
+ *                                                             | chatTurn        (otherwise)
  *   awaitGeneration  -> snapshotCatalog -> compose -> validate
  *   validate         -> persistResult    (no violations)      | repair (first failure) | fallback
  *   repair           -> validate
@@ -100,8 +101,8 @@ public class PlannerGraph {
                     .addEdge(StateGraph.START, CHAT_TURN)
                     .addConditionalEdges(CHAT_TURN, AsyncEdgeAction.edge_async(PlannerGraph::afterChatTurn),
                             Map.of(ROUTE_GENERATE, AWAIT_GENERATION, ROUTE_WAIT, AWAIT_USER))
-                    .addConditionalEdges(AWAIT_USER, AsyncEdgeAction.edge_async(PlannerGraph::afterUserWait),
-                            Map.of(ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
+                    .addConditionalEdges(AWAIT_USER, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
+                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
                     .addEdge(AWAIT_GENERATION, SNAPSHOT_CATALOG)
                     .addEdge(SNAPSHOT_CATALOG, COMPOSE)
                     .addEdge(COMPOSE, VALIDATE)
@@ -110,7 +111,7 @@ public class PlannerGraph {
                     .addEdge(REPAIR, VALIDATE)
                     .addEdge(FALLBACK, PERSIST_RESULT)
                     .addEdge(PERSIST_RESULT, AWAIT_SELECTION)
-                    .addConditionalEdges(AWAIT_SELECTION, AsyncEdgeAction.edge_async(PlannerGraph::afterSelectionWait),
+                    .addConditionalEdges(AWAIT_SELECTION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
                             Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
                     .addEdge(SELECT, AWAIT_SELECTION);
             this.compiled = workflow.compile(CompileConfig.builder()
@@ -127,11 +128,12 @@ public class PlannerGraph {
         return PlannerState.ACTION_GENERATE.equals(state.action()) ? ROUTE_GENERATE : ROUTE_WAIT;
     }
 
-    private static String afterUserWait(PlannerState state) {
-        return ResumeReason.GENERATE.name().equals(state.resumeReason().orElse("")) ? ROUTE_GENERATE : ROUTE_CHAT;
-    }
-
-    private static String afterSelectionWait(PlannerState state) {
+    /**
+     * Both park points route the same way. The packages stay on the page while the group keeps
+     * chatting, so a selection can arrive from {@link #AWAIT_USER} just as well as from
+     * {@link #AWAIT_SELECTION}; routing it to chat instead would re-invoke the model and lose the pick.
+     */
+    private static String afterWait(PlannerState state) {
         String reason = state.resumeReason().orElse("");
         if (ResumeReason.SELECT.name().equals(reason)) {
             return ROUTE_SELECT;
