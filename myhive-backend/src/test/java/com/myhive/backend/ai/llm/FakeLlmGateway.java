@@ -13,6 +13,7 @@ public class FakeLlmGateway implements LlmGateway {
     private final Deque<ChatTurnResult> chatAnswers = new ArrayDeque<>();
     private final Deque<PlanDraft> planAnswers = new ArrayDeque<>();
     private final Deque<PlanDraft> repairAnswers = new ArrayDeque<>();
+    private RuntimeException nextChatFailure;
     private RuntimeException nextPlanFailure;
     public final List<ChatTurnRequest> chatRequests = new ArrayList<>();
     public final List<PlanRequest> planRequests = new ArrayList<>();
@@ -33,6 +34,12 @@ public class FakeLlmGateway implements LlmGateway {
         return this;
     }
 
+    /** Lets a test pick the failure a chat turn sees, e.g. a timeout rather than a flat outage. */
+    public FakeLlmGateway failNextChat(RuntimeException failure) {
+        this.nextChatFailure = failure;
+        return this;
+    }
+
     public FakeLlmGateway failNextPlan(RuntimeException failure) {
         this.nextPlanFailure = failure;
         return this;
@@ -42,6 +49,7 @@ public class FakeLlmGateway implements LlmGateway {
         chatAnswers.clear();
         planAnswers.clear();
         repairAnswers.clear();
+        nextChatFailure = null;
         nextPlanFailure = null;
         chatRequests.clear();
         planRequests.clear();
@@ -51,6 +59,11 @@ public class FakeLlmGateway implements LlmGateway {
     @Override
     public ChatTurnResult chatTurn(ChatTurnRequest request) {
         chatRequests.add(request);
+        if (nextChatFailure != null) {
+            RuntimeException failure = nextChatFailure;
+            nextChatFailure = null;
+            throw failure;
+        }
         if (chatAnswers.isEmpty()) {
             throw new IllegalStateException("FakeLlmGateway: no chat answer queued");
         }

@@ -10,7 +10,13 @@ import org.springframework.context.annotation.Primary;
 @TestConfiguration
 public class AiTestConfig {
 
-    @Bean
+    /**
+     * Registered under the production gateway's own bean name so it <em>replaces</em> that definition
+     * (the test classpath enables {@code spring.main.allow-bean-definition-overriding}, as it does for
+     * {@code TestSecurityConfig}'s JwtDecoder). Adding a second bean would not do: SpringAiLlmGateway
+     * is itself {@code @Primary}, so two primaries would leave every injection point ambiguous.
+     */
+    @Bean(name = "springAiLlmGateway")
     @Primary
     public LlmGateway fakeLlmGateway() {
         return new FakeLlmGateway();
