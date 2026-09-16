@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.graph.CheckpointRetention;
 import com.myhive.backend.ai.graph.PlannerGraph;
 import com.myhive.backend.ai.llm.AiProperties;
 import com.myhive.backend.entity.AiSession;
@@ -19,7 +20,8 @@ import java.util.UUID;
 /**
  * Retention for planner chats. A session is three things - the {@code ai_sessions} row with its
  * generations, a checkpoint thread in the saver, and an entry in {@link SessionLocks} - and all
- * three have to go, or the process keeps paying for a chat nobody will ever open again.
+ * three have to go, or the process keeps paying for a chat nobody will ever open again. The thread
+ * takes two calls: {@code release} flags it released, {@link CheckpointRetention} deletes its rows.
  *
  * <p>The three are torn down in that order, and the order is the point: releasing a graph thread is
  * irreversible, so it must not happen until the rows it belongs to are actually gone. Hence one
@@ -34,6 +36,7 @@ public class AiCleanupScheduler {
     private final AiSessionRepository sessionRepository;
     private final AiGenerationRepository generationRepository;
     private final PlannerGraph graph;
+    private final CheckpointRetention checkpointRetention;
     private final SessionLocks sessionLocks;
     /** This bean's own transactional proxy, resolved lazily; injecting the type directly would cycle. */
     private final ObjectProvider<AiCleanupScheduler> self;
@@ -75,9 +78,14 @@ public class AiCleanupScheduler {
     private void releaseThread(UUID token) {
         try {
             graph.release(token);
+            // release() only flags the thread released; the rows themselves have to be deleted or the
+            // checkpoint tables outlive every chat they belong to.
+            checkpointRetention.deleteThread(token);
         } catch (RuntimeException e) {
             // A thread the saver has already forgotten (released, or never checkpointed) is not a
-            // reason to leave the rest of the batch behind. Class name only - no state is logged.
+            // reason to leave the rest of the batch behind. The cost of failing here is checkpoint
+            // rows nothing points at any more, which no later run will find because the session row
+            // is already gone - worth a WARN, not an abort. Class name only - no state is logged.
             log.warn("could not release planner thread {}: {}", token, e.getClass().getName());
         }
     }

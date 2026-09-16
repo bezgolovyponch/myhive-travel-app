@@ -6,6 +6,7 @@ import org.bsc.langgraph4j.checkpoint.PostgresSaver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -18,6 +19,15 @@ public class CheckpointSaverConfig {
     @Profile("!prod")
     public BaseCheckpointSaver memoryCheckpointSaver() {
         return new MemorySaver();
+    }
+
+    /** Nothing to delete: {@code MemorySaver.release} already drops the thread from its own map. */
+    @Bean
+    @Profile("!prod")
+    public CheckpointRetention memoryCheckpointRetention() {
+        return token -> {
+            // no tables behind MemorySaver, so releasing the thread is the whole cleanup
+        };
     }
 
     /**
@@ -36,5 +46,15 @@ public class CheckpointSaverConfig {
                 .stateSerializer(new PlannerStateSerializer())
                 .createTables(false)
                 .build();
+    }
+
+    /**
+     * Prod: {@code release} only flags a thread released, so without this the checkpoint tables would
+     * grow for the life of the database while the {@code ai_sessions} rows behind them expire at 30 days.
+     */
+    @Bean
+    @Profile("prod")
+    public CheckpointRetention postgresCheckpointRetention(DataSource dataSource) {
+        return new PostgresCheckpointRetention(new JdbcTemplate(dataSource));
     }
 }

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -134,6 +135,42 @@ class PostgresCheckpointPersistenceTest {
         seedThenResumeThroughAFreshSaver(MIGRATION_SCHEMA, prodSaver(MIGRATION_SCHEMA));
     }
 
+    /**
+     * {@code release} only flags a thread released, so the 30-day session cleanup has to delete its
+     * rows explicitly or the checkpoint tables outlive every chat in them. One statement does it: the
+     * checkpoint FK cascades from {@code lg4jthread.thread_id}.
+     */
+    @Test
+    void deleteThread_removesTheThreadAndItsCheckpoints() throws SQLException, IOException {
+        applyMigrationDdl();
+        UUID token = UUID.randomUUID();
+        graph(new FakeLlmGateway(), prodSaver(MIGRATION_SCHEMA)).seedParked(token, seed());
+        UUID threadId = threadIdOf(token);
+        assertThat(checkpointCount(threadId)).as("checkpoints written by seedParked").isPositive();
+
+        new PostgresCheckpointRetention(new JdbcTemplate(dataSource(MIGRATION_SCHEMA))).deleteThread(token);
+
+        assertThat(threadCount(token)).isZero();
+        assertThat(checkpointCount(threadId)).isZero();
+    }
+
+    private static UUID threadIdOf(UUID token) throws SQLException {
+        List<String> ids = queryWithStringParameter("SELECT thread_id FROM " + MIGRATION_SCHEMA
+                + ".lg4jthread WHERE thread_name = ?", token.toString());
+        assertThat(ids).as("thread row for %s", token).hasSize(1);
+        return UUID.fromString(ids.get(0));
+    }
+
+    private static int threadCount(UUID token) throws SQLException {
+        return Integer.parseInt(queryWithStringParameter("SELECT count(*) FROM " + MIGRATION_SCHEMA
+                + ".lg4jthread WHERE thread_name = ?", token.toString()).get(0));
+    }
+
+    private static int checkpointCount(UUID threadId) throws SQLException {
+        return Integer.parseInt(queryWithStringParameter("SELECT count(*) FROM " + MIGRATION_SCHEMA
+                + ".lg4jcheckpoint WHERE thread_id = ?::uuid", threadId.toString()).get(0));
+    }
+
     @Test
     void flywayDdl_matchesTheSaversOwnDdl() throws SQLException, IOException {
         saverWithItsOwnTables();
@@ -214,12 +251,20 @@ class PostgresCheckpointPersistenceTest {
     /** Runs a one-parameter schema query and strips the schema name, so two schemas compare equal. */
     private static List<String> query(String schema, String sql) throws SQLException {
         List<String> rows = new ArrayList<>();
+        for (String row : queryWithStringParameter(sql, schema)) {
+            rows.add(row.replace(schema + ".", ""));
+        }
+        return rows;
+    }
+
+    private static List<String> queryWithStringParameter(String sql, String parameter) throws SQLException {
+        List<String> rows = new ArrayList<>();
         try (Connection connection = dataSource(null).getConnection();
                 PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, schema);
+            ps.setString(1, parameter);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    rows.add(rs.getString(1).replace(schema + ".", ""));
+                    rows.add(rs.getString(1));
                 }
             }
         }
