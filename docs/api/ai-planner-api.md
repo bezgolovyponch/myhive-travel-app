@@ -1,9 +1,20 @@
 # AI Planner API — frontend contract
 
-Status: **draft v1, agreed 2026-09-15**. Backend and frontend are built in parallel
-against this document. Changes go through a PR that edits this file first.
+Status: **v1.1, reconciled with the implementation on 2026-09-16**. Backend and
+frontend are built in parallel against this document. Changes go through a PR that
+edits this file first.
 
 Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](../superpowers/specs/2026-09-15-ai-stag-planner-design.md).
+
+**Changes since v1** (reconciling the contract with what actually shipped):
+- Bean-validation failures return `error: "Validation Failed"` (the app-wide
+  convention), not `VALIDATION_ERROR`.
+- Unknown `destinationSlug`, a malformed (non-UUID) `{token}`/`{id}`, and an
+  invalid `packageKey` are all `400 "Bad Request"`, documented explicitly.
+- `select`'s `GENERATION_IN_PROGRESS` also fires while any other generation of the
+  session is in flight, not just the one being selected.
+- Noted: `SessionState.messages[0]` is the seeded greeting, and how the client IP
+  for the daily cap is resolved.
 
 ## Basics
 
@@ -14,6 +25,9 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
 - Locale: pass `locale` on session creation (`en` | `de`); the agent replies and
   names activities in that language.
 - All bodies are JSON. Money is EUR, numbers in euros with two decimals (not cents).
+- The client IP used for the daily session cap is resolved the same way as the
+  global rate limiter (`CF-Connecting-IP`, else the last `X-Forwarded-For` hop,
+  else the socket address) — no client action needed.
 - Errors use the shared shape:
 
 ```json
@@ -25,10 +39,11 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
 |---|---|---|
 | 503 | `AI_DISABLED` | Feature is off. Hide the entry point. |
 | 404 | `SESSION_NOT_FOUND`, `GENERATION_NOT_FOUND` | Token/id unknown or expired (30 days idle). Drop the stored token, offer a new chat. |
-| 400 | `VALIDATION_ERROR` | Bad input (`fieldErrors` map present). |
+| 400 | `"Validation Failed"` | Bean-validation failure (e.g. message/`initialMessage` too long) — the app-wide convention (not an AI-specific code); `fieldErrors` map present. |
+| 400 | `"Bad Request"` | Three cases, same shape: an unknown `destinationSlug` on `POST /ai/sessions` (`message` names the slug); a malformed non-UUID `{token}`/`{id}` path variable — treat exactly like `SESSION_NOT_FOUND`/`GENERATION_NOT_FOUND` and drop the stored token; or a `packageKey` outside `BASIC`\|`MEDIUM`\|`PREMIUM` on `select`. |
 | 403 | `TURNSTILE_FAILED` | Captcha rejected. Re-render Turnstile and retry. |
 | 409 | `BRIEF_INCOMPLETE` | Manual generate before the agent knows days/group/preferences. Show `missingFields`. |
-| 409 | `GENERATION_IN_PROGRESS` | A generation is already running. Poll it instead. |
+| 409 | `GENERATION_IN_PROGRESS` | A generation is already QUEUED or RUNNING. On `select` this also fires while *any* generation of the session is in flight, not only the one being picked — an older package set cannot be selected mid-regeneration. Poll instead. |
 | 409 | `GENERATION_NOT_READY` | `select` called on a generation that is not `READY`. |
 | 409 | `SESSION_BUSY` | Another request for this chat is still in flight (double-click). Retry once the first call returns. |
 | 429 | `SESSION_TURN_LIMIT`, `GENERATION_LIMIT` | 30 messages / 5 generations per session. Offer "start a new chat". |
@@ -86,7 +101,10 @@ size and preferences known) — there is no confirmation step. On that turn
 and the message says something like "Building your three options…". Start polling.
 If the very first message already contains everything, this happens right after the
 first reply. After packages exist, a later message regenerates automatically **only
-if it changed the brief** (e.g. "actually 6 of us"); small talk does not.
+if it changed the brief** (e.g. "actually 6 of us"); small talk does not. A message
+that arrives after a generation ended `FAILED` (including an `AI_BUSY` rejection) is
+still answered in chat and, if the brief is complete, starts a fresh generation the
+same way.
 
 ### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
 
@@ -154,6 +172,9 @@ replace the cart (the same way `SET_TRIP_ITEMS_FROM_VOTE` does) and set traveler
   "limits": { "messagesLeft": 27, "generationsLeft": 5 }
 }
 ```
+
+`messages[0]` is always the assistant greeting (EN/DE), seeded when the session is
+created — it costs no model call and is not something the agent "said".
 
 ### `Brief`
 

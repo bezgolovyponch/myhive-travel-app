@@ -68,29 +68,51 @@ One compiled `StateGraph<PlannerState>` per JVM, one **thread** per chat session
 request or job executor) can resume it.
 
 ```
-START → chatTurn ─┬─(brief incomplete)──→ awaitUser ⏸ ──→ chatTurn
-                  └─(brief complete → generate automatically)──→ awaitGeneration ⏸
-                                              │  (resumed by the job executor)
-                                              ▼
-                     snapshotCatalog → compose → validate ─┬─ ok ──→ persistResult
-                                                           └─ fail ─→ repair → validate ─┬─ ok ──→ persistResult
-                                                                                        └─ fail ─→ fallback → persistResult
-                     persistResult → awaitSelection ⏸ → select → END
+START            → chatTurn
+chatTurn         → awaitGeneration  (action = GENERATE)  | awaitUser       (otherwise)
+awaitUser        → select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
+                                                           | chatTurn        (otherwise)
+awaitGeneration  → snapshotCatalog  (resume = GENERATE)  | select          (resume = SELECT)
+                                                           | chatTurn        (otherwise)
+snapshotCatalog  → compose → validate
+validate         → persistResult    (no violations)      | repair (first failure) | fallback
+repair           → validate
+fallback         → persistResult
+persistResult    → awaitSelection
+awaitSelection   → select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
+                                                           | chatTurn        (otherwise)
+select           → awaitSelection
 ```
 
-`⏸` = node compiled with `interruptBefore`. `awaitUser`, `awaitGeneration` and
-`awaitSelection` are no-op nodes that exist only as interrupt points.
+(Verbatim from `PlannerGraph`'s own class Javadoc — keep the two in sync.) All
+three `await*` nodes are interrupt points (`interruptBefore`, no-op bodies) sharing
+one `afterWait` router keyed on the `resumeReason` state key stamped by whichever
+service resumes the thread: `SELECT` always routes to `select`; `GENERATE` routes to
+`snapshotCatalog` **only when the resume happens from `awaitGeneration` itself** —
+from `awaitUser` or `awaitSelection` a `GENERATE` resume lands on `awaitGeneration`
+and parks there instead, so the HTTP thread never runs the model-calling half of the
+graph. Only `PlanGenerationService.runJob` (the job executor) resumes with
+`GENERATE` from `awaitGeneration`; every other resume path stamps its own
+`resumeReason` (`USER_MESSAGE` from `POST /messages`, `SELECT` from `POST /select`)
+before calling `runUntilInterrupt`.
+
+Session creation seeds the checkpoint thread with an `ACTION = "SEED"` sentinel and
+calls `graph.start(...)` rather than `update` — langgraph4j rejects `updateState` on
+a thread that has no checkpoint yet ("Missing Checkpoint!"). `chatTurn` checks for
+the sentinel first and, on a seed, just clears it back to `ACTION_NONE` without a
+model call; the graph then parks at `awaitUser` with only the seeded greeting in
+`messages`.
 
 | Node | Kind | Does |
 |---|---|---|
-| `chatTurn` | LLM | Sends system prompt + catalog category list + brief-so-far + last 20 messages to the chat model. Parses `{reply, brief, missingFields}`. Appends the assistant message, merges the brief (model output wins per field, nulls leave the old value) and sets `action = GENERATE` iff the merged brief is ready — Java decides, not the model. |
-| `awaitUser` | interrupt | Graph parks here. `POST /messages` does `updateState({messages: [user msg]})` then resumes. |
-| `awaitGeneration` | interrupt | Graph parks here so the HTTP request returns 202. The job executor resumes the same thread. |
-| `snapshotCatalog` | Java | Loads all activities of the destination (localized), compacts them to `{id, name, oneLine, durationMinutes, price, minPrice, categories}`. If > 80, keeps the 80 best by category overlap with the brief then `featuredWeight`. Stores the snapshot in state so `compose`/`repair`/`validate` all see the same catalog. |
+| `chatTurn` | LLM | Sends system prompt + catalog category list + brief-so-far + last 20 messages to the chat model. Parses `{reply, brief, missingFields}`. Appends the assistant message, merges the brief (model output wins per field, nulls leave the old value) and sets `action = GENERATE` iff the merged brief is ready **and** its JSON differs from `lastGeneratedBrief` — Java decides, not the model. On the seed sentinel it does none of this: it only clears the sentinel. |
+| `awaitUser` | interrupt | Graph parks here. `POST /messages` does `updateState({messages: [user msg], resumeReason: USER_MESSAGE})` then resumes; a `select`-triggered `GENERATE` resume also passes through here on its way to parking at `awaitGeneration`. |
+| `awaitGeneration` | interrupt | Graph parks here so the HTTP request returns 202/200 without ever running a model call on the request thread. Only the job executor's `GENERATE` resume, issued from this exact node, continues into `snapshotCatalog`; any other resume reason falls through the shared `afterWait` router to `chatTurn`. |
+| `snapshotCatalog` | Java | Loads all activities of the destination (localized), compacts them to `{id, name, oneLine, durationMinutes, price, minPrice, categories}`. If > 80, keeps the 80 best by category overlap with the brief then `featuredWeight`. Stores the snapshot in state so `compose`/`repair`/`validate` all see the same catalog, and writes `lastGeneratedBrief` (the brief JSON this generation used) so `chatTurn` can tell a later message actually changed something. |
 | `compose` | LLM | Planner model. Input: brief, catalog snapshot, last 10 messages, tier rules. Output: draft with three packages, each `days[].items[]` referencing catalog ids and slots. |
 | `validate` | Java | Runs `PlanValidator` (rules below) and `PlanPricer`. Writes `violations` (empty = ok) and `attempt`. |
 | `repair` | LLM | Planner model again with the draft and the list of violations, asked to fix only what is listed. Max one repair per generation. |
-| `fallback` | Java | `FallbackPlanComposer`: greedy fill per tier by category overlap → `featuredWeight` → price, respecting the same rules. Marks `degraded = true`. |
+| `fallback` | Java | `FallbackPlanComposer`: ranks candidates by the **billed** line (`PlanPricer.lineTotal`, i.e. the group-minimum floor already applied, not raw `price`), then category overlap with the brief, then `featuredWeight`. Reserves one tier-exclusive activity per tier — picked so it still fits that tier's per-day cap — to satisfy the "each tier has something the others don't" rule, then fills one item per day first (so no day is left empty) before topping up remaining slots up to the tier's item/minute caps. Marks `degraded = true`. |
 | `persistResult` | Java | Writes the result JSON to `ai_generations`, flips `ai_sessions.status` to `READY`. |
 | `awaitSelection` | interrupt | Graph parks until `POST /select`. Regeneration re-enters at `awaitGeneration` via `updateState` + resume. |
 | `select` | Java | Records `selected_package_key`, returns trip items. Graph reaches END but the thread is **not released** (`releaseThread(false)`) so the organizer can reopen the screen and pick another package (re-entry at `awaitSelection`). |
@@ -140,8 +162,10 @@ contains everything, the packages are generated right after the first reply. The
 model's reply on that turn simply says it is building the three options;
 `missingFields` lists what is still unknown so the frontend can show hints.
 After a generation, further chat regenerates **only if the merged brief changed**
-(the graph remembers the brief the last generation used); small talk never burns a
-generation. The explicit `POST /generations` stays for "try other options".
+(the graph remembers the brief the last generation used, in the `lastGeneratedBrief`
+state key — written by `snapshotCatalog`, the first Java node the generation branch
+runs, not by `persistResult`); small talk never burns a generation. The explicit
+`POST /generations` stays for "try other options".
 
 ### Scheduling rules (PlanValidator)
 
@@ -193,8 +217,34 @@ from the model output.
 - The job marks the row `RUNNING`, resumes the graph, and the graph's
   `persistResult` marks it `READY`. Any exception marks it `FAILED` with an
   `error_code` (`LLM_TIMEOUT`, `LLM_INVALID_OUTPUT`, `LLM_UNAVAILABLE`, `INTERNAL`).
-- Sweeper on the existing scheduling infrastructure (`fixedDelay = 60 s`): rows
-  `RUNNING` for > 3 min become `FAILED (STALE)` (the JVM was restarted mid-job).
+- `AiSessionService` and `PlanGenerationService` are deliberately **not**
+  `@Transactional` at the method level that enqueues a job: the `QUEUED` row must
+  commit and be visible to the executor's job thread before that thread runs, so
+  wrapping enqueue-and-submit in one transaction would race the job against its own
+  insert. Per-generation state transitions (`RUNNING`/`READY`/`FAILED`) each run in
+  their own short transaction instead.
+- `select` shares the same in-flight guard as a chat turn: it is rejected with
+  `409 GENERATION_IN_PROGRESS` while *any* generation of the session is
+  `QUEUED`/`RUNNING`, not only the one being picked — a job holds the graph thread
+  and its `generationId` stamp, and resuming underneath it would both stamp the
+  wrong id and hand the parked job a thread that has already moved on.
+- `SessionLocks` (one `ReentrantLock` per session token, non-blocking `tryLock` →
+  `409 SESSION_BUSY` on contention) **never evicts an entry while the process
+  lives** — removing a lock after its last visible holder unlocked let a second
+  caller take the same lock and a third create a fresh one, walking straight past
+  it. The map is bounded by sessions served this process; only session cleanup
+  (`AiCleanupScheduler`) calls `release(token)`, after the session and its
+  generations are already deleted. Single-instance assumption: a second backend
+  replica would need the lock in Postgres instead.
+- Sweeper on the existing scheduling infrastructure (`fixedDelay = 60 s`,
+  `failStaleRunning`): `RUNNING` rows aged past `startedAt < now - 3 min` become
+  `FAILED (STALE)` (the JVM died mid-job). `QUEUED` rows use a different clock —
+  `createdAt` before this JVM's own start time (`ManagementFactory.getRuntimeMXBean()
+  .getStartTime()`) — rather than a duration, because a row can sit honestly
+  `QUEUED` behind a full 20-deep, 2-worker queue for longer than 3 minutes; only a
+  row that predates *this* process could not possibly still have a thread coming.
+  Each row is re-read and closed out in its own transaction immediately before the
+  write, so a row that turned `READY` while the sweep was iterating is left alone.
 - Limits: 30 user messages and 5 generations per session; 20 new sessions per IP
   per UTC day (in-memory counter, same style as `RateLimitFilter`); 1 000-char
   messages.
@@ -232,7 +282,16 @@ from the model output.
   Singapore region, so the schema is described in the prompt and enforced by
   strict Jackson parsing with `FAIL_ON_UNKNOWN_PROPERTIES=false` +
   `@NotNull` bean validation). A parse or validation failure is `LLM_INVALID_OUTPUT`
-  and counts as a violation for `repair`.
+  and counts as a violation for `repair`. `response_format` is built with
+  `OpenAiChatModel.ResponseFormat`; `enable_thinking=false` is not a first-class
+  Spring AI option on this client, so it rides in through
+  `OpenAiChatOptions.extraBody`.
+- Every blocking model call runs on a dedicated `llmCallExecutor`
+  (`ThreadPoolTaskExecutor`, core/max 4, queue 8, `AbortPolicy`) via
+  `CompletableFuture.supplyAsync`, never the JVM's common `ForkJoinPool` — on a
+  2-vCPU host under JDK 25 that pool defaults to parallelism 1, which would
+  serialize chat and planner calls behind each other and behind every other
+  `parallelStream`/`CompletableFuture.supplyAsync()` in the process.
 - Prompts live in `src/main/resources/prompts/ai/{chat-system,planner-system,repair}.st`
   (Spring AI `PromptTemplate`), with `{locale}` selecting English or German replies.
   User text and catalog text are inserted as data blocks; the system prompt states
@@ -252,7 +311,7 @@ the spike into the same migration, and prod runs the saver with
 
 ```
 ai_sessions
-  id UUID PK, token UUID UNIQUE NOT NULL, destination_id UUID FK NOT NULL,
+  id UUID PK, token UUID UNIQUE NOT NULL, destination_id UUID FK NOT NULL ON DELETE CASCADE,
   locale VARCHAR(8), status VARCHAR(16) NOT NULL   -- COLLECTING|GENERATING|READY|FAILED
   message_count INT NOT NULL DEFAULT 0, generation_count INT NOT NULL DEFAULT 0,
   client_ip_hash VARCHAR(64), created_at TIMESTAMP NOT NULL, last_activity_at TIMESTAMP NOT NULL
@@ -270,11 +329,38 @@ ai_generations
 -- saver tables: DDL captured in the spike (thread + checkpoint rows keyed by thread id)
 ```
 
+`ai_sessions.destination_id` is `ON DELETE CASCADE`: deleting a destination in the
+admin panel does not orphan its planner sessions.
+
 Messages are **not** duplicated into our tables; they live in the checkpoint state
 and are read through the graph. Cleanup (`0 45 2 * * *`, next to the trip-lead
 cleanup): sessions with `last_activity_at` older than `session-ttl-days` are
 deleted together with their generations, and the graph thread is released
 (`saver.release(config)`), which drops its checkpoints.
+
+**Saver class and DDL route (Task 13).** The dependency ships exactly two classes
+— `org.bsc.langgraph4j.checkpoint.PostgresSaver` and its `Builder`; there is no
+`PostgresSaverV2` in langgraph4j 1.8.13. `PostgresSaver#initTable`'s literal SQL
+(read from the sources jar) and the V7 block were cross-checked two ways against a
+real Postgres 18 container: a `pg_dump --schema-only` diff came back byte-identical,
+and a permanent test (`PostgresCheckpointPersistenceTest.
+flywayDdl_matchesTheSaversOwnDdl`, `@Tag("docker")`) compares
+`information_schema.columns` / `pg_indexes.indexdef` / `pg_get_constraintdef` row by
+row so a langgraph4j upgrade that changes the DDL fails a test instead of a prod
+deploy. The saver tables are two: `lg4jthread` (one row per checkpoint thread, with
+a **partial unique index** on `thread_name` `WHERE is_released = false` — load-
+bearing, because the saver's upsert is `ON CONFLICT (thread_name) WHERE
+is_released = FALSE` and Postgres can only resolve that against exactly this index)
+and `lg4jcheckpoint` (FK to `lg4jthread` `ON DELETE CASCADE`). `graph.release(token)`
+only flips `is_released = TRUE`; it does not delete `lg4jcheckpoint` rows (the FK
+cascade fires only on a thread *delete*), so that table grows without bound over
+time — a `DELETE FROM lg4jthread WHERE is_released` retention job is a known
+follow-up, not yet built.
+
+Testcontainers is pinned to the 2.x line; the JUnit and Postgres modules are
+`org.testcontainers:testcontainers-junit-jupiter` and
+`org.testcontainers:testcontainers-postgresql` (not the `org.testcontainers:junit-jupiter`
+/ `:postgresql` short names 1.x used).
 
 ### Security and cost
 
@@ -290,7 +376,14 @@ deleted together with their generations, and the graph thread is released
   still created (so a flip needs only an env change + restart, no code path differs).
 - Prompt injection: user text cannot change the catalog or prices (Java owns
   both); model text is sanitized (HTML stripped, length-capped) before storage and
-  is echoed to the frontend as plain text only.
+  is echoed to the frontend as plain text only. `PlanAssembler.clean` drops
+  `<script>`/`<style>` blocks **whole, including their content**, before the
+  generic tag-stripping pass — stripping tags first would leave the payload of a
+  `<script>…</script>` the model was tricked into emitting as plain visible text.
+- Client IP resolution (rate limiter and the AI daily cap alike) goes through one
+  shared helper, `util/ClientIp.resolve`: `CF-Connecting-IP`, else the last
+  `X-Forwarded-For` hop, else the socket address — so a request is never throttled
+  as one caller and quota'd as another.
 
 ### Error contract
 

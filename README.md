@@ -100,6 +100,19 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
   leads deleted 30 days after last touch. Kill switch: `REMINDERS_ENABLED`.
 - **Contacts (ADMIN only)**: `GET /admin/contacts?q=&page=&size=` (paged, searches email/name, newest activity first, `unsubscribed` flag from `email_suppressions`) and `GET /admin/contacts/export` (CSV, UTF-8 BOM, formula-injection safe). Rows are upserted by `ContactService.touch` from every email capture point — Trip Builder lead, vote creation, booking, contact form, Stripe payer — and are never auto-deleted. Prod table + backfill: Flyway `V5__contacts.sql`.
 - **Contacts digest**: `ContactDigestScheduler` mails `app.email.bookings-to` (default `booking@trivlu.com`) once a day at 07:00 UTC with every contact whose `digest_sent_at` is still null, then stamps those rows; a failed send leaves them queued for the next run. Kill switch `CONTACTS_DIGEST_ENABLED` (default `true`); no-op when email is disabled. Prod column: Flyway `V6__contacts_digest_sent_at.sql`.
+- **AI stag-party planner** (public, no auth, kill switch `AI_ENABLED`, default `false`):
+
+  | Method | Path | Purpose |
+  |--------|------|---------|
+  | POST | /ai/sessions | Start a planner chat (public, Turnstile in prod) |
+  | GET  | /ai/sessions/{token} | Full chat state (restore screen) |
+  | POST | /ai/sessions/{token}/messages | Send a message, get the assistant reply |
+  | POST | /ai/sessions/{token}/generations | (Re)generate the three packages → 202 |
+  | GET  | /ai/generations/{id} | Poll generation status / packages |
+  | POST | /ai/generations/{id}/select | Pick a package → Trip Builder items |
+
+  Frontend contract: `docs/api/ai-planner-api.md`. More detail, including the graph
+  shape and how to open the dev debugger: see `## AI stag-party planner` below.
 
 **Admin** (Auth0 JWT, ADMIN/MANAGER role; categories require ADMIN):
 
@@ -165,6 +178,15 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `API_PUBLIC_URL`         | no          | empty — set to the backend's public base URL **including the prod context path**, e.g. `https://<backend-host>/api`, to enable RFC 8058 `List-Unsubscribe`/`List-Unsubscribe-Post` headers on reminder emails. Left empty, reminder emails still send but ship **without** those one-click headers, which Gmail/Yahoo require of bulk senders. |
 | `CONTACTS_DIGEST_ENABLED` | no         | `true` (kill switch for the daily new-contacts digest) |
 | `EMAIL_BOOKINGS_TO`      | no          | `booking@trivlu.com` (recipient of booking notifications and the daily contacts digest) |
+| `AI_ENABLED`             | no          | `false` (kill switch for the whole `/ai/**` planner; `503 AI_DISABLED` while off) |
+| `QWEN_API_KEY`           | for the AI planner | -                 |
+| `QWEN_BASE_URL`          | no          | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` (DashScope intl compatible-mode URL; Model Studio may instead issue a workspace-scoped URL — use whichever the console shows for the key) |
+| `QWEN_CHAT_MODEL`        | no          | `qwen3.7-plus` (brief-extraction chat turns) |
+| `QWEN_PLANNER_MODEL`     | no          | `qwen3.8-max` (package composition/repair) |
+| `AI_CHAT_TIMEOUT`        | no          | `20s` |
+| `AI_PLANNER_TIMEOUT`     | no          | `60s` |
+| `AI_TURNSTILE_REQUIRED`  | no          | `false` (dev) / `true` (prod) — gates `POST /ai/sessions` on `turnstileToken` |
+| `AI_IP_SALT`             | no          | `trivlu-ai` (server salt hashed into `client_ip_hash`, used only for the per-IP daily session cap and abuse review) |
 
 ### Frontend (build-time `REACT_APP_*`)
 
@@ -182,6 +204,39 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 Compile-time flags live in `src/services/config.js`: `DESTINATION_PICKER_ENABLED` (destination choice in the
 vote flow — off while Prague is the only live destination), `DEFAULT_DESTINATION_SLUG` (`prague`), and
 placeholder `WHATSAPP_URL` / `MESSENGER_URL` support links used on the homepage.
+
+## AI stag-party planner
+
+A multi-turn chat under `/ai/**` that turns days/group size/taste into three tiered
+packages (`BASIC`/`MEDIUM`/`PREMIUM`), each with a realistic day-by-day itinerary
+built only from real catalog activities. One langgraph4j `StateGraph`
+(`ai/graph/PlannerGraph`) drives the conversation, parking on `awaitUser`/
+`awaitGeneration`/`awaitSelection` interrupts between requests; Qwen (DashScope,
+OpenAI-compatible) composes and repairs the plan, Java validates, prices and falls
+back deterministically. Full frontend contract: [`docs/api/ai-planner-api.md`](docs/api/ai-planner-api.md);
+design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md).
+
+```
+START → chatTurn ─┬─(brief incomplete)→ awaitUser ⏸ → chatTurn
+                  └─(brief ready)─────→ awaitGeneration ⏸ (resumed by the job)
+                       snapshotCatalog → compose → validate → persistResult → awaitSelection ⏸ → select
+```
+
+**Dev debugger (Studio, `dev` profile only, not shipped to prod):**
+`./gradlew bootRun --args='--spring.profiles.active=dev'`, then open
+`http://localhost:8080/index.html` (the graph JSON is served from
+`GET /init?instance=planner`).
+
+**Checkpoint-persistence test** (needs Docker Desktop running, else it reports
+skipped): `./gradlew test --tests '*PostgresCheckpointPersistenceTest'`.
+
+**Rollout order:**
+1. Deploy with `AI_ENABLED=false` — Flyway `V7__ai_planner.sql` applies, nothing
+   else changes.
+2. Set `QWEN_API_KEY` / `QWEN_BASE_URL`, then run `QwenLiveSmokeTest` once with a
+   real key (the `qwen3.7-plus`/`qwen3.8-max` model ids and `enable_thinking`
+   semantics are unverified live until then).
+3. Flip `AI_ENABLED=true` on the backend and verify with a manual `curl` session.
 
 ## Testing
 
