@@ -3,7 +3,8 @@
 CREATE TABLE ai_sessions (
     id               UUID PRIMARY KEY,
     token            UUID NOT NULL UNIQUE,
-    destination_id   UUID NOT NULL REFERENCES destinations (id),
+    -- Planner chats are disposable (30-day TTL); a deleted destination takes its chats with it.
+    destination_id   UUID NOT NULL REFERENCES destinations (id) ON DELETE CASCADE,
     locale           VARCHAR(8),
     status           VARCHAR(16) NOT NULL,
     message_count    INTEGER NOT NULL DEFAULT 0,

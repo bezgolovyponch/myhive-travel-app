@@ -7,6 +7,8 @@ import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
 import com.myhive.backend.entity.Destination;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,6 +32,8 @@ class AiRepositoriesTest {
     private AiSessionRepository sessionRepository;
     @Autowired
     private AiGenerationRepository generationRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private AiSession newSession() {
         Destination destination = destinationRepository.save(TestDataFactory.destination("Prague"));
@@ -79,5 +83,44 @@ class AiRepositoriesTest {
 
         assertThat(generationRepository.findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING,
                 LocalDateTime.now().minusMinutes(3))).hasSize(1);
+    }
+
+    @Test
+    void findByLastActivityAtBefore_returnsOnlyStaleSessions() {
+        AiSession expectedStaleSession = newSession();
+        expectedStaleSession.setLastActivityAt(LocalDateTime.now().minusDays(40));
+        sessionRepository.saveAndFlush(expectedStaleSession);
+        AiSession freshSession = newSession();
+        freshSession.setLastActivityAt(LocalDateTime.now());
+        sessionRepository.saveAndFlush(freshSession);
+
+        List<AiSession> staleSessions = sessionRepository.findByLastActivityAtBefore(LocalDateTime.now().minusDays(30));
+
+        assertThat(staleSessions).extracting(AiSession::getId).containsExactly(expectedStaleSession.getId());
+    }
+
+    @Test
+    void deleteBySessionId_removesGenerationsAndReturnsCount() {
+        AiSession session = newSession();
+        AiGeneration first = new AiGeneration();
+        first.setSession(session);
+        first.setStatus(AiGenerationStatus.FAILED);
+        first.setBriefSnapshot("{}");
+        first.setCreatedAt(LocalDateTime.now().minusMinutes(5));
+        generationRepository.saveAndFlush(first);
+        AiGeneration second = new AiGeneration();
+        second.setSession(session);
+        second.setStatus(AiGenerationStatus.QUEUED);
+        second.setBriefSnapshot("{}");
+        second.setCreatedAt(LocalDateTime.now());
+        generationRepository.saveAndFlush(second);
+        int expectedDeletedCount = 2;
+
+        int deletedCount = generationRepository.deleteBySessionId(session.getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(deletedCount).isEqualTo(expectedDeletedCount);
+        assertThat(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId())).isEmpty();
     }
 }
