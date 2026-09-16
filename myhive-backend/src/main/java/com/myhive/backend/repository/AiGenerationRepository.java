@@ -2,6 +2,7 @@ package com.myhive.backend.repository;
 
 import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,13 @@ import java.util.UUID;
 public interface AiGenerationRepository extends JpaRepository<AiGeneration, UUID> {
 
     Optional<AiGeneration> findFirstBySessionIdOrderByCreatedAtDesc(UUID sessionId);
+
+    /**
+     * Generation jobs run on a pool thread with no open persistence context, so the session they
+     * need for the graph thread id and the status flip has to come back already loaded.
+     */
+    @EntityGraph(attributePaths = "session")
+    Optional<AiGeneration> findWithSessionById(UUID id);
 
     boolean existsBySessionIdAndStatusIn(UUID sessionId, Collection<AiGenerationStatus> statuses);
 

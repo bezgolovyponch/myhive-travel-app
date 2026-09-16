@@ -1,0 +1,186 @@
+package com.myhive.backend.ai.service;
+
+import com.myhive.backend.ai.exception.AiLimitException;
+import com.myhive.backend.ai.graph.JsonCodec;
+import com.myhive.backend.ai.graph.PlannerGraph;
+import com.myhive.backend.ai.graph.PlannerState;
+import com.myhive.backend.ai.graph.nodes.PersistResultNode;
+import com.myhive.backend.ai.graph.nodes.SelectNode;
+import com.myhive.backend.ai.llm.LlmUsage;
+import com.myhive.backend.ai.model.Brief;
+import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.entity.AiGeneration;
+import com.myhive.backend.entity.AiGenerationStatus;
+import com.myhive.backend.entity.AiSession;
+import com.myhive.backend.entity.AiSessionStatus;
+import com.myhive.backend.repository.AiGenerationRepository;
+import com.myhive.backend.repository.AiSessionRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+
+/**
+ * Owns everything about one plan generation: the {@code ai_generations} row, the background job that
+ * resumes the parked graph thread, and the two callbacks the graph uses to report back. It is the
+ * single bean implementing {@link PersistResultNode.GenerationResultSink} and
+ * {@link SelectNode.SelectionSink} — a second candidate would make the nodes' {@code getIfUnique()}
+ * lookup fall back to a logging no-op and silently drop every plan.
+ */
+@Service
+@Slf4j
+public class PlanGenerationService implements PersistResultNode.GenerationResultSink, SelectNode.SelectionSink {
+
+    /** A generation that has not reported back by now lost its thread; nothing takes this long. */
+    static final int STALE_AFTER_MINUTES = 3;
+
+    private final AiGenerationRepository generationRepository;
+    private final AiSessionRepository sessionRepository;
+    private final PlannerGraph graph;
+    private final Executor executor;
+
+    public PlanGenerationService(AiGenerationRepository generationRepository, AiSessionRepository sessionRepository,
+            PlannerGraph graph, @Qualifier("aiTaskExecutor") Executor executor) {
+        this.generationRepository = generationRepository;
+        this.sessionRepository = sessionRepository;
+        this.graph = graph;
+        this.executor = executor;
+    }
+
+    /**
+     * Creates the QUEUED row and hands the job to the planner pool. Deliberately not
+     * {@code @Transactional}: the job thread looks the row up by id, so the insert has to be
+     * committed before {@code execute} is called, and an enclosing request transaction would still
+     * be open at that point. The caller persists the session counters it mutates here.
+     */
+    public AiGeneration enqueue(AiSession session, Brief brief) {
+        AiGeneration generation = new AiGeneration();
+        generation.setSession(session);
+        generation.setStatus(AiGenerationStatus.QUEUED);
+        generation.setBriefSnapshot(JsonCodec.write(brief));
+        generation.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        generation = generationRepository.save(generation);
+
+        UUID generationId = generation.getId();
+        // The graph persists nothing it cannot attribute, so the id must be in the state before the
+        // job can resume the thread - and a pool thread can start before execute() returns.
+        stampGenerationId(session.getToken(), generationId);
+        try {
+            executor.execute(() -> runJob(generationId));
+        } catch (RejectedExecutionException e) {
+            // The pool is full: the row is already committed, so it has to be closed out here. The
+            // group's generation allowance is left alone - "retry in a few seconds" must not cost one.
+            generation.setErrorCode("AI_BUSY");
+            fail(generation);
+            throw new AiLimitException("AI_BUSY", "The planner is busy, please retry in a few seconds");
+        }
+        session.setGenerationCount(session.getGenerationCount() + 1);
+        session.setStatus(AiSessionStatus.GENERATING);
+        return generation;
+    }
+
+    /**
+     * Runs on {@code aiTaskExecutor}: resumes the parked thread and lets the graph's persistResult
+     * node call {@link #ready}. Compose and repair failures never reach here — the graph absorbs
+     * them into a degraded fallback plan — so anything caught is an unexpected internal fault.
+     */
+    public void runJob(UUID generationId) {
+        AiGeneration generation = generationRepository.findWithSessionById(generationId).orElse(null);
+        if (generation == null) {
+            log.warn("planner job skipped: generation {} no longer exists", generationId);
+            return;
+        }
+        UUID token = generation.getSession().getToken();
+        markRunning(generation);
+        try {
+            stampGenerationId(token, generationId);
+            graph.runUntilInterrupt(token);
+            if (statusOf(generationId) == AiGenerationStatus.RUNNING) {
+                // The thread parked without reaching persistResult; nothing will ever store a plan.
+                log.error("planner generation {} finished without a result", generationId);
+                generation.setErrorCode("INTERNAL");
+                fail(generation);
+            }
+        } catch (RuntimeException e) {
+            log.error("planner generation {} failed: {}", generationId, e.getClass().getName(), e);
+            generation.setErrorCode("INTERNAL");
+            fail(generation);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
+        AiGeneration generation = generationRepository.findById(generationId).orElseThrow();
+        generation.setStatus(AiGenerationStatus.READY);
+        generation.setResult(JsonCodec.write(plan));
+        generation.setDegraded(degraded);
+        generation.setModel(usage.model());
+        generation.setPromptTokens(usage.promptTokens());
+        generation.setCompletionTokens(usage.completionTokens());
+        generation.setLatencyMs((int) Math.min(Integer.MAX_VALUE, usage.latencyMs()));
+        generation.setAttempt((short) attempt);
+        generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
+        generation.getSession().setStatus(AiSessionStatus.READY);
+        save(generation);
+    }
+
+    @Override
+    @Transactional
+    public void selected(UUID generationId, Tier key) {
+        AiGeneration generation = generationRepository.findById(generationId).orElseThrow();
+        generation.setSelectedPackageKey(key.name());
+        generation.setSelectedAt(LocalDateTime.now(ZoneOffset.UTC));
+        generationRepository.save(generation);
+    }
+
+    /** Sweeps rows whose job thread died mid-run, so a chat is never stuck on "building your packages". */
+    @Scheduled(fixedDelay = 60_000)
+    @Transactional
+    public void failStaleRunning() {
+        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(STALE_AFTER_MINUTES);
+        for (AiGeneration generation : generationRepository
+                .findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING, cutoff)) {
+            log.warn("planner generation {} is stale, marking it failed", generation.getId());
+            generation.setErrorCode("STALE");
+            fail(generation);
+        }
+    }
+
+    private void stampGenerationId(UUID token, UUID generationId) {
+        graph.update(token, Map.of(PlannerState.GENERATION_ID, generationId.toString()));
+    }
+
+    private AiGenerationStatus statusOf(UUID generationId) {
+        // Re-read: persistResult commits in its own transaction, so the row this thread holds is stale.
+        return generationRepository.findById(generationId).map(AiGeneration::getStatus).orElse(null);
+    }
+
+    private void markRunning(AiGeneration generation) {
+        generation.setStatus(AiGenerationStatus.RUNNING);
+        generation.setStartedAt(LocalDateTime.now(ZoneOffset.UTC));
+        generationRepository.save(generation);
+    }
+
+    /** The caller sets {@code errorCode} first; both rows are saved even without an ambient transaction. */
+    private void fail(AiGeneration generation) {
+        generation.setStatus(AiGenerationStatus.FAILED);
+        generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
+        generation.getSession().setStatus(AiSessionStatus.FAILED);
+        save(generation);
+    }
+
+    private void save(AiGeneration generation) {
+        generationRepository.save(generation);
+        sessionRepository.save(generation.getSession());
+    }
+}

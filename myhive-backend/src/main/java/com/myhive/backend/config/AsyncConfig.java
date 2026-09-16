@@ -39,4 +39,25 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * Planner generation jobs: a 10-40 s model call each. Bounded and rejecting — never
+     * {@link ThreadPoolExecutor.CallerRunsPolicy}, which would run a minute-long generation on the
+     * request thread. A rejection surfaces to the caller as 429 {@code AI_BUSY} instead.
+     *
+     * <p>Queued jobs are dropped on shutdown on purpose: their rows are swept back to FAILED and the
+     * group can simply ask again, whereas draining them would hold the redeploy open for minutes.
+     */
+    @Bean(name = "aiTaskExecutor")
+    public Executor aiTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(20);
+        executor.setThreadNamePrefix("ai-plan-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        executor.setWaitForTasksToCompleteOnShutdown(false);
+        executor.initialize();
+        return executor;
+    }
 }

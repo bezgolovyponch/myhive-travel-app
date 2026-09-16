@@ -17,16 +17,16 @@ import org.bsc.langgraph4j.checkpoint.BaseCheckpointSaver;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
 
 /** Builds a real planner graph around a scripted gateway; shared by the graph, service and saver tests. */
-final class TestPlannerGraphs {
+public final class TestPlannerGraphs {
 
     private TestPlannerGraphs() {}
 
-    static PlannerGraph inMemory(FakeLlmGateway llm, CatalogSnapshotter snapshotter,
+    public static PlannerGraph inMemory(FakeLlmGateway llm, CatalogSnapshotter snapshotter,
             PersistResultNode.GenerationResultSink resultSink, SelectNode.SelectionSink selectionSink) {
         return withSaver(llm, snapshotter, resultSink, selectionSink, new MemorySaver());
     }
 
-    static PlannerGraph withSaver(FakeLlmGateway llm, CatalogSnapshotter snapshotter,
+    public static PlannerGraph withSaver(FakeLlmGateway llm, CatalogSnapshotter snapshotter,
             PersistResultNode.GenerationResultSink resultSink, SelectNode.SelectionSink selectionSink,
             BaseCheckpointSaver saver) {
         PlannerGraph.Nodes nodes = new PlannerGraph.Nodes(

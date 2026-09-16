@@ -1,0 +1,221 @@
+package com.myhive.backend.ai.service;
+
+import com.myhive.backend.ai.exception.AiLimitException;
+import com.myhive.backend.ai.graph.PlannerGraph;
+import com.myhive.backend.ai.graph.PlannerState;
+import com.myhive.backend.ai.llm.LlmUsage;
+import com.myhive.backend.ai.model.Brief;
+import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.entity.AiGeneration;
+import com.myhive.backend.entity.AiGenerationStatus;
+import com.myhive.backend.entity.AiSession;
+import com.myhive.backend.entity.AiSessionStatus;
+import com.myhive.backend.repository.AiGenerationRepository;
+import com.myhive.backend.repository.AiSessionRepository;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class PlanGenerationServiceTest {
+
+    private final AiGenerationRepository generationRepository = mock(AiGenerationRepository.class);
+    private final AiSessionRepository sessionRepository = mock(AiSessionRepository.class);
+    private final PlannerGraph graph = mock(PlannerGraph.class);
+    private final Executor executor = mock(Executor.class);
+    private final PlanGenerationService service =
+            new PlanGenerationService(generationRepository, sessionRepository, graph, executor);
+
+    private static AiSession session() {
+        AiSession s = new AiSession();
+        s.setId(UUID.randomUUID());
+        s.setToken(UUID.randomUUID());
+        s.setStatus(AiSessionStatus.COLLECTING);
+        return s;
+    }
+
+    private AiGeneration savedGeneration(AiGenerationStatus status) {
+        AiGeneration g = new AiGeneration();
+        g.setId(UUID.randomUUID());
+        g.setSession(session());
+        g.setStatus(status);
+        when(generationRepository.findWithSessionById(g.getId())).thenReturn(Optional.of(g));
+        when(generationRepository.findById(g.getId())).thenReturn(Optional.of(g));
+        return g;
+    }
+
+    private void savesWithGeneratedId() {
+        when(generationRepository.save(any())).thenAnswer(inv -> {
+            AiGeneration saved = inv.getArgument(0);
+            if (saved.getId() == null) {
+                saved.setId(UUID.randomUUID());
+            }
+            return saved;
+        });
+    }
+
+    @Test
+    void enqueue_savesQueuedRow_stampsGenerationIdOnTheGraph_andSubmitsJob() {
+        savesWithGeneratedId();
+        AiSession session = session();
+        int expectedGenerationCount = 1;
+
+        AiGeneration generation = service.enqueue(session, Brief.empty());
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.QUEUED);
+        assertThat(generation.getBriefSnapshot()).isNotBlank();
+        assertThat(session.getGenerationCount()).isEqualTo(expectedGenerationCount);
+        assertThat(session.getStatus()).isEqualTo(AiSessionStatus.GENERATING);
+        verify(executor).execute(any());
+        ArgumentCaptor<Map<String, Object>> update = ArgumentCaptor.captor();
+        verify(graph).update(eq(session.getToken()), update.capture());
+        assertThat(update.getValue()).containsEntry(PlannerState.GENERATION_ID, generation.getId().toString());
+    }
+
+    @Test
+    void enqueue_stampsTheGraphBeforeTheJobCouldResumeIt() {
+        savesWithGeneratedId();
+        AiSession session = session();
+        // The graph persists nothing when GENERATION_ID is missing, so the stamp must be in place
+        // before the job is handed to the pool - a job thread can start before execute() returns.
+        doThrow(new UnsupportedOperationException("graph unreachable")).when(graph).update(any(), any());
+
+        assertThatThrownBy(() -> service.enqueue(session, Brief.empty()))
+                .isInstanceOf(UnsupportedOperationException.class);
+
+        verify(executor, never()).execute(any());
+    }
+
+    @Test
+    void enqueue_whenExecutorRejects_marksFailedAndThrowsBusy() {
+        savesWithGeneratedId();
+        AiSession session = session();
+        int expectedGenerationCount = 0;
+        doThrow(new RejectedExecutionException()).when(executor).execute(any());
+
+        assertThatThrownBy(() -> service.enqueue(session, Brief.empty()))
+                .isInstanceOf(AiLimitException.class).hasFieldOrPropertyWithValue("code", "AI_BUSY");
+
+        ArgumentCaptor<AiGeneration> saved = ArgumentCaptor.captor();
+        verify(generationRepository, atLeastOnce()).save(saved.capture());
+        assertThat(saved.getValue().getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(saved.getValue().getErrorCode()).isEqualTo("AI_BUSY");
+        assertThat(session.getStatus()).isEqualTo(AiSessionStatus.FAILED);
+        // A full pool is a "retry in a few seconds", not one of the group's five generations.
+        assertThat(session.getGenerationCount()).isEqualTo(expectedGenerationCount);
+    }
+
+    @Test
+    void runJob_marksRunning_resumesGraph_andFailsOnException() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        doThrow(new IllegalStateException("graph exploded")).when(graph).runUntilInterrupt(any());
+
+        service.runJob(generation.getId());
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(generation.getErrorCode()).isEqualTo("INTERNAL");
+        assertThat(generation.getSession().getStatus()).isEqualTo(AiSessionStatus.FAILED);
+    }
+
+    @Test
+    void runJob_stampsGenerationIdBeforeResuming() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+
+        service.runJob(generation.getId());
+
+        ArgumentCaptor<Map<String, Object>> update = ArgumentCaptor.captor();
+        verify(graph).update(eq(generation.getSession().getToken()), update.capture());
+        assertThat(update.getValue()).containsEntry(PlannerState.GENERATION_ID, generation.getId().toString());
+    }
+
+    @Test
+    void runJob_whenGraphParkedWithoutPersisting_failsTheRow() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+
+        service.runJob(generation.getId());
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(generation.getErrorCode()).isEqualTo("INTERNAL");
+    }
+
+    @Test
+    void runJob_whenPersistResultAlreadyStoredThePlan_leavesTheRowAlone() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        // persistResult runs inside runUntilInterrupt and commits READY in its own transaction; the
+        // detached row this thread holds still says RUNNING, so the check has to re-read it.
+        AiGeneration reread = new AiGeneration();
+        reread.setId(generation.getId());
+        reread.setSession(generation.getSession());
+        reread.setStatus(AiGenerationStatus.READY);
+        when(graph.runUntilInterrupt(any())).thenAnswer(inv -> {
+            when(generationRepository.findById(generation.getId())).thenReturn(Optional.of(reread));
+            return null;
+        });
+
+        service.runJob(generation.getId());
+
+        assertThat(generation.getErrorCode()).isNull();
+        assertThat(generation.getSession().getStatus()).isNotEqualTo(AiSessionStatus.FAILED);
+    }
+
+    @Test
+    void ready_storesResultAndUsage_andMarksSessionReady() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.RUNNING);
+        String expectedModel = "qwen";
+        short expectedAttempt = 1;
+        ComposedPlan expectedPlan = new ComposedPlan(List.of(), false);
+
+        service.ready(generation.getId(), expectedPlan, false, new LlmUsage(expectedModel, 100, 200, 1500L),
+                expectedAttempt);
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.READY);
+        assertThat(generation.getResult()).contains("\"packages\"");
+        assertThat(generation.getModel()).isEqualTo(expectedModel);
+        assertThat(generation.getAttempt()).isEqualTo(expectedAttempt);
+        assertThat(generation.getSession().getStatus()).isEqualTo(AiSessionStatus.READY);
+    }
+
+    @Test
+    void failStaleRunning_marksRowsStale() {
+        AiGeneration stale = new AiGeneration();
+        stale.setSession(session());
+        stale.setStatus(AiGenerationStatus.RUNNING);
+        stale.setStartedAt(LocalDateTime.now().minusMinutes(10));
+        when(generationRepository.findByStatusAndStartedAtBefore(any(), any())).thenReturn(List.of(stale));
+
+        service.failStaleRunning();
+
+        assertThat(stale.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(stale.getErrorCode()).isEqualTo("STALE");
+        assertThat(stale.getSession().getStatus()).isEqualTo(AiSessionStatus.FAILED);
+    }
+
+    @Test
+    void selected_recordsPackageKey() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.READY);
+        Tier expectedKey = Tier.PREMIUM;
+
+        service.selected(generation.getId(), expectedKey);
+
+        assertThat(generation.getSelectedPackageKey()).isEqualTo(expectedKey.name());
+        assertThat(generation.getSelectedAt()).isNotNull();
+    }
+}

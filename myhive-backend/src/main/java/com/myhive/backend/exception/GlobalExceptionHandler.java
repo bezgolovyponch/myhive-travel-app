@@ -1,5 +1,11 @@
 package com.myhive.backend.exception;
 
+import com.myhive.backend.ai.exception.AiConflictException;
+import com.myhive.backend.ai.exception.AiDisabledException;
+import com.myhive.backend.ai.exception.AiLimitException;
+import com.myhive.backend.ai.exception.AiNotFoundException;
+import com.myhive.backend.ai.exception.LlmCallFailedException;
+import com.myhive.backend.ai.exception.TurnstileFailedException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -223,6 +229,52 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
         return ResponseEntity.status(ex.getStatusCode()).body(error);
+    }
+
+    @ExceptionHandler(AiDisabledException.class)
+    public ResponseEntity<ErrorResponse> handleAiDisabled(AiDisabledException ex, HttpServletRequest request) {
+        return error(HttpStatus.SERVICE_UNAVAILABLE, "AI_DISABLED", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AiLimitException.class)
+    public ResponseEntity<ErrorResponse> handleAiLimit(AiLimitException ex, HttpServletRequest request) {
+        return error(HttpStatus.TOO_MANY_REQUESTS, ex.getCode(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AiConflictException.class)
+    public ResponseEntity<ErrorResponse> handleAiConflict(AiConflictException ex, HttpServletRequest request) {
+        return error(HttpStatus.CONFLICT, ex.getCode(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AiNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAiNotFound(AiNotFoundException ex, HttpServletRequest request) {
+        return error(HttpStatus.NOT_FOUND, ex.getCode(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(TurnstileFailedException.class)
+    public ResponseEntity<ErrorResponse> handleTurnstileFailed(TurnstileFailedException ex, HttpServletRequest request) {
+        return error(HttpStatus.FORBIDDEN, "TURNSTILE_FAILED", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(LlmCallFailedException.class)
+    public ResponseEntity<ErrorResponse> handleLlmCallFailed(LlmCallFailedException ex, HttpServletRequest request) {
+        // The cause's type and message describe the transport failure, never the conversation.
+        log.warn("LLM call failed ({}): {}", ex.getCode(),
+                ex.getCause() == null ? ex.getMessage() : ex.getCause().toString());
+        return error(HttpStatus.BAD_GATEWAY, ex.getCode(), ex.getMessage(), request);
+    }
+
+    /** Only the AI handlers above use this; the older handlers are left as they are to keep the diff small. */
+    private static ResponseEntity<ErrorResponse> error(HttpStatus status, String code, String message,
+                                                       HttpServletRequest request) {
+        ErrorResponse body = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(code)
+                .message(message)
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(status).body(body);
     }
 
     @ExceptionHandler(Exception.class)
