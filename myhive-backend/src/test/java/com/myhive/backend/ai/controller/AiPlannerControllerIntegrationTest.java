@@ -47,6 +47,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -112,11 +113,15 @@ class AiPlannerControllerIntegrationTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    /** One caller per test method: the daily cap is a singleton, so a shared IP would leak between them. */
+    private static final AtomicInteger CLIENT_IP_SEQUENCE = new AtomicInteger();
+
     private FakeLlmGateway llm;
     private TransactionTemplate transactions;
     private Category category;
     private Destination destination;
     private String expectedCategoryName;
+    private String testClientIp;
     private final List<Activity> activities = new ArrayList<>();
 
     @BeforeEach
@@ -124,6 +129,7 @@ class AiPlannerControllerIntegrationTest {
         llm = (FakeLlmGateway) llmGateway;
         llm.reset();
         transactions = new TransactionTemplate(transactionManager);
+        testClientIp = "203.0.113." + CLIENT_IP_SEQUENCE.incrementAndGet();
         // Names and slugs are unique per test: the rows are committed, so a leftover from a previous
         // method would collide on the unique constraints of categories/destinations/activities.
         String suffix = UUID.randomUUID().toString().substring(0, 8);
@@ -371,6 +377,40 @@ class AiPlannerControllerIntegrationTest {
     }
 
     @Test
+    void select_withAnUnknownPackageKey_is400() throws Exception {
+        String token = createSession();
+        AiGeneration generation = queuedGeneration(token);
+
+        // Rejected by the message converter as a malformed body, so no unknown tier ever reaches the
+        // graph, whose Tier.valueOf would blow up as a 500.
+        mockMvc.perform(post("/ai/generations/" + generation.getId() + "/select")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(SELECT_BODY.formatted("PLATINUM")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Bad Request")));
+    }
+
+    @Test
+    void failedGeneration_reportsWhetherItsErrorIsRetryable() throws Exception {
+        String expectedRetryableCode = "LLM_TIMEOUT";
+        String expectedFinalCode = "INTERNAL";
+        String token = createSession();
+        AiGeneration retryable = failedGeneration(token, expectedRetryableCode);
+        AiGeneration unrecoverable = failedGeneration(token, expectedFinalCode);
+
+        mockMvc.perform(get("/ai/generations/" + retryable.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is(AiGenerationStatus.FAILED.name())))
+                .andExpect(jsonPath("$.error.code", is(expectedRetryableCode)))
+                .andExpect(jsonPath("$.error.retryable", is(true)))
+                .andExpect(jsonPath("$.packages").doesNotExist());
+        mockMvc.perform(get("/ai/generations/" + unrecoverable.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.error.code", is(expectedFinalCode)))
+                .andExpect(jsonPath("$.error.retryable", is(false)));
+    }
+
+    @Test
     void selectAndRegenerate_whileAnotherGenerationIsQueued_are409GenerationInProgress() throws Exception {
         String token = createSession();
         queueReadyTurn("Building it!");
@@ -420,18 +460,20 @@ class AiPlannerControllerIntegrationTest {
 
     @Test
     void createSession_overTheDailyCapForOneClientIp_is429SessionDailyLimit() throws Exception {
-        // The proxy chain's FIRST entry is the client. The trailing hop alternates on purpose: reading
-        // the last entry instead would split these calls over two buckets and never reach the cap.
+        // Cloudflare's header is the caller, so the forged X-Forwarded-For chain below changes nothing:
+        // all 21 calls land in one bucket. It also keeps them out of the cap shared by the other tests.
         String expectedClientIp = "9.9.9.9";
         for (int i = 0; i < aiProperties.getDailySessionsPerIp(); i++) {
             mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
-                            .header("X-Forwarded-For", expectedClientIp + ", 10.0.0." + (i % 2 + 1))
+                            .header("CF-Connecting-IP", expectedClientIp)
+                            .header("X-Forwarded-For", "10.0.0." + (i % 2 + 1))
                             .content(CREATE_BODY.formatted(destination.getSlug())))
                     .andExpect(status().isCreated());
         }
 
         mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
-                        .header("X-Forwarded-For", expectedClientIp + ", 10.0.0.3")
+                        .header("CF-Connecting-IP", expectedClientIp)
+                        .header("X-Forwarded-For", "10.0.0.3")
                         .content(CREATE_BODY.formatted(destination.getSlug())))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.error", is("SESSION_DAILY_LIMIT")));
@@ -462,6 +504,7 @@ class AiPlannerControllerIntegrationTest {
 
     private String createSession() throws Exception {
         MvcResult result = mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
+                        .header("CF-Connecting-IP", testClientIp)
                         .content(CREATE_BODY.formatted(destination.getSlug())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status", is("COLLECTING")))
@@ -524,9 +567,18 @@ class AiPlannerControllerIntegrationTest {
 
     /** A generation row nothing will ever run; enough to make the "a job owns this chat" guards fire. */
     private AiGeneration queuedGeneration(String token) {
+        return storedGeneration(token, AiGenerationStatus.QUEUED, null);
+    }
+
+    private AiGeneration failedGeneration(String token, String errorCode) {
+        return storedGeneration(token, AiGenerationStatus.FAILED, errorCode);
+    }
+
+    private AiGeneration storedGeneration(String token, AiGenerationStatus status, String errorCode) {
         AiGeneration generation = new AiGeneration();
         generation.setSession(sessionRepository.findByToken(UUID.fromString(token)).orElseThrow());
-        generation.setStatus(AiGenerationStatus.QUEUED);
+        generation.setStatus(status);
+        generation.setErrorCode(errorCode);
         generation.setBriefSnapshot(JsonCodec.write(Brief.empty()));
         generation.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         return generationRepository.save(generation);

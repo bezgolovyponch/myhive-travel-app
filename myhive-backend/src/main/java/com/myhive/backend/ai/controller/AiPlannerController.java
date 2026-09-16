@@ -12,6 +12,7 @@ import com.myhive.backend.ai.exception.AiNotFoundException;
 import com.myhive.backend.ai.service.AiSessionService;
 import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.repository.AiGenerationRepository;
+import com.myhive.backend.util.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -91,15 +92,15 @@ public class AiPlannerController {
                 .orElseThrow(() -> new AiNotFoundException("GENERATION_NOT_FOUND", "Unknown generation"));
     }
 
-    /** Behind Cloudflare/Render the first X-Forwarded-For entry is the client; fall back to the socket address. */
+    /**
+     * The same caller {@code RateLimitFilter} sees, resolved by the same rule: the daily session cap
+     * has to key on an address a client cannot pick for itself, or twenty chats per network becomes
+     * twenty chats per forged header.
+     */
     static String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].strip();
-        }
-        String remote = request.getRemoteAddr();
+        String resolved = ClientIp.resolve(request);
         // A blank address still has to hash to a stable bucket: the daily cap must count these calls
         // as coming from somewhere rather than letting an address-less caller start chats forever.
-        return remote == null || remote.isBlank() ? UNKNOWN_CLIENT_IP : remote;
+        return resolved == null || resolved.isBlank() ? UNKNOWN_CLIENT_IP : resolved;
     }
 }
