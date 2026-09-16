@@ -2,6 +2,7 @@ package com.myhive.backend.ai;
 
 import com.myhive.backend.ai.graph.nodes.PersistResultNode;
 import com.myhive.backend.ai.graph.nodes.SelectNode;
+import com.myhive.backend.ai.service.AiCleanupScheduler;
 import com.myhive.backend.ai.service.PlanGenerationService;
 import com.myhive.backend.config.TestSecurityConfig;
 import org.junit.jupiter.api.Test;
@@ -39,10 +40,15 @@ class AiWiringTest {
         assertThat(context.getBean(selectionSinks[0])).isInstanceOf(PlanGenerationService.class);
     }
 
+    /**
+     * Both beans resolve themselves through an {@code ObjectProvider} to call their own
+     * {@code @Transactional} method - {@code fail}/{@code failIfStillInFlight} on one, {@code
+     * deleteSession} on the other. Unproxied, the annotation is simply not there and each pair of
+     * writes runs unrelated.
+     */
     @Test
-    void planGenerationServiceIsATransactionalProxy() {
-        Object bean = context.getBean(PlanGenerationService.class);
-
-        assertThat(AopUtils.isAopProxy(bean)).isTrue();
+    void theSelfInvokingBeansAreTransactionalProxies() {
+        assertThat(AopUtils.isAopProxy(context.getBean(PlanGenerationService.class))).isTrue();
+        assertThat(AopUtils.isAopProxy(context.getBean(AiCleanupScheduler.class))).isTrue();
     }
 }

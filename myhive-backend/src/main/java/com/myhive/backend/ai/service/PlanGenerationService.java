@@ -24,6 +24,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.management.ManagementFactory;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -43,8 +45,15 @@ import java.util.concurrent.RejectedExecutionException;
 @Slf4j
 public class PlanGenerationService implements PersistResultNode.GenerationResultSink, SelectNode.SelectionSink {
 
-    /** A generation that has not reported back by now lost its thread; nothing takes this long. */
+    /** A RUNNING generation that has not reported back by now lost its thread; nothing runs this long. */
     static final int STALE_AFTER_MINUTES = 3;
+
+    /**
+     * When this JVM started. The QUEUED sweep ages rows against it rather than against a duration,
+     * so a long but honest queue wait is never mistaken for an orphan.
+     */
+    static final LocalDateTime PROCESS_STARTED_AT = LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean().getStartTime()), ZoneOffset.UTC);
 
     private final AiGenerationRepository generationRepository;
     private final AiSessionRepository sessionRepository;
@@ -161,22 +170,27 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
 
     /**
      * Sweeps rows no job thread owns any more, so a chat is never stuck on "building your packages".
-     * Two ways to end up there: the thread died mid-run (RUNNING, aged on {@code startedAt}), or the
-     * process went down between the insert and {@code execute}, leaving a QUEUED row that will never
-     * be started and therefore never grows a {@code startedAt} for the first sweep to find.
+     * Two ways to end up there, and they age on different clocks.
+     *
+     * <p>RUNNING means a thread took the row and died mid-run, so {@code startedAt} older than
+     * {@link #STALE_AFTER_MINUTES} is the giveaway. QUEUED cannot use a duration at all: two workers
+     * over a twenty-deep queue at up to three minutes a job means an honest wait of well over three
+     * minutes is routine, and sweeping on age would fail live generations, burn the group's slot and
+     * flip the chat to FAILED while the job went on to produce a plan. A QUEUED row is an orphan only
+     * if it belongs to a <em>previous</em> process: nothing this JVM queued can predate its own start,
+     * and anything still QUEUED from before it never had a thread to lose.
      */
     @Scheduled(fixedDelay = 60_000)
-    @Transactional
     public void failStaleRunning() {
-        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(STALE_AFTER_MINUTES);
-        failStale(generationRepository.findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING, cutoff));
-        failStale(generationRepository.findByStatusAndCreatedAtBefore(AiGenerationStatus.QUEUED, cutoff));
+        LocalDateTime runningCutoff = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(STALE_AFTER_MINUTES);
+        failStale(generationRepository.findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING, runningCutoff));
+        failStale(generationRepository.findByStatusAndCreatedAtBefore(AiGenerationStatus.QUEUED, PROCESS_STARTED_AT));
     }
 
     private void failStale(List<AiGeneration> generations) {
         for (AiGeneration generation : generations) {
             log.warn("planner generation {} is stale, marking it failed", generation.getId());
-            self.getObject().fail(generation.getId(), "STALE");
+            self.getObject().failIfStillInFlight(generation.getId(), "STALE");
         }
     }
 
@@ -206,15 +220,38 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
      */
     @Transactional
     public void fail(UUID generationId, String errorCode) {
+        generationRepository.findById(generationId).ifPresent(generation -> closeOut(generation, errorCode));
+    }
+
+    /**
+     * The sweeper's write, and the reason {@link #failStaleRunning()} is deliberately <em>not</em>
+     * {@code @Transactional}: this method needs a persistence context of its own. Minutes pass
+     * between the sweep's query and this call, and a generation that reached READY in between has
+     * already put three packages on the group's screen — closing it out as FAILED would take them
+     * away again. Sharing the sweeper's transaction would defeat the check outright, since the
+     * re-read would come back identity-mapped from the very list that selected the row.
+     */
+    @Transactional
+    public void failIfStillInFlight(UUID generationId, String errorCode) {
         generationRepository.findById(generationId).ifPresent(generation -> {
-            generation.setStatus(AiGenerationStatus.FAILED);
-            generation.setErrorCode(errorCode);
-            generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
-            generationRepository.save(generation);
-            sessionRepository.findById(generation.getSession().getId()).ifPresent(session -> {
-                session.setStatus(AiSessionStatus.FAILED);
-                sessionRepository.save(session);
-            });
+            AiGenerationStatus status = generation.getStatus();
+            if (status != AiGenerationStatus.QUEUED && status != AiGenerationStatus.RUNNING) {
+                log.debug("planner generation {} finished as {} while the sweep ran, leaving it alone",
+                        generationId, status);
+                return;
+            }
+            closeOut(generation, errorCode);
+        });
+    }
+
+    private void closeOut(AiGeneration generation, String errorCode) {
+        generation.setStatus(AiGenerationStatus.FAILED);
+        generation.setErrorCode(errorCode);
+        generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
+        generationRepository.save(generation);
+        sessionRepository.findById(generation.getSession().getId()).ifPresent(session -> {
+            session.setStatus(AiSessionStatus.FAILED);
+            sessionRepository.save(session);
         });
     }
 

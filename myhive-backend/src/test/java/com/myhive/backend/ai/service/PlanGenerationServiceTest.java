@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.lang.management.ManagementFactory;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -258,7 +260,7 @@ class PlanGenerationServiceTest {
         // A restart between the insert and the pool thread leaves a QUEUED row nobody owns; it never
         // gets a startedAt, so the RUNNING sweep can never see it and the chat waits for ever.
         AiGeneration orphan = savedGeneration(AiGenerationStatus.QUEUED);
-        orphan.setCreatedAt(LocalDateTime.now().minusMinutes(10));
+        orphan.setCreatedAt(PlanGenerationService.PROCESS_STARTED_AT.minusMinutes(10));
         when(generationRepository.findByStatusAndCreatedAtBefore(eq(AiGenerationStatus.QUEUED), any()))
                 .thenReturn(List.of(orphan));
 
@@ -270,21 +272,54 @@ class PlanGenerationServiceTest {
     }
 
     @Test
-    void failStaleRunning_sweepsBothStatusesWithTheSameCutoff() {
+    void failStaleRunning_agesRunningRowsOnTheStaleCutoff() {
         int expectedStaleAfterMinutes = PlanGenerationService.STALE_AFTER_MINUTES;
 
         service.failStaleRunning();
 
         ArgumentCaptor<LocalDateTime> runningCutoff = ArgumentCaptor.captor();
-        ArgumentCaptor<LocalDateTime> queuedCutoff = ArgumentCaptor.captor();
         verify(generationRepository)
                 .findByStatusAndStartedAtBefore(eq(AiGenerationStatus.RUNNING), runningCutoff.capture());
+        assertThat(runningCutoff.getValue())
+                .isCloseTo(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(expectedStaleAfterMinutes),
+                        within(1, ChronoUnit.MINUTES));
+    }
+
+    @Test
+    void failStaleRunning_agesQueuedRowsOnThisProcessStart_neverOnAWaitingTime() {
+        // Two workers over a twenty-deep queue at up to three minutes a job: an honest QUEUED wait
+        // routinely outlives STALE_AFTER_MINUTES. Sweeping on age would fail a live generation, burn
+        // the group's slot and flip the chat to FAILED while the job went on to produce a plan. Only
+        // a row from a previous process can be an orphan, so the cutoff is this JVM's start instant.
+        LocalDateTime expectedCutoff = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean().getStartTime()), ZoneOffset.UTC);
+
+        service.failStaleRunning();
+
         verify(generationRepository)
-                .findByStatusAndCreatedAtBefore(eq(AiGenerationStatus.QUEUED), queuedCutoff.capture());
-        LocalDateTime expectedCutoff =
-                LocalDateTime.now(ZoneOffset.UTC).minusMinutes(expectedStaleAfterMinutes);
-        assertThat(runningCutoff.getValue()).isCloseTo(expectedCutoff, within(1, ChronoUnit.MINUTES));
-        assertThat(queuedCutoff.getValue()).isEqualTo(runningCutoff.getValue());
+                .findByStatusAndCreatedAtBefore(eq(AiGenerationStatus.QUEUED), eq(expectedCutoff));
+    }
+
+    @Test
+    void failStaleRunning_leavesARowThatTurnedReadyWhileTheSweepRan() {
+        AiGeneration stale = savedGeneration(AiGenerationStatus.RUNNING);
+        stale.setStartedAt(LocalDateTime.now().minusMinutes(10));
+        when(generationRepository.findByStatusAndStartedAtBefore(eq(AiGenerationStatus.RUNNING), any()))
+                .thenReturn(List.of(stale));
+        // persistResult committed READY in its own transaction after the sweep's query selected the
+        // row; closing it out now would take three finished packages off the group's screen.
+        AiGeneration reread = new AiGeneration();
+        reread.setId(stale.getId());
+        reread.setSession(stale.getSession());
+        reread.setStatus(AiGenerationStatus.READY);
+        when(generationRepository.findById(stale.getId())).thenReturn(Optional.of(reread));
+
+        service.failStaleRunning();
+
+        assertThat(reread.getStatus()).isEqualTo(AiGenerationStatus.READY);
+        assertThat(reread.getErrorCode()).isNull();
+        assertThat(reread.getSession().getStatus()).isNotEqualTo(AiSessionStatus.FAILED);
+        verify(sessionRepository, never()).save(any());
     }
 
     @Test

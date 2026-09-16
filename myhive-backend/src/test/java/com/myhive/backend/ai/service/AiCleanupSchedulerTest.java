@@ -5,9 +5,11 @@ import com.myhive.backend.ai.llm.AiProperties;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.repository.AiGenerationRepository;
 import com.myhive.backend.repository.AiSessionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,8 +35,16 @@ class AiCleanupSchedulerTest {
     private final AiGenerationRepository generationRepository = mock(AiGenerationRepository.class);
     private final PlannerGraph graph = mock(PlannerGraph.class);
     private final SessionLocks sessionLocks = mock(SessionLocks.class);
-    private final AiCleanupScheduler scheduler =
-            new AiCleanupScheduler(properties, sessionRepository, generationRepository, graph, sessionLocks);
+    /** Stands in for the transactional proxy Spring injects; wired to the scheduler itself in setUp. */
+    @SuppressWarnings("unchecked")
+    private final ObjectProvider<AiCleanupScheduler> self = mock(ObjectProvider.class);
+    private final AiCleanupScheduler scheduler = new AiCleanupScheduler(properties, sessionRepository,
+            generationRepository, graph, sessionLocks, self);
+
+    @BeforeEach
+    void wireSelfProvider() {
+        when(self.getObject()).thenReturn(scheduler);
+    }
 
     private static AiSession expiredSession() {
         AiSession session = new AiSession();
@@ -43,7 +54,7 @@ class AiCleanupSchedulerTest {
     }
 
     @Test
-    void cleanupExpiredSessions_deletesRowsAndForgetsTheGraphThreadAndTheLock() {
+    void cleanupExpiredSessions_deletesRowsFirst_thenForgetsTheGraphThreadAndTheLock() {
         AiSession expectedSession = expiredSession();
         when(sessionRepository.findByLastActivityAtBefore(any())).thenReturn(List.of(expectedSession));
 
@@ -52,7 +63,8 @@ class AiCleanupSchedulerTest {
         InOrder order = inOrder(generationRepository, sessionRepository, graph, sessionLocks);
         // Generations first: the FK points at the session row.
         order.verify(generationRepository).deleteBySessionId(expectedSession.getId());
-        order.verify(sessionRepository).delete(expectedSession);
+        order.verify(sessionRepository).deleteById(expectedSession.getId());
+        // Releasing a thread cannot be undone, so it happens only after the rows are committed away.
         order.verify(graph).release(expectedSession.getToken());
         // Without this the lock map grows for the life of the process.
         order.verify(sessionLocks).release(expectedSession.getToken());
@@ -81,10 +93,29 @@ class AiCleanupSchedulerTest {
 
         assertThatCode(() -> scheduler.cleanupExpiredSessions()).doesNotThrowAnyException();
 
-        verify(sessionRepository).delete(expectedSurvivor);
+        verify(sessionRepository).deleteById(expectedSurvivor.getId());
         verify(graph).release(expectedSurvivor.getToken());
         // A dead graph thread must not keep the lock entry alive either.
         verify(sessionLocks).release(failing.getToken());
+        verify(sessionLocks).release(expectedSurvivor.getToken());
+    }
+
+    @Test
+    void cleanupExpiredSessions_whenDeletionFails_keepsTheThreadAndLockAndCarriesOn() {
+        AiSession failing = expiredSession();
+        AiSession expectedSurvivor = expiredSession();
+        when(sessionRepository.findByLastActivityAtBefore(any())).thenReturn(List.of(failing, expectedSurvivor));
+        doThrow(new IllegalStateException("row is locked")).when(generationRepository)
+                .deleteBySessionId(failing.getId());
+
+        assertThatCode(() -> scheduler.cleanupExpiredSessions()).doesNotThrowAnyException();
+
+        // Its rows survived the rollback, so the chat is still resumable and must keep both.
+        verify(graph, never()).release(failing.getToken());
+        verify(sessionLocks, never()).release(failing.getToken());
+        // One bad session does not cost the rest of the batch.
+        verify(sessionRepository).deleteById(expectedSurvivor.getId());
+        verify(graph).release(expectedSurvivor.getToken());
         verify(sessionLocks).release(expectedSurvivor.getToken());
     }
 }

@@ -180,8 +180,11 @@ class PostgresCheckpointPersistenceTest {
     }
 
     private static List<String> columnsOf(String schema) throws SQLException {
+        // character_maximum_length is part of the type: without it a VARCHAR(255) narrowed to
+        // VARCHAR(64) upstream would compare equal and pass straight through into prod.
         return query(schema, """
                 SELECT table_name || '.' || column_name || ' ' || data_type
+                       || COALESCE('(' || character_maximum_length || ')', '')
                        || ' nullable=' || is_nullable
                        || ' default=' || COALESCE(column_default, '-')
                 FROM information_schema.columns
