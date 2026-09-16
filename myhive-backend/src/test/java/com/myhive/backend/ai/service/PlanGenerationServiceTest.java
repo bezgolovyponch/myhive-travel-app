@@ -148,6 +148,36 @@ class PlanGenerationServiceTest {
         assertThat(session.getGenerationCount()).isEqualTo(expectedGenerationCount);
     }
 
+    /**
+     * A rejection is "retry in a few seconds", not "your packages are gone": with a READY generation
+     * on file the chat stays READY and the UI restores from {@code latestReadyGeneration}.
+     */
+    @Test
+    void enqueue_whenExecutorRejects_keepsASessionThatAlreadyHasPackagesReady() {
+        savesWithGeneratedId();
+        AiSession session = session();
+        doThrow(new RejectedExecutionException()).when(executor).execute(any());
+        when(generationRepository.existsBySessionIdAndStatusIn(eq(session.getId()), any())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.enqueue(session, Brief.empty()))
+                .isInstanceOf(AiLimitException.class).hasFieldOrPropertyWithValue("code", "AI_BUSY");
+
+        assertThat(session.getStatus()).isEqualTo(AiSessionStatus.READY);
+    }
+
+    @Test
+    void failingAGeneration_whileAnEarlierOneIsReady_keepsTheSessionReady() {
+        AiSession session = session();
+        AiGeneration generation = savedGeneration(AiGenerationStatus.RUNNING, session);
+        when(generationRepository.existsBySessionIdAndStatusIn(eq(session.getId()), any())).thenReturn(true);
+
+        service.fail(generation.getId(), "INTERNAL");
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(generation.getErrorCode()).isEqualTo("INTERNAL");
+        assertThat(session.getStatus()).isEqualTo(AiSessionStatus.READY);
+    }
+
     @Test
     void runJob_marksRunning_resumesGraph_andFailsOnException() {
         AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);

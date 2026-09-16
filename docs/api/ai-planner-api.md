@@ -49,7 +49,7 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
 | 429 | `SESSION_TURN_LIMIT`, `GENERATION_LIMIT` | 30 messages / 5 generations per session. Offer "start a new chat". |
 | 429 | `SESSION_DAILY_LIMIT` | 20 new sessions per IP per day. |
 | 429 | `AI_BUSY` | Queue full. Retry generation in ~10 s. |
-| 502 | `LLM_UNAVAILABLE`, `LLM_TIMEOUT` | The chat reply failed. The user's message **was saved**; show "try again" which re-sends the same text (the backend de-dupes an identical consecutive user message). |
+| 502 | `LLM_UNAVAILABLE`, `LLM_TIMEOUT` | The chat reply failed. The user's message **was saved**; show "try again" which re-sends the same text (the backend de-dupes an identical consecutive user message). Never returned by `POST /ai/sessions` — a failed first turn comes back as `201` with `firstTurnError`. |
 
 ## Flow
 
@@ -59,6 +59,9 @@ POST /ai/sessions ─→ chat with POST /ai/sessions/{token}/messages until
   ─→ render 3 packages ─→ POST /ai/generations/{id}/select ─→ dispatch tripItems into the Trip Builder
 Returning later: GET /ai/sessions/{token} rebuilds the whole screen.
 ```
+
+Restore from `latestReadyGeneration` when `latestGeneration` is `FAILED` — a failed
+or `AI_BUSY` regeneration is the newest row but not the one with the packages on it.
 
 ## Endpoints
 
@@ -72,6 +75,15 @@ Returning later: GET /ai/sessions/{token} rebuilds the whole screen.
 
 `201` → `SessionState` (below). When `initialMessage` is given the response already
 contains the agent's first reply; otherwise `messages` holds only the greeting.
+
+If that inline first turn cannot reach the model, the call is **still `201`** — not
+`502`. The session, its greeting and the user's message are all stored, and
+`firstTurnError` carries `{"code": "LLM_UNAVAILABLE" | "LLM_TIMEOUT"}` while
+`messages` ends on the `USER` entry with no assistant reply. Show "try again" and
+re-send the same text to `POST /ai/sessions/{token}/messages`; the backend de-dupes
+an identical consecutive user message, so nothing is stored twice. Answering `502`
+here would throw away the very token the retry needs, along with the daily-cap slot
+the call already spent.
 
 ### `GET /ai/sessions/{token}` — full state (restore the screen)
 
@@ -169,12 +181,25 @@ replace the cart (the same way `SET_TRIP_ITEMS_FROM_VOTE` does) and set traveler
   "readyToGenerate": false,
   "messages": [ { "role": "ASSISTANT", "content": "…", "at": "…" }, { "role": "USER", "content": "…", "at": "…" } ],
   "latestGeneration": null,                   // or the GET /ai/generations/{id} body
+  "latestReadyGeneration": null,              // newest READY generation, same body; null if none
+  "firstTurnError": null,                     // or { "code": "LLM_UNAVAILABLE" | "LLM_TIMEOUT" }
   "limits": { "messagesLeft": 27, "generationsLeft": 5 }
 }
 ```
 
 `messages[0]` is always the assistant greeting (EN/DE), seeded when the session is
 created — it costs no model call and is not something the agent "said".
+
+`latestGeneration` is the **newest** generation whatever its status;
+`latestReadyGeneration` is the newest one that actually produced packages. They are
+the same row in the normal case and differ after a failed or `AI_BUSY` regeneration
+— render the packages from `latestReadyGeneration` and the error from
+`latestGeneration`. A failed regeneration also leaves `status` at `READY` rather
+than `FAILED` while packages survive, so `status: "FAILED"` really does mean "this
+chat has nothing to show".
+
+`firstTurnError` is set only by `POST /ai/sessions` (see above) and is always null
+on `GET /ai/sessions/{token}`.
 
 ### `Brief`
 

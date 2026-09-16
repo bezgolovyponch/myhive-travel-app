@@ -43,6 +43,8 @@ public class AiDtoMapper {
                 // The session's own token, never the generation's lazy session proxy: a view is built
                 // outside any transaction and initialising that proxy there would fail.
                 view.latest().map(generation -> generation(generation, session.getToken())).orElse(null),
+                view.latestReady().map(generation -> generation(generation, session.getToken())).orElse(null),
+                firstTurnError(view),
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount()));
     }
@@ -80,6 +82,12 @@ public class AiDtoMapper {
                 .filter(Objects::nonNull)
                 .map(activity -> tripItem(activity, lc))
                 .toList();
+    }
+
+    private static SessionStateDTO.FirstTurnErrorDTO firstTurnError(AiSessionService.SessionView view) {
+        return view.firstTurnErrorCode() == null
+                ? null
+                : new SessionStateDTO.FirstTurnErrorDTO(view.firstTurnErrorCode());
     }
 
     private GenerationDTO generation(AiGeneration generation, UUID sessionToken) {

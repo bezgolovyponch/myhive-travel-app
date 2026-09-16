@@ -48,6 +48,9 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
     /** A RUNNING generation that has not reported back by now lost its thread; nothing runs this long. */
     static final int STALE_AFTER_MINUTES = 3;
 
+    /** Asked after every failure: does this chat still have packages to fall back to? */
+    private static final List<AiGenerationStatus> READY_ONLY = List.of(AiGenerationStatus.READY);
+
     /**
      * When this JVM started. The QUEUED sweep ages rows against it rather than against a duration,
      * so a long but honest queue wait is never mistaken for an orphan.
@@ -107,8 +110,8 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
             generation.setStatus(AiGenerationStatus.FAILED);
             generation.setErrorCode("AI_BUSY");
             generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
-            session.setStatus(AiSessionStatus.FAILED);
             generationRepository.save(generation);
+            session.setStatus(statusAfterAFailedGeneration(session.getId()));
             sessionRepository.save(session);
             throw new AiLimitException("AI_BUSY", "The planner is busy, please retry in a few seconds");
         }
@@ -255,9 +258,21 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
         generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
         generationRepository.save(generation);
         sessionRepository.findById(generation.getSession().getId()).ifPresent(session -> {
-            session.setStatus(AiSessionStatus.FAILED);
+            session.setStatus(statusAfterAFailedGeneration(session.getId()));
             sessionRepository.save(session);
         });
+    }
+
+    /**
+     * A failed generation must not take away packages an earlier one already delivered. The chat stays
+     * READY whenever any READY generation survives - the failing row has been saved as FAILED by the
+     * time this is asked, so it can never count itself - and the UI restores from
+     * {@code latestReadyGeneration} while {@code latestGeneration} shows what went wrong.
+     */
+    private AiSessionStatus statusAfterAFailedGeneration(UUID sessionId) {
+        return generationRepository.existsBySessionIdAndStatusIn(sessionId, READY_ONLY)
+                ? AiSessionStatus.READY
+                : AiSessionStatus.FAILED;
     }
 
     private void save(AiGeneration generation) {

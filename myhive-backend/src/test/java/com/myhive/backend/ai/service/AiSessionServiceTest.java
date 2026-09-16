@@ -163,6 +163,24 @@ class AiSessionServiceTest {
         assertThat(view.session().getLocale()).isEqualTo(expectedLocale);
     }
 
+    /**
+     * The row, the checkpoint thread and one of the caller's twenty daily chats are spent by the time
+     * the model call fails, and the documented retry needs the token a bodiless 502 never hands out.
+     */
+    @Test
+    void create_withInitialMessage_whenTheModelIsUnreachable_stillReturnsTheSeededSession() {
+        String expectedErrorCode = "LLM_UNAVAILABLE";
+        // nothing queued on the fake gateway: chatTurn blows up inside the graph
+
+        AiSessionService.SessionView view = service.create("prague", "en", null, "wir sind 8", "1.2.3.4");
+
+        assertThat(view.firstTurnErrorCode()).isEqualTo(expectedErrorCode);
+        assertThat(view.session().getStatus()).isEqualTo(AiSessionStatus.COLLECTING);
+        // The greeting plus the user's own message: re-sending the same text is de-duped, not doubled.
+        assertThat(view.state().messages().stream().map(ChatMessage::role).toList())
+                .containsExactly(ChatMessage.ASSISTANT, ChatMessage.USER);
+    }
+
     @Test
     void create_whenDisabled_throws503() {
         props.setEnabled(false);
@@ -397,6 +415,28 @@ class AiSessionServiceTest {
 
         assertThat(view.latest()).contains(expectedLatest);
         assertThat(view.next()).isEqualTo(PlannerGraph.AWAIT_USER);
+    }
+
+    /**
+     * The newest row is not always the one with packages on it. After a failed or AI_BUSY
+     * regeneration the organizer must still be able to get back to the packages from the token.
+     */
+    @Test
+    void get_alsoReportsTheNewestReadyGeneration() {
+        AiSession session = startedSession();
+        AiGeneration expectedLatest = new AiGeneration();
+        expectedLatest.setId(UUID.randomUUID());
+        expectedLatest.setStatus(AiGenerationStatus.FAILED);
+        AiGeneration expectedLatestReady = readyGeneration(session, Tier.BASIC, UUID.randomUUID());
+        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId()))
+                .thenReturn(Optional.of(expectedLatest));
+        when(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDesc(session.getId(),
+                AiGenerationStatus.READY)).thenReturn(Optional.of(expectedLatestReady));
+
+        AiSessionService.SessionView view = service.get(session.getToken());
+
+        assertThat(view.latest()).contains(expectedLatest);
+        assertThat(view.latestReady()).contains(expectedLatestReady);
     }
 
     /** A READY generation whose stored plan holds one package of the given tier. */

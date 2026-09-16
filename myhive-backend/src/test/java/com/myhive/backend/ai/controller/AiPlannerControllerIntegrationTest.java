@@ -16,6 +16,7 @@ import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.service.AiSessionService;
+import com.myhive.backend.ai.service.PlanGenerationService;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.AiGeneration;
@@ -110,6 +111,8 @@ class AiPlannerControllerIntegrationTest {
     private AiSessionRepository sessionRepository;
     @Autowired
     private AiGenerationRepository generationRepository;
+    @Autowired
+    private PlanGenerationService generationService;
     @Autowired
     private PlatformTransactionManager transactionManager;
 
@@ -278,7 +281,74 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.messages[2].content", is(expectedReply)))
                 .andExpect(jsonPath("$.missingFields", hasSize(3)))
                 .andExpect(jsonPath("$.readyToGenerate", is(false)))
-                .andExpect(jsonPath("$.latestGeneration").doesNotExist());
+                .andExpect(jsonPath("$.latestGeneration").doesNotExist())
+                .andExpect(jsonPath("$.firstTurnError").doesNotExist());
+    }
+
+    /**
+     * The inline first turn runs before the caller has the token, so answering its model failure with
+     * a bodiless 502 spent the row, the checkpoint thread and a daily-cap slot and left nothing to
+     * retry with. The session is created either way and says so through {@code firstTurnError}.
+     */
+    @Test
+    void createSession_whenTheFirstTurnCannotReachTheModel_is201WithFirstTurnError() throws Exception {
+        String expectedText = "we want a stag do";
+        String expectedReply = "How many of you are coming?";
+        int expectedMessageCountAfterRetry = 3;
+        // No chat answer queued: FakeLlmGateway throws, mapped to LLM_UNAVAILABLE.
+
+        MvcResult created = mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
+                        .header("CF-Connecting-IP", testClientIp)
+                        .content(CREATE_WITH_MESSAGE_BODY.formatted(destination.getSlug(), expectedText)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status", is("COLLECTING")))
+                .andExpect(jsonPath("$.firstTurnError.code", is("LLM_UNAVAILABLE")))
+                .andExpect(jsonPath("$.readyToGenerate", is(false)))
+                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages[1].role", is("USER")))
+                .andExpect(jsonPath("$.messages[1].content", is(expectedText)))
+                .andReturn();
+        String token = JsonPath.read(created.getResponse().getContentAsString(), "$.token");
+        llm.queueChat(chatTurn(expectedReply, Brief.empty()));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted(expectedText)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message.content", is(expectedReply)));
+
+        // Re-sending the same text is the documented retry, and it must not store the message twice.
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messages", hasSize(expectedMessageCountAfterRetry)))
+                .andExpect(jsonPath("$.firstTurnError").doesNotExist());
+    }
+
+    /**
+     * {@code latestGeneration} is the newest row, which after a failed regeneration is the failure
+     * itself. Without {@code latestReadyGeneration} the organizer's own token could no longer reach
+     * the packages an earlier generation already delivered.
+     */
+    @Test
+    void sessionState_afterAFailedRegeneration_stillCarriesTheReadyPackages() throws Exception {
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        String expectedReadyGenerationId = latestGenerationId(token);
+        awaitGeneration(expectedReadyGenerationId);
+        // A regeneration that never produced anything: newer than the READY row, and failed.
+        AiGeneration expectedFailed = queuedGeneration(token);
+        generationService.failIfStillInFlight(expectedFailed.getId(), "INTERNAL");
+
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(status().isOk())
+                // The chat is not FAILED: it still has packages on it.
+                .andExpect(jsonPath("$.status", is("READY")))
+                .andExpect(jsonPath("$.latestGeneration.id", is(expectedFailed.getId().toString())))
+                .andExpect(jsonPath("$.latestGeneration.status", is(AiGenerationStatus.FAILED.name())))
+                .andExpect(jsonPath("$.latestGeneration.error.code", is("INTERNAL")))
+                .andExpect(jsonPath("$.latestReadyGeneration.id", is(expectedReadyGenerationId)))
+                .andExpect(jsonPath("$.latestReadyGeneration.status", is(AiGenerationStatus.READY.name())))
+                .andExpect(jsonPath("$.latestReadyGeneration.packages", hasSize(Tier.values().length)));
     }
 
     @Test

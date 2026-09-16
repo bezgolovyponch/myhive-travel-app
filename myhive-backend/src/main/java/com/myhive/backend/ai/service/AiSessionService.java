@@ -29,6 +29,7 @@ import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.service.TurnstileService;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -52,6 +53,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AiSessionService {
 
     public static final int MAX_MESSAGES = 30;
@@ -75,8 +77,19 @@ public class AiSessionService {
     private final DailySessionCap dailyCap;
     private final ClientIpHasher ipHasher;
 
-    /** Everything an API response about one chat needs: the row, the graph state and where it is parked. */
-    public record SessionView(AiSession session, PlannerState state, String next, Optional<AiGeneration> latest) {
+    /**
+     * Everything an API response about one chat needs: the row, the graph state and where it is parked.
+     *
+     * <p>{@code latest} is the newest generation whatever its status, {@code latestReady} the newest one
+     * that actually produced packages. They differ after a failed or rejected regeneration, and that is
+     * the case the organizer has to be able to come back to: without the second one, a token restore
+     * lands on a FAILED row and the packages a previous generation delivered are unreachable.
+     *
+     * <p>{@code firstTurnErrorCode} is set only by {@link #create}, when the inline first turn could not
+     * reach the model; the session itself is fine and the same text can simply be re-sent.
+     */
+    public record SessionView(AiSession session, PlannerState state, String next, Optional<AiGeneration> latest,
+                              Optional<AiGeneration> latestReady, String firstTurnErrorCode) {
     }
 
     /** One chat turn's result; {@code startedGeneration} is present when the turn completed the brief. */
@@ -112,7 +125,16 @@ public class AiSessionService {
         if (initialMessage == null || initialMessage.isBlank()) {
             return view(session);
         }
-        return locks.withLock(session.getToken(), () -> turn(session, initialMessage)).view();
+        try {
+            return locks.withLock(session.getToken(), () -> turn(session, initialMessage)).view();
+        } catch (LlmCallFailedException e) {
+            // Not a 502: the row, the checkpoint thread and one of the caller's twenty daily chats are
+            // already spent, and the documented retry ("re-send the same text") needs the token a
+            // bodiless 502 would never hand out. The turn is answered as a created session carrying
+            // firstTurnError instead - the user message is stored, so re-sending de-dupes.
+            log.warn("AI planner first turn failed for session {}: {}", session.getToken(), e.getCode());
+            return view(session, e.getCode());
+        }
     }
 
     public SessionView get(UUID token) {
@@ -228,8 +250,8 @@ public class AiSessionService {
             return new TurnOutcome(view, Optional.empty());
         }
         AiGeneration started = startGeneration(session, snapshot.state().brief());
-        return new TurnOutcome(new SessionView(session, view.state(), view.next(), Optional.of(started)),
-                Optional.of(started));
+        return new TurnOutcome(new SessionView(session, view.state(), view.next(), Optional.of(started),
+                view.latestReady(), view.firstTurnErrorCode()), Optional.of(started));
     }
 
     private AiGeneration startGeneration(AiSession session, Brief brief) {
@@ -300,9 +322,16 @@ public class AiSessionService {
     }
 
     private SessionView view(AiSession session) {
+        return view(session, null);
+    }
+
+    private SessionView view(AiSession session, String firstTurnErrorCode) {
         PlannerGraph.PlannerStateSnapshot snapshot = graph.snapshot(session.getToken());
         return new SessionView(session, snapshot.state(), snapshot.next(),
-                generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId()));
+                generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId()),
+                generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDesc(session.getId(),
+                        AiGenerationStatus.READY),
+                firstTurnErrorCode);
     }
 
     private AiSession find(UUID token) {
