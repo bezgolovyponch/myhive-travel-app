@@ -183,8 +183,9 @@ ALTER TABLE ai_sessions ADD COLUMN edit_count INTEGER NOT NULL DEFAULT 0;
 edited row copies `brief_snapshot` and `degraded` from the parent; the parent's
 `selected_package_key` is **not** copied (a fresh pick is required). `model`, tokens
 and latency come from the refresh call (null when skipped). `edited(...)` runs in its
-own transaction like `ready(...)`; it also increments `edit_count` and sets the
-session READY. Cleanup deletes edited rows with the session (`deleteBySessionId`
+own transaction like `ready(...)` and touches only the new row; `edit_count` is
+incremented by `AiSessionService` in its single post-turn session save (a counter
+written by the sink would be overwritten by that save). Cleanup deletes edited rows with the session (`deleteBySessionId`
 already covers them; the self-FK is `ON DELETE SET NULL` so deletion order does not
 matter). Hibernate dev/test schemas get the same columns from the entity mapping.
 
