@@ -96,6 +96,15 @@ public class SpringAiLlmGateway implements LlmGateway {
         return new PlanDraftResult(parser.parsePlan(timed.text()), timed.usage());
     }
 
+    @Override
+    public TextRefreshResult refreshTexts(TextRefreshRequest request) {
+        List<Message> messages = List.of(
+                new SystemMessage(renderer.textRefreshSystem(request)),
+                new UserMessage(renderer.textRefreshUser(request)));
+        Timed timed = call(messages, props.getChatModel(), CHAT_TEMPERATURE, props.getChatTimeout());
+        return new TextRefreshResult(parser.parseTextRefresh(timed.text()), timed.usage());
+    }
+
     private record Timed(String text, LlmUsage usage) {
     }
 

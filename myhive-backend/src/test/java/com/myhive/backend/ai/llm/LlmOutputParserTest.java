@@ -10,10 +10,12 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 
 class LlmOutputParserTest {
 
@@ -137,6 +139,36 @@ class LlmOutputParserTest {
         PlanDraft.ItemDraft item = draft.packages().get(2).days().get(0).items().get(0);
         assertThat(item.slot()).isEqualTo(Slot.AFTERNOON);
         assertThat(item.activityId()).isEqualTo(expectedActivityId);
+    }
+
+    @Test
+    void parseTextRefresh_readsTextsAndSkipsInvalidEntries() {
+        UUID expectedActivityId = UUID.randomUUID();
+        String expectedDescription = "Two nights, one legend";
+        String expectedWhy = "Loud, cheap, unforgettable";
+        String expectedSummary = "Start slow, end loud";
+        int expectedDayNumber = 2;
+        String json = "{\"packages\":["
+                + "{\"key\":\"BASIC\",\"description\":\"" + expectedDescription + "\","
+                + "\"why\":[{\"activityId\":\"" + expectedActivityId + "\",\"text\":\"" + expectedWhy + "\"},"
+                + "{\"activityId\":\"beer-bike\",\"text\":\"not a uuid\"}],"
+                + "\"summaries\":[{\"dayNumber\":" + expectedDayNumber + ",\"text\":\"" + expectedSummary + "\"},"
+                + "{\"dayNumber\":\"two\",\"text\":\"not an int\"}]},"
+                + "{\"key\":\"DELUXE\",\"description\":\"unknown tier\"}]}";
+
+        Map<Tier, PackageTexts> texts = parser.parseTextRefresh(json);
+
+        assertThat(texts).containsOnlyKeys(Tier.BASIC);
+        PackageTexts basic = texts.get(Tier.BASIC);
+        assertThat(basic.description()).isEqualTo(expectedDescription);
+        assertThat(basic.whyByActivityId()).containsExactly(entry(expectedActivityId, expectedWhy));
+        assertThat(basic.summaryByDay()).containsExactly(entry(expectedDayNumber, expectedSummary));
+    }
+
+    @Test
+    void parseTextRefresh_withoutPackages_isLlmOutputException() {
+        assertThatThrownBy(() -> parser.parseTextRefresh("{\"texts\":[]}"))
+                .isInstanceOf(LlmOutputException.class).hasMessageContaining("packages");
     }
 
     @Test
