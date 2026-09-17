@@ -236,7 +236,7 @@ codes are unchanged.
   note; brief change + edits → regeneration wins; refresh failure keeps texts and
   flags; rejected-only turn creates no row; subsequent select/regenerate/chat
   unaffected.
-- Service/controller: `edited` sink persists the row and increments `edit_count`;
+- Service/controller: `edited` sink persists the row; `AiSessionService` increments `edit_count`;
   `EDIT_LIMIT`; integration test over HTTP: generate → message "swap A for B" → 200
   with `edit.applied`, `generation.kind = EDITED`, packages reflect the swap, texts
   refreshed by the fake; `GET /sessions/{token}` shows the edited row as
