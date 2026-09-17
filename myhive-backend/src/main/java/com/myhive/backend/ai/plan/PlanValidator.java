@@ -41,9 +41,21 @@ public class PlanValidator {
             }
         }
         for (PlanDraft.PackageDraft p : byTier.values()) {
-            validatePackage(p, brief, catalog, violations);
+            violations.addAll(validatePackage(p, brief, catalog));
         }
         checkDistinct(byTier, violations);
+        return violations;
+    }
+
+    /**
+     * The per-package scheduling checks only (texts, day count, per-day slots/caps/duplicates, empty
+     * day/package) — no {@code MISSING_TIER} and no cross-tier {@code TIER_NOT_DISTINCT}, so it is safe
+     * to call on a single edited package without the rest of the plan. {@code validate} delegates here
+     * per package to keep one implementation.
+     */
+    public List<Violation> validatePackage(PlanDraft.PackageDraft pkg, Brief brief, Map<UUID, CatalogActivity> catalog) {
+        List<Violation> violations = new ArrayList<>();
+        validatePackage(pkg, brief, catalog, violations);
         return violations;
     }
 
@@ -123,8 +135,11 @@ public class PlanValidator {
      * activity of the day {@link ViolationCode#SLOT_OUTSIDE_WINDOW} and leaves three empty packages
      * (day 1 is an edge day, so {@link ViolationCode#EMPTY_DAY} never fires either). A crossed window is
      * read as "the group is here all day": it runs from the arrival edge to NIGHT.
+     *
+     * <p>Public because {@code ai.edit}'s package editor relies on it too, to keep an edited day's
+     * slots inside the same arrival/departure window this validator enforces.
      */
-    static Set<Slot> allowedSlots(int dayNumber, Brief brief) {
+    public static Set<Slot> allowedSlots(int dayNumber, Brief brief) {
         Slot first = dayNumber == 1 ? brief.arrivalOrDefault().slot() : Slot.MORNING;
         Slot last = dayNumber == brief.days() ? brief.departureOrDefault().slot() : Slot.NIGHT;
         if (last.ordinal() < first.ordinal()) {
