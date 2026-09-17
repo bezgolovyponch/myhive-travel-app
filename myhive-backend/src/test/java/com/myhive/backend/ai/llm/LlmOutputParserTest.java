@@ -1,5 +1,7 @@
 package com.myhive.backend.ai.llm;
 
+import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
@@ -64,6 +66,63 @@ class LlmOutputParserTest {
         assertThat(result.briefUpdate().days()).isEqualTo(expectedDays);
         assertThat(result.briefUpdate().budget()).isNull();
         assertThat(result.briefUpdate().arrival()).isNull();
+    }
+
+    @Test
+    void parseChatTurn_readsEditOperations_andDropsInvalidOnes() throws IOException {
+        String expectedReply = "Swapping it now.";
+        String expectedRemovedActivity = "Karting";
+        String expectedReplacementActivity = "Beer Bike";
+        String expectedAddedActivity = "Shooting Range";
+        Tier expectedPackageKey = Tier.PREMIUM;
+        int expectedDayNumber = 2;
+        Slot expectedSlot = Slot.AFTERNOON;
+
+        ChatTurnResult result = parser.parseChatTurn(fixture("chat-turn-with-edits.json"));
+
+        assertThat(result.reply()).isEqualTo(expectedReply);
+        assertThat(result.edits()).hasSize(2);
+        EditRequest replace = result.edits().get(0);
+        assertThat(replace.op()).isEqualTo(EditOp.REPLACE);
+        assertThat(replace.activity()).isEqualTo(expectedRemovedActivity);
+        assertThat(replace.replacement()).isEqualTo(expectedReplacementActivity);
+        assertThat(replace.packageKey()).isNull();
+        assertThat(replace.dayNumber()).isNull();
+        assertThat(replace.slot()).isNull();
+        EditRequest add = result.edits().get(1);
+        assertThat(add.op()).isEqualTo(EditOp.ADD);
+        assertThat(add.activity()).isEqualTo(expectedAddedActivity);
+        assertThat(add.packageKey()).isEqualTo(expectedPackageKey);
+        assertThat(add.dayNumber()).isEqualTo(expectedDayNumber);
+        assertThat(add.slot()).isEqualTo(expectedSlot);
+    }
+
+    @Test
+    void parseChatTurn_withoutEditsField_hasEmptyEdits() throws IOException {
+        ChatTurnResult result = parser.parseChatTurn(fixture("chat-turn-valid.json"));
+
+        assertThat(result.edits()).isEmpty();
+    }
+
+    @Test
+    void parseChatTurn_editsNotAnArray_isTreatedAsEmpty() {
+        String expectedReply = "hi";
+
+        ChatTurnResult result = parser.parseChatTurn(
+                "{\"reply\":\"" + expectedReply + "\",\"brief\":{},\"missingFields\":[],\"edits\":\"karting\"}");
+
+        assertThat(result.reply()).isEqualTo(expectedReply);
+        assertThat(result.edits()).isEmpty();
+    }
+
+    @Test
+    void parseChatTurn_replaceWithoutReplacement_isDropped() {
+        ChatTurnResult result = parser.parseChatTurn(
+                "{\"reply\":\"hi\",\"brief\":{},\"missingFields\":[],\"edits\":["
+                        + "{\"op\":\"REPLACE\",\"activity\":\"Karting\",\"replacement\":null},"
+                        + "{\"op\":\"REPLACE\",\"activity\":\"Karting\",\"replacement\":\"  \"}]}");
+
+        assertThat(result.edits()).isEmpty();
     }
 
     @Test

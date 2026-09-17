@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.PlanDraft;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Strict, tolerant-of-noise parsing of model JSON: strips code fences, ignores unknown fields, names the offending field. */
@@ -32,7 +35,39 @@ public class LlmOutputParser {
         List<String> missing = root.path("missingFields").isArray()
                 ? mapper.convertValue(root.get("missingFields"), mapper.getTypeFactory().constructCollectionType(List.class, String.class))
                 : List.of();
-        return new ChatTurnResult(reply.asText().strip(), brief == null ? Brief.empty() : brief, missing, LlmUsage.none());
+        List<EditRequest> edits = new ArrayList<>();
+        JsonNode editsNode = root.path("edits");
+        if (editsNode.isArray()) {
+            for (JsonNode editNode : editsNode) {
+                EditRequest edit = editOrNull(editNode);
+                if (edit != null) {
+                    edits.add(edit);
+                }
+            }
+        }
+        return new ChatTurnResult(reply.asText().strip(), brief == null ? Brief.empty() : brief, missing, edits, LlmUsage.none());
+    }
+
+    /**
+     * A malformed edit element (a hallucinated op, a blank activity, a REPLACE missing its
+     * replacement) is that one element's mistake, not a reason to lose the whole turn: the brief and
+     * reply are still useful to the user, so the element is dropped rather than failing the parse.
+     */
+    private EditRequest editOrNull(JsonNode node) {
+        EditRequest edit;
+        try {
+            edit = mapper.treeToValue(node, EditRequest.class);
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            // Malformed edit element: skip it rather than fail the whole turn (see method comment above).
+            return null;
+        }
+        if (edit.op() == null || edit.activity() == null || edit.activity().isBlank()) {
+            return null;
+        }
+        if (edit.op() == EditOp.REPLACE && (edit.replacement() == null || edit.replacement().isBlank())) {
+            return null;
+        }
+        return edit;
     }
 
     public PlanDraft parsePlan(String raw) {
