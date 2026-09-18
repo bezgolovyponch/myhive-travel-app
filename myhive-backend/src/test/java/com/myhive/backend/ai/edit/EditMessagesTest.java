@@ -15,6 +15,13 @@ class EditMessagesTest {
     }
 
     @Test
+    void rebuildingFirst_isLocalised_andInformalInGerman() {
+        assertThat(EditMessages.rebuildingFirst("en")).contains("packages");
+        assertThat(EditMessages.rebuildingFirst("de")).contains("Pakete").contains("frag");
+        assertThat(EditMessages.rebuildingFirst("fr")).isEqualTo(EditMessages.rebuildingFirst("en"));
+    }
+
+    @Test
     void rejectionSummary_noFreeSlot_namesTheActivityInBothLanguages() {
         String expectedActivityName = "Karting";
         List<RejectedEdit> rejected = List.of(rejected(expectedActivityName, EditRejectionReason.NO_FREE_SLOT));

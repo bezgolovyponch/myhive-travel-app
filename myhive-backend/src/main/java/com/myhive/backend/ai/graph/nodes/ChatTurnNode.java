@@ -58,6 +58,12 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         if (merged.isReady() && changedSinceLastGeneration) {
             // A regeneration rebuilds every package from the brief, so an edit of the old ones is moot.
             update.put(PlannerState.ACTION, PlannerState.ACTION_GENERATE);
+            if (!result.edits().isEmpty()) {
+                // Deliberately no EDIT_REPORT: the ops were never attempted, so there is nothing to report
+                // per op - but the group asked for something concrete and has to be told it is coming back
+                // to them after the rebuild, not quietly dropped.
+                replies.add(PlannerState.message(ChatMessage.ASSISTANT, EditMessages.rebuildingFirst(state.locale())));
+            }
         } else if (result.edits().isEmpty()) {
             update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
         } else if (packages.isEmpty()) {

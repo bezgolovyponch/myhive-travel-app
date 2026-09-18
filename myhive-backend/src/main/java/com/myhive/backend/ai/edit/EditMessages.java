@@ -26,6 +26,12 @@ public final class EditMessages {
     private static final String DE_NO_PACKAGES_YET =
             "Lass uns zuerst die Pakete bauen - danach kann ich Aktivitäten für dich hinzufügen oder tauschen.";
 
+    private static final String EN_REBUILDING_FIRST =
+            "I am rebuilding the packages with the new details first - ask me for those changes again once "
+                    + "they are ready.";
+    private static final String DE_REBUILDING_FIRST =
+            "Ich baue die Pakete erst mit den neuen Angaben neu - frag danach noch mal nach diesen Änderungen.";
+
     /** Stands in for a name the model left out; only a parser bug gets this far. */
     private static final String EN_UNNAMED = "that activity";
     private static final String DE_UNNAMED = "diese Aktivität";
@@ -63,6 +69,15 @@ public final class EditMessages {
     /** The note that follows the reply when the organizer asks for a change before any packages exist. */
     public static String noPackagesYet(String locale) {
         return german(locale) ? DE_NO_PACKAGES_YET : EN_NO_PACKAGES_YET;
+    }
+
+    /**
+     * The note for the one message that both changes the brief and asks for changes: the regeneration
+     * wins and builds every package afresh, so the ops are moot rather than rejected — and without a line
+     * saying so they simply vanished, with the reply happily confirming a swap that never happened.
+     */
+    public static String rebuildingFirst(String locale) {
+        return german(locale) ? DE_REBUILDING_FIRST : EN_REBUILDING_FIRST;
     }
 
     /** One sentence per distinct reason, naming the activities it hit; empty when nothing was rejected. */

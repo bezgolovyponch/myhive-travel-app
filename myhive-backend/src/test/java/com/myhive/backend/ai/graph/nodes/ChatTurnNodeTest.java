@@ -71,8 +71,14 @@ class ChatTurnNodeTest {
         assertThat(messagesOf(update).get(1).get("content")).isEqualTo(expectedNote);
     }
 
+    /**
+     * A message that changes the brief and asks for a swap in the same breath: the regeneration rebuilds
+     * every package, so the ops are moot rather than rejected — but they used to vanish without a word,
+     * with the reply cheerfully confirming a change that was never applied.
+     */
     @Test
-    void briefChangeAndEdits_regenerationWins() {
+    void briefChangeAndEdits_regenerationWins_andSaysSo() {
+        String expectedNote = EditMessages.rebuildingFirst("en");
         llm.queueChat(turn("Rebuilding!", readyBrief(), List.of(replaceEdit())));
         Map<String, Object> initData = stateMapWithPackages(Brief.empty());
         initData.remove(PlannerState.LAST_GENERATED_BRIEF);
@@ -81,7 +87,23 @@ class ChatTurnNodeTest {
 
         assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
         assertThat(update).doesNotContainKey(PlannerState.EDITS);
+        // no per-op report either: nothing was attempted, so there is nothing to report op by op
         assertThat(update.get(PlannerState.EDIT_REPORT)).isEqualTo("");
+        assertThat(messagesOf(update)).hasSize(2);
+        assertThat(messagesOf(update).get(1).get("content")).isEqualTo(expectedNote);
+    }
+
+    /** The same turn without ops says nothing extra: the note belongs to the dropped edits, not to a rebuild. */
+    @Test
+    void briefChangeWithoutEdits_regeneratesWithoutTheNote() {
+        llm.queueChat(turn("Rebuilding!", readyBrief(), List.of()));
+        Map<String, Object> initData = stateMapWithPackages(Brief.empty());
+        initData.remove(PlannerState.LAST_GENERATED_BRIEF);
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
+        assertThat(messagesOf(update)).hasSize(1);
     }
 
     @Test
