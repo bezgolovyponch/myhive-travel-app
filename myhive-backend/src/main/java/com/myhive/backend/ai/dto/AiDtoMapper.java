@@ -18,6 +18,7 @@ import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import java.util.UUID;
 /** Turns what {@link AiSessionService} hands back into the JSON of {@code docs/api/ai-planner-api.md}. */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AiDtoMapper {
 
     /** Everything else is a transport hiccup the group can simply retry; an internal fault is not. */
@@ -114,12 +116,27 @@ public class AiDtoMapper {
                 generation.getParentId(), editReport(generation));
     }
 
-    /** Only an {@code EDITED} row stores a report, and the only id that belongs in it is its own. */
+    /**
+     * Only an {@code EDITED} row stores a report, and the only id that belongs in it is its own.
+     *
+     * <p>A report that will not parse is dropped rather than thrown. {@link JsonCodec} reads with a strict
+     * mapper, so a rejection reason added in a later version — or any other field a rolled-back backend
+     * does not know — would blow up here, and this method is on the path of both
+     * {@code GET /ai/generations/&#123;id&#125;} and {@code GET /ai/sessions/&#123;token&#125;}: one
+     * unreadable blob would hide a set of perfectly good packages over a cosmetic field. The blob stays in
+     * the database for whoever wrote it, and the log line says which row to look at.
+     */
     private static EditDTO editReport(AiGeneration generation) {
         if (generation.getKind() != AiGenerationKind.EDITED || generation.getEditReport() == null) {
             return null;
         }
-        return edit(JsonCodec.read(generation.getEditReport(), EditReport.class), generation.getId());
+        try {
+            return edit(JsonCodec.read(generation.getEditReport(), EditReport.class), generation.getId());
+        } catch (RuntimeException e) {
+            log.warn("planner edit report on generation {} is unreadable, serving the row without it: {}",
+                    generation.getId(), e.getClass().getName());
+            return null;
+        }
     }
 
     private static EditDTO edit(EditReport report, UUID generationId) {

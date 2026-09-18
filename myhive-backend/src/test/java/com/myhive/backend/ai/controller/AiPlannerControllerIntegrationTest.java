@@ -59,6 +59,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -429,8 +430,42 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.edit.rejected[0].reason", is("NO_PACKAGES_YET")))
                 .andExpect(jsonPath("$.edit.tierRulesRelaxed", is(false)))
                 .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
-                .andExpect(jsonPath("$.edit.generationId").doesNotExist())
-                .andExpect(jsonPath("$.generation").doesNotExist());
+                // Explicit nulls, not absent keys: this DTO is serialised without NON_NULL inclusion.
+                .andExpect(jsonPath("$.edit.generationId").value(nullValue()))
+                .andExpect(jsonPath("$.generation").value(nullValue()));
+    }
+
+    /**
+     * A stored report that will not parse — a reason from a later release read by a rolled-back backend,
+     * say — costs that cosmetic field and nothing else. Both reads that go through the generation mapping
+     * still answer 200 with the packages the group is looking at.
+     */
+    @Test
+    void unreadableEditReport_stillServesTheEditedPackagesOnBothReads() throws Exception {
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        queueEditTurn(activities.get(BASIC_INDEX).getName(), activities.get(REPLACEMENT_INDEX).getName(),
+                "Rebuilt around the swap");
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andReturn();
+        String expectedEditedId = JsonPath.read(edited.getResponse().getContentAsString(), "$.generation.id");
+        corruptEditReport(UUID.fromString(expectedEditedId));
+
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latestReadyGeneration.id", is(expectedEditedId)))
+                .andExpect(jsonPath("$.latestReadyGeneration.kind", is("EDITED")))
+                .andExpect(jsonPath("$.latestReadyGeneration.editReport").value(nullValue()))
+                .andExpect(jsonPath("$.latestReadyGeneration.packages", hasSize(Tier.values().length)));
+        mockMvc.perform(get("/ai/generations/" + expectedEditedId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.editReport").value(nullValue()))
+                .andExpect(jsonPath("$.packages", hasSize(Tier.values().length)));
     }
 
     /** Picking a package after an edit has to hand the cart the edited itinerary, not the generated one. */
@@ -774,6 +809,15 @@ class AiPlannerControllerIntegrationTest {
 
     private static EditRequest replaceRequest(String activity, String replacement) {
         return new EditRequest(EditOp.REPLACE, activity, replacement, null, null, null);
+    }
+
+    /** Truncated JSON carrying a reason this version's enum does not have: both ways the read can fail. */
+    private void corruptEditReport(UUID generationId) {
+        transactions.executeWithoutResult(status -> {
+            AiGeneration generation = generationRepository.findById(generationId).orElseThrow();
+            generation.setEditReport("{\"applied\":[],\"rejected\":[{\"reason\":\"SOMETHING_NEW\"}]");
+            generationRepository.save(generation);
+        });
     }
 
     private static ChatTurnResult chatTurn(String reply, Brief update) {

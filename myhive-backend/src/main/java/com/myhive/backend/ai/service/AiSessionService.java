@@ -244,8 +244,10 @@ public class AiSessionService {
         String text = content.strip();
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name());
-        // Nothing in the graph ever clears the report, so this is the only place it can happen: left
-        // standing, last turn's rejections would be served again with the answer to every turn after it.
+        // The chat node clears the report too, at the start of every turn it runs. Both clears are wanted
+        // and neither is redundant: that one keeps the graph honest for any caller (the Studio, a future
+        // resume path), this one keeps the API honest even if a turn never reaches the node - a resume
+        // that throws on the way in would otherwise leave last turn's rejections to be served again.
         update.put(PlannerState.EDIT_REPORT, "");
         // Absent means unlimited, so the allowance has to be stamped before every turn that could edit.
         update.put(PlannerState.EDITS_LEFT, MAX_EDITS_PER_SESSION - session.getEditCount());
@@ -271,9 +273,11 @@ public class AiSessionService {
             // write the session, whose only save is the touch below - the lost-update shape the generation
             // counter was already fixed for. A batch that changed nothing costs nothing.
             session.setEditCount(session.getEditCount() + 1);
-            // The row the edit node stamped into the state; loaded with its session, since the view this
-            // turn hands back is built outside any transaction.
-            edited = generationRepository.findWithSessionById(snapshot.state().generationId().orElseThrow());
+            // An applied edit means a READY row was just stored, so the chat says so. Normally it already
+            // does; the hole is a chat left FAILED by a generation whose result never committed while the
+            // checkpoint kept the previous plan - an edit on that plan must not stay filed under a failure.
+            session.setStatus(AiSessionStatus.READY);
+            edited = editedGeneration(token, snapshot.state().generationId());
         }
         touch(session);
 
@@ -286,6 +290,27 @@ public class AiSessionService {
         AiGeneration started = startGeneration(session, snapshot.state().brief());
         return new TurnOutcome(new SessionView(session, view.state(), view.next(), Optional.of(started),
                 view.latestReady(), view.firstTurnErrorCode()), Optional.of(started), report, edited);
+    }
+
+    /**
+     * The row the edit node stamped into the state, loaded with its session because the view this turn
+     * hands back is built outside any transaction.
+     *
+     * <p>Neither miss is reachable on a healthy chat — the node writes the id in the same update as the
+     * report — but a 500 would be the wrong answer to a turn whose edit <em>was</em> stored: the report
+     * still describes what happened, and the client reads the session back to find the packages. The
+     * budget is spent either way, for the same reason.
+     */
+    private Optional<AiGeneration> editedGeneration(UUID token, Optional<UUID> generationId) {
+        if (generationId.isEmpty()) {
+            log.warn("planner edit applied on session {} but the state carries no generationId", token);
+            return Optional.empty();
+        }
+        Optional<AiGeneration> edited = generationRepository.findWithSessionById(generationId.get());
+        if (edited.isEmpty()) {
+            log.warn("planner edited generation {} of session {} is no longer there", generationId.get(), token);
+        }
+        return edited;
     }
 
     private AiGeneration startGeneration(AiSession session, Brief brief) {

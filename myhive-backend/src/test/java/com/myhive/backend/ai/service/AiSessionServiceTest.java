@@ -3,6 +3,7 @@ package com.myhive.backend.ai.service;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
+import com.myhive.backend.ai.dto.AiDtoMapper;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRejectionReason;
 import com.myhive.backend.ai.edit.EditRequest;
@@ -36,6 +37,7 @@ import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.AiGenerationRepository;
 import com.myhive.backend.repository.AiSessionRepository;
 import com.myhive.backend.repository.DestinationRepository;
@@ -74,6 +76,8 @@ class AiSessionServiceTest {
     private final DestinationRepository destinationRepository = mock(DestinationRepository.class);
     private final TurnstileService turnstile = mock(TurnstileService.class);
     private final AiProperties props = new AiProperties();
+    /** Only for the limit test: the number the UI is shown has to come out of the real mapping. */
+    private final AiDtoMapper mapper = new AiDtoMapper(mock(ActivityRepository.class));
     /** Collects the jobs {@code enqueue} submits instead of running them; the graph stays parked. */
     private final List<Runnable> submittedJobs = new ArrayList<>();
     /** Records the order of the calls a turn makes, to pin what happens before the job is submitted. */
@@ -583,11 +587,12 @@ class AiSessionServiceTest {
     void editTurn_incrementsEditCountBeforeTheSessionSave_andReturnsTheEditedGeneration() {
         AiSession session = startedSession();
         int expectedEditCount = 1;
-        CatalogActivity replaced = catalogActivity("Beer Bike", "beer-bike");
-        CatalogActivity replacement = catalogActivity("Club Crawl", "club-crawl");
+        CatalogActivity expectedReplaced = catalogActivity("Beer Bike", "beer-bike");
+        CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
         AiGeneration parent = storedParent(session);
-        parkWithPackages(session, List.of(replaced, replacement), planWith(replaced), parent.getId());
-        llm.queueChat(editTurn("Swapped it.", replaced.name(), replacement.name()))
+        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), planWith(expectedReplaced),
+                parent.getId());
+        llm.queueChat(editTurn("Swapped it.", expectedReplaced.name(), expectedReplacement.name()))
                 .queueRefresh(refreshedTexts("Rebuilt around the swap"));
         answerEditedGenerationLookups();
         editCountsWhenSaved.clear();
@@ -602,8 +607,8 @@ class AiSessionServiceTest {
         assertThat(outcome.editReport()).hasValueSatisfying(report -> {
             assertThat(report.rejected()).isEmpty();
             assertThat(report.textsRefreshed()).isTrue();
-            assertThat(report.applied()).singleElement()
-                    .satisfies(applied -> assertThat(applied.replacementName()).isEqualTo(replacement.name()));
+            assertThat(report.applied()).singleElement().satisfies(applied ->
+                    assertThat(applied.replacementName()).isEqualTo(expectedReplacement.name()));
         });
         assertThat(session.getEditCount()).isEqualTo(expectedEditCount);
         assertThat(editCountsWhenSaved).containsExactly(expectedEditCount);
@@ -639,8 +644,13 @@ class AiSessionServiceTest {
     }
 
     /**
-     * Nothing else ever clears {@code EDIT_REPORT}. Without the pre-resume reset, the report one turn
-     * produced would be handed back again with the answer to every turn after it.
+     * A report belongs to the turn that produced it: without a reset, the one turn N produced would be
+     * handed back again with the answer to turn N+1.
+     *
+     * <p>Two places clear it and both are meant to stay — the chat node, which keeps the graph honest for
+     * any caller, and the service's pre-resume update, which keeps the API honest on a turn that never
+     * reaches the node. This test passes with either one alone, so deleting "the redundant one" will not
+     * fail here; {@code ChatTurnNodeTest} covers the node's own clear.
      */
     @Test
     void turn_stampsEditsLeftAndClearsThePreviousReport() {
@@ -659,6 +669,87 @@ class AiSessionServiceTest {
                         assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NO_PACKAGES_YET)));
         assertThat(next.editReport()).isEmpty();
         assertThat(graph.snapshot(session.getToken()).state().editsLeft()).isEqualTo(expectedEditsLeft);
+    }
+
+    /**
+     * "An edit landed" means "a READY row exists", so the chat says READY. The hole this closes: a
+     * generation whose result never committed leaves the chat FAILED while the checkpoint still holds the
+     * previous plan, and an edit on that plan would otherwise stay filed under a failure.
+     */
+    @Test
+    void editTurn_onAChatLeftFailed_putsTheSessionBackToReady() {
+        AiSession session = startedSession();
+        CatalogActivity expectedReplaced = catalogActivity("Beer Bike", "beer-bike");
+        CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
+        AiGeneration parent = storedParent(session);
+        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), planWith(expectedReplaced),
+                parent.getId());
+        session.setStatus(AiSessionStatus.FAILED);
+        llm.queueChat(editTurn("Swapped it.", expectedReplaced.name(), expectedReplacement.name()))
+                .queueRefresh(refreshedTexts("Rebuilt around the swap"));
+        answerEditedGenerationLookups();
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "swap the bike for the crawl");
+
+        assertThat(outcome.editedGeneration()).isPresent();
+        assertThat(session.getStatus()).isEqualTo(AiSessionStatus.READY);
+    }
+
+    /**
+     * The row was stored and the report says so; only the read-back came up empty. That is worth a log
+     * line and a report-only answer, never a 500 over a turn whose edit actually landed.
+     */
+    @Test
+    void editTurn_whoseStoredRowCannotBeReadBack_stillReturnsTheReport() {
+        AiSession session = startedSession();
+        int expectedEditCount = 1;
+        CatalogActivity expectedReplaced = catalogActivity("Beer Bike", "beer-bike");
+        CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
+        AiGeneration parent = storedParent(session);
+        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), planWith(expectedReplaced),
+                parent.getId());
+        llm.queueChat(editTurn("Swapped it.", expectedReplaced.name(), expectedReplacement.name()))
+                .queueRefresh(refreshedTexts("Rebuilt around the swap"));
+        when(generationRepository.findWithSessionById(any())).thenReturn(Optional.empty());
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "swap the bike for the crawl");
+
+        assertThat(outcome.editedGeneration()).isEmpty();
+        assertThat(outcome.editReport()).hasValueSatisfying(report -> assertThat(report.applied()).hasSize(1));
+        // The write happened, so the budget is spent whether or not this thread could read the row back.
+        assertThat(session.getEditCount()).isEqualTo(expectedEditCount);
+    }
+
+    /**
+     * The twenty-first edit turn is answered like any other turn: every op rejected with EDIT_LIMIT, no
+     * model call to rewrite copy, no row, no counter moved - and a limits block that already said zero.
+     */
+    @Test
+    void editTurn_overTheEditLimit_rejectsTheBatchWithoutStoringAnything() {
+        AiSession session = startedSession();
+        int expectedEditsLeft = 0;
+        CatalogActivity inThePlan = catalogActivity("Beer Bike", "beer-bike");
+        CatalogActivity replacement = catalogActivity("Club Crawl", "club-crawl");
+        AiGeneration parent = storedParent(session);
+        parkWithPackages(session, List.of(inThePlan, replacement), planWith(inThePlan), parent.getId());
+        session.setEditCount(AiSessionService.MAX_EDITS_PER_SESSION);
+        llm.queueChat(editTurn("That is as far as I can take it.", inThePlan.name(), replacement.name()));
+        savedGenerations.clear();
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "swap them once more");
+
+        assertThat(graph.snapshot(session.getToken()).state().editsLeft()).isEqualTo(expectedEditsLeft);
+        assertThat(outcome.editReport()).hasValueSatisfying(report -> {
+            assertThat(report.applied()).isEmpty();
+            assertThat(report.rejected()).singleElement().satisfies(rejected ->
+                    assertThat(rejected.reason()).isEqualTo(EditRejectionReason.EDIT_LIMIT));
+        });
+        assertThat(outcome.editedGeneration()).isEmpty();
+        assertThat(savedGenerations).isEmpty();
+        assertThat(llm.refreshRequests).isEmpty();
+        assertThat(session.getEditCount()).isEqualTo(AiSessionService.MAX_EDITS_PER_SESSION);
+        assertThat(mapper.sessionState(service.get(session.getToken())).limits().editsLeft())
+                .isEqualTo(expectedEditsLeft);
     }
 
     @Test
