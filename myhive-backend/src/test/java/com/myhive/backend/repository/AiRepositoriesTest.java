@@ -150,7 +150,12 @@ class AiRepositoriesTest {
         LocalDateTime sameInstant = LocalDateTime.now();
         AiGeneration first = readyGeneration(session, sameInstant);
         AiGeneration second = readyGeneration(session, sameInstant);
-        UUID expectedNewestId = first.getId().compareTo(second.getId()) > 0 ? first.getId() : second.getId();
+        // Compared as text, not with UUID.compareTo: the database orders the 16 bytes unsigned, while
+        // compareTo treats the halves as signed longs, so the two disagree on every id with the high bit
+        // set. Hex string order is the unsigned byte order.
+        UUID expectedNewestId = first.getId().toString().compareTo(second.getId().toString()) > 0
+                ? first.getId()
+                : second.getId();
         entityManager.clear();
 
         assertThat(generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId()))
