@@ -165,10 +165,7 @@ public class PlanGenerationService
         generation.setStatus(AiGenerationStatus.READY);
         generation.setResult(JsonCodec.write(plan));
         generation.setDegraded(degraded);
-        generation.setModel(usage.model());
-        generation.setPromptTokens(usage.promptTokens());
-        generation.setCompletionTokens(usage.completionTokens());
-        generation.setLatencyMs((int) Math.min(Integer.MAX_VALUE, usage.latencyMs()));
+        applyUsage(generation, usage);
         generation.setAttempt((short) attempt);
         generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
         generation.getSession().setStatus(AiSessionStatus.READY);
@@ -186,7 +183,7 @@ public class PlanGenerationService
 
     /**
      * Stores an edit batch as a new {@code EDITED} row parked at {@code awaitSelection}, ready to serve
-     * without a regeneration. Deliberately does not touch the session row: {@link AiSessionService#turn}
+     * without a regeneration. Deliberately does not touch the session row: {@code AiSessionService}
      * saves its own (already-loaded, already-mutated) session copy right after the graph run finishes,
      * and a write here would be the lost-update pattern the generation-count fix already dealt with -
      * {@code editCount} is incremented by the caller instead, on that same session instance.
@@ -205,16 +202,20 @@ public class PlanGenerationService
         edited.setDegraded(parent.isDegraded());
         edited.setResult(JsonCodec.write(plan));
         edited.setEditReport(JsonCodec.write(report));
-        edited.setModel(usage.model());
-        edited.setPromptTokens(usage.promptTokens());
-        edited.setCompletionTokens(usage.completionTokens());
-        edited.setLatencyMs((int) Math.min(Integer.MAX_VALUE, usage.latencyMs()));
+        applyUsage(edited, usage);
         edited.setAttempt((short) 0);
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         edited.setCreatedAt(now);
         edited.setStartedAt(now);
         edited.setFinishedAt(now);
         return generationRepository.save(edited).getId();
+    }
+
+    private static void applyUsage(AiGeneration generation, LlmUsage usage) {
+        generation.setModel(usage.model());
+        generation.setPromptTokens(usage.promptTokens());
+        generation.setCompletionTokens(usage.completionTokens());
+        generation.setLatencyMs((int) Math.min(Integer.MAX_VALUE, usage.latencyMs()));
     }
 
     /**
