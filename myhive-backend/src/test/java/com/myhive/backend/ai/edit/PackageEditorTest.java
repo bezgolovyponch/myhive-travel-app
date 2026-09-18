@@ -340,7 +340,95 @@ class PackageEditorTest {
         assertThat(outcome.rejected().get(0).activityName()).isEqualTo(expectedUnknown);
         assertThat(outcome.rejected().get(0).detail()).isEqualTo(expectedUnknown);
         assertThat(outcome.rejected().get(1).detail()).isEqualTo(expectedCandidates);
-        assertThat(outcome.plan()).isEqualTo(plan);
+        // The very object that came in: a batch that changed nothing has nothing to re-price, and a
+        // round-trip through the assembler is exactly where a stale snapshot could drop items.
+        assertThat(outcome.plan()).isSameAs(plan);
+    }
+
+    /**
+     * On a {@code REPLACE} the replacement is resolved second, so when that is the unresolvable one the
+     * rejection carries the <em>replacement's</em> spelling — the activity being replaced resolved fine
+     * and naming it would send the group looking in the wrong place.
+     */
+    @Test
+    void replace_whoseReplacementIsAmbiguous_reportsTheReplacementsSpelling() {
+        String expectedSpelling = "Beer";
+        String expectedCandidates = beerBike.name() + ", " + beerSpa.name();
+        ComposedPlan plan = basePlan();
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog,
+                List.of(replace(riverCruise.name(), expectedSpelling, Tier.BASIC)));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.op()).isEqualTo(EditOp.REPLACE);
+            assertThat(rejected.activityName()).isEqualTo(expectedSpelling);
+            assertThat(rejected.packageKey()).isNull();
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.AMBIGUOUS_ACTIVITY);
+            assertThat(rejected.detail()).isEqualTo(expectedCandidates);
+        });
+    }
+
+    /**
+     * The assembler prices every package from the snapshot and skips items it cannot find, so a snapshot
+     * that no longer covers the plan would let one applied op quietly delete activities from packages the
+     * batch never named. The whole batch is refused instead and the plan handed back exactly as it came.
+     */
+    @Test
+    void aSnapshotMissingPlanActivities_refusesTheWholeBatch_andLeavesThePlanUntouched() {
+        String expectedSurvivor = beerSpa.name();
+        ComposedPlan plan = basePlan();
+        List<CatalogActivity> staleCatalog = catalog.stream()
+                .filter(entry -> !entry.id().equals(beerSpa.id()))
+                .toList();
+
+        EditOutcome outcome = editor.apply(plan, brief, staleCatalog,
+                List.of(add(nightClub.name(), Tier.MEDIUM, null, null)));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.op()).isEqualTo(EditOp.ADD);
+            assertThat(rejected.activityName()).isEqualTo(nightClub.name());
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.INTERNAL);
+            assertThat(rejected.detail()).contains("catalog snapshot");
+        });
+        assertThat(outcome.plan()).isSameAs(plan);
+        // PREMIUM was never targeted; without the guard the re-assembly would have dropped its Beer Spa line
+        assertThat(namesIn(outcome.plan(), Tier.PREMIUM)).contains(expectedSurvivor);
+    }
+
+    /**
+     * Degraded and fallback plans routinely ship with violations of their own (an empty middle day is the
+     * common one), so rejecting on any violation present after the op left those packages permanently
+     * un-editable — behind a {@code WOULD_BREAK_SCHEDULE} blaming the edit for a rule the plan already
+     * broke. Only what the op introduces counts.
+     */
+    @Test
+    void aPreExistingViolation_doesNotBlockAnEdit_butANewOneStillDoes() {
+        String expectedAdded = escapeRoom.name();
+        String expectedKept = beerBike.name();
+        Brief fourDayBrief = new Brief(4, TRAVELERS, List.of(), "stag weekend", null, null,
+                DayEdge.MORNING, DayEdge.EVENING, null);
+        ComposedPlan degraded = planOf(fourDayBrief, pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa)), day(2),
+                day(3, item(Slot.MORNING, beerBike)), day(4, item(Slot.MORNING, riverCruise))));
+
+        EditOutcome added = editor.apply(degraded, fourDayBrief, catalog,
+                List.of(add(expectedAdded, Tier.BASIC, 1, Slot.AFTERNOON)));
+        EditOutcome emptiedAnotherDay = editor.apply(degraded, fourDayBrief, catalog,
+                List.of(remove(expectedKept, Tier.BASIC)));
+
+        assertThat(added.rejected()).isEmpty();
+        assertThat(added.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.dayNumber()).isEqualTo(1);
+            assertThat(applied.slot()).isEqualTo(Slot.AFTERNOON);
+        });
+        assertThat(namesIn(added.plan(), Tier.BASIC)).contains(expectedAdded);
+        assertThat(emptiedAnotherDay.anyApplied()).isFalse();
+        assertThat(emptiedAnotherDay.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.WOULD_BREAK_SCHEDULE);
+            assertThat(rejected.detail()).startsWith(ViolationCode.EMPTY_DAY.name()).contains("day 3");
+        });
+        assertThat(namesIn(emptiedAnotherDay.plan(), Tier.BASIC)).contains(expectedKept);
     }
 
     @Test

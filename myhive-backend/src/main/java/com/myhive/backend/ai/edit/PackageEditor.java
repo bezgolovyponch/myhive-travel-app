@@ -10,11 +10,14 @@ import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.PlanDrafts;
 import com.myhive.backend.ai.plan.PlanValidator;
 import com.myhive.backend.ai.plan.Violation;
+import com.myhive.backend.ai.plan.ViolationCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,6 +37,7 @@ import java.util.UUID;
  * is ignored here — once an organizer edits a package by hand, the tiers may legitimately cross.
  */
 @Component
+@Slf4j
 public class PackageEditor {
 
     /** Activities of these categories read as evening plans, so they are offered the late slots first. */
@@ -51,15 +55,57 @@ public class PackageEditor {
     }
 
     public EditOutcome apply(ComposedPlan plan, Brief brief, List<CatalogActivity> catalog, List<EditRequest> edits) {
+        List<EditRequest> batch = edits == null ? List.of() : edits;
         Map<UUID, CatalogActivity> catalogById = indexById(catalog);
+        List<UUID> missing = idsMissingFromCatalog(plan, catalogById);
+        if (!missing.isEmpty()) {
+            // The closing re-assembly rebuilds every package from the snapshot and silently drops items it
+            // cannot price, so a snapshot that no longer covers the plan would let one edit delete
+            // activities from packages nobody touched. Nothing is worth that: the batch is refused whole.
+            log.warn("planner edit batch refused: {} plan activities are missing from the catalog snapshot {}",
+                    missing.size(), missing);
+            return new EditOutcome(plan, List.of(), allRejected(batch,
+                    missing.size() + " activities in the plan are not in the catalog snapshot"));
+        }
         PlanDraft working = PlanDrafts.fromComposed(plan);
         List<AppliedEdit> applied = new ArrayList<>();
         List<RejectedEdit> rejected = new ArrayList<>();
-        for (EditRequest edit : edits == null ? List.<EditRequest>of() : edits) {
+        for (EditRequest edit : batch) {
             working = applyEdit(working, edit, brief, catalog, catalogById, applied, rejected);
+        }
+        if (applied.isEmpty()) {
+            // Nothing changed, so there is nothing to re-price: hand back the very plan that came in
+            // rather than a round-trip through the assembler.
+            return new EditOutcome(plan, List.of(), rejected);
         }
         ComposedPlan edited = assembler.assemble(working, brief, catalogById, plan.degraded()).plan();
         return new EditOutcome(edited, applied, rejected);
+    }
+
+    /** Every op refused for the same editor-side reason, before any of them was looked at. */
+    private static List<RejectedEdit> allRejected(List<EditRequest> edits, String detail) {
+        List<RejectedEdit> rejected = new ArrayList<>();
+        for (EditRequest edit : edits) {
+            rejected.add(new RejectedEdit(edit.op(), PlanAssembler.clean(edit.activity()), edit.packageKey(),
+                    EditRejectionReason.INTERNAL, detail));
+        }
+        return rejected;
+    }
+
+    /** The plan's activity ids the snapshot cannot price; logged as ids only, never as names. */
+    private static List<UUID> idsMissingFromCatalog(ComposedPlan plan, Map<UUID, CatalogActivity> catalogById) {
+        List<UUID> missing = new ArrayList<>();
+        for (ComposedPlan.PackageResult p : plan.packages()) {
+            for (ComposedPlan.DayResult day : p.days()) {
+                for (ComposedPlan.ItemResult item : day.items()) {
+                    if (item.activityId() != null && !catalogById.containsKey(item.activityId())
+                            && !missing.contains(item.activityId())) {
+                        missing.add(item.activityId());
+                    }
+                }
+            }
+        }
+        return missing;
     }
 
     private PlanDraft applyEdit(PlanDraft working, EditRequest edit, Brief brief, List<CatalogActivity> catalog,
@@ -124,16 +170,36 @@ public class PackageEditor {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), target, outcome.reason(), outcome.detail()));
             return working;
         }
-        List<Violation> violations = validator.validatePackage(outcome.pkg(), brief, catalogById);
-        if (!violations.isEmpty()) {
-            Violation first = violations.get(0);
+        Violation introduced = violationIntroducedBy(current.get(), outcome.pkg(), brief, catalogById);
+        if (introduced != null) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), target, EditRejectionReason.WOULD_BREAK_SCHEDULE,
-                    first.code() + ": " + first.detail()));
+                    introduced.code() + ": " + introduced.detail()));
             return working;
         }
         applied.add(new AppliedEdit(edit.op(), activity.name(), replacement == null ? null : replacement.name(), target,
                 outcome.dayNumber(), outcome.slot(), outcome.placedActivityId()));
         return PlanDrafts.replacePackage(working, outcome.pkg());
+    }
+
+    /**
+     * The first rule the op broke that was not already broken, or null when it broke nothing new. The
+     * package before the op has to be checked too: a degraded or fallback plan routinely ships with
+     * violations of its own (an empty middle day, a tier that is not distinct), and refusing on any
+     * violation present afterwards made every such package permanently un-editable — with a
+     * {@code WOULD_BREAK_SCHEDULE} blaming the organizer's edit for a rule the plan already broke.
+     */
+    private Violation violationIntroducedBy(PlanDraft.PackageDraft before, PlanDraft.PackageDraft after, Brief brief,
+            Map<UUID, CatalogActivity> catalogById) {
+        Set<ViolationKey> existing = new HashSet<>();
+        for (Violation violation : validator.validatePackage(before, brief, catalogById)) {
+            existing.add(ViolationKey.of(violation));
+        }
+        for (Violation violation : validator.validatePackage(after, brief, catalogById)) {
+            if (!existing.contains(ViolationKey.of(violation))) {
+                return violation;
+            }
+        }
+        return null;
     }
 
     private static Outcome applyRemove(PlanDraft.PackageDraft pkg, CatalogActivity activity) {
@@ -205,7 +271,7 @@ public class PackageEditor {
             if (day.items().size() + 1 > pkg.key().maxItemsPerDay()) {
                 continue;
             }
-            int minutes = minutesOf(day, catalogById) + activity.durationMinutes()
+            int minutes = PlanValidator.dayMinutes(day, catalogById) + activity.durationMinutes()
                     + (day.items().isEmpty() ? 0 : PlanValidator.BUFFER_MINUTES);
             if (minutes > pkg.key().maxMinutesPerDay()) {
                 continue;
@@ -245,18 +311,6 @@ public class PackageEditor {
         return Optional.of(Outcome.ok(withDays(pkg, days), freedDay, freedSlot, null));
     }
 
-    /** The day's catalog durations plus the same inter-activity buffer {@link PlanValidator} charges. */
-    private static int minutesOf(PlanDraft.DayDraft day, Map<UUID, CatalogActivity> catalogById) {
-        int minutes = 0;
-        for (PlanDraft.ItemDraft item : day.items()) {
-            CatalogActivity activity = catalogById.get(item.activityId());
-            if (activity != null) {
-                minutes += activity.durationMinutes();
-            }
-        }
-        return minutes + PlanValidator.BUFFER_MINUTES * Math.max(0, day.items().size() - 1);
-    }
-
     private static List<Slot> slotPreference(CatalogActivity activity) {
         for (String slug : activity.categorySlugs()) {
             if (slug != null && EVENING_CATEGORY_SLUGS.contains(slug.toLowerCase(Locale.ROOT))) {
@@ -274,17 +328,23 @@ public class PackageEditor {
         return new PlanDraft.DayDraft(day.dayNumber(), day.title(), day.summary(), items);
     }
 
+    /**
+     * A name that resolves is replaced by the catalog's own spelling; one that does not is reported as the
+     * model wrote it, so it is cleaned first — this is the one string in a report that never passed through
+     * {@link PlanAssembler}, and it is both stored and rendered into the chat.
+     */
     private static CatalogActivity resolveOrReject(EditRequest edit, String name, List<CatalogActivity> catalog,
             List<RejectedEdit> rejected) {
         return switch (ActivityNameResolver.resolve(name, catalog)) {
             case ActivityNameResolver.Found found -> found.activity();
             case ActivityNameResolver.Ambiguous ambiguous -> {
-                rejected.add(new RejectedEdit(edit.op(), name, null, EditRejectionReason.AMBIGUOUS_ACTIVITY,
-                        String.join(", ", ambiguous.candidates())));
+                rejected.add(new RejectedEdit(edit.op(), PlanAssembler.clean(name), null,
+                        EditRejectionReason.AMBIGUOUS_ACTIVITY, String.join(", ", ambiguous.candidates())));
                 yield null;
             }
             case ActivityNameResolver.NotFound ignored -> {
-                rejected.add(new RejectedEdit(edit.op(), name, null, EditRejectionReason.UNKNOWN_ACTIVITY, name));
+                String cleaned = PlanAssembler.clean(name);
+                rejected.add(new RejectedEdit(edit.op(), cleaned, null, EditRejectionReason.UNKNOWN_ACTIVITY, cleaned));
                 yield null;
             }
         };
@@ -353,6 +413,19 @@ public class PackageEditor {
     private static void truncate(List<?> list, int size) {
         if (list.size() > size) {
             list.subList(size, list.size()).clear();
+        }
+    }
+
+    /**
+     * What makes two violations "the same rule broken in the same place". {@code Violation} carries no
+     * slot, so a day is as fine-grained as this gets: a second {@code SLOT_TAKEN} on a day that already
+     * had one reads as pre-existing, which is the safe way round — the alternative refuses edits to
+     * packages the planner itself produced.
+     */
+    private record ViolationKey(ViolationCode code, Tier packageKey, Integer dayNumber) {
+
+        static ViolationKey of(Violation violation) {
+            return new ViolationKey(violation.code(), violation.packageKey(), violation.dayNumber());
         }
     }
 
