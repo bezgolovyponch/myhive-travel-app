@@ -3,8 +3,11 @@ package com.myhive.backend.ai.controller;
 import com.jayway.jsonpath.JsonPath;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.ai.AiTestConfig;
+import com.myhive.backend.ai.edit.EditMessages;
 import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditRejectionReason;
 import com.myhive.backend.ai.edit.EditRequest;
+import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.llm.AiProperties;
 import com.myhive.backend.ai.llm.ChatTurnResult;
@@ -56,6 +59,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -92,6 +96,9 @@ class AiPlannerControllerIntegrationTest {
 
     private static final String CREATE_BODY = """
             {"destinationSlug": "%s", "locale": "en"}
+            """;
+    private static final String CREATE_IN_LOCALE_BODY = """
+            {"destinationSlug": "%s", "locale": "%s"}
             """;
     private static final String CREATE_WITH_MESSAGE_BODY = """
             {"destinationSlug": "%s", "locale": "en", "initialMessage": "%s"}
@@ -432,7 +439,83 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
                 // Explicit nulls, not absent keys: this DTO is serialised without NON_NULL inclusion.
                 .andExpect(jsonPath("$.edit.generationId").value(nullValue()))
-                .andExpect(jsonPath("$.generation").value(nullValue()));
+                .andExpect(jsonPath("$.generation").value(nullValue()))
+                // Both assistant messages of the turn: the reply and the "let us build them first" note.
+                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages[0].content", is("Let us sort the dates first.")))
+                .andExpect(jsonPath("$.messages[1].content", is(EditMessages.noPackagesYet("en"))))
+                .andExpect(jsonPath("$.message.content", is(EditMessages.noPackagesYet("en"))));
+    }
+
+    /**
+     * A partially rejected batch writes two assistant messages, and {@code message} is only the last of
+     * them - so a client reading that field alone lost the model's actual answer on exactly the turns
+     * that needed explaining. {@code messages} carries the whole turn.
+     */
+    @Test
+    void editTurn_withOneOpRejected_carriesEveryAssistantMessageOfTheTurn() throws Exception {
+        String expectedReply = "Swapped one of them.";
+        String expectedUnknownName = "Hot Air Balloon";
+        String expectedApplied = activities.get(BASIC_INDEX).getName();
+        String expectedReplacement = activities.get(REPLACEMENT_INDEX).getName();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        llm.queueChat(chatTurn(expectedReply, Brief.empty(), List.of(
+                        replaceRequest(expectedApplied, expectedReplacement),
+                        replaceRequest(expectedUnknownName, expectedReplacement))))
+                .queueRefresh(new TextRefreshResult(
+                        Map.of(Tier.BASIC, new PackageTexts("Rebuilt around the swap", Map.of(), Map.of())),
+                        new LlmUsage("fake-chat", 5, 7, 3L)));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one and the balloon ride")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected[0].reason", is("UNKNOWN_ACTIVITY")))
+                .andExpect(jsonPath("$.edit.rejected[0].activity", is(expectedUnknownName)))
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages[0].role", is("ASSISTANT")))
+                .andExpect(jsonPath("$.messages[0].content", is(expectedReply)))
+                .andExpect(jsonPath("$.messages[1].content", containsString(expectedUnknownName)))
+                // unchanged meaning: the last message of the turn, which is the rejection line
+                .andExpect(jsonPath("$.message.content", containsString(expectedUnknownName)));
+    }
+
+    /** The whole edit path in German: the reply, the stored row and the rejection line the group reads. */
+    @Test
+    void editTurn_inGerman_servesTheGermanRejectionLine() throws Exception {
+        String expectedReply = "Getauscht.";
+        String expectedUnknownName = "Heissluftballon";
+        String expectedApplied = activities.get(BASIC_INDEX).getName();
+        String expectedReplacement = activities.get(REPLACEMENT_INDEX).getName();
+        String token = createSession("de");
+        queueReadyTurn("Ich baue es!");
+        sendMessage(token, "1 Tag, 4 Leute, Bars");
+        awaitGeneration(latestGenerationId(token));
+        llm.queueChat(chatTurn(expectedReply, Brief.empty(), List.of(
+                        replaceRequest(expectedApplied, expectedReplacement),
+                        replaceRequest(expectedUnknownName, expectedReplacement))))
+                .queueRefresh(new TextRefreshResult(
+                        Map.of(Tier.BASIC, new PackageTexts("Neu gebaut", Map.of(), Map.of())),
+                        new LlmUsage("fake-chat", 5, 7, 3L)));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("tausch das erste und den Ballon")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.generation.status", is(AiGenerationStatus.READY.name())))
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected[0].reason", is("UNKNOWN_ACTIVITY")))
+                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages[0].content", is(expectedReply)))
+                .andExpect(jsonPath("$.messages[1].content",
+                        is(EditMessages.rejectionSummary("de", List.of(new RejectedEdit(EditOp.REPLACE,
+                                expectedUnknownName, null, EditRejectionReason.UNKNOWN_ACTIVITY, null))))))
+                .andExpect(jsonPath("$.messages[1].content", containsString("Katalog")));
     }
 
     /**
@@ -718,9 +801,17 @@ class AiPlannerControllerIntegrationTest {
     }
 
     private String createSession() throws Exception {
+        return createSessionWithBody(CREATE_BODY.formatted(destination.getSlug()));
+    }
+
+    private String createSession(String locale) throws Exception {
+        return createSessionWithBody(CREATE_IN_LOCALE_BODY.formatted(destination.getSlug(), locale));
+    }
+
+    private String createSessionWithBody(String body) throws Exception {
         MvcResult result = mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
                         .header("CF-Connecting-IP", testClientIp)
-                        .content(CREATE_BODY.formatted(destination.getSlug())))
+                        .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status", is("COLLECTING")))
                 .andExpect(jsonPath("$.messages", hasSize(1)))

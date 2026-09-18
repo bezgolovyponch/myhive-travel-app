@@ -4,8 +4,10 @@ import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.dto.AiDtoMapper;
+import com.myhive.backend.ai.edit.EditMessages;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRejectionReason;
+import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.exception.AiConflictException;
 import com.myhive.backend.ai.exception.AiDisabledException;
@@ -139,7 +141,7 @@ class AiSessionServiceTest {
             return saved;
         });
         // view() is the last read a turn makes before it may submit a job, so it marks the boundary.
-        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(any())).thenAnswer(inv -> {
+        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(any())).thenAnswer(inv -> {
             callOrder.add("view");
             return Optional.empty();
         });
@@ -202,13 +204,19 @@ class AiSessionServiceTest {
                 PlannerState.GENERATION_ID, parentGenerationId.toString()));
     }
 
-    /** The GENERATED row an edit hangs off; {@code edited(...)} re-reads it to copy the brief snapshot. */
-    private AiGeneration storedParent(AiSession session) {
+    /**
+     * The GENERATED row an edit hangs off; {@code edited(...)} re-reads it to copy the brief snapshot, and
+     * a selection re-reads its stored plan. It is put in {@code savedGenerations} so the lookups
+     * {@link #answerEditedGenerationLookups()} installs can find it alongside the rows an edit creates.
+     */
+    private AiGeneration storedParent(AiSession session, ComposedPlan plan) {
         AiGeneration parent = new AiGeneration();
         parent.setId(UUID.randomUUID());
         parent.setSession(session);
         parent.setStatus(AiGenerationStatus.READY);
         parent.setBriefSnapshot(JsonCodec.write(editBrief()));
+        parent.setResult(JsonCodec.write(plan));
+        savedGenerations.add(parent);
         when(generationRepository.findById(parent.getId())).thenReturn(Optional.of(parent));
         return parent;
     }
@@ -496,7 +504,7 @@ class AiSessionServiceTest {
         AiSession session = startedSession();
         AiGeneration expectedLatest = new AiGeneration();
         expectedLatest.setId(UUID.randomUUID());
-        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId()))
+        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId()))
                 .thenReturn(Optional.of(expectedLatest));
 
         AiSessionService.SessionView view = service.get(session.getToken());
@@ -516,9 +524,9 @@ class AiSessionServiceTest {
         expectedLatest.setId(UUID.randomUUID());
         expectedLatest.setStatus(AiGenerationStatus.FAILED);
         AiGeneration expectedLatestReady = readyGeneration(session, Tier.BASIC, UUID.randomUUID());
-        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId()))
+        when(generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId()))
                 .thenReturn(Optional.of(expectedLatest));
-        when(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDesc(session.getId(),
+        when(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(session.getId(),
                 AiGenerationStatus.READY)).thenReturn(Optional.of(expectedLatestReady));
 
         AiSessionService.SessionView view = service.get(session.getToken());
@@ -589,9 +597,9 @@ class AiSessionServiceTest {
         int expectedEditCount = 1;
         CatalogActivity expectedReplaced = catalogActivity("Beer Bike", "beer-bike");
         CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
-        AiGeneration parent = storedParent(session);
-        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), planWith(expectedReplaced),
-                parent.getId());
+        ComposedPlan plan = planWith(expectedReplaced);
+        AiGeneration parent = storedParent(session, plan);
+        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), plan, parent.getId());
         llm.queueChat(editTurn("Swapped it.", expectedReplaced.name(), expectedReplacement.name()))
                 .queueRefresh(refreshedTexts("Rebuilt around the swap"));
         answerEditedGenerationLookups();
@@ -622,8 +630,9 @@ class AiSessionServiceTest {
         AiSession session = startedSession();
         int expectedEditCount = 0;
         CatalogActivity inThePlan = catalogActivity("Beer Bike", "beer-bike");
-        AiGeneration parent = storedParent(session);
-        parkWithPackages(session, List.of(inThePlan), planWith(inThePlan), parent.getId());
+        ComposedPlan plan = planWith(inThePlan);
+        AiGeneration parent = storedParent(session, plan);
+        parkWithPackages(session, List.of(inThePlan), plan, parent.getId());
         llm.queueChat(editTurn("I could not find that one.", "Hot Air Balloon", inThePlan.name()));
         savedGenerations.clear();
         editCountsWhenSaved.clear();
@@ -681,9 +690,9 @@ class AiSessionServiceTest {
         AiSession session = startedSession();
         CatalogActivity expectedReplaced = catalogActivity("Beer Bike", "beer-bike");
         CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
-        AiGeneration parent = storedParent(session);
-        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), planWith(expectedReplaced),
-                parent.getId());
+        ComposedPlan plan = planWith(expectedReplaced);
+        AiGeneration parent = storedParent(session, plan);
+        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), plan, parent.getId());
         session.setStatus(AiSessionStatus.FAILED);
         llm.queueChat(editTurn("Swapped it.", expectedReplaced.name(), expectedReplacement.name()))
                 .queueRefresh(refreshedTexts("Rebuilt around the swap"));
@@ -696,8 +705,10 @@ class AiSessionServiceTest {
     }
 
     /**
-     * The row was stored and the report says so; only the read-back came up empty. That is worth a log
-     * line and a report-only answer, never a 500 over a turn whose edit actually landed.
+     * The row was stored and the report says so; only the read-back came up empty. This pins the
+     * log-and-continue behaviour rather than closing a 500 — the lookup answers with an empty
+     * {@code Optional}, it does not throw — so the turn hands back the report and lets the client read
+     * the session again for the packages. The budget is spent either way: the write happened.
      */
     @Test
     void editTurn_whoseStoredRowCannotBeReadBack_stillReturnsTheReport() {
@@ -705,9 +716,9 @@ class AiSessionServiceTest {
         int expectedEditCount = 1;
         CatalogActivity expectedReplaced = catalogActivity("Beer Bike", "beer-bike");
         CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
-        AiGeneration parent = storedParent(session);
-        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), planWith(expectedReplaced),
-                parent.getId());
+        ComposedPlan plan = planWith(expectedReplaced);
+        AiGeneration parent = storedParent(session, plan);
+        parkWithPackages(session, List.of(expectedReplaced, expectedReplacement), plan, parent.getId());
         llm.queueChat(editTurn("Swapped it.", expectedReplaced.name(), expectedReplacement.name()))
                 .queueRefresh(refreshedTexts("Rebuilt around the swap"));
         when(generationRepository.findWithSessionById(any())).thenReturn(Optional.empty());
@@ -730,8 +741,9 @@ class AiSessionServiceTest {
         int expectedEditsLeft = 0;
         CatalogActivity inThePlan = catalogActivity("Beer Bike", "beer-bike");
         CatalogActivity replacement = catalogActivity("Club Crawl", "club-crawl");
-        AiGeneration parent = storedParent(session);
-        parkWithPackages(session, List.of(inThePlan, replacement), planWith(inThePlan), parent.getId());
+        ComposedPlan plan = planWith(inThePlan);
+        AiGeneration parent = storedParent(session, plan);
+        parkWithPackages(session, List.of(inThePlan, replacement), plan, parent.getId());
         session.setEditCount(AiSessionService.MAX_EDITS_PER_SESSION);
         llm.queueChat(editTurn("That is as far as I can take it.", inThePlan.name(), replacement.name()));
         savedGenerations.clear();
@@ -750,6 +762,105 @@ class AiSessionServiceTest {
         assertThat(session.getEditCount()).isEqualTo(AiSessionService.MAX_EDITS_PER_SESSION);
         assertThat(mapper.sessionState(service.get(session.getToken())).limits().editsLeft())
                 .isEqualTo(expectedEditsLeft);
+    }
+
+    /**
+     * Selecting an older READY generation is the documented undo, so the graph has to be moved onto that
+     * row whole: the cart, the chat and the next edit's parent all have to mean the same plan. Stamping
+     * the id alone left the next edit applied to the packages the undone edit produced while filed under
+     * the row the organizer went back to.
+     */
+    @Test
+    void select_onTheParentAfterAnEdit_putsThatPlanBack_andTheNextEditHangsOffIt() {
+        AiSession session = startedSession();
+        CatalogActivity expectedInTheCart = catalogActivity("Beer Bike", "beer-bike");
+        CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
+        ComposedPlan parentPlan = planWith(expectedInTheCart);
+        AiGeneration parent = storedParent(session, parentPlan);
+        parkWithPackages(session, List.of(expectedInTheCart, expectedReplacement), parentPlan, parent.getId());
+        llm.queueChat(editTurn("Swapped it.", expectedInTheCart.name(), expectedReplacement.name()))
+                .queueRefresh(refreshedTexts("Rebuilt around the swap"))
+                .queueChat(editTurn("Swapped it again.", expectedInTheCart.name(), expectedReplacement.name()))
+                .queueRefresh(refreshedTexts("Rebuilt around the swap again"));
+        answerEditedGenerationLookups();
+        service.message(session.getToken(), "swap the bike for the crawl");
+
+        AiSessionService.Selection selection = service.select(parent.getId(), Tier.BASIC);
+        AiSessionService.TurnOutcome afterUndo = service.message(session.getToken(), "swap it again");
+
+        assertThat(selection.activityIds()).containsExactly(expectedInTheCart.id());
+        // The swap could only apply a second time because the parent's plan is back in the state; against
+        // the edited one the Beer Bike it names is no longer there and it would be NOT_IN_PACKAGE.
+        assertThat(afterUndo.editReport()).hasValueSatisfying(report -> {
+            assertThat(report.rejected()).isEmpty();
+            assertThat(report.applied()).hasSize(1);
+        });
+        assertThat(afterUndo.editedGeneration()).hasValueSatisfying(edited ->
+                assertThat(edited.getParentId()).isEqualTo(parent.getId()));
+    }
+
+    /**
+     * A rejected op adds a second assistant message after the model's own reply, and only the last one
+     * used to reach the client - so on exactly the turns that needed explaining, the model's answer was
+     * dropped and the group saw the template line alone.
+     */
+    @Test
+    void editTurn_withARejectedOp_handsBackEveryAssistantMessageOfTheTurn() {
+        AiSession session = startedSession();
+        String expectedReply = "I could not find that one.";
+        String expectedUnknownName = "Hot Air Balloon";
+        CatalogActivity inThePlan = catalogActivity("Beer Bike", "beer-bike");
+        ComposedPlan plan = planWith(inThePlan);
+        AiGeneration parent = storedParent(session, plan);
+        parkWithPackages(session, List.of(inThePlan), plan, parent.getId());
+        llm.queueChat(editTurn(expectedReply, expectedUnknownName, inThePlan.name()));
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "swap the balloon ride");
+
+        assertThat(outcome.assistantMessages()).hasSize(2);
+        assertThat(outcome.assistantMessages().get(0).content()).isEqualTo(expectedReply);
+        assertThat(outcome.assistantMessages().get(1).content()).contains(expectedUnknownName);
+    }
+
+    @Test
+    void editBeforeAnyPackages_handsBackBothTheReplyAndTheNote() {
+        AiSession session = startedSession();
+        String expectedReply = "Sure - what would you like changed?";
+        String expectedNote = EditMessages.noPackagesYet("en");
+        llm.queueChat(editTurn(expectedReply, "Beer Bike", "Club Crawl"));
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "swap them");
+
+        assertThat(outcome.assistantMessages()).extracting(ChatMessage::content)
+                .containsExactly(expectedReply, expectedNote);
+    }
+
+    /** An ordinary turn hands back its one reply, and never a message an earlier turn already produced. */
+    @Test
+    void anOrdinaryTurn_handsBackOnlyItsOwnReply() {
+        AiSession session = startedSession();
+        String expectedReply = "Sure, tell me more.";
+        llm.queueChat(turn("How many days?", Brief.empty()), turn(expectedReply, Brief.empty()));
+        service.message(session.getToken(), "hello");
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "anything else to know?");
+
+        assertThat(outcome.assistantMessages()).extracting(ChatMessage::content).containsExactly(expectedReply);
+    }
+
+    /** A report belongs to the turn that produced it, and an explicit "build it now" is not that turn. */
+    @Test
+    void requestGeneration_clearsThePreviousTurnsEditReport() {
+        AiSession session = startedSession();
+        graph.update(session.getToken(), Map.of(
+                PlannerState.BRIEF, JsonCodec.write(readyBrief()),
+                PlannerState.EDIT_REPORT, JsonCodec.write(EditReport.allRejected(
+                        List.of(new EditRequest(EditOp.REPLACE, "Beer Bike", "Club Crawl", null, null, null)),
+                        EditRejectionReason.NO_FREE_SLOT))));
+
+        service.requestGeneration(session.getToken());
+
+        assertThat(graph.snapshot(session.getToken()).state().editReport()).isEmpty();
     }
 
     @Test

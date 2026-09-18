@@ -13,14 +13,22 @@ import java.util.UUID;
 
 public interface AiGenerationRepository extends JpaRepository<AiGeneration, UUID> {
 
-    Optional<AiGeneration> findFirstBySessionIdOrderByCreatedAtDesc(UUID sessionId);
+    /**
+     * The newest generation of a chat. {@code createdAt} alone does not order these: an edit turn stamps
+     * its row with {@code LocalDateTime.now()} on a clock whose resolution is coarser than the turn that
+     * writes it, so an edit landing in the same tick as its parent made "newest" a coin toss and a token
+     * restore could come back to the pre-edit packages. The id breaks the tie deterministically.
+     */
+    Optional<AiGeneration> findFirstBySessionIdOrderByCreatedAtDescIdDesc(UUID sessionId);
 
     /**
      * The newest generation that actually produced packages. A regeneration that ends FAILED or is
      * rejected as AI_BUSY is the newest row, so restoring a chat from its token needs this one too -
-     * otherwise the packages an earlier generation delivered become unreachable.
+     * otherwise the packages an earlier generation delivered become unreachable. Tie-broken on the id
+     * for the same reason as above.
      */
-    Optional<AiGeneration> findFirstBySessionIdAndStatusOrderByCreatedAtDesc(UUID sessionId, AiGenerationStatus status);
+    Optional<AiGeneration> findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(UUID sessionId,
+            AiGenerationStatus status);
 
     /**
      * Generation jobs run on a pool thread with no open persistence context, so the session they

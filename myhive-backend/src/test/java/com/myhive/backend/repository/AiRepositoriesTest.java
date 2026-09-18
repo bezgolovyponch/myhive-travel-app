@@ -65,7 +65,7 @@ class AiRepositoriesTest {
         generationRepository.save(expectedLatest);
 
         assertThat(sessionRepository.findByToken(session.getToken())).isPresent();
-        assertThat(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId()))
+        assertThat(generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId()))
                 .map(AiGeneration::getId).contains(expectedLatest.getId());
         assertThat(generationRepository.existsBySessionIdAndStatusIn(session.getId(),
                 List.of(AiGenerationStatus.QUEUED, AiGenerationStatus.RUNNING))).isTrue();
@@ -100,6 +100,12 @@ class AiRepositoriesTest {
         assertThat(staleSessions).extracting(AiSession::getId).containsExactly(expectedStaleSession.getId());
     }
 
+    /**
+     * The child row and its {@code parent_id}. The column is a plain UUID on the entity — there is no JPA
+     * relation — so nothing here enforces that the parent exists: on Postgres the FK and its
+     * {@code ON DELETE SET NULL} come from {@code V8__ai_planner_edits.sql}, which H2 never runs
+     * (dev and tests keep Flyway off and build the schema from the entities).
+     */
     @Test
     void editedGeneration_isTheNewestReady_andKeepsItsParentLink() {
         AiSession session = newSession();
@@ -121,7 +127,7 @@ class AiRepositoriesTest {
         generationRepository.saveAndFlush(expectedEdited);
         entityManager.clear();
 
-        assertThat(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDesc(session.getId(),
+        assertThat(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(session.getId(),
                 AiGenerationStatus.READY)).map(AiGeneration::getId).contains(expectedEdited.getId());
         AiGeneration reloadedGenerated = generationRepository.findById(generated.getId()).orElseThrow();
         AiGeneration reloadedEdited = generationRepository.findById(expectedEdited.getId()).orElseThrow();
@@ -130,6 +136,36 @@ class AiRepositoriesTest {
         assertThat(reloadedEdited.getKind()).isEqualTo(AiGenerationKind.EDITED);
         assertThat(reloadedEdited.getParentId()).isEqualTo(generated.getId());
         assertThat(reloadedEdited.getEditReport()).isEqualTo(expectedEditReport);
+    }
+
+    /**
+     * An edit turn stamps its row with {@code LocalDateTime.now()} while the parent it hangs off may have
+     * been written in the very same tick, and "the newest generation" then decided which packages a token
+     * restore came back to. The id settles it, so the answer is at least deterministic rather than a coin
+     * toss between a plan and its edit.
+     */
+    @Test
+    void generationsWrittenInTheSameTick_areOrderedDeterministically() {
+        AiSession session = newSession();
+        LocalDateTime sameInstant = LocalDateTime.now();
+        AiGeneration first = readyGeneration(session, sameInstant);
+        AiGeneration second = readyGeneration(session, sameInstant);
+        UUID expectedNewestId = first.getId().compareTo(second.getId()) > 0 ? first.getId() : second.getId();
+        entityManager.clear();
+
+        assertThat(generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId()))
+                .map(AiGeneration::getId).contains(expectedNewestId);
+        assertThat(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(session.getId(),
+                AiGenerationStatus.READY)).map(AiGeneration::getId).contains(expectedNewestId);
+    }
+
+    private AiGeneration readyGeneration(AiSession session, LocalDateTime createdAt) {
+        AiGeneration generation = new AiGeneration();
+        generation.setSession(session);
+        generation.setStatus(AiGenerationStatus.READY);
+        generation.setBriefSnapshot("{}");
+        generation.setCreatedAt(createdAt);
+        return generationRepository.saveAndFlush(generation);
     }
 
     @Test
@@ -154,6 +190,6 @@ class AiRepositoriesTest {
         entityManager.clear();
 
         assertThat(deletedCount).isEqualTo(expectedDeletedCount);
-        assertThat(generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId())).isEmpty();
+        assertThat(generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId())).isEmpty();
     }
 }

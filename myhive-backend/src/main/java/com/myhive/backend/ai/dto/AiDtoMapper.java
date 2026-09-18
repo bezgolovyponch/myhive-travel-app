@@ -67,7 +67,8 @@ public class AiDtoMapper {
                 generation == null ? null : generation(generation, view.session().getToken()),
                 outcome.editReport()
                         .map(report -> edit(report, outcome.editedGeneration().map(AiGeneration::getId).orElse(null)))
-                        .orElse(null));
+                        .orElse(null),
+                outcome.assistantMessages().stream().map(AiDtoMapper::message).toList());
     }
 
     /** For a generation loaded with its session attached; {@link #sessionState} uses the private overload. */
@@ -130,13 +131,17 @@ public class AiDtoMapper {
         if (generation.getKind() != AiGenerationKind.EDITED || generation.getEditReport() == null) {
             return null;
         }
+        EditReport report;
+        // Only the read is guarded: mapping a report that did parse is total, and a bug there is a bug
+        // worth seeing rather than a second row silently served without its report.
         try {
-            return edit(JsonCodec.read(generation.getEditReport(), EditReport.class), generation.getId());
+            report = JsonCodec.read(generation.getEditReport(), EditReport.class);
         } catch (RuntimeException e) {
             log.warn("planner edit report on generation {} is unreadable, serving the row without it: {}",
                     generation.getId(), e.getClass().getName());
             return null;
         }
+        return edit(report, generation.getId());
     }
 
     private static EditDTO edit(EditReport report, UUID generationId) {
