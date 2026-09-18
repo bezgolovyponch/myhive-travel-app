@@ -25,7 +25,7 @@ class VoteReminderTemplateRenderTest {
         context.setVariable("pasteText", pasteText);
         context.setVariable("inviteUrl", "https://trivlu.com/vote/tok/activities?ref=invite");
         context.setVariable("dashboardUrl", "https://trivlu.com/vote/tok/waiting?manager=mgr-9");
-        context.setVariable("supportEmail", "support@trivlu.com");
+        context.setVariable("supportEmail", "info@trivlu.com");
         return context;
     }
 

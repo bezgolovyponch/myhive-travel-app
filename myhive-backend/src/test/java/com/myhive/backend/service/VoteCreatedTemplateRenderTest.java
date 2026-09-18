@@ -48,7 +48,7 @@ class VoteCreatedTemplateRenderTest {
         context.setVariable("session", session);
         context.setVariable("inviteUrl", "https://trivlu.com/vote/tok/activities?ref=invite");
         context.setVariable("dashboardUrl", "https://trivlu.com/vote/tok/waiting?manager=mgr-9");
-        context.setVariable("supportEmail", "support@trivlu.com");
+        context.setVariable("supportEmail", "info@trivlu.com");
         context.setVariable("startDate", "August 1, 2026");
         context.setVariable("endDate", "August 10, 2026");
         context.setVariable("expiresAt", "August 2, 2026 at 12:00 UTC");
@@ -59,7 +59,7 @@ class VoteCreatedTemplateRenderTest {
                 .contains("Bali")
                 .contains("https://trivlu.com/vote/tok/waiting?manager=mgr-9")
                 .contains("https://trivlu.com/vote/tok/activities?ref=invite")
-                .contains("mailto:support@trivlu.com")
+                .contains("mailto:info@trivlu.com")
                 .contains("How it works")
                 .contains("they swipe to vote on the activities")
                 .contains("final itinerary to open in Trip Builder")
@@ -83,7 +83,7 @@ class VoteCreatedTemplateRenderTest {
         context.setVariable("session", session);
         context.setVariable("inviteUrl", "https://trivlu.com/vote/tok/activities?ref=invite");
         context.setVariable("dashboardUrl", "https://trivlu.com/vote/tok/waiting?manager=mgr-9");
-        context.setVariable("supportEmail", "support@trivlu.com");
+        context.setVariable("supportEmail", "info@trivlu.com");
         context.setVariable("startDate", "August 1, 2026");
         context.setVariable("endDate", "August 3, 2026");
         context.setVariable("expiresAt", "August 2, 2026 at 12:00 UTC");

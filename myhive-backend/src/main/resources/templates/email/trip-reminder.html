@@ -99,7 +99,7 @@
         <p class="muted">
             <span th:text="#{email.tripReminder.linkHint}">This link opens your saved trip on any device.</span>
             <span th:text="#{email.common.questions}">Questions? Email us at</span>
-            <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@trivlu.com</a>.
+            <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">info@trivlu.com</a>.
         </p>
     </div>
     <div class="footer">
@@ -107,7 +107,7 @@
         <p th:text="#{email.common.footer.tagline}">Creating unforgettable travel experiences</p>
         <p th:text="#{email.tripReminder.footer.reason}">You're getting this because you saved a trip on trivlu.com.</p>
         <p><a th:href="${unsubscribeUrl}" th:text="#{email.tripReminder.footer.unsubscribe}">Unsubscribe from trip reminders</a></p>
-        <p th:text="#{email.common.footer.support}">For support, contact us at support@trivlu.com</p>
+        <p th:text="#{email.common.footer.support}">For support, contact us at info@trivlu.com</p>
     </div>
 </div>
 </body>

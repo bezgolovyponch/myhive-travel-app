@@ -124,7 +124,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | DB      | Render        | PostgreSQL 18 (Basic-256mb); schema evolves via Hibernate `ddl-auto=update` plus Flyway versioned migrations (`src/main/resources/db/migration`, prod-only, baseline 0) for DDL Hibernate can't do, e.g. dropping NOT NULL. Requires the `spring-boot-flyway` module (Boot 4 ships Flyway auto-configuration separately) and is incompatible with `spring.jpa.defer-datasource-initialization` |
 | CDN/DNS | Cloudflare    | Proxy, DDoS protection, caching, SSL |
 | Email (send)    | Resend    | SMTP relay for transactional email (noreply@trivlu.com); itinerary/vote emails sent asynchronously off the request thread via a bounded pool, contact-form notification stays synchronous |
-| Email (receive) | Zoho Mail | Inbound mailboxes: info@ / support@ / bookings@         |
+| Email (receive) | Zoho Mail | Inbound mailboxes: info@ / bookings@                    |
 | Images  | Cloudflare R2 | S3-compatible object storage         |
 | Auth    | Auth0         | OIDC/OAuth2, roles: ADMIN, MANAGER   |
 | Payments | Stripe       | Checkout Sessions (30% deposits) + Payment Links (admin balance/add-on); webhook-driven fulfilment |

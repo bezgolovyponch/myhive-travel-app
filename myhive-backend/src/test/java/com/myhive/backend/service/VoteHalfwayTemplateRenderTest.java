@@ -28,7 +28,7 @@ class VoteHalfwayTemplateRenderTest {
                 new EmailService.VoteStandingView("Karting", 1)));
         context.setVariable("dashboardUrl", "https://trivlu.com/vote/tok/waiting?manager=mgr-9");
         context.setVariable("expiresAt", "August 2, 2026 at 12:00 UTC");
-        context.setVariable("supportEmail", "support@trivlu.com");
+        context.setVariable("supportEmail", "info@trivlu.com");
         return context;
     }
 
@@ -46,7 +46,7 @@ class VoteHalfwayTemplateRenderTest {
                 .contains("https://trivlu.com/vote/tok/waiting?manager=mgr-9")
                 .contains("See live results")
                 .contains("August 2, 2026 at 12:00 UTC")
-                .contains("mailto:support@trivlu.com")
+                .contains("mailto:info@trivlu.com")
                 .doesNotContain("??");
         assertThat(html.indexOf("Bar Crawl")).isLessThan(html.indexOf("Karting"));
     }

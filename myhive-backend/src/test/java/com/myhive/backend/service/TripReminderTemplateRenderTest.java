@@ -46,7 +46,7 @@ class TripReminderTemplateRenderTest {
         context.setVariable("restoreUrl", "https://trivlu.com/destination/prague?tab=trip-builder&restore=tok-1");
         context.setVariable("contactUrl", "https://trivlu.com/contact");
         context.setVariable("unsubscribeUrl", "https://trivlu.com/unsubscribe?token=unsub-1");
-        context.setVariable("supportEmail", "support@trivlu.com");
+        context.setVariable("supportEmail", "info@trivlu.com");
         return context;
     }
 

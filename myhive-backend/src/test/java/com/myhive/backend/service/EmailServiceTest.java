@@ -453,7 +453,7 @@ class EmailServiceTest {
                 .contains("manager=" + managerToken);
         assertThat(inviteUrl)
                 .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities?ref=invite");
-        assertThat(context.getVariable("supportEmail")).isEqualTo("support@trivlu.com");
+        assertThat(context.getVariable("supportEmail")).isEqualTo("info@trivlu.com");
         verify(asyncMailSender).send(eq(mimeMessage), anyString());
     }
 

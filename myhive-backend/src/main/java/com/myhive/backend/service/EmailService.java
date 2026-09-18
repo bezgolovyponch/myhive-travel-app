@@ -50,7 +50,7 @@ import java.util.UUID;
 @Slf4j
 public class EmailService {
 
-    private static final String SUPPORT_EMAIL = "support@trivlu.com";
+    private static final String SUPPORT_EMAIL = "info@trivlu.com";
 
     // Templates have no #temporals, so the digest's timestamps are pre-formatted in Java.
     private static final DateTimeFormatter DIGEST_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'");
