@@ -229,10 +229,16 @@ chat ("swap X for Y", "drop Z") instead of regenerating — the same
 applies them deterministically with `PackageEditor` (re-validated and re-priced,
 no model call for the actual edit), best-effort rewrites the touched copy with
 `TextRefresher`, and stores the result as a new `EDITED` generation — already
-`READY` in the same response, no polling and no extra planner-model cost. Capped
-at 20 applied edits per chat (`limits.editsLeft`), tracked separately from the
-5-generation cap; past the cap every edit is rejected with `EDIT_LIMIT` rather
-than erroring. Full shape, all ten rejection reasons and JSON examples:
+`READY` in the same response, no polling. An edit turn that lands does call the
+**chat** model twice (once to extract the ops, once for `TextRefresher` to
+re-word what it touched, which is best-effort and skipped when nothing landed);
+it is the far more expensive **planner** model that is never called, so an edit
+costs no generation. Worst case ~40 s on the request thread, two 20 s chat
+timeouts. Capped at 20 edit *turns* per chat (`limits.editsLeft`) — a turn that
+applied at least one op, however many packages it fanned out to — tracked
+separately from the 5-generation cap; past the cap every edit is rejected with
+`EDIT_LIMIT` rather than erroring, and at most 10 ops are taken from one
+message. Full shape, all ten rejection reasons and JSON examples:
 [`docs/api/ai-planner-api.md`](docs/api/ai-planner-api.md).
 
 **Dev debugger (Studio, `dev` profile only, not shipped to prod):**
