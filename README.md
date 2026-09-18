@@ -218,9 +218,22 @@ design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
 
 ```
 START → chatTurn ─┬─(brief incomplete)→ awaitUser ⏸ → chatTurn
-                  └─(brief ready)─────→ awaitGeneration ⏸ (resumed by the job)
-                       snapshotCatalog → compose → validate → persistResult → awaitSelection ⏸ → select
+                  ├─(brief ready)─────→ awaitGeneration ⏸ (resumed by the job)
+                  │    snapshotCatalog → compose → validate → persistResult → awaitSelection ⏸ → select
+                  └─(edit ops, packages exist)→ applyEdits → awaitSelection ⏸ → select
 ```
+
+**Package edits:** once packages exist, the group can ask for a change in plain
+chat ("swap X for Y", "drop Z") instead of regenerating — the same
+`POST /ai/sessions/{token}/messages` call extracts `ADD`/`REMOVE`/`REPLACE` ops,
+applies them deterministically with `PackageEditor` (re-validated and re-priced,
+no model call for the actual edit), best-effort rewrites the touched copy with
+`TextRefresher`, and stores the result as a new `EDITED` generation — already
+`READY` in the same response, no polling and no extra planner-model cost. Capped
+at 20 applied edits per chat (`limits.editsLeft`), tracked separately from the
+5-generation cap; past the cap every edit is rejected with `EDIT_LIMIT` rather
+than erroring. Full shape, all ten rejection reasons and JSON examples:
+[`docs/api/ai-planner-api.md`](docs/api/ai-planner-api.md).
 
 **Dev debugger (Studio, `dev` profile only, not shipped to prod):**
 `./gradlew bootRun --args='--spring.profiles.active=dev'`, then open

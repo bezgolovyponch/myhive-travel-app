@@ -1,10 +1,26 @@
 # AI Planner API — frontend contract
 
-Status: **v1.1, reconciled with the implementation on 2026-09-16**. Backend and
+Status: **v1.2, reconciled with the implementation on 2026-09-18**. Backend and
 frontend are built in parallel against this document. Changes go through a PR that
 edits this file first.
 
 Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](../superpowers/specs/2026-09-15-ai-stag-planner-design.md).
+
+**Changes since v1.1** (additive only — nothing v1.1 documented was renamed or removed):
+- Package edits: once packages exist, ask for a change in plain chat ("swap X for
+  Y", "drop Z") on the same `POST /ai/sessions/{token}/messages` endpoint — no new
+  endpoint. The result comes back **inline** in that response, already applied;
+  there is nothing to poll for. Three ops: `ADD` / `REMOVE` / `REPLACE`, each
+  optionally scoped to one package. See "Editing packages" under the messages
+  endpoint below.
+- `TurnResponseDTO.edit` (`EditDTO`): what the turn's edit batch did —
+  `generationId`, `applied[]`, `rejected[]` (each rejection carries a `reason`),
+  `tierRulesRelaxed`, `textsRefreshed`.
+- `GenerationDTO` gained `kind` (`GENERATED` | `EDITED`), `parentId` and
+  `editReport` — every generation carries these now, not only edited ones.
+- `SessionState.limits` gained `editsLeft`: 20 applied edits per chat, counted
+  separately from the 5-generation cap and never surfaced as its own HTTP error.
+- Ten edit rejection reasons, documented in full below.
 
 **Changes since v1** (reconciling the contract with what actually shipped):
 - Bean-validation failures return `error: "Validation Failed"` (the app-wide
@@ -63,6 +79,12 @@ Returning later: GET /ai/sessions/{token} rebuilds the whole screen.
 Restore from `latestReadyGeneration` when `latestGeneration` is `FAILED` — a failed
 or `AI_BUSY` regeneration is the newest row but not the one with the packages on it.
 
+After packages exist, ask for concrete changes in chat ("swap X for Y", "drop Z");
+the response carries the updated packages immediately, no poll. A change to the
+**brief** itself (days, group size, vibe, budget, …) still triggers a full
+regeneration instead, and wins over any edit ops the same message also asked for —
+the chat node never both regenerates and edits on one turn.
+
 ## Endpoints
 
 ### `POST /ai/sessions` — start a chat
@@ -95,7 +117,11 @@ the call already spent.
 { "content": "8 of us, Friday evening to Sunday noon, we like karting and beer" }
 ```
 
-`content`: 1–1000 chars. Synchronous, typically 2–8 s.
+`content`: 1–1000 chars. Synchronous, typically 2–8 s for an ordinary turn. A turn
+that lands an edit calls the model **twice** (extraction, then a best-effort text
+refresh), each capped at the 20 s chat-model timeout — worst case ~40 s. Give the
+request a client timeout of **at least 45 s** on this endpoint and show a pending
+indicator for edit turns, not just the ordinary "thinking" state.
 
 ```json
 {
@@ -103,9 +129,13 @@ the call already spent.
   "brief": { "...Brief..." },
   "missingFields": ["preferences"],
   "readyToGenerate": false,
-  "generation": null
+  "generation": null,
+  "edit": null
 }
 ```
+
+`edit` is `null` on every turn that carried no edit ops; see "Editing packages"
+below for its shape once one does.
 
 Generation starts **automatically** the moment the brief is complete (days, group
 size and preferences known) — there is no confirmation step. On that turn
@@ -117,6 +147,213 @@ if it changed the brief** (e.g. "actually 6 of us"); small talk does not. A mess
 that arrives after a generation ended `FAILED` (including an `AI_BUSY` rejection) is
 still answered in chat and, if the brief is complete, starts a fresh generation the
 same way.
+
+#### Editing packages
+
+Once packages exist, the same endpoint doubles as the edit channel — there is no
+`PATCH`/`PUT` and nothing to poll. The chat model reads the group's message against
+the current packages and the catalog, extracts zero or more edit ops, and
+`PackageEditor` applies them deterministically (no model involved in the actual
+edit): the touched package is re-validated and the whole plan re-priced, so prices,
+line totals and totals are never hand-edited. An edit turn is still one turn: it
+counts against the chat's 30-message cap (`SESSION_TURN_LIMIT`) exactly like a
+brief question or a regeneration turn does — there is no separate message
+allowance for edits.
+
+Three ops, each naming a catalog activity by its display name and optionally a
+`packageKey` (`BASIC`\|`MEDIUM`\|`PREMIUM`) to scope it to one package:
+- **ADD** — put an activity into a package. Left untargeted, it is attempted
+  against **every** package in the plan (one applied/rejected entry per tier), not
+  just one.
+- **REMOVE** — drop an activity from a package. Left untargeted, it is attempted
+  against every package that currently contains it.
+- **REPLACE** — swap one activity for another in place (same cell where possible).
+  Same untargeted behaviour as `REMOVE`: every package holding the original.
+
+Because one conversational request ("drop the club night") can fan out to more than
+one package, `edit.applied[]`/`edit.rejected[]` may hold more entries than the
+group asked for in words — group them by `packageKey` in the UI.
+
+`edit` (`EditDTO`) is non-null on every turn that carried at least one edit op,
+applied or not:
+
+```json
+{
+  "generationId": null,
+  "applied": [
+    { "op": "ADD" | "REMOVE" | "REPLACE", "activity": "Beer Bike",
+      "replacement": null, "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING" }
+  ],
+  "rejected": [
+    { "op": "ADD" | "REMOVE" | "REPLACE", "activity": "Karting",
+      "packageKey": "PREMIUM", "reason": "NO_FREE_SLOT",
+      "detail": "no free slot for Karting in PREMIUM" }
+  ],
+  "tierRulesRelaxed": true,
+  "textsRefreshed": true
+}
+```
+
+- `generationId`: the new `EDITED` generation's id — **null unless at least one op
+  in the batch was applied**. A fully rejected batch creates no row.
+- `applied[].activity`/`.replacement`: always the **catalog name**, never the
+  model's spelling. `replacement` is non-null only for `REPLACE`.
+- `applied[].dayNumber`/`.slot`: the cell the item landed in (`REMOVE`: the cell it
+  was removed from). `slot` is `MORNING`\|`AFTERNOON`\|`EVENING`\|`NIGHT`.
+- `rejected[].activity`: the catalog name once resolved, otherwise the model's raw
+  spelling — see the rejection-reasons table for the one case where this is the
+  *replacement's* spelling on a `REPLACE`.
+- `rejected[].packageKey`: null when the rejection happened during activity-name
+  resolution (`UNKNOWN_ACTIVITY`/`AMBIGUOUS_ACTIVITY`) or when an unscoped edit
+  matched no package at all. For `NO_PACKAGES_YET`/`EDIT_LIMIT` (and a top-level
+  `INTERNAL`) it instead echoes back whatever `packageKey` the request itself
+  carried — usually null, but non-null if the message scoped the op to one
+  package before there was anything to check it against.
+- `rejected[].detail`: a short technical hint, **not customer-facing copy** — the
+  assistant chat message already carries the sentence the group reads. May be null.
+- `tierRulesRelaxed`: `true` once any edit in this batch landed. It says the tier
+  heuristics (`TIER_ORDER`/`TIER_NOT_DISTINCT` — strictly rising per-person price,
+  one activity per tier the others lack) no longer hold: an organizer edited a
+  package by hand, so the tiers may legitimately cross or overlap from here on.
+- `textsRefreshed`: whether the copy (`description`, day `summary`, item `why`) of
+  what was touched actually came back rewritten. `false` means the touched
+  package's texts may now read slightly stale against the new activity list — the
+  refresh is best-effort and a model outage or a garbled answer leaves the previous
+  copy in place rather than failing the edit.
+
+All nullable fields above (`generationId`, `applied[].replacement`,
+`applied[].slot`, `rejected[].packageKey`, `rejected[].detail`) are emitted as
+explicit JSON `null`, never omitted — this API is not serialised with
+Jackson's `NON_NULL`.
+
+`generation` on an edit turn: null on a fully rejected batch (nothing changed);
+otherwise the **new `EDITED` generation**, already `status: "READY"` — there is
+nothing to poll for. It carries no `selectedPackageKey` (edits never select), so
+the organizer picks again via `POST /ai/generations/{id}/select` with the new id.
+Refresh `limits.editsLeft` by re-`GET`ting the session — the turn response itself
+never carries it (see "Limits" below).
+
+**Example — an edit that landed clean:**
+
+```json
+{
+  "message": { "role": "ASSISTANT", "content": "Swapped Beer Bike in for the club night on day 2.", "at": "2026-09-18T11:04:05.123Z" },
+  "brief": { "...Brief..." },
+  "missingFields": [],
+  "readyToGenerate": true,
+  "generation": {
+    "id": "6f1f0f7a-6c1b-4a2e-9a43-7b0d6b2a11ce",
+    "sessionToken": "b1d3a7e2-2c8e-4a6d-9f21-0e5c9d3f1a44",
+    "status": "READY", "degraded": false, "selectedPackageKey": null,
+    "brief": { "...Brief snapshot..." },
+    "packages": [ "...Package × 3, one re-priced and re-texted..." ],
+    "error": null,
+    "createdAt": "2026-09-18T11:04:05.100", "finishedAt": "2026-09-18T11:04:05.100",
+    "kind": "EDITED",
+    "parentId": "3a7c1e90-59d2-4b17-8d5e-2f4a6c8b0d13",
+    "editReport": {
+      "generationId": "6f1f0f7a-6c1b-4a2e-9a43-7b0d6b2a11ce",
+      "applied": [ { "op": "REPLACE", "activity": "VIP Club Night", "replacement": "Beer Bike", "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING" } ],
+      "rejected": [], "tierRulesRelaxed": true, "textsRefreshed": true
+    }
+  },
+  "edit": {
+    "generationId": "6f1f0f7a-6c1b-4a2e-9a43-7b0d6b2a11ce",
+    "applied": [ { "op": "REPLACE", "activity": "VIP Club Night", "replacement": "Beer Bike", "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING" } ],
+    "rejected": [], "tierRulesRelaxed": true, "textsRefreshed": true
+  }
+}
+```
+
+`edit` and `generation.editReport` describe the same batch — they are equal for
+the row this turn just created.
+
+**Example — a batch where one op landed and one did not:**
+
+```json
+"generation": { "...the EDITED row, one op landed so it exists...": null },
+"edit": {
+  "generationId": "6f1f0f7a-6c1b-4a2e-9a43-7b0d6b2a11ce",
+  "applied": [ { "op": "REMOVE", "activity": "Beer Bike", "replacement": null, "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING" } ],
+  "rejected": [ { "op": "ADD", "activity": "Karting", "packageKey": "PREMIUM", "reason": "NO_FREE_SLOT", "detail": "no free slot for Karting in PREMIUM" } ],
+  "tierRulesRelaxed": true, "textsRefreshed": true
+}
+```
+
+The assistant message carries one sentence per distinct rejection reason (never
+one line per rejected op), so the group reads e.g. one line about a full day
+rather than four repeats of the same explanation.
+
+**Example — a fully rejected batch (nothing landed):**
+
+```json
+"generation": null,
+"edit": {
+  "generationId": null,
+  "applied": [],
+  "rejected": [ { "op": "REPLACE", "activity": "Hot Air Balloon", "packageKey": null, "reason": "UNKNOWN_ACTIVITY", "detail": "Hot Air Balloon" } ],
+  "tierRulesRelaxed": false, "textsRefreshed": false
+}
+```
+
+**Example — asked for an edit before any generation exists:**
+
+```json
+"generation": null,
+"edit": {
+  "generationId": null,
+  "applied": [],
+  "rejected": [ { "op": "ADD", "activity": "Karting", "packageKey": null, "reason": "NO_PACKAGES_YET", "detail": null } ],
+  "tierRulesRelaxed": false, "textsRefreshed": false
+}
+```
+
+A second assistant message says the packages have to be built first.
+
+**Example — over the edit budget (the 21st applied-edit turn):**
+
+Still `200`, still an ordinary turn body — the cap is never its own HTTP error:
+
+```json
+"generation": null,
+"edit": {
+  "generationId": null,
+  "applied": [],
+  "rejected": [ { "op": "REPLACE", "activity": "VIP Club Night", "packageKey": null, "reason": "EDIT_LIMIT", "detail": null } ],
+  "tierRulesRelaxed": false, "textsRefreshed": false
+}
+```
+
+No model call is made for either the extraction-side rejection or the text
+refresh in this branch; `limits.editsLeft` is `0` from here on (re-`GET` the
+session to see it).
+
+**Rejection reasons** (`edit.rejected[].reason`, ten values):
+
+| Reason | Meaning | Suggested UI treatment |
+|---|---|---|
+| `UNKNOWN_ACTIVITY` | The name could not be matched to anything in the destination's catalog. | Show the chat sentence; no retry button — ask the group to rephrase or pick from the list. |
+| `AMBIGUOUS_ACTIVITY` | The name matches more than one catalog entry. | `detail` holds the candidate names, comma-separated — offer them as quick replies. |
+| `NOT_IN_PACKAGE` | `REMOVE`/`REPLACE` named an activity that is not actually in the targeted package (or in any package, when untargeted). | Informational — nothing to retry, the plan already matches what was asked for. |
+| `ALREADY_IN_PACKAGE` | `ADD`/`REPLACE` named an activity already present in the target. | Informational, same treatment as above. |
+| `WOULD_EMPTY_PACKAGE` | A `REMOVE` would leave that package with zero activities. | Suggest a `REPLACE` instead of a bare drop. |
+| `NO_FREE_SLOT` | Every day in that package is already at its tier's item/minute cap. | Suggest dropping something first, or trying a roomier tier. |
+| `WOULD_BREAK_SCHEDULE` | The edit placed fine but the touched package failed post-edit validation (day window, category rule, …). | Show only the chat sentence to the group; `detail` (validator code + message) is for support/logs. |
+| `NO_PACKAGES_YET` | An edit was requested before any generation exists for this chat. | Prompt to finish the brief (or hit "Generate now") first. |
+| `EDIT_LIMIT` | This chat's 20 applied-edit budget is spent. | Same treatment as `SESSION_TURN_LIMIT`/`GENERATION_LIMIT` — offer "start a new chat". |
+| `INTERNAL` | A bug in the editor or the storage write swallowed this one edit; the rest of the batch is unaffected. | Generic "try again" — not the group's fault. |
+
+One spelling nuance: on a `REPLACE`, if it is the **replacement's** name that
+fails to resolve (`UNKNOWN_ACTIVITY`/`AMBIGUOUS_ACTIVITY`), `rejected[].activity`
+carries the *replacement's* spelling, not the activity being replaced — the
+original is resolved first and only reported separately if it is the one that
+fails.
+
+**Applying against a stale snapshot:** edits are applied against the catalog
+snapshot taken when the packages were generated, not a fresh catalog read. An
+activity that was deleted or re-priced in the admin since generation can still
+appear in an edit's `applied[]`/be offered as a target — final validation happens
+at booking, same as any other planner package.
 
 ### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
 
@@ -136,11 +373,26 @@ Empty body. Use for a "Generate now" / "Try other options" button.
 ```json
 { "id": "…", "status": "READY", "degraded": false, "selectedPackageKey": null,
   "brief": { "...Brief snapshot used..." },
-  "packages": [ "...Package × 3, ordered BASIC, MEDIUM, PREMIUM..." ] }
+  "packages": [ "...Package × 3, ordered BASIC, MEDIUM, PREMIUM..." ],
+  "kind": "GENERATED",                        // GENERATED | EDITED
+  "parentId": null,                           // non-null only on an EDITED row
+  "editReport": null }                        // non-null only on an EDITED row (see below)
 ```
 
 `degraded: true` means the deterministic fallback composed the packages (the model
 failed twice); they are valid but blander — a small "auto-composed" hint is enough.
+
+Every generation — not only ones produced by an edit turn — now carries `kind`,
+`parentId` and `editReport`. A `GENERATED` row (the planner model's own output, or
+the deterministic fallback) always has `kind: "GENERATED"`, `parentId: null` and
+`editReport: null`. An `EDITED` row (produced by `PackageEditor` applying a chat
+edit to its parent, without a regeneration) has `kind: "EDITED"`, `parentId` set to
+the generation it was derived from, and `editReport` normally set to the same
+`EditDTO` shape as `TurnResponseDTO.edit` above — **except** `editReport` can still
+come back `null` on an `EDITED` row: the stored report failed to parse (for
+example, a reason value written by a newer backend and read by an older one after
+a rollback). Treat `editReport` as optional on every generation, `EDITED` included
+— never assume it is present just because `kind` is `EDITED`.
 
 On `FAILED`:
 
@@ -187,12 +439,23 @@ replace the cart (the same way `SET_TRIP_ITEMS_FROM_VOTE` does) and set traveler
   "latestGeneration": null,                   // or the GET /ai/generations/{id} body
   "latestReadyGeneration": null,              // newest READY generation, same body; null if none
   "firstTurnError": null,                     // or { "code": "LLM_UNAVAILABLE" | "LLM_TIMEOUT" }
-  "limits": { "messagesLeft": 27, "generationsLeft": 5 }
+  "limits": { "messagesLeft": 27, "generationsLeft": 5, "editsLeft": 20 }
 }
 ```
 
 `messages[0]` is always the assistant greeting (EN/DE), seeded when the session is
 created — it costs no model call and is not something the agent "said".
+
+`limits.editsLeft` (20 − applied edits so far, never negative) lives **only**
+here and on the `201` from `POST /ai/sessions` — it is not on
+`TurnResponseDTO`. An edit turn does not tell the client its own remaining
+budget; re-`GET /ai/sessions/{token}` after an edit to refresh the number shown
+in the UI. Unlike `messagesLeft`/`generationsLeft`, running out of `editsLeft`
+never produces its own `429`: every edit requested past the cap simply comes
+back rejected with `EDIT_LIMIT` inside an otherwise ordinary `200` turn (see
+"Editing packages" above). A fully rejected batch — including one rejected only
+for `EDIT_LIMIT` — does not consume the budget; only a batch with at least one
+applied op does.
 
 `latestGeneration` is the **newest** generation whatever its status;
 `latestReadyGeneration` is the newest one that actually produced packages. They are
