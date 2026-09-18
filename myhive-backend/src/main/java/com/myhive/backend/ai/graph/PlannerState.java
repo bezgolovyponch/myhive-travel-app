@@ -2,6 +2,8 @@ package com.myhive.backend.ai.graph;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.model.Brief;
@@ -50,6 +52,9 @@ public class PlannerState extends AgentState {
     public static final String MISSING_FIELDS = "missingFields";
     public static final String LAST_ERROR = "lastError";
     public static final String USAGE = "usage";
+    public static final String EDITS = "edits";
+    public static final String EDIT_REPORT = "editReport";
+    public static final String EDITS_LEFT = "editsLeft";
 
     /** Nothing to do but wait for the next user message. */
     public static final String ACTION_NONE = "NONE";
@@ -57,6 +62,8 @@ public class PlannerState extends AgentState {
     public static final String ACTION_GENERATE = "GENERATE";
     /** Only {@link PlannerGraph#seedParked}: the chat node returns without calling the model. */
     public static final String ACTION_SEED = "SEED";
+    /** The turn asked for concrete changes to packages that already exist: edit them, do not regenerate. */
+    public static final String ACTION_EDIT = "EDIT";
 
     public static final Map<String, Channel<?>> SCHEMA = Map.of(
             MESSAGES, Channels.appender(ArrayList::new));
@@ -67,6 +74,7 @@ public class PlannerState extends AgentState {
 
     private static final TypeReference<List<CatalogActivity>> CATALOG_TYPE = new TypeReference<>() {};
     private static final TypeReference<List<Violation>> VIOLATIONS_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<EditRequest>> EDITS_TYPE = new TypeReference<>() {};
 
     public PlannerState(Map<String, Object> initData) {
         super(initData);
@@ -120,6 +128,20 @@ public class PlannerState extends AgentState {
 
     public Optional<ComposedPlan> result() {
         return this.<String>value(RESULT).map(json -> JsonCodec.read(json, ComposedPlan.class));
+    }
+
+    /** The edits the chat turn extracted, still to be applied; the edit node clears them when it is done. */
+    public List<EditRequest> edits() {
+        return nonBlank(EDITS).map(json -> JsonCodec.read(json, EDITS_TYPE)).orElse(List.of());
+    }
+
+    public Optional<EditReport> editReport() {
+        return nonBlank(EDIT_REPORT).map(json -> JsonCodec.read(json, EditReport.class));
+    }
+
+    /** No allowance in state means unlimited: only the service that owns the per-session cap stamps one. */
+    public int editsLeft() {
+        return this.<Integer>value(EDITS_LEFT).orElse(Integer.MAX_VALUE);
     }
 
     public LlmUsage usage() {

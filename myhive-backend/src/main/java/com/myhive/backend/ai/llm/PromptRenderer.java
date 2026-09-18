@@ -20,6 +20,22 @@ public class PromptRenderer {
 
     private static final int HISTORY_FOR_PLANNER = 10;
 
+    /**
+     * Only rendered once packages exist: before that the model has nothing to edit, and the rules would
+     * only tempt it to invent activities. Kept here rather than in the template because the template
+     * engine has no conditionals.
+     */
+    private static final String PACKAGES_BLOCK = """
+            Current packages (the organizer can change them):
+            %s
+            Catalog activity names (use these exact names in edits): %s
+            Edit rules:
+            - If the organizer asks to add, remove or swap a specific activity, put it in "edits" and do not change the brief for it.
+            - Use exact catalog names. packageKey null means every package; set it only if the organizer names a package.
+            - Reply with one short sentence saying you are doing it now; never claim it is done.
+            - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.
+            """;
+
     private final ObjectMapper mapper = new ObjectMapper();
     private final PromptTemplate chatSystem = new PromptTemplate(new ClassPathResource("prompts/ai/chat-system.st"));
     private final PromptTemplate plannerSystem = new PromptTemplate(new ClassPathResource("prompts/ai/planner-system.st"));
@@ -32,7 +48,8 @@ public class PromptRenderer {
                 "destinationName", r.destinationName(),
                 "locale", r.locale(),
                 "briefJson", json(r.brief()),
-                "categorySlugs", String.join(", ", r.categorySlugs())));
+                "categorySlugs", String.join(", ", r.categorySlugs()),
+                "packagesBlock", packagesBlock(r)));
     }
 
     /** History is passed as real chat messages by the gateway; the latest user message is wrapped as data. */
@@ -96,6 +113,14 @@ public class PromptRenderer {
                     .append("; summary for days ").append(joinDays(r.touchedDaysOf(p.key()))).append("\n\n");
         }
         return textRefreshUser.render(Map.of("packages", sb.toString().strip()));
+    }
+
+    /** Nothing to edit, nothing to say about editing: a turn before the first generation gets no block. */
+    private static String packagesBlock(ChatTurnRequest r) {
+        if (r.packagesView() == null || r.packagesView().isBlank()) {
+            return "";
+        }
+        return PACKAGES_BLOCK.formatted(r.packagesView(), String.join(", ", r.catalogNames()));
     }
 
     /** Package texts are nullable on a ComposedPlan; a dash tells the model "nothing there yet", "null" does not. */

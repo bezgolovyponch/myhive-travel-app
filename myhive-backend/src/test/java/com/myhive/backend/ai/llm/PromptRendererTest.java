@@ -37,6 +37,32 @@ class PromptRendererTest {
     }
 
     @Test
+    void chatSystem_withPackages_includesViewNamesAndEditRules() {
+        String expectedPackagesView = "BASIC: day 1 [EVENING Beer Bike]";
+        List<String> expectedCatalogNames = List.of("Beer Bike", "Karting");
+        ChatTurnRequest r = new ChatTurnRequest("en", "Prague", List.of("nightlife"), Brief.empty(), List.of(),
+                expectedPackagesView, expectedCatalogNames);
+
+        String prompt = renderer.chatSystem(r);
+
+        assertThat(prompt).contains("Current packages")
+                .contains(expectedPackagesView)
+                .contains(String.join(", ", expectedCatalogNames))
+                .contains("Edit rules:")
+                .contains("\"edits\"");
+    }
+
+    @Test
+    void chatSystem_withoutPackages_hasNoPackagesBlock() {
+        ChatTurnRequest r = new ChatTurnRequest("en", "Prague", List.of("nightlife"), Brief.empty(), List.of());
+
+        String prompt = renderer.chatSystem(r);
+
+        assertThat(prompt).doesNotContain("Current packages").doesNotContain("Edit rules:");
+        assertThat(prompt).contains("\"edits\"");
+    }
+
+    @Test
     void plannerUser_listsCatalogOnePerLine_andWrapsUserText() {
         UUID expectedActivityId = UUID.randomUUID();
         CatalogActivity a = new CatalogActivity(expectedActivityId, "beer-bike", "Beer Bike", "Pedal and drink", 120, true,
