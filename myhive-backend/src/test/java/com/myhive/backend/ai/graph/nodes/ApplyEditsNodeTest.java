@@ -107,6 +107,9 @@ class ApplyEditsNodeTest {
             assertThat(applied.replacementName()).isEqualTo(karting.name());
         });
         assertThat(update.get(PlannerState.GENERATION_ID)).isEqualTo(sink.editedGenerationId.toString());
+        // The edited row now owns the plan in RESULT, so the next edit has to hang off it and not off
+        // the generation both of them started from.
+        assertThat(update.get(PlannerState.RESULT_GENERATION_ID)).isEqualTo(sink.editedGenerationId.toString());
         ComposedPlan edited = JsonCodec.read((String) update.get(PlannerState.RESULT), ComposedPlan.class);
         assertThat(namesIn(edited)).contains(karting.name()).doesNotContain(beerBike.name());
         assertThat(edited.packages().get(0).description()).isEqualTo(expectedDescription);
@@ -253,6 +256,77 @@ class ApplyEditsNodeTest {
 
         assertThat(sink.calls).isZero();
         assertThat(update).doesNotContainKey(PlannerState.RESULT);
+        assertThat(reportOf(update).rejected()).singleElement()
+                .satisfies(rejected -> assertThat(rejected.reason()).isEqualTo(EditRejectionReason.INTERNAL));
+    }
+
+    /**
+     * A regeneration that dies after it was stamped leaves its own (FAILED) id in GENERATION_ID while
+     * RESULT still holds the packages the last good generation produced. Filing the edit under that id
+     * would hang an edited plan off a generation that never produced one — and copy its brief snapshot.
+     */
+    @Test
+    void theParentIsTheGenerationThatProducedTheResult_notTheOneTheLastResumeStamped() {
+        UUID expectedParent = UUID.randomUUID();
+        Map<String, Object> initData = stateMap(List.of(replace(beerBike.name(), karting.name())));
+        initData.put(PlannerState.RESULT_GENERATION_ID, expectedParent.toString());
+        queueRefresh("Now with karting");
+
+        node.apply(new PlannerState(initData));
+
+        assertThat(sink.calls).isEqualTo(1);
+        assertThat(sink.lastParent).isEqualTo(expectedParent);
+        assertThat(sink.lastParent).isNotEqualTo(parentGenerationId);
+    }
+
+    /**
+     * The one string in a report that is the model's own spelling rather than a catalog name, and it is
+     * both stored and read back into the chat. It goes through the same cleaning as every other model
+     * text, on the way into the report and into the sentence built from it.
+     */
+    @Test
+    void aModelWrittenNameIsCleanedBeforeItIsReportedOrSaidOutLoud() {
+        String expectedName = "Ghost Tour";
+        List<EditRequest> payload = List.of(add("<script>alert(1)</script>" + expectedName));
+
+        Map<String, Object> resolved = node.apply(state(payload));
+        Map<String, Object> initData = stateMap(payload);
+        initData.put(PlannerState.EDITS_LEFT, 0);
+        Map<String, Object> overTheLimit = node.apply(new PlannerState(initData));
+
+        // the resolver's path: the name could not be matched, so the report keeps what the model wrote
+        assertThat(reportOf(resolved).rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.UNKNOWN_ACTIVITY);
+            assertThat(rejected.activityName()).isEqualTo(expectedName);
+            assertThat(rejected.detail()).isEqualTo(expectedName);
+        });
+        assertThat(messagesOf(resolved)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).asString().contains(expectedName).doesNotContain("script"));
+        // and the path that rejects the batch before the editor ever resolves anything
+        assertThat(reportOf(overTheLimit).rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.EDIT_LIMIT);
+            assertThat(rejected.activityName()).isEqualTo(expectedName);
+        });
+    }
+
+    /**
+     * langgraph4j checkpoints a node after it returns, so a throw would park the thread before this node
+     * with the batch still in state and wedge every later message on the same failure. Even a state value
+     * that cannot be read back has to come out as a parked thread and an INTERNAL report.
+     */
+    @Test
+    void anUnreadableBatch_stillParksTheThreadWithAnInternalReport() {
+        Map<String, Object> initData = stateMap(List.of(replace(beerBike.name(), karting.name())));
+        initData.put(PlannerState.EDITS, "{not even json");
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        assertThat(sink.calls).isZero();
+        assertThat(llm.refreshRequests).isEmpty();
+        assertThat(update).doesNotContainKey(PlannerState.RESULT).doesNotContainKey(PlannerState.GENERATION_ID);
+        assertThat(update.get(PlannerState.EDITS)).isEqualTo(EXPECTED_CLEARED_EDITS);
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(update.get(PlannerState.RESUME_REASON)).isEqualTo("");
         assertThat(reportOf(update).rejected()).singleElement()
                 .satisfies(rejected -> assertThat(rejected.reason()).isEqualTo(EditRejectionReason.INTERNAL));
     }

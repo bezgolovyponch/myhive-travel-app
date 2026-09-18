@@ -187,12 +187,21 @@ public class PlanGenerationService
      * saves its own (already-loaded, already-mutated) session copy right after the graph run finishes,
      * and a write here would be the lost-update pattern the generation-count fix already dealt with -
      * {@code editCount} is incremented by the caller instead, on that same session instance.
+     *
+     * <p>The parent must be READY. The edited row copies its brief snapshot and its {@code degraded}
+     * flag, so hanging one off a QUEUED or FAILED row would describe the edited packages with a brief
+     * that never produced them - and would claim a generation that failed as the source of a plan the
+     * group is looking at. The throw is turned into an {@code INTERNAL} report by the edit node.
      */
     @Override
     @Transactional
     public UUID edited(UUID parentGenerationId, ComposedPlan plan, EditReport report, LlmUsage usage) {
         AiGeneration parent = generationRepository.findById(parentGenerationId)
                 .orElseThrow(() -> new IllegalStateException("parent generation " + parentGenerationId + " not found"));
+        if (parent.getStatus() != AiGenerationStatus.READY) {
+            throw new IllegalStateException("parent generation " + parentGenerationId + " is "
+                    + parent.getStatus() + ", not READY");
+        }
         AiGeneration edited = new AiGeneration();
         edited.setSession(parent.getSession());
         edited.setKind(AiGenerationKind.EDITED);

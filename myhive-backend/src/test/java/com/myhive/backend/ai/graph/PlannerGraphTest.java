@@ -519,6 +519,32 @@ class PlannerGraphTest {
         assertThat(namesIn(snap.state().result().orElseThrow(), Tier.BASIC)).containsExactly(expectedActivity);
     }
 
+    /**
+     * The job stamps its generation id into the state before the run produces anything, so a generation
+     * that dies between that stamp and persistResult - the case the STALE sweep exists for - leaves a
+     * FAILED id over a state whose packages still belong to the last good row. The edit has to file under
+     * <em>that</em> row: hanging it off the failed one would copy a brief snapshot from a generation that
+     * never produced a plan, and name a failure as the source of the packages the group is looking at.
+     */
+    @Test
+    void editAfterAGenerationThatNeverProducedAPlan_hangsOffTheOneThatDid() {
+        UUID expectedParent = UUID.randomUUID();
+        UUID failedGeneration = UUID.randomUUID();
+        UUID token = threadWithPackages(expectedParent);
+        // exactly what runJob writes before it resumes; this job then loses its thread and never persists
+        graph.update(token, generationResume(failedGeneration));
+        queueRefresh("Rebuilt around the swap");
+
+        editTurn(token, "swap activity 0 for activity 1", List.of(swapFirstForSecond()));
+
+        PlannerGraph.PlannerStateSnapshot snap = graph.snapshot(token);
+        assertThat(snap.next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(sinks.lastEditParent).isEqualTo(expectedParent);
+        assertThat(sinks.lastEditParent).isNotEqualTo(failedGeneration);
+        assertThat(snap.state().generationId()).contains(sinks.lastEditedGeneration);
+        assertThat(snap.state().resultGenerationId()).contains(sinks.lastEditedGeneration);
+    }
+
     @Test
     void editTurn_overTheAllowance_rejectsEverythingWithoutStoringAnything() {
         UUID expectedGeneration = UUID.randomUUID();

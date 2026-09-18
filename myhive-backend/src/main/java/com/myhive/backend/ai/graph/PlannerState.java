@@ -48,6 +48,7 @@ public class PlannerState extends AgentState {
     public static final String LAST_GENERATED_BRIEF = "lastGeneratedBrief";
     public static final String RESUME_REASON = "resumeReason";
     public static final String GENERATION_ID = "generationId";
+    public static final String RESULT_GENERATION_ID = "resultGenerationId";
     public static final String SELECTED_PACKAGE_KEY = "selectedPackageKey";
     public static final String MISSING_FIELDS = "missingFields";
     public static final String LAST_ERROR = "lastError";
@@ -173,8 +174,22 @@ public class PlannerState extends AgentState {
         return nonBlank(LAST_ERROR);
     }
 
+    /**
+     * The row a resume is working on, whatever it ends up producing: the job stamps it before the
+     * generation runs and a selection stamps whatever the client picked.
+     */
     public Optional<UUID> generationId() {
         return this.<String>value(GENERATION_ID).map(UUID::fromString);
+    }
+
+    /**
+     * The generation that actually produced the plan in {@link #RESULT} - which is not always
+     * {@link #generationId()}: a regeneration that dies before it composes anything leaves its own
+     * (FAILED) id stamped over a state whose packages still belong to the last good row. An edit has
+     * to hang off <em>this</em> one, or the edited plan is filed under a generation that never made it.
+     */
+    public Optional<UUID> resultGenerationId() {
+        return this.<String>value(RESULT_GENERATION_ID).map(UUID::fromString);
     }
 
     public Optional<Tier> selectedPackageKey() {

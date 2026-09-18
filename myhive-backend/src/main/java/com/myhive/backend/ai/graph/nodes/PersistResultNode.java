@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -40,10 +41,19 @@ public class PersistResultNode implements NodeAction<PlannerState> {
         ComposedPlan plan = state.result()
                 .orElseThrow(() -> new IllegalStateException("persistResult reached without a result"));
         LlmUsage usage = state.usage();
+        Map<String, Object> update = new HashMap<>();
+        update.put(PlannerState.RESUME_REASON, "");
+        update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
         state.generationId().ifPresentOrElse(
-                id -> sink().ready(id, plan, state.degraded(), usage, state.attempt()),
+                id -> {
+                    sink().ready(id, plan, state.degraded(), usage, state.attempt());
+                    // Stamped here and only here for a generation: from now on the state can say which
+                    // row the packages it carries actually came from, whatever a later resume writes
+                    // into GENERATION_ID.
+                    update.put(PlannerState.RESULT_GENERATION_ID, id.toString());
+                },
                 () -> log.warn("planner result dropped: no generationId in state; result not persisted"));
-        return Map.of(PlannerState.RESUME_REASON, "", PlannerState.ACTION, PlannerState.ACTION_NONE);
+        return update;
     }
 
     private GenerationResultSink sink() {

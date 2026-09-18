@@ -457,4 +457,22 @@ class PlanGenerationServiceTest {
         assertThatThrownBy(() -> service.edited(missingParentId, plan, report, LlmUsage.none()))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    /**
+     * The edited row inherits the parent's brief snapshot and its degraded flag, so a parent that never
+     * produced packages would describe the edited ones with a brief that is not theirs - and file them
+     * under a generation the chat reports as failed. The edit node turns the throw into an INTERNAL report.
+     */
+    @Test
+    void edited_whenTheParentIsNotReady_throwsIllegalState_andStoresNothing() {
+        ComposedPlan plan = new ComposedPlan(List.of(), false);
+        EditReport report = EditReport.of(new EditOutcome(plan, List.of(), List.of()), false);
+        AiGeneration failedParent = savedGeneration(AiGenerationStatus.FAILED);
+
+        assertThatThrownBy(() -> service.edited(failedParent.getId(), plan, report, LlmUsage.none()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(AiGenerationStatus.FAILED.name());
+
+        verify(generationRepository, never()).save(any());
+    }
 }
