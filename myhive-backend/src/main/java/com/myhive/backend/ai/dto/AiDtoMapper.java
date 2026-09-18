@@ -1,5 +1,8 @@
 package com.myhive.backend.ai.dto;
 
+import com.myhive.backend.ai.edit.AppliedEdit;
+import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
 import com.myhive.backend.ai.llm.ChatMessage;
@@ -9,6 +12,7 @@ import com.myhive.backend.ai.service.AiSessionService;
 import com.myhive.backend.dto.VotePoolActivityDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.AiGeneration;
+import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.repository.ActivityRepository;
@@ -46,15 +50,21 @@ public class AiDtoMapper {
                 view.latestReady().map(generation -> generation(generation, session.getToken())).orElse(null),
                 firstTurnError(view),
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
-                        AiSessionService.MAX_GENERATIONS - session.getGenerationCount()));
+                        AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
+                        AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()));
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
         AiSessionService.SessionView view = outcome.view();
         Brief brief = view.state().brief();
+        // The generation the turn produced, whichever kind it is: a queued one to poll, or the edited one
+        // that is already READY. They are never both there, so the order only settles a case that cannot
+        // happen, and the client reads the same field either way.
+        AiGeneration generation = outcome.startedGeneration().or(outcome::editedGeneration).orElse(null);
         return new TurnResponseDTO(lastAssistantMessage(view.state()), brief, brief.missingFields(), brief.isReady(),
-                outcome.startedGeneration()
-                        .map(generation -> generation(generation, view.session().getToken()))
+                generation == null ? null : generation(generation, view.session().getToken()),
+                outcome.editReport()
+                        .map(report -> edit(report, outcome.editedGeneration().map(AiGeneration::getId).orElse(null)))
                         .orElse(null));
     }
 
@@ -100,7 +110,37 @@ public class AiDtoMapper {
         return new GenerationDTO(generation.getId(), sessionToken, generation.getStatus().name(),
                 generation.isDegraded(), generation.getSelectedPackageKey(),
                 JsonCodec.read(generation.getBriefSnapshot(), Brief.class), packages, error(generation),
-                generation.getCreatedAt(), generation.getFinishedAt());
+                generation.getCreatedAt(), generation.getFinishedAt(), generation.getKind().name(),
+                generation.getParentId(), editReport(generation));
+    }
+
+    /** Only an {@code EDITED} row stores a report, and the only id that belongs in it is its own. */
+    private static EditDTO editReport(AiGeneration generation) {
+        if (generation.getKind() != AiGenerationKind.EDITED || generation.getEditReport() == null) {
+            return null;
+        }
+        return edit(JsonCodec.read(generation.getEditReport(), EditReport.class), generation.getId());
+    }
+
+    private static EditDTO edit(EditReport report, UUID generationId) {
+        return new EditDTO(generationId, report.applied().stream().map(AiDtoMapper::appliedEdit).toList(),
+                report.rejected().stream().map(AiDtoMapper::rejectedEdit).toList(), report.tierRulesRelaxed(),
+                report.textsRefreshed());
+    }
+
+    private static EditDTO.AppliedEditDTO appliedEdit(AppliedEdit applied) {
+        return new EditDTO.AppliedEditDTO(name(applied.op()), applied.activityName(), applied.replacementName(),
+                name(applied.packageKey()), applied.dayNumber(), name(applied.slot()));
+    }
+
+    private static EditDTO.RejectedEditDTO rejectedEdit(RejectedEdit rejected) {
+        return new EditDTO.RejectedEditDTO(name(rejected.op()), rejected.activityName(), name(rejected.packageKey()),
+                name(rejected.reason()), rejected.detail());
+    }
+
+    /** Most of these are optional somewhere in a report (an untargeted package, a removed item's slot). */
+    private static String name(Enum<?> value) {
+        return value == null ? null : value.name();
     }
 
     private static GenerationDTO.ErrorDTO error(AiGeneration generation) {

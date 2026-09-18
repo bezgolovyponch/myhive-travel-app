@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.exception.AiConflictException;
 import com.myhive.backend.ai.exception.AiDisabledException;
 import com.myhive.backend.ai.exception.AiLimitException;
@@ -58,6 +59,12 @@ public class AiSessionService {
 
     public static final int MAX_MESSAGES = 30;
     public static final int MAX_GENERATIONS = 5;
+    /**
+     * Edit turns per chat, counted separately from the five generations because an edit costs no planner
+     * call. Only a turn that actually changed the packages spends one; over the cap the graph rejects
+     * every requested edit with {@code EDIT_LIMIT} rather than failing the turn.
+     */
+    public static final int MAX_EDITS_PER_SESSION = 20;
 
     private static final Map<String, String> GREETING = Map.of(
             "en", "Hey! I'm your stag-trip planner. How many days are you coming for, and how big is the group?",
@@ -92,8 +99,19 @@ public class AiSessionService {
                               Optional<AiGeneration> latestReady, String firstTurnErrorCode) {
     }
 
-    /** One chat turn's result; {@code startedGeneration} is present when the turn completed the brief. */
-    public record TurnOutcome(SessionView view, Optional<AiGeneration> startedGeneration) {
+    /**
+     * One chat turn's result. {@code startedGeneration} is present when the turn completed the brief;
+     * {@code editReport} on every turn that carried edits, whether or not any of them landed, and
+     * {@code editedGeneration} only when at least one did. The two generations are never present
+     * together: an edit parks the thread at {@code awaitSelection} instead of building a plan.
+     */
+    public record TurnOutcome(SessionView view, Optional<AiGeneration> startedGeneration,
+                              Optional<EditReport> editReport, Optional<AiGeneration> editedGeneration) {
+
+        /** A turn that asked for no edits; the shape every caller used before edits existed. */
+        public TurnOutcome(SessionView view, Optional<AiGeneration> startedGeneration) {
+            this(view, startedGeneration, Optional.empty(), Optional.empty());
+        }
     }
 
     /**
@@ -226,6 +244,11 @@ public class AiSessionService {
         String text = content.strip();
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name());
+        // Nothing in the graph ever clears the report, so this is the only place it can happen: left
+        // standing, last turn's rejections would be served again with the answer to every turn after it.
+        update.put(PlannerState.EDIT_REPORT, "");
+        // Absent means unlimited, so the allowance has to be stamped before every turn that could edit.
+        update.put(PlannerState.EDITS_LEFT, MAX_EDITS_PER_SESSION - session.getEditCount());
         if (!isRepeatOfLastUserMessage(token, text)) {
             // PlannerState.message() stamps a fresh instant: the messages channel appends and would
             // drop a byte-identical map, so two turns must never produce the same entry.
@@ -241,17 +264,28 @@ public class AiSessionService {
         }
         // Persisted before the generation is started: hitting GENERATION_LIMIT must not make the turn free.
         session.setMessageCount(session.getMessageCount() + 1);
+        Optional<EditReport> report = snapshot.state().editReport();
+        Optional<AiGeneration> edited = Optional.empty();
+        if (report.filter(EditReport::anyApplied).isPresent()) {
+            // Counted here and nowhere else: the sink stores the row in its own transaction and must not
+            // write the session, whose only save is the touch below - the lost-update shape the generation
+            // counter was already fixed for. A batch that changed nothing costs nothing.
+            session.setEditCount(session.getEditCount() + 1);
+            // The row the edit node stamped into the state; loaded with its session, since the view this
+            // turn hands back is built outside any transaction.
+            edited = generationRepository.findWithSessionById(snapshot.state().generationId().orElseThrow());
+        }
         touch(session);
 
         // The view is built while this thread is still the only one on the graph thread. Once the job
         // is submitted, snapshotting here would race the job's own update/resume on the same thread id.
         SessionView view = view(session);
         if (!PlannerGraph.AWAIT_GENERATION.equals(view.next())) {
-            return new TurnOutcome(view, Optional.empty());
+            return new TurnOutcome(view, Optional.empty(), report, edited);
         }
         AiGeneration started = startGeneration(session, snapshot.state().brief());
         return new TurnOutcome(new SessionView(session, view.state(), view.next(), Optional.of(started),
-                view.latestReady(), view.firstTurnErrorCode()), Optional.of(started));
+                view.latestReady(), view.firstTurnErrorCode()), Optional.of(started), report, edited);
     }
 
     private AiGeneration startGeneration(AiSession session, Brief brief) {

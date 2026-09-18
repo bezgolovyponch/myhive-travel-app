@@ -3,6 +3,8 @@ package com.myhive.backend.ai.controller;
 import com.jayway.jsonpath.JsonPath;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.ai.AiTestConfig;
+import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.llm.AiProperties;
 import com.myhive.backend.ai.llm.ChatTurnResult;
@@ -10,6 +12,8 @@ import com.myhive.backend.ai.llm.FakeLlmGateway;
 import com.myhive.backend.ai.llm.LlmGateway;
 import com.myhive.backend.ai.llm.LlmUnavailableException;
 import com.myhive.backend.ai.llm.LlmUsage;
+import com.myhive.backend.ai.llm.PackageTexts;
+import com.myhive.backend.ai.llm.TextRefreshResult;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
@@ -47,6 +51,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -72,6 +77,8 @@ class AiPlannerControllerIntegrationTest {
 
     private static final int ACTIVITY_COUNT = 6;
     private static final int BASIC_INDEX = 0;
+    /** In the catalog but in none of the three packages, so a swap into BASIC can never collide. */
+    private static final int REPLACEMENT_INDEX = 1;
     private static final int MEDIUM_INDEX = 2;
     private static final int PREMIUM_FIRST_INDEX = 4;
     private static final int PREMIUM_SECOND_INDEX = 5;
@@ -349,6 +356,109 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.latestReadyGeneration.id", is(expectedReadyGenerationId)))
                 .andExpect(jsonPath("$.latestReadyGeneration.status", is(AiGenerationStatus.READY.name())))
                 .andExpect(jsonPath("$.latestReadyGeneration.packages", hasSize(Tier.values().length)));
+    }
+
+    /**
+     * The point of the whole feature over HTTP: a turn that asks for a swap answers with the report and
+     * the rebuilt packages in the same response — no generation, no polling, no second round trip.
+     */
+    @Test
+    void editTurn_afterGeneration_returnsTheEditReportAndTheEditedGenerationInline() throws Exception {
+        String expectedDescription = "Rebuilt around the swap";
+        String expectedReplaced = activities.get(BASIC_INDEX).getName();
+        String expectedReplacement = activities.get(REPLACEMENT_INDEX).getName();
+        String expectedReplacementId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        String expectedParentId = latestGenerationId(token);
+        awaitGeneration(expectedParentId);
+        queueEditTurn(expectedReplaced, expectedReplacement, expectedDescription);
+
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.REPLACE.name())))
+                .andExpect(jsonPath("$.edit.applied[0].activity", is(expectedReplaced)))
+                .andExpect(jsonPath("$.edit.applied[0].replacement", is(expectedReplacement)))
+                .andExpect(jsonPath("$.edit.applied[0].packageKey", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.edit.applied[0].dayNumber", is(1)))
+                .andExpect(jsonPath("$.edit.applied[0].slot", is(Slot.AFTERNOON.name())))
+                .andExpect(jsonPath("$.edit.rejected", hasSize(0)))
+                .andExpect(jsonPath("$.edit.tierRulesRelaxed", is(true)))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(true)))
+                .andExpect(jsonPath("$.generation.status", is(AiGenerationStatus.READY.name())))
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.generation.parentId", is(expectedParentId)))
+                .andExpect(jsonPath("$.generation.packages[0].key", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.generation.packages[0].description", is(expectedDescription)))
+                .andReturn();
+
+        String body = edited.getResponse().getContentAsString();
+        String expectedEditedId = JsonPath.read(body, "$.generation.id");
+        assertThat((String) JsonPath.read(body, "$.edit.generationId")).isEqualTo(expectedEditedId);
+        assertThat((String) JsonPath.read(body, "$.generation.editReport.generationId")).isEqualTo(expectedEditedId);
+        // The swap landed in BASIC alone: the replaced activity is gone and the replacement took its cell.
+        List<String> basicActivityIds = JsonPath.read(body, "$.generation.packages[0].days[*].items[*].activityId");
+        assertThat(basicActivityIds).containsExactly(expectedReplacementId);
+
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(status().isOk())
+                // The edited row is the newest READY one, so a token restore lands on the edited packages.
+                .andExpect(jsonPath("$.latestReadyGeneration.id", is(expectedEditedId)))
+                .andExpect(jsonPath("$.latestReadyGeneration.kind", is("EDITED")))
+                .andExpect(jsonPath("$.limits.editsLeft", is(AiSessionService.MAX_EDITS_PER_SESSION - 1)));
+    }
+
+    /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */
+    @Test
+    void editTurn_beforeAnyGeneration_returnsNoPackagesYet() throws Exception {
+        String token = createSession();
+        llm.queueChat(chatTurn("Let us sort the dates first.", Brief.empty(),
+                List.of(replaceRequest(activities.get(BASIC_INDEX).getName(),
+                        activities.get(REPLACEMENT_INDEX).getName()))));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(0)))
+                .andExpect(jsonPath("$.edit.rejected", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected[0].op", is(EditOp.REPLACE.name())))
+                .andExpect(jsonPath("$.edit.rejected[0].reason", is("NO_PACKAGES_YET")))
+                .andExpect(jsonPath("$.edit.tierRulesRelaxed", is(false)))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
+                .andExpect(jsonPath("$.edit.generationId").doesNotExist())
+                .andExpect(jsonPath("$.generation").doesNotExist());
+    }
+
+    /** Picking a package after an edit has to hand the cart the edited itinerary, not the generated one. */
+    @Test
+    void selectOnTheEditedGeneration_returnsTheEditedTripItems() throws Exception {
+        String expectedName = activities.get(REPLACEMENT_INDEX).getName();
+        String expectedActivityId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        queueEditTurn(activities.get(BASIC_INDEX).getName(), expectedName, "Rebuilt around the swap");
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andReturn();
+        String editedGenerationId = JsonPath.read(edited.getResponse().getContentAsString(), "$.generation.id");
+
+        mockMvc.perform(post("/ai/generations/" + editedGenerationId + "/select")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(SELECT_BODY.formatted(Tier.BASIC)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.packageKey", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.groupSize", is(GROUP_SIZE)))
+                .andExpect(jsonPath("$.tripItems", hasSize(1)))
+                .andExpect(jsonPath("$.tripItems[0].activityId", is(expectedActivityId)))
+                .andExpect(jsonPath("$.tripItems[0].name", is(expectedName)));
     }
 
     @Test
@@ -654,8 +764,24 @@ class AiPlannerControllerIntegrationTest {
         return generationRepository.save(generation);
     }
 
+    /** One chat answer asking for a swap, plus the rewritten copy the edit node asks for right after it. */
+    private void queueEditTurn(String activity, String replacement, String description) {
+        llm.queueChat(chatTurn("Swapped it.", Brief.empty(), List.of(replaceRequest(activity, replacement))))
+                .queueRefresh(new TextRefreshResult(
+                        Map.of(Tier.BASIC, new PackageTexts(description, Map.of(), Map.of())),
+                        new LlmUsage("fake-chat", 5, 7, 3L)));
+    }
+
+    private static EditRequest replaceRequest(String activity, String replacement) {
+        return new EditRequest(EditOp.REPLACE, activity, replacement, null, null, null);
+    }
+
     private static ChatTurnResult chatTurn(String reply, Brief update) {
         return new ChatTurnResult(reply, update, List.of(), LlmUsage.none());
+    }
+
+    private static ChatTurnResult chatTurn(String reply, Brief update, List<EditRequest> edits) {
+        return new ChatTurnResult(reply, update, List.of(), edits, LlmUsage.none());
     }
 
     /** JsonPath's provider may hand back a Double or a BigDecimal for the same money field; compare values. */
