@@ -9,6 +9,7 @@ import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.PlanDraft;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -21,7 +22,19 @@ import java.util.UUID;
 
 /** Strict, tolerant-of-noise parsing of model JSON: strips code fences, ignores unknown fields, names the offending field. */
 @Component
+@Slf4j
 public class LlmOutputParser {
+
+    /**
+     * How many ops one turn may carry. A conversational request fans out to one entry per package on top
+     * of this, and every op costs a validation pass, so a model that answers a vague "change everything"
+     * with fifty of them would spend the turn's whole budget on work nobody asked for. Ten is far above
+     * what a real message needs; the rest are dropped, not rejected, since the chat reply still stands.
+     */
+    public static final int MAX_EDITS_PER_TURN = 10;
+
+    /** An activity name is a catalog label, not prose: past this the model is writing a sentence. */
+    private static final int MAX_ACTIVITY_NAME_CHARS = 120;
 
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -51,6 +64,11 @@ public class LlmOutputParser {
                 }
             }
         }
+        if (edits.size() > MAX_EDITS_PER_TURN) {
+            // Count only: an edit carries user-derived text and nothing model-written is logged here.
+            log.info("chat turn asked for {} edits, keeping the first {}", edits.size(), MAX_EDITS_PER_TURN);
+            edits = new ArrayList<>(edits.subList(0, MAX_EDITS_PER_TURN));
+        }
         return new ChatTurnResult(reply.asText().strip(), brief == null ? Brief.empty() : brief, missing, edits, LlmUsage.none());
     }
 
@@ -73,7 +91,20 @@ public class LlmOutputParser {
         if (edit.op() == EditOp.REPLACE && (edit.replacement() == null || edit.replacement().isBlank())) {
             return null;
         }
-        return edit;
+        return new EditRequest(edit.op(), capped(edit.activity()), capped(edit.replacement()), edit.packageKey(),
+                edit.dayNumber(), edit.slot());
+    }
+
+    /**
+     * Names are stored in the edit report and read back into the chat when they cannot be resolved, so a
+     * model that pastes a paragraph into {@code activity} must not get a paragraph-long rejection line.
+     * Truncated rather than dropped: the head of it is still the best guess at what was meant.
+     */
+    private static String capped(String name) {
+        if (name == null || name.length() <= MAX_ACTIVITY_NAME_CHARS) {
+            return name;
+        }
+        return name.substring(0, MAX_ACTIVITY_NAME_CHARS).strip();
     }
 
     /**

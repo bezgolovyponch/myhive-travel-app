@@ -1,5 +1,7 @@
 package com.myhive.backend.ai.edit;
 
+import com.myhive.backend.ai.plan.PlanAssembler;
+
 import java.util.List;
 
 /**
@@ -19,10 +21,15 @@ public record EditReport(List<AppliedEdit> applied, List<RejectedEdit> rejected,
         return new EditReport(outcome.applied(), outcome.rejected(), outcome.anyApplied(), textsRefreshed);
     }
 
-    /** Every requested edit was rejected for the same reason before any of them could be targeted. */
+    /**
+     * Every requested edit was rejected for the same reason before any of them could be targeted. The
+     * names are still the model's own spelling here — nothing resolved them against the catalog — so they
+     * are cleaned on the way in, like every other model text that is stored or served.
+     */
     public static EditReport allRejected(List<EditRequest> edits, EditRejectionReason reason) {
         List<RejectedEdit> rejected = edits.stream()
-                .map(edit -> new RejectedEdit(edit.op(), edit.activity(), edit.packageKey(), reason, null))
+                .map(edit -> new RejectedEdit(edit.op(), PlanAssembler.clean(edit.activity()), edit.packageKey(),
+                        reason, null))
                 .toList();
         return new EditReport(List.of(), rejected, false, false);
     }

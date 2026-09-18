@@ -117,6 +117,47 @@ class LlmOutputParserTest {
         assertThat(result.edits()).isEmpty();
     }
 
+    /**
+     * A vague "change everything" can have the model answer with an op per activity, and each one fans
+     * out to a validation pass per package. The reply is still worth keeping, so the tail is dropped.
+     */
+    @Test
+    void parseChatTurn_withMoreEditsThanOneTurnMayCarry_keepsTheFirstOnes() {
+        String expectedFirstActivity = "Activity 0";
+        String expectedLastActivity = "Activity " + (LlmOutputParser.MAX_EDITS_PER_TURN - 1);
+        StringBuilder edits = new StringBuilder();
+        for (int i = 0; i < LlmOutputParser.MAX_EDITS_PER_TURN + 5; i++) {
+            edits.append(i == 0 ? "" : ",").append("{\"op\":\"ADD\",\"activity\":\"Activity ").append(i).append("\"}");
+        }
+
+        ChatTurnResult result = parser.parseChatTurn(
+                "{\"reply\":\"hi\",\"brief\":{},\"missingFields\":[],\"edits\":[" + edits + "]}");
+
+        assertThat(result.edits()).hasSize(LlmOutputParser.MAX_EDITS_PER_TURN);
+        assertThat(result.edits().get(0).activity()).isEqualTo(expectedFirstActivity);
+        assertThat(result.edits().get(result.edits().size() - 1).activity()).isEqualTo(expectedLastActivity);
+    }
+
+    /**
+     * An unresolvable name is stored in the edit report and read back into the chat, so a model that
+     * pastes a paragraph into {@code activity} must not produce a paragraph-long rejection line.
+     */
+    @Test
+    void parseChatTurn_capsOverlongActivityNames() {
+        int expectedLength = 120;
+        String overlong = "K".repeat(500);
+
+        ChatTurnResult result = parser.parseChatTurn(
+                "{\"reply\":\"hi\",\"brief\":{},\"missingFields\":[],\"edits\":["
+                        + "{\"op\":\"REPLACE\",\"activity\":\"" + overlong + "\",\"replacement\":\"" + overlong
+                        + "\"}]}");
+
+        assertThat(result.edits()).singleElement().satisfies(edit -> {
+            assertThat(edit.activity()).hasSize(expectedLength);
+            assertThat(edit.replacement()).hasSize(expectedLength);
+        });
+    }
+
     @Test
     void parseChatTurn_replaceWithoutReplacement_isDropped() {
         ChatTurnResult result = parser.parseChatTurn(
