@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.graph;
 
+import com.myhive.backend.ai.graph.nodes.ApplyEditsNode;
 import com.myhive.backend.ai.graph.nodes.ChatTurnNode;
 import com.myhive.backend.ai.graph.nodes.ComposeNode;
 import com.myhive.backend.ai.graph.nodes.FallbackNode;
@@ -32,7 +33,8 @@ import java.util.UUID;
  *
  * <pre>
  *   START            -> chatTurn
- *   chatTurn         -> awaitGeneration  (action = GENERATE)  | awaitUser       (otherwise)
+ *   chatTurn         -> awaitGeneration  (action = GENERATE)  | applyEdits      (action = EDIT)
+ *                                                             | awaitUser       (otherwise)
  *   awaitUser        -> select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
  *                                                             | chatTurn        (otherwise)
  *   awaitGeneration  -> snapshotCatalog  (resume = GENERATE)  | select          (resume = SELECT)
@@ -42,6 +44,7 @@ import java.util.UUID;
  *   repair           -> validate
  *   fallback         -> persistResult
  *   persistResult    -> awaitSelection
+ *   applyEdits       -> awaitSelection
  *   awaitSelection   -> select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
  *                                                             | chatTurn        (otherwise)
  *   select           -> awaitSelection
@@ -61,6 +64,7 @@ public class PlannerGraph {
     public static final String PERSIST_RESULT = "persistResult";
     public static final String AWAIT_SELECTION = "awaitSelection";
     public static final String SELECT = "select";
+    public static final String APPLY_EDITS = "applyEdits";
 
     private static final int MAX_REPAIRS = 1;
     private static final long NANOS_PER_MILLI = 1_000_000L;
@@ -68,14 +72,15 @@ public class PlannerGraph {
     private static final String ROUTE_GENERATE = "generate";
     private static final String ROUTE_WAIT = "wait";
     private static final String ROUTE_SELECT = "select";
+    private static final String ROUTE_EDIT = "edit";
     private static final String ROUTE_OK = "ok";
     private static final String ROUTE_REPAIR = "repair";
     private static final String ROUTE_FALLBACK = "fallback";
 
-    /** The eight working nodes, in graph order; the {@code await*} nodes have no behaviour of their own. */
+    /** The nine working nodes, in graph order; the {@code await*} nodes have no behaviour of their own. */
     public record Nodes(ChatTurnNode chatTurn, SnapshotCatalogNode snapshotCatalog, ComposeNode compose,
                         ValidateNode validate, RepairNode repair, FallbackNode fallback,
-                        PersistResultNode persistResult, SelectNode select) {
+                        PersistResultNode persistResult, SelectNode select, ApplyEditsNode applyEdits) {
     }
 
     public record PlannerStateSnapshot(PlannerState state, String next) {
@@ -100,9 +105,11 @@ public class PlannerGraph {
                     .addNode(PERSIST_RESULT, timed(PERSIST_RESULT, nodes.persistResult()))
                     .addNode(AWAIT_SELECTION, park(AWAIT_SELECTION))
                     .addNode(SELECT, timed(SELECT, nodes.select()))
+                    .addNode(APPLY_EDITS, timed(APPLY_EDITS, nodes.applyEdits()))
                     .addEdge(StateGraph.START, CHAT_TURN)
                     .addConditionalEdges(CHAT_TURN, AsyncEdgeAction.edge_async(PlannerGraph::afterChatTurn),
-                            Map.of(ROUTE_GENERATE, AWAIT_GENERATION, ROUTE_WAIT, AWAIT_USER))
+                            Map.of(ROUTE_GENERATE, AWAIT_GENERATION, ROUTE_EDIT, APPLY_EDITS,
+                                    ROUTE_WAIT, AWAIT_USER))
                     .addConditionalEdges(AWAIT_USER, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
                             Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
                     .addConditionalEdges(AWAIT_GENERATION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
@@ -114,6 +121,7 @@ public class PlannerGraph {
                     .addEdge(REPAIR, VALIDATE)
                     .addEdge(FALLBACK, PERSIST_RESULT)
                     .addEdge(PERSIST_RESULT, AWAIT_SELECTION)
+                    .addEdge(APPLY_EDITS, AWAIT_SELECTION)
                     .addConditionalEdges(AWAIT_SELECTION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
                             Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
                     .addEdge(SELECT, AWAIT_SELECTION);
@@ -136,8 +144,13 @@ public class PlannerGraph {
                 .build();
     }
 
+    /** An edit turn never regenerates: {@code chatTurn} has already decided which of the two this is. */
     private static String afterChatTurn(PlannerState state) {
-        return PlannerState.ACTION_GENERATE.equals(state.action()) ? ROUTE_GENERATE : ROUTE_WAIT;
+        String action = state.action();
+        if (PlannerState.ACTION_GENERATE.equals(action)) {
+            return ROUTE_GENERATE;
+        }
+        return PlannerState.ACTION_EDIT.equals(action) ? ROUTE_EDIT : ROUTE_WAIT;
     }
 
     /**
