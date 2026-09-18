@@ -3,6 +3,7 @@ package com.myhive.backend.repository;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.AiGeneration;
+import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
@@ -97,6 +98,38 @@ class AiRepositoriesTest {
         List<AiSession> staleSessions = sessionRepository.findByLastActivityAtBefore(LocalDateTime.now().minusDays(30));
 
         assertThat(staleSessions).extracting(AiSession::getId).containsExactly(expectedStaleSession.getId());
+    }
+
+    @Test
+    void editedGeneration_isTheNewestReady_andKeepsItsParentLink() {
+        AiSession session = newSession();
+        AiGeneration generated = new AiGeneration();
+        generated.setSession(session);
+        generated.setStatus(AiGenerationStatus.READY);
+        generated.setBriefSnapshot("{}");
+        generated.setCreatedAt(LocalDateTime.now().minusMinutes(5));
+        generationRepository.saveAndFlush(generated);
+        String expectedEditReport = "{\"applied\":[],\"rejected\":[],\"tierRulesRelaxed\":false,\"textsRefreshed\":false}";
+        AiGeneration expectedEdited = new AiGeneration();
+        expectedEdited.setSession(session);
+        expectedEdited.setStatus(AiGenerationStatus.READY);
+        expectedEdited.setBriefSnapshot("{}");
+        expectedEdited.setKind(AiGenerationKind.EDITED);
+        expectedEdited.setParentId(generated.getId());
+        expectedEdited.setEditReport(expectedEditReport);
+        expectedEdited.setCreatedAt(LocalDateTime.now());
+        generationRepository.saveAndFlush(expectedEdited);
+        entityManager.clear();
+
+        assertThat(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDesc(session.getId(),
+                AiGenerationStatus.READY)).map(AiGeneration::getId).contains(expectedEdited.getId());
+        AiGeneration reloadedGenerated = generationRepository.findById(generated.getId()).orElseThrow();
+        AiGeneration reloadedEdited = generationRepository.findById(expectedEdited.getId()).orElseThrow();
+        assertThat(reloadedGenerated.getKind()).isEqualTo(AiGenerationKind.GENERATED);
+        assertThat(reloadedGenerated.getParentId()).isNull();
+        assertThat(reloadedEdited.getKind()).isEqualTo(AiGenerationKind.EDITED);
+        assertThat(reloadedEdited.getParentId()).isEqualTo(generated.getId());
+        assertThat(reloadedEdited.getEditReport()).isEqualTo(expectedEditReport);
     }
 
     @Test

@@ -42,11 +42,25 @@ public class AiGeneration {
     @Column(nullable = false, length = 16)
     private AiGenerationStatus status;
 
+    /** {@code GENERATED} from the planner model, or {@code EDITED} by {@code PackageEditor} on top of one. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private AiGenerationKind kind = AiGenerationKind.GENERATED;
+
+    /** The generation an {@code EDITED} row was built from; null for a {@code GENERATED} row. Plain column - no
+     * JPA relation, since the parent may itself be edited and nothing here needs to load the chain. */
+    @Column(name = "parent_id")
+    private UUID parentId;
+
     @Column(name = "brief_snapshot", nullable = false, columnDefinition = "TEXT")
     private String briefSnapshot;
 
     @Column(columnDefinition = "TEXT")
     private String result;
+
+    /** JSON {@code EditReport}; null except on an {@code EDITED} row. */
+    @Column(name = "edit_report", columnDefinition = "TEXT")
+    private String editReport;
 
     @Column(nullable = false)
     private boolean degraded = false;

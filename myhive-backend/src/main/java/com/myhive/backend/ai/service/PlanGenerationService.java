@@ -1,5 +1,7 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.GenerationEditSink;
 import com.myhive.backend.ai.exception.AiLimitException;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerGraph;
@@ -12,6 +14,7 @@ import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.entity.AiGeneration;
+import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
@@ -36,14 +39,15 @@ import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Owns everything about one plan generation: the {@code ai_generations} row, the background job that
- * resumes the parked graph thread, and the two callbacks the graph uses to report back. It is the
- * single bean implementing {@link PersistResultNode.GenerationResultSink} and
- * {@link SelectNode.SelectionSink} — a second candidate would make the nodes' {@code getIfUnique()}
- * lookup fall back to a logging no-op and silently drop every plan.
+ * resumes the parked graph thread, and the callbacks the graph uses to report back. It is the single
+ * bean implementing {@link PersistResultNode.GenerationResultSink}, {@link SelectNode.SelectionSink} and
+ * {@link GenerationEditSink} — a second candidate would make the nodes' {@code getIfUnique()} lookup fall
+ * back to a logging no-op and silently drop every plan, selection or edit.
  */
 @Service
 @Slf4j
-public class PlanGenerationService implements PersistResultNode.GenerationResultSink, SelectNode.SelectionSink {
+public class PlanGenerationService
+        implements PersistResultNode.GenerationResultSink, SelectNode.SelectionSink, GenerationEditSink {
 
     /** A RUNNING generation that has not reported back by now lost its thread; nothing runs this long. */
     static final int STALE_AFTER_MINUTES = 3;
@@ -178,6 +182,39 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
         generation.setSelectedPackageKey(key.name());
         generation.setSelectedAt(LocalDateTime.now(ZoneOffset.UTC));
         generationRepository.save(generation);
+    }
+
+    /**
+     * Stores an edit batch as a new {@code EDITED} row parked at {@code awaitSelection}, ready to serve
+     * without a regeneration. Deliberately does not touch the session row: {@link AiSessionService#turn}
+     * saves its own (already-loaded, already-mutated) session copy right after the graph run finishes,
+     * and a write here would be the lost-update pattern the generation-count fix already dealt with -
+     * {@code editCount} is incremented by the caller instead, on that same session instance.
+     */
+    @Override
+    @Transactional
+    public UUID edited(UUID parentGenerationId, ComposedPlan plan, EditReport report, LlmUsage usage) {
+        AiGeneration parent = generationRepository.findById(parentGenerationId)
+                .orElseThrow(() -> new IllegalStateException("parent generation " + parentGenerationId + " not found"));
+        AiGeneration edited = new AiGeneration();
+        edited.setSession(parent.getSession());
+        edited.setKind(AiGenerationKind.EDITED);
+        edited.setParentId(parentGenerationId);
+        edited.setStatus(AiGenerationStatus.READY);
+        edited.setBriefSnapshot(parent.getBriefSnapshot());
+        edited.setDegraded(parent.isDegraded());
+        edited.setResult(JsonCodec.write(plan));
+        edited.setEditReport(JsonCodec.write(report));
+        edited.setModel(usage.model());
+        edited.setPromptTokens(usage.promptTokens());
+        edited.setCompletionTokens(usage.completionTokens());
+        edited.setLatencyMs((int) Math.min(Integer.MAX_VALUE, usage.latencyMs()));
+        edited.setAttempt((short) 0);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        edited.setCreatedAt(now);
+        edited.setStartedAt(now);
+        edited.setFinishedAt(now);
+        return generationRepository.save(edited).getId();
     }
 
     /**

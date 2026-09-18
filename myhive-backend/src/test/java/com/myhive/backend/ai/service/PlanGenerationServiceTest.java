@@ -1,14 +1,20 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.edit.AppliedEdit;
+import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditOutcome;
+import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.exception.AiLimitException;
 import com.myhive.backend.ai.graph.PlannerGraph;
 import com.myhive.backend.ai.graph.PlannerState;
 import com.myhive.backend.ai.graph.ResumeReason;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.model.Brief;
+import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.entity.AiGeneration;
+import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
@@ -387,5 +393,68 @@ class PlanGenerationServiceTest {
 
         assertThat(generation.getSelectedPackageKey()).isEqualTo(expectedKey.name());
         assertThat(generation.getSelectedAt()).isNotNull();
+    }
+
+    @Test
+    void edited_storesAReadyEditedRowWithTheParentsBriefAndDegradedFlag() {
+        savesWithGeneratedId();
+        AiSession session = session();
+        AiGeneration parent = savedGeneration(AiGenerationStatus.READY, session);
+        String expectedBriefSnapshot = "{\"days\":3}";
+        parent.setBriefSnapshot(expectedBriefSnapshot);
+        parent.setDegraded(true);
+        ComposedPlan expectedPlan = new ComposedPlan(List.of(), false);
+        AppliedEdit oneApplied = new AppliedEdit(EditOp.ADD, "Karting", null, Tier.PREMIUM, 1, Slot.AFTERNOON,
+                UUID.randomUUID());
+        EditReport expectedReport = EditReport.of(new EditOutcome(expectedPlan, List.of(oneApplied), List.of()), true);
+        String expectedModel = "qwen";
+
+        UUID editedId = service.edited(parent.getId(), expectedPlan, expectedReport,
+                new LlmUsage(expectedModel, 10, 20, 500L));
+
+        ArgumentCaptor<AiGeneration> saved = ArgumentCaptor.captor();
+        verify(generationRepository).save(saved.capture());
+        AiGeneration savedGeneration = saved.getValue();
+        assertThat(savedGeneration.getId()).isEqualTo(editedId);
+        assertThat(savedGeneration.getKind()).isEqualTo(AiGenerationKind.EDITED);
+        assertThat(savedGeneration.getParentId()).isEqualTo(parent.getId());
+        assertThat(savedGeneration.getStatus()).isEqualTo(AiGenerationStatus.READY);
+        assertThat(savedGeneration.getBriefSnapshot()).isEqualTo(expectedBriefSnapshot);
+        assertThat(savedGeneration.isDegraded()).isTrue();
+        assertThat(savedGeneration.getResult()).contains("\"packages\"");
+        assertThat(savedGeneration.getEditReport()).contains("\"tierRulesRelaxed\":true");
+        assertThat(savedGeneration.getModel()).isEqualTo(expectedModel);
+        assertThat(savedGeneration.getPromptTokens()).isEqualTo(10);
+        assertThat(savedGeneration.getCompletionTokens()).isEqualTo(20);
+        assertThat(savedGeneration.getCreatedAt()).isNotNull();
+        assertThat(savedGeneration.getFinishedAt()).isNotNull();
+        // The request thread saves the session right after the graph run; a write here would be a lost update.
+        verify(sessionRepository, never()).save(any());
+    }
+
+    @Test
+    void edited_withoutModelUsage_leavesModelAndTokensNull() {
+        savesWithGeneratedId();
+        AiGeneration parent = savedGeneration(AiGenerationStatus.READY);
+        ComposedPlan plan = new ComposedPlan(List.of(), false);
+        EditReport report = EditReport.of(new EditOutcome(plan, List.of(), List.of()), false);
+
+        service.edited(parent.getId(), plan, report, LlmUsage.none());
+
+        ArgumentCaptor<AiGeneration> saved = ArgumentCaptor.captor();
+        verify(generationRepository).save(saved.capture());
+        assertThat(saved.getValue().getModel()).isNull();
+        assertThat(saved.getValue().getPromptTokens()).isNull();
+        assertThat(saved.getValue().getCompletionTokens()).isNull();
+    }
+
+    @Test
+    void edited_whenTheParentIsGone_throwsIllegalState() {
+        ComposedPlan plan = new ComposedPlan(List.of(), false);
+        EditReport report = EditReport.of(new EditOutcome(plan, List.of(), List.of()), false);
+        UUID missingParentId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> service.edited(missingParentId, plan, report, LlmUsage.none()))
+                .isInstanceOf(IllegalStateException.class);
     }
 }
