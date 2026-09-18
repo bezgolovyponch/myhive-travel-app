@@ -53,6 +53,7 @@ class PlannerGraphTest {
         private UUID lastEditParent;
         private UUID lastEditedGeneration;
         private EditReport lastEditReport;
+        private RuntimeException nextEditFailure;
 
         @Override
         public void ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
@@ -72,6 +73,11 @@ class PlannerGraphTest {
             lastEditParent = parentGenerationId;
             lastPlan = plan;
             lastEditReport = report;
+            if (nextEditFailure != null) {
+                RuntimeException failure = nextEditFailure;
+                nextEditFailure = null;
+                throw failure;
+            }
             lastEditedGeneration = UUID.randomUUID();
             return lastEditedGeneration;
         }
@@ -384,10 +390,10 @@ class PlannerGraphTest {
     }
 
     /** What an edit turn looks like from the outside: a user message and a chat answer carrying ops. */
-    private void editTurn(UUID token, List<EditRequest> edits) {
+    private void editTurn(UUID token, String message, List<EditRequest> edits) {
         llm.queueChat(turn("On it!", Brief.empty(), edits));
         graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
-                PlannerState.MESSAGES, List.of(userMessage("swap activity 0 for activity 1"))));
+                PlannerState.MESSAGES, List.of(userMessage(message))));
         graph.runUntilInterrupt(token);
     }
 
@@ -409,7 +415,7 @@ class PlannerGraphTest {
         UUID token = threadWithPackages(expectedParent);
         queueRefresh(expectedDescription);
 
-        editTurn(token, List.of(swapFirstForSecond()));
+        editTurn(token, "swap activity 0 for activity 1", List.of(swapFirstForSecond()));
 
         PlannerGraph.PlannerStateSnapshot snap = graph.snapshot(token);
         assertThat(snap.next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
@@ -434,7 +440,7 @@ class PlannerGraphTest {
         Tier expectedSelection = Tier.BASIC;
         UUID token = threadWithPackages(UUID.randomUUID());
         queueRefresh("Rebuilt around the swap");
-        editTurn(token, List.of(swapFirstForSecond()));
+        editTurn(token, "swap activity 0 for activity 1", List.of(swapFirstForSecond()));
         UUID expectedGeneration = sinks.lastEditedGeneration;
 
         graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.SELECT.name(),
@@ -451,7 +457,7 @@ class PlannerGraphTest {
         int expectedGroupSize = 6;
         UUID token = threadWithPackages(UUID.randomUUID());
         queueRefresh("Rebuilt around the swap");
-        editTurn(token, List.of(swapFirstForSecond()));
+        editTurn(token, "swap activity 0 for activity 1", List.of(swapFirstForSecond()));
         assertThat(llm.planRequests).hasSize(1);
 
         // the same turn carries edits and a changed brief: the regeneration wins and the edits are dropped
@@ -488,6 +494,85 @@ class PlannerGraphTest {
                         assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NO_PACKAGES_YET)));
         // the opening user message, the reply, and the "let us build the packages first" note
         assertThat(snap.state().messages()).hasSize(expectedMessageCount);
+    }
+
+    @Test
+    void editTurn_twice_appliesBoth_andChainsTheParentIds() {
+        UUID expectedFirstParent = UUID.randomUUID();
+        String expectedActivity = catalog.get(2).name();
+        UUID token = threadWithPackages(expectedFirstParent);
+        queueRefresh("Rebuilt around the swap");
+        queueRefresh("Rebuilt again");
+
+        editTurn(token, "swap activity 0 for activity 1", List.of(swapFirstForSecond()));
+        UUID expectedSecondParent = sinks.lastEditedGeneration;
+        editTurn(token, "actually make it activity 2", List.of(
+                new EditRequest(EditOp.REPLACE, catalog.get(1).name(), expectedActivity, null, null, null)));
+
+        PlannerGraph.PlannerStateSnapshot snap = graph.snapshot(token);
+        assertThat(snap.next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        // the second edit hangs off the row the first one created, not off the generation both started from
+        assertThat(expectedSecondParent).isNotEqualTo(expectedFirstParent);
+        assertThat(sinks.lastEditParent).isEqualTo(expectedSecondParent);
+        assertThat(snap.state().generationId()).contains(sinks.lastEditedGeneration);
+        assertThat(llm.planRequests).hasSize(1);
+        assertThat(namesIn(snap.state().result().orElseThrow(), Tier.BASIC)).containsExactly(expectedActivity);
+    }
+
+    @Test
+    void editTurn_overTheAllowance_rejectsEverythingWithoutStoringAnything() {
+        UUID expectedGeneration = UUID.randomUUID();
+        String expectedActivity = catalog.get(0).name();
+        UUID token = threadWithPackages(expectedGeneration);
+        llm.queueChat(turn("On it!", Brief.empty(), List.of(swapFirstForSecond())));
+
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.EDITS_LEFT, 0,
+                PlannerState.MESSAGES, List.of(userMessage("swap activity 0 for activity 1"))));
+        graph.runUntilInterrupt(token);
+
+        PlannerGraph.PlannerStateSnapshot snap = graph.snapshot(token);
+        assertThat(snap.next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(sinks.lastEditParent).isNull();
+        assertThat(llm.refreshRequests).isEmpty();
+        assertThat(snap.state().generationId()).contains(expectedGeneration);
+        assertThat(namesIn(snap.state().result().orElseThrow(), Tier.BASIC)).containsExactly(expectedActivity);
+        assertThat(snap.state().editReport()).hasValueSatisfying(report ->
+                assertThat(report.rejected()).singleElement().satisfies(rejected ->
+                        assertThat(rejected.reason()).isEqualTo(EditRejectionReason.EDIT_LIMIT)));
+    }
+
+    @Test
+    void editSaveFailure_reportsInternal_andTheNextTurnStillRuns() {
+        UUID expectedGeneration = UUID.randomUUID();
+        String expectedActivity = catalog.get(0).name();
+        String expectedReply = "Anything else?";
+        UUID token = threadWithPackages(expectedGeneration);
+        queueRefresh("Rebuilt around the swap");
+        sinks.nextEditFailure = new IllegalStateException("generation " + expectedGeneration + " is gone");
+
+        editTurn(token, "swap activity 0 for activity 1", List.of(swapFirstForSecond()));
+
+        PlannerGraph.PlannerStateSnapshot snap = graph.snapshot(token);
+        assertThat(snap.next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(snap.state().generationId()).contains(expectedGeneration);
+        assertThat(namesIn(snap.state().result().orElseThrow(), Tier.BASIC)).containsExactly(expectedActivity);
+        assertThat(snap.state().editReport()).hasValueSatisfying(report ->
+                assertThat(report.rejected()).singleElement().satisfies(rejected ->
+                        assertThat(rejected.reason()).isEqualTo(EditRejectionReason.INTERNAL)));
+
+        // an exception escaping the node would have left the checkpoint parked before applyEdits with the
+        // batch still in state, and every later message would re-enter it: the chat has to simply carry on
+        llm.queueChat(turn(expectedReply, Brief.empty()));
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("never mind then"))));
+        graph.runUntilInterrupt(token);
+
+        PlannerGraph.PlannerStateSnapshot afterwards = graph.snapshot(token);
+        assertThat(afterwards.next()).isEqualTo(PlannerGraph.AWAIT_USER);
+        List<ChatMessage> messages = afterwards.state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
+        assertThat(afterwards.state().editReport()).isEmpty();
     }
 
     private static ComposedPlan.PackageResult packageOf(ComposedPlan plan, Tier tier) {

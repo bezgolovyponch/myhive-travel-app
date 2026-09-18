@@ -48,6 +48,11 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         String mergedJson = JsonCodec.write(merged);
         boolean changedSinceLastGeneration = !mergedJson.equals(state.lastGeneratedBrief().orElse(null));
         Map<String, Object> update = new HashMap<>();
+        // A report belongs to the turn that produced it. Cleared here, at the start of every turn, so that
+        // last turn's rejections cannot be served again with this turn's answer; the branches below and
+        // applyEdits write the new one over it. The service clears it before resuming as well - one of the
+        // two owns the graph, the other owns the API, and neither can see the other's failure.
+        update.put(PlannerState.EDIT_REPORT, "");
         List<Map<String, String>> replies = new ArrayList<>();
         replies.add(PlannerState.message(ChatMessage.ASSISTANT, PlanAssembler.clean(result.reply())));
         if (merged.isReady() && changedSinceLastGeneration) {

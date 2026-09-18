@@ -27,6 +27,7 @@ import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.PlanValidator;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -45,8 +46,8 @@ class ApplyEditsNodeTest {
 
     private static final String LOCALE = "en";
     private static final String DESTINATION_NAME = "Prague";
-    private static final String CLEARED = "[]";
-    private static final LlmUsage REFRESH_USAGE = new LlmUsage("fake-chat", 5, 7, 3L);
+    private static final String EXPECTED_CLEARED_EDITS = "[]";
+    private static final LlmUsage EXPECTED_REFRESH_USAGE = new LlmUsage("fake-chat", 5, 7, 3L);
 
     private final PlanAssembler assembler = new PlanAssembler();
     private final PackageEditor editor = new PackageEditor(new PlanValidator(), assembler);
@@ -71,6 +72,8 @@ class ApplyEditsNodeTest {
         private ComposedPlan lastPlan;
         private EditReport lastReport;
         private LlmUsage lastUsage;
+        private RuntimeException nextFailure;
+        private boolean answersWithNoId;
 
         @Override
         public UUID edited(UUID parentGenerationId, ComposedPlan plan, EditReport report, LlmUsage usage) {
@@ -79,7 +82,10 @@ class ApplyEditsNodeTest {
             lastPlan = plan;
             lastReport = report;
             lastUsage = usage;
-            return editedGenerationId;
+            if (nextFailure != null) {
+                throw nextFailure;
+            }
+            return answersWithNoId ? null : editedGenerationId;
         }
     }
 
@@ -88,13 +94,13 @@ class ApplyEditsNodeTest {
         String expectedDescription = "Now with karting";
         String expectedWhy = "Because someone has to drive";
         llm.queueRefresh(new TextRefreshResult(Map.of(Tier.BASIC, new PackageTexts(expectedDescription,
-                Map.of(karting.id(), expectedWhy), Map.of())), REFRESH_USAGE));
+                Map.of(karting.id(), expectedWhy), Map.of())), EXPECTED_REFRESH_USAGE));
 
         Map<String, Object> update = node.apply(state(List.of(replace(beerBike.name(), karting.name()))));
 
         assertThat(sink.calls).isEqualTo(1);
         assertThat(sink.lastParent).isEqualTo(parentGenerationId);
-        assertThat(sink.lastUsage).isEqualTo(REFRESH_USAGE);
+        assertThat(sink.lastUsage).isEqualTo(EXPECTED_REFRESH_USAGE);
         assertThat(sink.lastReport.applied()).singleElement().satisfies(applied -> {
             assertThat(applied.op()).isEqualTo(EditOp.REPLACE);
             assertThat(applied.activityName()).isEqualTo(beerBike.name());
@@ -109,7 +115,7 @@ class ApplyEditsNodeTest {
         assertThat(report.textsRefreshed()).isTrue();
         assertThat(report.tierRulesRelaxed()).isTrue();
         assertThat(report.rejected()).isEmpty();
-        assertThat(update.get(PlannerState.EDITS)).isEqualTo(CLEARED);
+        assertThat(update.get(PlannerState.EDITS)).isEqualTo(EXPECTED_CLEARED_EDITS);
         assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
         assertThat(update.get(PlannerState.RESUME_REASON)).isEqualTo("");
         assertThat(update).doesNotContainKey(PlannerState.MESSAGES);
@@ -163,7 +169,7 @@ class ApplyEditsNodeTest {
             assertThat(rejected.reason()).isEqualTo(EditRejectionReason.EDIT_LIMIT);
             assertThat(rejected.activityName()).isEqualTo(beerBike.name());
         });
-        assertThat(update.get(PlannerState.EDITS)).isEqualTo(CLEARED);
+        assertThat(update.get(PlannerState.EDITS)).isEqualTo(EXPECTED_CLEARED_EDITS);
         assertThat(messagesOf(update)).singleElement().satisfies(message ->
                 assertThat(message.get("content")).asString().contains(beerBike.name()));
     }
@@ -190,6 +196,55 @@ class ApplyEditsNodeTest {
     }
 
     @Test
+    void sinkThrows_isInternal_previousResultAndGenerationKept() {
+        sink.nextFailure = new IllegalStateException("generation " + parentGenerationId + " is gone");
+        queueRefresh("Now with karting");
+
+        Map<String, Object> update = node.apply(state(List.of(replace(beerBike.name(), karting.name()))));
+
+        // The save is the only thing that failed, and nothing reached the database: serving the edited plan
+        // would show the organizer packages no generation holds, so the turn reports INTERNAL instead.
+        assertThat(sink.calls).isEqualTo(1);
+        assertThat(update).doesNotContainKey(PlannerState.RESULT).doesNotContainKey(PlannerState.GENERATION_ID);
+        EditReport report = reportOf(update);
+        assertThat(report.applied()).isEmpty();
+        assertThat(report.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.INTERNAL);
+            assertThat(rejected.activityName()).isEqualTo(beerBike.name());
+        });
+        assertThat(update.get(PlannerState.EDITS)).isEqualTo(EXPECTED_CLEARED_EDITS);
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(messagesOf(update)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).asString().contains(beerBike.name()));
+    }
+
+    @Test
+    void sinkAnswersWithoutAnId_isInternal_ratherThanNull() {
+        sink.answersWithNoId = true;
+        queueRefresh("Now with karting");
+
+        Map<String, Object> update = node.apply(state(List.of(replace(beerBike.name(), karting.name()))));
+
+        assertThat(update).doesNotContainKey(PlannerState.RESULT).doesNotContainKey(PlannerState.GENERATION_ID);
+        assertThat(reportOf(update).rejected()).singleElement()
+                .satisfies(rejected -> assertThat(rejected.reason()).isEqualTo(EditRejectionReason.INTERNAL));
+    }
+
+    @Test
+    void withoutASinkBean_isInternal_ratherThanAFakedSave() {
+        @SuppressWarnings("unchecked")
+        ObjectProvider<GenerationEditSink> noBean = Mockito.mock(ObjectProvider.class);
+        ApplyEditsNode nodeWithoutSink = new ApplyEditsNode(editor, refresher, noBean);
+        queueRefresh("Now with karting");
+
+        Map<String, Object> update = nodeWithoutSink.apply(state(List.of(replace(beerBike.name(), karting.name()))));
+
+        assertThat(update).doesNotContainKey(PlannerState.RESULT).doesNotContainKey(PlannerState.GENERATION_ID);
+        assertThat(reportOf(update).rejected()).singleElement()
+                .satisfies(rejected -> assertThat(rejected.reason()).isEqualTo(EditRejectionReason.INTERNAL));
+    }
+
+    @Test
     void withoutAParentGeneration_isInternal_andPersistsNothing() {
         Map<String, Object> initData = stateMap(List.of(replace(beerBike.name(), karting.name())));
         initData.remove(PlannerState.GENERATION_ID);
@@ -213,6 +268,11 @@ class ApplyEditsNodeTest {
         assertThat(llm.refreshRequests).isEmpty();
         assertThat(reportOf(update).rejected()).singleElement()
                 .satisfies(rejected -> assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NO_PACKAGES_YET));
+    }
+
+    private void queueRefresh(String description) {
+        llm.queueRefresh(new TextRefreshResult(
+                Map.of(Tier.BASIC, new PackageTexts(description, Map.of(), Map.of())), EXPECTED_REFRESH_USAGE));
     }
 
     private PlannerState state(List<EditRequest> edits) {

@@ -28,7 +28,8 @@ import java.util.function.Supplier;
  * Applies the edits the chat turn extracted to the packages that already exist, without regenerating:
  * {@link PackageEditor} does the work, {@link TextRefresher} rewrites the copy of what it touched, and the
  * result is stored as a new {@code EDITED} generation. Nothing here is fatal - an edit that cannot be
- * applied is reported, never thrown, so the organizer keeps the packages they already have.
+ * applied, or cannot be stored, is reported and never thrown, so the organizer keeps the packages they
+ * already have and the thread parks at the selection screen either way.
  */
 @Slf4j
 public class ApplyEditsNode implements NodeAction<PlannerState> {
@@ -81,12 +82,18 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
                 ? refresher.refresh(outcome.plan(), outcome, locale, state.destinationName())
                 : new TextRefresher.Refreshed(plan, false, LlmUsage.none());
         EditReport report = EditReport.of(outcome, refreshed.refreshed());
-        Map<String, Object> update = consumed(locale, report);
-        if (outcome.anyApplied()) {
-            UUID edited = sink().edited(parent.get(), refreshed.plan(), report, refreshed.usage());
-            update.put(PlannerState.RESULT, JsonCodec.write(refreshed.plan()));
-            update.put(PlannerState.GENERATION_ID, edited.toString());
+        if (!outcome.anyApplied()) {
+            return consumed(locale, report);
         }
+        Optional<UUID> stored = store(parent.get(), refreshed, report);
+        if (stored.isEmpty()) {
+            // Nothing reached the database, so the edited plan must not be served: the organizer keeps the
+            // generation that is actually stored, and the batch is reported as INTERNAL rather than lost.
+            return rejectAll(locale, edits, EditRejectionReason.INTERNAL);
+        }
+        Map<String, Object> update = consumed(locale, report);
+        update.put(PlannerState.RESULT, JsonCodec.write(refreshed.plan()));
+        update.put(PlannerState.GENERATION_ID, stored.get().toString());
         return update;
     }
 
@@ -100,6 +107,23 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
                     e.getClass().getName(), e);
             return new EditOutcome(plan, List.of(),
                     EditReport.allRejected(edits, EditRejectionReason.INTERNAL).rejected());
+        }
+    }
+
+    /**
+     * The one write this node does, and the one that must never throw: langgraph4j checkpoints a node
+     * <em>after</em> it returns, so an exception escaping here would leave the thread parked before
+     * {@code applyEdits} with the batch still in state - every later message would re-enter this node,
+     * fail again, and the chat would be wedged for good. A row the cleanup already deleted, or a database
+     * that is simply down, costs the edit and nothing else. A sink that answers with no id counts as a
+     * failed write too: there would be no generation to point the client at.
+     */
+    private Optional<UUID> store(UUID parent, TextRefresher.Refreshed refreshed, EditReport report) {
+        try {
+            return Optional.ofNullable(sink().edited(parent, refreshed.plan(), report, refreshed.usage()));
+        } catch (RuntimeException e) {
+            log.error("planner edit not stored generation={} error={}", parent, e.getClass().getName(), e);
+            return Optional.empty();
         }
     }
 
@@ -132,10 +156,11 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
         if (resolved != null) {
             return resolved;
         }
-        // Handing the parent id back keeps the run consistent: the edited plan is served but not stored.
+        // Handing the parent id back would fake a save: the edited plan would be served while the stored
+        // generation still held the old one. Failing instead turns into an INTERNAL report one frame up.
         return (parentGenerationId, plan, report, usage) -> {
             log.warn("planner edit dropped generation={}: no GenerationEditSink bean", parentGenerationId);
-            return parentGenerationId;
+            throw new IllegalStateException("no GenerationEditSink bean");
         };
     }
 }

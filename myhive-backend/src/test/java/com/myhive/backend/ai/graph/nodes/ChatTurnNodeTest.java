@@ -47,7 +47,7 @@ class ChatTurnNodeTest {
         assertThat(update.get(PlannerState.EDITS)).asString()
                 .contains(ACTIVITY_NAME).contains(REPLACEMENT_NAME).contains(EditOp.REPLACE.name());
         assertThat(update.get(PlannerState.BRIEF)).isEqualTo(JsonCodec.write(expectedBrief));
-        assertThat(update).doesNotContainKey(PlannerState.EDIT_REPORT);
+        assertThat(update.get(PlannerState.EDIT_REPORT)).isEqualTo("");
         assertThat(messagesOf(update)).hasSize(1);
     }
 
@@ -80,7 +80,8 @@ class ChatTurnNodeTest {
         Map<String, Object> update = node.apply(new PlannerState(initData));
 
         assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
-        assertThat(update).doesNotContainKey(PlannerState.EDITS).doesNotContainKey(PlannerState.EDIT_REPORT);
+        assertThat(update).doesNotContainKey(PlannerState.EDITS);
+        assertThat(update.get(PlannerState.EDIT_REPORT)).isEqualTo("");
     }
 
     @Test
@@ -91,10 +92,27 @@ class ChatTurnNodeTest {
         Map<String, Object> update = node.apply(new PlannerState(baseState(Brief.empty())));
 
         assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
-        assertThat(update).doesNotContainKey(PlannerState.EDITS).doesNotContainKey(PlannerState.EDIT_REPORT);
+        assertThat(update).doesNotContainKey(PlannerState.EDITS);
         assertThat(update.get(PlannerState.MISSING_FIELDS)).isEqualTo(Brief.empty().missingFields());
         assertThat(messagesOf(update)).singleElement()
                 .satisfies(message -> assertThat(message.get("content")).isEqualTo(expectedReply));
+    }
+
+    @Test
+    void everyTurnClearsLastTurnsEditReport_exceptTheSeedTurn() {
+        llm.queueChat(turn("Glad you like it!", Brief.empty(), List.of()));
+        Map<String, Object> withStaleReport = stateMapWithPackages(readyBrief());
+        withStaleReport.put(PlannerState.EDIT_REPORT, JsonCodec.write(
+                EditReport.allRejected(List.of(replaceEdit()), EditRejectionReason.NO_FREE_SLOT)));
+        Map<String, Object> seed = baseState(Brief.empty());
+        seed.put(PlannerState.ACTION, PlannerState.ACTION_SEED);
+
+        Map<String, Object> update = node.apply(new PlannerState(withStaleReport));
+        Map<String, Object> seeded = node.apply(new PlannerState(seed));
+
+        // left standing, last turn's rejections would be served again with this turn's answer
+        assertThat(update.get(PlannerState.EDIT_REPORT)).isEqualTo("");
+        assertThat(seeded).doesNotContainKey(PlannerState.EDIT_REPORT);
     }
 
     @Test
