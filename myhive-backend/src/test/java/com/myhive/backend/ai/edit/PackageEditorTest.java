@@ -370,14 +370,74 @@ class PackageEditorTest {
     }
 
     /**
-     * The assembler prices every package from the snapshot and skips items it cannot find, so a snapshot
-     * that no longer covers the plan would let one applied op quietly delete activities from packages the
-     * batch never named. The whole batch is refused instead and the plan handed back exactly as it came.
+     * The snapshot is brief-dependent — sorted by category overlap and cut at 80 — so undoing back to a
+     * generation built from a different brief routinely lands on a plan whose items the current snapshot
+     * does not list. The assembler prices every package from that snapshot and skips what it cannot find,
+     * so those items are rebuilt from the plan instead: refusing would have been a permanent "try again"
+     * on a chat where trying again can never work, and re-assembling without them would have deleted
+     * activities from packages the batch never named.
      */
     @Test
-    void aSnapshotMissingPlanActivities_refusesTheWholeBatch_andLeavesThePlanUntouched() {
+    void aSnapshotMissingPlanActivities_rebuildsThemFromThePlan_andStillApplies() {
+        String expectedAdded = nightClub.name();
         String expectedSurvivor = beerSpa.name();
         ComposedPlan plan = basePlan();
+        BigDecimal expectedPremiumTotal = packageOf(plan, Tier.PREMIUM).totalPrice();
+        List<CatalogActivity> staleCatalog = catalog.stream()
+                .filter(entry -> !entry.id().equals(beerSpa.id()))
+                .toList();
+
+        EditOutcome outcome = editor.apply(plan, brief, staleCatalog,
+                List.of(add(expectedAdded, Tier.MEDIUM, null, null)));
+
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).singleElement()
+                .satisfies(applied -> assertThat(applied.packageKey()).isEqualTo(Tier.MEDIUM));
+        assertThat(namesIn(outcome.plan(), Tier.MEDIUM)).contains(expectedAdded);
+        // PREMIUM was never targeted: its Beer Spa line is still there and still costs what it did
+        assertThat(namesIn(outcome.plan(), Tier.PREMIUM)).contains(expectedSurvivor);
+        assertThat(packageOf(outcome.plan(), Tier.PREMIUM).totalPrice()).isEqualByComparingTo(expectedPremiumTotal);
+    }
+
+    /**
+     * A rebuilt entry is only a stand-in for what the plan holds: it has no categories to pick a slot by
+     * and the activity may have left the catalog for good, so it can be dropped or swapped out by name
+     * but never placed somewhere new.
+     */
+    @Test
+    void anActivityTheSnapshotNoLongerLists_canStillBeRemoved_butNotAddedElsewhere() {
+        String expectedGone = beerSpa.name();
+        ComposedPlan plan = basePlan();
+        List<CatalogActivity> staleCatalog = catalog.stream()
+                .filter(entry -> !entry.id().equals(beerSpa.id()))
+                .toList();
+
+        EditOutcome removed = editor.apply(plan, brief, staleCatalog, List.of(remove(expectedGone, Tier.MEDIUM)));
+        EditOutcome addedBack = editor.apply(plan, brief, staleCatalog,
+                List.of(add(expectedGone, Tier.BASIC, null, null)));
+
+        assertThat(removed.rejected()).isEmpty();
+        assertThat(removed.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.op()).isEqualTo(EditOp.REMOVE);
+            assertThat(applied.activityName()).isEqualTo(expectedGone);
+        });
+        assertThat(namesIn(removed.plan(), Tier.MEDIUM)).doesNotContain(expectedGone);
+        assertThat(addedBack.anyApplied()).isFalse();
+        assertThat(addedBack.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.op()).isEqualTo(EditOp.ADD);
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.UNKNOWN_ACTIVITY);
+            assertThat(rejected.detail()).contains("no longer in the catalog");
+        });
+        assertThat(namesIn(addedBack.plan(), Tier.BASIC)).doesNotContain(expectedGone);
+    }
+
+    /**
+     * The one case that still costs the batch: an item the snapshot does not list and the plan cannot
+     * describe well enough to price. Re-assembling would drop it from packages nobody touched.
+     */
+    @Test
+    void aPlanItemThatCannotBeRebuilt_refusesTheWholeBatch_andLeavesThePlanUntouched() {
+        ComposedPlan plan = withoutPriceOn(basePlan(), beerSpa.id());
         List<CatalogActivity> staleCatalog = catalog.stream()
                 .filter(entry -> !entry.id().equals(beerSpa.id()))
                 .toList();
@@ -393,8 +453,6 @@ class PackageEditorTest {
             assertThat(rejected.detail()).contains("catalog snapshot");
         });
         assertThat(outcome.plan()).isSameAs(plan);
-        // PREMIUM was never targeted; without the guard the re-assembly would have dropped its Beer Spa line
-        assertThat(namesIn(outcome.plan(), Tier.PREMIUM)).contains(expectedSurvivor);
     }
 
     /**
@@ -537,6 +595,57 @@ class PackageEditorTest {
         });
         assertThat(namesIn(outcome.plan(), Tier.BASIC)).doesNotContain(expectedFailed);
         assertThat(namesIn(outcome.plan(), Tier.MEDIUM)).contains(expectedApplied);
+    }
+
+    /**
+     * {@code validatePackage} returns on a wrong day count before it looks at a single day, so neither
+     * the before- nor the after-list says anything about the day rules. Diffing them would wave every op
+     * through unvalidated; the malformed package refuses them instead.
+     */
+    @Test
+    void aPackageWithTheWrongDayCount_refusesTheEditRatherThanSkippingValidation() {
+        String expectedAdded = escapeRoom.name();
+        Brief threeDayBrief = new Brief(3, TRAVELERS, List.of(), "stag weekend", null, null,
+                DayEdge.MORNING, DayEdge.EVENING, null);
+        // two days of itinerary against a three-day brief: WRONG_DAY_COUNT before and after any edit
+        ComposedPlan plan = planOf(threeDayBrief, pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa)),
+                day(2, item(Slot.MORNING, riverCruise))));
+
+        EditOutcome outcome = editor.apply(plan, threeDayBrief, catalog,
+                List.of(add(expectedAdded, Tier.BASIC, null, null)));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.packageKey()).isEqualTo(Tier.BASIC);
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.WOULD_BREAK_SCHEDULE);
+            assertThat(rejected.detail()).startsWith(ViolationCode.WRONG_DAY_COUNT.name());
+        });
+        assertThat(namesIn(outcome.plan(), Tier.BASIC)).doesNotContain(expectedAdded);
+    }
+
+    /** Strips the price off one activity's lines, leaving an item the editor cannot rebuild a catalog row from. */
+    private static ComposedPlan withoutPriceOn(ComposedPlan plan, UUID activityId) {
+        List<ComposedPlan.PackageResult> packages = new ArrayList<>();
+        for (ComposedPlan.PackageResult p : plan.packages()) {
+            List<ComposedPlan.DayResult> days = new ArrayList<>();
+            for (ComposedPlan.DayResult dayResult : p.days()) {
+                List<ComposedPlan.ItemResult> items = new ArrayList<>();
+                for (ComposedPlan.ItemResult itemResult : dayResult.items()) {
+                    items.add(activityId.equals(itemResult.activityId()) ? withoutPrice(itemResult) : itemResult);
+                }
+                days.add(new ComposedPlan.DayResult(dayResult.dayNumber(), dayResult.title(), dayResult.summary(),
+                        items));
+            }
+            packages.add(new ComposedPlan.PackageResult(p.key(), p.title(), p.tagline(), p.description(),
+                    p.pricePerPerson(), p.totalPrice(), p.currency(), p.totalDurationMinutes(), p.activityIds(), days));
+        }
+        return new ComposedPlan(packages, plan.degraded());
+    }
+
+    private static ComposedPlan.ItemResult withoutPrice(ComposedPlan.ItemResult item) {
+        return new ComposedPlan.ItemResult(item.slot(), item.startHint(), item.activityId(), item.slug(), item.name(),
+                item.imageUrl(), item.durationMinutes(), null, item.minPrice(), item.lineTotal(),
+                item.groupMinApplied(), item.why());
     }
 
     private CatalogActivity activity(String name, String price, int durationMinutes, String minPrice, String category) {

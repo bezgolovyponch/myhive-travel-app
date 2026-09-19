@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -57,28 +58,34 @@ public class PackageEditor {
     public EditOutcome apply(ComposedPlan plan, Brief brief, List<CatalogActivity> catalog, List<EditRequest> edits) {
         List<EditRequest> batch = edits == null ? List.of() : edits;
         Map<UUID, CatalogActivity> catalogById = indexById(catalog);
-        List<UUID> missing = idsMissingFromCatalog(plan, catalogById);
-        if (!missing.isEmpty()) {
-            // The closing re-assembly rebuilds every package from the snapshot and silently drops items it
-            // cannot price, so a snapshot that no longer covers the plan would let one edit delete
-            // activities from packages nobody touched. Nothing is worth that: the batch is refused whole.
-            log.warn("planner edit batch refused: {} plan activities are missing from the catalog snapshot {}",
-                    missing.size(), missing);
+        List<UUID> unusable = new ArrayList<>();
+        Set<UUID> restored = restoreMissingPlanActivities(plan, catalogById, unusable);
+        if (!unusable.isEmpty()) {
+            // The closing re-assembly rebuilds every package from this map and silently drops items it
+            // cannot price, so an item that is neither in the snapshot nor complete enough to rebuild
+            // would be deleted from packages nobody touched. Nothing is worth that: the batch is refused.
+            log.warn("planner edit batch refused: {} plan activities are missing from the catalog snapshot "
+                    + "and too thin to rebuild {}", unusable.size(), unusable);
             return new EditOutcome(plan, List.of(), allRejected(batch,
-                    missing.size() + " activities in the plan are not in the catalog snapshot"));
+                    unusable.size() + " activities in the plan are not in the catalog snapshot"));
         }
-        PlanDraft working = PlanDrafts.fromComposed(plan);
+        if (!restored.isEmpty()) {
+            log.warn("planner edit kept {} plan activities the catalog snapshot no longer lists {}",
+                    restored.size(), restored);
+        }
+        WorkingCatalog working = new WorkingCatalog(List.copyOf(catalogById.values()), catalogById, restored);
+        PlanDraft draft = PlanDrafts.fromComposed(plan);
         List<AppliedEdit> applied = new ArrayList<>();
         List<RejectedEdit> rejected = new ArrayList<>();
         for (EditRequest edit : batch) {
-            working = applyEdit(working, edit, brief, catalog, catalogById, applied, rejected);
+            draft = applyEdit(draft, edit, brief, working, applied, rejected);
         }
         if (applied.isEmpty()) {
             // Nothing changed, so there is nothing to re-price: hand back the very plan that came in
             // rather than a round-trip through the assembler.
             return new EditOutcome(plan, List.of(), rejected);
         }
-        ComposedPlan edited = assembler.assemble(working, brief, catalogById, plan.degraded()).plan();
+        ComposedPlan edited = assembler.assemble(draft, brief, catalogById, plan.degraded()).plan();
         return new EditOutcome(edited, applied, rejected);
     }
 
@@ -92,28 +99,62 @@ public class PackageEditor {
         return rejected;
     }
 
-    /** The plan's activity ids the snapshot cannot price; logged as ids only, never as names. */
-    private static List<UUID> idsMissingFromCatalog(ComposedPlan plan, Map<UUID, CatalogActivity> catalogById) {
-        List<UUID> missing = new ArrayList<>();
+    /**
+     * Puts every activity the plan uses back into the snapshot map, rebuilding the ones it no longer
+     * lists from what the plan itself stores about them.
+     *
+     * <p>This is routine rather than exotic: the snapshot is brief-dependent — sorted by how well an
+     * activity matches the brief's categories and cut at
+     * {@link com.myhive.backend.ai.catalog.CatalogSnapshotter#MAX_ACTIVITIES} — so undoing back to a
+     * generation built from a different brief lands on a plan whose items the current snapshot may
+     * simply not contain. Refusing those edits would have been a permanent "try again" on a chat where
+     * trying again can never work.
+     *
+     * <p>Returns the ids it rebuilt, and collects into {@code unusable} the ones it could not.
+     */
+    private static Set<UUID> restoreMissingPlanActivities(ComposedPlan plan, Map<UUID, CatalogActivity> catalogById,
+            List<UUID> unusable) {
+        Set<UUID> restored = new LinkedHashSet<>();
         for (ComposedPlan.PackageResult p : plan.packages()) {
             for (ComposedPlan.DayResult day : p.days()) {
                 for (ComposedPlan.ItemResult item : day.items()) {
-                    if (item.activityId() != null && !catalogById.containsKey(item.activityId())
-                            && !missing.contains(item.activityId())) {
-                        missing.add(item.activityId());
+                    if (item.activityId() == null || catalogById.containsKey(item.activityId())) {
+                        continue;
+                    }
+                    CatalogActivity rebuilt = fromPlanItem(item);
+                    if (rebuilt == null) {
+                        unusable.add(item.activityId());
+                    } else {
+                        catalogById.put(item.activityId(), rebuilt);
+                        restored.add(item.activityId());
                     }
                 }
             }
         }
-        return missing;
+        return restored;
     }
 
-    private PlanDraft applyEdit(PlanDraft working, EditRequest edit, Brief brief, List<CatalogActivity> catalog,
-            Map<UUID, CatalogActivity> catalogById, List<AppliedEdit> applied, List<RejectedEdit> rejected) {
+    /**
+     * A catalog row rebuilt from a plan item. Everything pricing and scheduling need is stored on the
+     * item — id, name, duration, price, group minimum — which is why the re-assembly comes out with the
+     * same line totals it went in with. The description and the category slugs are not, and that is
+     * exactly why such an entry is never allowed to be placed somewhere new: its slot preference would
+     * be a guess. Null when the item is too thin to price or schedule at all.
+     */
+    private static CatalogActivity fromPlanItem(ComposedPlan.ItemResult item) {
+        if (item.durationMinutes() <= 0 || item.price() == null) {
+            return null;
+        }
+        return new CatalogActivity(item.activityId(), item.slug(), item.name(), "", item.durationMinutes(), true,
+                item.price(), item.minPrice(), item.imageUrl(), List.of());
+    }
+
+    private PlanDraft applyEdit(PlanDraft working, EditRequest edit, Brief brief, WorkingCatalog catalog,
+            List<AppliedEdit> applied, List<RejectedEdit> rejected) {
         int appliedBefore = applied.size();
         int rejectedBefore = rejected.size();
         try {
-            return applyResolved(working, edit, brief, catalog, catalogById, applied, rejected);
+            return applyResolved(working, edit, brief, catalog, applied, rejected);
         } catch (RuntimeException e) {
             // A bug in the editor must not cost the organizer the rest of the batch: this edit alone is
             // reported as INTERNAL, its half-finished per-package entries are dropped, the draft stays
@@ -126,16 +167,20 @@ public class PackageEditor {
         }
     }
 
-    private PlanDraft applyResolved(PlanDraft working, EditRequest edit, Brief brief, List<CatalogActivity> catalog,
-            Map<UUID, CatalogActivity> catalogById, List<AppliedEdit> applied, List<RejectedEdit> rejected) {
-        CatalogActivity activity = resolveOrReject(edit, edit.activity(), catalog, rejected);
+    private PlanDraft applyResolved(PlanDraft working, EditRequest edit, Brief brief, WorkingCatalog catalog,
+            List<AppliedEdit> applied, List<RejectedEdit> rejected) {
+        CatalogActivity activity = resolveOrReject(edit, edit.activity(), catalog.resolvable(), rejected);
         if (activity == null) {
+            return working;
+        }
+        // An ADD places its activity; REMOVE and REPLACE only name one the plan already holds.
+        if (edit.op() == EditOp.ADD && rejectUnplaceable(edit, activity, catalog, rejected)) {
             return working;
         }
         CatalogActivity replacement = null;
         if (edit.op() == EditOp.REPLACE) {
-            replacement = resolveOrReject(edit, edit.replacement(), catalog, rejected);
-            if (replacement == null) {
+            replacement = resolveOrReject(edit, edit.replacement(), catalog.resolvable(), rejected);
+            if (replacement == null || rejectUnplaceable(edit, replacement, catalog, rejected)) {
                 return working;
             }
         }
@@ -147,9 +192,26 @@ public class PackageEditor {
         }
         PlanDraft draft = working;
         for (Tier target : targets) {
-            draft = applyToPackage(draft, edit, activity, replacement, target, brief, catalogById, applied, rejected);
+            draft = applyToPackage(draft, edit, activity, replacement, target, brief, catalog.byId(), applied,
+                    rejected);
         }
         return draft;
+    }
+
+    /**
+     * A rebuilt entry stands in for an activity the plan still holds, not for a catalog row: it has no
+     * categories to choose a slot by and the activity may have left the catalog for good. It can be named
+     * to be dropped or swapped out, never placed somewhere new - reported as unknown, because from the
+     * catalog's point of view that is what it is.
+     */
+    private static boolean rejectUnplaceable(EditRequest edit, CatalogActivity activity, WorkingCatalog catalog,
+            List<RejectedEdit> rejected) {
+        if (!catalog.isRestored(activity)) {
+            return false;
+        }
+        rejected.add(new RejectedEdit(edit.op(), activity.name(), edit.packageKey(),
+                EditRejectionReason.UNKNOWN_ACTIVITY, activity.name() + " is no longer in the catalog"));
+        return true;
     }
 
     private PlanDraft applyToPackage(PlanDraft working, EditRequest edit, CatalogActivity activity,
@@ -192,6 +254,12 @@ public class PackageEditor {
             Map<UUID, CatalogActivity> catalogById) {
         Set<ViolationKey> existing = new HashSet<>();
         for (Violation violation : validator.validatePackage(before, brief, catalogById)) {
+            if (violation.code() == ViolationCode.WRONG_DAY_COUNT) {
+                // The validator returns on a wrong day count before it checks a single day, so neither
+                // list says anything about the day rules and the diff would wave everything through.
+                // The package is malformed to begin with: refuse the op rather than edit it blind.
+                return violation;
+            }
             existing.add(ViolationKey.of(violation));
         }
         for (Violation violation : validator.validatePackage(after, brief, catalogById)) {
@@ -421,11 +489,29 @@ public class PackageEditor {
      * slot, so a day is as fine-grained as this gets: a second {@code SLOT_TAKEN} on a day that already
      * had one reads as pre-existing, which is the safe way round — the alternative refuses edits to
      * packages the planner itself produced.
+     *
+     * <p>Safe because this diff is a backstop, not the gate: {@link #placement} has already refused to
+     * put anything in a taken slot, outside the day's window, or over the tier's item and minute caps.
+     * Finer granularity here would only start rejecting edits on already-broken packages again.
      */
     private record ViolationKey(ViolationCode code, Tier packageKey, Integer dayNumber) {
 
         static ViolationKey of(Violation violation) {
             return new ViolationKey(violation.code(), violation.packageKey(), violation.dayNumber());
+        }
+    }
+
+    /**
+     * The catalog one batch works against: the snapshot from state, plus the plan's own items where that
+     * snapshot no longer lists them. {@code resolvable} is what a name is matched against — the rebuilt
+     * entries are in it, so an activity the plan holds can still be named to be dropped or swapped —
+     * while {@code restored} marks the ones that must never be placed somewhere new.
+     */
+    private record WorkingCatalog(List<CatalogActivity> resolvable, Map<UUID, CatalogActivity> byId,
+                                  Set<UUID> restored) {
+
+        boolean isRestored(CatalogActivity activity) {
+            return restored.contains(activity.id());
         }
     }
 

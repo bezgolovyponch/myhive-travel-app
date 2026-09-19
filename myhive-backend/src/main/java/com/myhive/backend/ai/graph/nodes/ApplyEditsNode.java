@@ -173,8 +173,17 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
      * RESULT nor GENERATION_ID, so the organizer keeps exactly the packages they had.
      */
     private static Map<String, Object> parkedWithInternalReport(PlannerState state) {
+        return parked(internalReport(state));
+    }
+
+    /**
+     * The four keys every path out of this node writes: the report it is answering with, the batch
+     * consumed, and a thread parked with nothing pending. The edits are cleared here and nowhere else -
+     * a batch left in state would be applied again next turn.
+     */
+    private static Map<String, Object> parked(String reportJson) {
         Map<String, Object> update = new HashMap<>();
-        update.put(PlannerState.EDIT_REPORT, internalReport(state));
+        update.put(PlannerState.EDIT_REPORT, reportJson);
         update.put(PlannerState.EDITS, NO_EDITS);
         update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
         update.put(PlannerState.RESUME_REASON, "");
@@ -193,18 +202,11 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
         }
     }
 
-    /**
-     * The half of the update every path writes: the report, the consumed edits and a parked thread. The
-     * edits are cleared here and nowhere else - a batch left in state would be applied again next turn.
-     */
+    /** A finished batch: {@link #parked} plus, when anything was rejected, the line that explains it. */
     private static Map<String, Object> consumed(String locale, EditReport report) {
         log.info("planner edits applied={} rejected={} refreshed={}", report.applied().size(),
                 report.rejected().size(), report.textsRefreshed());
-        Map<String, Object> update = new HashMap<>();
-        update.put(PlannerState.EDIT_REPORT, JsonCodec.write(report));
-        update.put(PlannerState.EDITS, NO_EDITS);
-        update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
-        update.put(PlannerState.RESUME_REASON, "");
+        Map<String, Object> update = parked(JsonCodec.write(report));
         if (!report.rejected().isEmpty()) {
             // The templates are ours but the names they interpolate can still be the model's spelling, so
             // the finished sentence goes through the same cleaning every other stored text does.
