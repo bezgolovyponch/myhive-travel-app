@@ -20,7 +20,8 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
   order. A turn that rejected something writes two (the agent's reply, then the
   template line explaining the rejection); `message` is the last of them, which
   is what it has always been. Render `messages`, keep reading `message` only if
-  you were already.
+  you were already. Note it is *this turn's* messages, not the history — unlike
+  `SessionState.messages`.
 - `GenerationDTO` gained `kind` (`GENERATED` | `EDITED`), `parentId` and
   `editReport` — every generation carries these now, not only edited ones.
 - `SessionState.limits` gained `editsLeft`: **20 edit turns** per chat (a turn
@@ -39,7 +40,10 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
   batch, not a plan property; `parentId` can be `null` on an `EDITED` row;
   `WOULD_BREAK_SCHEDULE` fires only on violations the op introduced (and there is
   no "category rule"); `NOT_IN_PACKAGE`/`NO_FREE_SLOT` cover more cases than
-  listed; selecting an older `READY` generation is the undo.
+  listed; selecting an older `READY` generation is the undo, and restores that
+  generation's **brief** along with its packages; a plan item the (brief-ranked)
+  snapshot no longer lists is kept as it is rather than dropped, but cannot be
+  added again.
 
 **Changes since v1** (reconciling the contract with what actually shipped):
 - Bean-validation failures return `error: "Validation Failed"` (the app-wide
@@ -172,6 +176,12 @@ or that asked for one before any packages exist, holds two. `message` is the
 **last** entry — unchanged from v1.1, which is exactly why it is not enough on
 its own: on a partially rejected edit it is the template line, and the agent's
 own answer is the entry before it.
+
+⚠️ Two different fields share the name. `messages` **on this turn response** is
+only what this turn added (append it to the transcript); `messages` on
+`SessionState` is the **whole history**, greeting included (replace the
+transcript with it). Appending the session-state array, or replacing the
+transcript with the turn array, both produce a visibly broken chat.
 
 Generation starts **automatically** the moment the brief is complete (days, group
 size and preferences known) — there is no confirmation step. On that turn
@@ -417,7 +427,7 @@ to see it).
 | `WOULD_BREAK_SCHEDULE` | The activity placed fine, but re-validating the touched package showed a scheduling rule the op **introduced** (an emptied middle day, a duplicate, a day over its caps). Rules the package already broke — a degraded or fallback plan often has some — are ignored, so this never fires for a problem the edit did not cause. | Show only the chat sentence to the group; `detail` (validator code + message) is for support/logs. |
 | `NO_PACKAGES_YET` | An edit was requested while the chat has no packages in its state — which is normally "before the first generation finished", not "no generation row exists". | Prompt to finish the brief (or hit "Generate now") first. |
 | `EDIT_LIMIT` | This chat's 20 edit-turn budget is spent. | Same treatment as `SESSION_TURN_LIMIT`/`GENERATION_LIMIT` — offer "start a new chat". |
-| `INTERNAL` | Something on our side, never the group's fault. Two shapes: **per op**, when the editor itself failed on that one edit and the rest of the batch went through; and **the whole batch** (`applied[]` empty, `generationId` null, one `INTERNAL` entry per requested op), when storing the result failed, when the parent generation is missing or not `READY`, or when the plan references activities the catalog snapshot no longer has. | Generic "try again". On a whole-batch `INTERNAL` the packages on screen are unchanged and still correct. |
+| `INTERNAL` | Something on our side, never the group's fault. Two shapes: **per op**, when the editor itself failed on that one edit and the rest of the batch went through; and **the whole batch** (`applied[]` empty, `generationId` null), when storing the result failed, when the parent generation is missing or not `READY`, or when a plan item is missing from the catalog snapshot *and* too incomplete to reconstruct. A whole-batch rejection normally carries one entry per requested op — but in the rare case where the requested ops themselves could not be read back, it is a **single** entry with `op: null` and `activity: null`. | Generic "try again". On a whole-batch `INTERNAL` the packages on screen are unchanged and still correct. Do not assume `rejected[]` lines up one-to-one with what the group asked for. |
 
 One spelling nuance: on a `REPLACE`, if it is the **replacement's** name that
 fails to resolve (`UNKNOWN_ACTIVITY`/`AMBIGUOUS_ACTIVITY`), `rejected[].activity`
@@ -430,6 +440,17 @@ snapshot taken when the packages were generated, not a fresh catalog read. An
 activity that was deleted or re-priced in the admin since generation can still
 appear in an edit's `applied[]`/be offered as a target — final validation happens
 at booking, same as any other planner package.
+
+That snapshot is also **brief-dependent** (the catalog is ranked against the
+brief's categories and cut at 80 entries), so after an undo — selecting a
+generation built from an older brief — the snapshot in play may not list every
+activity that older plan uses. Those items are **kept exactly as they are**:
+their prices, durations and line totals are unchanged and they are re-priced
+identically, and they can still be named in a `REMOVE` or as the thing a
+`REPLACE` swaps out. They just cannot be **added** again — an `ADD` naming one,
+or a `REPLACE` proposing one as the replacement, comes back `UNKNOWN_ACTIVITY`
+with `detail` ending "is no longer in the catalog". Nothing is silently dropped
+from a package the batch did not name.
 
 ### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
 
@@ -525,6 +546,14 @@ only fill the cart, it moves the chat back onto that generation's packages, so a
 following edit is applied to them and hangs off that row. There is no separate
 undo endpoint; offering "go back to these" on an earlier generation is the whole
 feature.
+
+It restores the **brief** that generation was built for as well — the group size
+prices every line and the day count is what the packages are checked against, so
+the two cannot be separated. Two consequences for the UI: `brief` in the session
+state changes back too (re-render it, and expect `readyToGenerate` to follow),
+and a later message that restates the newer details ("we're 8 again") counts as a
+brief change and **regenerates**, spending one of the five generations. That is
+the intended way forward from an undo; it is not an error.
 
 ## Types
 
