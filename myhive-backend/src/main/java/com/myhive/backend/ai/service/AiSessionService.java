@@ -227,22 +227,34 @@ public class AiSessionService {
                     .filter(p -> p.key() == key)
                     .findFirst()
                     .orElseThrow(() -> new BadRequestException("Package " + key + " is not in this generation"));
+            // Read before anything is written, like the result above: a snapshot that will not parse has
+            // to fail the whole select rather than leave the graph half-moved onto a row it cannot
+            // describe. Re-written through the codec so the JSON matches byte for byte what the chat node
+            // writes - LAST_GENERATED_BRIEF is compared as a string.
+            Brief brief = JsonCodec.read(generation.getBriefSnapshot(), Brief.class);
+            String briefJson = JsonCodec.write(brief);
             // The Tier enum is validated by the time it gets here, so SELECTED_PACKAGE_KEY is never
             // a string the graph's Tier.valueOf could choke on.
             //
-            // The plan comes along with the id: picking an older READY generation is the documented undo
-            // (the client may select any row it can see), so the graph has to be moved onto that row
-            // wholesale. Stamping the id alone left the chat talking about one plan, the state holding
-            // another, and the next edit applied to the newer packages while filed under the older row.
+            // The plan and its brief come along with the id: picking an older READY generation is the
+            // documented undo (the client may select any row it can see), so the graph has to be moved
+            // onto that row wholesale. Stamping the id alone left the chat talking about one plan, the
+            // state holding another, and the next edit applied to the newer packages while filed under
+            // the older row. The brief has to move too: it is what prices every line and what the
+            // validator checks the day count against, so an edit after the undo would otherwise bill
+            // the older plan for the newer group size and file it under a snapshot that says otherwise.
+            // LAST_GENERATED_BRIEF moves with it or the next chat turn sees a brief that "changed" and
+            // burns one of the five generations rebuilding what the organizer just went back to.
             graph.update(session.getToken(), Map.of(
                     PlannerState.RESUME_REASON, ResumeReason.SELECT.name(),
                     PlannerState.SELECTED_PACKAGE_KEY, key.name(),
                     PlannerState.GENERATION_ID, generationId.toString(),
                     PlannerState.RESULT_GENERATION_ID, generationId.toString(),
-                    PlannerState.RESULT, JsonCodec.write(plan)));
+                    PlannerState.RESULT, JsonCodec.write(plan),
+                    PlannerState.BRIEF, briefJson,
+                    PlannerState.LAST_GENERATED_BRIEF, briefJson));
             graph.runUntilInterrupt(session.getToken());
             touch(session);
-            Brief brief = JsonCodec.read(generation.getBriefSnapshot(), Brief.class);
             return new Selection(generation, key, brief.groupSize(), chosen.activityIds());
         });
     }

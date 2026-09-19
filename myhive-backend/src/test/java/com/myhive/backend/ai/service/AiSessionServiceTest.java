@@ -195,13 +195,19 @@ class AiSessionServiceTest {
      */
     private void parkWithPackages(AiSession session, List<CatalogActivity> catalog, ComposedPlan plan,
             UUID parentGenerationId) {
-        String briefJson = JsonCodec.write(editBrief());
+        parkWithPackages(session, editBrief(), catalog, plan, parentGenerationId);
+    }
+
+    private void parkWithPackages(AiSession session, Brief brief, List<CatalogActivity> catalog, ComposedPlan plan,
+            UUID parentGenerationId) {
+        String briefJson = JsonCodec.write(brief);
         graph.update(session.getToken(), Map.of(
                 PlannerState.BRIEF, briefJson,
                 PlannerState.LAST_GENERATED_BRIEF, briefJson,
                 PlannerState.CATALOG, JsonCodec.write(catalog),
                 PlannerState.RESULT, JsonCodec.write(plan),
-                PlannerState.GENERATION_ID, parentGenerationId.toString()));
+                PlannerState.GENERATION_ID, parentGenerationId.toString(),
+                PlannerState.RESULT_GENERATION_ID, parentGenerationId.toString()));
     }
 
     /**
@@ -797,6 +803,59 @@ class AiSessionServiceTest {
         });
         assertThat(afterUndo.editedGeneration()).hasValueSatisfying(edited ->
                 assertThat(edited.getParentId()).isEqualTo(parent.getId()));
+    }
+
+    /**
+     * The brief is half of what an undo undoes: it prices every line and is what the validator checks the
+     * day count against. Restoring only the plan billed the older packages for the newer group size while
+     * filing them under a brief snapshot that said otherwise - a money-facing contradiction - and made the
+     * validator reject every edit with WRONG_DAY_COUNT once the day count had moved. Leaving
+     * LAST_GENERATED_BRIEF behind was worse still: the next chat turn saw a brief that "changed" and spent
+     * one of the five generations rebuilding what the organizer had just gone back to.
+     */
+    @Test
+    void select_onAnOlderGeneration_restoresTheBriefItWasBuiltFor() {
+        AiSession session = startedSession();
+        int expectedGroupSize = editBrief().groupSize();
+        BigDecimal expectedLineTotal = new BigDecimal("160.00");
+        CatalogActivity expectedReplaced = catalogActivity("Beer Bike", "beer-bike");
+        CatalogActivity expectedReplacement = catalogActivity("Club Crawl", "club-crawl");
+        ComposedPlan planOfA = planWith(expectedReplaced);
+        AiGeneration generationA = storedParent(session, planOfA);
+        // What a regeneration for "8 of us, 2 days" leaves behind: a bigger group, a longer trip, and
+        // its own packages and id in the state.
+        Brief briefOfB = new Brief(2, 8, List.of("nightlife"), null, null, null,
+                DayEdge.AFTERNOON, DayEdge.EVENING, null);
+        parkWithPackages(session, briefOfB, List.of(expectedReplaced, expectedReplacement),
+                planWith(expectedReplacement), UUID.randomUUID());
+        llm.queueChat(editTurn("Swapped it back.", expectedReplaced.name(), expectedReplacement.name()))
+                .queueRefresh(refreshedTexts("Rebuilt around the swap"));
+        answerEditedGenerationLookups();
+
+        service.select(generationA.getId(), Tier.BASIC);
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "swap the bike for the crawl");
+
+        assertThat(graph.snapshot(session.getToken()).state().brief().groupSize()).isEqualTo(expectedGroupSize);
+        AiGeneration edited = outcome.editedGeneration().orElseThrow();
+        assertThat(edited.getParentId()).isEqualTo(generationA.getId());
+        // The row is filed under A's brief, so every line in it has to be priced for A's group.
+        Brief snapshot = JsonCodec.read(edited.getBriefSnapshot(), Brief.class);
+        assertThat(snapshot.groupSize()).isEqualTo(expectedGroupSize);
+        assertThat(lineTotalsIn(JsonCodec.read(edited.getResult(), ComposedPlan.class)))
+                .allSatisfy(lineTotal -> assertThat(lineTotal).isEqualByComparingTo(expectedLineTotal));
+        // and the turn edited rather than regenerating: no plan asked for, no generation spent
+        assertThat(outcome.startedGeneration()).isEmpty();
+        assertThat(llm.planRequests).isEmpty();
+        assertThat(submittedJobs).isEmpty();
+        assertThat(session.getGenerationCount()).isZero();
+    }
+
+    private static List<BigDecimal> lineTotalsIn(ComposedPlan plan) {
+        return plan.packages().stream()
+                .flatMap(p -> p.days().stream())
+                .flatMap(day -> day.items().stream())
+                .map(ComposedPlan.ItemResult::lineTotal)
+                .toList();
     }
 
     /**
