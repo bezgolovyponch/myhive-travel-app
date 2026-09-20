@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -278,6 +280,91 @@ class PlanGenerationServiceTest {
         assertThat(reread.getStatus()).isEqualTo(AiGenerationStatus.READY);
         assertThat(reread.getErrorCode()).isNull();
         assertThat(reread.getSession().getStatus()).isNotEqualTo(AiSessionStatus.FAILED);
+    }
+
+    /**
+     * A job must enter the branch through awaitGeneration, the only park point GENERATE turns into a
+     * plan. A thread that had to be re-parked comes back at awaitUser instead, so the job walks it
+     * forward first - without that hop the resume below would park again and the job would report
+     * "finished without a result".
+     */
+    @Test
+    void runJob_afterADeadRunWasRepArked_walksTheThreadToAwaitGenerationFirst() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        UUID token = generation.getSession().getToken();
+        when(graph.ensureParked(any(), any())).thenReturn(Optional.of(PlannerGraph.SNAPSHOT_CATALOG));
+
+        service.runJob(generation.getId());
+
+        verify(graph).update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        verify(graph).update(token, Map.of(PlannerState.GENERATION_ID, generation.getId().toString(),
+                PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        verify(graph, times(2)).runUntilInterrupt(token);
+    }
+
+    /** The thread is left clean the moment a run dies, not only when the next request notices. */
+    @Test
+    void runJob_whenTheRunDies_repArksTheThreadImmediately() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        doThrow(new IllegalStateException("graph exploded")).when(graph).runUntilInterrupt(any());
+
+        service.runJob(generation.getId());
+
+        // once on the way in, once on the way out
+        verify(graph, times(2)).ensureParked(eq(generation.getSession().getToken()), any());
+    }
+
+    /** Re-parking is best effort: the row is already closed out and every request path re-parks again. */
+    @Test
+    void runJob_whenRepArkingItselfFails_doesNotReplaceTheOutcome() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        doThrow(new IllegalStateException("graph exploded")).when(graph).runUntilInterrupt(any());
+        when(graph.ensureParked(any(), any())).thenReturn(Optional.empty())
+                .thenThrow(new IllegalStateException("checkpoint unreachable"));
+
+        service.runJob(generation.getId());
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(generation.getErrorCode()).isEqualTo("INTERNAL");
+    }
+
+    /**
+     * The brief handed to the re-park is the one the newest generation that really delivered packages
+     * was built from, and it is only looked up when a dead run is actually found.
+     */
+    @Test
+    void ensureParked_offersTheBriefOfTheNewestGenerationThatDelivered() {
+        AiSession session = session();
+        String expectedBrief = "{\"days\":2,\"groupSize\":6}";
+        AiGeneration delivered = new AiGeneration();
+        delivered.setBriefSnapshot(expectedBrief);
+        when(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDesc(session.getId(),
+                AiGenerationStatus.READY)).thenReturn(Optional.of(delivered));
+
+        service.ensureParked(session);
+
+        ArgumentCaptor<Supplier<String>> supplier = ArgumentCaptor.captor();
+        verify(graph).ensureParked(eq(session.getToken()), supplier.capture());
+        verify(generationRepository, never()).findFirstBySessionIdAndStatusOrderByCreatedAtDesc(any(), any());
+        assertThat(supplier.getValue().get()).isEqualTo(expectedBrief);
+    }
+
+    /**
+     * Defence in depth behind the re-park: a plan that arrives from a run nobody owns any more must
+     * not put packages back on a screen the sweep has already told the group are gone.
+     */
+    @Test
+    void ready_onAGenerationTheSweepAlreadyFailed_isRefused() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.FAILED);
+        String expectedErrorCode = "STALE";
+        generation.setErrorCode(expectedErrorCode);
+
+        service.ready(generation.getId(), new ComposedPlan(List.of(), false), false, LlmUsage.none(), 0);
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(generation.getErrorCode()).isEqualTo(expectedErrorCode);
+        assertThat(generation.getResult()).isNull();
+        verify(generationRepository, never()).save(any());
     }
 
     @Test

@@ -111,11 +111,11 @@ public class PlannerState extends AgentState {
     }
 
     public Optional<PlanDraft> draft() {
-        return this.<String>value(DRAFT).map(json -> JsonCodec.read(json, PlanDraft.class));
+        return nonBlank(DRAFT).map(json -> JsonCodec.read(json, PlanDraft.class));
     }
 
     public List<Violation> violations() {
-        return this.<String>value(VIOLATIONS).map(json -> JsonCodec.read(json, VIOLATIONS_TYPE)).orElse(List.of());
+        return nonBlank(VIOLATIONS).map(json -> JsonCodec.read(json, VIOLATIONS_TYPE)).orElse(List.of());
     }
 
     public Optional<ComposedPlan> result() {
@@ -123,7 +123,7 @@ public class PlannerState extends AgentState {
     }
 
     public LlmUsage usage() {
-        return this.<String>value(USAGE).map(json -> JsonCodec.read(json, LlmUsage.class)).orElseGet(LlmUsage::none);
+        return nonBlank(USAGE).map(json -> JsonCodec.read(json, LlmUsage.class)).orElseGet(LlmUsage::none);
     }
 
     public int attempt() {
@@ -139,7 +139,7 @@ public class PlannerState extends AgentState {
     }
 
     public Optional<String> lastGeneratedBrief() {
-        return value(LAST_GENERATED_BRIEF);
+        return nonBlank(LAST_GENERATED_BRIEF);
     }
 
     /** Blank means "nothing pending": the nodes clear these keys by writing an empty string, never null. */

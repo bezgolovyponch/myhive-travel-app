@@ -58,6 +58,7 @@ import static org.mockito.Mockito.when;
 class AiSessionServiceTest {
 
     private final FakeLlmGateway llm = new FakeLlmGateway();
+    private final CatalogSnapshotter snapshotter = mock(CatalogSnapshotter.class);
     private final AiSessionRepository sessionRepository = mock(AiSessionRepository.class);
     private final AiGenerationRepository generationRepository = mock(AiGenerationRepository.class);
     private final DestinationRepository destinationRepository = mock(DestinationRepository.class);
@@ -88,7 +89,7 @@ class AiSessionServiceTest {
         props.setEnabled(true);
         // The sinks are looked up lazily on purpose: in the application the graph and the generation
         // service depend on each other, and the ObjectProvider breaks the cycle the same way.
-        graph = TestPlannerGraphs.inMemory(llm, mock(CatalogSnapshotter.class),
+        graph = TestPlannerGraphs.inMemory(llm, snapshotter,
                 (generationId, plan, degraded, usage, attempt) ->
                         generationService.ready(generationId, plan, degraded, usage, attempt),
                 (generationId, key) -> generationService.selected(generationId, key));
@@ -277,6 +278,71 @@ class AiSessionServiceTest {
         assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
         assertThat(failed.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
         assertThat(failed.getErrorCode()).isEqualTo("AI_BUSY");
+    }
+
+    /** Runs the jobs {@code enqueue} handed to the fake pool, the way an {@code aiTaskExecutor} thread would. */
+    private void runSubmittedJobs() {
+        List<Runnable> pending = List.copyOf(submittedJobs);
+        submittedJobs.clear();
+        pending.forEach(Runnable::run);
+    }
+
+    /** The lookups {@code runJob} and its failure paths make; the request path never needs them. */
+    private void stubJobLookups(AiSession session) {
+        when(generationRepository.findWithSessionById(any())).thenAnswer(inv -> savedById(inv.getArgument(0)));
+        when(generationRepository.findById(any())).thenAnswer(inv -> savedById(inv.getArgument(0)));
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+    }
+
+    private Optional<AiGeneration> savedById(UUID id) {
+        return savedGenerations.stream().filter(generation -> id.equals(generation.getId())).findFirst();
+    }
+
+    /**
+     * The catalog read fails once - a database blip, a lost job thread, a restart - so the generation
+     * dies inside the generation branch and its row is failed. The checkpoint still points at
+     * {@code snapshotCatalog}: the next message used to resume straight into it, running the planner
+     * model on this HTTP thread, flipping the FAILED row back to READY and never answering the user.
+     */
+    @Test
+    void message_afterAGenerationDiedMidBranch_isAnsweredWithoutRebuildingThePlan() {
+        AiSession session = startedSession();
+        String expectedReply = "Sure, tell me more.";
+        when(snapshotter.snapshot(any(), any(), any()))
+                .thenThrow(new IllegalStateException("catalog unavailable"))
+                .thenReturn(List.of());
+        llm.queueChat(turn("On it!", readyBrief()));
+        AiGeneration died = service.message(session.getToken(), "2 days, 6 of us, bars")
+                .startedGeneration().orElseThrow();
+        stubJobLookups(session);
+        runSubmittedJobs();
+        assertThat(died.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        llm.queueChat(turn(expectedReply, Brief.empty()));
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "anything happening?");
+
+        assertThat(died.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(llm.planRequests).isEmpty();
+        List<ChatMessage> messages = outcome.view().state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
+    }
+
+    /** The same node fails every time, so re-entering it answered every later message with a 502. */
+    @Test
+    void message_afterAGenerationThatFailsDeterministically_isStillAnswered() {
+        AiSession session = startedSession();
+        String expectedReply = "Let's talk it over first.";
+        when(snapshotter.snapshot(any(), any(), any())).thenThrow(new IllegalStateException("catalog unavailable"));
+        llm.queueChat(turn("On it!", readyBrief()));
+        service.message(session.getToken(), "2 days, 6 of us, bars");
+        stubJobLookups(session);
+        runSubmittedJobs();
+        llm.queueChat(turn(expectedReply, Brief.empty()));
+
+        AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "anything happening?");
+
+        List<ChatMessage> messages = outcome.view().state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
     }
 
     @Test
@@ -472,6 +538,30 @@ class AiSessionServiceTest {
         assertThat(generation.getSelectedPackageKey()).isEqualTo(expectedKey.name());
         assertThat(graph.snapshot(session.getToken()).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
         assertThat(llm.chatRequests).isEmpty();
+    }
+
+    /**
+     * The packages of an earlier generation stay pickable after a later one died inside the graph:
+     * the pick resumes the thread too, so it re-parks first rather than finishing the dead run.
+     */
+    @Test
+    void select_afterAGenerationDiedMidBranch_stillRecordsThePick() {
+        AiSession session = startedSession();
+        Tier expectedKey = Tier.PREMIUM;
+        when(snapshotter.snapshot(any(), any(), any())).thenThrow(new IllegalStateException("catalog unavailable"));
+        llm.queueChat(turn("On it!", readyBrief()));
+        service.message(session.getToken(), "2 days, 6 of us, bars");
+        stubJobLookups(session);
+        runSubmittedJobs();
+        // stubbed last: the job lookups above answer by id for everything the pool thread saved
+        AiGeneration generation = readyGeneration(session, expectedKey, UUID.randomUUID());
+
+        AiSessionService.Selection selection = service.select(generation.getId(), expectedKey);
+
+        assertThat(selection.key()).isEqualTo(expectedKey);
+        assertThat(generation.getSelectedPackageKey()).isEqualTo(expectedKey.name());
+        assertThat(graph.snapshot(session.getToken()).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(llm.planRequests).isEmpty();
     }
 
     @Test

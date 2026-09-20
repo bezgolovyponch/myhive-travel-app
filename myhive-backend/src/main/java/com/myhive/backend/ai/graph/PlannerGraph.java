@@ -23,7 +23,10 @@ import org.bsc.langgraph4j.state.StateSnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * The whole conversation as one graph; one checkpoint thread per session token. The three
@@ -61,6 +64,13 @@ public class PlannerGraph {
     public static final String PERSIST_RESULT = "persistResult";
     public static final String AWAIT_SELECTION = "awaitSelection";
     public static final String SELECT = "select";
+
+    /**
+     * The only three nodes a thread may be waiting at between two requests. Anything else means a run
+     * died in the middle of the graph - see {@link #ensureParked}. The single place to extend when a
+     * new park point is added.
+     */
+    private static final Set<String> PARK_NODES = Set.of(AWAIT_USER, AWAIT_GENERATION, AWAIT_SELECTION);
 
     private static final int MAX_REPAIRS = 1;
     private static final long NANOS_PER_MILLI = 1_000_000L;
@@ -225,8 +235,88 @@ public class PlannerGraph {
     }
 
     public void update(UUID token, Map<String, Object> values) {
+        update(token, values, null);
+    }
+
+    /**
+     * Guarantees the thread is waiting at one of the {@code await*} nodes, so that whoever resumes it
+     * next starts a turn rather than continuing somebody else's half-finished run.
+     *
+     * <p>langgraph4j writes a checkpoint after every node and {@code GraphInput.resume()} continues
+     * from the checkpoint's {@code next}. A generation that dies inside the generation branch - a node
+     * that throws, a restart, a job thread that is lost and swept after
+     * {@code STALE_AFTER_MINUTES} - therefore leaves {@code next} pointing at a generation-branch
+     * node, and the next resume walks straight back into it. Two faces, one cause: the resume runs the
+     * ~40-60 s planner model on an HTTP request thread and {@code persistResult} stores its plan for
+     * the row the sweep already failed, while the message that triggered the resume is never answered;
+     * and if the node fails deterministically, every later message answers 502 instead. The
+     * {@link #afterWait} guard cannot help with either - it only runs when a thread <em>leaves</em> an
+     * {@code await*} node.
+     *
+     * <p>Re-parking is only safe while no generation is in flight for this session, because a running
+     * job is the one thing that may legitimately be mid-branch. Every caller establishes that first:
+     * the three request paths refuse the request with GENERATION_IN_PROGRESS while a QUEUED or RUNNING
+     * row exists, and the job itself owns the run it is about to start. The one hole left is the
+     * sweeper's own premise - a job still alive after {@code STALE_AFTER_MINUTES} has had its row
+     * failed and no longer holds anyone off - and even then re-parking is the better outcome: the
+     * abandoned job finds a thread parked at {@code awaitUser}, parks it again at
+     * {@code awaitGeneration} and reports a generation without a result, instead of two threads
+     * running the branch over one checkpoint.
+     *
+     * @param lastDeliveredBrief the brief of the newest generation that actually delivered packages,
+     *        or {@code null} when there is none; only asked for when a dead run is found
+     * @return the node the thread was found at, when it had to be re-parked
+     */
+    public Optional<String> ensureParked(UUID token, Supplier<String> lastDeliveredBrief) {
+        // One checkpoint read, not exists() plus snapshot(): this runs on every resume path.
+        String next = compiled.stateOf(configFor(token)).map(StateSnapshot::next).orElse(null);
+        // Unknown thread, or a checkpoint with nowhere to go: neither is a run to rescue.
+        if (next == null || PARK_NODES.contains(next)) {
+            return Optional.empty();
+        }
+        log.warn("planner thread session={} was left at node={} by a run that never finished; re-parking at {}",
+                token, next, AWAIT_USER);
+        // asNode replays the router *of* the node named, not the node itself: chatTurn's router sends
+        // ACTION=NONE to awaitUser, which is exactly where a finished turn parks. Naming AWAIT_USER
+        // here would run its own router instead and land the thread on chatTurn - not a park point.
+        update(token, clearedRunState(lastDeliveredBrief.get()), CHAT_TURN);
+        return Optional.of(next);
+    }
+
+    /**
+     * Everything one generation attempt scribbles on the state, reset to what a fresh run expects.
+     * The single place to extend when the branch learns a new key.
+     *
+     * <p>What deliberately survives: MESSAGES, BRIEF and CATALOG (the conversation), RESULT and
+     * GENERATION_ID (the packages a previous generation delivered, which the selection screen still
+     * offers) and SELECTED_PACKAGE_KEY. Every resume stamps its own GENERATION_ID before it runs, so
+     * a stale one is never read.
+     */
+    private static Map<String, Object> clearedRunState(String lastDeliveredBrief) {
+        Map<String, Object> values = new HashMap<>();
+        // Load-bearing for the re-park itself: chatTurn's router reads ACTION to pick the park point.
+        values.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
+        // A reason the dead run left behind would steer the next resume down its branch.
+        values.put(PlannerState.RESUME_REASON, "");
+        // The repair budget, the findings, the draft and the accounting all belong to the dead attempt.
+        values.put(PlannerState.ATTEMPT, 0);
+        values.put(PlannerState.VIOLATIONS, "");
+        values.put(PlannerState.DRAFT, "");
+        values.put(PlannerState.DEGRADED, false);
+        values.put(PlannerState.USAGE, "");
+        values.put(PlannerState.LAST_ERROR, "");
+        // snapshotCatalog stamps this one early, so a run that dies later leaves the chat believing
+        // packages exist for the current brief: it would never regenerate on its own again. Restoring
+        // the brief of the last generation that really delivered is the middle ground - small talk
+        // still costs nothing, a changed brief still rebuilds. Blank when the chat has no packages
+        // at all, which makes the next complete brief generate.
+        values.put(PlannerState.LAST_GENERATED_BRIEF, lastDeliveredBrief == null ? "" : lastDeliveredBrief);
+        return values;
+    }
+
+    private void update(UUID token, Map<String, Object> values, String asNode) {
         try {
-            compiled.updateState(configFor(token), values, null);
+            compiled.updateState(configFor(token), values, asNode);
         } catch (Exception e) {
             throw new IllegalStateException("cannot update planner state for " + token, e);
         }

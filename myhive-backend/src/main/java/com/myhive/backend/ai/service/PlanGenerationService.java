@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
@@ -129,9 +130,11 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
             log.warn("planner job skipped: generation {} no longer exists", generationId);
             return;
         }
-        UUID token = generation.getSession().getToken();
+        AiSession session = generation.getSession();
+        UUID token = session.getToken();
         markRunning(generation);
         try {
+            enterThroughAwaitGeneration(session);
             // GENERATE is the only reason that reaches the generation branch, and this is the only
             // resume that runs with GENERATE *from* awaitGeneration - which is what keeps a chat turn
             // or a selection from building a plan. Every resume stamps its own reason (requestGeneration
@@ -144,6 +147,7 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
                 // The thread parked without reaching persistResult; nothing will ever store a plan.
                 log.error("planner generation {} finished without a result", generationId);
                 self.getObject().fail(generationId, "INTERNAL");
+                reparkAfterAFailedRun(session);
             }
         } catch (RuntimeException e) {
             log.error("planner generation {} failed: {}", generationId, e.getClass().getName(), e);
@@ -151,13 +155,79 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
             // running, so anything that blows up afterwards (parking the thread, the checkpoint write)
             // would otherwise take three finished packages off the group's screen.
             self.getObject().failIfStillInFlight(generationId, "INTERNAL");
+            reparkAfterAFailedRun(session);
         }
     }
 
+    /**
+     * Re-parks a graph thread that a run which never finished left inside the graph, so that the next
+     * resume starts a turn instead of continuing it. Safe here because no QUEUED or RUNNING row exists
+     * for the session: the request paths refuse with GENERATION_IN_PROGRESS while one does, and a job
+     * calling this owns the only run there is. See {@link PlannerGraph#ensureParked}.
+     *
+     * @return the node the thread was found at, when it had to be re-parked
+     */
+    public Optional<String> ensureParked(AiSession session) {
+        return graph.ensureParked(session.getToken(), () -> lastDeliveredBrief(session.getId()));
+    }
+
+    /**
+     * A job must start from awaitGeneration - the only park point GENERATE turns into a plan. A thread
+     * that had to be re-parked comes back at awaitUser instead, one GENERATE hop short; the hop
+     * executes nothing but the park node itself, so it costs no model call. Without it the resume
+     * below would simply park again and the job would report "finished without a result".
+     */
+    private void enterThroughAwaitGeneration(AiSession session) {
+        if (ensureParked(session).isEmpty()) {
+            return;
+        }
+        graph.update(session.getToken(), Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        graph.runUntilInterrupt(session.getToken());
+    }
+
+    /**
+     * Leaves the thread clean the moment a run dies, rather than waiting for the next request to
+     * notice. Its own failure is swallowed on purpose: the generation row has already been closed out
+     * by this point, the caller is a pool thread with nobody to report to, and every request path
+     * re-parks again before it resumes anything.
+     */
+    private void reparkAfterAFailedRun(AiSession session) {
+        try {
+            ensureParked(session);
+        } catch (RuntimeException e) {
+            log.warn("could not re-park planner thread {} after a failed run: {}", session.getToken(),
+                    e.getClass().getName());
+        }
+    }
+
+    /**
+     * The brief the newest generation that actually delivered packages was built from, or {@code null}
+     * when this chat has none. It is the same JSON {@code snapshotCatalog} stamps as
+     * {@code LAST_GENERATED_BRIEF} - both write the same {@link Brief} through {@link JsonCodec} - and
+     * if the two ever drifted apart the only cost would be one regeneration the chat did not need.
+     */
+    private String lastDeliveredBrief(UUID sessionId) {
+        return generationRepository
+                .findFirstBySessionIdAndStatusOrderByCreatedAtDesc(sessionId, AiGenerationStatus.READY)
+                .map(AiGeneration::getBriefSnapshot)
+                .orElse(null);
+    }
+
+    /**
+     * The mirror image of {@link #failIfStillInFlight}: that one refuses to fail a row that finished,
+     * this one refuses to finish a row that was already failed. Defence in depth behind
+     * {@link PlannerGraph#ensureParked} - the sweeper has told the group this generation is gone and
+     * may have flipped the chat to FAILED, so a late plan arriving from a run nobody owns any more
+     * must be dropped rather than put back on the screen.
+     */
     @Override
     @Transactional
     public void ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
         AiGeneration generation = generationRepository.findById(generationId).orElseThrow();
+        if (generation.getStatus() == AiGenerationStatus.FAILED) {
+            log.warn("planner result dropped generation={}: the row is already FAILED", generationId);
+            return;
+        }
         generation.setStatus(AiGenerationStatus.READY);
         generation.setResult(JsonCodec.write(plan));
         generation.setDegraded(degraded);

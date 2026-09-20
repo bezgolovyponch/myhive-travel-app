@@ -152,15 +152,17 @@ public class AiSessionService {
         requireEnabled();
         return locks.withLock(token, () -> {
             AiSession session = find(token);
-            PlannerGraph.PlannerStateSnapshot snapshot = graph.snapshot(token);
-            Brief brief = snapshot.state().brief();
+            Brief brief = graph.snapshot(token).state().brief();
             if (!brief.isReady()) {
                 throw new AiConflictException("BRIEF_INCOMPLETE",
                         "Still missing: " + String.join(", ", brief.missingFields()));
             }
             requireNoGenerationInFlight(session, "A generation is already running");
             requireGenerationsLeft(session);
-            if (!PlannerGraph.AWAIT_GENERATION.equals(snapshot.next())) {
+            // Before the park point is read: a dead run's checkpoint points into the generation branch,
+            // and the walk below would then resume into it rather than towards awaitGeneration.
+            generationService.ensureParked(session);
+            if (!PlannerGraph.AWAIT_GENERATION.equals(graph.snapshot(token).next())) {
                 // Moves awaitUser/awaitSelection to awaitGeneration and parks there; no model call,
                 // because awaitGeneration is an interrupt point and only the job resumes past it.
                 graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
@@ -190,6 +192,8 @@ public class AiSessionService {
             // Resuming with SELECT underneath it would stamp the wrong id and, while the thread is
             // parked at awaitGeneration, hand the job a thread that has already moved on.
             requireNoGenerationInFlight(session, "Your packages are being built, one moment");
+            // Same reason as in turn(): the pick must not resume a generation that died mid-graph.
+            generationService.ensureParked(session);
             ComposedPlan plan = JsonCodec.read(generation.getResult(), ComposedPlan.class);
             ComposedPlan.PackageResult chosen = plan.packages().stream()
                     .filter(p -> p.key() == key)
@@ -222,6 +226,10 @@ public class AiSessionService {
             throw new AiLimitException("SESSION_TURN_LIMIT", "This chat reached its " + MAX_MESSAGES + "-message limit");
         }
         requireNoGenerationInFlight(session, "Your packages are being built, one moment");
+        // Only now that no job owns the thread: a generation that died inside the graph left the
+        // checkpoint pointing into the generation branch, and resuming it here would build a plan on
+        // this request thread instead of answering the message.
+        generationService.ensureParked(session);
 
         String text = content.strip();
         Map<String, Object> update = new HashMap<>();
