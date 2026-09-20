@@ -66,6 +66,12 @@ public class PlannerState extends AgentState {
     /** The turn asked for concrete changes to packages that already exist: edit them, do not regenerate. */
     public static final String ACTION_EDIT = "EDIT";
 
+    /**
+     * The cleared form of {@link #EDITS}: an empty batch rather than a blank, so the JSON in state is
+     * always readable. {@link #edits()} answers {@code []} for either.
+     */
+    public static final String NO_EDITS = "[]";
+
     public static final Map<String, Channel<?>> SCHEMA = Map.of(
             MESSAGES, Channels.appender(ArrayList::new));
 
@@ -120,11 +126,11 @@ public class PlannerState extends AgentState {
     }
 
     public Optional<PlanDraft> draft() {
-        return this.<String>value(DRAFT).map(json -> JsonCodec.read(json, PlanDraft.class));
+        return nonBlank(DRAFT).map(json -> JsonCodec.read(json, PlanDraft.class));
     }
 
     public List<Violation> violations() {
-        return this.<String>value(VIOLATIONS).map(json -> JsonCodec.read(json, VIOLATIONS_TYPE)).orElse(List.of());
+        return nonBlank(VIOLATIONS).map(json -> JsonCodec.read(json, VIOLATIONS_TYPE)).orElse(List.of());
     }
 
     public Optional<ComposedPlan> result() {
@@ -146,7 +152,7 @@ public class PlannerState extends AgentState {
     }
 
     public LlmUsage usage() {
-        return this.<String>value(USAGE).map(json -> JsonCodec.read(json, LlmUsage.class)).orElseGet(LlmUsage::none);
+        return nonBlank(USAGE).map(json -> JsonCodec.read(json, LlmUsage.class)).orElseGet(LlmUsage::none);
     }
 
     public int attempt() {
@@ -162,7 +168,7 @@ public class PlannerState extends AgentState {
     }
 
     public Optional<String> lastGeneratedBrief() {
-        return value(LAST_GENERATED_BRIEF);
+        return nonBlank(LAST_GENERATED_BRIEF);
     }
 
     /** Blank means "nothing pending": the nodes clear these keys by writing an empty string, never null. */

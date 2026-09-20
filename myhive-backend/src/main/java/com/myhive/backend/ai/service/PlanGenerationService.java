@@ -33,7 +33,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -61,6 +64,20 @@ public class PlanGenerationService
      */
     static final LocalDateTime PROCESS_STARTED_AT = LocalDateTime.ofInstant(
             Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean().getStartTime()), ZoneOffset.UTC);
+
+    /**
+     * The generations this JVM's pool threads are running right now, so the sweep can tell a slow job
+     * from a lost one. A job that is merely slow is still holding the graph thread inside the
+     * generation branch when the stale clock runs out; failing its row stops holding requests off, and
+     * the next user message then re-parks the thread and runs a chat turn underneath the live job -
+     * whose next node checkpoint is pushed on top of both, taking the message and its reply out of the
+     * transcript. Bounded by the model deadlines: at most one compose and one repair, each capped at
+     * {@code app.ai.planner-timeout} (60 s by default) by a hard {@code CompletableFuture.get}, so an
+     * owned run cannot outlive roughly two minutes of model time and can never sit here for ever.
+     * Entries are given back in a {@code finally}, and the only way one survives that is the JVM dying
+     * with it - which empties the set and is exactly when RUNNING rows really are orphans.
+     */
+    private final Set<UUID> ownedRuns = ConcurrentHashMap.newKeySet();
 
     private final AiGenerationRepository generationRepository;
     private final AiSessionRepository sessionRepository;
@@ -133,9 +150,13 @@ public class PlanGenerationService
             log.warn("planner job skipped: generation {} no longer exists", generationId);
             return;
         }
-        UUID token = generation.getSession().getToken();
-        markRunning(generation);
+        AiSession session = generation.getSession();
+        UUID token = session.getToken();
+        // Claimed before the row says RUNNING, so the sweep never sees it unowned.
+        ownedRuns.add(generationId);
         try {
+            markRunning(generation);
+            enterThroughAwaitGeneration(session);
             // GENERATE is the only reason that reaches the generation branch, and this is the only
             // resume that runs with GENERATE *from* awaitGeneration - which is what keeps a chat turn
             // or a selection from building a plan. Every resume stamps its own reason (requestGeneration
@@ -155,13 +176,78 @@ public class PlanGenerationService
             // running, so anything that blows up afterwards (parking the thread, the checkpoint write)
             // would otherwise take three finished packages off the group's screen.
             self.getObject().failIfStillInFlight(generationId, "INTERNAL");
+        } finally {
+            // Whatever happened, including an Error on the way out: the row is closed out or genuinely
+            // abandoned by now, and either way the sweep may have it back.
+            ownedRuns.remove(generationId);
         }
+        // Deliberately no re-park here. This thread is outside SessionLocks and its row has stopped
+        // holding requests off, so a write from here could land on top of a request that is already
+        // running a turn. The four resume paths each re-park before they touch the graph, which is
+        // both sufficient and properly serialised.
     }
 
+    /**
+     * Re-parks a graph thread that a run which never finished left inside the graph, so that the next
+     * resume starts a turn instead of continuing it. Safe here because no QUEUED or RUNNING row exists
+     * for the session: the request paths refuse with GENERATION_IN_PROGRESS while one does, and a job
+     * calling this owns the only run there is. See {@link PlannerGraph#ensureParked}.
+     *
+     * @return the node the thread was found at, when it had to be re-parked
+     */
+    public Optional<String> ensureParked(AiSession session) {
+        return graph.ensureParked(session.getToken(), () -> lastDeliveredBrief(session.getId()));
+    }
+
+    /**
+     * A job must start from awaitGeneration - the only park point GENERATE turns into a plan. A thread
+     * that had to be re-parked comes back at awaitUser instead, one GENERATE hop short; the hop
+     * executes nothing but the park node itself, so it costs no model call. Without it the resume
+     * below would simply park again and the job would report "finished without a result".
+     *
+     * <p>The trigger is where the thread actually is, not whether this call re-parked it: the same
+     * hop is what a thread left at awaitUser or awaitSelection by anything else needs.
+     */
+    private void enterThroughAwaitGeneration(AiSession session) {
+        ensureParked(session);
+        UUID token = session.getToken();
+        if (PlannerGraph.AWAIT_GENERATION.equals(graph.snapshot(token).next())) {
+            return;
+        }
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        graph.runUntilInterrupt(token);
+    }
+
+    /**
+     * The brief the newest generation that actually delivered packages was built from, or {@code null}
+     * when this chat has none. It is the same JSON {@code snapshotCatalog} stamps as
+     * {@code LAST_GENERATED_BRIEF} - both write the same {@link Brief} through {@link JsonCodec} - and
+     * if the two ever drifted apart the only cost would be one regeneration the chat did not need. An
+     * edited row carries its parent's snapshot, so which of two rows sharing a tick wins is moot here.
+     */
+    private String lastDeliveredBrief(UUID sessionId) {
+        return generationRepository
+                .findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(sessionId, AiGenerationStatus.READY)
+                .map(AiGeneration::getBriefSnapshot)
+                .orElse(null);
+    }
+
+    /**
+     * The mirror image of {@link #failIfStillInFlight}: that one refuses to fail a row that finished,
+     * this one refuses to finish a row that was already failed. Defence in depth behind
+     * {@link #ownedRuns} and {@link PlannerGraph#ensureParked} - the group has been told this
+     * generation is gone and the chat may already be FAILED, so a plan arriving from a run nobody
+     * owns any more is dropped rather than put back on the screen. Answering {@code false} is what
+     * lets the graph unwind its own "these packages exist" stamp.
+     */
     @Override
     @Transactional
-    public void ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
+    public boolean ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
         AiGeneration generation = generationRepository.findById(generationId).orElseThrow();
+        if (generation.getStatus() == AiGenerationStatus.FAILED) {
+            log.warn("planner result dropped generation={}: the row is already FAILED", generationId);
+            return false;
+        }
         generation.setStatus(AiGenerationStatus.READY);
         generation.setResult(JsonCodec.write(plan));
         generation.setDegraded(degraded);
@@ -170,6 +256,7 @@ public class PlanGenerationService
         generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
         generation.getSession().setStatus(AiSessionStatus.READY);
         save(generation);
+        return true;
     }
 
     @Override
@@ -232,7 +319,8 @@ public class PlanGenerationService
      * Two ways to end up there, and they age on different clocks.
      *
      * <p>RUNNING means a thread took the row and died mid-run, so {@code startedAt} older than
-     * {@link #STALE_AFTER_MINUTES} is the giveaway. QUEUED cannot use a duration at all: two workers
+     * {@link #STALE_AFTER_MINUTES} is the giveaway - unless this process is still running it, which
+     * {@link #ownedRuns} answers. QUEUED cannot use a duration at all: two workers
      * over a twenty-deep queue at up to three minutes a job means an honest wait of well over three
      * minutes is routine, and sweeping on age would fail live generations, burn the group's slot and
      * flip the chat to FAILED while the job went on to produce a plan. A QUEUED row is an orphan only
@@ -242,7 +330,12 @@ public class PlanGenerationService
     @Scheduled(fixedDelay = 60_000)
     public void failStaleRunning() {
         LocalDateTime runningCutoff = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(STALE_AFTER_MINUTES);
-        failStale(generationRepository.findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING, runningCutoff));
+        failStale(generationRepository.findByStatusAndStartedAtBefore(AiGenerationStatus.RUNNING, runningCutoff)
+                .stream()
+                .filter(generation -> !ownedRuns.contains(generation.getId()))
+                .toList());
+        // No such filter on QUEUED: nothing this process queued can predate its own start, so a row
+        // one of its threads is about to pick up is never selected in the first place.
         failStale(generationRepository.findByStatusAndCreatedAtBefore(AiGenerationStatus.QUEUED, PROCESS_STARTED_AT));
     }
 

@@ -35,9 +35,6 @@ import java.util.function.Supplier;
 @Slf4j
 public class ApplyEditsNode implements NodeAction<PlannerState> {
 
-    /** An empty batch rather than a blank: the accessor reads both as "nothing pending". */
-    private static final String NO_EDITS = "[]";
-
     /**
      * The last-resort report, for the case where even {@code state.edits()} cannot be read back: it has
      * to be a constant, because everything that could build one from the state is what just failed.
@@ -184,7 +181,7 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
     private static Map<String, Object> parked(String reportJson) {
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.EDIT_REPORT, reportJson);
-        update.put(PlannerState.EDITS, NO_EDITS);
+        update.put(PlannerState.EDITS, PlannerState.NO_EDITS);
         update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
         update.put(PlannerState.RESUME_REASON, "");
         return update;

@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -54,12 +55,18 @@ class PlannerGraphTest {
         private UUID lastEditedGeneration;
         private EditReport lastEditReport;
         private RuntimeException nextEditFailure;
+        /** Stands in for a generation row the sweep closed out while the run was still going. */
+        private boolean storesPlans = true;
 
         @Override
-        public void ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
+        public boolean ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
+            if (!storesPlans) {
+                return false;
+            }
             lastGeneration = generationId;
             lastPlan = plan;
             lastDegraded = degraded;
+            return true;
         }
 
         @Override
@@ -608,6 +615,245 @@ class PlannerGraphTest {
     private static List<String> namesIn(ComposedPlan plan, Tier tier) {
         return packageOf(plan, tier).days().stream().flatMap(day -> day.items().stream())
                 .map(ComposedPlan.ItemResult::name).toList();
+    }
+
+    /**
+     * Drives a generation into the branch and kills it there, the way a database blip in
+     * {@code snapshotCatalog}, a lost job thread or a restart does. What is left behind is a
+     * checkpoint whose {@code next} is a generation-branch node.
+     */
+    private UUID threadKilledInsideTheGenerationBranch() {
+        UUID token = threadParkedAtAwaitGeneration();
+        graph.update(token, generationResume(UUID.randomUUID()));
+        assertThatThrownBy(() -> graph.runUntilInterrupt(token)).isInstanceOf(RuntimeException.class);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.SNAPSHOT_CATALOG);
+        return token;
+    }
+
+    /**
+     * The failure was transient, so resuming the dead run would succeed - which is exactly the
+     * damage: the planner model runs on the caller's (HTTP) thread, {@code persistResult} stores a
+     * plan for a generation the sweeper has already failed, and the user's message is never answered.
+     */
+    @Test
+    void aGenerationThatDiedMidBranch_doesNotHijackTheNextChatTurn() {
+        String expectedReply = "Sure - what would you change?";
+        when(snapshotter.snapshot(any(), any(), any()))
+                .thenThrow(new IllegalStateException("catalog unavailable"))
+                .thenReturn(catalog);
+        UUID token = threadKilledInsideTheGenerationBranch();
+        llm.queuePlan(validDraft()).queueChat(turn(expectedReply, Brief.empty()));
+
+        assertThat(graph.ensureParked(token, () -> null)).contains(PlannerGraph.SNAPSHOT_CATALOG);
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("actually, hold on"))));
+        graph.runUntilInterrupt(token);
+
+        assertThat(llm.planRequests).isEmpty();
+        assertThat(sinks.lastPlan).isNull();
+        List<ChatMessage> messages = graph.snapshot(token).state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
+    }
+
+    /** The same node fails every time, so re-entering it answers every later message with a 502. */
+    @Test
+    void aGenerationThatDiesOnEveryAttempt_doesNotWedgeTheChat() {
+        String expectedReply = "Let's talk it over first.";
+        when(snapshotter.snapshot(any(), any(), any())).thenThrow(new IllegalStateException("catalog unavailable"));
+        UUID token = threadKilledInsideTheGenerationBranch();
+        llm.queueChat(turn(expectedReply, Brief.empty()));
+
+        graph.ensureParked(token, () -> null);
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("actually, hold on"))));
+        graph.runUntilInterrupt(token);
+
+        List<ChatMessage> messages = graph.snapshot(token).state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
+    }
+
+    /** Parks a thread on three finished packages, then kills a regeneration inside the branch. */
+    private UUID threadWithPackagesAndARegenerationKilledMidBranch(UUID deadGenerationId) {
+        UUID token = UUID.randomUUID();
+        llm.queueChat(turn("go", readyBrief())).queuePlan(validDraft());
+        graph.start(token, startInputs());
+        graph.update(token, generationResume(UUID.randomUUID()));
+        graph.runUntilInterrupt(token);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+
+        when(snapshotter.snapshot(any(), any(), any())).thenThrow(new IllegalStateException("catalog unavailable"));
+        graph.update(token, generationResume(deadGenerationId));
+        // awaitSelection -> awaitGeneration first; only the next resume enters the branch and dies
+        graph.runUntilInterrupt(token);
+        assertThatThrownBy(() -> graph.runUntilInterrupt(token)).isInstanceOf(RuntimeException.class);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.SNAPSHOT_CATALOG);
+        return token;
+    }
+
+    /** The conversation and the packages an earlier generation delivered are not part of the dead run. */
+    @Test
+    void reParkingADeadRun_keepsTheConversationAndThePackagesItAlreadyDelivered() {
+        UUID expectedGenerationId = UUID.randomUUID();
+        UUID token = threadWithPackagesAndARegenerationKilledMidBranch(expectedGenerationId);
+        int expectedMessages = graph.snapshot(token).state().messages().size();
+
+        graph.ensureParked(token, () -> null);
+
+        PlannerGraph.PlannerStateSnapshot snap = graph.snapshot(token);
+        assertThat(snap.next()).isEqualTo(PlannerGraph.AWAIT_USER);
+        assertThat(snap.state().messages()).hasSize(expectedMessages);
+        assertThat(snap.state().brief().isReady()).isTrue();
+        assertThat(snap.state().result()).isPresent();
+        assertThat(snap.state().generationId()).contains(expectedGenerationId);
+        // the dead attempt's own scribbles are gone
+        assertThat(snap.state().action()).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(snap.state().resumeReason()).isEmpty();
+        assertThat(snap.state().violations()).isEmpty();
+        assertThat(snap.state().draft()).isEmpty();
+        assertThat(snap.state().attempt()).isEqualTo(0);
+    }
+
+    /**
+     * snapshotCatalog stamps LAST_GENERATED_BRIEF before the packages exist, so a run that dies after
+     * it leaves the chat believing it has already built this brief - it would never regenerate again.
+     * Re-parking restores the brief of the generation that really delivered, so small talk still costs
+     * nothing and a changed brief still rebuilds.
+     */
+    @Test
+    void reParkingADeadRun_restoresTheBriefOfTheLastGenerationThatDelivered() {
+        String expectedDeliveredBrief = JsonCodec.write(readyBrief());
+        UUID token = threadWithPackagesAndARegenerationKilledMidBranch(UUID.randomUUID());
+
+        graph.ensureParked(token, () -> expectedDeliveredBrief);
+
+        assertThat(graph.snapshot(token).state().lastGeneratedBrief()).contains(expectedDeliveredBrief);
+        // small talk after the recovery: the brief is unchanged, so nothing is rebuilt
+        llm.queueChat(turn("Glad you like it!", Brief.empty()));
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("nice"))));
+        graph.runUntilInterrupt(token);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_USER);
+        assertThat(llm.planRequests).hasSize(1);
+    }
+
+    /**
+     * The recovery a job drives: re-park, then the GENERATE hop from awaitUser to awaitGeneration -
+     * which executes nothing but the park nodes - and only then the generation itself.
+     */
+    @Test
+    void aReParkedThread_isWalkedToAwaitGenerationAndThenGenerates() {
+        UUID expectedGenerationId = UUID.randomUUID();
+        when(snapshotter.snapshot(any(), any(), any()))
+                .thenThrow(new IllegalStateException("catalog unavailable"))
+                .thenReturn(catalog);
+        UUID token = threadKilledInsideTheGenerationBranch();
+        int expectedChatTurns = llm.chatRequests.size();
+        graph.ensureParked(token, () -> null);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_USER);
+
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        graph.runUntilInterrupt(token);
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
+        assertThat(llm.chatRequests).hasSize(expectedChatTurns);
+        assertThat(llm.planRequests).isEmpty();
+
+        llm.queuePlan(validDraft());
+        graph.update(token, generationResume(expectedGenerationId));
+        graph.runUntilInterrupt(token);
+
+        assertThat(sinks.lastGeneration).isEqualTo(expectedGenerationId);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+    }
+
+    /**
+     * The sweeper closed the row out while this run was still building. Nobody will ever show the
+     * plan, so the chat must not be left believing it has packages for this brief.
+     */
+    @Test
+    void aPlanTheSinkRefuses_leavesTheChatFreeToRebuild() {
+        UUID token = UUID.randomUUID();
+        llm.queueChat(turn("go", readyBrief())).queuePlan(validDraft(), validDraft());
+        sinks.storesPlans = false;
+        graph.start(token, startInputs());
+        graph.update(token, generationResume(UUID.randomUUID()));
+        graph.runUntilInterrupt(token);
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(graph.snapshot(token).state().lastGeneratedBrief()).isEmpty();
+
+        // the next turn changes nothing about the brief, and still rebuilds: there is nothing to show
+        llm.queueChat(turn("Still here?", Brief.empty()));
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("where are my packages?"))));
+        graph.runUntilInterrupt(token);
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
+    }
+
+    /** A thread waiting at any of the three park points is somebody's live conversation: never touch it. */
+    @Test
+    void ensureParked_leavesAThreadThatIsAlreadyWaitingAlone() {
+        UUID token = threadParkedAtAwaitGeneration();
+
+        assertThat(graph.ensureParked(token, () -> null)).isEmpty();
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
+        assertThat(graph.ensureParked(UUID.randomUUID(), () -> null)).isEmpty();
+    }
+
+    /**
+     * The checkpoint a thread that never reached {@code applyEdits} leaves behind: chatTurn's own
+     * update replayed through its router, which is exactly what langgraph4j writes before the edit
+     * node runs. The report stands in for anything an earlier turn left in state.
+     */
+    private void killOnTheWayToApplyEdits(UUID token) throws Exception {
+        graph.compiled().updateState(graph.configFor(token), Map.of(
+                PlannerState.ACTION, PlannerState.ACTION_EDIT,
+                PlannerState.EDITS, JsonCodec.write(List.of(swapFirstForSecond())),
+                PlannerState.EDIT_REPORT, JsonCodec.write(
+                        EditReport.allRejected(List.of(swapFirstForSecond()), EditRejectionReason.INTERNAL))),
+                PlannerGraph.CHAT_TURN);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.APPLY_EDITS);
+    }
+
+    /**
+     * applyEdits is a request-thread node, not a park point, so a turn lost between chatTurn and the
+     * edit node is a dead run like any other: it is re-parked at awaitUser. Its batch dies with it -
+     * the request that carried it answered 502 long ago, and applying it behind the group's back a
+     * turn later would change packages nobody asked to change again.
+     */
+    @Test
+    void reParkingAThreadThatDiedOnItsWayToApplyEdits_retiresTheBatch() throws Exception {
+        String expectedActivity = catalog.get(0).name();
+        String expectedReply = "Sure, tell me more.";
+        UUID token = threadWithPackages(UUID.randomUUID());
+        killOnTheWayToApplyEdits(token);
+
+        assertThat(graph.ensureParked(token, () -> JsonCodec.write(readyBrief())))
+                .contains(PlannerGraph.APPLY_EDITS);
+
+        PlannerGraph.PlannerStateSnapshot reparked = graph.snapshot(token);
+        assertThat(reparked.next()).isEqualTo(PlannerGraph.AWAIT_USER);
+        assertThat(reparked.state().action()).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(reparked.state().edits()).isEmpty();
+        assertThat(reparked.state().editReport()).isEmpty();
+
+        // the next turn asks for nothing, so the retired batch must not ride along with it
+        llm.queueChat(turn(expectedReply, Brief.empty()));
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("never mind then"))));
+        graph.runUntilInterrupt(token);
+
+        PlannerGraph.PlannerStateSnapshot afterwards = graph.snapshot(token);
+        assertThat(afterwards.next()).isEqualTo(PlannerGraph.AWAIT_USER);
+        assertThat(sinks.lastEditParent).isNull();
+        assertThat(llm.refreshRequests).isEmpty();
+        assertThat(namesIn(afterwards.state().result().orElseThrow(), Tier.BASIC))
+                .containsExactly(expectedActivity);
+        List<ChatMessage> messages = afterwards.state().messages();
+        assertThat(messages.get(messages.size() - 1).content()).isEqualTo(expectedReply);
     }
 
     @Test

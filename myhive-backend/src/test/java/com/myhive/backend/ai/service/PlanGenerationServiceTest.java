@@ -36,6 +36,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -46,6 +48,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -65,6 +68,13 @@ class PlanGenerationServiceTest {
     @BeforeEach
     void wireSelfProvider() {
         when(self.getObject()).thenReturn(service);
+        // What a job normally finds: the thread parked at awaitGeneration, where the request left it.
+        parkedAt(PlannerGraph.AWAIT_GENERATION);
+    }
+
+    private void parkedAt(String node) {
+        when(graph.snapshot(any()))
+                .thenReturn(new PlannerGraph.PlannerStateSnapshot(new PlannerState(Map.of()), node));
     }
 
     private static AiSession session() {
@@ -286,6 +296,84 @@ class PlanGenerationServiceTest {
         assertThat(reread.getSession().getStatus()).isNotEqualTo(AiSessionStatus.FAILED);
     }
 
+    /**
+     * A job must enter the branch through awaitGeneration, the only park point GENERATE turns into a
+     * plan. A thread that had to be re-parked comes back at awaitUser instead, so the job walks it
+     * forward first - without that hop the resume below would park again and the job would report
+     * "finished without a result".
+     */
+    /**
+     * A job must enter the branch through awaitGeneration, the only park point GENERATE turns into a
+     * plan. A thread found anywhere else - re-parked at awaitUser after a dead run, or simply left at
+     * awaitSelection - is walked there first; without that hop the resume would park again and the job
+     * would report "finished without a result".
+     */
+    @Test
+    void runJob_whenTheThreadIsNotAtAwaitGeneration_walksItThereFirst() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        UUID token = generation.getSession().getToken();
+        parkedAt(PlannerGraph.AWAIT_USER);
+
+        service.runJob(generation.getId());
+
+        verify(graph).update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        verify(graph).update(token, Map.of(PlannerState.GENERATION_ID, generation.getId().toString(),
+                PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        verify(graph, times(2)).runUntilInterrupt(token);
+    }
+
+    /** The common case: the request already parked the thread where the job needs it. */
+    @Test
+    void runJob_whenTheThreadIsAlreadyAtAwaitGeneration_resumesItOnce() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+
+        service.runJob(generation.getId());
+
+        verify(graph, times(1)).runUntilInterrupt(generation.getSession().getToken());
+    }
+
+    /**
+     * The brief handed to the re-park is the one the newest generation that really delivered packages
+     * was built from, and it is only looked up when a dead run is actually found.
+     */
+    @Test
+    void ensureParked_offersTheBriefOfTheNewestGenerationThatDelivered() {
+        AiSession session = session();
+        String expectedBrief = "{\"days\":2,\"groupSize\":6}";
+        AiGeneration delivered = new AiGeneration();
+        delivered.setBriefSnapshot(expectedBrief);
+        when(generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(session.getId(),
+                AiGenerationStatus.READY)).thenReturn(Optional.of(delivered));
+
+        service.ensureParked(session);
+
+        ArgumentCaptor<Supplier<String>> supplier = ArgumentCaptor.captor();
+        verify(graph).ensureParked(eq(session.getToken()), supplier.capture());
+        verify(generationRepository, never()).findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(any(), any());
+        assertThat(supplier.getValue().get()).isEqualTo(expectedBrief);
+    }
+
+    /**
+     * Defence in depth behind the re-park: a plan that arrives from a run nobody owns any more must
+     * not put packages back on a screen the sweep has already told the group are gone.
+     */
+    @Test
+    void ready_onAGenerationTheSweepAlreadyFailed_isRefused() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.FAILED);
+        String expectedErrorCode = "STALE";
+        generation.setErrorCode(expectedErrorCode);
+
+        boolean stored = service.ready(generation.getId(), new ComposedPlan(List.of(), false), false,
+                LlmUsage.none(), 0);
+
+        // false is what tells persistResult to unwind the "these packages exist" stamp
+        assertThat(stored).isFalse();
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(generation.getErrorCode()).isEqualTo(expectedErrorCode);
+        assertThat(generation.getResult()).isNull();
+        verify(generationRepository, never()).save(any());
+    }
+
     @Test
     void ready_storesResultAndUsage_andMarksSessionReady() {
         AiGeneration generation = savedGeneration(AiGenerationStatus.RUNNING);
@@ -293,9 +381,10 @@ class PlanGenerationServiceTest {
         short expectedAttempt = 1;
         ComposedPlan expectedPlan = new ComposedPlan(List.of(), false);
 
-        service.ready(generation.getId(), expectedPlan, false, new LlmUsage(expectedModel, 100, 200, 1500L),
-                expectedAttempt);
+        boolean stored = service.ready(generation.getId(), expectedPlan, false,
+                new LlmUsage(expectedModel, 100, 200, 1500L), expectedAttempt);
 
+        assertThat(stored).isTrue();
         assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.READY);
         assertThat(generation.getResult()).contains("\"packages\"");
         assertThat(generation.getModel()).isEqualTo(expectedModel);
@@ -331,6 +420,65 @@ class PlanGenerationServiceTest {
         assertThat(orphan.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
         assertThat(orphan.getErrorCode()).isEqualTo("STALE");
         assertThat(orphan.getSession().getStatus()).isEqualTo(AiSessionStatus.FAILED);
+    }
+
+    /**
+     * The sweep ages RUNNING rows on the clock, and a job that is merely slow is still holding the
+     * graph thread mid-branch when that clock runs out. Failing its row stops holding requests off:
+     * the next message re-parks the thread and runs a chat turn underneath the live job, whose next
+     * node checkpoint is then pushed on top of both - and the message and its reply disappear from
+     * the transcript. A row this process is still running is therefore never stale.
+     */
+    @Test
+    void failStaleRunning_leavesARunThisProcessIsStillWorkingOn() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        AtomicReference<AiGenerationStatus> statusDuringSweep = new AtomicReference<>();
+        when(generationRepository.findByStatusAndStartedAtBefore(eq(AiGenerationStatus.RUNNING), any()))
+                .thenReturn(List.of(generation));
+        // the sweep fires while the job is inside the graph: a slow model call, not a lost thread
+        when(graph.runUntilInterrupt(any())).thenAnswer(inv -> {
+            service.failStaleRunning();
+            statusDuringSweep.set(generation.getStatus());
+            return null;
+        });
+
+        service.runJob(generation.getId());
+
+        assertThat(statusDuringSweep.get()).isEqualTo(AiGenerationStatus.RUNNING);
+        assertThat(generation.getErrorCode()).isNotEqualTo("STALE");
+    }
+
+    /** Ownership is given back when the job returns, so a row it really did abandon is still swept. */
+    @Test
+    void failStaleRunning_failsARowAgainOnceItsJobReturned() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        service.runJob(generation.getId());
+
+        sweepFinds(generation);
+
+        assertThat(generation.getErrorCode()).isEqualTo("STALE");
+    }
+
+    /** Given back on the way out of a throwing run too - a finally, not the happy path. */
+    @Test
+    void failStaleRunning_failsARowAgainOnceItsJobThrew() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.QUEUED);
+        doThrow(new IllegalStateException("graph exploded")).when(graph).runUntilInterrupt(any());
+        service.runJob(generation.getId());
+
+        sweepFinds(generation);
+
+        assertThat(generation.getErrorCode()).isEqualTo("STALE");
+    }
+
+    /** Re-arms a generation the job already closed out and runs the sweep over it. */
+    private void sweepFinds(AiGeneration generation) {
+        generation.setStatus(AiGenerationStatus.RUNNING);
+        generation.setErrorCode(null);
+        when(generationRepository.findByStatusAndStartedAtBefore(eq(AiGenerationStatus.RUNNING), any()))
+                .thenReturn(List.of(generation));
+
+        service.failStaleRunning();
     }
 
     @Test

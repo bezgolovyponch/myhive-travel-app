@@ -190,9 +190,14 @@ and the message says something like "Building your three options…". Start poll
 If the very first message already contains everything, this happens right after the
 first reply. After packages exist, a later message regenerates automatically **only
 if it changed the brief** (e.g. "actually 6 of us"); small talk does not. A message
-that arrives after a generation ended `FAILED` (including an `AI_BUSY` rejection) is
-still answered in chat and, if the brief is complete, starts a fresh generation the
-same way.
+that arrives after a generation ended `FAILED` is still answered in chat and, if the
+brief is complete, starts a fresh generation the same way — whether the generation was
+rejected before it began (`AI_BUSY`) or died part-way through building the packages
+(`INTERNAL`, `STALE`). After such a failure the chat keeps comparing against the brief
+of the newest generation that really *delivered* packages, so small talk normally still
+costs nothing and a changed brief still rebuilds; if the failed run got as far as
+composing a plan that was then thrown away, the next message rebuilds either way —
+there is nothing on screen worth keeping.
 
 #### Editing packages
 
@@ -205,6 +210,11 @@ line totals and totals are never hand-edited. An edit turn is still one turn: it
 counts against the chat's 30-message cap (`SESSION_TURN_LIMIT`) exactly like a
 brief question or a regeneration turn does — there is no separate message
 allowance for edits.
+
+An edit turn that fails outright (`502`, or a `500` the client should not see)
+takes its ops with it: nothing was applied, no `EDITED` row exists, and the next
+message starts from the packages that were already on screen. Re-send the text to
+try again — the batch is never applied late.
 
 Three ops, each naming a catalog activity by its display name and optionally a
 `packageKey` (`BASIC`\|`MEDIUM`\|`PREMIUM`) to scope it to one package:
@@ -516,6 +526,9 @@ On `FAILED`:
 ```json
 { "id": "…", "status": "FAILED", "error": { "code": "LLM_TIMEOUT", "retryable": true } }
 ```
+
+`FAILED` is terminal: a generation never turns `READY` again, so polling can stop on
+it and a cached `FAILED` body never goes stale.
 
 `code`: `LLM_TIMEOUT` | `LLM_UNAVAILABLE` | `LLM_INVALID_OUTPUT` | `AI_BUSY` |
 `STALE` | `INTERNAL`. Everything but `INTERNAL` comes back `retryable: true`.

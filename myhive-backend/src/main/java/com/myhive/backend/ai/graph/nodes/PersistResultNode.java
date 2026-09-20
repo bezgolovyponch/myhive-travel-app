@@ -9,6 +9,7 @@ import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -18,7 +19,12 @@ public class PersistResultNode implements NodeAction<PlannerState> {
 
     /** Implemented by the generation service; the graph never touches the database itself. */
     public interface GenerationResultSink {
-        void ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt);
+        /**
+         * @return whether the plan was stored. {@code false} means nobody will ever show it - the row
+         *         was closed out while this run was still going - and the graph has to unwind the
+         *         stamps that promise packages.
+         */
+        boolean ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt);
     }
 
     /** Resolves to {@code null} while no sink bean exists; never called during bean construction. */
@@ -40,20 +46,35 @@ public class PersistResultNode implements NodeAction<PlannerState> {
     public Map<String, Object> apply(PlannerState state) {
         ComposedPlan plan = state.result()
                 .orElseThrow(() -> new IllegalStateException("persistResult reached without a result"));
-        LlmUsage usage = state.usage();
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.RESUME_REASON, "");
         update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
-        state.generationId().ifPresentOrElse(
-                id -> {
-                    sink().ready(id, plan, state.degraded(), usage, state.attempt());
-                    // Stamped here and only here for a generation: from now on the state can say which
-                    // row the packages it carries actually came from, whatever a later resume writes
-                    // into GENERATION_ID.
-                    update.put(PlannerState.RESULT_GENERATION_ID, id.toString());
-                },
-                () -> log.warn("planner result dropped: no generationId in state; result not persisted"));
+        Optional<UUID> stored = store(state, plan);
+        if (stored.isPresent()) {
+            // Everything that says "this chat now has packages" belongs in this branch and nowhere
+            // else: a plan nobody stored must leave no trace of itself in the state. That includes
+            // the row the packages came from, stamped here and only here for a generation so the
+            // state can still name it whatever a later resume writes into GENERATION_ID.
+            update.put(PlannerState.RESULT_GENERATION_ID, stored.get().toString());
+            return update;
+        }
+        // snapshotCatalog stamped the brief this run was built for before it knew the plan would be
+        // thrown away. Left standing it would tell the next chat turn there is nothing to rebuild.
+        update.put(PlannerState.LAST_GENERATED_BRIEF, "");
         return update;
+    }
+
+    /** @return the row the plan was stored under; empty when nobody stored it - a plan with no id never is. */
+    private Optional<UUID> store(PlannerState state, ComposedPlan plan) {
+        Optional<UUID> generationId = state.generationId();
+        if (generationId.isEmpty()) {
+            log.warn("planner result dropped: no generationId in state; result not persisted");
+            return Optional.empty();
+        }
+        if (!sink().ready(generationId.get(), plan, state.degraded(), state.usage(), state.attempt())) {
+            return Optional.empty();
+        }
+        return generationId;
     }
 
     private GenerationResultSink sink() {
@@ -61,7 +82,11 @@ public class PersistResultNode implements NodeAction<PlannerState> {
         if (resolved != null) {
             return resolved;
         }
-        return (generationId, plan, degraded, usage, attempt) ->
-                log.warn("planner result dropped generation={}: no GenerationResultSink bean", generationId);
+        // Answers false because it really did drop the plan: a misconfigured context must not leave
+        // the chat believing it has packages either.
+        return (generationId, plan, degraded, usage, attempt) -> {
+            log.warn("planner result dropped generation={}: no GenerationResultSink bean", generationId);
+            return false;
+        };
     }
 }
