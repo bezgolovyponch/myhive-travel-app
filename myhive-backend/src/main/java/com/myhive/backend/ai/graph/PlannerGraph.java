@@ -256,19 +256,19 @@ public class PlannerGraph {
      * <p>Re-parking is only safe while no generation is in flight for this session, because a running
      * job is the one thing that may legitimately be mid-branch. Every caller establishes that first:
      * the three request paths refuse the request with GENERATION_IN_PROGRESS while a QUEUED or RUNNING
-     * row exists, and the job itself owns the run it is about to start. The one hole left is the
-     * sweeper's own premise - a job still alive after {@code STALE_AFTER_MINUTES} has had its row
-     * failed and no longer holds anyone off - and even then re-parking is the better outcome: the
-     * abandoned job finds a thread parked at {@code awaitUser}, parks it again at
-     * {@code awaitGeneration} and reports a generation without a result, instead of two threads
-     * running the branch over one checkpoint.
+     * row exists, and the job itself owns the run it is about to start. A slow job cannot lose that
+     * protection either - the sweep skips RUNNING rows this process is still running, so its row keeps
+     * holding requests off for as long as it lives. What remains is the single-JVM assumption behind
+     * that set: during a deploy overlap two instances serve the same database, and the new one can
+     * sweep a row the old one is still running. The blast radius is one generation, the same as before
+     * this guard existed.
      *
      * @param lastDeliveredBrief the brief of the newest generation that actually delivered packages,
      *        or {@code null} when there is none; only asked for when a dead run is found
      * @return the node the thread was found at, when it had to be re-parked
      */
     public Optional<String> ensureParked(UUID token, Supplier<String> lastDeliveredBrief) {
-        // One checkpoint read, not exists() plus snapshot(): this runs on every resume path.
+        // One state load rather than exists() plus snapshot(): this runs on every resume path.
         String next = compiled.stateOf(configFor(token)).map(StateSnapshot::next).orElse(null);
         // Unknown thread, or a checkpoint with nowhere to go: neither is a run to rescue.
         if (next == null || PARK_NODES.contains(next)) {
