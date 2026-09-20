@@ -49,9 +49,13 @@ public class PersistResultNode implements NodeAction<PlannerState> {
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.RESUME_REASON, "");
         update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
-        if (store(state, plan)) {
+        Optional<UUID> stored = store(state, plan);
+        if (stored.isPresent()) {
             // Everything that says "this chat now has packages" belongs in this branch and nowhere
-            // else: a plan nobody stored must leave no trace of itself in the state.
+            // else: a plan nobody stored must leave no trace of itself in the state. That includes
+            // the row the packages came from, stamped here and only here for a generation so the
+            // state can still name it whatever a later resume writes into GENERATION_ID.
+            update.put(PlannerState.RESULT_GENERATION_ID, stored.get().toString());
             return update;
         }
         // snapshotCatalog stamped the brief this run was built for before it knew the plan would be
@@ -60,14 +64,17 @@ public class PersistResultNode implements NodeAction<PlannerState> {
         return update;
     }
 
-    /** @return whether the plan reached a generation row; a plan with no id to store it under never does. */
-    private boolean store(PlannerState state, ComposedPlan plan) {
+    /** @return the row the plan was stored under; empty when nobody stored it - a plan with no id never is. */
+    private Optional<UUID> store(PlannerState state, ComposedPlan plan) {
         Optional<UUID> generationId = state.generationId();
         if (generationId.isEmpty()) {
             log.warn("planner result dropped: no generationId in state; result not persisted");
-            return false;
+            return Optional.empty();
         }
-        return sink().ready(generationId.get(), plan, state.degraded(), state.usage(), state.attempt());
+        if (!sink().ready(generationId.get(), plan, state.degraded(), state.usage(), state.attempt())) {
+            return Optional.empty();
+        }
+        return generationId;
     }
 
     private GenerationResultSink sink() {

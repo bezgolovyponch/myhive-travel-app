@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.graph;
 
+import com.myhive.backend.ai.graph.nodes.ApplyEditsNode;
 import com.myhive.backend.ai.graph.nodes.ChatTurnNode;
 import com.myhive.backend.ai.graph.nodes.ComposeNode;
 import com.myhive.backend.ai.graph.nodes.FallbackNode;
@@ -35,7 +36,8 @@ import java.util.function.Supplier;
  *
  * <pre>
  *   START            -> chatTurn
- *   chatTurn         -> awaitGeneration  (action = GENERATE)  | awaitUser       (otherwise)
+ *   chatTurn         -> awaitGeneration  (action = GENERATE)  | applyEdits      (action = EDIT)
+ *                                                             | awaitUser       (otherwise)
  *   awaitUser        -> select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
  *                                                             | chatTurn        (otherwise)
  *   awaitGeneration  -> snapshotCatalog  (resume = GENERATE)  | select          (resume = SELECT)
@@ -45,6 +47,7 @@ import java.util.function.Supplier;
  *   repair           -> validate
  *   fallback         -> persistResult
  *   persistResult    -> awaitSelection
+ *   applyEdits       -> awaitSelection
  *   awaitSelection   -> select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
  *                                                             | chatTurn        (otherwise)
  *   select           -> awaitSelection
@@ -64,11 +67,14 @@ public class PlannerGraph {
     public static final String PERSIST_RESULT = "persistResult";
     public static final String AWAIT_SELECTION = "awaitSelection";
     public static final String SELECT = "select";
+    public static final String APPLY_EDITS = "applyEdits";
 
     /**
      * The only three nodes a thread may be waiting at between two requests. Anything else means a run
      * died in the middle of the graph - see {@link #ensureParked}. The single place to extend when a
-     * new park point is added.
+     * new park point is added, and deliberately not extended for {@link #APPLY_EDITS}: the edit node
+     * runs on the request thread inside one turn, so a thread found waiting there is a turn that never
+     * came back. Losing that batch is the right answer, not preserving it.
      */
     private static final Set<String> PARK_NODES = Set.of(AWAIT_USER, AWAIT_GENERATION, AWAIT_SELECTION);
 
@@ -78,14 +84,15 @@ public class PlannerGraph {
     private static final String ROUTE_GENERATE = "generate";
     private static final String ROUTE_WAIT = "wait";
     private static final String ROUTE_SELECT = "select";
+    private static final String ROUTE_EDIT = "edit";
     private static final String ROUTE_OK = "ok";
     private static final String ROUTE_REPAIR = "repair";
     private static final String ROUTE_FALLBACK = "fallback";
 
-    /** The eight working nodes, in graph order; the {@code await*} nodes have no behaviour of their own. */
+    /** The nine working nodes, in graph order; the {@code await*} nodes have no behaviour of their own. */
     public record Nodes(ChatTurnNode chatTurn, SnapshotCatalogNode snapshotCatalog, ComposeNode compose,
                         ValidateNode validate, RepairNode repair, FallbackNode fallback,
-                        PersistResultNode persistResult, SelectNode select) {
+                        PersistResultNode persistResult, SelectNode select, ApplyEditsNode applyEdits) {
     }
 
     public record PlannerStateSnapshot(PlannerState state, String next) {
@@ -110,9 +117,11 @@ public class PlannerGraph {
                     .addNode(PERSIST_RESULT, timed(PERSIST_RESULT, nodes.persistResult()))
                     .addNode(AWAIT_SELECTION, park(AWAIT_SELECTION))
                     .addNode(SELECT, timed(SELECT, nodes.select()))
+                    .addNode(APPLY_EDITS, timed(APPLY_EDITS, nodes.applyEdits()))
                     .addEdge(StateGraph.START, CHAT_TURN)
                     .addConditionalEdges(CHAT_TURN, AsyncEdgeAction.edge_async(PlannerGraph::afterChatTurn),
-                            Map.of(ROUTE_GENERATE, AWAIT_GENERATION, ROUTE_WAIT, AWAIT_USER))
+                            Map.of(ROUTE_GENERATE, AWAIT_GENERATION, ROUTE_EDIT, APPLY_EDITS,
+                                    ROUTE_WAIT, AWAIT_USER))
                     .addConditionalEdges(AWAIT_USER, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
                             Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
                     .addConditionalEdges(AWAIT_GENERATION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
@@ -124,6 +133,7 @@ public class PlannerGraph {
                     .addEdge(REPAIR, VALIDATE)
                     .addEdge(FALLBACK, PERSIST_RESULT)
                     .addEdge(PERSIST_RESULT, AWAIT_SELECTION)
+                    .addEdge(APPLY_EDITS, AWAIT_SELECTION)
                     .addConditionalEdges(AWAIT_SELECTION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
                             Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
                     .addEdge(SELECT, AWAIT_SELECTION);
@@ -146,8 +156,13 @@ public class PlannerGraph {
                 .build();
     }
 
+    /** An edit turn never regenerates: {@code chatTurn} has already decided which of the two this is. */
     private static String afterChatTurn(PlannerState state) {
-        return PlannerState.ACTION_GENERATE.equals(state.action()) ? ROUTE_GENERATE : ROUTE_WAIT;
+        String action = state.action();
+        if (PlannerState.ACTION_GENERATE.equals(action)) {
+            return ROUTE_GENERATE;
+        }
+        return PlannerState.ACTION_EDIT.equals(action) ? ROUTE_EDIT : ROUTE_WAIT;
     }
 
     /**
@@ -284,13 +299,15 @@ public class PlannerGraph {
     }
 
     /**
-     * Everything one generation attempt scribbles on the state, reset to what a fresh run expects.
-     * The single place to extend when the branch learns a new key.
+     * Everything one attempt - a generation or an edit batch - scribbles on the state, reset to what a
+     * fresh turn expects. The single place to extend when either branch learns a new key.
      *
-     * <p>What deliberately survives: MESSAGES, BRIEF and CATALOG (the conversation), RESULT and
-     * GENERATION_ID (the packages a previous generation delivered, which the selection screen still
-     * offers) and SELECTED_PACKAGE_KEY. Every resume stamps its own GENERATION_ID before it runs, so
-     * a stale one is never read.
+     * <p>What deliberately survives: MESSAGES, BRIEF and CATALOG (the conversation), RESULT,
+     * GENERATION_ID and RESULT_GENERATION_ID (the packages a previous generation delivered, which the
+     * selection screen still offers and the next edit still hangs off) and SELECTED_PACKAGE_KEY. Every
+     * resume stamps its own GENERATION_ID before it runs, so a stale one is never read. EDITS_LEFT
+     * survives too: the allowance is the session's, not the dead attempt's, and the service re-stamps
+     * it before every turn anyway.
      */
     private static Map<String, Object> clearedRunState(String lastDeliveredBrief) {
         Map<String, Object> values = new HashMap<>();
@@ -305,6 +322,13 @@ public class PlannerGraph {
         values.put(PlannerState.DEGRADED, false);
         values.put(PlannerState.USAGE, "");
         values.put(PlannerState.LAST_ERROR, "");
+        // A thread that died on its way to applyEdits still carries the batch chatTurn extracted, and a
+        // report from the turn that asked for it. Neither outlives the turn: the batch was never applied
+        // and nothing will apply it now, and a report the client never received must not be served
+        // alongside some later turn's answer. An empty batch rather than a blank - what edits() reads
+        // back as "nothing pending" and what applyEdits itself writes when it is done.
+        values.put(PlannerState.EDITS, PlannerState.NO_EDITS);
+        values.put(PlannerState.EDIT_REPORT, "");
         // snapshotCatalog stamps this one early, so a run that dies later leaves the chat believing
         // packages exist for the current brief: it would never regenerate on its own again. Restoring
         // the brief of the last generation that really delivered is the middle ground - small talk

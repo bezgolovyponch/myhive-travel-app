@@ -3,6 +3,11 @@ package com.myhive.backend.ai.controller;
 import com.jayway.jsonpath.JsonPath;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.ai.AiTestConfig;
+import com.myhive.backend.ai.edit.EditMessages;
+import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditRejectionReason;
+import com.myhive.backend.ai.edit.EditRequest;
+import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.llm.AiProperties;
 import com.myhive.backend.ai.llm.ChatTurnResult;
@@ -10,6 +15,8 @@ import com.myhive.backend.ai.llm.FakeLlmGateway;
 import com.myhive.backend.ai.llm.LlmGateway;
 import com.myhive.backend.ai.llm.LlmUnavailableException;
 import com.myhive.backend.ai.llm.LlmUsage;
+import com.myhive.backend.ai.llm.PackageTexts;
+import com.myhive.backend.ai.llm.TextRefreshResult;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
@@ -47,13 +54,16 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -72,6 +82,8 @@ class AiPlannerControllerIntegrationTest {
 
     private static final int ACTIVITY_COUNT = 6;
     private static final int BASIC_INDEX = 0;
+    /** In the catalog but in none of the three packages, so a swap into BASIC can never collide. */
+    private static final int REPLACEMENT_INDEX = 1;
     private static final int MEDIUM_INDEX = 2;
     private static final int PREMIUM_FIRST_INDEX = 4;
     private static final int PREMIUM_SECOND_INDEX = 5;
@@ -84,6 +96,9 @@ class AiPlannerControllerIntegrationTest {
 
     private static final String CREATE_BODY = """
             {"destinationSlug": "%s", "locale": "en"}
+            """;
+    private static final String CREATE_IN_LOCALE_BODY = """
+            {"destinationSlug": "%s", "locale": "%s"}
             """;
     private static final String CREATE_WITH_MESSAGE_BODY = """
             {"destinationSlug": "%s", "locale": "en", "initialMessage": "%s"}
@@ -351,6 +366,219 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.latestReadyGeneration.packages", hasSize(Tier.values().length)));
     }
 
+    /**
+     * The point of the whole feature over HTTP: a turn that asks for a swap answers with the report and
+     * the rebuilt packages in the same response — no generation, no polling, no second round trip.
+     */
+    @Test
+    void editTurn_afterGeneration_returnsTheEditReportAndTheEditedGenerationInline() throws Exception {
+        String expectedDescription = "Rebuilt around the swap";
+        String expectedReplaced = activities.get(BASIC_INDEX).getName();
+        String expectedReplacement = activities.get(REPLACEMENT_INDEX).getName();
+        String expectedReplacementId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        String expectedParentId = latestGenerationId(token);
+        awaitGeneration(expectedParentId);
+        queueEditTurn(expectedReplaced, expectedReplacement, expectedDescription);
+
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.REPLACE.name())))
+                .andExpect(jsonPath("$.edit.applied[0].activity", is(expectedReplaced)))
+                .andExpect(jsonPath("$.edit.applied[0].replacement", is(expectedReplacement)))
+                .andExpect(jsonPath("$.edit.applied[0].packageKey", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.edit.applied[0].dayNumber", is(1)))
+                .andExpect(jsonPath("$.edit.applied[0].slot", is(Slot.AFTERNOON.name())))
+                .andExpect(jsonPath("$.edit.rejected", hasSize(0)))
+                .andExpect(jsonPath("$.edit.tierRulesRelaxed", is(true)))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(true)))
+                .andExpect(jsonPath("$.generation.status", is(AiGenerationStatus.READY.name())))
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.generation.parentId", is(expectedParentId)))
+                .andExpect(jsonPath("$.generation.packages[0].key", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.generation.packages[0].description", is(expectedDescription)))
+                .andReturn();
+
+        String body = edited.getResponse().getContentAsString();
+        String expectedEditedId = JsonPath.read(body, "$.generation.id");
+        assertThat((String) JsonPath.read(body, "$.edit.generationId")).isEqualTo(expectedEditedId);
+        assertThat((String) JsonPath.read(body, "$.generation.editReport.generationId")).isEqualTo(expectedEditedId);
+        // The swap landed in BASIC alone: the replaced activity is gone and the replacement took its cell.
+        List<String> basicActivityIds = JsonPath.read(body, "$.generation.packages[0].days[*].items[*].activityId");
+        assertThat(basicActivityIds).containsExactly(expectedReplacementId);
+
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(status().isOk())
+                // The edited row is the newest READY one, so a token restore lands on the edited packages.
+                .andExpect(jsonPath("$.latestReadyGeneration.id", is(expectedEditedId)))
+                .andExpect(jsonPath("$.latestReadyGeneration.kind", is("EDITED")))
+                .andExpect(jsonPath("$.limits.editsLeft", is(AiSessionService.MAX_EDITS_PER_SESSION - 1)));
+    }
+
+    /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */
+    @Test
+    void editTurn_beforeAnyGeneration_returnsNoPackagesYet() throws Exception {
+        String token = createSession();
+        llm.queueChat(chatTurn("Let us sort the dates first.", Brief.empty(),
+                List.of(replaceRequest(activities.get(BASIC_INDEX).getName(),
+                        activities.get(REPLACEMENT_INDEX).getName()))));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(0)))
+                .andExpect(jsonPath("$.edit.rejected", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected[0].op", is(EditOp.REPLACE.name())))
+                .andExpect(jsonPath("$.edit.rejected[0].reason", is("NO_PACKAGES_YET")))
+                .andExpect(jsonPath("$.edit.tierRulesRelaxed", is(false)))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
+                // Explicit nulls, not absent keys: this DTO is serialised without NON_NULL inclusion.
+                .andExpect(jsonPath("$.edit.generationId").value(nullValue()))
+                .andExpect(jsonPath("$.generation").value(nullValue()))
+                // Both assistant messages of the turn: the reply and the "let us build them first" note.
+                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages[0].content", is("Let us sort the dates first.")))
+                .andExpect(jsonPath("$.messages[1].content", is(EditMessages.noPackagesYet("en"))))
+                .andExpect(jsonPath("$.message.content", is(EditMessages.noPackagesYet("en"))));
+    }
+
+    /**
+     * A partially rejected batch writes two assistant messages, and {@code message} is only the last of
+     * them - so a client reading that field alone lost the model's actual answer on exactly the turns
+     * that needed explaining. {@code messages} carries the whole turn.
+     */
+    @Test
+    void editTurn_withOneOpRejected_carriesEveryAssistantMessageOfTheTurn() throws Exception {
+        String expectedReply = "Swapped one of them.";
+        String expectedUnknownName = "Hot Air Balloon";
+        String expectedApplied = activities.get(BASIC_INDEX).getName();
+        String expectedReplacement = activities.get(REPLACEMENT_INDEX).getName();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        llm.queueChat(chatTurn(expectedReply, Brief.empty(), List.of(
+                        replaceRequest(expectedApplied, expectedReplacement),
+                        replaceRequest(expectedUnknownName, expectedReplacement))))
+                .queueRefresh(new TextRefreshResult(
+                        Map.of(Tier.BASIC, new PackageTexts("Rebuilt around the swap", Map.of(), Map.of())),
+                        new LlmUsage("fake-chat", 5, 7, 3L)));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one and the balloon ride")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected[0].reason", is("UNKNOWN_ACTIVITY")))
+                .andExpect(jsonPath("$.edit.rejected[0].activity", is(expectedUnknownName)))
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages[0].role", is("ASSISTANT")))
+                .andExpect(jsonPath("$.messages[0].content", is(expectedReply)))
+                .andExpect(jsonPath("$.messages[1].content", containsString(expectedUnknownName)))
+                // unchanged meaning: the last message of the turn, which is the rejection line
+                .andExpect(jsonPath("$.message.content", containsString(expectedUnknownName)));
+    }
+
+    /** The whole edit path in German: the reply, the stored row and the rejection line the group reads. */
+    @Test
+    void editTurn_inGerman_servesTheGermanRejectionLine() throws Exception {
+        String expectedReply = "Getauscht.";
+        String expectedUnknownName = "Heissluftballon";
+        String expectedApplied = activities.get(BASIC_INDEX).getName();
+        String expectedReplacement = activities.get(REPLACEMENT_INDEX).getName();
+        String token = createSession("de");
+        queueReadyTurn("Ich baue es!");
+        sendMessage(token, "1 Tag, 4 Leute, Bars");
+        awaitGeneration(latestGenerationId(token));
+        llm.queueChat(chatTurn(expectedReply, Brief.empty(), List.of(
+                        replaceRequest(expectedApplied, expectedReplacement),
+                        replaceRequest(expectedUnknownName, expectedReplacement))))
+                .queueRefresh(new TextRefreshResult(
+                        Map.of(Tier.BASIC, new PackageTexts("Neu gebaut", Map.of(), Map.of())),
+                        new LlmUsage("fake-chat", 5, 7, 3L)));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("tausch das erste und den Ballon")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.generation.status", is(AiGenerationStatus.READY.name())))
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.rejected[0].reason", is("UNKNOWN_ACTIVITY")))
+                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages[0].content", is(expectedReply)))
+                .andExpect(jsonPath("$.messages[1].content",
+                        is(EditMessages.rejectionSummary("de", List.of(new RejectedEdit(EditOp.REPLACE,
+                                expectedUnknownName, null, EditRejectionReason.UNKNOWN_ACTIVITY, null))))))
+                .andExpect(jsonPath("$.messages[1].content", containsString("Katalog")));
+    }
+
+    /**
+     * A stored report that will not parse — a reason from a later release read by a rolled-back backend,
+     * say — costs that cosmetic field and nothing else. Both reads that go through the generation mapping
+     * still answer 200 with the packages the group is looking at.
+     */
+    @Test
+    void unreadableEditReport_stillServesTheEditedPackagesOnBothReads() throws Exception {
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        queueEditTurn(activities.get(BASIC_INDEX).getName(), activities.get(REPLACEMENT_INDEX).getName(),
+                "Rebuilt around the swap");
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andReturn();
+        String expectedEditedId = JsonPath.read(edited.getResponse().getContentAsString(), "$.generation.id");
+        corruptEditReport(UUID.fromString(expectedEditedId));
+
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latestReadyGeneration.id", is(expectedEditedId)))
+                .andExpect(jsonPath("$.latestReadyGeneration.kind", is("EDITED")))
+                .andExpect(jsonPath("$.latestReadyGeneration.editReport").value(nullValue()))
+                .andExpect(jsonPath("$.latestReadyGeneration.packages", hasSize(Tier.values().length)));
+        mockMvc.perform(get("/ai/generations/" + expectedEditedId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.editReport").value(nullValue()))
+                .andExpect(jsonPath("$.packages", hasSize(Tier.values().length)));
+    }
+
+    /** Picking a package after an edit has to hand the cart the edited itinerary, not the generated one. */
+    @Test
+    void selectOnTheEditedGeneration_returnsTheEditedTripItems() throws Exception {
+        String expectedName = activities.get(REPLACEMENT_INDEX).getName();
+        String expectedActivityId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        queueEditTurn(activities.get(BASIC_INDEX).getName(), expectedName, "Rebuilt around the swap");
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("swap the first one for the second")))
+                .andExpect(status().isOk())
+                .andReturn();
+        String editedGenerationId = JsonPath.read(edited.getResponse().getContentAsString(), "$.generation.id");
+
+        mockMvc.perform(post("/ai/generations/" + editedGenerationId + "/select")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(SELECT_BODY.formatted(Tier.BASIC)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.packageKey", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.groupSize", is(GROUP_SIZE)))
+                .andExpect(jsonPath("$.tripItems", hasSize(1)))
+                .andExpect(jsonPath("$.tripItems[0].activityId", is(expectedActivityId)))
+                .andExpect(jsonPath("$.tripItems[0].name", is(expectedName)));
+    }
+
     @Test
     void manualGenerate_afterTheBriefIsReady_is202Accepted() throws Exception {
         String token = createSession();
@@ -573,9 +801,17 @@ class AiPlannerControllerIntegrationTest {
     }
 
     private String createSession() throws Exception {
+        return createSessionWithBody(CREATE_BODY.formatted(destination.getSlug()));
+    }
+
+    private String createSession(String locale) throws Exception {
+        return createSessionWithBody(CREATE_IN_LOCALE_BODY.formatted(destination.getSlug(), locale));
+    }
+
+    private String createSessionWithBody(String body) throws Exception {
         MvcResult result = mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
                         .header("CF-Connecting-IP", testClientIp)
-                        .content(CREATE_BODY.formatted(destination.getSlug())))
+                        .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status", is("COLLECTING")))
                 .andExpect(jsonPath("$.messages", hasSize(1)))
@@ -654,8 +890,33 @@ class AiPlannerControllerIntegrationTest {
         return generationRepository.save(generation);
     }
 
+    /** One chat answer asking for a swap, plus the rewritten copy the edit node asks for right after it. */
+    private void queueEditTurn(String activity, String replacement, String description) {
+        llm.queueChat(chatTurn("Swapped it.", Brief.empty(), List.of(replaceRequest(activity, replacement))))
+                .queueRefresh(new TextRefreshResult(
+                        Map.of(Tier.BASIC, new PackageTexts(description, Map.of(), Map.of())),
+                        new LlmUsage("fake-chat", 5, 7, 3L)));
+    }
+
+    private static EditRequest replaceRequest(String activity, String replacement) {
+        return new EditRequest(EditOp.REPLACE, activity, replacement, null, null, null);
+    }
+
+    /** Truncated JSON carrying a reason this version's enum does not have: both ways the read can fail. */
+    private void corruptEditReport(UUID generationId) {
+        transactions.executeWithoutResult(status -> {
+            AiGeneration generation = generationRepository.findById(generationId).orElseThrow();
+            generation.setEditReport("{\"applied\":[],\"rejected\":[{\"reason\":\"SOMETHING_NEW\"}]");
+            generationRepository.save(generation);
+        });
+    }
+
     private static ChatTurnResult chatTurn(String reply, Brief update) {
         return new ChatTurnResult(reply, update, List.of(), LlmUsage.none());
+    }
+
+    private static ChatTurnResult chatTurn(String reply, Brief update, List<EditRequest> edits) {
+        return new ChatTurnResult(reply, update, List.of(), edits, LlmUsage.none());
     }
 
     /** JsonPath's provider may hand back a Double or a BigDecimal for the same money field; compare values. */

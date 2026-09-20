@@ -3,10 +3,15 @@ package com.myhive.backend.ai.llm;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
+import com.myhive.backend.ai.model.Slot;
+import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.ComposedPlan;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +37,32 @@ class PromptRendererTest {
     }
 
     @Test
+    void chatSystem_withPackages_includesViewNamesAndEditRules() {
+        String expectedPackagesView = "BASIC: day 1 [EVENING Beer Bike]";
+        List<String> expectedCatalogNames = List.of("Beer Bike", "Karting");
+        ChatTurnRequest r = new ChatTurnRequest("en", "Prague", List.of("nightlife"), Brief.empty(), List.of(),
+                expectedPackagesView, expectedCatalogNames);
+
+        String prompt = renderer.chatSystem(r);
+
+        assertThat(prompt).contains("Current packages")
+                .contains(expectedPackagesView)
+                .contains(String.join(", ", expectedCatalogNames))
+                .contains("Edit rules:")
+                .contains("\"edits\"");
+    }
+
+    @Test
+    void chatSystem_withoutPackages_hasNoPackagesBlock() {
+        ChatTurnRequest r = new ChatTurnRequest("en", "Prague", List.of("nightlife"), Brief.empty(), List.of());
+
+        String prompt = renderer.chatSystem(r);
+
+        assertThat(prompt).doesNotContain("Current packages").doesNotContain("Edit rules:");
+        assertThat(prompt).contains("\"edits\"");
+    }
+
+    @Test
     void plannerUser_listsCatalogOnePerLine_andWrapsUserText() {
         UUID expectedActivityId = UUID.randomUUID();
         CatalogActivity a = new CatalogActivity(expectedActivityId, "beer-bike", "Beer Bike", "Pedal and drink", 120, true,
@@ -45,6 +76,73 @@ class PromptRendererTest {
 
         assertThat(prompt).contains(expectedActivityId + " | Beer Bike | 120 min | 35.00 EUR pp | min 280.00 | nightlife | Pedal and drink");
         assertThat(prompt).contains("USER: <user>" + expectedUserText.replace("<", "&lt;") + "</user>");
+    }
+
+    @Test
+    void textRefreshUser_listsItemsAndWhatToRewrite() {
+        UUID expectedActivityId = UUID.randomUUID();
+        UUID untouchedActivityId = UUID.randomUUID();
+        String expectedName = "Karting";
+        String expectedTitle = "Night out";
+        String expectedDescription = "Two loud nights";
+        String expectedSummary = "Easy start";
+        int expectedDayNumber = 1;
+        ComposedPlan.ItemResult expectedItem = item(expectedActivityId, expectedName, Slot.AFTERNOON);
+        ComposedPlan.DayResult day = new ComposedPlan.DayResult(expectedDayNumber, "Day one", expectedSummary,
+                List.of(item(untouchedActivityId, "Beer Spa", Slot.MORNING), expectedItem));
+        ComposedPlan.PackageResult pkg = new ComposedPlan.PackageResult(Tier.BASIC, expectedTitle, "tagline",
+                expectedDescription, new BigDecimal("40.00"), new BigDecimal("160.00"), ComposedPlan.CURRENCY, 210,
+                List.of(untouchedActivityId, expectedActivityId), List.of(day));
+        TextRefreshRequest r = new TextRefreshRequest("de", "Prague", List.of(pkg),
+                Map.of(Tier.BASIC, Set.of(expectedActivityId)), Map.of(Tier.BASIC, Set.of(expectedDayNumber)));
+
+        String prompt = renderer.textRefreshUser(r);
+
+        assertThat(prompt).contains("PACKAGE BASIC \"" + expectedTitle + "\"")
+                .contains(expectedDescription)
+                .contains("DAY " + expectedDayNumber + " (" + expectedSummary + ")")
+                .contains("- AFTERNOON " + expectedActivityId + " " + expectedName)
+                .contains("- MORNING " + untouchedActivityId + " Beer Spa")
+                .contains("REWRITE: description; why for " + expectedActivityId
+                        + "; summary for days " + expectedDayNumber);
+    }
+
+    @Test
+    void textRefreshUser_rendersMissingTextsAsDashes() {
+        UUID activityId = UUID.randomUUID();
+        int expectedDayNumber = 1;
+        ComposedPlan.DayResult day = new ComposedPlan.DayResult(expectedDayNumber, null, null,
+                List.of(item(activityId, "Karting", Slot.AFTERNOON)));
+        ComposedPlan.PackageResult pkg = new ComposedPlan.PackageResult(Tier.BASIC, null, null, null,
+                new BigDecimal("40.00"), new BigDecimal("160.00"), ComposedPlan.CURRENCY, 90, List.of(activityId),
+                List.of(day));
+        TextRefreshRequest r = new TextRefreshRequest("en", "Prague", List.of(pkg), Map.of(),
+                Map.of(Tier.BASIC, Set.of(expectedDayNumber)));
+
+        String prompt = renderer.textRefreshUser(r);
+
+        assertThat(prompt).doesNotContain("null")
+                .contains("PACKAGE BASIC \"-\"")
+                .contains("DAY " + expectedDayNumber + " (-)")
+                .contains("REWRITE: description; why for -; summary for days " + expectedDayNumber);
+    }
+
+    @Test
+    void textRefreshSystem_carriesLocaleDestinationAndTheJsonShape() {
+        String expectedLocale = "de";
+        String expectedDestinationName = "Prague";
+
+        String prompt = renderer.textRefreshSystem(new TextRefreshRequest(expectedLocale, expectedDestinationName,
+                List.of(), Map.of(), Map.of()));
+
+        assertThat(prompt).contains(expectedDestinationName)
+                .contains("language \"" + expectedLocale + "\"")
+                .contains("{\"packages\"");
+    }
+
+    private static ComposedPlan.ItemResult item(UUID activityId, String name, Slot slot) {
+        return new ComposedPlan.ItemResult(slot, "19:00", activityId, "slug", name, "https://img/x.jpg", 90,
+                new BigDecimal("40.00"), null, new BigDecimal("160.00"), false, "why");
     }
 
     @Test

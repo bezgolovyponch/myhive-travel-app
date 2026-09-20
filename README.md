@@ -218,17 +218,37 @@ design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
 
 ```
 START → chatTurn ─┬─(brief incomplete)→ awaitUser ⏸ → chatTurn
-                  └─(brief ready)─────→ awaitGeneration ⏸ (resumed by the job)
-                       snapshotCatalog → compose → validate → persistResult → awaitSelection ⏸ → select
+                  ├─(brief ready)─────→ awaitGeneration ⏸ (resumed by the job)
+                  │    snapshotCatalog → compose → validate → persistResult → awaitSelection ⏸ → select
+                  └─(edit ops, packages exist)→ applyEdits → awaitSelection ⏸ → select
 ```
+
+**Package edits:** once packages exist, the group can ask for a change in plain
+chat ("swap X for Y", "drop Z") instead of regenerating — the same
+`POST /ai/sessions/{token}/messages` call extracts `ADD`/`REMOVE`/`REPLACE` ops,
+applies them deterministically with `PackageEditor` (re-validated and re-priced,
+no model call for the actual edit), best-effort rewrites the touched copy with
+`TextRefresher`, and stores the result as a new `EDITED` generation — already
+`READY` in the same response, no polling. An edit turn that lands does call the
+**chat** model twice (once to extract the ops, once for `TextRefresher` to
+re-word what it touched, which is best-effort and skipped when nothing landed);
+it is the far more expensive **planner** model that is never called, so an edit
+costs no generation. Worst case ~40 s on the request thread, two 20 s chat
+timeouts. Capped at 20 edit *turns* per chat (`limits.editsLeft`) — a turn that
+applied at least one op, however many packages it fanned out to — tracked
+separately from the 5-generation cap; past the cap every edit is rejected with
+`EDIT_LIMIT` rather than erroring, and at most 10 ops are taken from one
+message. Full shape, all ten rejection reasons and JSON examples:
+[`docs/api/ai-planner-api.md`](docs/api/ai-planner-api.md).
 
 **Robustness:** a checkpoint records the node a run is *about* to execute, so a
 generation that dies inside the branch (a node that throws, a job thread lost with its
 JVM) would leave the thread pointing into it and the next request would resume the
 generation instead of its own turn. Every resume path therefore calls
 `PlannerGraph.ensureParked` first, which re-parks such a thread at `awaitUser` and
-clears the dead attempt's state (the conversation, the brief and any packages already
-delivered survive). The stale-generation sweep skips runs this process is still
+clears the dead attempt's state — including an edit batch that never reached
+`applyEdits` (the conversation, the brief and any packages already delivered survive).
+The stale-generation sweep skips runs this process is still
 executing, so a slow job is never mistaken for a lost one. A `FAILED` generation is
 terminal — `ready()` refuses to write one back to `READY`, and the graph drops the plan
 it was holding rather than leaving the chat believing it has packages.

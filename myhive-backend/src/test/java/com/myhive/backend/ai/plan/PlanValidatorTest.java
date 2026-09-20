@@ -298,4 +298,42 @@ class PlanValidatorTest {
         assertThat(validator.validate(broken, brief, catalog))
                 .extracting(Violation::code).contains(ViolationCode.TEXT_TOO_LONG);
     }
+
+    /**
+     * validatePackage checks scheduling rules for one package only: it must never emit MISSING_TIER
+     * (there is no tier map to check) or TIER_NOT_DISTINCT (there is nothing to compare against), even
+     * though the very same three packages passed to validate() do trip TIER_NOT_DISTINCT.
+     */
+    @Test
+    void validatePackage_ignoresTierDistinctness() {
+        UUID a = activity("A", 60);
+        UUID b = activity("B", 60);
+        List<PlanDraft.DayDraft> same = List.of(day(1, item(Slot.EVENING, a)), day(2, item(Slot.MORNING, b)));
+        PlanDraft.PackageDraft basic = pkg(Tier.BASIC, same);
+        PlanDraft.PackageDraft medium = pkg(Tier.MEDIUM, same);
+        PlanDraft.PackageDraft premium = pkg(Tier.PREMIUM, same);
+        PlanDraft draft = new PlanDraft(List.of(basic, medium, premium));
+
+        assertThat(validator.validate(draft, brief, catalog))
+                .extracting(Violation::code).contains(ViolationCode.TIER_NOT_DISTINCT);
+        assertThat(validator.validatePackage(basic, brief, catalog))
+                .extracting(Violation::code).doesNotContain(ViolationCode.MISSING_TIER, ViolationCode.TIER_NOT_DISTINCT);
+        assertThat(validator.validatePackage(medium, brief, catalog))
+                .extracting(Violation::code).doesNotContain(ViolationCode.MISSING_TIER, ViolationCode.TIER_NOT_DISTINCT);
+        assertThat(validator.validatePackage(premium, brief, catalog)).isEmpty();
+    }
+
+    @Test
+    void validatePackage_reportsSchedulingViolations() {
+        int itemMinutes = 170;
+        UUID a = activity("A", itemMinutes);
+        UUID b = activity("B", itemMinutes);
+        // BASIC caps at 360 minutes/day: 170 + 30 (buffer) + 170 = 370 > 360.
+        PlanDraft.PackageDraft p = pkg(Tier.BASIC, List.of(
+                day(1, item(Slot.AFTERNOON, a), item(Slot.EVENING, b)),
+                day(2, item(Slot.MORNING, activity("C", 30)))));
+
+        assertThat(validator.validatePackage(p, brief, catalog))
+                .extracting(Violation::code).contains(ViolationCode.DAY_OVER_MINUTES);
+    }
 }

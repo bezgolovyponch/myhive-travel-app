@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.exception.AiConflictException;
 import com.myhive.backend.ai.exception.AiDisabledException;
 import com.myhive.backend.ai.exception.AiLimitException;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +60,12 @@ public class AiSessionService {
 
     public static final int MAX_MESSAGES = 30;
     public static final int MAX_GENERATIONS = 5;
+    /**
+     * Edit turns per chat, counted separately from the five generations because an edit costs no planner
+     * call. Only a turn that actually changed the packages spends one; over the cap the graph rejects
+     * every requested edit with {@code EDIT_LIMIT} rather than failing the turn.
+     */
+    public static final int MAX_EDITS_PER_SESSION = 20;
 
     private static final Map<String, String> GREETING = Map.of(
             "en", "Hey! I'm your stag-trip planner. How many days are you coming for, and how big is the group?",
@@ -92,8 +100,28 @@ public class AiSessionService {
                               Optional<AiGeneration> latestReady, String firstTurnErrorCode) {
     }
 
-    /** One chat turn's result; {@code startedGeneration} is present when the turn completed the brief. */
-    public record TurnOutcome(SessionView view, Optional<AiGeneration> startedGeneration) {
+    /**
+     * One chat turn's result. {@code startedGeneration} is present when the turn completed the brief;
+     * {@code editReport} on every turn that carried edits, whether or not any of them landed, and
+     * {@code editedGeneration} only when at least one did. The two generations are never present
+     * together: an edit parks the thread at {@code awaitSelection} instead of building a plan.
+     *
+     * <p>{@code assistantMessages} is every assistant message <em>this</em> turn appended, in order: the
+     * reply, plus the template line a rejected batch adds after it. Only the last one used to reach the
+     * client, which dropped the model's actual answer on exactly the turns that needed explaining.
+     */
+    public record TurnOutcome(SessionView view, Optional<AiGeneration> startedGeneration,
+                              Optional<EditReport> editReport, Optional<AiGeneration> editedGeneration,
+                              List<ChatMessage> assistantMessages) {
+
+        public TurnOutcome {
+            assistantMessages = assistantMessages == null ? List.of() : List.copyOf(assistantMessages);
+        }
+
+        /** A turn that asked for no edits; the shape every caller used before edits existed. */
+        public TurnOutcome(SessionView view, Optional<AiGeneration> startedGeneration) {
+            this(view, startedGeneration, Optional.empty(), Optional.empty(), List.of());
+        }
     }
 
     /**
@@ -164,8 +192,12 @@ public class AiSessionService {
             generationService.ensureParked(session);
             if (!PlannerGraph.AWAIT_GENERATION.equals(graph.snapshot(token).next())) {
                 // Moves awaitUser/awaitSelection to awaitGeneration and parks there; no model call,
-                // because awaitGeneration is an interrupt point and only the job resumes past it.
-                graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+                // because awaitGeneration is an interrupt point and only the job resumes past it. The
+                // report is cleared for the same reason turn() clears it: it belongs to the turn that
+                // produced it, and this resume does not run the chat node that would clear it itself.
+                graph.update(token, Map.of(
+                        PlannerState.RESUME_REASON, ResumeReason.GENERATE.name(),
+                        PlannerState.EDIT_REPORT, ""));
                 brief = graph.runUntilInterrupt(token).state().brief();
             }
             touch(session);
@@ -199,15 +231,34 @@ public class AiSessionService {
                     .filter(p -> p.key() == key)
                     .findFirst()
                     .orElseThrow(() -> new BadRequestException("Package " + key + " is not in this generation"));
+            // Read before anything is written, like the result above: a snapshot that will not parse has
+            // to fail the whole select rather than leave the graph half-moved onto a row it cannot
+            // describe. Re-written through the codec so the JSON matches byte for byte what the chat node
+            // writes - LAST_GENERATED_BRIEF is compared as a string.
+            Brief brief = JsonCodec.read(generation.getBriefSnapshot(), Brief.class);
+            String briefJson = JsonCodec.write(brief);
             // The Tier enum is validated by the time it gets here, so SELECTED_PACKAGE_KEY is never
             // a string the graph's Tier.valueOf could choke on.
+            //
+            // The plan and its brief come along with the id: picking an older READY generation is the
+            // documented undo (the client may select any row it can see), so the graph has to be moved
+            // onto that row wholesale. Stamping the id alone left the chat talking about one plan, the
+            // state holding another, and the next edit applied to the newer packages while filed under
+            // the older row. The brief has to move too: it is what prices every line and what the
+            // validator checks the day count against, so an edit after the undo would otherwise bill
+            // the older plan for the newer group size and file it under a snapshot that says otherwise.
+            // LAST_GENERATED_BRIEF moves with it or the next chat turn sees a brief that "changed" and
+            // burns one of the five generations rebuilding what the organizer just went back to.
             graph.update(session.getToken(), Map.of(
                     PlannerState.RESUME_REASON, ResumeReason.SELECT.name(),
                     PlannerState.SELECTED_PACKAGE_KEY, key.name(),
-                    PlannerState.GENERATION_ID, generationId.toString()));
+                    PlannerState.GENERATION_ID, generationId.toString(),
+                    PlannerState.RESULT_GENERATION_ID, generationId.toString(),
+                    PlannerState.RESULT, JsonCodec.write(plan),
+                    PlannerState.BRIEF, briefJson,
+                    PlannerState.LAST_GENERATED_BRIEF, briefJson));
             graph.runUntilInterrupt(session.getToken());
             touch(session);
-            Brief brief = JsonCodec.read(generation.getBriefSnapshot(), Brief.class);
             return new Selection(generation, key, brief.groupSize(), chosen.activityIds());
         });
     }
@@ -234,11 +285,23 @@ public class AiSessionService {
         String text = content.strip();
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name());
-        if (!isRepeatOfLastUserMessage(token, text)) {
+        // The chat node clears the report too, at the start of every turn it runs. Both clears are wanted
+        // and neither is redundant: that one keeps the graph honest for any caller (the Studio, a future
+        // resume path), this one keeps the API honest even if a turn never reaches the node - a resume
+        // that throws on the way in would otherwise leave last turn's rejections to be served again.
+        update.put(PlannerState.EDIT_REPORT, "");
+        // Absent means unlimited, so the allowance has to be stamped before every turn that could edit.
+        update.put(PlannerState.EDITS_LEFT, MAX_EDITS_PER_SESSION - session.getEditCount());
+        List<ChatMessage> before = graph.snapshot(token).state().messages();
+        boolean appendsUserMessage = !isRepeatOfLastUserMessage(before, text);
+        if (appendsUserMessage) {
             // PlannerState.message() stamps a fresh instant: the messages channel appends and would
             // drop a byte-identical map, so two turns must never produce the same entry.
             update.put(PlannerState.MESSAGES, List.of(PlannerState.message(ChatMessage.USER, text)));
         }
+        // Where this turn's own messages begin. Counted rather than matched on content, so a reply that
+        // happens to repeat an earlier one is still recognised as new.
+        int firstMessageOfThisTurn = before.size() + (appendsUserMessage ? 1 : 0);
         graph.update(token, update);
 
         PlannerGraph.PlannerStateSnapshot snapshot;
@@ -247,19 +310,66 @@ public class AiSessionService {
         } catch (RuntimeException e) {
             throw new LlmCallFailedException(errorCodeOf(e), e);
         }
+        List<ChatMessage> replies = assistantMessagesFrom(snapshot.state(), firstMessageOfThisTurn);
         // Persisted before the generation is started: hitting GENERATION_LIMIT must not make the turn free.
         session.setMessageCount(session.getMessageCount() + 1);
+        Optional<EditReport> report = snapshot.state().editReport();
+        Optional<AiGeneration> edited = Optional.empty();
+        if (report.filter(EditReport::anyApplied).isPresent()) {
+            // Counted here and nowhere else: the sink stores the row in its own transaction and must not
+            // write the session, whose only save is the touch below - the lost-update shape the generation
+            // counter was already fixed for. A batch that changed nothing costs nothing.
+            session.setEditCount(session.getEditCount() + 1);
+            // An applied edit means a READY row was just stored, so the chat says so. Normally it already
+            // does; the hole is a chat left FAILED by a generation whose result never committed while the
+            // checkpoint kept the previous plan - an edit on that plan must not stay filed under a failure.
+            session.setStatus(AiSessionStatus.READY);
+            edited = editedGeneration(token, snapshot.state().generationId());
+        }
         touch(session);
 
         // The view is built while this thread is still the only one on the graph thread. Once the job
         // is submitted, snapshotting here would race the job's own update/resume on the same thread id.
         SessionView view = view(session);
         if (!PlannerGraph.AWAIT_GENERATION.equals(view.next())) {
-            return new TurnOutcome(view, Optional.empty());
+            return new TurnOutcome(view, Optional.empty(), report, edited, replies);
         }
         AiGeneration started = startGeneration(session, snapshot.state().brief());
         return new TurnOutcome(new SessionView(session, view.state(), view.next(), Optional.of(started),
-                view.latestReady(), view.firstTurnErrorCode()), Optional.of(started));
+                view.latestReady(), view.firstTurnErrorCode()), Optional.of(started), report, edited, replies);
+    }
+
+    /** The assistant messages from {@code firstIndex} on: everything the resume just appended. */
+    private static List<ChatMessage> assistantMessagesFrom(PlannerState state, int firstIndex) {
+        List<ChatMessage> messages = state.messages();
+        List<ChatMessage> replies = new ArrayList<>();
+        for (int i = Math.max(0, firstIndex); i < messages.size(); i++) {
+            if (ChatMessage.ASSISTANT.equals(messages.get(i).role())) {
+                replies.add(messages.get(i));
+            }
+        }
+        return replies;
+    }
+
+    /**
+     * The row the edit node stamped into the state, loaded with its session because the view this turn
+     * hands back is built outside any transaction.
+     *
+     * <p>Neither miss is reachable on a healthy chat — the node writes the id in the same update as the
+     * report — but a 500 would be the wrong answer to a turn whose edit <em>was</em> stored: the report
+     * still describes what happened, and the client reads the session back to find the packages. The
+     * budget is spent either way, for the same reason.
+     */
+    private Optional<AiGeneration> editedGeneration(UUID token, Optional<UUID> generationId) {
+        if (generationId.isEmpty()) {
+            log.warn("planner edit applied on session {} but the state carries no generationId", token);
+            return Optional.empty();
+        }
+        Optional<AiGeneration> edited = generationRepository.findWithSessionById(generationId.get());
+        if (edited.isEmpty()) {
+            log.warn("planner edited generation {} of session {} is no longer there", generationId.get(), token);
+        }
+        return edited;
     }
 
     private AiGeneration startGeneration(AiSession session, Brief brief) {
@@ -281,8 +391,7 @@ public class AiSessionService {
     }
 
     /** Guards a double-submit: the same text twice in a row would be one appended map the channel drops. */
-    private boolean isRepeatOfLastUserMessage(UUID token, String text) {
-        List<ChatMessage> messages = graph.snapshot(token).state().messages();
+    private static boolean isRepeatOfLastUserMessage(List<ChatMessage> messages, String text) {
         if (messages.isEmpty()) {
             return false;
         }
@@ -336,8 +445,8 @@ public class AiSessionService {
     private SessionView view(AiSession session, String firstTurnErrorCode) {
         PlannerGraph.PlannerStateSnapshot snapshot = graph.snapshot(session.getToken());
         return new SessionView(session, snapshot.state(), snapshot.next(),
-                generationRepository.findFirstBySessionIdOrderByCreatedAtDesc(session.getId()),
-                generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDesc(session.getId(),
+                generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId()),
+                generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(session.getId(),
                         AiGenerationStatus.READY),
                 firstTurnErrorCode);
     }

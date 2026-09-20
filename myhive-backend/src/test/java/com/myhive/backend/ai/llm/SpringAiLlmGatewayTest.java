@@ -1,6 +1,9 @@
 package com.myhive.backend.ai.llm;
 
 import com.myhive.backend.ai.model.Brief;
+import com.myhive.backend.ai.model.Slot;
+import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.Violation;
 import com.myhive.backend.ai.plan.ViolationCode;
@@ -19,9 +22,13 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel.ResponseFormat;
 import org.springframework.ai.openai.OpenAiChatOptions;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,6 +74,18 @@ class SpringAiLlmGatewayTest {
     private static PlanRequest planRequest() {
         return new PlanRequest("en", "Prague", new Brief(1, 4, List.of(), "x", null, null, null, null, null),
                 List.of(), List.of());
+    }
+
+    private static TextRefreshRequest textRefreshRequest(UUID activityId) {
+        ComposedPlan.ItemResult item = new ComposedPlan.ItemResult(Slot.EVENING, "19:00", activityId, "beer-spa",
+                "Beer Spa", "https://img/beer-spa.jpg", 90, new BigDecimal("40.00"), null,
+                new BigDecimal("160.00"), false, "Warm up the group");
+        ComposedPlan.DayResult day = new ComposedPlan.DayResult(1, "Day 1", "Easy start", List.of(item));
+        ComposedPlan.PackageResult pkg = new ComposedPlan.PackageResult(Tier.BASIC, "Night out", "tagline",
+                "Two loud nights", new BigDecimal("40.00"), new BigDecimal("160.00"), ComposedPlan.CURRENCY, 90,
+                List.of(activityId), List.of(day));
+        return new TextRefreshRequest("en", "Prague", List.of(pkg), Map.of(Tier.BASIC, Set.of(activityId)),
+                Map.of(Tier.BASIC, Set.of(1)));
     }
 
     private OpenAiChatOptions capturedOptions() {
@@ -178,6 +197,34 @@ class SpringAiLlmGatewayTest {
         assertThat(messages).hasSize(3);
         assertThat(messages.get(0).getMessageType()).isEqualTo(MessageType.SYSTEM);
         assertThat(messages.get(2).getText()).contains(expectedViolationDetail);
+    }
+
+    @Test
+    void refreshTexts_usesTheChatModelInJsonModeWithThinkingOff() {
+        String expectedModel = "qwen3.7-plus";
+        String expectedDescription = "Louder than before";
+        String expectedWhy = "The new highlight of day one";
+        UUID expectedActivityId = UUID.randomUUID();
+        props.setChatModel(expectedModel);
+        when(chatModel.call(any(Prompt.class))).thenReturn(response("{\"packages\":[{\"key\":\"BASIC\",\"description\":\""
+                + expectedDescription + "\",\"why\":[{\"activityId\":\"" + expectedActivityId + "\",\"text\":\""
+                + expectedWhy + "\"}],\"summaries\":[]}]}"));
+
+        TextRefreshResult result = gateway.refreshTexts(textRefreshRequest(expectedActivityId));
+
+        assertThat(result.texts()).containsOnlyKeys(Tier.BASIC);
+        assertThat(result.texts().get(Tier.BASIC).description()).isEqualTo(expectedDescription);
+        assertThat(result.texts().get(Tier.BASIC).whyByActivityId()).containsEntry(expectedActivityId, expectedWhy);
+        assertThat(result.usage().model()).isEqualTo(expectedModel);
+        List<Message> messages = capturedPrompt().getInstructions();
+        assertThat(messages).hasSize(2);
+        assertThat(messages.get(0).getMessageType()).isEqualTo(MessageType.SYSTEM);
+        assertThat(messages.get(1).getText()).contains(expectedActivityId.toString());
+        OpenAiChatOptions options = capturedOptions();
+        assertThat(options.getModel()).isEqualTo(expectedModel);
+        assertThat(options.getTemperature()).isEqualTo(0.7);
+        assertThat(options.getResponseFormat().getType()).isEqualTo(ResponseFormat.Type.JSON_OBJECT);
+        assertThat(options.getExtraBody()).containsEntry("enable_thinking", false);
     }
 
     @Test

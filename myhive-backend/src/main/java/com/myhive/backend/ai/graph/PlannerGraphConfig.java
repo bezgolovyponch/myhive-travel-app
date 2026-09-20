@@ -1,5 +1,9 @@
 package com.myhive.backend.ai.graph;
 
+import com.myhive.backend.ai.edit.GenerationEditSink;
+import com.myhive.backend.ai.edit.PackageEditor;
+import com.myhive.backend.ai.edit.TextRefresher;
+import com.myhive.backend.ai.graph.nodes.ApplyEditsNode;
 import com.myhive.backend.ai.graph.nodes.ChatTurnNode;
 import com.myhive.backend.ai.graph.nodes.ComposeNode;
 import com.myhive.backend.ai.graph.nodes.FallbackNode;
@@ -20,9 +24,9 @@ public class PlannerGraphConfig {
     @Bean
     public PlannerGraph plannerGraph(ChatTurnNode chatTurn, SnapshotCatalogNode snapshotCatalog, ComposeNode compose,
             ValidateNode validate, RepairNode repair, FallbackNode fallback, PersistResultNode persistResult,
-            SelectNode select, BaseCheckpointSaver checkpointSaver) {
+            SelectNode select, ApplyEditsNode applyEdits, BaseCheckpointSaver checkpointSaver) {
         PlannerGraph.Nodes nodes = new PlannerGraph.Nodes(chatTurn, snapshotCatalog, compose, validate, repair,
-                fallback, persistResult, select);
+                fallback, persistResult, select, applyEdits);
         return new PlannerGraph(nodes, checkpointSaver);
     }
 
@@ -38,5 +42,11 @@ public class PlannerGraphConfig {
     @Bean
     public SelectNode selectNode(ObjectProvider<SelectNode.SelectionSink> sinks) {
         return new SelectNode(sinks);
+    }
+
+    @Bean
+    public ApplyEditsNode applyEditsNode(PackageEditor editor, TextRefresher refresher,
+            ObjectProvider<GenerationEditSink> sinks) {
+        return new ApplyEditsNode(editor, refresher, sinks);
     }
 }

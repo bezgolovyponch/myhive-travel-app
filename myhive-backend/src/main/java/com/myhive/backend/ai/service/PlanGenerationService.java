@@ -1,5 +1,7 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.GenerationEditSink;
 import com.myhive.backend.ai.exception.AiLimitException;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerGraph;
@@ -12,6 +14,7 @@ import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.entity.AiGeneration;
+import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
@@ -39,14 +42,15 @@ import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Owns everything about one plan generation: the {@code ai_generations} row, the background job that
- * resumes the parked graph thread, and the two callbacks the graph uses to report back. It is the
- * single bean implementing {@link PersistResultNode.GenerationResultSink} and
- * {@link SelectNode.SelectionSink} — a second candidate would make the nodes' {@code getIfUnique()}
- * lookup fall back to a logging no-op and silently drop every plan.
+ * resumes the parked graph thread, and the callbacks the graph uses to report back. It is the single
+ * bean implementing {@link PersistResultNode.GenerationResultSink}, {@link SelectNode.SelectionSink} and
+ * {@link GenerationEditSink} — a second candidate would make the nodes' {@code getIfUnique()} lookup fall
+ * back to a logging no-op and silently drop every plan, selection or edit.
  */
 @Service
 @Slf4j
-public class PlanGenerationService implements PersistResultNode.GenerationResultSink, SelectNode.SelectionSink {
+public class PlanGenerationService
+        implements PersistResultNode.GenerationResultSink, SelectNode.SelectionSink, GenerationEditSink {
 
     /** A RUNNING generation that has not reported back by now lost its thread; nothing runs this long. */
     static final int STALE_AFTER_MINUTES = 3;
@@ -218,11 +222,12 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
      * The brief the newest generation that actually delivered packages was built from, or {@code null}
      * when this chat has none. It is the same JSON {@code snapshotCatalog} stamps as
      * {@code LAST_GENERATED_BRIEF} - both write the same {@link Brief} through {@link JsonCodec} - and
-     * if the two ever drifted apart the only cost would be one regeneration the chat did not need.
+     * if the two ever drifted apart the only cost would be one regeneration the chat did not need. An
+     * edited row carries its parent's snapshot, so which of two rows sharing a tick wins is moot here.
      */
     private String lastDeliveredBrief(UUID sessionId) {
         return generationRepository
-                .findFirstBySessionIdAndStatusOrderByCreatedAtDesc(sessionId, AiGenerationStatus.READY)
+                .findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(sessionId, AiGenerationStatus.READY)
                 .map(AiGeneration::getBriefSnapshot)
                 .orElse(null);
     }
@@ -246,10 +251,7 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
         generation.setStatus(AiGenerationStatus.READY);
         generation.setResult(JsonCodec.write(plan));
         generation.setDegraded(degraded);
-        generation.setModel(usage.model());
-        generation.setPromptTokens(usage.promptTokens());
-        generation.setCompletionTokens(usage.completionTokens());
-        generation.setLatencyMs((int) Math.min(Integer.MAX_VALUE, usage.latencyMs()));
+        applyUsage(generation, usage);
         generation.setAttempt((short) attempt);
         generation.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
         generation.getSession().setStatus(AiSessionStatus.READY);
@@ -264,6 +266,52 @@ public class PlanGenerationService implements PersistResultNode.GenerationResult
         generation.setSelectedPackageKey(key.name());
         generation.setSelectedAt(LocalDateTime.now(ZoneOffset.UTC));
         generationRepository.save(generation);
+    }
+
+    /**
+     * Stores an edit batch as a new {@code EDITED} row parked at {@code awaitSelection}, ready to serve
+     * without a regeneration. Deliberately does not touch the session row: {@code AiSessionService}
+     * saves its own (already-loaded, already-mutated) session copy right after the graph run finishes,
+     * and a write here would be the lost-update pattern the generation-count fix already dealt with -
+     * {@code editCount} is incremented by the caller instead, on that same session instance.
+     *
+     * <p>The parent must be READY. The edited row copies its brief snapshot and its {@code degraded}
+     * flag, so hanging one off a QUEUED or FAILED row would describe the edited packages with a brief
+     * that never produced them - and would claim a generation that failed as the source of a plan the
+     * group is looking at. The throw is turned into an {@code INTERNAL} report by the edit node.
+     */
+    @Override
+    @Transactional
+    public UUID edited(UUID parentGenerationId, ComposedPlan plan, EditReport report, LlmUsage usage) {
+        AiGeneration parent = generationRepository.findById(parentGenerationId)
+                .orElseThrow(() -> new IllegalStateException("parent generation " + parentGenerationId + " not found"));
+        if (parent.getStatus() != AiGenerationStatus.READY) {
+            throw new IllegalStateException("parent generation " + parentGenerationId + " is "
+                    + parent.getStatus() + ", not READY");
+        }
+        AiGeneration edited = new AiGeneration();
+        edited.setSession(parent.getSession());
+        edited.setKind(AiGenerationKind.EDITED);
+        edited.setParentId(parentGenerationId);
+        edited.setStatus(AiGenerationStatus.READY);
+        edited.setBriefSnapshot(parent.getBriefSnapshot());
+        edited.setDegraded(parent.isDegraded());
+        edited.setResult(JsonCodec.write(plan));
+        edited.setEditReport(JsonCodec.write(report));
+        applyUsage(edited, usage);
+        edited.setAttempt((short) 0);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        edited.setCreatedAt(now);
+        edited.setStartedAt(now);
+        edited.setFinishedAt(now);
+        return generationRepository.save(edited).getId();
+    }
+
+    private static void applyUsage(AiGeneration generation, LlmUsage usage) {
+        generation.setModel(usage.model());
+        generation.setPromptTokens(usage.promptTokens());
+        generation.setCompletionTokens(usage.completionTokens());
+        generation.setLatencyMs((int) Math.min(Integer.MAX_VALUE, usage.latencyMs()));
     }
 
     /**

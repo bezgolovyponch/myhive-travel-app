@@ -40,6 +40,8 @@ class PersistResultNodeTest {
         assertThat(update).containsEntry(PlannerState.ACTION, PlannerState.ACTION_NONE);
         // the stamp belongs to the packages that are now on the group's screen
         assertThat(update).doesNotContainKey(PlannerState.LAST_GENERATED_BRIEF);
+        // and so does the row an edit of those packages has to hang off
+        assertThat(update).containsEntry(PlannerState.RESULT_GENERATION_ID, expectedGenerationId.toString());
     }
 
     /**
@@ -56,6 +58,8 @@ class PersistResultNodeTest {
 
         assertThat(update).containsEntry(PlannerState.LAST_GENERATED_BRIEF, "");
         assertThat(update).containsEntry(PlannerState.RESUME_REASON, "");
+        // an edit filed under a row nobody stored would describe packages that do not exist
+        assertThat(update).doesNotContainKey(PlannerState.RESULT_GENERATION_ID);
     }
 
     /** No id to store it under is the same thing: the plan reaches nobody. */
@@ -67,5 +71,6 @@ class PersistResultNodeTest {
         Map<String, Object> update = node.apply(stateWith(null));
 
         assertThat(update).containsEntry(PlannerState.LAST_GENERATED_BRIEF, "");
+        assertThat(update).doesNotContainKey(PlannerState.RESULT_GENERATION_ID);
     }
 }
