@@ -222,6 +222,15 @@ START → chatTurn ─┬─(brief incomplete)→ awaitUser ⏸ → chatTurn
                        snapshotCatalog → compose → validate → persistResult → awaitSelection ⏸ → select
 ```
 
+**Robustness:** a checkpoint records the node a run is *about* to execute, so a
+generation that dies inside the branch (a node that throws, a restart, a job thread
+the sweeper has to fail) would leave the thread pointing into it and the next request
+would resume the generation instead of its own turn. Every resume path therefore
+calls `PlannerGraph.ensureParked` first, which re-parks such a thread at `awaitUser`
+and clears the dead attempt's state (the conversation, the brief and any packages
+already delivered survive). A `FAILED` generation is terminal — `ready()` refuses to
+write one back to `READY`.
+
 **Dev debugger (Studio, `dev` profile only, not shipped to prod):**
 `./gradlew bootRun --args='--spring.profiles.active=dev'`, then open
 `http://localhost:8080/index.html` (the graph JSON is served from

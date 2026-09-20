@@ -114,9 +114,12 @@ and the message says something like "Building your three options…". Start poll
 If the very first message already contains everything, this happens right after the
 first reply. After packages exist, a later message regenerates automatically **only
 if it changed the brief** (e.g. "actually 6 of us"); small talk does not. A message
-that arrives after a generation ended `FAILED` (including an `AI_BUSY` rejection) is
-still answered in chat and, if the brief is complete, starts a fresh generation the
-same way.
+that arrives after a generation ended `FAILED` is still answered in chat and, if the
+brief is complete, starts a fresh generation the same way — whether the generation was
+rejected before it began (`AI_BUSY`) or died part-way through building the packages
+(`INTERNAL`, `STALE`). In the second case the brief the chat compares against is the
+one the newest generation that really delivered packages was built from, so small talk
+after such a failure still costs nothing and a changed brief still rebuilds.
 
 ### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
 
@@ -147,6 +150,9 @@ On `FAILED`:
 ```json
 { "id": "…", "status": "FAILED", "error": { "code": "LLM_TIMEOUT", "retryable": true } }
 ```
+
+`FAILED` is terminal: a generation never turns `READY` again, so polling can stop on
+it and a cached `FAILED` body never goes stale.
 
 `code`: `LLM_TIMEOUT` | `LLM_UNAVAILABLE` | `LLM_INVALID_OUTPUT` | `AI_BUSY` |
 `STALE` | `INTERNAL`. Everything but `INTERNAL` comes back `retryable: true`.
