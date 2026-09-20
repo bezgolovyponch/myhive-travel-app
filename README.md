@@ -223,13 +223,15 @@ START → chatTurn ─┬─(brief incomplete)→ awaitUser ⏸ → chatTurn
 ```
 
 **Robustness:** a checkpoint records the node a run is *about* to execute, so a
-generation that dies inside the branch (a node that throws, a restart, a job thread
-the sweeper has to fail) would leave the thread pointing into it and the next request
-would resume the generation instead of its own turn. Every resume path therefore
-calls `PlannerGraph.ensureParked` first, which re-parks such a thread at `awaitUser`
-and clears the dead attempt's state (the conversation, the brief and any packages
-already delivered survive). A `FAILED` generation is terminal — `ready()` refuses to
-write one back to `READY`.
+generation that dies inside the branch (a node that throws, a job thread lost with its
+JVM) would leave the thread pointing into it and the next request would resume the
+generation instead of its own turn. Every resume path therefore calls
+`PlannerGraph.ensureParked` first, which re-parks such a thread at `awaitUser` and
+clears the dead attempt's state (the conversation, the brief and any packages already
+delivered survive). The stale-generation sweep skips runs this process is still
+executing, so a slow job is never mistaken for a lost one. A `FAILED` generation is
+terminal — `ready()` refuses to write one back to `READY`, and the graph drops the plan
+it was holding rather than leaving the chat believing it has packages.
 
 **Dev debugger (Studio, `dev` profile only, not shipped to prod):**
 `./gradlew bootRun --args='--spring.profiles.active=dev'`, then open

@@ -42,12 +42,18 @@ class PlannerGraphTest {
         private boolean lastDegraded;
         private UUID lastGeneration;
         private Tier lastSelected;
+        /** Stands in for a generation row the sweep closed out while the run was still going. */
+        private boolean storesPlans = true;
 
         @Override
-        public void ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
+        public boolean ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
+            if (!storesPlans) {
+                return false;
+            }
             lastGeneration = generationId;
             lastPlan = plan;
             lastDegraded = degraded;
+            return true;
         }
 
         @Override
@@ -465,6 +471,61 @@ class PlannerGraphTest {
         graph.runUntilInterrupt(token);
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_USER);
         assertThat(llm.planRequests).hasSize(1);
+    }
+
+    /**
+     * The recovery a job drives: re-park, then the GENERATE hop from awaitUser to awaitGeneration -
+     * which executes nothing but the park nodes - and only then the generation itself.
+     */
+    @Test
+    void aReParkedThread_isWalkedToAwaitGenerationAndThenGenerates() {
+        UUID expectedGenerationId = UUID.randomUUID();
+        when(snapshotter.snapshot(any(), any(), any()))
+                .thenThrow(new IllegalStateException("catalog unavailable"))
+                .thenReturn(catalog);
+        UUID token = threadKilledInsideTheGenerationBranch();
+        int expectedChatTurns = llm.chatRequests.size();
+        graph.ensureParked(token, () -> null);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_USER);
+
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.GENERATE.name()));
+        graph.runUntilInterrupt(token);
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
+        assertThat(llm.chatRequests).hasSize(expectedChatTurns);
+        assertThat(llm.planRequests).isEmpty();
+
+        llm.queuePlan(validDraft());
+        graph.update(token, generationResume(expectedGenerationId));
+        graph.runUntilInterrupt(token);
+
+        assertThat(sinks.lastGeneration).isEqualTo(expectedGenerationId);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+    }
+
+    /**
+     * The sweeper closed the row out while this run was still building. Nobody will ever show the
+     * plan, so the chat must not be left believing it has packages for this brief.
+     */
+    @Test
+    void aPlanTheSinkRefuses_leavesTheChatFreeToRebuild() {
+        UUID token = UUID.randomUUID();
+        llm.queueChat(turn("go", readyBrief())).queuePlan(validDraft(), validDraft());
+        sinks.storesPlans = false;
+        graph.start(token, startInputs());
+        graph.update(token, generationResume(UUID.randomUUID()));
+        graph.runUntilInterrupt(token);
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+        assertThat(graph.snapshot(token).state().lastGeneratedBrief()).isEmpty();
+
+        // the next turn changes nothing about the brief, and still rebuilds: there is nothing to show
+        llm.queueChat(turn("Still here?", Brief.empty()));
+        graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
+                PlannerState.MESSAGES, List.of(userMessage("where are my packages?"))));
+        graph.runUntilInterrupt(token);
+
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_GENERATION);
     }
 
     /** A thread waiting at any of the three park points is somebody's live conversation: never touch it. */

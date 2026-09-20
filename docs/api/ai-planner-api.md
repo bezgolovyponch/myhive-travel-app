@@ -117,9 +117,11 @@ if it changed the brief** (e.g. "actually 6 of us"); small talk does not. A mess
 that arrives after a generation ended `FAILED` is still answered in chat and, if the
 brief is complete, starts a fresh generation the same way — whether the generation was
 rejected before it began (`AI_BUSY`) or died part-way through building the packages
-(`INTERNAL`, `STALE`). In the second case the brief the chat compares against is the
-one the newest generation that really delivered packages was built from, so small talk
-after such a failure still costs nothing and a changed brief still rebuilds.
+(`INTERNAL`, `STALE`). After such a failure the chat keeps comparing against the brief
+of the newest generation that really *delivered* packages, so small talk normally still
+costs nothing and a changed brief still rebuilds; if the failed run got as far as
+composing a plan that was then thrown away, the next message rebuilds either way —
+there is nothing on screen worth keeping.
 
 ### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
 
