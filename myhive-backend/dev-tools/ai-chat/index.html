@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI planner playground</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a65; --line: #e2e0d8;
+    --accent: #e0a100; --accent-ink: #1d1d1b; --user: #1d1d1b; --user-ink: #ffffff;
+    --ok: #1f7a4d; --bad: #b3261e; --warn: #9a6700; --chip: #efede6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --ink: #ecebe6; --muted: #9c9a92; --line: #33322f;
+      --accent: #f2b705; --accent-ink: #151514; --user: #f2b705; --user-ink: #151514;
+      --ok: #5fcf95; --bad: #ff8a80; --warn: #f0c060; --chip: #2a2a27;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 15px; margin: 0 12px 0 0; }
+  select, input, textarea, button { font: inherit; color: inherit; }
+  select, input[type=text], textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
+  button { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .token { color: var(--muted); font: 12px ui-monospace, Consolas, monospace; margin-left: auto; }
+  main { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; padding: 16px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .panel > h2 { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+  .chat { display: flex; flex-direction: column; height: calc(100vh - 100px); min-height: 420px; position: sticky; top: 16px; }
+  #log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 88%; padding: 8px 11px; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
+  .msg.ASSISTANT { background: var(--chip); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.USER { background: var(--user); color: var(--user-ink); align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg.system { align-self: center; color: var(--muted); font-size: 12px; background: none; text-align: center; }
+  .msg.error { align-self: center; color: var(--bad); font-size: 12.5px; border: 1px solid var(--bad); }
+  .composer { border-top: 1px solid var(--line); padding: 10px; display: grid; gap: 8px; }
+  .composer textarea { width: 100%; resize: vertical; min-height: 58px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .quick button { font-size: 12px; padding: 4px 8px; }
+  .side { display: grid; gap: 16px; }
+  .body { padding: 12px 14px; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; }
+  .kv dt { color: var(--muted); } .kv dd { margin: 0; }
+  .chip { display: inline-block; background: var(--chip); border-radius: 999px; padding: 1px 9px; font-size: 12px; margin: 0 4px 4px 0; }
+  .chip.ok { color: var(--ok); } .chip.bad { color: var(--bad); } .chip.warn { color: var(--warn); }
+  .packages { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+  .pkg { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .pkg.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .pkg h3 { margin: 0; font-size: 15px; } .pkg .tag { color: var(--muted); font-style: italic; }
+  .pkg .price { font-weight: 700; font-size: 16px; }
+  .day { border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 2px; }
+  .day b { font-size: 12.5px; } .day .sum { color: var(--muted); font-size: 12.5px; }
+  .item { display: grid; grid-template-columns: 86px 1fr max-content; gap: 6px; font-size: 12.5px; padding: 2px 0; }
+  .item .slot { color: var(--muted); } .item .why { grid-column: 2 / 4; color: var(--muted); }
+  pre { margin: 0; padding: 12px 14px; overflow: auto; max-height: 340px; font: 11.5px/1.4 ui-monospace, Consolas, monospace; }
+  .muted { color: var(--muted); } .spin { color: var(--warn); }
+  details > summary { cursor: pointer; padding: 10px 14px; color: var(--muted); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI planner playground</h1>
+  <select id="destination" title="destination"></select>
+  <select id="locale" title="locale"><option>en</option><option>de</option></select>
+  <button class="primary" id="newChat">New chat</button>
+  <button id="resume" title="Reload the last session kept in this browser">Resume last</button>
+  <span class="token" id="token">no session</span>
+</header>
+<main>
+  <section class="panel chat">
+    <h2>Chat <span id="busy" class="spin"></span></h2>
+    <div id="log"></div>
+    <div class="composer">
+      <div class="row quick" id="quick"></div>
+      <textarea id="input" placeholder="Write like the organizer would… (Ctrl+Enter sends; the first message opens a chat)"></textarea>
+      <div class="row">
+        <button class="primary" id="send">Send</button>
+        <button id="rebuild" disabled title="POST /ai/sessions/{token}/generations">Rebuild packages</button>
+        <span class="muted" id="timing"></span>
+      </div>
+    </div>
+  </section>
+  <section class="side">
+    <div class="panel"><h2>Brief &amp; limits</h2><div class="body" id="brief"><span class="muted">Start a chat.</span></div></div>
+    <div class="panel"><h2>Packages <span id="genMeta"></span></h2><div class="body" id="packages"><span class="muted">Nothing generated yet.</span></div></div>
+    <div class="panel"><h2>Last edit report</h2><div class="body" id="edit"><span class="muted">No edit turn yet.</span></div></div>
+    <div class="panel"><details><summary>Last selection (Trip Builder items)</summary><pre id="selection">—</pre></details></div>
+    <div class="panel"><details><summary>Last raw response</summary><pre id="raw">—</pre></details></div>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const KEY = 'ai-playground-token';
+const QUICK = [
+  '3 days in the city, 8 guys, we like beer, karting and a big night out. Mid budget.',
+  'Arriving Friday evening, leaving Sunday afternoon.',
+  'Remove the karting from all packages.',
+  'Add a beer tasting to the medium package.',
+  'Swap the club night in premium for a boat party.',
+  'Actually we are 12 people now.',
+];
+let token = null;
+let pollTimer = null;
+let shownGenerationId = null;
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) { node.className = cls; }
+  if (text !== undefined && text !== null) { node.textContent = String(text); }
+  return node;
+}
+function money(value, currency) { return value == null ? '—' : `${Number(value).toFixed(2)} ${currency || 'EUR'}`; }
+function say(role, content) {
+  const node = el('div', 'msg ' + role, content);
+  $('log').append(node);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+function setBusy(label) {
+  $('busy').textContent = label ? '· ' + label : '';
+  const idle = !label;
+  // Send works without a session too: the first message opens the chat by itself.
+  $('send').disabled = !idle;
+  $('input').disabled = false;
+  $('rebuild').disabled = !token || !idle;
+}
+
+async function api(method, path, body) {
+  const started = performance.now();
+  const response = await fetch(path, {
+    method,
+    headers: { 'content-type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch (e) { json = { message: text }; }
+  $('raw').textContent = `${method} ${path} -> ${response.status}\n` + JSON.stringify(json, null, 2);
+  $('timing').textContent = `${method} ${path.split('/').slice(-1)[0]}: ${Math.round(performance.now() - started)} ms`;
+  if (!response.ok) {
+    const error = new Error((json && (json.message || json.error)) || response.statusText);
+    error.status = response.status;
+    error.code = json && json.error;
+    throw error;
+  }
+  return json;
+}
+function fail(e) { say('error', `${e.status || ''} ${e.code || ''} ${e.message}`.trim()); }
+
+function renderBrief(state) {
+  const box = $('brief');
+  box.replaceChildren();
+  const list = el('dl', 'kv');
+  const brief = state.brief || {};
+  for (const [name, value] of Object.entries(brief)) {
+    if (value == null || (Array.isArray(value) && !value.length)) { continue; }
+    list.append(el('dt', null, name), el('dd', null, Array.isArray(value) ? value.join(', ') : value));
+  }
+  if (!list.children.length) { list.append(el('dt', null, 'brief'), el('dd', 'muted', 'empty')); }
+  box.append(list);
+  const chips = el('div');
+  chips.style.marginTop = '8px';
+  if (state.status) { chips.append(el('span', 'chip', 'session ' + state.status)); }
+  (state.missingFields || []).forEach(field => chips.append(el('span', 'chip warn', 'missing: ' + field)));
+  if (state.readyToGenerate) { chips.append(el('span', 'chip ok', 'ready to generate')); }
+  if (state.limits) {
+    chips.append(el('span', 'chip', `messages left ${state.limits.messagesLeft}`));
+    chips.append(el('span', 'chip', `generations left ${state.limits.generationsLeft}`));
+    chips.append(el('span', 'chip', `edit turns left ${state.limits.editsLeft}`));
+  }
+  box.append(chips);
+}
+
+function renderGeneration(generation) {
+  const box = $('packages');
+  const meta = $('genMeta');
+  meta.replaceChildren();
+  if (!generation) { return; }
+  meta.append(el('span', 'chip', generation.kind || 'GENERATED'));
+  meta.append(el('span', 'chip ' + (generation.status === 'READY' ? 'ok' : generation.status === 'FAILED' ? 'bad' : 'warn'), generation.status));
+  if (generation.degraded) { meta.append(el('span', 'chip warn', 'degraded (fallback)')); }
+  if (generation.parentId) { meta.append(el('span', 'chip', 'parent ' + generation.parentId.slice(0, 8))); }
+  meta.append(el('span', 'chip', 'id ' + generation.id.slice(0, 8)));
+  if (generation.status !== 'READY') {
+    box.replaceChildren(el('span', generation.status === 'FAILED' ? 'chip bad' : 'spin',
+      generation.status === 'FAILED'
+        ? `failed: ${generation.error ? generation.error.code : '?'}${generation.error && generation.error.retryable ? ' (retryable — use Rebuild)' : ''}`
+        : 'building packages…'));
+    return;
+  }
+  shownGenerationId = generation.id;
+  const grid = el('div', 'packages');
+  (generation.packages || []).forEach(pkg => {
+    const card = el('div', 'pkg' + (generation.selectedPackageKey === pkg.key ? ' selected' : ''));
+    card.append(el('span', 'chip', pkg.key), el('h3', null, pkg.title), el('div', 'tag', pkg.tagline),
+      el('div', null, pkg.description),
+      el('div', 'price', `${money(pkg.pricePerPerson, pkg.currency)} pp · ${money(pkg.totalPrice, pkg.currency)} total`),
+      el('div', 'muted', `${Math.round((pkg.totalDurationMinutes || 0) / 60 * 10) / 10} h of activities`));
+    (pkg.days || []).forEach(day => {
+      const dayBox = el('div', 'day');
+      dayBox.append(el('b', null, `Day ${day.dayNumber} — ${day.title || ''}`), el('div', 'sum', day.summary));
+      (day.items || []).forEach(item => {
+        const row = el('div', 'item');
+        row.append(el('span', 'slot', `${item.slot}${item.startHint ? ' ' + item.startHint : ''}`),
+          el('span', null, `${item.name} (${item.durationMinutes} min)`),
+          el('span', null, money(item.lineTotal, pkg.currency) + (item.groupMinApplied ? ' *min' : '')));
+        if (item.why) { row.append(el('span', 'why', item.why)); }
+        dayBox.append(row);
+      });
+      card.append(dayBox);
+    });
+    const choose = el('button', 'primary', generation.selectedPackageKey === pkg.key ? 'Chosen' : 'Choose ' + pkg.key);
+    choose.onclick = () => select(generation.id, pkg.key);
+    card.append(choose);
+    grid.append(card);
+  });
+  box.replaceChildren(grid);
+}
+
+function renderEdit(edit) {
+  const box = $('edit');
+  if (!edit) { return; }
+  box.replaceChildren();
+  const head = el('div');
+  head.append(el('span', 'chip ' + (edit.applied.length ? 'ok' : 'bad'), `${edit.applied.length} applied`),
+    el('span', 'chip ' + (edit.rejected.length ? 'warn' : ''), `${edit.rejected.length} rejected`),
+    el('span', 'chip', 'tierRulesRelaxed ' + edit.tierRulesRelaxed), el('span', 'chip', 'textsRefreshed ' + edit.textsRefreshed));
+  box.append(head);
+  edit.applied.forEach(a => box.append(el('div', null,
+    `✔ ${a.op} ${a.activity}${a.replacement ? ' → ' + a.replacement : ''} · ${a.packageKey} · day ${a.dayNumber}${a.slot ? ' ' + a.slot : ''}`)));
+  edit.rejected.forEach(r => box.append(el('div', null,
+    `✘ ${r.op || '?'} ${r.activity || '?'} · ${r.packageKey || 'any'} · ${r.reason}${r.detail ? ' — ' + r.detail : ''}`)));
+}
+
+function watch(generation) {
+  clearTimeout(pollTimer);
+  if (!generation) { return; }
+  renderGeneration(generation);
+  if (generation.status !== 'QUEUED' && generation.status !== 'RUNNING') { return; }
+  const started = Date.now();
+  const tick = async () => {
+    try {
+      const fresh = await api('GET', `/ai/generations/${generation.id}`);
+      if (fresh.status === 'QUEUED' || fresh.status === 'RUNNING') {
+        setBusy(`${fresh.status.toLowerCase()} ${Math.round((Date.now() - started) / 1000)} s`);
+        $('send').disabled = true;
+        pollTimer = setTimeout(tick, 2000);
+        return;
+      }
+      setBusy('');
+      renderGeneration(fresh);
+      say('system', fresh.status === 'READY'
+        ? `packages ready in ${Math.round((Date.now() - started) / 1000)} s${fresh.degraded ? ' (degraded fallback)' : ''}`
+        : `generation failed: ${fresh.error ? fresh.error.code : '?'}`);
+      await refresh();
+    } catch (e) { setBusy(''); fail(e); }
+  };
+  pollTimer = setTimeout(tick, 1500);
+}
+
+async function refresh() {
+  const state = await api('GET', `/ai/sessions/${token}`);
+  renderBrief(state);
+  return state;
+}
+
+function adopt(state) {
+  token = state.token;
+  try { localStorage.setItem(KEY, token); } catch (e) { /* private mode: resume just will not work */ }
+  $('token').textContent = `${state.destinationSlug} · ${state.locale} · ${token}`;
+  $('log').replaceChildren();
+  (state.messages || []).forEach(m => say(m.role, m.content));
+  renderBrief(state);
+  $('packages').replaceChildren(el('span', 'muted', 'Nothing generated yet.'));
+  $('genMeta').replaceChildren();
+  if (state.firstTurnError) { say('error', 'first turn failed: ' + state.firstTurnError.code + ' — send the message again'); }
+  const inFlight = state.latestGeneration && ['QUEUED', 'RUNNING'].includes(state.latestGeneration.status);
+  if (state.latestReadyGeneration) { renderGeneration(state.latestReadyGeneration); }
+  if (inFlight || (state.latestGeneration && !state.latestReadyGeneration)) { watch(state.latestGeneration); }
+  setBusy('');
+  $('input').focus();
+}
+
+async function newChat() {
+  setBusy('creating');
+  try {
+    adopt(await api('POST', '/ai/sessions', { destinationSlug: $('destination').value, locale: $('locale').value }));
+  } catch (e) { setBusy(''); fail(e); }
+}
+
+async function resume() {
+  let saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) { /* no storage */ }
+  if (!saved) { say('system', 'no saved session in this browser'); return; }
+  try { adopt(await api('GET', `/ai/sessions/${saved}`)); } catch (e) { fail(e); }
+}
+
+async function send() {
+  const content = $('input').value.trim();
+  if (!content) { return; }
+  if (!token) {
+    // No chat yet: open one first so the greeting is on screen, then send as usual.
+    await newChat();
+    if (!token) { return; }
+  }
+  $('input').value = '';
+  say('USER', content);
+  const started = Date.now();
+  setBusy('thinking');
+  const ticker = setInterval(() => setBusy(`thinking ${Math.round((Date.now() - started) / 1000)} s`), 1000);
+  try {
+    const turn = await api('POST', `/ai/sessions/${token}/messages`, { content });
+    const replies = turn.messages && turn.messages.length ? turn.messages : (turn.message ? [turn.message] : []);
+    replies.forEach(m => say(m.role, m.content));
+    if (turn.edit) { renderEdit(turn.edit); }
+    if (turn.generation) {
+      if (turn.generation.status === 'READY') {
+        renderGeneration(turn.generation);
+        say('system', 'packages edited inline — no regeneration');
+      } else {
+        say('system', 'generation started');
+        watch(turn.generation);
+      }
+    }
+    await refresh();
+  } catch (e) {
+    fail(e);
+    // A failed turn is free on the server and nothing was answered: hand the text back for a re-send.
+    if (!$('input').value) { $('input').value = content; }
+  } finally {
+    clearInterval(ticker);
+    if (!pollTimer || $('busy').textContent.startsWith('· thinking')) { setBusy(''); }
+  }
+}
+
+async function rebuild() {
+  setBusy('queueing');
+  try { say('system', 'manual generation requested'); watch(await api('POST', `/ai/sessions/${token}/generations`)); }
+  catch (e) { setBusy(''); fail(e); }
+}
+
+async function select(generationId, packageKey) {
+  try {
+    const selection = await api('POST', `/ai/generations/${generationId}/select`, { packageKey });
+    $('selection').textContent = JSON.stringify(selection, null, 2);
+    say('system', `selected ${packageKey}: ${selection.tripItems.length} Trip Builder items for ${selection.groupSize} people`);
+    const state = await refresh();
+    renderGeneration(state.latestReadyGeneration);
+  } catch (e) { fail(e); }
+}
+
+async function loadDestinations() {
+  const pick = $('destination');
+  try {
+    const data = await api('GET', '/destinations');
+    const rows = Array.isArray(data) ? data : (data.content || []);
+    rows.forEach(d => pick.append(new Option(`${d.name} (${d.slug})`, d.slug)));
+    const prague = rows.find(d => d.slug === 'prague');
+    if (prague) { pick.value = 'prague'; }
+  } catch (e) { fail(e); }
+  if (!pick.options.length) { pick.append(new Option('prague', 'prague')); }
+}
+
+QUICK.forEach(text => {
+  const b = el('button', null, text.length > 34 ? text.slice(0, 32) + '…' : text);
+  b.title = text;
+  b.onclick = () => { $('input').value = text; $('input').focus(); };
+  $('quick').append(b);
+});
+$('newChat').onclick = newChat;
+$('resume').onclick = resume;
+$('send').onclick = send;
+$('rebuild').onclick = rebuild;
+$('input').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { send(); } });
+loadDestinations();
+</script>
+</body>
+</html>
