@@ -31,6 +31,12 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
         return missingFields().isEmpty();
     }
 
+    /**
+     * What the chat still has to ask before a generation is worth its ~40 s planner call. Arrival and
+     * departure are required, not defaulted: the edges decide how much of day 1 and the last day is
+     * usable, and generating on the defaults first cost a second full generation the moment the
+     * organizer mentioned when they land. Budget stays optional - many groups will not name one.
+     */
     @JsonIgnore
     public List<String> missingFields() {
         List<String> missing = new ArrayList<>();
@@ -43,6 +49,12 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
         boolean hasTaste = !categorySlugs.isEmpty() || (vibe != null && !vibe.isBlank());
         if (!hasTaste) {
             missing.add("preferences");
+        }
+        if (arrival == null) {
+            missing.add("arrival");
+        }
+        if (departure == null) {
+            missing.add("departure");
         }
         return missing;
     }

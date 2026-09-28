@@ -37,10 +37,15 @@ public class SpringAiLlmGateway implements LlmGateway {
     private static final double CHAT_TEMPERATURE = 0.7;
     private static final double PLANNER_TEMPERATURE = 0.4;
     /**
-     * DashScope-specific flag: Qwen's hybrid-reasoning models otherwise stream a &lt;think&gt; block
-     * that JSON mode does not suppress. Sent as an extra top-level body property.
+     * Turns Qwen's hybrid reasoning off, in both dialects the OpenAI-compatible endpoints understand:
+     * DashScope reads the top-level {@code enable_thinking} flag, OpenRouter ignores it and reads
+     * {@code reasoning.enabled} instead (with it ignored, the model spends the whole token budget on a
+     * reasoning block and returns a null {@code content}). Each provider ignores the other's key, so both
+     * are always sent. Without either, JSON mode does not suppress the &lt;think&gt; block.
      */
-    private static final Map<String, Object> THINKING_OFF = Map.of("enable_thinking", false);
+    private static final Map<String, Object> THINKING_OFF = Map.of(
+            "enable_thinking", false,
+            "reasoning", Map.of("enabled", false));
 
     private final ChatModel chatModel;
     private final PromptRenderer renderer;
@@ -83,7 +88,7 @@ public class SpringAiLlmGateway implements LlmGateway {
                 new SystemMessage(renderer.plannerSystem(request)),
                 new UserMessage(renderer.plannerUser(request)));
         Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout());
-        return new PlanDraftResult(parser.parsePlan(timed.text()), timed.usage());
+        return new PlanDraftResult(parser.parsePlan(timed.text(), request.catalog()), timed.usage());
     }
 
     @Override
@@ -93,7 +98,27 @@ public class SpringAiLlmGateway implements LlmGateway {
                 new UserMessage(renderer.plannerUser(request.original())),
                 new UserMessage(renderer.repairUser(request)));
         Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout());
-        return new PlanDraftResult(parser.parsePlan(timed.text()), timed.usage());
+        return new PlanDraftResult(parser.parsePlan(timed.text(), request.original().catalog()), timed.usage());
+    }
+
+    @Override
+    public TextRefreshResult refreshTexts(TextRefreshRequest request) {
+        List<Message> messages = List.of(
+                new SystemMessage(renderer.textRefreshSystem(request)),
+                new UserMessage(renderer.textRefreshUser(request)));
+        Timed timed = call(messages, props.getChatModel(), CHAT_TEMPERATURE, props.getChatTimeout());
+        return new TextRefreshResult(parser.parseTextRefresh(timed.text()), timed.usage());
+    }
+
+    /** Copy is the chat model's job; it gets its own budget because three packages of it outrun a chat turn. */
+    @Override
+    public PlanTextsResult writeTexts(PlanTextsRequest request) {
+        List<Message> messages = List.of(
+                new SystemMessage(renderer.planTextsSystem(request)),
+                new UserMessage(renderer.planTextsUser(request)));
+        Timed timed = call(messages, props.getChatModel(), CHAT_TEMPERATURE, props.getTextsTimeout());
+        return new PlanTextsResult(parser.parsePackageTexts(timed.text(), ActivityAliases.toId(request.catalog())),
+                timed.usage());
     }
 
     private record Timed(String text, LlmUsage usage) {

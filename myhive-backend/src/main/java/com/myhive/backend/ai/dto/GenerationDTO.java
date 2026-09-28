@@ -8,12 +8,18 @@ import java.util.UUID;
 
 /**
  * What {@code GET /ai/generations/&#123;id&#125;} answers while the frontend polls. {@code packages} is
- * filled only once the status is {@code READY} and {@code error} only once it is {@code FAILED}, so
- * the poller can switch on {@code status} alone.
+ * filled once the status is {@code READY} - and already while it is {@code RUNNING} as soon as the
+ * structure is final, with {@code textsPending} true: placeholder titles, no copy yet, keep polling.
+ * {@code error} is filled only once the status is {@code FAILED}.
+ *
+ * <p>{@code kind} is {@code GENERATED} for a row the planner model built and {@code EDITED} for one the
+ * package editor derived from it; only an {@code EDITED} row carries {@code parentId} and
+ * {@code editReport}, whose {@code generationId} is this row's own id.
  */
 public record GenerationDTO(UUID id, UUID sessionToken, String status, boolean degraded, String selectedPackageKey,
                             Brief brief, List<PackageDTO> packages, ErrorDTO error, LocalDateTime createdAt,
-                            LocalDateTime finishedAt) {
+                            LocalDateTime finishedAt, String kind, UUID parentId, EditDTO editReport,
+                            boolean textsPending) {
 
     /** {@code retryable} tells the UI whether to offer "try again" or to apologise. */
     public record ErrorDTO(String code, boolean retryable) {

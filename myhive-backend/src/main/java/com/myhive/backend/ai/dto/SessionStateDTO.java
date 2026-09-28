@@ -14,8 +14,12 @@ public record SessionStateDTO(UUID token, String destinationSlug, String locale,
                               GenerationDTO latestGeneration, GenerationDTO latestReadyGeneration,
                               FirstTurnErrorDTO firstTurnError, LimitsDTO limits) {
 
-    /** What is left of this chat's allowances, so the UI can offer "start a new chat" before a 429. */
-    public record LimitsDTO(int messagesLeft, int generationsLeft) {
+    /**
+     * What is left of this chat's allowances, so the UI can offer "start a new chat" before a 429.
+     * {@code editsLeft} never produces a 429 of its own: past it, every requested edit comes back
+     * rejected with {@code EDIT_LIMIT} inside an otherwise ordinary turn.
+     */
+    public record LimitsDTO(int messagesLeft, int generationsLeft, int editsLeft) {
     }
 
     /**

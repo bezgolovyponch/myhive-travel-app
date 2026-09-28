@@ -54,6 +54,10 @@ public class AiSession {
     @Column(name = "generation_count", nullable = false)
     private int generationCount = 0;
 
+    /** Edit turns that changed the plan, counted against {@code AiSessionService.MAX_EDITS_PER_SESSION}. */
+    @Column(name = "edit_count", nullable = false)
+    private int editCount = 0;
+
     @Column(name = "client_ip_hash", length = 64)
     private String clientIpHash;
 

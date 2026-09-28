@@ -41,9 +41,21 @@ public class PlanValidator {
             }
         }
         for (PlanDraft.PackageDraft p : byTier.values()) {
-            validatePackage(p, brief, catalog, violations);
+            violations.addAll(validatePackage(p, brief, catalog));
         }
         checkDistinct(byTier, violations);
+        return violations;
+    }
+
+    /**
+     * The per-package scheduling checks only (texts, day count, per-day slots/caps/duplicates, empty
+     * day/package) — no {@code MISSING_TIER} and no cross-tier {@code TIER_NOT_DISTINCT}, so it is safe
+     * to call on a single edited package without the rest of the plan. {@code validate} delegates here
+     * per package to keep one implementation.
+     */
+    public List<Violation> validatePackage(PlanDraft.PackageDraft pkg, Brief brief, Map<UUID, CatalogActivity> catalog) {
+        List<Violation> violations = new ArrayList<>();
+        validatePackage(pkg, brief, catalog, violations);
         return violations;
     }
 
@@ -86,7 +98,6 @@ public class PlanValidator {
         }
         Set<Slot> allowed = allowedSlots(n, brief);
         Set<Slot> used = EnumSet.noneOf(Slot.class);
-        int minutes = 0;
         for (PlanDraft.ItemDraft item : day.items()) {
             checkText(out, tier, n, "why", item.why(), WHY_MAX);
             CatalogActivity activity = item.activityId() == null ? null : catalog.get(item.activityId());
@@ -103,17 +114,58 @@ public class PlanValidator {
             } else if (!used.add(item.slot())) {
                 out.add(Violation.of(ViolationCode.SLOT_TAKEN, tier, n, "two activities in slot " + item.slot() + " on day " + n));
             }
-            minutes += activity.durationMinutes();
         }
-        minutes += BUFFER_MINUTES * Math.max(0, day.items().size() - 1);
+        int minutes = dayMinutes(day, catalog);
         if (day.items().size() > tier.maxItemsPerDay()) {
             out.add(Violation.of(ViolationCode.DAY_OVER_ITEMS, tier, n,
                     day.items().size() + " activities on day " + n + ", max " + tier.maxItemsPerDay() + " for " + tier));
         }
         if (minutes > tier.maxMinutesPerDay()) {
+            // The repair prompt hands this text back to the model. Spelling the sum out per activity is
+            // what lets it fix the day: told only the total, it re-added the catalog and overshot again.
             out.add(Violation.of(ViolationCode.DAY_OVER_MINUTES, tier, n,
-                    minutes + " minutes incl. buffers on day " + n + ", max " + tier.maxMinutesPerDay() + " for " + tier));
+                    minutes + " minutes incl. buffers on day " + n + ", max " + tier.maxMinutesPerDay() + " for " + tier
+                            + " (" + minutesBreakdown(day, catalog) + "; drop or swap one activity)"));
         }
+    }
+
+    /** {@code Beer Tasting 120 + Pub Crawl 240 + 30 min buffer} — the arithmetic behind a DAY_OVER_MINUTES. */
+    private static String minutesBreakdown(PlanDraft.DayDraft day, Map<UUID, CatalogActivity> catalog) {
+        StringBuilder sb = new StringBuilder();
+        for (PlanDraft.ItemDraft item : day.items()) {
+            CatalogActivity activity = item.activityId() == null ? null : catalog.get(item.activityId());
+            if (activity == null) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append(" + ");
+            }
+            sb.append(activity.name()).append(' ').append(activity.durationMinutes());
+        }
+        int buffers = BUFFER_MINUTES * Math.max(0, day.items().size() - 1);
+        if (buffers > 0) {
+            sb.append(" + ").append(buffers).append(" min buffers");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * How long a day runs: the catalog durations of its items plus one {@link #BUFFER_MINUTES} gap
+     * between consecutive ones. An item whose activity is not in the snapshot adds no duration but still
+     * counts towards the buffers, exactly as {@link #validateDay} treats it.
+     *
+     * <p>Public for the same reason {@link #allowedSlots} is: {@code ai.edit}'s package editor has to
+     * decide whether an activity fits a day, and it has to answer that the way this validator will.
+     */
+    public static int dayMinutes(PlanDraft.DayDraft day, Map<UUID, CatalogActivity> catalog) {
+        int minutes = 0;
+        for (PlanDraft.ItemDraft item : day.items()) {
+            CatalogActivity activity = item.activityId() == null ? null : catalog.get(item.activityId());
+            if (activity != null) {
+                minutes += activity.durationMinutes();
+            }
+        }
+        return minutes + BUFFER_MINUTES * Math.max(0, day.items().size() - 1);
     }
 
     /**
@@ -123,8 +175,11 @@ public class PlanValidator {
      * activity of the day {@link ViolationCode#SLOT_OUTSIDE_WINDOW} and leaves three empty packages
      * (day 1 is an edge day, so {@link ViolationCode#EMPTY_DAY} never fires either). A crossed window is
      * read as "the group is here all day": it runs from the arrival edge to NIGHT.
+     *
+     * <p>Public because {@code ai.edit}'s package editor relies on it too, to keep an edited day's
+     * slots inside the same arrival/departure window this validator enforces.
      */
-    static Set<Slot> allowedSlots(int dayNumber, Brief brief) {
+    public static Set<Slot> allowedSlots(int dayNumber, Brief brief) {
         Slot first = dayNumber == 1 ? brief.arrivalOrDefault().slot() : Slot.MORNING;
         Slot last = dayNumber == brief.days() ? brief.departureOrDefault().slot() : Slot.NIGHT;
         if (last.ordinal() < first.ordinal()) {

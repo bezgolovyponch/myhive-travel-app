@@ -17,7 +17,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 @EnableConfigurationProperties(AiProperties.class)
 public class AiClientConfig {
 
-    private static final int LLM_CALL_THREADS = 4;
+    /** Room for two generations writing their copy three packages at a time, plus the chat turns beside them. */
+    private static final int LLM_CALL_THREADS = 8;
+    private static final int PLAN_TEXTS_THREADS = 6;
     private static final int LLM_CALL_QUEUE_CAPACITY = 8;
 
     /**
@@ -46,6 +48,24 @@ public class AiClientConfig {
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
         // An in-flight model call is already past its own timeout budget by the time we shut down;
         // waiting for it would only delay the shutdown.
+        executor.setWaitForTasksToCompleteOnShutdown(false);
+        return executor;
+    }
+
+    /**
+     * Where {@link com.myhive.backend.ai.plan.PlanTextWriter} fans a generation's copy out, one package
+     * per task. Not {@link #llmCallExecutor()}: a task here blocks on a call submitted there, and a pool
+     * waiting on itself is a deadlock. Sized for two generations at once; past that the job thread
+     * writes the package itself (CallerRuns) - later rather than never, and never a rejection.
+     */
+    @Bean(name = "planTextsExecutor")
+    public Executor planTextsExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(PLAN_TEXTS_THREADS);
+        executor.setMaxPoolSize(PLAN_TEXTS_THREADS);
+        executor.setQueueCapacity(0);
+        executor.setThreadNamePrefix("plan-texts-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.setWaitForTasksToCompleteOnShutdown(false);
         return executor;
     }

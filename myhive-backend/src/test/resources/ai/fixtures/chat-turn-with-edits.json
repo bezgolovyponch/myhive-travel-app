@@ -1,0 +1,10 @@
+{"reply": "Swapping it now.",
+ "brief": {"days": null, "groupSize": null, "categorySlugs": [], "vibe": null, "dislikes": null, "budget": null,
+           "arrival": null, "departure": null, "notes": null},
+ "missingFields": [],
+ "edits": [
+   {"op": "REPLACE", "activity": "Karting", "replacement": "Beer Bike", "packageKey": null, "dayNumber": null, "slot": null},
+   {"op": "ADD", "activity": "Shooting Range", "replacement": null, "packageKey": "PREMIUM", "dayNumber": 2, "slot": "AFTERNOON"},
+   {"op": "TELEPORT", "activity": "Karting"},
+   {"op": "REMOVE", "activity": "   "}
+ ]}

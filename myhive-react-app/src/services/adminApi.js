@@ -432,6 +432,70 @@ export function createAdminApi(getAccessToken) {
             await handleError(response, 'Failed to delete package');
         },
 
+        // AI planner. The endpoints are public, but the token matters: an ADMIN/MANAGER bearer lifts
+        // the captcha and the per-network daily cap, and keeps the planner usable while it is off
+        // for the public (AI_STAFF_PREVIEW) - which is how colleagues test it from the console.
+        async aiDestinations() {
+            const response = await fetch(`${API_BASE_URL}/destinations`);
+            await handleError(response, 'Failed to load destinations');
+            const data = await response.json();
+            return Array.isArray(data) ? data : (data.content || []);
+        },
+
+        async aiCreateSession(destinationSlug, locale) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/ai/sessions`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({destinationSlug, locale}),
+            });
+            await handleError(response, 'Failed to start a planner chat');
+            return response.json();
+        },
+
+        async aiGetSession(token) {
+            const response = await fetch(`${API_BASE_URL}/ai/sessions/${token}`, {headers: await authHeaders()});
+            await handleError(response, 'Failed to load the planner chat');
+            return response.json();
+        },
+
+        async aiSendMessage(token, content) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/ai/sessions/${token}/messages`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({content}),
+            });
+            await handleError(response, 'The planner did not answer');
+            return response.json();
+        },
+
+        async aiRequestGeneration(token) {
+            const response = await fetch(`${API_BASE_URL}/ai/sessions/${token}/generations`, {
+                method: 'POST',
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to start a generation');
+            return response.json();
+        },
+
+        async aiGetGeneration(id) {
+            const response = await fetch(`${API_BASE_URL}/ai/generations/${id}`, {headers: await authHeaders()});
+            await handleError(response, 'Failed to load the generation');
+            return response.json();
+        },
+
+        async aiSelectPackage(id, packageKey) {
+            const headers = await authHeaders();
+            const response = await fetch(`${API_BASE_URL}/ai/generations/${id}/select`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({packageKey}),
+            });
+            await handleError(response, 'Failed to select the package');
+            return response.json();
+        },
+
         async createBookingPaymentLink(id, amountCents) {
             const headers = await authHeaders();
             const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}/payment-link`, {

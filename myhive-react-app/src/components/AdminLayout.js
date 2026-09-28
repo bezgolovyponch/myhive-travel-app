@@ -39,6 +39,11 @@ function AdminLayout() {
                                 Contacts
                             </Nav.Link>
                         )}
+                        {(user?.roles?.includes('ADMIN') || user?.roles?.includes('MANAGER')) && (
+                            <Nav.Link as={NavLink} to="/admin/ai-planner">
+                                AI planner
+                            </Nav.Link>
+                        )}
                     </Nav>
                     <Nav className="d-flex align-items-center gap-3">
                         <span className="text-muted small d-none d-md-inline">{user?.email}</span>
