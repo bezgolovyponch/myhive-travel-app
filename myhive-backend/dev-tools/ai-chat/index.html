@@ -191,16 +191,17 @@ function renderGeneration(generation) {
   meta.append(el('span', 'chip', generation.kind || 'GENERATED'));
   meta.append(el('span', 'chip ' + (generation.status === 'READY' ? 'ok' : generation.status === 'FAILED' ? 'bad' : 'warn'), generation.status));
   if (generation.degraded) { meta.append(el('span', 'chip warn', 'degraded (fallback)')); }
+  if (generation.textsPending) { meta.append(el('span', 'chip warn', 'texts pending: structure and prices are final, copy is being written')); }
   if (generation.parentId) { meta.append(el('span', 'chip', 'parent ' + generation.parentId.slice(0, 8))); }
   meta.append(el('span', 'chip', 'id ' + generation.id.slice(0, 8)));
-  if (generation.status !== 'READY') {
+  if (generation.status !== 'READY' && !(generation.packages && generation.packages.length)) {
     box.replaceChildren(el('span', generation.status === 'FAILED' ? 'chip bad' : 'spin',
       generation.status === 'FAILED'
         ? `failed: ${generation.error ? generation.error.code : '?'}${generation.error && generation.error.retryable ? ' (retryable — use Rebuild)' : ''}`
         : 'building packages…'));
     return;
   }
-  shownGenerationId = generation.id;
+  if (generation.status === 'READY') { shownGenerationId = generation.id; }
   const grid = el('div', 'packages');
   (generation.packages || []).forEach(pkg => {
     const card = el('div', 'pkg' + (generation.selectedPackageKey === pkg.key ? ' selected' : ''));
@@ -222,6 +223,7 @@ function renderGeneration(generation) {
       card.append(dayBox);
     });
     const choose = el('button', 'primary', generation.selectedPackageKey === pkg.key ? 'Chosen' : 'Choose ' + pkg.key);
+    choose.disabled = !!generation.textsPending;
     choose.onclick = () => select(generation.id, pkg.key);
     card.append(choose);
     grid.append(card);
@@ -254,7 +256,8 @@ function watch(generation) {
     try {
       const fresh = await api('GET', `/ai/generations/${generation.id}`);
       if (fresh.status === 'QUEUED' || fresh.status === 'RUNNING') {
-        setBusy(`building packages ${Math.round((Date.now() - started) / 1000)} s`, true);
+        if (fresh.packages && fresh.packages.length) { renderGeneration(fresh); }
+        setBusy(`${fresh.textsPending ? 'writing the texts' : 'building packages'} ${Math.round((Date.now() - started) / 1000)} s`, true);
         pollTimer = setTimeout(tick, 2000);
         return;
       }
