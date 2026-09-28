@@ -14,6 +14,13 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
   a second sentence offering them ("Closest to "strip shows": Nightclub VIP
   Experience, Rooftop Jazz Night - want one of those?"). Offer them as quick
   replies that send `add <name>` — the agent resolves "the first one" as well.
+- **Every** edit turn now writes two `messages[]` entries, not only one that
+  rejected something: the agent's reply, then a template line that first confirms
+  what landed and in which packages ("Dropped Hot Air Balloon Ride from the
+  Premium package.") and then lists the rejections, which now name the package
+  they hit ("Nightclub VIP Experience is already in the Medium package."). The
+  agent itself never claims a change is done; this line is the confirmation.
+  `message` is still the last entry.
 
 **Changes since v1.1** (additive only — nothing v1.1 documented was renamed or removed):
 - Package edits: once packages exist, ask for a change in plain chat ("swap X for
@@ -180,11 +187,11 @@ that both changed the brief and asked for one, where the regeneration wins (see
 ops.
 
 `messages` is every assistant message **this turn** produced, in order, and is
-never empty on a `200`. An ordinary turn holds one; a turn that rejected an edit,
-or that asked for one before any packages exist, holds two. `message` is the
+never empty on a `200`. An ordinary turn holds one; an edit turn — applied,
+rejected, or asked for before any packages exist — holds two. `message` is the
 **last** entry — unchanged from v1.1, which is exactly why it is not enough on
-its own: on a partially rejected edit it is the template line, and the agent's
-own answer is the entry before it.
+its own: on an edit turn it is the template line, and the agent's own answer is
+the entry before it.
 
 ⚠️ Two different fields share the name. `messages` **on this turn response** is
 only what this turn added (append it to the transcript); `messages` on
@@ -337,7 +344,7 @@ editable, and an edit on them must not stay filed under a failure.
 
 ```json
 {
-  "message": { "role": "ASSISTANT", "content": "Swapped Beer Bike in for the club night on day 2.", "at": "2026-09-18T11:04:05.123Z" },
+  "message": { "role": "ASSISTANT", "content": "Swapped VIP Club Night for Beer Bike in the Medium package.", "at": "2026-09-18T11:04:05.125Z" },
   "brief": { "...Brief..." },
   "missingFields": [],
   "readyToGenerate": true,
@@ -362,7 +369,10 @@ editable, and an edit on them must not stay filed under a failure.
     "applied": [ { "op": "REPLACE", "activity": "VIP Club Night", "replacement": "Beer Bike", "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING" } ],
     "rejected": [], "tierRulesRelaxed": true, "textsRefreshed": true
   },
-  "messages": [ { "role": "ASSISTANT", "content": "Swapped Beer Bike in for the club night on day 2.", "at": "2026-09-18T11:04:05.123Z" } ]
+  "messages": [
+    { "role": "ASSISTANT", "content": "Swapping it now.", "at": "2026-09-18T11:04:05.123Z" },
+    { "role": "ASSISTANT", "content": "Swapped VIP Club Night for Beer Bike in the Medium package.", "at": "2026-09-18T11:04:05.125Z" }
+  ]
 }
 ```
 
@@ -380,16 +390,17 @@ the row this turn just created.
   "tierRulesRelaxed": true, "textsRefreshed": true
 },
 "messages": [
-  { "role": "ASSISTANT", "content": "Dropped the Beer Bike from the middle option.", "at": "2026-09-18T11:06:41.201Z" },
-  { "role": "ASSISTANT", "content": "I could not fit Karting in: no free slot left.", "at": "2026-09-18T11:06:41.204Z" }
+  { "role": "ASSISTANT", "content": "Dropping it and adding karting now.", "at": "2026-09-18T11:06:41.201Z" },
+  { "role": "ASSISTANT", "content": "Dropped Beer Bike from the Medium package. I could not fit Karting in the Premium package: no free slot left.", "at": "2026-09-18T11:06:41.204Z" }
 ]
 ```
 
-The rejection line is the **second** entry of `messages[]`, and it is the one
+The template line is the **second** entry of `messages[]`, and it is the one
 `message` points at — render both or the agent's own answer is lost. It carries
-one sentence per distinct rejection reason (never one line per rejected op), so
-the group reads e.g. one line about a full day rather than four repeats of the
-same explanation.
+one sentence per applied op, grouped across packages ("Added Karting to the
+Basic and Premium packages."), then one sentence per distinct rejection reason
+(never one line per rejected op) naming the packages it hit, so the group reads
+e.g. one line about a full day rather than four repeats of the same explanation.
 
 **Example — a fully rejected batch (nothing landed):**
 

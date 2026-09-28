@@ -199,16 +199,21 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
         }
     }
 
-    /** A finished batch: {@link #parked} plus, when anything was rejected, the line that explains it. */
+    /**
+     * A finished batch: {@link #parked} plus the line that says what landed where and what did not. The
+     * model is told never to claim a change is done, so this line is the confirmation - and, because it
+     * names the package, it is what the model scopes a later "yes, add it" by.
+     */
     private static Map<String, Object> consumed(String locale, EditReport report) {
         log.info("planner edits applied={} rejected={} refreshed={}", report.applied().size(),
                 report.rejected().size(), report.textsRefreshed());
         Map<String, Object> update = parked(JsonCodec.write(report));
-        if (!report.rejected().isEmpty()) {
+        String summary = EditMessages.summary(locale, report);
+        if (!summary.isEmpty()) {
             // The templates are ours but the names they interpolate can still be the model's spelling, so
             // the finished sentence goes through the same cleaning every other stored text does.
             update.put(PlannerState.MESSAGES, List.of(PlannerState.message(ChatMessage.ASSISTANT,
-                    PlanAssembler.clean(EditMessages.rejectionSummary(locale, report.rejected())))));
+                    PlanAssembler.clean(summary))));
         }
         return update;
     }

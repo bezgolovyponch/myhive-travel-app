@@ -121,7 +121,10 @@ class ApplyEditsNodeTest {
         assertThat(update.get(PlannerState.EDITS)).isEqualTo(EXPECTED_CLEARED_EDITS);
         assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
         assertThat(update.get(PlannerState.RESUME_REASON)).isEqualTo("");
-        assertThat(update).doesNotContainKey(PlannerState.MESSAGES);
+        // The model never claims a change is done; this line is the confirmation, and it names the package.
+        assertThat(messagesOf(update)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).isEqualTo(EditMessages.appliedSummary(LOCALE, report.applied()))
+                        .startsWith("Swapped " + beerBike.name() + " for " + karting.name() + " in the "));
     }
 
     @Test

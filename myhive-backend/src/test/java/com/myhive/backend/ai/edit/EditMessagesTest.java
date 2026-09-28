@@ -1,5 +1,7 @@
 package com.myhive.backend.ai.edit;
 
+import com.myhive.backend.ai.model.Slot;
+import com.myhive.backend.ai.model.Tier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -108,7 +110,100 @@ class EditMessagesTest {
         assertThat(EditMessages.rejectionSummary("en", List.of())).isEmpty();
     }
 
+    @Test
+    void appliedSummary_namesTheOpTheActivityAndEveryPackageItLandedIn() {
+        String expectedActivity = "Karting";
+        List<AppliedEdit> applied = List.of(applied(EditOp.ADD, expectedActivity, null, Tier.BASIC),
+                applied(EditOp.ADD, expectedActivity, null, Tier.PREMIUM),
+                applied(EditOp.REMOVE, "Beer Bike", null, Tier.MEDIUM));
+
+        assertThat(EditMessages.appliedSummary("en", applied)).isEqualTo(
+                "Added Karting to the Basic and Premium packages. Dropped Beer Bike from the Medium package.");
+        assertThat(EditMessages.appliedSummary("de", applied)).isEqualTo(
+                "Karting in die Basic- und Premium-Pakete aufgenommen. Beer Bike aus dem Medium-Paket rausgenommen.");
+    }
+
+    @Test
+    void appliedSummary_replace_namesBothActivities() {
+        List<AppliedEdit> applied = List.of(applied(EditOp.REPLACE, "Beer Bike", "Karting", Tier.MEDIUM));
+
+        assertThat(EditMessages.appliedSummary("en", applied))
+                .isEqualTo("Swapped Beer Bike for Karting in the Medium package.");
+        assertThat(EditMessages.appliedSummary("de", applied))
+                .isEqualTo("Beer Bike im Medium-Paket gegen Karting getauscht.");
+    }
+
+    @Test
+    void appliedSummary_threePackages_listsThemInTierOrderWithAnAnd() {
+        List<AppliedEdit> applied = List.of(applied(EditOp.ADD, "Karting", null, Tier.PREMIUM),
+                applied(EditOp.ADD, "Karting", null, Tier.BASIC), applied(EditOp.ADD, "Karting", null, Tier.MEDIUM));
+
+        assertThat(EditMessages.appliedSummary("en", applied))
+                .isEqualTo("Added Karting to the Basic, Medium and Premium packages.");
+        assertThat(EditMessages.appliedSummary("de", applied))
+                .isEqualTo("Karting in die Basic-, Medium- und Premium-Pakete aufgenommen.");
+    }
+
+    @Test
+    void appliedSummary_withoutAppliedEdits_isEmpty() {
+        assertThat(EditMessages.appliedSummary("en", List.of())).isEmpty();
+    }
+
+    /** A rejection that reached a package says which one, so it can stand next to "added to the Premium package". */
+    @Test
+    void rejectionSummary_inAPackage_namesThePackage() {
+        String expectedActivity = "Nightclub VIP Experience";
+        List<RejectedEdit> rejected = List.of(
+                new RejectedEdit(EditOp.ADD, expectedActivity, Tier.BASIC, EditRejectionReason.NO_FREE_SLOT, "detail"),
+                new RejectedEdit(EditOp.ADD, expectedActivity, Tier.MEDIUM, EditRejectionReason.ALREADY_IN_PACKAGE,
+                        "detail"));
+
+        assertThat(EditMessages.rejectionSummary("en", rejected)).isEqualTo(
+                "I could not fit Nightclub VIP Experience in the Basic package: no free slot left. "
+                        + "Nightclub VIP Experience is already in the Medium package.");
+        assertThat(EditMessages.rejectionSummary("de", rejected)).isEqualTo(
+                "Nightclub VIP Experience konnte ich im Basic-Paket nicht unterbringen: kein freier Slot mehr. "
+                        + "Nightclub VIP Experience ist schon im Medium-Paket.");
+    }
+
+    /** The same reason in and out of a package is two sentences: "not in any package" must not borrow a package name. */
+    @Test
+    void rejectionSummary_sameReasonWithAndWithoutPackage_isTwoSentences() {
+        List<RejectedEdit> rejected = List.of(
+                new RejectedEdit(EditOp.REMOVE, "Karting", null, EditRejectionReason.NOT_IN_PACKAGE, "detail"),
+                new RejectedEdit(EditOp.REMOVE, "Beer Bike", Tier.PREMIUM, EditRejectionReason.NOT_IN_PACKAGE, "detail"));
+
+        assertThat(EditMessages.rejectionSummary("en", rejected)).isEqualTo(
+                "Karting is not in there, so there was nothing to change. "
+                        + "Beer Bike is not in the Premium package, so there was nothing to change.");
+    }
+
+    /** The mixed outcome that read as a failure live: one package took it, one already had it. */
+    @Test
+    void summary_putsWhatLandedBeforeWhatDidNot() {
+        String expectedActivity = "Nightclub VIP Experience";
+        EditReport report = new EditReport(List.of(applied(EditOp.ADD, expectedActivity, null, Tier.PREMIUM)),
+                List.of(new RejectedEdit(EditOp.ADD, expectedActivity, Tier.MEDIUM,
+                        EditRejectionReason.ALREADY_IN_PACKAGE, null)), true, true);
+
+        assertThat(EditMessages.summary("en", report)).isEqualTo(
+                "Added Nightclub VIP Experience to the Premium package. "
+                        + "Nightclub VIP Experience is already in the Medium package.");
+    }
+
+    @Test
+    void summary_ofAFullyRejectedBatch_isTheRejectionSummary() {
+        EditReport report = EditReport.allRejected(
+                List.of(new EditRequest(EditOp.ADD, "Karting", null, null, null, null)), EditRejectionReason.EDIT_LIMIT);
+
+        assertThat(EditMessages.summary("en", report)).isEqualTo(EditMessages.rejectionSummary("en", report.rejected()));
+    }
+
     private static RejectedEdit rejected(String activityName, EditRejectionReason reason) {
         return new RejectedEdit(EditOp.ADD, activityName, null, reason, "detail");
+    }
+
+    private static AppliedEdit applied(EditOp op, String activityName, String replacementName, Tier packageKey) {
+        return new AppliedEdit(op, activityName, replacementName, packageKey, 1, Slot.EVENING, null);
     }
 }

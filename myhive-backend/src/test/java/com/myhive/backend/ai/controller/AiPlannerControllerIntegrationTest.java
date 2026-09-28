@@ -61,10 +61,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -515,8 +517,11 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.edit.rejected[0].reason", is("UNKNOWN_ACTIVITY")))
                 .andExpect(jsonPath("$.messages", hasSize(2)))
                 .andExpect(jsonPath("$.messages[0].content", is(expectedReply)))
+                // The template line confirms what landed (naming the package) before it explains the rest.
+                .andExpect(jsonPath("$.messages[1].content", startsWith(
+                        expectedApplied + " im Basic-Paket gegen " + expectedReplacement + " getauscht. ")))
                 .andExpect(jsonPath("$.messages[1].content",
-                        is(EditMessages.rejectionSummary("de", List.of(new RejectedEdit(EditOp.REPLACE,
+                        endsWith(EditMessages.rejectionSummary("de", List.of(new RejectedEdit(EditOp.REPLACE,
                                 expectedUnknownName, null, EditRejectionReason.UNKNOWN_ACTIVITY, null))))))
                 .andExpect(jsonPath("$.messages[1].content", containsString("Katalog")));
     }

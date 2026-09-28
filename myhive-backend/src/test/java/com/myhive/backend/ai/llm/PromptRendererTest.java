@@ -55,6 +55,7 @@ class PromptRendererTest {
         assertThat(prompt).contains("NOT in the catalog: still emit the edit")
                 .contains("never drop it silently")
                 .contains("closest in spirit into \"alternatives\"")
+                .contains("Scope it to the package the earlier line says")
                 .contains("\"remove X and add Y\" is two edits");
     }
 
