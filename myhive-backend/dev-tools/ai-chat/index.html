@@ -241,7 +241,7 @@ function renderEdit(edit) {
   edit.applied.forEach(a => box.append(el('div', null,
     `✔ ${a.op} ${a.activity}${a.replacement ? ' → ' + a.replacement : ''} · ${a.packageKey} · day ${a.dayNumber}${a.slot ? ' ' + a.slot : ''}`)));
   edit.rejected.forEach(r => box.append(el('div', null,
-    `✘ ${r.op || '?'} ${r.activity || '?'} · ${r.packageKey || 'any'} · ${r.reason}${r.detail ? ' — ' + r.detail : ''}`)));
+    `✘ ${r.op || '?'} ${r.activity || '?'} · ${r.packageKey || 'any'} · ${r.reason}${r.detail ? ' — ' + r.detail : ''}${r.alternatives && r.alternatives.length ? ' · closest: ' + r.alternatives.join(', ') : ''}`)));
 }
 
 function watch(generation) {
