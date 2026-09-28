@@ -217,14 +217,16 @@ generation on the defaults just gets thrown away the moment the organizer says w
 they land (~40 s of planner time each). One langgraph4j `StateGraph`
 (`ai/graph/PlannerGraph`) drives the conversation, parking on `awaitUser`/
 `awaitGeneration`/`awaitSelection` interrupts between requests; Qwen (DashScope,
-OpenAI-compatible) composes and repairs the plan, Java validates, prices and falls
-back deterministically. Full frontend contract: [`docs/api/ai-planner-api.md`](docs/api/ai-planner-api.md);
+OpenAI-compatible) composes and repairs the plan **structure** (ids, slots, days — a
+few hundred tokens, ~8 s), Java validates, prices and falls back deterministically,
+publishes the packages onto the still-running generation row, and a second call to
+the chat model writes the copy. Full frontend contract: [`docs/api/ai-planner-api.md`](docs/api/ai-planner-api.md);
 design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md).
 
 ```
 START → chatTurn ─┬─(brief incomplete)→ awaitUser ⏸ → chatTurn
                   ├─(brief ready)─────→ awaitGeneration ⏸ (resumed by the job)
-                  │    snapshotCatalog → compose → validate → persistResult → awaitSelection ⏸ → select
+                  │    snapshotCatalog → compose(skeleton) → validate → publishSkeleton → writeTexts → persistResult → awaitSelection ⏸ → select
                   └─(edit ops, packages exist)→ applyEdits → awaitSelection ⏸ → select
 ```
 

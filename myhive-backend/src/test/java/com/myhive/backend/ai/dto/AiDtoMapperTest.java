@@ -127,6 +127,42 @@ class AiDtoMapperTest {
         assertThat(dto.editReport()).isNull();
     }
 
+    /** The skeleton window: a RUNNING row that already holds packages serves them, flagged as texts pending. */
+    @Test
+    void generation_runningWithPackagesPublished_servesThemAsTextsPending() {
+        AiGeneration generation = editedGeneration(null, null);
+        generation.setKind(AiGenerationKind.GENERATED);
+        generation.setStatus(AiGenerationStatus.RUNNING);
+
+        GenerationDTO dto = mapper.generation(generation);
+
+        assertThat(dto.status()).isEqualTo(AiGenerationStatus.RUNNING.name());
+        assertThat(dto.textsPending()).isTrue();
+        assertThat(dto.packages()).singleElement()
+                .satisfies(result -> assertThat(result.key()).isEqualTo(Tier.BASIC.name()));
+    }
+
+    @Test
+    void generation_runningWithoutPackagesYet_servesNoneAndIsNotTextsPending() {
+        AiGeneration generation = editedGeneration(null, null);
+        generation.setKind(AiGenerationKind.GENERATED);
+        generation.setStatus(AiGenerationStatus.RUNNING);
+        generation.setResult(null);
+
+        GenerationDTO dto = mapper.generation(generation);
+
+        assertThat(dto.packages()).isNull();
+        assertThat(dto.textsPending()).isFalse();
+    }
+
+    @Test
+    void generation_ready_isNeverTextsPending() {
+        GenerationDTO dto = mapper.generation(editedGeneration(null, null));
+
+        assertThat(dto.textsPending()).isFalse();
+        assertThat(dto.packages()).hasSize(1);
+    }
+
     private static AiGeneration editedGeneration(UUID parentId, String editReport) {
         AiSession session = new AiSession();
         session.setToken(UUID.randomUUID());

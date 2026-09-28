@@ -259,6 +259,24 @@ public class PlanGenerationService
         return true;
     }
 
+    /**
+     * The early projection: the packages on the RUNNING row before their copy exists, so the poller can
+     * show them. Only a RUNNING row takes it - one the sweep failed, or one that somehow finished, keeps
+     * what it has - and only {@code result} is written, so the row still reads as in flight.
+     */
+    @Override
+    @Transactional
+    public void skeleton(UUID generationId, ComposedPlan plan) {
+        AiGeneration generation = generationRepository.findById(generationId).orElse(null);
+        if (generation == null || generation.getStatus() != AiGenerationStatus.RUNNING) {
+            log.warn("planner skeleton dropped generation={}: row is {}", generationId,
+                    generation == null ? "gone" : generation.getStatus());
+            return;
+        }
+        generation.setResult(JsonCodec.write(plan));
+        save(generation);
+    }
+
     @Override
     @Transactional
     public void selected(UUID generationId, Tier key) {

@@ -1,11 +1,14 @@
 package com.myhive.backend.ai.llm;
 
+import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.PlanDraft;
+import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -225,16 +228,82 @@ class LlmOutputParserTest {
     }
 
     @Test
+    void parsePackageTexts_readsTitlesTaglinesDayTitlesAndTheRest() {
+        UUID expectedActivityId = UUID.randomUUID();
+        String expectedTitle = "Beer, Bikes and Bad Decisions";
+        String expectedTagline = "Two loud nights";
+        String expectedDayTitle = "Landing day";
+        String expectedWhy = "Because you asked for beer";
+        String raw = """
+                {"packages": [{"key": "BASIC", "title": "%s", "tagline": "%s", "description": "desc",
+                  "dayTitles": [{"dayNumber": 1, "text": "%s"}, {"dayNumber": "two", "text": "skipped"}],
+                  "summaries": [{"dayNumber": 1, "text": "Easy start"}],
+                  "why": [{"activityId": "%s", "text": "%s"}]},
+                 {"key": "GOLD", "title": "ignored"}]}""".formatted(expectedTitle, expectedTagline, expectedDayTitle,
+                expectedActivityId, expectedWhy);
+
+        Map<Tier, PackageTexts> texts = parser.parsePackageTexts(raw);
+
+        assertThat(texts).containsOnlyKeys(Tier.BASIC);
+        PackageTexts basic = texts.get(Tier.BASIC);
+        assertThat(basic.title()).isEqualTo(expectedTitle);
+        assertThat(basic.tagline()).isEqualTo(expectedTagline);
+        assertThat(basic.description()).isEqualTo("desc");
+        assertThat(basic.titleByDay()).containsExactly(Map.entry(1, expectedDayTitle));
+        assertThat(basic.summaryByDay()).containsExactly(Map.entry(1, "Easy start"));
+        assertThat(basic.whyByActivityId()).containsExactly(Map.entry(expectedActivityId, expectedWhy));
+    }
+
+    @Test
     void parseTextRefresh_withoutPackages_isLlmOutputException() {
         assertThatThrownBy(() -> parser.parseTextRefresh("{\"texts\":[]}"))
                 .isInstanceOf(LlmOutputException.class).hasMessageContaining("packages");
     }
 
+    /**
+     * An id that is neither a UUID nor a code the catalog handed out is kept as the nil id, so the
+     * validator names that one item (UNKNOWN_ACTIVITY) instead of the whole answer being thrown away.
+     */
     @Test
-    void parsePlan_rejectsNonUuidActivityIdAndNonJson() {
-        assertThatThrownBy(() -> parser.parsePlan("{\"packages\":[{\"key\":\"BASIC\",\"days\":[{\"dayNumber\":1,\"items\":[{\"slot\":\"EVENING\",\"activityId\":\"beer-bike\"}]}]}]}"))
-                .isInstanceOf(LlmOutputException.class).hasMessageContaining("activityId");
+    void parsePlan_mapsAnUnknownCodeToTheNilId_andRejectsNonJson() {
+        UUID expectedNilId = new UUID(0L, 0L);
+
+        PlanDraft draft = parser.parsePlan("{\"packages\":[{\"key\":\"BASIC\",\"days\":[{\"dayNumber\":1,\"items\":[{\"slot\":\"EVENING\",\"activityId\":\"beer-bike\"}]}]}]}");
+
+        assertThat(draft.packages().get(0).days().get(0).items().get(0).activityId()).isEqualTo(expectedNilId);
         assertThatThrownBy(() -> parser.parsePlan("Sure! Here is your plan:"))
                 .isInstanceOf(LlmOutputException.class);
+    }
+
+    /** The codes the prompt hands out (A1, A2, ... by catalog position) come back resolved; a UUID still passes. */
+    @Test
+    void parsePlan_resolvesCatalogCodesToIds_andKeepsUuids() {
+        UUID expectedFirstId = UUID.randomUUID();
+        UUID expectedSecondId = UUID.randomUUID();
+        List<CatalogActivity> catalog = List.of(catalogActivity(expectedFirstId), catalogActivity(expectedSecondId));
+
+        PlanDraft draft = parser.parsePlan("{\"packages\":[{\"key\":\"BASIC\",\"days\":[{\"dayNumber\":1,\"items\":["
+                + "{\"slot\":\"AFTERNOON\",\"activityId\":\" a2 \"},{\"slot\":\"EVENING\",\"activityId\":\"" + expectedFirstId
+                + "\"}]}]}]}", catalog);
+
+        assertThat(draft.packages().get(0).days().get(0).items()).extracting(PlanDraft.ItemDraft::activityId)
+                .containsExactly(expectedSecondId, expectedFirstId);
+    }
+
+    @Test
+    void parsePackageTexts_resolvesCodesInWhyEntries() {
+        UUID expectedActivityId = UUID.randomUUID();
+        String expectedWhy = "Because you asked for beer";
+
+        Map<Tier, PackageTexts> texts = parser.parsePackageTexts(
+                "{\"packages\":[{\"key\":\"BASIC\",\"why\":[{\"activityId\":\"A1\",\"text\":\"" + expectedWhy
+                        + "\"},{\"activityId\":\"A9\",\"text\":\"unknown code\"}]}]}",
+                Map.of("A1", expectedActivityId));
+
+        assertThat(texts.get(Tier.BASIC).whyByActivityId()).containsExactly(Map.entry(expectedActivityId, expectedWhy));
+    }
+
+    private static CatalogActivity catalogActivity(UUID id) {
+        return new CatalogActivity(id, "slug", "Name", "line", 90, true, new BigDecimal("20"), null, null, List.of());
     }
 }

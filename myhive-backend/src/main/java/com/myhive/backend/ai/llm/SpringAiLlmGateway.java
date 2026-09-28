@@ -88,7 +88,7 @@ public class SpringAiLlmGateway implements LlmGateway {
                 new SystemMessage(renderer.plannerSystem(request)),
                 new UserMessage(renderer.plannerUser(request)));
         Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout());
-        return new PlanDraftResult(parser.parsePlan(timed.text()), timed.usage());
+        return new PlanDraftResult(parser.parsePlan(timed.text(), request.catalog()), timed.usage());
     }
 
     @Override
@@ -98,7 +98,7 @@ public class SpringAiLlmGateway implements LlmGateway {
                 new UserMessage(renderer.plannerUser(request.original())),
                 new UserMessage(renderer.repairUser(request)));
         Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout());
-        return new PlanDraftResult(parser.parsePlan(timed.text()), timed.usage());
+        return new PlanDraftResult(parser.parsePlan(timed.text(), request.original().catalog()), timed.usage());
     }
 
     @Override
@@ -108,6 +108,17 @@ public class SpringAiLlmGateway implements LlmGateway {
                 new UserMessage(renderer.textRefreshUser(request)));
         Timed timed = call(messages, props.getChatModel(), CHAT_TEMPERATURE, props.getChatTimeout());
         return new TextRefreshResult(parser.parseTextRefresh(timed.text()), timed.usage());
+    }
+
+    /** Copy is the chat model's job; it gets its own budget because three packages of it outrun a chat turn. */
+    @Override
+    public PlanTextsResult writeTexts(PlanTextsRequest request) {
+        List<Message> messages = List.of(
+                new SystemMessage(renderer.planTextsSystem(request)),
+                new UserMessage(renderer.planTextsUser(request)));
+        Timed timed = call(messages, props.getChatModel(), CHAT_TEMPERATURE, props.getTextsTimeout());
+        return new PlanTextsResult(parser.parsePackageTexts(timed.text(), ActivityAliases.toId(request.catalog())),
+                timed.usage());
     }
 
     private record Timed(String text, LlmUsage usage) {

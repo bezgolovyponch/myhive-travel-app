@@ -25,6 +25,14 @@ public class PersistResultNode implements NodeAction<PlannerState> {
          *         stamps that promise packages.
          */
         boolean ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt);
+
+        /**
+         * The packages before their copy is written: structure and prices final, titles placeholders.
+         * Goes onto the still-RUNNING row so a poller can show them while the texts are being written.
+         * Best effort, and never a reason to fail the generation; a sink that does not care ignores it.
+         */
+        default void skeleton(UUID generationId, ComposedPlan plan) {
+        }
     }
 
     /** Resolves to {@code null} while no sink bean exists; never called during bean construction. */

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.Brief;
@@ -35,6 +37,9 @@ public class LlmOutputParser {
 
     /** An activity name is a catalog label, not prose: past this the model is writing a sentence. */
     private static final int MAX_ACTIVITY_NAME_CHARS = 120;
+
+    /** Nothing the catalog could have handed out: an unknown code lands here so the validator can name it. */
+    private static final UUID UNKNOWN_ACTIVITY = new UUID(0L, 0L);
 
     /** How many alternatives one edit may name for an activity the catalog lacks: three read as a nudge, more as a list. */
     public static final int MAX_ALTERNATIVES_PER_EDIT = 3;
@@ -122,17 +127,32 @@ public class LlmOutputParser {
         return name.substring(0, MAX_ACTIVITY_NAME_CHARS).strip();
     }
 
-    /**
-     * Whitelisted read of the post-edit copy: only descriptions, whys and day summaries are taken, so a
-     * refresh can never move an id, a slot or a price. One unusable entry (a hallucinated tier, an
-     * activity id that is not a UUID, a day number that is not an int) is skipped rather than failing the
-     * refresh, since every field the model leaves out simply keeps its previous text.
-     */
+    /** The post-edit refresh reads the same shape as the first write; it names activities by id and asks for no titles. */
     public Map<Tier, PackageTexts> parseTextRefresh(String raw) {
+        return parsePackageTexts(raw, Map.of(), "text refresh");
+    }
+
+    /**
+     * Whitelisted read of package copy: titles, taglines, descriptions, day titles, day summaries and
+     * whys are taken and nothing else, so an answer can never move an id, a slot or a price. One
+     * unusable entry (a hallucinated tier, an activity id that is not a UUID, a day number that is not
+     * an int) is skipped rather than failing the read, since every field the model leaves out simply
+     * keeps its previous text.
+     */
+    public Map<Tier, PackageTexts> parsePackageTexts(String raw) {
+        return parsePackageTexts(raw, Map.of());
+    }
+
+    /** {@code aliases} are the codes the prompt handed out (see {@link ActivityAliases}); a why may name either. */
+    public Map<Tier, PackageTexts> parsePackageTexts(String raw, Map<String, UUID> aliases) {
+        return parsePackageTexts(raw, aliases, "package texts");
+    }
+
+    private Map<Tier, PackageTexts> parsePackageTexts(String raw, Map<String, UUID> aliases, String what) {
         JsonNode root = readTree(raw);
         JsonNode packages = root.path("packages");
         if (!packages.isArray()) {
-            throw new LlmOutputException("text refresh: 'packages' array is missing");
+            throw new LlmOutputException(what + ": 'packages' array is missing");
         }
         Map<Tier, PackageTexts> texts = new EnumMap<>(Tier.class);
         for (JsonNode node : packages) {
@@ -141,8 +161,9 @@ public class LlmOutputParser {
                 // Unknown package key: nothing to write it to, so drop this block (see method comment above).
                 continue;
             }
-            texts.put(key, new PackageTexts(textOrNull(node.path("description")),
-                    whyByActivityId(node.path("why")), summaryByDay(node.path("summaries"))));
+            texts.put(key, new PackageTexts(textOrNull(node.path("title")), textOrNull(node.path("tagline")),
+                    textOrNull(node.path("description")), textByDay(node.path("dayTitles")),
+                    whyByActivityId(node.path("why"), aliases), textByDay(node.path("summaries"))));
         }
         return texts;
     }
@@ -154,18 +175,18 @@ public class LlmOutputParser {
         try {
             return Tier.valueOf(node.asText().strip().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            // Hallucinated tier name: skip it (see parseTextRefresh).
+            // Hallucinated tier name: skip it (see parsePackageTexts).
             return null;
         }
     }
 
-    private static Map<UUID, String> whyByActivityId(JsonNode node) {
+    private static Map<UUID, String> whyByActivityId(JsonNode node, Map<String, UUID> aliases) {
         Map<UUID, String> out = new LinkedHashMap<>();
         if (!node.isArray()) {
             return out;
         }
         for (JsonNode entry : node) {
-            UUID activityId = uuidOrNull(entry.path("activityId"));
+            UUID activityId = idOrNull(entry.path("activityId"), aliases);
             String text = textOrNull(entry.path("text"));
             if (activityId != null && text != null) {
                 out.put(activityId, text);
@@ -174,7 +195,7 @@ public class LlmOutputParser {
         return out;
     }
 
-    private static Map<Integer, String> summaryByDay(JsonNode node) {
+    private static Map<Integer, String> textByDay(JsonNode node) {
         Map<Integer, String> out = new LinkedHashMap<>();
         if (!node.isArray()) {
             return out;
@@ -189,6 +210,15 @@ public class LlmOutputParser {
         return out;
     }
 
+    /** A UUID, or one of the codes the prompt handed out; anything else is skipped (see parsePackageTexts). */
+    private static UUID idOrNull(JsonNode node, Map<String, UUID> aliases) {
+        if (!node.isTextual()) {
+            return null;
+        }
+        UUID id = uuidOrNull(node);
+        return id != null ? id : aliases.get(ActivityAliases.normalise(node.asText()));
+    }
+
     private static UUID uuidOrNull(JsonNode node) {
         if (!node.isTextual()) {
             return null;
@@ -196,7 +226,7 @@ public class LlmOutputParser {
         try {
             return UUID.fromString(node.asText().strip());
         } catch (IllegalArgumentException e) {
-            // The model wrote a slug or a name instead of an id: skip it (see parseTextRefresh).
+            // The model wrote a slug or a name instead of an id: skip it (see parsePackageTexts).
             return null;
         }
     }
@@ -206,11 +236,39 @@ public class LlmOutputParser {
     }
 
     public PlanDraft parsePlan(String raw) {
+        return parsePlan(raw, List.of());
+    }
+
+    /**
+     * Item ids come back as the codes the prompt handed out (A1, A2, ...) or, from a model that copies
+     * a repair draft, as UUIDs; the codes are resolved here, before the strict read, so nothing
+     * downstream ever meets one. A code the catalog never handed out becomes the nil UUID rather than a
+     * failed parse: the validator then reports that one item as UNKNOWN_ACTIVITY and the repair fixes
+     * it, where a thrown-away answer would have cost the whole draft.
+     */
+    public PlanDraft parsePlan(String raw, List<CatalogActivity> catalog) {
         JsonNode root = readTree(raw);
         if (!root.path("packages").isArray()) {
             throw new LlmOutputException("plan: 'packages' array is missing");
         }
+        Map<String, UUID> aliases = ActivityAliases.toId(catalog);
+        for (JsonNode pkg : root.path("packages")) {
+            for (JsonNode day : pkg.path("days")) {
+                for (JsonNode item : day.path("items")) {
+                    resolveActivityId(item, aliases);
+                }
+            }
+        }
         return convert(root, PlanDraft.class, "packages");
+    }
+
+    private static void resolveActivityId(JsonNode item, Map<String, UUID> aliases) {
+        JsonNode id = item.path("activityId");
+        if (!(item instanceof ObjectNode object) || !id.isTextual() || uuidOrNull(id) != null) {
+            return;
+        }
+        UUID resolved = aliases.get(ActivityAliases.normalise(id.asText()));
+        object.put("activityId", (resolved == null ? UNKNOWN_ACTIVITY : resolved).toString());
     }
 
     private JsonNode readTree(String raw) {

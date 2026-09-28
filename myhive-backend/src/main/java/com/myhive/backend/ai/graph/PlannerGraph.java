@@ -5,10 +5,12 @@ import com.myhive.backend.ai.graph.nodes.ChatTurnNode;
 import com.myhive.backend.ai.graph.nodes.ComposeNode;
 import com.myhive.backend.ai.graph.nodes.FallbackNode;
 import com.myhive.backend.ai.graph.nodes.PersistResultNode;
+import com.myhive.backend.ai.graph.nodes.PublishSkeletonNode;
 import com.myhive.backend.ai.graph.nodes.RepairNode;
 import com.myhive.backend.ai.graph.nodes.SelectNode;
 import com.myhive.backend.ai.graph.nodes.SnapshotCatalogNode;
 import com.myhive.backend.ai.graph.nodes.ValidateNode;
+import com.myhive.backend.ai.graph.nodes.WriteTextsNode;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompileConfig;
 import org.bsc.langgraph4j.CompiledGraph;
@@ -42,10 +44,12 @@ import java.util.function.Supplier;
  *                                                             | chatTurn        (otherwise)
  *   awaitGeneration  -> snapshotCatalog  (resume = GENERATE)  | select          (resume = SELECT)
  *                                                             | chatTurn        (otherwise)
- *   snapshotCatalog  -> compose -> validate
- *   validate         -> persistResult    (no violations)      | repair (first failure) | fallback
+ *   snapshotCatalog  -> compose -> validate            (compose returns the skeleton: ids, slots, days)
+ *   validate         -> publishSkeleton  (no violations)      | repair (first failure) | fallback
  *   repair           -> validate
- *   fallback         -> persistResult
+ *   fallback         -> publishSkeleton
+ *   publishSkeleton  -> writeTexts        (packages on the RUNNING row first, then the copy)
+ *   writeTexts       -> persistResult
  *   persistResult    -> awaitSelection
  *   applyEdits       -> awaitSelection
  *   awaitSelection   -> select           (resume = SELECT)    | awaitGeneration (resume = GENERATE)
@@ -64,6 +68,8 @@ public class PlannerGraph {
     public static final String VALIDATE = "validate";
     public static final String REPAIR = "repair";
     public static final String FALLBACK = "fallback";
+    public static final String PUBLISH_SKELETON = "publishSkeleton";
+    public static final String WRITE_TEXTS = "writeTexts";
     public static final String PERSIST_RESULT = "persistResult";
     public static final String AWAIT_SELECTION = "awaitSelection";
     public static final String SELECT = "select";
@@ -89,9 +95,10 @@ public class PlannerGraph {
     private static final String ROUTE_REPAIR = "repair";
     private static final String ROUTE_FALLBACK = "fallback";
 
-    /** The nine working nodes, in graph order; the {@code await*} nodes have no behaviour of their own. */
+    /** The eleven working nodes, in graph order; the {@code await*} nodes have no behaviour of their own. */
     public record Nodes(ChatTurnNode chatTurn, SnapshotCatalogNode snapshotCatalog, ComposeNode compose,
                         ValidateNode validate, RepairNode repair, FallbackNode fallback,
+                        PublishSkeletonNode publishSkeleton, WriteTextsNode writeTexts,
                         PersistResultNode persistResult, SelectNode select, ApplyEditsNode applyEdits) {
     }
 
@@ -114,6 +121,8 @@ public class PlannerGraph {
                     .addNode(VALIDATE, timed(VALIDATE, nodes.validate()))
                     .addNode(REPAIR, timed(REPAIR, nodes.repair()))
                     .addNode(FALLBACK, timed(FALLBACK, nodes.fallback()))
+                    .addNode(PUBLISH_SKELETON, timed(PUBLISH_SKELETON, nodes.publishSkeleton()))
+                    .addNode(WRITE_TEXTS, timed(WRITE_TEXTS, nodes.writeTexts()))
                     .addNode(PERSIST_RESULT, timed(PERSIST_RESULT, nodes.persistResult()))
                     .addNode(AWAIT_SELECTION, park(AWAIT_SELECTION))
                     .addNode(SELECT, timed(SELECT, nodes.select()))
@@ -129,9 +138,11 @@ public class PlannerGraph {
                     .addEdge(SNAPSHOT_CATALOG, COMPOSE)
                     .addEdge(COMPOSE, VALIDATE)
                     .addConditionalEdges(VALIDATE, AsyncEdgeAction.edge_async(PlannerGraph::afterValidate),
-                            Map.of(ROUTE_OK, PERSIST_RESULT, ROUTE_REPAIR, REPAIR, ROUTE_FALLBACK, FALLBACK))
+                            Map.of(ROUTE_OK, PUBLISH_SKELETON, ROUTE_REPAIR, REPAIR, ROUTE_FALLBACK, FALLBACK))
                     .addEdge(REPAIR, VALIDATE)
-                    .addEdge(FALLBACK, PERSIST_RESULT)
+                    .addEdge(FALLBACK, PUBLISH_SKELETON)
+                    .addEdge(PUBLISH_SKELETON, WRITE_TEXTS)
+                    .addEdge(WRITE_TEXTS, PERSIST_RESULT)
                     .addEdge(PERSIST_RESULT, AWAIT_SELECTION)
                     .addEdge(APPLY_EDITS, AWAIT_SELECTION)
                     .addConditionalEdges(AWAIT_SELECTION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),

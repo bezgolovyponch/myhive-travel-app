@@ -6,6 +6,9 @@ import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.plan.PlanDraft;
+import com.myhive.backend.ai.plan.Violation;
+import com.myhive.backend.ai.plan.ViolationCode;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -81,7 +84,9 @@ class PromptRendererTest {
 
         String prompt = renderer.plannerUser(r);
 
-        assertThat(prompt).contains(expectedActivityId + " | Beer Bike | 120 min | 35.00 EUR pp | min 280.00 | nightlife | Pedal and drink");
+        // The catalog is listed by code, not by id: a UUID costs the model ~25 tokens every time it writes one.
+        assertThat(prompt).contains("A1 | Beer Bike | 120 min | 35.00 EUR pp | min 280.00 | nightlife | Pedal and drink")
+                .doesNotContain(expectedActivityId.toString());
         assertThat(prompt).contains("USER: <user>" + expectedUserText.replace("<", "&lt;") + "</user>");
     }
 
@@ -150,6 +155,77 @@ class PromptRendererTest {
     private static ComposedPlan.ItemResult item(UUID activityId, String name, Slot slot) {
         return new ComposedPlan.ItemResult(slot, "19:00", activityId, "slug", name, "https://img/x.jpg", 90,
                 new BigDecimal("40.00"), null, new BigDecimal("160.00"), false, "why");
+    }
+
+    /** The planner is asked for the structure only; every word of copy comes from the texts call. */
+    @Test
+    void plannerSystem_asksForTheSkeletonOnly() {
+        Brief brief = new Brief(2, 6, List.of(), "x", null, null, DayEdge.EVENING, DayEdge.AFTERNOON, null);
+
+        String prompt = renderer.plannerSystem(new PlanRequest("en", "Prague", brief, List.of(), List.of()));
+
+        assertThat(prompt).contains("STRUCTURE only").contains("activityId")
+                .doesNotContain("tagline").doesNotContain("why").doesNotContain("summary");
+    }
+
+    @Test
+    void planTextsSystem_carriesDestinationLocaleTripSizeAndTheJsonShape() {
+        String expectedDestinationName = "Prague";
+        String expectedLocale = "de";
+        Brief brief = new Brief(3, 8, List.of(), "x", null, null, DayEdge.EVENING, DayEdge.AFTERNOON, null);
+
+        String prompt = renderer.planTextsSystem(new PlanTextsRequest(expectedLocale, expectedDestinationName, brief,
+                new ComposedPlan(List.of(), false), List.of()));
+
+        assertThat(prompt).contains(expectedDestinationName)
+                .contains("language \"" + expectedLocale + "\"")
+                .contains("ONE of the three packages")
+                .contains("3-day trip for 8 people")
+                .contains("dayTitles").contains("summaries").contains("why");
+    }
+
+    /** One block per package, every item with the catalog's one-liner, so a "why" can say what it is. */
+    @Test
+    void planTextsUser_listsTheBriefThePackagesAndEveryItemWithItsCatalogLine() {
+        UUID expectedActivityId = UUID.randomUUID();
+        String expectedName = "Beer Bike";
+        String expectedOneLine = "Pedal and drink";
+        CatalogActivity activity = new CatalogActivity(expectedActivityId, "beer-bike", expectedName, expectedOneLine, 120,
+                true, new BigDecimal("35.00"), null, null, List.of("nightlife"));
+        Brief brief = new Brief(1, 4, List.of("nightlife"), "loud", null, null, DayEdge.AFTERNOON, DayEdge.EVENING, null);
+        ComposedPlan.PackageResult pkg = new ComposedPlan.PackageResult(Tier.MEDIUM, "Main Event", null, null,
+                new BigDecimal("35.00"), new BigDecimal("140.00"), ComposedPlan.CURRENCY, 120, List.of(expectedActivityId),
+                List.of(new ComposedPlan.DayResult(1, "Day 1", null, List.of(item(expectedActivityId, expectedName,
+                        Slot.EVENING)))));
+
+        String prompt = renderer.planTextsUser(new PlanTextsRequest("en", "Prague", brief,
+                new ComposedPlan(List.of(pkg), false), List.of(activity)));
+
+        assertThat(prompt).startsWith("BRIEF: ").contains("\"vibe\":\"loud\"")
+                .contains("PACKAGE MEDIUM (35.00 EUR per person)")
+                .contains("DAY 1")
+                .contains("- EVENING A1 " + expectedName + " | 90 min | " + expectedOneLine)
+                .doesNotContain(expectedActivityId.toString());
+    }
+
+    /** The draft goes back to the model as it wrote it - by code - and as a skeleton, texts and all left out. */
+    @Test
+    void repairUser_quotesTheDraftBackWithCatalogCodes_notIds() {
+        UUID activityId = UUID.randomUUID();
+        CatalogActivity a = new CatalogActivity(activityId, "beer-bike", "Beer Bike", "Pedal", 120, true,
+                new BigDecimal("35.00"), null, null, List.of("nightlife"));
+        Brief brief = new Brief(1, 4, List.of(), "x", null, null, DayEdge.AFTERNOON, DayEdge.EVENING, null);
+        PlanRequest original = new PlanRequest("en", "Prague", brief, List.of(a), List.of());
+        PlanDraft draft = new PlanDraft(List.of(new PlanDraft.PackageDraft(Tier.BASIC, "a title", null, null,
+                List.of(new PlanDraft.DayDraft(1, null, null,
+                        List.of(new PlanDraft.ItemDraft(Slot.EVENING, "20:00", activityId, "a why")))))));
+        Violation violation = Violation.of(ViolationCode.DAY_OVER_MINUTES, Tier.BASIC, 1, "too long");
+
+        String prompt = renderer.repairUser(new RepairRequest(original, draft, List.of(violation)));
+
+        assertThat(prompt).contains("[DAY_OVER_MINUTES] BASIC day 1 too long")
+                .contains("\"activityId\":\"A1\"").contains("\"startHint\":\"20:00\"")
+                .doesNotContain(activityId.toString()).doesNotContain("a title").doesNotContain("a why");
     }
 
     @Test

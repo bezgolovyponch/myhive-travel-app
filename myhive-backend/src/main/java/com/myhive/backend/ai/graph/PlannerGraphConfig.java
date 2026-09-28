@@ -8,10 +8,12 @@ import com.myhive.backend.ai.graph.nodes.ChatTurnNode;
 import com.myhive.backend.ai.graph.nodes.ComposeNode;
 import com.myhive.backend.ai.graph.nodes.FallbackNode;
 import com.myhive.backend.ai.graph.nodes.PersistResultNode;
+import com.myhive.backend.ai.graph.nodes.PublishSkeletonNode;
 import com.myhive.backend.ai.graph.nodes.RepairNode;
 import com.myhive.backend.ai.graph.nodes.SelectNode;
 import com.myhive.backend.ai.graph.nodes.SnapshotCatalogNode;
 import com.myhive.backend.ai.graph.nodes.ValidateNode;
+import com.myhive.backend.ai.graph.nodes.WriteTextsNode;
 import org.bsc.langgraph4j.checkpoint.BaseCheckpointSaver;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
@@ -23,10 +25,11 @@ public class PlannerGraphConfig {
 
     @Bean
     public PlannerGraph plannerGraph(ChatTurnNode chatTurn, SnapshotCatalogNode snapshotCatalog, ComposeNode compose,
-            ValidateNode validate, RepairNode repair, FallbackNode fallback, PersistResultNode persistResult,
-            SelectNode select, ApplyEditsNode applyEdits, BaseCheckpointSaver checkpointSaver) {
+            ValidateNode validate, RepairNode repair, FallbackNode fallback, PublishSkeletonNode publishSkeleton,
+            WriteTextsNode writeTexts, PersistResultNode persistResult, SelectNode select, ApplyEditsNode applyEdits,
+            BaseCheckpointSaver checkpointSaver) {
         PlannerGraph.Nodes nodes = new PlannerGraph.Nodes(chatTurn, snapshotCatalog, compose, validate, repair,
-                fallback, persistResult, select, applyEdits);
+                fallback, publishSkeleton, writeTexts, persistResult, select, applyEdits);
         return new PlannerGraph(nodes, checkpointSaver);
     }
 
@@ -37,6 +40,11 @@ public class PlannerGraphConfig {
     @Bean
     public PersistResultNode persistResultNode(ObjectProvider<PersistResultNode.GenerationResultSink> sinks) {
         return new PersistResultNode(sinks);
+    }
+
+    @Bean
+    public PublishSkeletonNode publishSkeletonNode(ObjectProvider<PersistResultNode.GenerationResultSink> sinks) {
+        return new PublishSkeletonNode(sinks);
     }
 
     @Bean

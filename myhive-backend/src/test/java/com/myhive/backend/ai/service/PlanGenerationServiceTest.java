@@ -375,6 +375,29 @@ class PlanGenerationServiceTest {
     }
 
     @Test
+    void skeleton_onARunningRow_storesThePackagesAndKeepsItRunning() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.RUNNING);
+
+        service.skeleton(generation.getId(), new ComposedPlan(List.of(), false));
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.RUNNING);
+        assertThat(generation.getResult()).contains("\"packages\"");
+        assertThat(generation.getFinishedAt()).isNull();
+    }
+
+    /** Same defence as {@code ready}: a run nobody owns any more must not put packages on the screen. */
+    @Test
+    void skeleton_onAGenerationTheSweepAlreadyFailed_isDropped() {
+        AiGeneration generation = savedGeneration(AiGenerationStatus.FAILED);
+
+        service.skeleton(generation.getId(), new ComposedPlan(List.of(), false));
+
+        assertThat(generation.getStatus()).isEqualTo(AiGenerationStatus.FAILED);
+        assertThat(generation.getResult()).isNull();
+        verify(generationRepository, never()).save(any());
+    }
+
+    @Test
     void ready_storesResultAndUsage_andMarksSessionReady() {
         AiGeneration generation = savedGeneration(AiGenerationStatus.RUNNING);
         String expectedModel = "qwen";

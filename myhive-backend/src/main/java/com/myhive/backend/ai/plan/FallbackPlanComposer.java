@@ -4,7 +4,6 @@ import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
-import com.myhive.backend.util.Translations;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -13,7 +12,6 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,10 +29,6 @@ import java.util.UUID;
 @Component
 public class FallbackPlanComposer {
 
-    private static final Map<String, String[]> TITLES = Map.of(
-            "en", new String[] {"Warm-up", "Main Event", "Full Send"},
-            "de", new String[] {"Warm-up", "Hauptprogramm", "Volle Kanne"});
-    private static final Map<String, String> DAY_LABEL = Map.of("en", "Day", "de", "Tag");
     private static final int DEFAULT_TRAVELERS = 1;
 
     public PlanDraft compose(Brief brief, List<CatalogActivity> catalog, String locale) {
@@ -48,11 +42,6 @@ public class FallbackPlanComposer {
         CatalogActivity[] signatures = reserveSignatures(catalog, wanted, travelers, tiers);
         List<CatalogActivity> shared = sharedPool(catalog, wanted, travelers, signatures);
 
-        String normalizedLocale = Translations.normalize(locale);
-        String titleKey = normalizedLocale == null ? "en" : normalizedLocale;
-        String[] titles = TITLES.getOrDefault(titleKey, TITLES.get("en"));
-        String dayLabel = DAY_LABEL.getOrDefault(titleKey, DAY_LABEL.get("en"));
-
         List<PlanDraft.PackageDraft> packages = new ArrayList<>();
         for (int t = 0; t < tiers.length; t++) {
             List<CatalogActivity> pool = new ArrayList<>();
@@ -60,7 +49,7 @@ public class FallbackPlanComposer {
                 pool.add(signatures[t]);
             }
             pool.addAll(shared);
-            packages.add(fill(tiers[t], titles[t], dayLabel, brief, pool));
+            packages.add(fill(tiers[t], locale, brief, pool));
         }
         return new PlanDraft(packages);
     }
@@ -139,8 +128,7 @@ public class FallbackPlanComposer {
      * is left in {@code remaining} rather than discarded, so an over-long activity can no longer drain the
      * pool and starve later days.
      */
-    private static PlanDraft.PackageDraft fill(Tier tier, String title, String dayLabel, Brief brief,
-            List<CatalogActivity> pool) {
+    private static PlanDraft.PackageDraft fill(Tier tier, String locale, Brief brief, List<CatalogActivity> pool) {
         int dayCount = brief.days();
         List<List<PlanDraft.ItemDraft>> itemsPerDay = new ArrayList<>();
         List<Set<Slot>> usedSlotsPerDay = new ArrayList<>();
@@ -165,9 +153,9 @@ public class FallbackPlanComposer {
 
         List<PlanDraft.DayDraft> days = new ArrayList<>();
         for (int day = 1; day <= dayCount; day++) {
-            days.add(new PlanDraft.DayDraft(day, dayLabel + " " + day, null, itemsPerDay.get(day - 1)));
+            days.add(new PlanDraft.DayDraft(day, PlaceholderTexts.dayTitle(day, locale), null, itemsPerDay.get(day - 1)));
         }
-        return new PlanDraft.PackageDraft(tier, title, null, null, days);
+        return new PlanDraft.PackageDraft(tier, PlaceholderTexts.packageTitle(tier, locale), null, null, days);
     }
 
     /** Places at most one activity into the next open slot of one day; returns false without mutating anything if it can't. */

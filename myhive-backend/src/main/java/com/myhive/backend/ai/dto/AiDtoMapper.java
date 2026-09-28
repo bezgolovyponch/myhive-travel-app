@@ -105,7 +105,9 @@ public class AiDtoMapper {
 
     private GenerationDTO generation(AiGeneration generation, UUID sessionToken) {
         boolean ready = generation.getStatus() == AiGenerationStatus.READY;
-        List<PackageDTO> packages = ready
+        // The skeleton: packages published onto a RUNNING row while their copy is still being written.
+        boolean skeleton = generation.getStatus() == AiGenerationStatus.RUNNING && generation.getResult() != null;
+        List<PackageDTO> packages = ready || skeleton
                 ? JsonCodec.read(generation.getResult(), ComposedPlan.class).packages().stream()
                         .map(AiDtoMapper::plannedPackage)
                         .toList()
@@ -114,7 +116,7 @@ public class AiDtoMapper {
                 generation.isDegraded(), generation.getSelectedPackageKey(),
                 JsonCodec.read(generation.getBriefSnapshot(), Brief.class), packages, error(generation),
                 generation.getCreatedAt(), generation.getFinishedAt(), generation.getKind().name(),
-                generation.getParentId(), editReport(generation));
+                generation.getParentId(), editReport(generation), skeleton);
     }
 
     /**

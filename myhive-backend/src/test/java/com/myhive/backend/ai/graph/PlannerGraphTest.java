@@ -14,6 +14,7 @@ import com.myhive.backend.ai.llm.ChatTurnResult;
 import com.myhive.backend.ai.llm.FakeLlmGateway;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.llm.PackageTexts;
+import com.myhive.backend.ai.llm.PlanTextsResult;
 import com.myhive.backend.ai.llm.TextRefreshResult;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
@@ -49,6 +50,9 @@ class PlannerGraphTest {
         private ComposedPlan lastPlan;
         private boolean lastDegraded;
         private UUID lastGeneration;
+        private ComposedPlan skeletonPlan;
+        /** Whether the skeleton arrived while no plan had been stored yet - the order the poller relies on. */
+        private boolean skeletonBeforeReady;
         private Tier lastSelected;
         private UUID lastSelectedGeneration;
         private UUID lastEditParent;
@@ -57,6 +61,12 @@ class PlannerGraphTest {
         private RuntimeException nextEditFailure;
         /** Stands in for a generation row the sweep closed out while the run was still going. */
         private boolean storesPlans = true;
+
+        @Override
+        public void skeleton(UUID generationId, ComposedPlan plan) {
+            skeletonPlan = plan;
+            skeletonBeforeReady = lastPlan == null;
+        }
 
         @Override
         public boolean ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
@@ -123,6 +133,20 @@ class PlannerGraphTest {
 
     private PlanDraft validDraft() {
         return new PlanDraft(List.of(pkg(Tier.BASIC, 0), pkg(Tier.MEDIUM, 2), pkg(Tier.PREMIUM, 4, 5)));
+    }
+
+    /** What the planner model returns now: ids, slots and days, not a word of copy. */
+    private PlanDraft.PackageDraft skeletonPkg(Tier tier, int... idx) {
+        List<PlanDraft.ItemDraft> items = new ArrayList<>();
+        Slot[] slots = {Slot.AFTERNOON, Slot.EVENING, Slot.NIGHT};
+        for (int i = 0; i < idx.length; i++) {
+            items.add(new PlanDraft.ItemDraft(slots[i], null, catalog.get(idx[i]).id(), null));
+        }
+        return new PlanDraft.PackageDraft(tier, null, null, null, List.of(new PlanDraft.DayDraft(1, null, null, items)));
+    }
+
+    private PlanDraft skeletonDraft() {
+        return new PlanDraft(List.of(skeletonPkg(Tier.BASIC, 0), skeletonPkg(Tier.MEDIUM, 2), skeletonPkg(Tier.PREMIUM, 4, 5)));
     }
 
     private PlanDraft brokenDraft() {
@@ -194,6 +218,65 @@ class PlannerGraphTest {
                 .containsExactly(Tier.BASIC, Tier.MEDIUM, Tier.PREMIUM);
         assertThat(sinks.lastDegraded).isFalse();
         assertThat(graph.snapshot(token).state().attempt()).isEqualTo(0);
+    }
+
+    /**
+     * The order the poller relies on: the structure goes onto the row with stock titles before the
+     * texts call, the stored plan carries the model's copy where it wrote any and the placeholders
+     * where it did not, and the row's accounting is both calls together.
+     */
+    @Test
+    void generation_publishesTheSkeletonBeforeTheTexts_thenPersistsThePlanWithThem() {
+        UUID token = UUID.randomUUID();
+        String expectedTitle = "Beer, Bikes and Bad Decisions";
+        String expectedWhy = "Because you asked for beer";
+        String expectedDayTitle = "Landing day";
+        int expectedPromptTokens = 10 + 7;
+        UUID basicActivityId = catalog.get(0).id();
+        llm.queueChat(turn("go", readyBrief())).queuePlan(skeletonDraft())
+                .queueTexts(new PlanTextsResult(Map.of(Tier.BASIC, new PackageTexts(expectedTitle, "tag", "desc",
+                        Map.of(1, expectedDayTitle), Map.of(basicActivityId, expectedWhy), Map.of(1, "Easy start"))),
+                        new LlmUsage("fake-chat", 7, 9, 4L)));
+        graph.start(token, startInputs());
+
+        graph.update(token, generationResume(UUID.randomUUID()));
+        graph.runUntilInterrupt(token);
+
+        assertThat(sinks.skeletonBeforeReady).isTrue();
+        assertThat(packageOf(sinks.skeletonPlan, Tier.BASIC).title()).isEqualTo("Warm-up");
+        assertThat(packageOf(sinks.skeletonPlan, Tier.BASIC).days().get(0).title()).isEqualTo("Day 1");
+        assertThat(packageOf(sinks.skeletonPlan, Tier.BASIC).description()).isNull();
+        ComposedPlan.PackageResult basic = packageOf(sinks.lastPlan, Tier.BASIC);
+        assertThat(basic.title()).isEqualTo(expectedTitle);
+        assertThat(basic.days().get(0).title()).isEqualTo(expectedDayTitle);
+        assertThat(basic.days().get(0).items().get(0).why()).isEqualTo(expectedWhy);
+        // The model said nothing about MEDIUM: it keeps the stock name rather than going nameless.
+        assertThat(packageOf(sinks.lastPlan, Tier.MEDIUM).title()).isEqualTo("Main Event");
+        assertThat(packageOf(sinks.lastPlan, Tier.PREMIUM).pricePerPerson())
+                .isEqualByComparingTo(packageOf(sinks.skeletonPlan, Tier.PREMIUM).pricePerPerson());
+        // One texts call per package, each carrying that package alone.
+        assertThat(llm.textsRequests).hasSize(3);
+        assertThat(llm.textsRequests).allSatisfy(request -> assertThat(request.plan().packages()).hasSize(1));
+        assertThat(graph.snapshot(token).state().usage().promptTokens()).isEqualTo(expectedPromptTokens);
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
+    }
+
+    /** Copy is cosmetic: a texts call that fails ships the placeholders and the generation still lands. */
+    @Test
+    void generation_whenTheTextsCallFails_persistsThePlanWithPlaceholders() {
+        UUID token = UUID.randomUUID();
+        UUID expectedGenerationId = UUID.randomUUID();
+        llm.queueChat(turn("go", readyBrief())).queuePlan(skeletonDraft())
+                .failNextTexts(new IllegalStateException("model down"));
+        graph.start(token, startInputs());
+
+        graph.update(token, generationResume(expectedGenerationId));
+        graph.runUntilInterrupt(token);
+
+        assertThat(sinks.lastGeneration).isEqualTo(expectedGenerationId);
+        assertThat(sinks.lastDegraded).isFalse();
+        assertThat(packageOf(sinks.lastPlan, Tier.PREMIUM).title()).isEqualTo("Full Send");
+        assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
     }
 
     @Test

@@ -9,13 +9,16 @@ import com.myhive.backend.ai.graph.nodes.ChatTurnNode;
 import com.myhive.backend.ai.graph.nodes.ComposeNode;
 import com.myhive.backend.ai.graph.nodes.FallbackNode;
 import com.myhive.backend.ai.graph.nodes.PersistResultNode;
+import com.myhive.backend.ai.graph.nodes.PublishSkeletonNode;
 import com.myhive.backend.ai.graph.nodes.RepairNode;
 import com.myhive.backend.ai.graph.nodes.SelectNode;
 import com.myhive.backend.ai.graph.nodes.SnapshotCatalogNode;
 import com.myhive.backend.ai.graph.nodes.ValidateNode;
+import com.myhive.backend.ai.graph.nodes.WriteTextsNode;
 import com.myhive.backend.ai.llm.FakeLlmGateway;
 import com.myhive.backend.ai.plan.FallbackPlanComposer;
 import com.myhive.backend.ai.plan.PlanAssembler;
+import com.myhive.backend.ai.plan.PlanTextWriter;
 import com.myhive.backend.ai.plan.PlanValidator;
 import org.bsc.langgraph4j.checkpoint.BaseCheckpointSaver;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
@@ -60,6 +63,8 @@ public final class TestPlannerGraphs {
                 new ValidateNode(validator, assembler),
                 new RepairNode(llm),
                 new FallbackNode(new FallbackPlanComposer()),
+                new PublishSkeletonNode(resultSink),
+                new WriteTextsNode(new PlanTextWriter(llm)),
                 new PersistResultNode(resultSink),
                 new SelectNode(selectionSink),
                 new ApplyEditsNode(new PackageEditor(validator, assembler), new TextRefresher(llm), editSink));

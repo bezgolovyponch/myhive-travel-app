@@ -1,10 +1,24 @@
 # AI Planner API — frontend contract
 
-Status: **v1.3, reconciled with the implementation on 2026-09-28**. Backend and
+Status: **v1.4, reconciled with the implementation on 2026-09-28**. Backend and
 frontend are built in parallel against this document. Changes go through a PR that
 edits this file first.
 
 Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](../superpowers/specs/2026-09-15-ai-stag-planner-design.md).
+
+**Changes since v1.3** (additive only):
+- The planner now builds the **structure first and the copy second**: the planner
+  model returns only ids, slots and days (~8 s instead of ~40), Java validates and
+  prices them, and a second call to the chat model writes titles, taglines,
+  descriptions, day summaries and whys. As soon as the structure is final the job
+  puts the packages onto the still-`RUNNING` row: `GET /ai/generations/{id}` then
+  serves `packages` with the new `textsPending: true` — prices, items, days and
+  order are final, package titles are stock placeholders ("Warm-up" / "Main
+  Event" / "Full Send"), taglines, descriptions, summaries and whys are `null`.
+  Render the cards, keep polling; `READY` brings the copy. Edits and `select` stay
+  refused (`GENERATION_IN_PROGRESS`) until `READY`. If the copy call fails the
+  generation still turns `READY`, with the placeholders (not `degraded` — the
+  packages are the model's; only the words are stock).
 
 **Changes since v1.2** (additive only):
 - `edit.rejected[].alternatives: string[]` — on `UNKNOWN_ACTIVITY`, up to three
@@ -501,10 +515,12 @@ Empty body. Use for a "Generate now" / "Try other options" button.
 ```
 
 `status`: `QUEUED` | `RUNNING` | `READY` | `FAILED`. Poll every 2 s; give up after
-90 s and show the retry button. On `READY`:
+90 s and show the retry button. A `RUNNING` answer may already carry `packages`
+(with `textsPending: true`): the structure and prices are final and worth
+rendering, the copy is still being written. On `READY`:
 
 ```json
-{ "id": "…", "status": "READY", "degraded": false, "selectedPackageKey": null,
+{ "id": "…", "status": "READY", "degraded": false, "selectedPackageKey": null, "textsPending": false,
   "brief": { "...Brief snapshot used..." },
   "packages": [ "...Package × 3, ordered BASIC, MEDIUM, PREMIUM..." ],
   "kind": "GENERATED",                        // GENERATED | EDITED

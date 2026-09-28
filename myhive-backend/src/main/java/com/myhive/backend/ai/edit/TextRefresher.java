@@ -7,7 +7,7 @@ import com.myhive.backend.ai.llm.TextRefreshRequest;
 import com.myhive.backend.ai.llm.TextRefreshResult;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
-import com.myhive.backend.ai.plan.PlanAssembler;
+import com.myhive.backend.ai.plan.PlanTextWriter;
 import com.myhive.backend.ai.plan.PlanValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,6 @@ import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -93,40 +92,20 @@ public class TextRefresher {
         List<ComposedPlan.DayResult> days = new ArrayList<>(p.days().size());
         for (ComposedPlan.DayResult day : p.days()) {
             String summary = touchedDays.contains(day.dayNumber())
-                    ? accepted(texts.summaryByDay().get(day.dayNumber()), PlanValidator.DAY_SUMMARY_MAX, day.summary())
+                    ? PlanTextWriter.accepted(texts.summaryByDay().get(day.dayNumber()), PlanValidator.DAY_SUMMARY_MAX,
+                            day.summary())
                     : day.summary();
             List<ComposedPlan.ItemResult> items = new ArrayList<>(day.items().size());
             for (ComposedPlan.ItemResult item : day.items()) {
                 String why = newActivityIds.contains(item.activityId())
-                        ? accepted(texts.whyByActivityId().get(item.activityId()), PlanValidator.WHY_MAX, item.why())
+                        ? PlanTextWriter.accepted(texts.whyByActivityId().get(item.activityId()), PlanValidator.WHY_MAX,
+                                item.why())
                         : item.why();
-                items.add(withWhy(item, why));
+                items.add(PlanTextWriter.withWhy(item, why));
             }
             days.add(new ComposedPlan.DayResult(day.dayNumber(), day.title(), summary, items));
         }
-        return new ComposedPlan.PackageResult(p.key(), p.title(), p.tagline(),
-                accepted(texts.description(), PlanValidator.DESCRIPTION_MAX, p.description()), p.pricePerPerson(),
-                p.totalPrice(), p.currency(), p.totalDurationMinutes(), p.activityIds(), days);
-    }
-
-    /** Model copy is taken only when it survives cleaning; it is then cut to the cap the validator enforces. */
-    private static String accepted(String candidate, int max, String previous) {
-        if (candidate == null) {
-            return previous;
-        }
-        String cleaned = PlanAssembler.clean(candidate);
-        if (cleaned == null || cleaned.isBlank()) {
-            return previous;
-        }
-        return cleaned.length() <= max ? cleaned : cleaned.substring(0, max).strip();
-    }
-
-    private static ComposedPlan.ItemResult withWhy(ComposedPlan.ItemResult item, String why) {
-        if (Objects.equals(why, item.why())) {
-            return item;
-        }
-        return new ComposedPlan.ItemResult(item.slot(), item.startHint(), item.activityId(), item.slug(), item.name(),
-                item.imageUrl(), item.durationMinutes(), item.price(), item.minPrice(), item.lineTotal(),
-                item.groupMinApplied(), why);
+        return PlanTextWriter.withTexts(p, p.title(), p.tagline(),
+                PlanTextWriter.accepted(texts.description(), PlanValidator.DESCRIPTION_MAX, p.description()), days);
     }
 }

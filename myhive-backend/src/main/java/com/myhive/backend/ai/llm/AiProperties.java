@@ -17,6 +17,8 @@ public class AiProperties {
     private String plannerModel = "qwen3.8-max";
     private Duration chatTimeout = Duration.ofSeconds(20);
     private Duration plannerTimeout = Duration.ofSeconds(60);
+    /** The copy call after a generation: ~1.5k tokens of prose, more than a chat turn's budget allows. */
+    private Duration textsTimeout = Duration.ofSeconds(40);
     private boolean turnstileRequired = false;
     private int sessionTtlDays = 30;
     private int dailySessionsPerIp = 20;

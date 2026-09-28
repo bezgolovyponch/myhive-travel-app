@@ -4,7 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.Violation;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -46,6 +50,7 @@ public class PromptRenderer {
     private final PromptTemplate repairUser = new PromptTemplate(new ClassPathResource("prompts/ai/repair-user.st"));
     private final PromptTemplate textRefreshSystem = new PromptTemplate(new ClassPathResource("prompts/ai/text-refresh-system.st"));
     private final PromptTemplate textRefreshUser = new PromptTemplate(new ClassPathResource("prompts/ai/text-refresh-user.st"));
+    private final PromptTemplate planTextsSystem = new PromptTemplate(new ClassPathResource("prompts/ai/plan-texts-system.st"));
 
     public String chatSystem(ChatTurnRequest r) {
         return chatSystem.render(Map.of(
@@ -77,9 +82,11 @@ public class PromptRenderer {
         sb.append("RECENT CONVERSATION:\n");
         r.recentHistory().stream().skip(Math.max(0, r.recentHistory().size() - HISTORY_FOR_PLANNER))
                 .forEach(m -> sb.append(m.role()).append(": ").append(wrapUser(m.content())).append('\n'));
-        sb.append("\nCATALOG (id | name | duration | price per person | group minimum | categories | about):\n");
-        for (CatalogActivity a : r.catalog()) {
-            sb.append(a.id()).append(" | ").append(a.name()).append(" | ").append(a.durationMinutes()).append(" min | ")
+        sb.append("\nCATALOG (activityId | name | duration | price per person | group minimum | categories | about):\n");
+        List<CatalogActivity> catalog = r.catalog();
+        for (int i = 0; i < catalog.size(); i++) {
+            CatalogActivity a = catalog.get(i);
+            sb.append(ActivityAliases.of(i)).append(" | ").append(a.name()).append(" | ").append(a.durationMinutes()).append(" min | ")
                     .append(a.price()).append(" EUR pp | min ").append(a.minPrice() == null ? "-" : a.minPrice())
                     .append(" | ").append(String.join(",", a.categorySlugs())).append(" | ").append(a.oneLine()).append('\n');
         }
@@ -91,7 +98,41 @@ public class PromptRenderer {
                 .map(v -> "- [" + v.code() + "] " + (v.packageKey() == null ? "" : v.packageKey() + " ")
                         + (v.dayNumber() == null ? "" : "day " + v.dayNumber() + " ") + v.detail())
                 .collect(Collectors.joining("\n"));
-        return repairUser.render(Map.of("violations", violations, "draftJson", json(r.draft())));
+        return repairUser.render(Map.of("violations", violations,
+                "draftJson", json(aliased(r.draft(), r.original().catalog()))));
+    }
+
+    /**
+     * The draft quoted back with the codes the model wrote, not the UUIDs the parser turned them into:
+     * a code is what the model knows the activity as, and what it has to answer with. Structure only,
+     * like the compose answer - the texts are not the planner's business.
+     */
+    private static Map<String, Object> aliased(PlanDraft draft, List<CatalogActivity> catalog) {
+        Map<UUID, String> aliases = ActivityAliases.byId(catalog);
+        List<Map<String, Object>> packages = new ArrayList<>();
+        for (PlanDraft.PackageDraft p : draft.packages()) {
+            List<Map<String, Object>> days = new ArrayList<>();
+            for (PlanDraft.DayDraft day : p.days()) {
+                List<Map<String, Object>> items = new ArrayList<>();
+                for (PlanDraft.ItemDraft item : day.items()) {
+                    Map<String, Object> out = new LinkedHashMap<>();
+                    out.put("slot", item.slot());
+                    out.put("startHint", item.startHint());
+                    out.put("activityId", item.activityId() == null ? null
+                            : aliases.getOrDefault(item.activityId(), item.activityId().toString()));
+                    items.add(out);
+                }
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("dayNumber", day.dayNumber());
+                out.put("items", items);
+                days.add(out);
+            }
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("key", p.key());
+            out.put("days", days);
+            packages.add(out);
+        }
+        return Map.of("packages", packages);
     }
 
     public String textRefreshSystem(TextRefreshRequest r) {
@@ -117,6 +158,47 @@ public class PromptRenderer {
                     .append("; summary for days ").append(joinDays(r.touchedDaysOf(p.key()))).append("\n\n");
         }
         return textRefreshUser.render(Map.of("packages", sb.toString().strip()));
+    }
+
+    public String planTextsSystem(PlanTextsRequest r) {
+        return planTextsSystem.render(Map.of(
+                "destinationName", r.destinationName(),
+                "locale", r.locale(),
+                "days", String.valueOf(r.brief().days()),
+                "groupSize", String.valueOf(r.brief().groupSize())));
+    }
+
+    /**
+     * The brief, then the package: its price per person and every day with its items as
+     * "- SLOT code name | duration | about", so the copy can say what an activity is instead of
+     * repeating its name. Built in code like {@link #plannerUser}: it is all data, no prose.
+     */
+    public String planTextsUser(PlanTextsRequest r) {
+        Map<UUID, String> aliases = ActivityAliases.byId(r.catalog());
+        Map<UUID, CatalogActivity> byId = new LinkedHashMap<>();
+        for (CatalogActivity activity : r.catalog()) {
+            byId.put(activity.id(), activity);
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("BRIEF: ").append(json(r.brief())).append("\n\n");
+        for (ComposedPlan.PackageResult p : r.plan().packages()) {
+            sb.append("PACKAGE ").append(p.key()).append(" (").append(p.pricePerPerson()).append(" EUR per person)\n");
+            for (ComposedPlan.DayResult day : p.days()) {
+                sb.append("DAY ").append(day.dayNumber()).append('\n');
+                for (ComposedPlan.ItemResult item : day.items()) {
+                    CatalogActivity activity = byId.get(item.activityId());
+                    sb.append("- ").append(item.slot()).append(' ')
+                            .append(aliases.getOrDefault(item.activityId(), String.valueOf(item.activityId()))).append(' ')
+                            .append(item.name()).append(" | ").append(item.durationMinutes()).append(" min");
+                    if (activity != null) {
+                        sb.append(" | ").append(activity.oneLine());
+                    }
+                    sb.append('\n');
+                }
+            }
+            sb.append('\n');
+        }
+        return sb.toString().strip();
     }
 
     /** Nothing to edit, nothing to say about editing: a turn before the first generation gets no block. */
