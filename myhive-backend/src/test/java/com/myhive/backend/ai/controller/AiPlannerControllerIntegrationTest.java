@@ -59,6 +59,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -294,7 +295,9 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.status", is("COLLECTING")))
                 .andExpect(jsonPath("$.messages", hasSize(3)))
                 .andExpect(jsonPath("$.messages[2].content", is(expectedReply)))
-                .andExpect(jsonPath("$.missingFields", hasSize(3)))
+                // Everything the chat asks before a generation is worth starting; budget is never in here.
+                .andExpect(jsonPath("$.missingFields",
+                        containsInAnyOrder("days", "groupSize", "preferences", "arrival", "departure")))
                 .andExpect(jsonPath("$.readyToGenerate", is(false)))
                 .andExpect(jsonPath("$.latestGeneration").doesNotExist())
                 .andExpect(jsonPath("$.firstTurnError").doesNotExist());

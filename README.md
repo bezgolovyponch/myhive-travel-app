@@ -209,7 +209,12 @@ placeholder `WHATSAPP_URL` / `MESSENGER_URL` support links used on the homepage.
 
 A multi-turn chat under `/ai/**` that turns days/group size/taste into three tiered
 packages (`BASIC`/`MEDIUM`/`PREMIUM`), each with a realistic day-by-day itinerary
-built only from real catalog activities. One langgraph4j `StateGraph`
+built only from real catalog activities. Generation starts by itself once the brief is
+complete — days, group size, preferences, and both travel edges (arrival on day 1,
+departure on the last day); budget is optional. The edges are required rather than
+defaulted because they decide how much of the first and last day is usable, and a
+generation on the defaults just gets thrown away the moment the organizer says when
+they land (~40 s of planner time each). One langgraph4j `StateGraph`
 (`ai/graph/PlannerGraph`) drives the conversation, parking on `awaitUser`/
 `awaitGeneration`/`awaitSelection` interrupts between requests; Qwen (DashScope,
 OpenAI-compatible) composes and repairs the plan, Java validates, prices and falls

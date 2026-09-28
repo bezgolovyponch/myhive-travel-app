@@ -81,7 +81,7 @@ Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`
 | 400 | `"Validation Failed"` | Bean-validation failure (e.g. message/`initialMessage` too long) — the app-wide convention (not an AI-specific code); `fieldErrors` map present. |
 | 400 | `"Bad Request"` | Three cases, same shape: an unknown `destinationSlug` on `POST /ai/sessions` (`message` names the slug); a malformed non-UUID `{token}`/`{id}` path variable — treat exactly like `SESSION_NOT_FOUND`/`GENERATION_NOT_FOUND` and drop the stored token; or a `packageKey` outside `BASIC`\|`MEDIUM`\|`PREMIUM` on `select`. |
 | 403 | `TURNSTILE_FAILED` | Captcha rejected. Re-render Turnstile and retry. |
-| 409 | `BRIEF_INCOMPLETE` | Manual generate before the agent knows days/group/preferences. Show `missingFields`. |
+| 409 | `BRIEF_INCOMPLETE` | Manual generate before the agent knows days/group/preferences/arrival/departure. Show `missingFields`. |
 | 409 | `GENERATION_IN_PROGRESS` | A generation is already QUEUED or RUNNING. On `select` this also fires while *any* generation of the session is in flight, not only the one being picked — an older package set cannot be selected mid-regeneration. Poll instead. |
 | 409 | `GENERATION_NOT_READY` | `select` called on a generation that is not `READY`. |
 | 409 | `SESSION_BUSY` | Another request for this chat is still in flight (double-click). Retry once the first call returns. |
@@ -184,7 +184,9 @@ transcript with it). Appending the session-state array, or replacing the
 transcript with the turn array, both produce a visibly broken chat.
 
 Generation starts **automatically** the moment the brief is complete (days, group
-size and preferences known) — there is no confirmation step. On that turn
+size, preferences, arrival and departure known; budget is optional) — there is no
+confirmation step. The two travel edges are required because they decide how much
+of day 1 and the last day is usable; the chat asks for both in one question. On that turn
 `readyToGenerate` is `true`, `generation` is set to `{ "id": "…", "status": "QUEUED" }`
 and the message says something like "Building your three options…". Start polling.
 If the very first message already contains everything, this happens right after the
@@ -627,7 +629,9 @@ on `GET /ai/sessions/{token}`.
 ```
 
 `budget`: `LOW` | `MID` | `HIGH` | null. `arrival`/`departure`: `MORNING` |
-`AFTERNOON` | `EVENING`. Fields are null until the agent learns them.
+`AFTERNOON` | `EVENING`. Fields are null until the agent learns them. `missingFields`
+can contain `days`, `groupSize`, `preferences`, `arrival`, `departure` — all five must be
+known before `readyToGenerate` turns true; `budget` never blocks generation.
 
 ### `Package`
 
