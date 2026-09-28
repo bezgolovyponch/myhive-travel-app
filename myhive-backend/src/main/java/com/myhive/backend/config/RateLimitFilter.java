@@ -1,5 +1,6 @@
 package com.myhive.backend.config;
 
+import com.myhive.backend.util.ClientIp;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,10 +21,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-// IP resolution order (Cloudflare deployment):
-// 1. CF-Connecting-IP — set by Cloudflare, cannot be forged by clients
-// 2. Last entry of X-Forwarded-For — closest real proxy when CF-Connecting-IP is absent
-// 3. request.getRemoteAddr() — direct connection (dev/testing)
+// The IP resolution order (CF-Connecting-IP, then the last X-Forwarded-For hop, then the socket
+// address) lives in ClientIp, shared with the AI planner's daily session cap so one request is
+// never throttled as one caller and quota'd as another.
 
 @Component
 public class RateLimitFilter implements Filter {
@@ -114,7 +114,7 @@ public class RateLimitFilter implements Filter {
             return;
         }
 
-        String clientIp = getClientIp(httpRequest);
+        String clientIp = ClientIp.resolve(httpRequest);
         // Cleanup is scheduled inside the atomic computeIfAbsent so it runs exactly
         // once per bucket. Scheduling it afterwards behind a count == 1 check had a
         // race: two concurrent first requests could both increment before either
@@ -142,20 +142,5 @@ public class RateLimitFilter implements Filter {
     @Override
     public void destroy() {
         scheduler.shutdownNow();
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String cfConnectingIp = request.getHeader("CF-Connecting-IP");
-        if (cfConnectingIp != null && !cfConnectingIp.isBlank()) {
-            return cfConnectingIp.trim();
-        }
-
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            String[] parts = xForwardedFor.split(",");
-            return parts[parts.length - 1].trim();
-        }
-
-        return request.getRemoteAddr();
     }
 }

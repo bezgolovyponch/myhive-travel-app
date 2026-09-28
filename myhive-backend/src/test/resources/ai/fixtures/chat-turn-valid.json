@@ -1,0 +1,4 @@
+{"reply": "8 lads, 3 days — got it. What do you enjoy: karting, bars, something wild?",
+ "brief": {"days": 3, "groupSize": 8, "categorySlugs": [], "vibe": null, "dislikes": null, "budget": null,
+           "arrival": "EVENING", "departure": "MORNING", "notes": null},
+ "missingFields": ["preferences"], "extraFieldFromModel": true}
