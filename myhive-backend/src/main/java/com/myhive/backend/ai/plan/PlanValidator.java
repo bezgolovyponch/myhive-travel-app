@@ -121,9 +121,32 @@ public class PlanValidator {
                     day.items().size() + " activities on day " + n + ", max " + tier.maxItemsPerDay() + " for " + tier));
         }
         if (minutes > tier.maxMinutesPerDay()) {
+            // The repair prompt hands this text back to the model. Spelling the sum out per activity is
+            // what lets it fix the day: told only the total, it re-added the catalog and overshot again.
             out.add(Violation.of(ViolationCode.DAY_OVER_MINUTES, tier, n,
-                    minutes + " minutes incl. buffers on day " + n + ", max " + tier.maxMinutesPerDay() + " for " + tier));
+                    minutes + " minutes incl. buffers on day " + n + ", max " + tier.maxMinutesPerDay() + " for " + tier
+                            + " (" + minutesBreakdown(day, catalog) + "; drop or swap one activity)"));
         }
+    }
+
+    /** {@code Beer Tasting 120 + Pub Crawl 240 + 30 min buffer} — the arithmetic behind a DAY_OVER_MINUTES. */
+    private static String minutesBreakdown(PlanDraft.DayDraft day, Map<UUID, CatalogActivity> catalog) {
+        StringBuilder sb = new StringBuilder();
+        for (PlanDraft.ItemDraft item : day.items()) {
+            CatalogActivity activity = item.activityId() == null ? null : catalog.get(item.activityId());
+            if (activity == null) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append(" + ");
+            }
+            sb.append(activity.name()).append(' ').append(activity.durationMinutes());
+        }
+        int buffers = BUFFER_MINUTES * Math.max(0, day.items().size() - 1);
+        if (buffers > 0) {
+            sb.append(" + ").append(buffers).append(" min buffers");
+        }
+        return sb.toString();
     }
 
     /**

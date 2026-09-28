@@ -100,9 +100,15 @@ class PlanValidatorTest {
                 day(1, item(Slot.AFTERNOON, a), item(Slot.EVENING, b)),
                 day(2, item(Slot.MORNING, activity("C", 30)))));
         PlanDraft draft = new PlanDraft(List.of(p, validDraft().packages().get(1), validDraft().packages().get(2)));
+        String expectedBreakdown = "A 170 + B 170 + 30 min buffers";
 
-        assertThat(validator.validate(draft, brief, catalog))
-                .extracting(Violation::code).contains(ViolationCode.DAY_OVER_MINUTES);
+        List<Violation> violations = validator.validate(draft, brief, catalog);
+
+        assertThat(violations).extracting(Violation::code).contains(ViolationCode.DAY_OVER_MINUTES);
+        // The repair prompt echoes this detail to the model; the per-activity sum is what makes it fixable.
+        assertThat(violations).filteredOn(v -> v.code() == ViolationCode.DAY_OVER_MINUTES)
+                .extracting(Violation::detail).singleElement().asString()
+                .contains("370 minutes").contains(expectedBreakdown);
     }
 
     /**
