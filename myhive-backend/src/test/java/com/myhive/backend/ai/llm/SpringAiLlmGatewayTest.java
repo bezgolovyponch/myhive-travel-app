@@ -123,6 +123,8 @@ class SpringAiLlmGatewayTest {
         assertThat(options.getModel()).isEqualTo(expectedModel);
         assertThat(options.getResponseFormat().getType()).isEqualTo(ResponseFormat.Type.JSON_OBJECT);
         assertThat(options.getExtraBody()).containsEntry("enable_thinking", false);
+        // OpenRouter's dialect of the same switch; sent alongside so either provider honours it.
+        assertThat(options.getExtraBody()).containsEntry("reasoning", Map.of("enabled", false));
         assertThat(options.getTemperature()).isEqualTo(0.7);
     }
 

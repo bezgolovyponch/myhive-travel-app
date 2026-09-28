@@ -37,10 +37,15 @@ public class SpringAiLlmGateway implements LlmGateway {
     private static final double CHAT_TEMPERATURE = 0.7;
     private static final double PLANNER_TEMPERATURE = 0.4;
     /**
-     * DashScope-specific flag: Qwen's hybrid-reasoning models otherwise stream a &lt;think&gt; block
-     * that JSON mode does not suppress. Sent as an extra top-level body property.
+     * Turns Qwen's hybrid reasoning off, in both dialects the OpenAI-compatible endpoints understand:
+     * DashScope reads the top-level {@code enable_thinking} flag, OpenRouter ignores it and reads
+     * {@code reasoning.enabled} instead (with it ignored, the model spends the whole token budget on a
+     * reasoning block and returns a null {@code content}). Each provider ignores the other's key, so both
+     * are always sent. Without either, JSON mode does not suppress the &lt;think&gt; block.
      */
-    private static final Map<String, Object> THINKING_OFF = Map.of("enable_thinking", false);
+    private static final Map<String, Object> THINKING_OFF = Map.of(
+            "enable_thinking", false,
+            "reasoning", Map.of("enabled", false));
 
     private final ChatModel chatModel;
     private final PromptRenderer renderer;
