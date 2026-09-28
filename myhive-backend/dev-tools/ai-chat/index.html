@@ -121,11 +121,18 @@ function say(role, content) {
   $('log').append(node);
   $('log').scrollTop = $('log').scrollHeight;
 }
-function setBusy(label) {
+let queuedMessage = null;   // text typed while a generation runs; sent by itself once packages are ready
+
+function setBusy(label, generating = false) {
   $('busy').textContent = label ? '· ' + label : '';
   const idle = !label;
-  // Send works without a session too: the first message opens the chat by itself.
-  $('send').disabled = !idle;
+  // Send works without a session too: the first message opens the chat by itself. While a generation
+  // runs the backend answers every message with 409 GENERATION_IN_PROGRESS, so the button says why it
+  // waits instead of going silently grey; whatever is typed meanwhile is queued and sent afterwards.
+  // While generating the button stays clickable: send() queues the text instead of posting it.
+  $('send').disabled = !idle && !generating;
+  $('send').textContent = generating ? 'Queue for after the build' : (idle ? 'Send' : 'Sending…');
+  $('send').title = generating ? 'The planner is building the packages; a message now would get 409. Your text is sent as soon as they are ready.' : '';
   $('input').disabled = false;
   $('rebuild').disabled = !token || !idle;
 }
@@ -247,18 +254,26 @@ function watch(generation) {
     try {
       const fresh = await api('GET', `/ai/generations/${generation.id}`);
       if (fresh.status === 'QUEUED' || fresh.status === 'RUNNING') {
-        setBusy(`${fresh.status.toLowerCase()} ${Math.round((Date.now() - started) / 1000)} s`);
-        $('send').disabled = true;
+        setBusy(`building packages ${Math.round((Date.now() - started) / 1000)} s`, true);
         pollTimer = setTimeout(tick, 2000);
         return;
       }
+      pollTimer = null;
       setBusy('');
       renderGeneration(fresh);
       say('system', fresh.status === 'READY'
-        ? `packages ready in ${Math.round((Date.now() - started) / 1000)} s${fresh.degraded ? ' (degraded fallback)' : ''}`
+        ? `packages ready in ${Math.round((Date.now() - started) / 1000)} s`
+          + (fresh.degraded ? ' — the model broke a scheduling rule twice, so Java composed these (degraded); a Rebuild may do better' : '')
         : `generation failed: ${fresh.error ? fresh.error.code : '?'}`);
       await refresh();
-    } catch (e) { setBusy(''); fail(e); }
+      if (queuedMessage) {
+        const text = queuedMessage;
+        queuedMessage = null;
+        say('system', 'sending the message you typed during the build');
+        $('input').value = text;
+        await send();
+      }
+    } catch (e) { pollTimer = null; setBusy(''); fail(e); }
   };
   pollTimer = setTimeout(tick, 1500);
 }
@@ -303,6 +318,13 @@ async function resume() {
 async function send() {
   const content = $('input').value.trim();
   if (!content) { return; }
+  if (pollTimer) {
+    // A generation is running: keep the text and send it when the packages land (see watch()).
+    queuedMessage = content;
+    $('input').value = '';
+    say('system', 'queued — will be sent as soon as the packages are ready');
+    return;
+  }
   if (!token) {
     // No chat yet: open one first so the greeting is on screen, then send as usual.
     await newChat();
@@ -334,7 +356,8 @@ async function send() {
     if (!$('input').value) { $('input').value = content; }
   } finally {
     clearInterval(ticker);
-    if (!pollTimer || $('busy').textContent.startsWith('· thinking')) { setBusy(''); }
+    // watch() owns the busy state while a generation it started is still polling.
+    if (!pollTimer) { setBusy(''); }
   }
 }
 

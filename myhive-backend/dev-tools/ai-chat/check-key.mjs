@@ -42,7 +42,8 @@ for (const model of models) {
         model,
         messages: [{ role: 'system', content: 'Reply with the JSON {"ok":true}.' }, { role: 'user', content: 'ping' }],
         response_format: { type: 'json_object' },
-        enable_thinking: false,
+        enable_thinking: false,               // DashScope dialect
+        reasoning: { enabled: false },        // OpenRouter dialect; each provider ignores the other's key
         max_tokens: 30,
       }),
       signal: AbortSignal.timeout(60000),
@@ -50,7 +51,16 @@ for (const model of models) {
     const text = await response.text();
     if (response.ok) {
       const json = JSON.parse(text);
-      console.log(`  ${model}: OK in ${Date.now() - started} ms -> ${json.choices[0].message.content.trim().slice(0, 60)}`);
+      const message = json.choices?.[0]?.message || {};
+      if (typeof message.content !== 'string' || !message.content.trim()) {
+        // A 200 with no content means the model spent the budget on reasoning: the thinking-off
+        // switch was not honoured by this endpoint, and the backend would see the same empty reply.
+        failed = true;
+        console.log(`  ${model}: 200 but empty content (reasoning ${message.reasoning ? 'present' : 'absent'}, `
+          + `finish_reason ${json.choices?.[0]?.finish_reason}) — thinking-off not honoured`);
+      } else {
+        console.log(`  ${model}: OK in ${Date.now() - started} ms via ${json.provider || 'provider n/a'} -> ${message.content.trim().slice(0, 60)}`);
+      }
     } else {
       failed = true;
       console.log(`  ${model}: HTTP ${response.status} ${redact(text).slice(0, 220)}`);
