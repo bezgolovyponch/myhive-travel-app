@@ -1,0 +1,14 @@
+# graphify corpus exclusions (gitignore syntax; only ever excludes more)
+# Design specs and implementation plans are design history, not documentation of the code:
+# 910 of the 952 doc nodes came from here and only 10 of their 958 edges reached code.
+docs/superpowers/
+# Screenshots referenced by those specs (vision extraction, no code links)
+*.png
+*.jpg
+*.jpeg
+# Rendered artefacts, not sources
+docs/presentations/*.html
+myhive-backend/src/main/resources/templates/email/
+myhive-backend/dev-tools/ai-chat/index.html
+myhive-react-app/public/index.html
+index.html
