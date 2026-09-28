@@ -24,4 +24,4 @@ Answer ONLY with a JSON object of this exact shape (no markdown, no commentary):
  "missingFields": [string],
  "edits": [\{"op": "ADD"|"REMOVE"|"REPLACE", "activity": string, "replacement": string|null,
  "packageKey": "BASIC"|"MEDIUM"|"PREMIUM"|null, "dayNumber": int|null,
- "slot": "MORNING"|"AFTERNOON"|"EVENING"|"NIGHT"|null\}]\}
+ "slot": "MORNING"|"AFTERNOON"|"EVENING"|"NIGHT"|null, "alternatives": [string]\}]\}

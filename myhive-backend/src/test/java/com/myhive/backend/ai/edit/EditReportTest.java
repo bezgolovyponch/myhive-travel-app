@@ -49,12 +49,29 @@ class EditReportTest {
                 UUID.randomUUID());
         RejectedEdit rejected = new RejectedEdit(EditOp.REMOVE, "Shooting Range", Tier.BASIC,
                 EditRejectionReason.NOT_IN_PACKAGE, "not currently in the package");
-        EditReport expectedReport = new EditReport(List.of(applied), List.of(rejected), true, false);
+        RejectedEdit unknown = new RejectedEdit(EditOp.ADD, "strip shows", null,
+                EditRejectionReason.UNKNOWN_ACTIVITY, "strip shows", List.of("Night Club", "Beer Bike"));
+        EditReport expectedReport = new EditReport(List.of(applied), List.of(rejected, unknown), true, false);
 
         String json = JsonCodec.write(expectedReport);
         EditReport roundTripped = JsonCodec.read(json, EditReport.class);
 
         assertThat(roundTripped).isEqualTo(expectedReport);
+    }
+
+    /** Rows written before alternatives existed carry no such field and must still read, as offering nothing. */
+    @Test
+    void readsAReportStoredWithoutAlternatives_asOfferingNone() {
+        String storedBeforeAlternatives = """
+                {"applied":[],"rejected":[{"op":"ADD","activityName":"Sauna Tour","packageKey":null,
+                "reason":"UNKNOWN_ACTIVITY","detail":"Sauna Tour"}],"tierRulesRelaxed":false,"textsRefreshed":false}""";
+
+        EditReport report = JsonCodec.read(storedBeforeAlternatives, EditReport.class);
+
+        assertThat(report.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.UNKNOWN_ACTIVITY);
+            assertThat(rejected.alternatives()).isEmpty();
+        });
     }
 
     @Test

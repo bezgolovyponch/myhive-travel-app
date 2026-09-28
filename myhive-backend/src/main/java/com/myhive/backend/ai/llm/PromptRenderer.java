@@ -32,7 +32,8 @@ public class PromptRenderer {
             Edit rules:
             - If the organizer asks to add, remove or swap a specific activity, put it in "edits" and do not change the brief for it.
             - Use exact catalog names when the activity exists.
-            - Something NOT in the catalog: still emit the edit with the organizer's own words as "activity" - never drop it silently, never substitute another activity; the system tells them it is not on offer.
+            - Something NOT in the catalog: still emit the edit with the organizer's own words as "activity" - never drop it silently, never substitute another activity - and put the 1-3 catalog names closest in spirit into "alternatives" (empty when the activity is in the catalog); the system tells them it is not on offer and suggests those.
+            - When the organizer picks one of the alternatives from an earlier reply ("the first one", "yes, the jazz night"), emit it with the exact catalog name against the current packages above: an ADD when the activity they wanted out is already gone, a REPLACE only when it is still listed.
             - One edit per request: "remove X and add Y" is two edits, even if Y does not exist.
             - packageKey null means every package; set it only if the organizer names a package.
             - Reply with one short sentence saying you are doing it now; never claim it is done.

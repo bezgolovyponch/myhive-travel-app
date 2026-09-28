@@ -36,6 +36,10 @@ public final class EditMessages {
     private static final String EN_UNNAMED = "that activity";
     private static final String DE_UNNAMED = "diese Aktivität";
 
+    /** Follows the UNKNOWN_ACTIVITY line: the unknown name, then the catalog names offered in its place. */
+    private static final String EN_CLOSEST = "Closest to \"%s\": %s - want one of those?";
+    private static final String DE_CLOSEST = "Am nächsten an \"%s\": %s - soll ich eins davon nehmen?";
+
     private static final Map<EditRejectionReason, String> EN = new EnumMap<>(EditRejectionReason.class);
     private static final Map<EditRejectionReason, String> DE = new EnumMap<>(EditRejectionReason.class);
 
@@ -80,7 +84,10 @@ public final class EditMessages {
         return german(locale) ? DE_REBUILDING_FIRST : EN_REBUILDING_FIRST;
     }
 
-    /** One sentence per distinct reason, naming the activities it hit; empty when nothing was rejected. */
+    /**
+     * One sentence per distinct reason, naming the activities it hit, then one offer per activity the
+     * catalog lacks for which the model could name something close; empty when nothing was rejected.
+     */
     public static String rejectionSummary(String locale, List<RejectedEdit> rejected) {
         if (rejected == null || rejected.isEmpty()) {
             return "";
@@ -98,12 +105,35 @@ public final class EditMessages {
             if (template == null) {
                 continue;
             }
-            if (!summary.isEmpty()) {
-                summary.append(' ');
-            }
-            summary.append(template.formatted(String.join(", ", entry.getValue())));
+            appendSentence(summary, template.formatted(String.join(", ", entry.getValue())));
         }
+        appendAlternatives(summary, rejected, german);
         return summary.toString();
+    }
+
+    /**
+     * "Not in the catalog" alone is a dead end; the names that are close to it turn the rejection into
+     * a choice the organizer can answer with a plain "add X". One offer per unknown name, first one wins.
+     */
+    private static void appendAlternatives(StringBuilder summary, List<RejectedEdit> rejected, boolean german) {
+        Set<String> offeredFor = new LinkedHashSet<>();
+        for (RejectedEdit edit : rejected) {
+            if (edit.reason() != EditRejectionReason.UNKNOWN_ACTIVITY || edit.alternatives().isEmpty()) {
+                continue;
+            }
+            String name = nameOf(edit, german);
+            if (offeredFor.add(name)) {
+                appendSentence(summary, (german ? DE_CLOSEST : EN_CLOSEST)
+                        .formatted(name, String.join(", ", edit.alternatives())));
+            }
+        }
+    }
+
+    private static void appendSentence(StringBuilder summary, String sentence) {
+        if (!summary.isEmpty()) {
+            summary.append(' ');
+        }
+        summary.append(sentence);
     }
 
     private static String nameOf(RejectedEdit edit, boolean german) {

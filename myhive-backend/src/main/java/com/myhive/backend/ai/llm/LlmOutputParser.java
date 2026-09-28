@@ -36,6 +36,9 @@ public class LlmOutputParser {
     /** An activity name is a catalog label, not prose: past this the model is writing a sentence. */
     private static final int MAX_ACTIVITY_NAME_CHARS = 120;
 
+    /** How many alternatives one edit may name for an activity the catalog lacks: three read as a nudge, more as a list. */
+    public static final int MAX_ALTERNATIVES_PER_EDIT = 3;
+
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             // A hallucinated enum value is the model's mistake on one field, not a reason to throw the
@@ -92,7 +95,19 @@ public class LlmOutputParser {
             return null;
         }
         return new EditRequest(edit.op(), capped(edit.activity()), capped(edit.replacement()), edit.packageKey(),
-                edit.dayNumber(), edit.slot());
+                edit.dayNumber(), edit.slot(), cappedAlternatives(edit.alternatives()));
+    }
+
+    /** The first few alternatives, each capped like any other name the model writes. */
+    private static List<String> cappedAlternatives(List<String> alternatives) {
+        List<String> kept = new ArrayList<>();
+        for (String alternative : alternatives) {
+            if (kept.size() == MAX_ALTERNATIVES_PER_EDIT) {
+                break;
+            }
+            kept.add(capped(alternative));
+        }
+        return kept;
     }
 
     /**

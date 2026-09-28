@@ -54,6 +54,7 @@ class PromptRendererTest {
         // organizer can read), not vanish: the first live "add some strip shows" was dropped silently.
         assertThat(prompt).contains("NOT in the catalog: still emit the edit")
                 .contains("never drop it silently")
+                .contains("closest in spirit into \"alternatives\"")
                 .contains("\"remove X and add Y\" is two edits");
     }
 

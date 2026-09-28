@@ -1,10 +1,19 @@
 # AI Planner API — frontend contract
 
-Status: **v1.2, reconciled with the implementation on 2026-09-18**. Backend and
+Status: **v1.3, reconciled with the implementation on 2026-09-28**. Backend and
 frontend are built in parallel against this document. Changes go through a PR that
 edits this file first.
 
 Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](../superpowers/specs/2026-09-15-ai-stag-planner-design.md).
+
+**Changes since v1.2** (additive only):
+- `edit.rejected[].alternatives: string[]` — on `UNKNOWN_ACTIVITY`, up to three
+  catalog names the agent deems closest to what was asked for, already checked
+  against the catalog and in its exact spelling; an empty array on every other
+  reason (and on `UNKNOWN_ACTIVITY` when nothing came close). The chat line gains
+  a second sentence offering them ("Closest to "strip shows": Nightclub VIP
+  Experience, Rooftop Jazz Night - want one of those?"). Offer them as quick
+  replies that send `add <name>` — the agent resolves "the first one" as well.
 
 **Changes since v1.1** (additive only — nothing v1.1 documented was renamed or removed):
 - Package edits: once packages exist, ask for a change in plain chat ("swap X for
@@ -283,6 +292,10 @@ applied or not:
   package before there was anything to check it against.
 - `rejected[].detail`: a short technical hint, **not customer-facing copy** — the
   assistant chat message already carries the sentence the group reads. May be null.
+- `rejected[].alternatives`: catalog names offered instead of an activity the
+  catalog lacks — filled only on `UNKNOWN_ACTIVITY`, at most three, exact catalog
+  spelling, never null (an empty array otherwise). Each one is safe to send back
+  as `add <name>`.
 - `tierRulesRelaxed`: `true` iff **this batch** applied something. It is a
   property of the batch, not of the plan: the next edit turn, and the `editReport`
   stored on the next `EDITED` row, start again from `false`. It says the tier
@@ -363,7 +376,7 @@ the row this turn just created.
 "edit": {
   "generationId": "6f1f0f7a-6c1b-4a2e-9a43-7b0d6b2a11ce",
   "applied": [ { "op": "REMOVE", "activity": "Beer Bike", "replacement": null, "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING" } ],
-  "rejected": [ { "op": "ADD", "activity": "Karting", "packageKey": "PREMIUM", "reason": "NO_FREE_SLOT", "detail": "no free slot for Karting in PREMIUM" } ],
+  "rejected": [ { "op": "ADD", "activity": "Karting", "packageKey": "PREMIUM", "reason": "NO_FREE_SLOT", "detail": "no free slot for Karting in PREMIUM", "alternatives": [] } ],
   "tierRulesRelaxed": true, "textsRefreshed": true
 },
 "messages": [
@@ -385,7 +398,7 @@ same explanation.
 "edit": {
   "generationId": null,
   "applied": [],
-  "rejected": [ { "op": "REPLACE", "activity": "Hot Air Balloon", "packageKey": null, "reason": "UNKNOWN_ACTIVITY", "detail": "Hot Air Balloon" } ],
+  "rejected": [ { "op": "REPLACE", "activity": "Hot Air Balloon", "packageKey": null, "reason": "UNKNOWN_ACTIVITY", "detail": "Hot Air Balloon", "alternatives": ["Vltava River Cruise", "Segway City Tour"] } ],
   "tierRulesRelaxed": false, "textsRefreshed": false
 }
 ```
@@ -397,7 +410,7 @@ same explanation.
 "edit": {
   "generationId": null,
   "applied": [],
-  "rejected": [ { "op": "ADD", "activity": "Karting", "packageKey": null, "reason": "NO_PACKAGES_YET", "detail": null } ],
+  "rejected": [ { "op": "ADD", "activity": "Karting", "packageKey": null, "reason": "NO_PACKAGES_YET", "detail": null, "alternatives": [] } ],
   "tierRulesRelaxed": false, "textsRefreshed": false
 }
 ```
@@ -414,7 +427,7 @@ Still `200`, still an ordinary turn body — the cap is never its own HTTP error
 "edit": {
   "generationId": null,
   "applied": [],
-  "rejected": [ { "op": "REPLACE", "activity": "VIP Club Night", "packageKey": null, "reason": "EDIT_LIMIT", "detail": null } ],
+  "rejected": [ { "op": "REPLACE", "activity": "VIP Club Night", "packageKey": null, "reason": "EDIT_LIMIT", "detail": null, "alternatives": [] } ],
   "tierRulesRelaxed": false, "textsRefreshed": false
 }
 ```
@@ -430,7 +443,7 @@ to see it).
 
 | Reason | Meaning | Suggested UI treatment |
 |---|---|---|
-| `UNKNOWN_ACTIVITY` | The name could not be matched to anything in the destination's catalog. | Show the chat sentence; no retry button — ask the group to rephrase or pick from the list. |
+| `UNKNOWN_ACTIVITY` | The name could not be matched to anything in the destination's catalog. | Show the chat sentence; when `alternatives` is non-empty, offer each as a quick reply that sends `add <name>`. No other retry button — ask the group to rephrase or pick from the list. |
 | `AMBIGUOUS_ACTIVITY` | The name matches more than one catalog entry. | `detail` holds the candidate names, comma-separated — offer them as quick replies. |
 | `NOT_IN_PACKAGE` | `REMOVE`/`REPLACE` named an activity that is not actually in the targeted package (or in any package, when untargeted) — **and** an op of any kind, `ADD` included, scoped to a `packageKey` the plan does not have. | Informational — nothing to retry, the plan already matches what was asked for. |
 | `ALREADY_IN_PACKAGE` | `ADD`/`REPLACE` named an activity already present in the target. On a `REPLACE` this is about the **replacement**: `activity` is still the original, and `detail` names the replacement that is already there. | Informational, same treatment as above. |

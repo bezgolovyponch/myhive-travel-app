@@ -158,6 +158,24 @@ class LlmOutputParserTest {
         });
     }
 
+    /** Alternatives are the model's, so they get the same hygiene as any name it writes: blanks out, a cap on count. */
+    @Test
+    void parseChatTurn_readsAlternatives_dropsBlanksAndKeepsAtMostThree() {
+        String expectedFirst = "Nightclub VIP Experience";
+        String expectedSecond = "Rooftop Jazz Night";
+        String expectedThird = "Beer Bike";
+
+        ChatTurnResult result = parser.parseChatTurn(
+                "{\"reply\":\"hi\",\"brief\":{},\"missingFields\":[],\"edits\":["
+                        + "{\"op\":\"ADD\",\"activity\":\"strip shows\",\"alternatives\":[\"" + expectedFirst
+                        + "\",\" \",\"" + expectedSecond + "\",\"" + expectedThird + "\",\"Karting\"]},"
+                        + "{\"op\":\"REMOVE\",\"activity\":\"Karting\"}]}");
+
+        assertThat(result.edits()).hasSize(2);
+        assertThat(result.edits().get(0).alternatives()).containsExactly(expectedFirst, expectedSecond, expectedThird);
+        assertThat(result.edits().get(1).alternatives()).isEmpty();
+    }
+
     @Test
     void parseChatTurn_replaceWithoutReplacement_isDropped() {
         ChatTurnResult result = parser.parseChatTurn(

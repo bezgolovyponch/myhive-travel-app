@@ -656,6 +656,40 @@ class PackageEditorTest {
         return created;
     }
 
+    /**
+     * The model names what it deems closest to a request the catalog lacks; only the names that really
+     * resolve are offered back, in the catalog's spelling, so that "add <one of them>" resolves exactly.
+     * An ambiguous one ("Beer") is no offer either: it would only answer with "which one?".
+     */
+    @Test
+    void unknownName_offersTheAlternativesThatResolve_inCatalogSpelling() {
+        String expectedUnknown = "strip shows";
+        List<String> expectedAlternatives = List.of(nightClub.name(), beerBike.name());
+        EditRequest add = new EditRequest(EditOp.ADD, expectedUnknown, null, null, null, null,
+                List.of("night club", "Lap Dance Bar", "beer bike", "Beer"));
+
+        EditOutcome outcome = editor.apply(basePlan(), brief, catalog, List.of(add));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.UNKNOWN_ACTIVITY);
+            assertThat(rejected.activityName()).isEqualTo(expectedUnknown);
+            assertThat(rejected.alternatives()).isEqualTo(expectedAlternatives);
+        });
+    }
+
+    /** A name that resolves needs no alternatives, whatever the model attached to it. */
+    @Test
+    void knownName_ignoresAlternatives() {
+        EditRequest remove = new EditRequest(EditOp.REMOVE, beerBike.name(), null, null, null, null,
+                List.of(nightClub.name()));
+
+        EditOutcome outcome = editor.apply(basePlan(), brief, catalog, List.of(remove));
+
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).isNotEmpty();
+    }
+
     private static EditRequest add(String activity, Tier packageKey, Integer dayNumber, Slot slot) {
         return new EditRequest(EditOp.ADD, activity, null, packageKey, dayNumber, slot);
     }

@@ -44,6 +44,45 @@ class EditMessagesTest {
                 .contains(expectedActivityName).contains("Katalog").doesNotContain("Paket");
     }
 
+    /** "Not in the catalog" alone is a dead end; the offer that follows turns it into a plain "add X". */
+    @Test
+    void rejectionSummary_unknownActivityWithAlternatives_offersThemAfterTheNotFoundLine() {
+        String expectedActivityName = "strip shows";
+        String expectedAlternatives = "Nightclub VIP Experience, Rooftop Jazz Night";
+        int expectedSentences = 2;
+        List<RejectedEdit> rejected = List.of(new RejectedEdit(EditOp.ADD, expectedActivityName, null,
+                EditRejectionReason.UNKNOWN_ACTIVITY, expectedActivityName,
+                List.of("Nightclub VIP Experience", "Rooftop Jazz Night")));
+
+        String english = EditMessages.rejectionSummary("en", rejected);
+        String german = EditMessages.rejectionSummary("de", rejected);
+
+        assertThat(english.split("(?<=[.?]) ")).hasSize(expectedSentences);
+        assertThat(english).startsWith("I could not find \"" + expectedActivityName + "\"")
+                .endsWith("Closest to \"" + expectedActivityName + "\": " + expectedAlternatives + " - want one of those?");
+        assertThat(german).contains("Am nächsten an \"" + expectedActivityName + "\": " + expectedAlternatives);
+    }
+
+    @Test
+    void rejectionSummary_unknownActivityWithoutAlternatives_makesNoOffer() {
+        List<RejectedEdit> rejected = List.of(rejected("Sauna Tour", EditRejectionReason.UNKNOWN_ACTIVITY));
+
+        assertThat(EditMessages.rejectionSummary("en", rejected)).doesNotContain("Closest");
+        assertThat(EditMessages.rejectionSummary("de", rejected)).doesNotContain("nächsten");
+    }
+
+    /** The same unknown name twice (one op per package, say) gets one offer, not one per op. */
+    @Test
+    void rejectionSummary_offersEachUnknownNameOnce() {
+        String expectedActivityName = "strip shows";
+        RejectedEdit unknown = new RejectedEdit(EditOp.ADD, expectedActivityName, null,
+                EditRejectionReason.UNKNOWN_ACTIVITY, expectedActivityName, List.of("Night Club"));
+
+        String summary = EditMessages.rejectionSummary("en", List.of(unknown, unknown));
+
+        assertThat(summary).containsOnlyOnce("Closest to");
+    }
+
     @Test
     void rejectionSummary_unknownLocale_fallsBackToEnglish() {
         List<RejectedEdit> rejected = List.of(rejected("Beer Bike", EditRejectionReason.UNKNOWN_ACTIVITY));

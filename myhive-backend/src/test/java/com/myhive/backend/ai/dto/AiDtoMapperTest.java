@@ -2,7 +2,9 @@ package com.myhive.backend.ai.dto;
 
 import com.myhive.backend.ai.edit.AppliedEdit;
 import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditRejectionReason;
 import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
@@ -91,6 +93,23 @@ class AiDtoMapperTest {
         assertThat(dto.editReport()).isNull();
         assertThat(dto.packages()).hasSize(1);
         assertThat(dto.brief().groupSize()).isEqualTo(brief().groupSize());
+    }
+
+    /** The offer the chat line makes is also served as data, so a client can render it as quick replies. */
+    @Test
+    void generation_servesTheAlternativesOfAnUnknownActivity() {
+        List<String> expectedAlternatives = List.of("Night Club", "Beer Bike");
+        RejectedEdit unknown = new RejectedEdit(EditOp.ADD, "strip shows", null, EditRejectionReason.UNKNOWN_ACTIVITY,
+                "strip shows", expectedAlternatives);
+        AiGeneration generation = editedGeneration(UUID.randomUUID(), JsonCodec.write(
+                new EditReport(List.of(), List.of(unknown), false, false)));
+
+        GenerationDTO dto = mapper.generation(generation);
+
+        assertThat(dto.editReport().rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.UNKNOWN_ACTIVITY.name());
+            assertThat(rejected.alternatives()).isEqualTo(expectedAlternatives);
+        });
     }
 
     @Test

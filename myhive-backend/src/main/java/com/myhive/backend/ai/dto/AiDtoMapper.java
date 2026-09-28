@@ -157,7 +157,7 @@ public class AiDtoMapper {
 
     private static EditDTO.RejectedEditDTO rejectedEdit(RejectedEdit rejected) {
         return new EditDTO.RejectedEditDTO(name(rejected.op()), rejected.activityName(), name(rejected.packageKey()),
-                name(rejected.reason()), rejected.detail());
+                name(rejected.reason()), rejected.detail(), rejected.alternatives());
     }
 
     /** Most of these are optional somewhere in a report (an untargeted package, a removed item's slot). */

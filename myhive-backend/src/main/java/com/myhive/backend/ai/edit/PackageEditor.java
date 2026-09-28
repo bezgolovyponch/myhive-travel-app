@@ -210,7 +210,8 @@ public class PackageEditor {
             return false;
         }
         rejected.add(new RejectedEdit(edit.op(), activity.name(), edit.packageKey(),
-                EditRejectionReason.UNKNOWN_ACTIVITY, activity.name() + " is no longer in the catalog"));
+                EditRejectionReason.UNKNOWN_ACTIVITY, activity.name() + " is no longer in the catalog",
+                offeredAlternatives(edit, catalog.resolvable())));
         return true;
     }
 
@@ -412,10 +413,27 @@ public class PackageEditor {
             }
             case ActivityNameResolver.NotFound ignored -> {
                 String cleaned = PlanAssembler.clean(name);
-                rejected.add(new RejectedEdit(edit.op(), cleaned, null, EditRejectionReason.UNKNOWN_ACTIVITY, cleaned));
+                rejected.add(new RejectedEdit(edit.op(), cleaned, null, EditRejectionReason.UNKNOWN_ACTIVITY, cleaned,
+                        offeredAlternatives(edit, catalog)));
                 yield null;
             }
         };
+    }
+
+    /**
+     * The model's alternatives for a name the catalog lacks, kept only where they resolve to a catalog row
+     * themselves - a suggestion the organizer could not then ask for by name would be one more dead end -
+     * and in the catalog's spelling, so that the next "add X" resolves exactly. Ambiguous ones are dropped
+     * too: an offer that answers with "which one?" is not an offer.
+     */
+    private static List<String> offeredAlternatives(EditRequest edit, List<CatalogActivity> catalog) {
+        Set<String> offered = new LinkedHashSet<>();
+        for (String alternative : edit.alternatives()) {
+            if (ActivityNameResolver.resolve(alternative, catalog) instanceof ActivityNameResolver.Found found) {
+                offered.add(found.activity().name());
+            }
+        }
+        return List.copyOf(offered);
     }
 
     private static List<Tier> targets(PlanDraft working, EditRequest edit, CatalogActivity activity) {

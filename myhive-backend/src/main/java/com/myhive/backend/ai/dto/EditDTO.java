@@ -25,8 +25,10 @@ public record EditDTO(UUID generationId, List<AppliedEditDTO> applied, List<Reje
     /**
      * One edit that could not be applied. {@code packageKey} is null when the rejection happened before the
      * edit was aimed at a package; {@code detail} is a short technical hint, not customer-facing copy — the
-     * chat reply already carries the sentence the group reads.
+     * chat reply already carries the sentence the group reads. {@code alternatives} are catalog names offered
+     * instead of an activity the catalog lacks (exact spelling, ready for "add X"); empty on every other reason.
      */
-    public record RejectedEditDTO(String op, String activity, String packageKey, String reason, String detail) {
+    public record RejectedEditDTO(String op, String activity, String packageKey, String reason, String detail,
+                                  List<String> alternatives) {
     }
 }
