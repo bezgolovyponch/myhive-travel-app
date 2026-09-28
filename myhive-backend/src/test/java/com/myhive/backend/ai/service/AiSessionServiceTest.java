@@ -64,6 +64,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,6 +80,8 @@ class AiSessionServiceTest {
     private final DestinationRepository destinationRepository = mock(DestinationRepository.class);
     private final TurnstileService turnstile = mock(TurnstileService.class);
     private final AiProperties props = new AiProperties();
+    /** Whether the request under test carries a staff token; false is the anonymous public caller. */
+    private boolean staff;
     /** Only for the limit test: the number the UI is shown has to come out of the real mapping. */
     private final AiDtoMapper mapper = new AiDtoMapper(mock(ActivityRepository.class));
     /** Collects the jobs {@code enqueue} submits instead of running them; the graph stays parked. */
@@ -118,7 +121,7 @@ class AiSessionServiceTest {
         when(generationServiceSelf.getObject()).thenReturn(generationService);
         service = new AiSessionService(props, graph, sessionRepository, generationRepository, destinationRepository,
                 generationService, turnstile, new SessionLocks(), new DailySessionCap(props),
-                new ClientIpHasher("salt"));
+                new ClientIpHasher("salt"), () -> staff);
         destination = TestDataFactory.destination("Prague");
         destination.setId(UUID.randomUUID());
         destination.setSlug("prague");
@@ -301,6 +304,30 @@ class AiSessionServiceTest {
                 .isInstanceOf(TurnstileFailedException.class);
         assertThatThrownBy(() -> service.create("prague", "en", null, null, "1.2.3.4"))
                 .isInstanceOf(TurnstileFailedException.class);
+    }
+
+    /** The captcha and the per-network cap are for strangers; a signed-in colleague is neither. */
+    @Test
+    void create_asStaff_skipsTurnstileAndTheDailyCap() {
+        staff = true;
+        props.setTurnstileRequired(true);
+        props.setDailySessionsPerIp(1);
+
+        service.create("prague", "en", null, null, "1.2.3.4");
+        service.create("prague", "en", null, null, "1.2.3.4");
+
+        verify(turnstile, never()).verifyToken(any());
+    }
+
+    @Test
+    void requireEnabled_asStaff_passesWhileThePlannerIsOffForThePublic_unlessThePreviewIsOffToo() {
+        staff = true;
+        props.setEnabled(false);
+
+        service.requireEnabled();
+
+        props.setStaffPreview(false);
+        assertThatThrownBy(service::requireEnabled).isInstanceOf(AiDisabledException.class);
     }
 
     @Test

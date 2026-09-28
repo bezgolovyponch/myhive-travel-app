@@ -6,6 +6,13 @@ edits this file first.
 
 Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](../superpowers/specs/2026-09-15-ai-stag-planner-design.md).
 
+**Staff access** (2026-09-28): a request to any `/ai/**` endpoint that carries an
+admin-console bearer token (`ROLE_ADMIN` / `ROLE_MANAGER`) skips Turnstile and the
+per-network daily session cap, and — while `AI_STAFF_PREVIEW=true`, the default —
+works even when `AI_ENABLED=false`. The admin console's AI planner page
+(`/admin/ai-planner`) sends that token; nothing changes for anonymous callers, and
+the `100 req/min/IP` rate limit still applies to everyone.
+
 **Changes since v1.3** (additive only):
 - The planner now builds the **structure first and the copy second**: the planner
   model returns only ids, slots and days (~8 s instead of ~40), Java validates and

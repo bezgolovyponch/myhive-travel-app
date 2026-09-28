@@ -84,6 +84,7 @@ public class AiSessionService {
     private final SessionLocks locks;
     private final DailySessionCap dailyCap;
     private final ClientIpHasher ipHasher;
+    private final StaffAccess staff;
 
     /**
      * Everything an API response about one chat needs: the row, the graph state and where it is parked.
@@ -135,14 +136,20 @@ public class AiSessionService {
     public SessionView create(String destinationSlug, String locale, String turnstileToken, String initialMessage,
             String clientIp) {
         requireEnabled();
-        if (props.isTurnstileRequired() && (turnstileToken == null || !turnstileService.verifyToken(turnstileToken))) {
+        // The captcha and the per-network daily cap are there for strangers. Staff sign in, and twenty
+        // colleagues behind one office address would otherwise lock each other out by lunch.
+        boolean anonymous = !staff.isStaff();
+        if (anonymous && props.isTurnstileRequired()
+                && (turnstileToken == null || !turnstileService.verifyToken(turnstileToken))) {
             throw new TurnstileFailedException();
         }
         // The slug is validated first: a typo must not cost the caller one of its twenty daily chats.
         Destination destination = destinationRepository.findBySlugWithCategories(destinationSlug)
                 .orElseThrow(() -> new BadRequestException("Unknown destination: " + destinationSlug));
         String ipHash = ipHasher.hash(clientIp);
-        dailyCap.check(ipHash);
+        if (anonymous) {
+            dailyCap.check(ipHash);
+        }
 
         // Translations.normalize() answers null for English; the planner wants a real tag everywhere.
         String translationLocale = Translations.normalize(locale);
@@ -263,9 +270,14 @@ public class AiSessionService {
         });
     }
 
-    /** Public because the controller guards reads of a generation with it, without loading a session. */
+    /**
+     * Public because the controller guards reads of a generation with it, without loading a session.
+     * Staff keep the planner while it is off for the public ({@code app.ai.staff-preview}): that is how
+     * colleagues test it from the admin console before launch, and how a public kill still leaves them
+     * a way to reproduce a problem.
+     */
     public void requireEnabled() {
-        if (!props.isEnabled()) {
+        if (!props.isEnabled() && !(props.isStaffPreview() && staff.isStaff())) {
             throw new AiDisabledException();
         }
     }

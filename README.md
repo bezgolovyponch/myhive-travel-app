@@ -186,6 +186,7 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 | `AI_CHAT_TIMEOUT`        | no          | `20s` |
 | `AI_PLANNER_TIMEOUT`     | no          | `60s` |
 | `AI_TURNSTILE_REQUIRED`  | no          | `false` (dev) / `true` (prod) — gates `POST /ai/sessions` on `turnstileToken` |
+| `AI_STAFF_PREVIEW`       | no          | `true` — an ADMIN/MANAGER token on `/ai/**` skips Turnstile and the daily cap, and keeps the planner usable while `AI_ENABLED=false` (the admin console's **AI planner** page) |
 | `AI_IP_SALT`             | no          | `trivlu-ai` (server salt hashed into `client_ip_hash`, used only for the per-IP daily session cap and abuse review) |
 
 ### Frontend (build-time `REACT_APP_*`)

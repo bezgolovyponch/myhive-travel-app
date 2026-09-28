@@ -20,6 +20,8 @@ public class AiProperties {
     /** The copy call after a generation: ~1.5k tokens of prose, more than a chat turn's budget allows. */
     private Duration textsTimeout = Duration.ofSeconds(40);
     private boolean turnstileRequired = false;
+    /** Staff (ADMIN/MANAGER token) may use the planner while {@link #enabled} is off for the public. */
+    private boolean staffPreview = true;
     private int sessionTtlDays = 30;
     private int dailySessionsPerIp = 20;
 }

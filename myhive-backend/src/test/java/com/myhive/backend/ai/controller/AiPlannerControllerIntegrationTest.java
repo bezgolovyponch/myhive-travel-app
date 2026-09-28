@@ -36,6 +36,7 @@ import com.myhive.backend.repository.AiGenerationRepository;
 import com.myhive.backend.repository.AiSessionRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.util.JwtTestHelper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -806,6 +807,36 @@ class AiPlannerControllerIntegrationTest {
                         .content(CREATE_BODY.formatted("no-such-destination")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error", is("Bad Request")));
+    }
+
+    /**
+     * Staff test the planner from the admin console with their own token: it lifts the captcha, the
+     * daily cap and the public kill switch, and changes nothing for the anonymous caller next to them.
+     */
+    @Test
+    void createSession_withAStaffJwt_needsNoTurnstile_andWorksWhileThePlannerIsOffForThePublic() throws Exception {
+        aiProperties.setTurnstileRequired(true);
+        aiProperties.setEnabled(false);
+        aiProperties.setDailySessionsPerIp(1);
+        try {
+            for (int attempt = 0; attempt < 2; attempt++) {
+                mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
+                                .with(JwtTestHelper.managerJwt())
+                                .header("CF-Connecting-IP", testClientIp)
+                                .content(CREATE_BODY.formatted(destination.getSlug())))
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.status", is("COLLECTING")));
+            }
+            mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
+                            .header("CF-Connecting-IP", testClientIp)
+                            .content(CREATE_BODY.formatted(destination.getSlug())))
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(jsonPath("$.error", is("AI_DISABLED")));
+        } finally {
+            aiProperties.setTurnstileRequired(false);
+            aiProperties.setEnabled(true);
+            aiProperties.setDailySessionsPerIp(new AiProperties().getDailySessionsPerIp());
+        }
     }
 
     private String createSession() throws Exception {

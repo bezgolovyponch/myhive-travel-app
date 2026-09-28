@@ -10,6 +10,7 @@ import AdminCategories from './pages/AdminCategories';
 import AdminDestinations from './pages/AdminDestinations';
 import AdminBlog from './pages/AdminBlog';
 import AdminContacts from './pages/AdminContacts';
+import AdminAiPlanner from './pages/AdminAiPlanner';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function AdminIndex() {
@@ -40,6 +41,8 @@ function AdminApp() {
                     <Route path="blog" element={<AdminBlog/>}/>
                     <Route path="contacts"
                            element={<ProtectedRoute requiredRole={['ADMIN']}><AdminContacts/></ProtectedRoute>}/>
+                    <Route path="ai-planner"
+                           element={<ProtectedRoute requiredRole={['ADMIN', 'MANAGER']}><AdminAiPlanner/></ProtectedRoute>}/>
                 </Route>
             </Routes>
         </AuthProvider>
