@@ -50,6 +50,11 @@ class PromptRendererTest {
                 .contains(String.join(", ", expectedCatalogNames))
                 .contains("Edit rules:")
                 .contains("\"edits\"");
+        // A request for something the catalog lacks must surface as an edit (and then a rejection the
+        // organizer can read), not vanish: the first live "add some strip shows" was dropped silently.
+        assertThat(prompt).contains("NOT in the catalog: still emit the edit")
+                .contains("never drop it silently")
+                .contains("\"remove X and add Y\" is two edits");
     }
 
     @Test

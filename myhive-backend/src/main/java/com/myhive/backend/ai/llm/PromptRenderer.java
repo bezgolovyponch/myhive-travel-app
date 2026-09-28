@@ -31,7 +31,10 @@ public class PromptRenderer {
             Catalog activity names (use these exact names in edits): %s
             Edit rules:
             - If the organizer asks to add, remove or swap a specific activity, put it in "edits" and do not change the brief for it.
-            - Use exact catalog names. packageKey null means every package; set it only if the organizer names a package.
+            - Use exact catalog names when the activity exists.
+            - Something NOT in the catalog: still emit the edit with the organizer's own words as "activity" - never drop it silently, never substitute another activity; the system tells them it is not on offer.
+            - One edit per request: "remove X and add Y" is two edits, even if Y does not exist.
+            - packageKey null means every package; set it only if the organizer names a package.
             - Reply with one short sentence saying you are doing it now; never claim it is done.
             - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.
             """;
