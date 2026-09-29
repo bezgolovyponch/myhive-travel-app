@@ -1,8 +1,8 @@
 # AI planner: diagnostics, strict schema, UI presets, suggested replies, keyword copy
 
-Branch: `feat/ai-planner-diagnostics-and-structure` → `main` · 2 commits · 51 files, +1222 / −93
+Branch: `feat/ai-planner-diagnostics-and-structure` → `main` · 2 code commits (51 files, +1222 / −93) plus this summary
 
-Commits:
+Code commits:
 - `9239671` feat(ai-planner): rejection diagnostics, strict JSON schema, includes, nights, explicit slot windows
 - `8412161` feat(ai-planner): UI presets, suggested replies, catalog pairing follow-ups, keyword copy
 
@@ -15,9 +15,9 @@ The research results behind the second commit are in
   the model call had timed out, been unreachable or returned unparseable JSON, and the real reason was only in the
   server log.
 - Group size and dates will be chosen in the UI, so the chat should start on taste instead of asking for them.
-- Competitor packages follow one pattern: a night out every night, one daytime activity that names the package, and a
-  centrepiece with an extra (dinner with a show, boat with unlimited drinks). The chat now asks about those
-  variants with one plain question and offers chips.
+- In a sample of 33 ready-made packages from 4 operators, most follow one pattern: a night out (29/33), one daytime
+  activity that names the package, and a centrepiece with an extra (dinner with a show, boat with unlimited drinks).
+  The chat now asks about those variants with one plain question and offers chips.
 - Package copy was prose; it is now scannable keyword lines.
 
 ## What changed
@@ -49,8 +49,10 @@ The research results behind the second commit are in
 
 ### 6. Suggested replies
 - `SessionState.suggestedReplies` and `TurnResponse.suggestedReplies`: 0–4 tap-to-send chips, each ≤ 60 characters, never `null`.
-- Opening chips are the most repeated competitor bundles (night out 29/33 packages, shooting 13/33, dinner with a show 11/33,
-  prank 10/33, karting 7/33). A chip is only shown if the destination has the categories to deliver it.
+- Opening chips are the most repeated competitor bundles, in this order: night out 29/33 packages, shooting 13/33,
+  dinner with a show 11/33, prank 10/33. A chip is only shown if the destination has the categories to deliver it
+  (dinner with a show needs `dining` plus `show` or `adult`). At most 4 are shown; karting (7/33) only fills in when an
+  earlier one is unavailable.
 - After that, the model writes the chips, and they answer the question it just asked.
 
 ### 7. Pairing follow-up
@@ -60,7 +62,7 @@ The research results behind the second commit are in
 
 ### 8. Keyword copy
 - Package copy, copy after an edit, and chat replies use keyword lines, e.g. `• Karting - 2 × 10 min`, `Karting → Steak dinner → Club`.
-  Hype words, emoji and markdown are banned.
+  Hype words, emoji and markdown are banned. Inclusions may only be stated when the catalog's `includes` says so.
 - `PlanAssembler.clean` now keeps single line breaks and still strips tags and extra whitespace.
 
 ### 9. Admin bench (`myhive-react-app`)
@@ -115,6 +117,9 @@ The research results behind the second commit are in
 
 - The package-structure suggestions from the concept doc (one skeleton per tier, variant ladders, accommodation/transfers).
   They are listed there and not applied.
-- The generation-performance suggestions (P1–P6 in the concept doc).
+- The generation-performance suggestions (P1–P6 in the concept doc). Among them P2: the job's worst case (160 s) is
+  longer than the 90 s the API doc tells the frontend to poll, and this PR does not change that.
+- Packages are not yet named after their hero activity (concept item 3); the copy prompt only asks for keyword titles.
+- The concept doc's "earlier audit, D1/D2" is on the unmerged branch `audit/ai-package-generator-vs-competitors`.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
