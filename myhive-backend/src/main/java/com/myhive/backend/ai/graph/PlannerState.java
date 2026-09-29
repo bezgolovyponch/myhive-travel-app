@@ -61,6 +61,8 @@ public class PlannerState extends AgentState {
     public static final String EDITS_LEFT = "editsLeft";
     /** The tap-to-send answers offered under the latest assistant message; replaced every turn. */
     public static final String SUGGESTED_REPLIES = "suggestedReplies";
+    /** Set when the first build was held back for a pairing question, so that it is held back only once. */
+    public static final String PAIRING_ASKED = "pairingAsked";
 
     /** Nothing to do but wait for the next user message. */
     public static final String ACTION_NONE = "NONE";
@@ -119,6 +121,10 @@ public class PlannerState extends AgentState {
 
     public List<String> suggestedReplies() {
         return this.<List<String>>value(SUGGESTED_REPLIES).orElse(List.of());
+    }
+
+    public boolean pairingAsked() {
+        return this.<Boolean>value(PAIRING_ASKED).orElse(false);
     }
 
     public List<String> categorySlugs() {

@@ -233,6 +233,101 @@ class ChatTurnNodeTest {
         assertThat(update.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(expectedReplies);
     }
 
+    /** The build starts on this turn and every message is refused until it lands: nobody could answer. */
+    @Test
+    void generationStart_replacesAReplyThatAsksSomething_andDropsItsChips() {
+        String expectedReply = "On it - building your three options now.";
+        llm.queueChat(new ChatTurnResult("Got it. When do you land on day 1 and leave on the last day?", readyBrief(),
+                List.of(), List.of(), LlmUsage.none(), List.of("Arrive evening", "Arrive morning")));
+        Map<String, Object> state = baseState(Brief.empty());
+        state.put(PlannerState.CATALOG, JsonCodec.write(catalog()));
+
+        Map<String, Object> update = node.apply(new PlannerState(state));
+
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
+        assertThat(messagesOf(update)).singleElement()
+                .satisfies(message -> assertThat(message.get("content")).isEqualTo(expectedReply));
+        assertThat(update.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(List.of());
+        assertThat(update).doesNotContainKey(PlannerState.PAIRING_ASKED);
+    }
+
+    @Test
+    void generationStart_keepsAReplyThatAsksNothing_andAnswersInGermanWhenItHasToReplaceOne() {
+        String expectedReply = "Perfect, building three options now.";
+        String expectedGermanReply = "Alles klar - ich baue jetzt eure drei Optionen.";
+        llm.queueChat(new ChatTurnResult(expectedReply, readyBrief(), List.of(), List.of(), LlmUsage.none(),
+                        List.of("Whatever")),
+                new ChatTurnResult("Wann landet ihr?", readyBrief(), List.of(), List.of(), LlmUsage.none(), List.of()));
+        Map<String, Object> german = baseState(Brief.empty());
+        german.put(PlannerState.LOCALE, "de");
+
+        Map<String, Object> kept = node.apply(new PlannerState(baseState(Brief.empty())));
+        Map<String, Object> replaced = node.apply(new PlannerState(german));
+
+        assertThat(messagesOf(kept).get(0).get("content")).isEqualTo(expectedReply);
+        assertThat(kept.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(List.of());
+        assertThat(messagesOf(replaced).get(0).get("content")).isEqualTo(expectedGermanReply);
+    }
+
+    /**
+     * The pairing follow-up: a question whose chips name catalog activities is worth one more turn before
+     * the first build - and only one, whatever the model asks after it.
+     */
+    @Test
+    void aQuestionAboutCatalogVariants_holdsTheFirstBuildBack_once() {
+        String expectedQuestion = "Beer bike or karting?";
+        List<String> expectedChips = List.of(ACTIVITY_NAME, REPLACEMENT_NAME);
+        llm.queueChat(new ChatTurnResult(expectedQuestion, readyBrief(), List.of(), List.of(), LlmUsage.none(),
+                        expectedChips),
+                new ChatTurnResult("And one more - beer bike or karting?", Brief.empty(), List.of(), List.of(),
+                        LlmUsage.none(), expectedChips));
+        Map<String, Object> state = baseState(Brief.empty());
+        state.put(PlannerState.CATALOG, JsonCodec.write(catalog()));
+
+        Map<String, Object> held = node.apply(new PlannerState(state));
+        state.put(PlannerState.BRIEF, held.get(PlannerState.BRIEF));
+        state.put(PlannerState.PAIRING_ASKED, held.get(PlannerState.PAIRING_ASKED));
+        Map<String, Object> built = node.apply(new PlannerState(state));
+
+        assertThat(held.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(held).containsEntry(PlannerState.PAIRING_ASKED, true);
+        assertThat(messagesOf(held).get(0).get("content")).isEqualTo(expectedQuestion);
+        assertThat(held.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(expectedChips);
+        assertThat(built.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
+        assertThat(built.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(List.of());
+    }
+
+    /** What the catalog can deliver, not what is assigned to the destination: nightlife and karting here. */
+    @Test
+    void seedTurn_offersTheOpeningChipsTheCatalogCanDeliver() {
+        CatalogSnapshotter snapshotter = mock(CatalogSnapshotter.class);
+        when(snapshotter.snapshot(any(), any(), any())).thenReturn(catalog());
+        ChatTurnNode seeding = new ChatTurnNode(llm, snapshotter);
+        Map<String, Object> state = baseState(Brief.empty());
+        state.put(PlannerState.CATEGORY_SLUGS, List.of());
+        state.put(PlannerState.ACTION, PlannerState.ACTION_SEED);
+
+        Map<String, Object> update = seeding.apply(new PlannerState(state));
+
+        assertThat(update.get(PlannerState.SUGGESTED_REPLIES))
+                .isEqualTo(List.of("Bar crawl + club night", "Karting by day, club by night"));
+    }
+
+    /** A catalog that cannot be read costs the chips and the follow-ups, never the chat that was just opened. */
+    @Test
+    void seedTurn_whenTheCatalogCannotBeRead_stillParksTheThread() {
+        CatalogSnapshotter snapshotter = mock(CatalogSnapshotter.class);
+        when(snapshotter.snapshot(any(), any(), any())).thenThrow(new IllegalStateException("database down"));
+        ChatTurnNode seeding = new ChatTurnNode(llm, snapshotter);
+        Map<String, Object> state = baseState(Brief.empty());
+        state.put(PlannerState.ACTION, PlannerState.ACTION_SEED);
+
+        Map<String, Object> update = seeding.apply(new PlannerState(state));
+
+        assertThat(update).containsEntry(PlannerState.ACTION, PlannerState.ACTION_NONE)
+                .doesNotContainKey(PlannerState.CATALOG).doesNotContainKey(PlannerState.SUGGESTED_REPLIES);
+    }
+
     @Test
     void seedTurn_snapshotsTheCatalogWithoutCallingTheModel() {
         CatalogSnapshotter snapshotter = mock(CatalogSnapshotter.class);

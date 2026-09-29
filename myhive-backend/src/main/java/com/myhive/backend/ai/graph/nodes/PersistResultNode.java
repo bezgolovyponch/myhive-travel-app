@@ -92,10 +92,23 @@ public class PersistResultNode implements NodeAction<PlannerState> {
         if (!sink.ready(generationId.get(), plan, state.degraded(), state.usage(), state.attempt())) {
             return Optional.empty();
         }
-        if (!state.attemptLog().isEmpty()) {
-            sink.diagnostics(generationId.get(), state.attemptLog());
-        }
+        storeDiagnostics(sink, generationId.get(), state);
         return generationId;
+    }
+
+    /**
+     * The plan is stored by now, so nothing here may throw: the staff-only notes about its rejected drafts
+     * must not cost the packages, and an exception escaping a node leaves the thread mid-branch.
+     */
+    private static void storeDiagnostics(GenerationResultSink sink, UUID generationId, PlannerState state) {
+        try {
+            List<AttemptDiagnostic> attempts = state.attemptLog();
+            if (!attempts.isEmpty()) {
+                sink.diagnostics(generationId, attempts);
+            }
+        } catch (RuntimeException e) {
+            log.warn("planner diagnostics not stored generation={} error={}", generationId, e.getClass().getName());
+        }
     }
 
     private GenerationResultSink sink() {

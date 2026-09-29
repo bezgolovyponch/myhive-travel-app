@@ -170,7 +170,10 @@ contains the agent's first reply; otherwise `messages` holds only the greeting.
 Picker values land in `brief` as-is and the chat never asks for them again. With
 `days` and `groupSize` both set the greeting skips them and asks what the weekend
 should be built around; `suggestedReplies` then holds the opening chips (the most
-repeated stag bundles the destination's categories can deliver, at most four).
+repeated stag bundles the destination's **catalog** can deliver, at most four). What
+counts is what is on sale - the words of the activities' names and category slugs -
+not the categories assigned to the destination, so a destination with none assigned
+still gets its chips.
 
 If that inline first turn cannot reach the model, the call is **still `201`** — not
 `502`. The session, its greeting and the user's message are all stored, and
@@ -215,6 +218,17 @@ the question in the reply, written as the organizer would type them — render t
 chips that send their own text. When the organizer picks something the catalog sells
 in variants (a dinner with or without a show, a boat with unlimited drinks), the
 reply asks one either/or question and the chips name those catalog variants.
+
+On the turn that starts a generation (`generation` is set) the reply never asks
+anything and `suggestedReplies` is empty: every message is refused with
+`GENERATION_IN_PROGRESS` until the packages land, so there would be nothing to tap.
+If the model asks anyway, its reply is replaced with a stock "building your three
+options" line. The one exception to "the brief is complete, build now" is the
+pairing question above: when the reply asks something and at least two of its chips
+name catalog activities, the **first** build is held back for that one answer -
+`readyToGenerate` is `true`, `generation` is `null`, the chips are there to tap -
+and the next message starts it whatever it says. Once per chat, and only before the
+first packages.
 
 `edit` is `null` on every turn that carried no edit ops — and also on the turn
 that both changed the brief and asked for one, where the regeneration wins (see

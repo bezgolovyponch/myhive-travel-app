@@ -57,7 +57,7 @@ public final class TestPlannerGraphs {
         PlanValidator validator = new PlanValidator();
         PlanAssembler assembler = new PlanAssembler();
         PlannerGraph.Nodes nodes = new PlannerGraph.Nodes(
-                new ChatTurnNode(llm),
+                new ChatTurnNode(llm, snapshotter),
                 new SnapshotCatalogNode(snapshotter),
                 new ComposeNode(llm),
                 new ValidateNode(validator, assembler),

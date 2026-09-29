@@ -102,4 +102,28 @@ class PersistResultNodeTest {
 
         assertThat(received).containsExactly(expectedGenerationId, expectedLog);
     }
+
+    /** The plan is stored by then; the staff-only notes about its rejected drafts must not cost it. */
+    @Test
+    void aFailingDiagnosticsWrite_doesNotCostTheStoredPlan() {
+        UUID expectedGenerationId = UUID.randomUUID();
+        PersistResultNode node = new PersistResultNode(new PersistResultNode.GenerationResultSink() {
+            @Override
+            public boolean ready(UUID generationId, ComposedPlan plan, boolean degraded, LlmUsage usage, int attempt) {
+                return true;
+            }
+
+            @Override
+            public void diagnostics(UUID generationId, List<AttemptDiagnostic> attempts) {
+                throw new IllegalStateException("database down");
+            }
+        });
+        Map<String, Object> values = new HashMap<>(stateWith(expectedGenerationId).data());
+        values.put(PlannerState.ATTEMPT_LOG,
+                JsonCodec.write(List.of(new AttemptDiagnostic(0, "LLM_TIMEOUT", List.of()))));
+
+        Map<String, Object> update = node.apply(new PlannerState(values));
+
+        assertThat(update).containsEntry(PlannerState.RESULT_GENERATION_ID, expectedGenerationId.toString());
+    }
 }

@@ -453,7 +453,8 @@ public class AiSessionService {
         seed.put(PlannerState.CATEGORY_SLUGS, categorySlugs);
         seed.put(PlannerState.BRIEF, JsonCodec.write(preset));
         seed.put(PlannerState.MESSAGES, List.of(PlannerState.message(ChatMessage.ASSISTANT, greeting(lc, preset))));
-        seed.put(PlannerState.SUGGESTED_REPLIES, OpeningReplies.forCategories(categorySlugs, lc));
+        // The opening chips are not seeded here: they depend on what the catalog can deliver, and the
+        // catalog is read by the seed turn itself (ChatTurnNode), which writes them next to its snapshot.
         return seed;
     }
 

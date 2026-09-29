@@ -425,7 +425,9 @@ class PlannerGraphTest {
     @Test
     void awaitGeneration_resumedWithAUserMessage_answersInChatInsteadOfBuildingAPlan() {
         UUID token = threadParkedAtAwaitGeneration();
-        String expectedReply = "Sure - what would you change?";
+        // No question mark on purpose: this turn starts a build, and a reply that asks something on such a
+        // turn is replaced with the stock building line (see BuildingReply).
+        String expectedReply = "Sure - tell me what you would change.";
         llm.queueChat(turn(expectedReply, Brief.empty()));
 
         graph.update(token, Map.of(PlannerState.RESUME_REASON, ResumeReason.USER_MESSAGE.name(),
@@ -720,7 +722,9 @@ class PlannerGraphTest {
      */
     @Test
     void aGenerationThatDiedMidBranch_doesNotHijackTheNextChatTurn() {
-        String expectedReply = "Sure - what would you change?";
+        // No question mark on purpose: this turn starts a build, and a reply that asks something on such a
+        // turn is replaced with the stock building line (see BuildingReply).
+        String expectedReply = "Sure - tell me what you would change.";
         when(snapshotter.snapshot(any(), any(), any()))
                 .thenThrow(new IllegalStateException("catalog unavailable"))
                 .thenReturn(catalog);

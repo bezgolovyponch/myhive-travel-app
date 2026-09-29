@@ -113,6 +113,30 @@ The research results behind the second commit are in
 5. Once packages are built, check that the copy is keyword lines, that cards show nights and includes, and that a degraded run
    prints one line per rejected draft.
 
+## Fixes after the first live run (2026-09-29)
+
+The branch was run against the model (OpenRouter, `qwen/qwen3.7-plus`) and the production catalog was checked:
+
+- **The chat asked while the build had already started: 4 runs out of 4.** With presets set, the first taste message
+  completes the brief and Java starts the generation, but the reply still asked a question and offered chips (three
+  times about the arrival and departure the presets had set). `ChatTurnNode` now drops the chips on the turn that
+  starts a generation and replaces a reply that asks something with a stock "building your three options" line.
+- **The pairing follow-up never got its turn**, for the same reason. The first build is now held back once for a
+  question about catalog variants, recognised by its chips: at least two of them name catalog activities. The next
+  message starts the build whatever it says (`PlannerState.PAIRING_ASKED`).
+- **Opening chips were empty on dev and would be on production.** They read the categories assigned to the
+  destination, which Prague has none of in production, and the hooks used seed-data slugs (`shooting`, `dining`,
+  `prank`, `driving`) where production has `guns-and-bullets`, `food-and-drink`, `stag-hot-babies-and-pranks`.
+  `OpeningReplies` moved to `ai.catalog` and now reads the catalog snapshot: whole words of activity names and
+  category slugs. The seed turn writes the chips next to its snapshot.
+- **Guards:** the diagnostics write in `PersistResultNode` and the seed-time catalog snapshot can no longer throw
+  out of a node; `includes` is cut to 200 characters like the one-liner (production texts run to 454).
+- **Verified live:** strict `json_schema` is accepted through Spring AI (compose 7.6 s, 375 tokens); keyword copy
+  cut the texts phase from 12-14 s to about 8 s.
+
+Still open, and not addressed here: every live generation ended `degraded` on `DAY_OVER_MINUTES` (PREMIUM day 2).
+The explicit slot windows do not touch it; the diagnostics now show it to staff.
+
 ## Not in this PR
 
 - The package-structure suggestions from the concept doc (one skeleton per tier, variant ladders, accommodation/transfers).

@@ -24,6 +24,11 @@ public class CatalogSnapshotter {
     public static final int MAX_ACTIVITIES = 80;
     public static final int DEFAULT_DURATION_MINUTES = 120;
     public static final int ONE_LINE_MAX = 160;
+    /**
+     * "What is included" goes into the planner prompt once per catalog row and into every item of every
+     * stored plan, so it is cut like the one-liner: production texts run to 450 characters.
+     */
+    public static final int INCLUDES_MAX = 200;
 
     private final ActivityRepository activityRepository;
 
@@ -64,25 +69,32 @@ public class CatalogSnapshotter {
                 a.getMinPrice(),
                 a.getImageUrl(),
                 a.getCategories().stream().map(Category::getSlug).sorted().toList(),
-                blankToNull(Translations.pick(tr, lc, "includes", a.getIncludes())));
+                includes(Translations.pick(tr, lc, "includes", a.getIncludes())));
     }
 
-    private static String blankToNull(String text) {
-        return text == null || text.isBlank() ? null : text.replaceAll("\\s+", " ").strip();
+    /** Flattened and cut like {@link #oneLine}; an activity that lists nothing has none rather than "". */
+    static String includes(String text) {
+        String cut = cut(text, INCLUDES_MAX);
+        return cut.isEmpty() ? null : cut;
     }
 
     /** A word boundary found earlier than this would throw away most of the line; hard-cut instead. */
     private static final int MIN_WORD_CUT = 40;
 
     static String oneLine(String description) {
-        if (description == null) {
+        return cut(description, ONE_LINE_MAX);
+    }
+
+    /** One line, at most {@code max} characters, cut at a word boundary where there is a sensible one. */
+    private static String cut(String text, int max) {
+        if (text == null) {
             return "";
         }
-        String flat = description.replaceAll("\\s+", " ").strip();
-        if (flat.length() <= ONE_LINE_MAX) {
+        String flat = text.replaceAll("\\s+", " ").strip();
+        if (flat.length() <= max) {
             return flat;
         }
-        int cut = flat.lastIndexOf(' ', ONE_LINE_MAX - 1);
-        return flat.substring(0, cut > MIN_WORD_CUT ? cut : ONE_LINE_MAX - 1) + "…";
+        int cut = flat.lastIndexOf(' ', max - 1);
+        return flat.substring(0, cut > MIN_WORD_CUT ? cut : max - 1) + "…";
     }
 }

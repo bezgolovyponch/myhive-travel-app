@@ -37,7 +37,6 @@ import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
-import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.repository.ActivityRepository;
@@ -51,7 +50,6 @@ import org.springframework.beans.factory.ObjectProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -258,13 +256,17 @@ class AiSessionServiceTest {
         assertThat(llm.chatRequests).isEmpty();
     }
 
-    /** The pickers set days and group size: the chat opens on taste, and the chips answer that question. */
+    /**
+     * The pickers set days and group size: the chat opens on taste, and the chips answer that question.
+     * The chips come from what the catalog sells - the destination here has no categories assigned at
+     * all, which is how Prague is set up in production.
+     */
     @Test
     void create_withAPreset_keepsItInTheBrief_greetsOnTaste_andSeedsOpeningChips() {
         Brief expectedPreset = new Brief(3, 8, List.of(), null, null, null, DayEdge.EVENING, DayEdge.MORNING, null);
-        Category nightlife = new Category();
-        nightlife.setSlug("nightlife");
-        destination.setCategories(new HashSet<>(List.of(nightlife)));
+        when(snapshotter.snapshot(any(), any(), any())).thenReturn(List.of(new CatalogActivity(UUID.randomUUID(),
+                "prague-pub-crawl", "Prague Pub Crawl", "Five bars", 240, true, new BigDecimal("25.00"), null, null,
+                List.of("nightlife"))));
 
         AiSessionService.SessionView view = service.create("prague", "en", null, null, "1.2.3.4", expectedPreset);
 
