@@ -1035,7 +1035,8 @@ class AiSessionServiceTest {
     @Test
     void anOrdinaryTurn_handsBackOnlyItsOwnReply() {
         AiSession session = startedSession();
-        String expectedReply = "Sure, tell me more.";
+        // A question, as every reply is while the brief has gaps: one that asks nothing gets one added.
+        String expectedReply = "Sure - what else should I know?";
         llm.queueChat(turn("How many days?", Brief.empty()), turn(expectedReply, Brief.empty()));
         service.message(session.getToken(), "hello");
 

@@ -37,6 +37,8 @@ class PromptRendererTest {
                 .contains(String.join(", ", expectedCategorySlugs))
                 .contains("\"categorySlugs\":[\"" + expectedBriefCategory + "\"]");
         assertThat(prompt).contains("building three options right now");
+        // Where the taste goes: filed under the notes, Java did not find it and the chat promised a build.
+        assertThat(prompt).contains("ALWAYS goes into \"vibe\"").contains("set \"vibe\" to \"open to anything\"");
     }
 
     @Test

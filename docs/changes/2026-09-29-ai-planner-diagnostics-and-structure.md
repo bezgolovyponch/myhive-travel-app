@@ -207,12 +207,39 @@ Tests: backend `./gradlew test` 1172, 0 failed, 6 skipped (25 new); CRA Jest 625
   minutes: it fills every slot it is given. Java takes one or two activities back out of most MEDIUM and PREMIUM
   days, so the packages are valid and the model's own but thinner than they could be. The fix belongs in the
   planner prompt (or in giving the model the minutes left per day), not here.
-- **The chat said "Building three options right now." and built nothing** (1 session in 38). It had filed
-  "likes beer, karting" under `notes`, so `Brief.missingFields()` still listed `preferences`; "just build it" got
-  the same sentence again. Either `notes` counts as taste, or a reply that announces a build while the brief is
-  incomplete has to be replaced with the question for what is missing - the mirror image of `BuildingReply`.
 - **A package title can name an activity the package does not contain** ("Karting · …" with no karting in the
   catalog): the copy call takes it from the brief.
+
+## The chat promised a build it had not started (2026-09-29)
+
+One live session in 38 could not be got out of. The entry screen had set days, group size, arrival and departure;
+the organizer wrote "We like beer, karting and a big night out"; the model filed it as `notes: "likes beer,
+karting"`, left `vibe` empty and answered "Building three options right now." Java looks for taste in
+`categorySlugs` and `vibe`, found none, and started nothing. "Just build it" got the same sentence again.
+
+The prompt never said what `notes` is for. Three changes, the first for the cause and two for when it happens anyway:
+
+- **Prompt** (`chat-system.st`): what the group is into always goes into `vibe`, never into `notes`; `notes` is for
+  a fact that fits no other field. "Anything", "surprise us", "just build it" is an answer too and sets `vibe` to
+  "open to anything".
+- **Notes read as taste** (`Brief.withNotesAsTaste`, called by `ChatTurnNode`): when taste is the only gap, there
+  are notes, and the reply asks nothing, the notes become the vibe and the build starts. Not while the chat is still
+  asking: "my brother's stag" is a note, and the answer about taste is on its way.
+- **No reply without a move** (`MissingFieldQuestion`, the mirror image of `BuildingReply`): a reply that asks
+  nothing while the brief still has a gap gets the question for that gap, EN/DE. When the model reported nothing
+  missing it was announcing a build, so the question replaces the reply; when it knew of the gap, the question
+  follows what it said. The taste question comes with the opening chips of the catalog.
+
+Both Java rules log one INFO line when they act (`planner chat read the notes as taste`,
+`planner chat asked nothing with the brief incomplete gap=[…] question=replaced the reply`) - field names only.
+
+**Live:** four scripted sessions, seven turns, among them the message that had got stuck and "just build it" as the
+very first message: no turn without a move, every build that was announced was running. In all four the prompt
+change was enough - the taste landed in `vibe`, "just build it" became `vibe: "open to anything"` - so the two Java
+rules did not have to act and are covered by unit tests only.
+
+Tests: backend `./gradlew test` 1185, 0 failed, 6 skipped (13 new). Two existing tests had a fake reply that asked
+nothing on an empty brief; they ask now.
 
 ## Not in this PR
 

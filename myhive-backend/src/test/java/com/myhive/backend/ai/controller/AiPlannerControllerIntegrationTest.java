@@ -430,7 +430,8 @@ class AiPlannerControllerIntegrationTest {
     @Test
     void editTurn_beforeAnyGeneration_returnsNoPackagesYet() throws Exception {
         String token = createSession();
-        llm.queueChat(chatTurn("Let us sort the dates first.", Brief.empty(),
+        // A question, as every reply is while the brief has gaps: one that asks nothing gets one added.
+        llm.queueChat(chatTurn("Let us sort the dates first - how many days?", Brief.empty(),
                 List.of(replaceRequest(activities.get(BASIC_INDEX).getName(),
                         activities.get(REPLACEMENT_INDEX).getName()))));
 
@@ -448,7 +449,7 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.generation").value(nullValue()))
                 // Both assistant messages of the turn: the reply and the "let us build them first" note.
                 .andExpect(jsonPath("$.messages", hasSize(2)))
-                .andExpect(jsonPath("$.messages[0].content", is("Let us sort the dates first.")))
+                .andExpect(jsonPath("$.messages[0].content", is("Let us sort the dates first - how many days?")))
                 .andExpect(jsonPath("$.messages[1].content", is(EditMessages.noPackagesYet("en"))))
                 .andExpect(jsonPath("$.message.content", is(EditMessages.noPackagesYet("en"))));
     }

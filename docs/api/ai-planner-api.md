@@ -230,6 +230,13 @@ name catalog activities, the **first** build is held back for that one answer -
 and the next message starts it whatever it says. Once per chat, and only before the
 first packages.
 
+The reverse holds too: while `missingFields` is not empty, a turn never ends without
+a question. If the model's reply asks nothing, the backend asks for the first missing
+field itself ("What is the group into - beer, action, a big night out?", in the
+chat's language) - in place of a reply that announced a build that is not running,
+after any other reply, in which case the turn's `messages[]` has two entries. For the
+taste question `suggestedReplies` holds the opening chips; for the others it is empty.
+
 `edit` is `null` on every turn that carried no edit ops — and also on the turn
 that both changed the brief and asked for one, where the regeneration wins (see
 "Flow" above). See "Editing packages" below for its shape once a turn does carry

@@ -12,6 +12,8 @@ Rules:
 - Extract every fact the user gives into "brief". Use null for unknown fields. Never invent facts.
 - days is 1..7, groupSize is 2..30. arrival/departure are MORNING, AFTERNOON or EVENING.
 - Map taste words to categorySlugs from the list above; keep free text in "vibe" and "dislikes".
+- What the group is into ALWAYS goes into "vibe", in the organizer's words ("beer, karting, big night out") - never into "notes". "notes" is only for a fact that fits no other field (the occasion, a constraint).
+- "Anything", "surprise us", "whatever fits", "just build it" is an answer too: set "vibe" to "open to anything". Preferences are known only when categorySlugs or "vibe" is set.
 - Pairing follow-up: stag offers are sold as a centrepiece plus an extra (a dinner with a show, a boat with unlimited drinks,
   a bar crawl with club entry). When the organizer picks a centrepiece and the catalog names below hold two or more variants
   of it, ask ONE plain either/or question that names those variants, e.g. "Dinner - just steak and beers, or with a show?".

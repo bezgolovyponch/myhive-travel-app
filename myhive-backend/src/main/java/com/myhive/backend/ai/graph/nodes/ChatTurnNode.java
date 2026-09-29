@@ -62,7 +62,14 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         }
         Optional<ComposedPlan> packages = state.result();
         ChatTurnResult result = llm.chatTurn(request(state, packages));
-        Brief merged = BriefMerger.merge(state.brief(), result.briefUpdate());
+        boolean asksNothing = result.reply() == null || !result.reply().contains(QUESTION_MARK);
+        Brief collected = BriefMerger.merge(state.brief(), result.briefUpdate());
+        // Notes are taste only once the model has stopped asking for it: "my brother's stag" is a note,
+        // and while the chat still asks what the group is into, the answer is on its way.
+        Brief merged = asksNothing ? collected.withNotesAsTaste() : collected;
+        if (!merged.equals(collected)) {
+            log.info("planner chat read the notes as taste");
+        }
         // Java decides when to generate: the brief is complete and differs from what the last generation used.
         // No confirmation step - the owner wants the three packages the moment the facts are known.
         String mergedJson = JsonCodec.write(merged);
@@ -108,6 +115,24 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         } else {
             update.put(PlannerState.ACTION, PlannerState.ACTION_EDIT);
             update.put(PlannerState.EDITS, JsonCodec.write(result.edits()));
+        }
+        Optional<String> question = asksNothing
+                ? MissingFieldQuestion.of(merged.missingFields(), state.locale()) : Optional.empty();
+        if (question.isPresent()) {
+            // Nothing is being built and nothing was asked: the organizer has no move left. A model that
+            // reported no gap was announcing a build, which would be a promise Java is not keeping, so its
+            // reply goes; one that knew of the gap said something else worth keeping, and the question
+            // follows it.
+            boolean announcedABuild = result.missingFields().isEmpty();
+            if (announcedABuild) {
+                reply = question.get();
+            } else {
+                notes.add(question.get());
+            }
+            suggestedReplies = chipsFor(merged, state);
+            // Field names only: neither the reply nor the brief's texts belong in a log.
+            log.info("planner chat asked nothing with the brief incomplete gap={} question={}",
+                    merged.missingFields(), announcedABuild ? "replaced the reply" : "followed the reply");
         }
         update.put(PlannerState.MESSAGES, messages(reply, notes));
         update.put(PlannerState.SUGGESTED_REPLIES, suggestedReplies);
@@ -164,6 +189,12 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                 .filter(chip -> ActivityNameResolver.resolve(chip, catalog) instanceof ActivityNameResolver.Found)
                 .count();
         return named >= MIN_VARIANTS;
+    }
+
+    /** Tap-to-send answers to the taste question, from what the catalog can deliver; none for the others. */
+    private static List<String> chipsFor(Brief brief, PlannerState state) {
+        boolean asksForTaste = Brief.FIELD_PREFERENCES.equals(brief.missingFields().get(0));
+        return asksForTaste ? OpeningReplies.forCatalog(state.catalog(), state.locale()) : List.of();
     }
 
     /** The reply first, then Java's own notes, stamped in that order. */
