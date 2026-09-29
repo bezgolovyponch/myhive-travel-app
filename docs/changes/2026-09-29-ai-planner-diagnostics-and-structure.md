@@ -203,12 +203,33 @@ Tests: backend `./gradlew test` 1172, 0 failed, 6 skipped (25 new); CRA Jest 625
 
 ### Still open
 
-- **The model does not add up durations.** 37 first drafts out of 37 had a day over its cap, by 30 to 360
-  minutes: it fills every slot it is given. Java takes one or two activities back out of most MEDIUM and PREMIUM
-  days, so the packages are valid and the model's own but thinner than they could be. The fix belongs in the
-  planner prompt (or in giving the model the minutes left per day), not here.
+- **The model does not add up durations - and the planner prompt is not where that gets fixed.** On the dev
+  catalog 37 first drafts out of 37 had a day over its cap, by 30 to 360 minutes. That figure is the seed data's:
+  its activities run 90 to 300 minutes, production's run 60 to 120 (median 95, three in four at most 120). On the
+  production catalog the same prompt gave 4 drafts out of 8 valid as written and, in the other 4, one day over
+  (by 7, 7, 30 and 137 minutes) - which is what the trimmer is for. See "Planner prompt variants" below.
 - **A package title can name an activity the package does not contain** ("Karting · …" with no karting in the
   catalog): the copy call takes it from the brief.
+
+### Planner prompt variants (tried, none adopted)
+
+The compose call alone, replayed against the production Prague catalog (72 activities): same model, temperature,
+strict schema and user prompt as the backend sends; four briefs, two drafts each; checked with the validator's rules.
+
+| prompt | valid as written | drafts with a day over | over-cap days per draft | time |
+|---|---|---|---|---|
+| current | 4 of 8 | 4 | 0.5 | 10.0 s |
+| budget reworded, with a worked example of the sum | 0 of 8 | 7 | 2.9 | 13.0 s |
+| every item carries `minutes` and a running `dayTotal` | 1 of 8 | 7 | 1.4 | 14.7 s |
+| caps stated 30-60 minutes below the real ones | 2 of 8 | 6 | 1.1 | 10.2 s |
+| "limits, not targets" plus a rule for activities of 180+ minutes | 3 of 8 | 5 | 0.9 | 10.4 s |
+
+Eight drafts a row cannot tell the last two from the current prompt; they can tell that nothing here is better
+than it, and that the first two are worse. Two things to take away. The word "max" carries the rule: both variants
+that said "BASIC 2 activities" instead of "BASIC max 2 activities" got three activities a day in BASIC. And a
+running total in the answer does not stop the model - it wrote the totals and went over them. With thinking off the
+model gets the sums roughly right and no wording makes them exact; exact is Java's job, and `PlanTrimmer` does it.
+`planner-system.st` is unchanged.
 
 ## The chat promised a build it had not started (2026-09-29)
 
