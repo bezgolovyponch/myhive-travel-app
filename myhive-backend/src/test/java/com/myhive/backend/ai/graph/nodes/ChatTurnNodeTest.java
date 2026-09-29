@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.graph.nodes;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.edit.EditMessages;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRejectionReason;
@@ -27,6 +28,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 
 class ChatTurnNodeTest {
 
@@ -210,5 +214,38 @@ class ChatTurnNodeTest {
     @SuppressWarnings("unchecked")
     private static List<Map<String, String>> messagesOf(Map<String, Object> update) {
         return (List<Map<String, String>>) update.get(PlannerState.MESSAGES);
+    }
+
+    /** Before any packages the chat still sees what is on offer, so a follow-up names real variants. */
+    @Test
+    void requestBeforePackages_carriesTheCatalogNames_andTheTurnStoresItsSuggestedReplies() {
+        List<String> expectedReplies = List.of("Just steak and beers", "With a show");
+        llm.queueChat(new ChatTurnResult("Dinner - just steak, or with a show?", Brief.empty(), List.of(), List.of(),
+                LlmUsage.none(), expectedReplies));
+        Map<String, Object> state = baseState(Brief.empty());
+        state.put(PlannerState.CATALOG, JsonCodec.write(catalog()));
+
+        Map<String, Object> update = node.apply(new PlannerState(state));
+
+        ChatTurnRequest request = llm.chatRequests.get(0);
+        assertThat(request.packagesView()).isNull();
+        assertThat(request.catalogNames()).containsExactly(ACTIVITY_NAME, REPLACEMENT_NAME);
+        assertThat(update.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(expectedReplies);
+    }
+
+    @Test
+    void seedTurn_snapshotsTheCatalogWithoutCallingTheModel() {
+        CatalogSnapshotter snapshotter = mock(CatalogSnapshotter.class);
+        when(snapshotter.snapshot(any(), any(), any())).thenReturn(catalog());
+        ChatTurnNode seeding = new ChatTurnNode(llm, snapshotter);
+        Map<String, Object> state = baseState(Brief.empty());
+        state.put(PlannerState.ACTION, PlannerState.ACTION_SEED);
+
+        Map<String, Object> update = seeding.apply(new PlannerState(state));
+
+        assertThat(update).containsEntry(PlannerState.ACTION, PlannerState.ACTION_NONE);
+        assertThat(new PlannerState(Map.of(PlannerState.CATALOG, update.get(PlannerState.CATALOG))).catalog())
+                .extracting(CatalogActivity::name).containsExactly(ACTIVITY_NAME, REPLACEMENT_NAME);
+        assertThat(llm.chatRequests).isEmpty();
     }
 }

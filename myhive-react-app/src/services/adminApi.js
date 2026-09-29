@@ -442,12 +442,13 @@ export function createAdminApi(getAccessToken) {
             return Array.isArray(data) ? data : (data.content || []);
         },
 
-        async aiCreateSession(destinationSlug, locale) {
+        // preset: what the entry screen's pickers chose - {days, groupSize, arrival, departure}, each optional.
+        async aiCreateSession(destinationSlug, locale, preset = {}) {
             const headers = await authHeaders();
             const response = await fetch(`${API_BASE_URL}/ai/sessions`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({destinationSlug, locale}),
+                body: JSON.stringify({destinationSlug, locale, ...preset}),
             });
             await handleError(response, 'Failed to start a planner chat');
             return response.json();

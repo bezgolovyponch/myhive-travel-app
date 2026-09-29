@@ -268,4 +268,16 @@ class PromptRendererTest {
 
         assertThat(prompt).contains("| includes)").contains("| line | " + expectedIncludes).contains("Spa").contains("| line | -");
     }
+
+    @Test
+    void chatSystem_beforePackages_listsTheCatalogNamesForFollowUps_withoutEditRules() {
+        String expectedName = "Steak & Strip Dinner";
+        ChatTurnRequest request = new ChatTurnRequest("en", "Prague", List.of("dining"), Brief.empty(), List.of(),
+                null, List.of(expectedName, "Steak Dinner"));
+
+        String prompt = renderer.chatSystem(request);
+
+        assertThat(prompt).contains("Catalog activity names (the only things you may offer or name): " + expectedName)
+                .contains("suggestedReplies").doesNotContain("Edit rules:");
+    }
 }

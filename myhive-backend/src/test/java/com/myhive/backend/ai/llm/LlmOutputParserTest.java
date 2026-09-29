@@ -306,4 +306,26 @@ class LlmOutputParserTest {
     private static CatalogActivity catalogActivity(UUID id) {
         return new CatalogActivity(id, "slug", "Name", "line", 90, true, new BigDecimal("20"), null, null, List.of());
     }
+
+    /** Chips are garnish: bad elements are dropped, not a reason to lose the turn, and the list is capped. */
+    @Test
+    void parseChatTurn_keepsShortDistinctSuggestedReplies_upToFour() {
+        String raw = """
+                {"reply": "Dinner - just steak, or with a show?", "brief": {}, "missingFields": [],
+                 "suggestedReplies": ["Just steak", " With a show ", "", 7, "Just steak",
+                   "A reply that is far too long to ever fit on a chip under the message", "Boat instead",
+                   "Surprise us", "Fifth one"]}
+                """;
+
+        ChatTurnResult result = parser.parseChatTurn(raw);
+
+        assertThat(result.suggestedReplies()).containsExactly("Just steak", "With a show", "Boat instead", "Surprise us");
+    }
+
+    @Test
+    void parseChatTurn_withoutSuggestedReplies_hasNone() {
+        ChatTurnResult result = parser.parseChatTurn("{\"reply\": \"Hi\", \"brief\": {}}");
+
+        assertThat(result.suggestedReplies()).isEmpty();
+    }
 }

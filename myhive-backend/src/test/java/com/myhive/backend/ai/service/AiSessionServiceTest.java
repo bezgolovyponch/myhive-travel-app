@@ -37,6 +37,7 @@ import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.repository.ActivityRepository;
@@ -50,6 +51,7 @@ import org.springframework.beans.factory.ObjectProvider;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -254,6 +256,22 @@ class AiSessionServiceTest {
         assertThat(view.next()).isEqualTo(PlannerGraph.AWAIT_USER);
         assertThat(view.latest()).isEmpty();
         assertThat(llm.chatRequests).isEmpty();
+    }
+
+    /** The pickers set days and group size: the chat opens on taste, and the chips answer that question. */
+    @Test
+    void create_withAPreset_keepsItInTheBrief_greetsOnTaste_andSeedsOpeningChips() {
+        Brief expectedPreset = new Brief(3, 8, List.of(), null, null, null, DayEdge.EVENING, DayEdge.MORNING, null);
+        Category nightlife = new Category();
+        nightlife.setSlug("nightlife");
+        destination.setCategories(new HashSet<>(List.of(nightlife)));
+
+        AiSessionService.SessionView view = service.create("prague", "en", null, null, "1.2.3.4", expectedPreset);
+
+        assertThat(view.state().brief()).isEqualTo(expectedPreset);
+        assertThat(view.state().brief().missingFields()).containsExactly("preferences");
+        assertThat(view.state().messages().get(0).content()).startsWith("Hey! 3 days, 8 people");
+        assertThat(view.state().suggestedReplies()).containsExactly("Bar crawl + club night");
     }
 
     @Test

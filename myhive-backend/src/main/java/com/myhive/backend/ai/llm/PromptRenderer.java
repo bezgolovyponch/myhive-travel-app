@@ -31,6 +31,15 @@ public class PromptRenderer {
      * only tempt it to invent activities. Kept here rather than in the template because the template
      * engine has no conditionals.
      */
+    /**
+     * Before the first generation: what is on offer, so a follow-up can name the real variants of what the
+     * organizer picked ("with a show or on the boat?") instead of inventing them. No edit rules here -
+     * there is nothing to edit yet.
+     */
+    private static final String OFFER_BLOCK = """
+            Catalog activity names (the only things you may offer or name): %s
+            """;
+
     private static final String PACKAGES_BLOCK = """
             Current packages (the organizer can change them):
             %s
@@ -225,10 +234,10 @@ public class PromptRenderer {
         return sb.toString().strip();
     }
 
-    /** Nothing to edit, nothing to say about editing: a turn before the first generation gets no block. */
+    /** Nothing to edit, nothing to say about editing: a turn before the first generation only sees the offer. */
     private static String packagesBlock(ChatTurnRequest r) {
         if (r.packagesView() == null || r.packagesView().isBlank()) {
-            return "";
+            return r.catalogNames().isEmpty() ? "" : OFFER_BLOCK.formatted(String.join(", ", r.catalogNames()));
         }
         return PACKAGES_BLOCK.formatted(r.packagesView(), String.join(", ", r.catalogNames()));
     }

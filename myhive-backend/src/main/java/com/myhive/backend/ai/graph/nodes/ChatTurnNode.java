@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.graph.nodes;
 
+import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.edit.EditMessages;
 import com.myhive.backend.ai.edit.EditRejectionReason;
 import com.myhive.backend.ai.edit.EditReport;
@@ -14,8 +15,8 @@ import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.BriefMerger;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PlanAssembler;
-import lombok.RequiredArgsConstructor;
 import org.bsc.langgraph4j.action.NodeAction;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -29,16 +30,35 @@ import java.util.Optional;
  * a full regeneration, an edit of the packages that already exist, or nothing but the reply.
  */
 @Component
-@RequiredArgsConstructor
 public class ChatTurnNode implements NodeAction<PlannerState> {
 
     private final LlmGateway llm;
+    /** Null where no catalog is wired (unit tests): the chat then offers no catalog-backed follow-ups. */
+    private final CatalogSnapshotter snapshotter;
+
+    @Autowired
+    public ChatTurnNode(LlmGateway llm, CatalogSnapshotter snapshotter) {
+        this.llm = llm;
+        this.snapshotter = snapshotter;
+    }
+
+    public ChatTurnNode(LlmGateway llm) {
+        this(llm, null);
+    }
 
     @Override
     public Map<String, Object> apply(PlannerState state) {
         if (PlannerState.ACTION_SEED.equals(state.action())) {
-            // Seeding a fresh thread only has to park it at awaitUser; there is nothing to reply to yet.
-            return Map.of(PlannerState.ACTION, PlannerState.ACTION_NONE);
+            // Seeding a fresh thread only has to park it at awaitUser; there is nothing to reply to yet. The
+            // catalog is snapshotted here so the chat can pair what the organizer asks for with what is
+            // actually on offer before the first generation; snapshotCatalog re-takes it for the planner.
+            Map<String, Object> update = new HashMap<>();
+            update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
+            if (snapshotter != null) {
+                update.put(PlannerState.CATALOG, JsonCodec.write(
+                        snapshotter.snapshot(state.destinationId(), state.brief(), state.locale())));
+            }
+            return update;
         }
         Optional<ComposedPlan> packages = state.result();
         ChatTurnResult result = llm.chatTurn(request(state, packages));
@@ -77,16 +97,20 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             update.put(PlannerState.EDITS, JsonCodec.write(result.edits()));
         }
         update.put(PlannerState.MESSAGES, replies);
+        update.put(PlannerState.SUGGESTED_REPLIES, result.suggestedReplies());
         update.put(PlannerState.BRIEF, mergedJson);
         update.put(PlannerState.MISSING_FIELDS, merged.missingFields());
         return update;
     }
 
-    /** The model may only propose edits when it can see what it would be editing. */
+    /**
+     * The model may only propose edits when it can see what it would be editing. Before that it still gets
+     * the catalog names, to offer the variants of what the organizer picked (see {@code chat-system.st}).
+     */
     private static ChatTurnRequest request(PlannerState state, Optional<ComposedPlan> packages) {
         if (packages.isEmpty()) {
             return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
-                    state.messages());
+                    state.messages(), null, PackagesView.catalogNames(state.catalog()));
         }
         return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
                 state.messages(), PackagesView.render(packages.get()), PackagesView.catalogNames(state.catalog()));

@@ -59,6 +59,8 @@ public class PlannerState extends AgentState {
     public static final String EDITS = "edits";
     public static final String EDIT_REPORT = "editReport";
     public static final String EDITS_LEFT = "editsLeft";
+    /** The tap-to-send answers offered under the latest assistant message; replaced every turn. */
+    public static final String SUGGESTED_REPLIES = "suggestedReplies";
 
     /** Nothing to do but wait for the next user message. */
     public static final String ACTION_NONE = "NONE";
@@ -113,6 +115,10 @@ public class PlannerState extends AgentState {
 
     public String destinationName() {
         return this.<String>value(DESTINATION_NAME).orElse("");
+    }
+
+    public List<String> suggestedReplies() {
+        return this.<List<String>>value(SUGGESTED_REPLIES).orElse(List.of());
     }
 
     public List<String> categorySlugs() {

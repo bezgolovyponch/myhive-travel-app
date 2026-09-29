@@ -9,8 +9,10 @@ import {useAuthErrorHandler} from '../hooks/useAuthErrorHandler';
 
 const STORAGE_KEY = 'trivlu-admin-ai-planner-session';
 const DEFAULT_POLL_MS = 2000;
+const EDGES = ['MORNING', 'AFTERNOON', 'EVENING'];
+// Staff test prompts; the organizer's own chips come from the server as suggestedReplies.
 const QUICK_PROMPTS = [
-    '3 days in the city, 8 guys, we like beer, karting and a big night out. Mid budget.',
+    'We like beer, karting and a big night out. Mid budget.',
     'Arriving Friday evening, leaving Sunday afternoon.',
     'Remove the karting from all packages.',
     'Add a beer tasting to the medium package.',
@@ -51,6 +53,16 @@ function rejectionLines(diagnostics) {
     });
 }
 
+// Only what is set: an empty picker leaves the field to the chat.
+function presetBody(preset) {
+    const body = {};
+    if (preset.days) body.days = Number(preset.days);
+    if (preset.groupSize) body.groupSize = Number(preset.groupSize);
+    if (preset.arrival) body.arrival = preset.arrival;
+    if (preset.departure) body.departure = preset.departure;
+    return body;
+}
+
 function saveToken(token) {
     try {
         localStorage.setItem(STORAGE_KEY, token);
@@ -66,6 +78,8 @@ function AdminAiPlanner({pollIntervalMs = DEFAULT_POLL_MS}) {
     const [destinations, setDestinations] = useState([]);
     const [destinationSlug, setDestinationSlug] = useState('prague');
     const [locale, setLocale] = useState('en');
+    // What the organizer's entry screen will pick before the chat; empty means "let the chat ask".
+    const [preset, setPreset] = useState({days: '3', groupSize: '8', arrival: 'EVENING', departure: 'MORNING'});
     const [session, setSession] = useState(null);
     const [log, setLog] = useState([]);
     const [input, setInput] = useState('');
@@ -152,14 +166,14 @@ function AdminAiPlanner({pollIntervalMs = DEFAULT_POLL_MS}) {
     const newChat = useCallback(async () => {
         setBusy('creating');
         try {
-            adopt(await track('create', adminApi.aiCreateSession(destinationSlug, locale)));
+            adopt(await track('create', adminApi.aiCreateSession(destinationSlug, locale, presetBody(preset))));
             return true;
         } catch (err) {
             setBusy('');
             fail(err);
             return false;
         }
-    }, [adminApi, adopt, destinationSlug, fail, locale, track]);
+    }, [adminApi, adopt, destinationSlug, fail, locale, preset, track]);
 
     const resume = useCallback(async () => {
         const saved = readSavedToken();
@@ -326,6 +340,19 @@ function AdminAiPlanner({pollIntervalMs = DEFAULT_POLL_MS}) {
                     <option value="en">en</option>
                     <option value="de">de</option>
                 </Form.Select>
+                <Form.Control size="sm" type="number" min={1} max={7} style={{width: 72}} aria-label="Days"
+                              placeholder="days" value={preset.days}
+                              onChange={(e) => setPreset(p => ({...p, days: e.target.value}))}/>
+                <Form.Control size="sm" type="number" min={2} max={30} style={{width: 80}} aria-label="Group size"
+                              placeholder="people" value={preset.groupSize}
+                              onChange={(e) => setPreset(p => ({...p, groupSize: e.target.value}))}/>
+                {['arrival', 'departure'].map(edge => (
+                    <Form.Select key={edge} size="sm" style={{width: 'auto'}} aria-label={edge} value={preset[edge]}
+                                 onChange={(e) => setPreset(p => ({...p, [edge]: e.target.value}))}>
+                        <option value="">{edge}: ask</option>
+                        {EDGES.map(v => <option key={v} value={v}>{edge} {v.toLowerCase()}</option>)}
+                    </Form.Select>
+                ))}
                 <Button size="sm" onClick={newChat} disabled={!idle}>New chat</Button>
                 <Button size="sm" variant="outline-secondary" onClick={resume} disabled={!idle}
                         title="Reload the last chat kept in this browser">Resume last</Button>
@@ -346,6 +373,14 @@ function AdminAiPlanner({pollIntervalMs = DEFAULT_POLL_MS}) {
                             {log.map(entry => <ChatLine key={entry.id} entry={entry}/>)}
                         </div>
                         <Card.Footer className="d-grid gap-2">
+                            {(session?.suggestedReplies || []).length > 0 && (
+                                <div className="d-flex flex-wrap gap-1" aria-label="Suggested replies">
+                                    {session.suggestedReplies.map(text => (
+                                        <Button key={text} size="sm" variant="outline-primary" disabled={!idle}
+                                                onClick={() => send(text)}>{text}</Button>
+                                    ))}
+                                </div>
+                            )}
                             <div className="d-flex flex-wrap gap-1">
                                 {QUICK_PROMPTS.map(text => (
                                     <Button key={text} size="sm" variant="outline-secondary" title={text}
@@ -522,9 +557,12 @@ function PackageCard({pkg, generation, onSelect}) {
                 <div><Badge bg="secondary">{pkg.key}</Badge></div>
                 <h5 className="mb-0">{pkg.title}</h5>
                 {pkg.tagline && <div className="text-muted fst-italic small">{pkg.tagline}</div>}
-                {pkg.description && <div className="small">{pkg.description}</div>}
+                {pkg.description && <div className="small" style={{whiteSpace: 'pre-line'}}>{pkg.description}</div>}
                 <div className="fw-bold">{money(pkg.pricePerPerson, pkg.currency)} pp · {money(pkg.totalPrice, pkg.currency)} total</div>
-                <div className="text-muted small">{Math.round((pkg.totalDurationMinutes || 0) / 60 * 10) / 10} h of activities</div>
+                <div className="text-muted small">
+                    {pkg.nights != null ? `${pkg.nights} night${pkg.nights === 1 ? '' : 's'} · ` : ''}
+                    {Math.round((pkg.totalDurationMinutes || 0) / 60 * 10) / 10} h of activities
+                </div>
                 {(pkg.days || []).map(day => (
                     <div key={day.dayNumber} className="border-top pt-2 small">
                         <b>Day {day.dayNumber} — {day.title || ''}</b>
@@ -534,6 +572,7 @@ function PackageCard({pkg, generation, onSelect}) {
                                 <span className="text-muted" style={{minWidth: 86}}>{item.slot}{item.startHint ? ` ${item.startHint}` : ''}</span>
                                 <span>{item.name} ({item.durationMinutes} min)</span>
                                 <span className="ms-auto">{money(item.lineTotal, pkg.currency)}{item.groupMinApplied ? ' *min' : ''}</span>
+                                {item.includes && <div className="w-100 text-muted">Includes: {item.includes}</div>}
                                 {item.why && <div className="w-100 text-muted">{item.why}</div>}
                             </div>
                         ))}

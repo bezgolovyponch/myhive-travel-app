@@ -69,7 +69,8 @@ public class AiDtoMapper {
                 firstTurnError(view),
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
-                        AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()));
+                        AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()),
+                state.suggestedReplies());
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
@@ -84,7 +85,8 @@ public class AiDtoMapper {
                 outcome.editReport()
                         .map(report -> edit(report, outcome.editedGeneration().map(AiGeneration::getId).orElse(null)))
                         .orElse(null),
-                outcome.assistantMessages().stream().map(AiDtoMapper::message).toList());
+                outcome.assistantMessages().stream().map(AiDtoMapper::message).toList(),
+                view.state().suggestedReplies());
     }
 
     /** For a generation loaded with its session attached; {@link #sessionState} uses the private overload. */

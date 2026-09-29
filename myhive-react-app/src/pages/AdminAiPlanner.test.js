@@ -83,7 +83,8 @@ test('New chat opens a session and shows the greeting, the missing fields and th
     await user.click(screen.getByRole('button', {name: 'New chat'}));
 
     expect(await screen.findByText('Hey! How many days are you coming for?')).toBeInTheDocument();
-    expect(mockApi.aiCreateSession).toHaveBeenCalledWith('prague', 'en');
+    // The pickers stand in for the organizer's entry screen: days, group and the day edges travel with the create.
+    expect(mockApi.aiCreateSession).toHaveBeenCalledWith('prague', 'en', {days: 3, groupSize: 8, arrival: 'EVENING', departure: 'MORNING'});
     expect(screen.getByText('missing: days')).toBeInTheDocument();
     expect(screen.getByText('messages left 30')).toBeInTheDocument();
     expect(localStorage.getItem('trivlu-admin-ai-planner-session')).toBe(TOKEN);
@@ -176,6 +177,24 @@ test('a degraded generation says why each draft was rejected: a failed call by i
     expect(screen.getByText('compose: model call failed (LLM_INVALID_OUTPUT)')).toBeInTheDocument();
     expect(screen.getByText(/^repair: 1 rule violation\(s\) — SLOT_OUTSIDE_WINDOW BASIC d1/)).toBeInTheDocument();
     expect(screen.queryByText(/broke a scheduling rule twice/)).not.toBeInTheDocument();
+});
+
+test('the server\'s suggested replies are chips that send themselves', async () => {
+    const user = userEvent.setup();
+    const expectedReply = 'Steak dinner with a show';
+    mockApi.aiGetSession.mockResolvedValue(sessionState({suggestedReplies: [expectedReply, 'Bar crawl + club night']}));
+    mockApi.aiSendMessage.mockResolvedValue({
+        message: {role: 'ASSISTANT', content: 'Noted.'},
+        messages: [{role: 'ASSISTANT', content: 'Noted.'}],
+        generation: null,
+    });
+    localStorage.setItem('trivlu-admin-ai-planner-session', TOKEN);
+    render(<AdminAiPlanner/>);
+
+    await user.click(await screen.findByRole('button', {name: 'Resume last'}));
+    await user.click(await screen.findByRole('button', {name: expectedReply}));
+
+    await waitFor(() => expect(mockApi.aiSendMessage).toHaveBeenCalledWith(TOKEN, expectedReply));
 });
 
 test('choosing a package posts the selection and shows the Trip Builder items', async () => {

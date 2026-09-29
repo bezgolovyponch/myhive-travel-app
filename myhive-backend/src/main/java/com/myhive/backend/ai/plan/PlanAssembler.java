@@ -18,7 +18,8 @@ public class PlanAssembler {
 
     private static final Pattern SCRIPT_OR_STYLE_BLOCK = Pattern.compile("(?is)<(script|style)\\b[^>]*>.*?</\\1>");
     private static final Pattern ANY_TAG = Pattern.compile("<[^>]*>");
-    private static final Pattern WHITESPACE_RUN = Pattern.compile("\\s+");
+    private static final Pattern WHITESPACE_RUN = Pattern.compile("[^\\S\\n]+");
+    private static final Pattern BLANK_LINES = Pattern.compile("\\s*\\n\\s*");
 
     public record AssemblyResult(ComposedPlan plan, List<Violation> violations) {
     }
@@ -79,13 +80,18 @@ public class PlanAssembler {
                 PlanPricer.perPerson(total, travelers), total, ComposedPlan.CURRENCY, minutes, ids, days, nights);
     }
 
-    /** Model text is displayed as plain text only: drop script/style blocks whole, unwrap other tags, collapse whitespace. */
+    /**
+     * Model text is displayed as plain text only: drop script/style blocks whole, unwrap other tags, collapse
+     * whitespace. Line breaks survive, one at a time - the copy and the chat write keyword bullets one per line.
+     */
     public static String clean(String text) {
         if (text == null) {
             return null;
         }
         String withoutScripts = SCRIPT_OR_STYLE_BLOCK.matcher(text).replaceAll("");
         String withoutTags = ANY_TAG.matcher(withoutScripts).replaceAll("");
-        return WHITESPACE_RUN.matcher(withoutTags).replaceAll(" ").strip();
+        String normalized = withoutTags.replace("\r\n", "\n").replace('\r', '\n');
+        String singleSpaced = WHITESPACE_RUN.matcher(normalized).replaceAll(" ");
+        return BLANK_LINES.matcher(singleSpaced).replaceAll("\n").strip();
     }
 }

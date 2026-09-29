@@ -141,4 +141,11 @@ class PlanAssemblerTest {
         assertThat(pkg.nights()).isEqualTo(2);
         assertThat(pkg.days().get(0).items().get(0).includes()).isEqualTo(expectedIncludes);
     }
+
+    @Test
+    void clean_keepsSingleLineBreaksForBullets_andStillStripsTagsAndSpaces() {
+        String raw = "• Pub Crawl  -   guide\r\n\n\n• <b>Club</b> - entry <script>x()</script>\n   ";
+
+        assertThat(PlanAssembler.clean(raw)).isEqualTo("• Pub Crawl - guide\n• Club - entry");
+    }
 }

@@ -159,11 +159,18 @@ packages are built from scratch.
 ```json
 { "destinationSlug": "prague", "locale": "en",
   "turnstileToken": "…optional, required in prod…",
-  "initialMessage": "optional first user message" }
+  "initialMessage": "optional first user message",
+  "days": 3, "groupSize": 8,                   // optional, from the entry screen's pickers (1..7, 2..30)
+  "arrival": "EVENING", "departure": "MORNING" } // optional, MORNING | AFTERNOON | EVENING
 ```
 
 `201` → `SessionState` (below). When `initialMessage` is given the response already
 contains the agent's first reply; otherwise `messages` holds only the greeting.
+
+Picker values land in `brief` as-is and the chat never asks for them again. With
+`days` and `groupSize` both set the greeting skips them and asks what the weekend
+should be built around; `suggestedReplies` then holds the opening chips (the most
+repeated stag bundles the destination's categories can deliver, at most four).
 
 If that inline first turn cannot reach the model, the call is **still `201`** — not
 `502`. The session, its greeting and the user's message are all stored, and
@@ -198,9 +205,16 @@ indicator for edit turns, not just the ordinary "thinking" state.
   "readyToGenerate": false,
   "generation": null,
   "edit": null,
-  "messages": [ { "role": "ASSISTANT", "content": "Nice — 8 lads, 3 days. What's the vibe: karting and beer, something wild, or a bit of everything?", "at": "2026-09-15T10:01:03Z" } ]
+  "messages": [ { "role": "ASSISTANT", "content": "Nice — 8 lads, 3 days. What's the vibe: karting and beer, something wild, or a bit of everything?", "at": "2026-09-15T10:01:03Z" } ],
+  "suggestedReplies": ["Karting + beer", "Something wild", "A bit of everything"]
 }
 ```
+
+`suggestedReplies` (0–4 strings, ≤ 60 chars, never null) are tap-to-send answers to
+the question in the reply, written as the organizer would type them — render them as
+chips that send their own text. When the organizer picks something the catalog sells
+in variants (a dinner with or without a show, a boat with unlimited drinks), the
+reply asks one either/or question and the chips name those catalog variants.
 
 `edit` is `null` on every turn that carried no edit ops — and also on the turn
 that both changed the brief and asked for one, where the regeneration wins (see
@@ -641,7 +655,8 @@ the intended way forward from an undo; it is not an error.
   "latestGeneration": null,                   // or the GET /ai/generations/{id} body
   "latestReadyGeneration": null,              // newest READY generation, same body; null if none
   "firstTurnError": null,                     // or { "code": "LLM_UNAVAILABLE" | "LLM_TIMEOUT" }
-  "limits": { "messagesLeft": 27, "generationsLeft": 5, "editsLeft": 20 }
+  "limits": { "messagesLeft": 27, "generationsLeft": 5, "editsLeft": 20 },
+  "suggestedReplies": ["Bar crawl + club night", "Shooting range + night out"] // chips for the latest reply
 }
 ```
 
@@ -696,7 +711,7 @@ known before `readyToGenerate` turns true; `budget` never blocks generation.
   "key": "MEDIUM",                             // BASIC | MEDIUM | PREMIUM (stable, use for i18n badges/analytics)
   "title": "The Full Prague",                  // model-written, ≤ 60 chars
   "tagline": "Karting by day, beer by night",  // ≤ 120
-  "description": "…",                          // ≤ 600
+  "description": "• Beer Bike - 20 l beer\n• Karting - 2 × 10 min",  // ≤ 600; one "• " line per activity, keep line breaks
   "pricePerPerson": 245.50, "totalPrice": 1964.00, "currency": "EUR",
   "totalDurationMinutes": 780,
   "nights": 2,                                 // days - 1; null on packages stored before it existed
@@ -724,5 +739,4 @@ Builder shows "(group min)".
 ## Non-goals of this contract
 
 No streaming, no message editing/deletion, no lead capture in chat, no admin
-endpoints. If the UI needs suggested quick replies, that will arrive as an
-additive `suggestedReplies: string[]` on the message response in a later version.
+endpoints.
