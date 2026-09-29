@@ -179,6 +179,31 @@ test('a degraded generation says why each draft was rejected: a failed call by i
     expect(screen.queryByText(/broke a scheduling rule twice/)).not.toBeInTheDocument();
 });
 
+test('a draft Java corrected is reported as kept, with what was corrected, and the generation is not degraded', async () => {
+    const user = userEvent.setup();
+    const expectedFix = 'dropped Army Tank from PREMIUM day 2 (630 min in 4 activities; PREMIUM allows 540 min in 4)';
+    const queued = {id: readyGeneration().id, status: 'QUEUED', kind: 'GENERATED', degraded: false, textsPending: false, packages: null};
+    mockApi.aiSendMessage.mockResolvedValue({
+        message: {role: 'ASSISTANT', content: 'Perfect, building three options now.'},
+        messages: [{role: 'ASSISTANT', content: 'Perfect, building three options now.'}],
+        generation: queued,
+    });
+    mockApi.aiGetGeneration.mockResolvedValue(readyGeneration({
+        degraded: false,
+        diagnostics: [
+            {attempt: 0, errorCode: null, violations: ['DAY_OVER_MINUTES PREMIUM d2: 630 minutes incl. buffers on day 2'], fixes: [expectedFix]},
+        ],
+    }));
+    render(<AdminAiPlanner pollIntervalMs={1}/>);
+
+    await user.type(screen.getByLabelText('Message'), 'friday evening, leaving sunday morning');
+    await user.click(screen.getByRole('button', {name: 'Send'}));
+
+    expect(await screen.findByText(`compose: kept, Java corrected 1 slip(s) — ${expectedFix}`)).toBeInTheDocument();
+    expect(screen.queryByText(/degraded/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/rule violation\(s\)/)).not.toBeInTheDocument();
+});
+
 test('the server\'s suggested replies are chips that send themselves', async () => {
     const user = userEvent.setup();
     const expectedReply = 'Steak dinner with a show';

@@ -212,4 +212,22 @@ class AiDtoMapperTest {
         assertThat(forStaff.diagnostics().get(1).violations()).containsExactly(expectedViolation);
         assertThat(forPublic.diagnostics()).isNull();
     }
+
+    /** A draft Java corrected carries what was done to it; a row written before {@code fixes} existed has none. */
+    @Test
+    void generation_servesTheFixesOfACorrectedDraft_andReadsARowStoredWithoutThem() {
+        String expectedFix = "dropped Army Tank from PREMIUM day 2 (630 min in 4 activities; PREMIUM allows 540 min in 4)";
+        String storedBeforeFixes = "[{\"attempt\":0,\"errorCode\":null,\"violations\":[\"EMPTY_DAY BASIC d2: day 2 has no activities\"]}]";
+        AiGeneration corrected = editedGeneration(null, null);
+        corrected.setDiagnostics(JsonCodec.write(List.of(
+                new AttemptDiagnostic(0, null, List.of("DAY_OVER_MINUTES PREMIUM d2: 630 minutes"), List.of(expectedFix)))));
+        AiGeneration older = editedGeneration(null, null);
+        older.setDiagnostics(storedBeforeFixes);
+        AiDtoMapper staffMapper = new AiDtoMapper(mock(ActivityRepository.class), () -> true);
+
+        assertThat(staffMapper.generation(corrected).diagnostics()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.fixes()).containsExactly(expectedFix));
+        assertThat(staffMapper.generation(older).diagnostics()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.fixes()).isEmpty());
+    }
 }

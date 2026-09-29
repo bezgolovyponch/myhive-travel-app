@@ -219,7 +219,9 @@ they land (~40 s of planner time each). One langgraph4j `StateGraph`
 (`ai/graph/PlannerGraph`) drives the conversation, parking on `awaitUser`/
 `awaitGeneration`/`awaitSelection` interrupts between requests; Qwen (DashScope,
 OpenAI-compatible) composes and repairs the plan **structure** (ids, slots, days — a
-few hundred tokens, ~8 s), Java validates, prices and falls back deterministically,
+few hundred tokens, ~8 s), Java validates, corrects what is only arithmetic (`PlanTrimmer`:
+a day over its cap loses an activity, a slot conflict is re-slotted — the plan stays the
+model's and no repair call is made), prices and falls back deterministically,
 publishes the packages onto the still-running generation row, and a second call to
 the chat model writes the copy. Full frontend contract: [`docs/api/ai-planner-api.md`](docs/api/ai-planner-api.md);
 design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md).

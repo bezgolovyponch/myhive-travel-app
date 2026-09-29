@@ -566,14 +566,26 @@ rendering, the copy is still being written. On `READY`:
 
 `degraded: true` means the deterministic fallback composed the packages (the model
 failed twice); they are valid but blander — a small "auto-composed" hint is enough.
+A plan Java only **corrected** is not degraded: when a draft's faults are ones of
+arithmetic — a day over its tier's cap, an activity listed twice, two activities in
+one slot, a slot outside the arrival/departure window, an id the catalog lacks —
+Java drops or re-slots the activity and keeps the rest of what the model chose
+(`PlanTrimmer`). No repair call is made and the packages are served as any other.
 
 `diagnostics` is null for everyone but staff (ADMIN/MANAGER token). For staff it
-lists every rejected planner draft of the generation, in order, when there was one:
-`[{ "attempt": 0, "errorCode": "LLM_INVALID_OUTPUT", "violations": [] },
-{ "attempt": 1, "errorCode": null, "violations": ["SLOT_OUTSIDE_WINDOW BASIC d1: …"] }]`.
+lists every planner draft of the generation that did not pass as written, in order,
+when there was one:
+`[{ "attempt": 0, "errorCode": "LLM_INVALID_OUTPUT", "violations": [], "fixes": [] },
+{ "attempt": 1, "errorCode": null, "violations": ["SLOT_OUTSIDE_WINDOW BASIC d1: …"], "fixes": [] }]`.
 Attempt 0 is the compose call, 1 the repair. A non-null `errorCode` (`LLM_TIMEOUT`,
 `LLM_UNAVAILABLE`, `LLM_INVALID_OUTPUT`, `INTERNAL`) means the call itself failed and
 its draft was empty, so its `MISSING_TIER` violations are a consequence, not the cause.
+`fixes` tells a corrected draft from a rejected one. Non-empty, the draft was kept
+and each line is one correction, in the order made —
+`"dropped Prague Castle Tour from PREMIUM day 2 (690 min in 4 activities; PREMIUM allows 540 min in 4)"`,
+`"moved Cabaret Night to AFTERNOON on PREMIUM day 2"` — while `violations` still
+lists what was wrong with the draft as the model wrote it. Empty, the draft was
+rejected. Rows stored before `fixes` existed read as empty.
 
 Every generation — not only ones produced by an edit turn — now carries `kind`,
 `parentId` and `editReport`. A `GENERATED` row (the planner model's own output, or

@@ -134,8 +134,85 @@ The branch was run against the model (OpenRouter, `qwen/qwen3.7-plus`) and the p
 - **Verified live:** strict `json_schema` is accepted through Spring AI (compose 7.6 s, 375 tokens); keyword copy
   cut the texts phase from 12-14 s to about 8 s.
 
-Still open, and not addressed here: every live generation ended `degraded` on `DAY_OVER_MINUTES` (PREMIUM day 2).
-The explicit slot windows do not touch it; the diagnostics now show it to staff.
+## Drafts corrected in Java instead of thrown away (2026-09-29)
+
+Every live generation had ended `degraded`. The model put more into a day than its tier allows (`DAY_OVER_MINUTES`,
+most often PREMIUM day 2), the repair call returned a day just as long, and the whole plan was replaced by the
+deterministic fallback - which knows the catalog but not the conversation. The explicit slot windows did not touch it.
+
+- **`PlanTrimmer`** (`ai/plan`) corrects what is arithmetic rather than judgement: a day over its minutes or its
+  item count, an activity listed twice, two activities in one slot, a slot outside the arrival/departure window, an
+  id the catalog does not know. It restates no rule: `PlanValidator` says what is wrong and `PlanAssembler` whether
+  the tiers still rise in price; the trimmer corrects one thing on the list and asks again.
+- **`ValidateNode`** gives a failing draft to the trimmer before giving up on it. If the corrected draft passes the
+  same two checks, it is the result: no repair call, no fallback, `degraded: false`. If it does not, the draft goes
+  to the repair as the model wrote it, with every violation, exactly as before. The trimmer runs on the repair's
+  draft as well. A correction that throws leaves the draft rejected - a node must never throw.
+- **Which activity goes from a day that is too long**, in this order: the one that answers the organizer's request
+  least; a daytime activity rather than the night out; one whose removal alone settles the day; one another tier
+  offers too; the cheapest line. A removal is never made if it would leave a tier with nothing the others lack,
+  empty a middle day, or put the tiers out of price order.
+- **The organizer's request** is the categories they picked plus the words of their own description, read from
+  `vibe` and from `notes` (the chat files it under either), without their endings ("clubbing" finds the Nightclub)
+  and matched against activity names and category slugs; a word in the name counts double. Production has no
+  categories assigned to Prague, so there the words are all there is.
+- **Bottom up:** BASIC is corrected before MEDIUM before PREMIUM, so each tier is priced against what is left of
+  the one below it.
+- **A draft the model has to repair anyway** (a missing tier, a wrong day count, an empty middle day) is not
+  trimmed first.
+- **A slot conflict is a move, not a loss:** the activity goes to the nearest free slot of the day's window and is
+  dropped only when there is none.
+- **Diagnostics:** `AttemptDiagnostic.fixes` - one line per correction. A draft with fixes was kept, one without
+  was rejected; `violations` still lists what was wrong with it as written. The admin bench prints
+  `compose: kept, Java corrected 2 slip(s) — dropped … from PREMIUM day 2 (840 min in 4 activities; …)`. The
+  backend logs the same at INFO (`planner draft corrected`), and the two ways a correction can fail:
+  `planner draft not trimmed: nothing to take for …` and `planner draft corrected but still failing …`.
+  No migration: `diagnostics` is a JSON column.
+
+### Live runs
+
+Same model (OpenRouter, `qwen/qwen3.7-plus`) and dev catalog as before; presets plus one taste message.
+
+| | before | with the trimmer |
+|---|---|---|
+| generations | 5 | 37 |
+| first draft over a cap | 5 | 37 |
+| served `degraded` (fallback) | 5 | 1 |
+| corrected without a repair call | - | 32 |
+| corrected after one repair call | - | 4 |
+
+READY after 13-26 s when the draft was corrected at once, 27-37 s when it took a repair call first.
+
+The 37 are six batches run while the ranking was being settled; the last eight, on the code as committed, were
+6 corrected at once, 1 after a repair, 1 fallback. What the batches changed:
+
+- **The club night went first.** It is the longest activity of any day, so "one removal is enough" always picked
+  it, for the very groups that had asked for a club. The request now outranks everything, and the night out
+  outranks "one removal is enough". In the last batch the trimmer took the Nightclub out of no package (the
+  second copy of one listed twice aside).
+- **The chat does not always file the request under `vibe`**: one brief had `vibe: "wild"` and
+  `notes: "strip club and a boat party"`, another `notes: "Wants karting (not available) and clubbing"`.
+- **PREMIUM was priced against a MEDIUM that was still a day too full**, could not give up its castle tour, and
+  gave up the club instead. Hence bottom up.
+
+The one fallback, and what the trimmer cannot do: nothing could leave MEDIUM's overfull day without breaking a
+tier rule, and the repaired draft, once its days were trimmed, had MEDIUM priced no higher than BASIC
+(`TIER_ORDER`). Dropping activities cannot raise a price.
+
+Tests: backend `./gradlew test` 1172, 0 failed, 6 skipped (25 new); CRA Jest 625 passed (1 new).
+
+### Still open
+
+- **The model does not add up durations.** 37 first drafts out of 37 had a day over its cap, by 30 to 360
+  minutes: it fills every slot it is given. Java takes one or two activities back out of most MEDIUM and PREMIUM
+  days, so the packages are valid and the model's own but thinner than they could be. The fix belongs in the
+  planner prompt (or in giving the model the minutes left per day), not here.
+- **The chat said "Building three options right now." and built nothing** (1 session in 38). It had filed
+  "likes beer, karting" under `notes`, so `Brief.missingFields()` still listed `preferences`; "just build it" got
+  the same sentence again. Either `notes` counts as taste, or a reply that announces a build while the brief is
+  incomplete has to be replaced with the question for what is missing - the mirror image of `BuildingReply`.
+- **A package title can name an activity the package does not contain** ("Karting · …" with no karting in the
+  catalog): the copy call takes it from the brief.
 
 ## Not in this PR
 

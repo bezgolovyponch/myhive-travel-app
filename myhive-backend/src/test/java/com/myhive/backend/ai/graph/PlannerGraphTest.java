@@ -295,6 +295,32 @@ class PlannerGraphTest {
         assertThat(graph.snapshot(token).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
     }
 
+    /**
+     * A draft with a slip Java can correct never reaches the repair call, let alone the fallback: the
+     * third PREMIUM activity sits in a slot the day trip does not have, it goes, and the rest of the
+     * model's plan is the result.
+     */
+    @Test
+    void aDraftJavaCanCorrect_isKeptWithoutARepairCall() {
+        UUID token = UUID.randomUUID();
+        PlanDraft overfull = new PlanDraft(List.of(pkg(Tier.BASIC, 0), pkg(Tier.MEDIUM, 2), pkg(Tier.PREMIUM, 4, 5, 3)));
+        llm.queueChat(turn("go", readyBrief())).queuePlan(overfull);
+        graph.start(token, startInputs());
+        graph.update(token, generationResume(UUID.randomUUID()));
+
+        graph.runUntilInterrupt(token);
+
+        assertThat(llm.repairRequests).isEmpty();
+        assertThat(sinks.lastDegraded).isFalse();
+        assertThat(namesIn(sinks.lastPlan, Tier.PREMIUM)).containsExactly("Activity 4", "Activity 5");
+        PlannerState state = graph.snapshot(token).state();
+        assertThat(state.attempt()).isEqualTo(0);
+        assertThat(state.attemptLog()).singleElement().satisfies(attempt -> {
+            assertThat(attempt.violations()).anyMatch(v -> v.startsWith("SLOT_OUTSIDE_WINDOW PREMIUM d1"));
+            assertThat(attempt.fixes()).containsExactly("dropped Activity 3 from PREMIUM day 1 (no free slot)");
+        });
+    }
+
     @Test
     void repairedDraft_isAcceptedWithoutFallback() {
         UUID token = UUID.randomUUID();
