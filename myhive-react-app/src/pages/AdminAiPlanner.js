@@ -35,6 +35,22 @@ function readSavedToken() {
     }
 }
 
+const MAX_VIOLATIONS_SHOWN = 8;
+
+// One line per rejected planner draft: a failed call (timeout, unavailable, unparseable JSON) leaves an
+// empty draft, so its error code is the cause, not the MISSING_TIER violations that follow from it.
+function rejectionLines(diagnostics) {
+    return (diagnostics || []).map((a) => {
+        const label = a.attempt === 0 ? 'compose' : 'repair';
+        if (a.errorCode) {
+            return `${label}: model call failed (${a.errorCode})`;
+        }
+        const shown = a.violations.slice(0, MAX_VIOLATIONS_SHOWN).join('; ');
+        const more = a.violations.length > MAX_VIOLATIONS_SHOWN ? ` (+${a.violations.length - MAX_VIOLATIONS_SHOWN} more)` : '';
+        return `${label}: ${a.violations.length} rule violation(s) — ${shown}${more}`;
+    });
+}
+
 function saveToken(token) {
     try {
         localStorage.setItem(STORAGE_KEY, token);
@@ -230,8 +246,11 @@ function AdminAiPlanner({pollIntervalMs = DEFAULT_POLL_MS}) {
                 const seconds = Math.round((Date.now() - started) / 1000);
                 say('system', fresh.status === 'READY'
                     ? `packages ready in ${seconds} s`
-                    + (fresh.degraded ? ' — the model broke a scheduling rule twice, so Java composed these (degraded); Rebuild may do better' : '')
+                    + (fresh.degraded ? ' — both model drafts were rejected, so Java composed these (degraded)' : '')
                     : `generation failed: ${fresh.error ? fresh.error.code : '?'}`);
+                if (fresh.status === 'READY') {
+                    rejectionLines(fresh.diagnostics).forEach((line) => say('system', line));
+                }
                 await refresh();
                 if (queuedRef.current) {
                     const text = queuedRef.current;

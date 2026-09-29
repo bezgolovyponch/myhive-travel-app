@@ -8,6 +8,7 @@ import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.Violation;
@@ -41,6 +42,8 @@ public class PlannerState extends AgentState {
     public static final String CATALOG = "catalog";
     public static final String DRAFT = "draft";
     public static final String VIOLATIONS = "violations";
+    /** Every rejected draft of the current generation, in order; {@link #VIOLATIONS} only holds the latest. */
+    public static final String ATTEMPT_LOG = "attemptLog";
     public static final String ATTEMPT = "attempt";
     public static final String RESULT = "result";
     public static final String DEGRADED = "degraded";
@@ -81,6 +84,7 @@ public class PlannerState extends AgentState {
 
     private static final TypeReference<List<CatalogActivity>> CATALOG_TYPE = new TypeReference<>() {};
     private static final TypeReference<List<Violation>> VIOLATIONS_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<AttemptDiagnostic>> ATTEMPT_LOG_TYPE = new TypeReference<>() {};
     private static final TypeReference<List<EditRequest>> EDITS_TYPE = new TypeReference<>() {};
 
     public PlannerState(Map<String, Object> initData) {
@@ -131,6 +135,10 @@ public class PlannerState extends AgentState {
 
     public List<Violation> violations() {
         return nonBlank(VIOLATIONS).map(json -> JsonCodec.read(json, VIOLATIONS_TYPE)).orElse(List.of());
+    }
+
+    public List<AttemptDiagnostic> attemptLog() {
+        return nonBlank(ATTEMPT_LOG).map(json -> JsonCodec.read(json, ATTEMPT_LOG_TYPE)).orElse(List.of());
     }
 
     public Optional<ComposedPlan> result() {

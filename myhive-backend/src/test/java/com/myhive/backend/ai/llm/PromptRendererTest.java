@@ -242,4 +242,30 @@ class PromptRendererTest {
                 .contains("starts at the " + expectedArrival.slot().name() + " slot")
                 .contains("ends at the " + expectedDeparture.slot().name() + " slot");
     }
+
+
+    /** Friday evening to Sunday morning: day 1 has only the evening, day 3 only the morning. */
+    @Test
+    void plannerSystem_spellsOutTheAllowedSlotsOfEveryDay() {
+        Brief brief = new Brief(3, 8, List.of(), "x", null, null, DayEdge.EVENING, DayEdge.MORNING, null);
+
+        String prompt = renderer.plannerSystem(new PlanRequest("en", "Prague", brief, List.of(), List.of()));
+
+        assertThat(prompt).contains("day 1: EVENING, NIGHT; day 2: MORNING, AFTERNOON, EVENING, NIGHT; day 3: MORNING");
+    }
+
+    @Test
+    void plannerUser_listsWhatAnActivityIncludes_orADash() {
+        String expectedIncludes = "Guide, 2 shots per bar";
+        Brief brief = new Brief(2, 6, List.of(), "x", null, null, DayEdge.EVENING, DayEdge.AFTERNOON, null);
+        List<CatalogActivity> catalog = List.of(
+                new CatalogActivity(UUID.randomUUID(), "crawl", "Crawl", "line", 240, true, new BigDecimal("30.00"),
+                        null, "img", List.of("nightlife"), expectedIncludes),
+                new CatalogActivity(UUID.randomUUID(), "spa", "Spa", "line", 90, true, new BigDecimal("40.00"),
+                        null, "img", List.of()));
+
+        String prompt = renderer.plannerUser(new PlanRequest("en", "Prague", brief, catalog, List.of()));
+
+        assertThat(prompt).contains("| includes)").contains("| line | " + expectedIncludes).contains("Spa").contains("| line | -");
+    }
 }

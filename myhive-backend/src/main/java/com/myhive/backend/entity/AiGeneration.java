@@ -65,6 +65,10 @@ public class AiGeneration {
     @Column(nullable = false)
     private boolean degraded = false;
 
+    /** JSON list of {@code AttemptDiagnostic}: why each planner draft was rejected. Staff-only; null when none was. */
+    @Column(columnDefinition = "TEXT")
+    private String diagnostics;
+
     @Column(name = "selected_package_key", length = 16)
     private String selectedPackageKey;
 

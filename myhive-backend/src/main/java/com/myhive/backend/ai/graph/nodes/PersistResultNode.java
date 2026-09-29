@@ -2,12 +2,14 @@ package com.myhive.backend.ai.graph.nodes;
 
 import com.myhive.backend.ai.graph.PlannerState;
 import com.myhive.backend.ai.llm.LlmUsage;
+import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +34,13 @@ public class PersistResultNode implements NodeAction<PlannerState> {
          * Best effort, and never a reason to fail the generation; a sink that does not care ignores it.
          */
         default void skeleton(UUID generationId, ComposedPlan plan) {
+        }
+
+        /**
+         * Why the model's drafts were rejected, one entry per attempt, for a row {@link #ready} just
+         * stored. Staff-only diagnostics; never a reason to fail the generation.
+         */
+        default void diagnostics(UUID generationId, List<AttemptDiagnostic> attempts) {
         }
     }
 
@@ -79,8 +88,12 @@ public class PersistResultNode implements NodeAction<PlannerState> {
             log.warn("planner result dropped: no generationId in state; result not persisted");
             return Optional.empty();
         }
-        if (!sink().ready(generationId.get(), plan, state.degraded(), state.usage(), state.attempt())) {
+        GenerationResultSink sink = sink();
+        if (!sink.ready(generationId.get(), plan, state.degraded(), state.usage(), state.attempt())) {
             return Optional.empty();
+        }
+        if (!state.attemptLog().isEmpty()) {
+            sink.diagnostics(generationId.get(), state.attemptLog());
         }
         return generationId;
     }

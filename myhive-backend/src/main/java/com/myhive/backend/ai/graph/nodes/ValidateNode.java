@@ -3,6 +3,7 @@ package com.myhive.backend.ai.graph.nodes;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
+import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.PlanAssembler;
 import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.PlanValidator;
@@ -42,10 +43,14 @@ public class ValidateNode implements NodeAction<PlannerState> {
             }
         }
         if (!violations.isEmpty()) {
-            // The only trace of WHY a draft was sent to repair or fallback: the violations live in the
-            // checkpoint until the next turn overwrites them and never reach a generation row. Codes with
-            // tier and day only - no titles or "why" texts, which are model output.
+            // Codes with tier and day only - no titles or "why" texts, which are model output.
             log.warn("planner draft rejected attempt={} violations={}", state.attempt(), summarize(violations));
+            // VIOLATIONS is overwritten by the next attempt, so every rejection is also appended to the
+            // attempt log, which persistResult stores on the generation row for staff. The call's error
+            // code goes with it: an empty draft from a failed call reads as MISSING_TIER x3 on its own.
+            List<AttemptDiagnostic> attempts = new ArrayList<>(state.attemptLog());
+            attempts.add(AttemptDiagnostic.of(state.attempt(), state.lastError().orElse(null), violations));
+            update.put(PlannerState.ATTEMPT_LOG, JsonCodec.write(attempts));
         }
         update.put(PlannerState.VIOLATIONS, JsonCodec.write(violations));
         return update;

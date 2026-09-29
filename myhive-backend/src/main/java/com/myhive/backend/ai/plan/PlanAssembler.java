@@ -30,7 +30,7 @@ public class PlanAssembler {
         int travelers = brief.groupSize();
         List<ComposedPlan.PackageResult> packages = new ArrayList<>();
         for (PlanDraft.PackageDraft p : draft.packages()) {
-            packages.add(assemblePackage(p, travelers, catalog));
+            packages.add(assemblePackage(p, travelers, nights(brief), catalog));
         }
         packages.sort(Comparator.comparing(ComposedPlan.PackageResult::key));
         List<Violation> violations = new ArrayList<>();
@@ -46,7 +46,12 @@ public class PlanAssembler {
         return new AssemblyResult(new ComposedPlan(packages, degraded), violations);
     }
 
-    private static ComposedPlan.PackageResult assemblePackage(PlanDraft.PackageDraft p, int travelers,
+    /** Arrive on day 1, leave on the last day: a 3-day Friday-to-Sunday trip is 2 nights, a day trip 0. */
+    static Integer nights(Brief brief) {
+        return brief.days() == null ? null : Math.max(0, brief.days() - 1);
+    }
+
+    private static ComposedPlan.PackageResult assemblePackage(PlanDraft.PackageDraft p, int travelers, Integer nights,
             Map<UUID, CatalogActivity> catalog) {
         List<ComposedPlan.DayResult> days = new ArrayList<>();
         List<UUID> ids = new ArrayList<>();
@@ -62,7 +67,8 @@ public class PlanAssembler {
                 BigDecimal line = PlanPricer.lineTotal(a.price(), a.minPrice(), travelers);
                 boolean floored = line.compareTo(a.price().multiply(BigDecimal.valueOf(travelers))) > 0;
                 items.add(new ComposedPlan.ItemResult(item.slot(), clean(item.startHint()), a.id(), a.slug(), a.name(),
-                        a.imageUrl(), a.durationMinutes(), a.price(), a.minPrice(), line, floored, clean(item.why())));
+                        a.imageUrl(), a.durationMinutes(), a.price(), a.minPrice(), line, floored, clean(item.why()),
+                        a.includes()));
                 ids.add(a.id());
                 total = total.add(line);
                 minutes += a.durationMinutes();
@@ -70,7 +76,7 @@ public class PlanAssembler {
             days.add(new ComposedPlan.DayResult(day.dayNumber(), clean(day.title()), clean(day.summary()), items));
         }
         return new ComposedPlan.PackageResult(p.key(), clean(p.title()), clean(p.tagline()), clean(p.description()),
-                PlanPricer.perPerson(total, travelers), total, ComposedPlan.CURRENCY, minutes, ids, days);
+                PlanPricer.perPerson(total, travelers), total, ComposedPlan.CURRENCY, minutes, ids, days, nights);
     }
 
     /** Model text is displayed as plain text only: drop script/style blocks whole, unwrap other tags, collapse whitespace. */

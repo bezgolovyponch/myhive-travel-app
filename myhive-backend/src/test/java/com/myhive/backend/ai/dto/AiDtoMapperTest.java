@@ -10,6 +10,7 @@ import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationKind;
@@ -191,5 +192,24 @@ class AiDtoMapperTest {
         return new ComposedPlan(List.of(new ComposedPlan.PackageResult(Tier.BASIC, "Night out", "tag", "desc",
                 new BigDecimal("40.00"), new BigDecimal("160.00"), ComposedPlan.CURRENCY, DURATION_MINUTES,
                 List.of(activityId), List.of(day))), false);
+    }
+
+
+    @Test
+    void generation_servesDiagnosticsToStaffOnly() {
+        String expectedViolation = "SLOT_OUTSIDE_WINDOW BASIC d1: slot MORNING is outside the arrival/departure window on day 1";
+        AiGeneration generation = editedGeneration(null, null);
+        generation.setDiagnostics(JsonCodec.write(List.of(
+                new AttemptDiagnostic(0, "LLM_INVALID_OUTPUT", List.of()),
+                new AttemptDiagnostic(1, null, List.of(expectedViolation)))));
+        AiDtoMapper staffMapper = new AiDtoMapper(mock(ActivityRepository.class), () -> true);
+
+        GenerationDTO forStaff = staffMapper.generation(generation);
+        GenerationDTO forPublic = mapper.generation(generation);
+
+        assertThat(forStaff.diagnostics()).extracting(AttemptDiagnostic::errorCode)
+                .containsExactly("LLM_INVALID_OUTPUT", null);
+        assertThat(forStaff.diagnostics().get(1).violations()).containsExactly(expectedViolation);
+        assertThat(forPublic.diagnostics()).isNull();
     }
 }

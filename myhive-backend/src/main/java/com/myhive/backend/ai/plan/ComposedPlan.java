@@ -16,16 +16,32 @@ public record ComposedPlan(List<PackageResult> packages, boolean degraded) {
         return pkg.currency();
     }
 
+    /** {@code nights} is days - 1 (arrive on day 1, leave on the last); null on rows stored before it existed. */
     public record PackageResult(Tier key, String title, String tagline, String description, BigDecimal pricePerPerson,
                                 BigDecimal totalPrice, String currency, int totalDurationMinutes, List<UUID> activityIds,
-                                List<DayResult> days) {
+                                List<DayResult> days, Integer nights) {
+
+        public PackageResult(Tier key, String title, String tagline, String description, BigDecimal pricePerPerson,
+                             BigDecimal totalPrice, String currency, int totalDurationMinutes, List<UUID> activityIds,
+                             List<DayResult> days) {
+            this(key, title, tagline, description, pricePerPerson, totalPrice, currency, totalDurationMinutes,
+                    activityIds, days, null);
+        }
     }
 
     public record DayResult(int dayNumber, String title, String summary, List<ItemResult> items) {
     }
 
+    /** {@code includes} is the catalog's own "what is included" text, in the plan's language; never model output. */
     public record ItemResult(Slot slot, String startHint, UUID activityId, String slug, String name, String imageUrl,
                              int durationMinutes, BigDecimal price, BigDecimal minPrice, BigDecimal lineTotal,
-                             boolean groupMinApplied, String why) {
+                             boolean groupMinApplied, String why, String includes) {
+
+        public ItemResult(Slot slot, String startHint, UUID activityId, String slug, String name, String imageUrl,
+                          int durationMinutes, BigDecimal price, BigDecimal minPrice, BigDecimal lineTotal,
+                          boolean groupMinApplied, String why) {
+            this(slot, startHint, activityId, slug, name, imageUrl, durationMinutes, price, minPrice, lineTotal,
+                    groupMinApplied, why, null);
+        }
     }
 }

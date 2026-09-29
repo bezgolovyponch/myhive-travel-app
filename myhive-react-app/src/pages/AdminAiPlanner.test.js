@@ -152,6 +152,32 @@ test('a turn that starts a generation is polled: the skeleton shows with texts p
     expect(screen.getByRole('button', {name: 'Choose BASIC'})).toBeEnabled();
 });
 
+test('a degraded generation says why each draft was rejected: a failed call by its error, a broken rule by its violations', async () => {
+    const user = userEvent.setup();
+    const queued = {id: readyGeneration().id, status: 'QUEUED', kind: 'GENERATED', degraded: false, textsPending: false, packages: null};
+    mockApi.aiSendMessage.mockResolvedValue({
+        message: {role: 'ASSISTANT', content: 'Perfect, building three options now.'},
+        messages: [{role: 'ASSISTANT', content: 'Perfect, building three options now.'}],
+        generation: queued,
+    });
+    mockApi.aiGetGeneration.mockResolvedValue(readyGeneration({
+        degraded: true,
+        diagnostics: [
+            {attempt: 0, errorCode: 'LLM_INVALID_OUTPUT', violations: ['MISSING_TIER BASIC: package BASIC is missing']},
+            {attempt: 1, errorCode: null, violations: ['SLOT_OUTSIDE_WINDOW BASIC d1: slot MORNING is outside the arrival/departure window on day 1']},
+        ],
+    }));
+    render(<AdminAiPlanner pollIntervalMs={1}/>);
+
+    await user.type(screen.getByLabelText('Message'), 'friday evening, leaving sunday morning');
+    await user.click(screen.getByRole('button', {name: 'Send'}));
+
+    expect(await screen.findByText(/both model drafts were rejected, so Java composed these \(degraded\)/)).toBeInTheDocument();
+    expect(screen.getByText('compose: model call failed (LLM_INVALID_OUTPUT)')).toBeInTheDocument();
+    expect(screen.getByText(/^repair: 1 rule violation\(s\) — SLOT_OUTSIDE_WINDOW BASIC d1/)).toBeInTheDocument();
+    expect(screen.queryByText(/broke a scheduling rule twice/)).not.toBeInTheDocument();
+});
+
 test('choosing a package posts the selection and shows the Trip Builder items', async () => {
     const user = userEvent.setup();
     mockApi.aiGetSession.mockResolvedValue(sessionState({status: 'READY', latestReadyGeneration: readyGeneration()}));

@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.dto;
 
 import com.myhive.backend.ai.model.Brief;
+import com.myhive.backend.ai.plan.AttemptDiagnostic;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,11 +16,14 @@ import java.util.UUID;
  * <p>{@code kind} is {@code GENERATED} for a row the planner model built and {@code EDITED} for one the
  * package editor derived from it; only an {@code EDITED} row carries {@code parentId} and
  * {@code editReport}, whose {@code generationId} is this row's own id.
+ *
+ * <p>{@code diagnostics} - why each planner draft was rejected - is filled for staff callers only and
+ * null for everyone else.
  */
 public record GenerationDTO(UUID id, UUID sessionToken, String status, boolean degraded, String selectedPackageKey,
                             Brief brief, List<PackageDTO> packages, ErrorDTO error, LocalDateTime createdAt,
                             LocalDateTime finishedAt, String kind, UUID parentId, EditDTO editReport,
-                            boolean textsPending) {
+                            boolean textsPending, List<AttemptDiagnostic> diagnostics) {
 
     /** {@code retryable} tells the UI whether to offer "try again" or to apologise. */
     public record ErrorDTO(String code, boolean retryable) {

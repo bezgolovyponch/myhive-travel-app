@@ -121,4 +121,24 @@ class PlanAssemblerTest {
         assertThat(basicResult.days().get(0).items()).hasSize(1);
         assertThat(basicResult.totalPrice()).isEqualByComparingTo("40.00");
     }
+
+
+    @Test
+    void assemble_carriesTheCatalogIncludes_andCountsNightsAsDaysMinusOne() {
+        String expectedIncludes = "Guide, 2 shots per bar, club entry";
+        UUID crawl = UUID.randomUUID();
+        catalog.put(crawl, new CatalogActivity(crawl, "crawl", "Crawl", "line", 90, true, new BigDecimal("30.00"),
+                null, "img", List.of(), expectedIncludes));
+        Brief threeDays = new Brief(3, 4, List.of(), "x", null, null, DayEdge.EVENING, DayEdge.MORNING, null);
+        PlanDraft.DayDraft day1 = new PlanDraft.DayDraft(1, "Day 1", "sum",
+                List.of(new PlanDraft.ItemDraft(Slot.EVENING, null, crawl, "why")));
+        PlanDraft draft = new PlanDraft(List.of(new PlanDraft.PackageDraft(Tier.BASIC, "t", "tag", "desc",
+                List.of(day1, new PlanDraft.DayDraft(2, "Day 2", "sum", List.of()),
+                        new PlanDraft.DayDraft(3, "Day 3", "sum", List.of())))));
+
+        ComposedPlan.PackageResult pkg = assembler.assemble(draft, threeDays, catalog, false).plan().packages().get(0);
+
+        assertThat(pkg.nights()).isEqualTo(2);
+        assertThat(pkg.days().get(0).items().get(0).includes()).isEqualTo(expectedIncludes);
+    }
 }

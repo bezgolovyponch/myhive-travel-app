@@ -183,8 +183,22 @@ class SpringAiLlmGatewayTest {
         OpenAiChatOptions options = capturedOptions();
         assertThat(options.getModel()).isEqualTo(expectedPlannerModel);
         assertThat(options.getTemperature()).isEqualTo(0.4);
-        assertThat(options.getResponseFormat().getType()).isEqualTo(ResponseFormat.Type.JSON_OBJECT);
+        assertThat(options.getResponseFormat().getType()).isEqualTo(ResponseFormat.Type.JSON_SCHEMA);
+        assertThat(options.getResponseFormat().getStrict()).isTrue();
+        assertThat(options.getResponseFormat().getJsonSchema()).contains("\"packages\"").contains("\"activityId\"");
         assertThat(options.getExtraBody()).containsEntry("enable_thinking", false);
+    }
+
+    @Test
+    void composePlan_withStrictSchemaOff_fallsBackToJsonMode() {
+        props.setStrictSchema(false);
+        when(chatModel.call(any(Prompt.class))).thenReturn(response(EMPTY_PLAN_JSON));
+
+        gateway.composePlan(planRequest());
+
+        OpenAiChatOptions options = capturedOptions();
+        assertThat(options.getResponseFormat().getType()).isEqualTo(ResponseFormat.Type.JSON_OBJECT);
+        assertThat(options.getResponseFormat().getJsonSchema()).isNull();
     }
 
     @Test

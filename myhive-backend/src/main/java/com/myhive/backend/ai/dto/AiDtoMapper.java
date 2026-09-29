@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.dto;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.myhive.backend.ai.edit.AppliedEdit;
 import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.edit.RejectedEdit;
@@ -7,8 +8,10 @@ import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
 import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.model.Brief;
+import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.service.AiSessionService;
+import com.myhive.backend.ai.service.StaffAccess;
 import com.myhive.backend.dto.VotePoolActivityDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.AiGeneration;
@@ -17,8 +20,8 @@ import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.util.Translations;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,14 +33,27 @@ import java.util.UUID;
 
 /** Turns what {@link AiSessionService} hands back into the JSON of {@code docs/api/ai-planner-api.md}. */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class AiDtoMapper {
 
     /** Everything else is a transport hiccup the group can simply retry; an internal fault is not. */
     private static final String NON_RETRYABLE_ERROR_CODE = "INTERNAL";
 
+    private static final TypeReference<List<AttemptDiagnostic>> DIAGNOSTICS_TYPE = new TypeReference<>() {};
+
     private final ActivityRepository activityRepository;
+    private final StaffAccess staff;
+
+    @Autowired
+    public AiDtoMapper(ActivityRepository activityRepository, StaffAccess staff) {
+        this.activityRepository = activityRepository;
+        this.staff = staff;
+    }
+
+    /** No caller is staff: diagnostics are never exposed. */
+    public AiDtoMapper(ActivityRepository activityRepository) {
+        this(activityRepository, () -> false);
+    }
 
     public SessionStateDTO sessionState(AiSessionService.SessionView view) {
         AiSession session = view.session();
@@ -116,7 +132,20 @@ public class AiDtoMapper {
                 generation.isDegraded(), generation.getSelectedPackageKey(),
                 JsonCodec.read(generation.getBriefSnapshot(), Brief.class), packages, error(generation),
                 generation.getCreatedAt(), generation.getFinishedAt(), generation.getKind().name(),
-                generation.getParentId(), editReport(generation), skeleton);
+                generation.getParentId(), editReport(generation), skeleton, diagnostics(generation));
+    }
+
+    /** Staff only; like {@link #editReport}, an unreadable blob is dropped rather than hiding the packages. */
+    private List<AttemptDiagnostic> diagnostics(AiGeneration generation) {
+        if (generation.getDiagnostics() == null || !staff.isStaff()) {
+            return null;
+        }
+        try {
+            return JsonCodec.read(generation.getDiagnostics(), DIAGNOSTICS_TYPE);
+        } catch (RuntimeException e) {
+            log.warn("unreadable diagnostics on generation={}", generation.getId());
+            return null;
+        }
     }
 
     /**
@@ -178,7 +207,7 @@ public class AiDtoMapper {
     private static PackageDTO plannedPackage(ComposedPlan.PackageResult result) {
         return new PackageDTO(result.key().name(), result.title(), result.tagline(), result.description(),
                 result.pricePerPerson(), result.totalPrice(), result.currency(), result.totalDurationMinutes(),
-                result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList());
+                result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights());
     }
 
     private static PackageDTO.DayDTO plannedDay(ComposedPlan.DayResult result) {
@@ -189,7 +218,8 @@ public class AiDtoMapper {
     private static PackageDTO.ItemDTO plannedItem(ComposedPlan.ItemResult result) {
         return new PackageDTO.ItemDTO(result.slot() == null ? null : result.slot().name(), result.startHint(),
                 result.activityId(), result.slug(), result.name(), result.imageUrl(), result.durationMinutes(),
-                result.price(), result.minPrice(), result.lineTotal(), result.groupMinApplied(), result.why());
+                result.price(), result.minPrice(), result.lineTotal(), result.groupMinApplied(), result.why(),
+                result.includes());
     }
 
     private static VotePoolActivityDTO tripItem(Activity activity, String lc) {

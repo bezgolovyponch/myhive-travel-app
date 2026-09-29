@@ -31,6 +31,7 @@ public class SnapshotCatalogNode implements NodeAction<PlannerState> {
         update.put(PlannerState.ATTEMPT, 0);
         update.put(PlannerState.DEGRADED, false);
         update.put(PlannerState.VIOLATIONS, JsonCodec.write(List.of()));
+        update.put(PlannerState.ATTEMPT_LOG, JsonCodec.write(List.of()));
         // A regeneration must not inherit the previous one's accounting: a fallback that never reached
         // the model would otherwise report the earlier generation's tokens and failure reason as its own.
         update.put(PlannerState.USAGE, JsonCodec.write(LlmUsage.none()));

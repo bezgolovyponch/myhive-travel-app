@@ -146,7 +146,7 @@ public class PackageEditor {
             return null;
         }
         return new CatalogActivity(item.activityId(), item.slug(), item.name(), "", item.durationMinutes(), true,
-                item.price(), item.minPrice(), item.imageUrl(), List.of());
+                item.price(), item.minPrice(), item.imageUrl(), List.of(), item.includes());
     }
 
     private PlanDraft applyEdit(PlanDraft working, EditRequest edit, Brief brief, WorkingCatalog catalog,

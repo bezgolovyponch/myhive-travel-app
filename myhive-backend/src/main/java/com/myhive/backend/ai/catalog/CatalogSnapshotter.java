@@ -63,7 +63,12 @@ public class CatalogSnapshotter {
                 a.getPrice(),
                 a.getMinPrice(),
                 a.getImageUrl(),
-                a.getCategories().stream().map(Category::getSlug).sorted().toList());
+                a.getCategories().stream().map(Category::getSlug).sorted().toList(),
+                blankToNull(Translations.pick(tr, lc, "includes", a.getIncludes())));
+    }
+
+    private static String blankToNull(String text) {
+        return text == null || text.isBlank() ? null : text.replaceAll("\\s+", " ").strip();
     }
 
     /** A word boundary found earlier than this would throw away most of the line; hard-cut instead. */

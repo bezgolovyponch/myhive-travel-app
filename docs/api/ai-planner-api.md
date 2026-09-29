@@ -532,11 +532,20 @@ rendering, the copy is still being written. On `READY`:
   "packages": [ "...Package × 3, ordered BASIC, MEDIUM, PREMIUM..." ],
   "kind": "GENERATED",                        // GENERATED | EDITED
   "parentId": null,                           // non-null only on an EDITED row
-  "editReport": null }                        // non-null only on an EDITED row (see below)
+  "editReport": null,                         // non-null only on an EDITED row (see below)
+  "diagnostics": null }                       // staff callers only, see below
 ```
 
 `degraded: true` means the deterministic fallback composed the packages (the model
 failed twice); they are valid but blander — a small "auto-composed" hint is enough.
+
+`diagnostics` is null for everyone but staff (ADMIN/MANAGER token). For staff it
+lists every rejected planner draft of the generation, in order, when there was one:
+`[{ "attempt": 0, "errorCode": "LLM_INVALID_OUTPUT", "violations": [] },
+{ "attempt": 1, "errorCode": null, "violations": ["SLOT_OUTSIDE_WINDOW BASIC d1: …"] }]`.
+Attempt 0 is the compose call, 1 the repair. A non-null `errorCode` (`LLM_TIMEOUT`,
+`LLM_UNAVAILABLE`, `LLM_INVALID_OUTPUT`, `INTERNAL`) means the call itself failed and
+its draft was empty, so its `MISSING_TIER` violations are a consequence, not the cause.
 
 Every generation — not only ones produced by an edit turn — now carries `kind`,
 `parentId` and `editReport`. A `GENERATED` row (the planner model's own output, or
@@ -690,6 +699,7 @@ known before `readyToGenerate` turns true; `budget` never blocks generation.
   "description": "…",                          // ≤ 600
   "pricePerPerson": 245.50, "totalPrice": 1964.00, "currency": "EUR",
   "totalDurationMinutes": 780,
+  "nights": 2,                                 // days - 1; null on packages stored before it existed
   "activityIds": ["…", "…"],
   "days": [
     { "dayNumber": 1, "title": "Landing night", "summary": "…",
@@ -700,7 +710,8 @@ known before `readyToGenerate` turns true; `budget` never blocks generation.
           "imageUrl": "https://…", "durationMinutes": 120,
           "price": 35.00, "minPrice": 280.00, "lineTotal": 280.00,
           "groupMinApplied": true,
-          "why": "Gets everyone loose without a hangover before karting." }
+          "why": "Gets everyone loose without a hangover before karting.",
+          "includes": "Bike and driver, 20 litres of beer" }  // catalog text, may be null
       ] }
   ]
 }
