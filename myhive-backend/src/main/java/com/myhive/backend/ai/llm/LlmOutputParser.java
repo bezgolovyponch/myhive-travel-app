@@ -34,6 +34,8 @@ public class LlmOutputParser {
      * what a real message needs; the rest are dropped, not rejected, since the chat reply still stands.
      */
     public static final int MAX_EDITS_PER_TURN = 10;
+    public static final int MAX_SUGGESTED_REPLIES = 4;
+    public static final int MAX_SUGGESTED_REPLY_CHARS = 60;
 
     /** An activity name is a catalog label, not prose: past this the model is writing a sentence. */
     private static final int MAX_ACTIVITY_NAME_CHARS = 120;
@@ -77,7 +79,29 @@ public class LlmOutputParser {
             log.info("chat turn asked for {} edits, keeping the first {}", edits.size(), MAX_EDITS_PER_TURN);
             edits = new ArrayList<>(edits.subList(0, MAX_EDITS_PER_TURN));
         }
-        return new ChatTurnResult(reply.asText().strip(), brief == null ? Brief.empty() : brief, missing, edits, LlmUsage.none());
+        return new ChatTurnResult(reply.asText().strip(), brief == null ? Brief.empty() : brief, missing, edits,
+                LlmUsage.none(), suggestedReplies(root.path("suggestedReplies")));
+    }
+
+    /**
+     * Chips are optional garnish: anything that is not a short non-blank string is dropped, never a reason
+     * to lose the turn, and the list is capped so the UI never has to wrap a wall of buttons.
+     */
+    private static List<String> suggestedReplies(JsonNode node) {
+        if (!node.isArray()) {
+            return List.of();
+        }
+        List<String> replies = new ArrayList<>();
+        for (JsonNode element : node) {
+            String text = element.isTextual() ? element.asText().strip() : "";
+            if (!text.isEmpty() && text.length() <= MAX_SUGGESTED_REPLY_CHARS && !replies.contains(text)) {
+                replies.add(text);
+            }
+            if (replies.size() == MAX_SUGGESTED_REPLIES) {
+                break;
+            }
+        }
+        return replies;
     }
 
     /**

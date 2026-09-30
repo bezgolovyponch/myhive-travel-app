@@ -27,7 +27,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/** Qwen through Spring AI's OpenAI client. JSON mode + thinking off so the reply is parseable JSON. */
+/** Qwen through Spring AI's OpenAI client. JSON (schema) mode + thinking off so the reply is parseable JSON. */
 @Component
 @Primary
 @Slf4j
@@ -87,7 +87,8 @@ public class SpringAiLlmGateway implements LlmGateway {
         List<Message> messages = List.of(
                 new SystemMessage(renderer.plannerSystem(request)),
                 new UserMessage(renderer.plannerUser(request)));
-        Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout());
+        Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout(),
+                ResponseSchemas.plan(request.catalog()));
         return new PlanDraftResult(parser.parsePlan(timed.text(), request.catalog()), timed.usage());
     }
 
@@ -97,7 +98,8 @@ public class SpringAiLlmGateway implements LlmGateway {
                 new SystemMessage(renderer.plannerSystem(request.original())),
                 new UserMessage(renderer.plannerUser(request.original())),
                 new UserMessage(renderer.repairUser(request)));
-        Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout());
+        Timed timed = call(messages, props.getPlannerModel(), PLANNER_TEMPERATURE, props.getPlannerTimeout(),
+                ResponseSchemas.plan(request.original().catalog()));
         return new PlanDraftResult(parser.parsePlan(timed.text(), request.original().catalog()), timed.usage());
     }
 
@@ -116,7 +118,8 @@ public class SpringAiLlmGateway implements LlmGateway {
         List<Message> messages = List.of(
                 new SystemMessage(renderer.planTextsSystem(request)),
                 new UserMessage(renderer.planTextsUser(request)));
-        Timed timed = call(messages, props.getChatModel(), CHAT_TEMPERATURE, props.getTextsTimeout());
+        Timed timed = call(messages, props.getChatModel(), CHAT_TEMPERATURE, props.getTextsTimeout(),
+                ResponseSchemas.planTexts());
         return new PlanTextsResult(parser.parsePackageTexts(timed.text(), ActivityAliases.toId(request.catalog())),
                 timed.usage());
     }
@@ -125,7 +128,12 @@ public class SpringAiLlmGateway implements LlmGateway {
     }
 
     private Timed call(List<Message> messages, String model, double temperature, Duration timeout) {
-        Prompt prompt = new Prompt(messages, options(model, temperature));
+        return call(messages, model, temperature, timeout, null);
+    }
+
+    /** {@code schema} null means plain JSON mode; see {@link #options}. */
+    private Timed call(List<Message> messages, String model, double temperature, Duration timeout, String schema) {
+        Prompt prompt = new Prompt(messages, options(model, temperature, schema));
         long started = System.nanoTime();
         try {
             ChatResponse response = CompletableFuture.supplyAsync(() -> chatModel.call(prompt), llmCallExecutor)
@@ -155,12 +163,19 @@ public class SpringAiLlmGateway implements LlmGateway {
         }
     }
 
-    /** Per-call options: the model and temperature this leg needs, JSON mode, and Qwen's thinking flag. */
-    private OpenAiChatOptions options(String model, double temperature) {
+    /**
+     * Per-call options: the model and temperature this leg needs, the response format, and Qwen's thinking
+     * flag. A leg with a schema gets strict JSON-schema mode (Model Studio supports it for the Qwen3.7-Plus
+     * and Qwen3.8-Max series) unless {@code app.ai.strict-schema} is off; everything else gets JSON mode.
+     */
+    private OpenAiChatOptions options(String model, double temperature, String schema) {
+        ResponseFormat format = schema != null && props.isStrictSchema()
+                ? ResponseFormat.builder().type(ResponseFormat.Type.JSON_SCHEMA).jsonSchema(schema).strict(true).build()
+                : ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build();
         return OpenAiChatOptions.builder()
                 .model(model)
                 .temperature(temperature)
-                .responseFormat(ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build())
+                .responseFormat(format)
                 .extraBody(THINKING_OFF)
                 .build();
     }

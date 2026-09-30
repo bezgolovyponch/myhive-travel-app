@@ -3,8 +3,10 @@ package com.myhive.backend.ai.llm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PlanDraft;
+import com.myhive.backend.ai.plan.PlanValidator;
 import com.myhive.backend.ai.plan.Violation;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,6 +31,15 @@ public class PromptRenderer {
      * only tempt it to invent activities. Kept here rather than in the template because the template
      * engine has no conditionals.
      */
+    /**
+     * Before the first generation: what is on offer, so a follow-up can name the real variants of what the
+     * organizer picked ("with a show or on the boat?") instead of inventing them. No edit rules here -
+     * there is nothing to edit yet.
+     */
+    private static final String OFFER_BLOCK = """
+            Catalog activity names (the only things you may offer or name): %s
+            """;
+
     private static final String PACKAGES_BLOCK = """
             Current packages (the organizer can change them):
             %s
@@ -73,7 +84,25 @@ public class PromptRenderer {
                 "days", String.valueOf(r.brief().days()),
                 "groupSize", String.valueOf(r.brief().groupSize()),
                 "arrival", r.brief().arrivalOrDefault().slot().name(),
-                "departure", r.brief().departureOrDefault().slot().name()));
+                "departure", r.brief().departureOrDefault().slot().name(),
+                "dayWindows", dayWindows(r.brief())));
+    }
+
+    /**
+     * "day 1: EVENING, NIGHT; day 2: MORNING, ...; day 3: MORNING" - taken from the validator's own window
+     * so the prompt can never promise a slot that validation then rejects as SLOT_OUTSIDE_WINDOW.
+     */
+    static String dayWindows(Brief brief) {
+        if (brief.days() == null) {
+            return "-";
+        }
+        List<String> days = new ArrayList<>();
+        for (int n = 1; n <= brief.days(); n++) {
+            String slots = PlanValidator.allowedSlots(n, brief).stream().map(Enum::name)
+                    .collect(Collectors.joining(", "));
+            days.add("day " + n + ": " + slots);
+        }
+        return String.join("; ", days);
     }
 
     public String plannerUser(PlanRequest r) {
@@ -82,13 +111,14 @@ public class PromptRenderer {
         sb.append("RECENT CONVERSATION:\n");
         r.recentHistory().stream().skip(Math.max(0, r.recentHistory().size() - HISTORY_FOR_PLANNER))
                 .forEach(m -> sb.append(m.role()).append(": ").append(wrapUser(m.content())).append('\n'));
-        sb.append("\nCATALOG (activityId | name | duration | price per person | group minimum | categories | about):\n");
+        sb.append("\nCATALOG (activityId | name | duration | price per person | group minimum | categories | about | includes):\n");
         List<CatalogActivity> catalog = r.catalog();
         for (int i = 0; i < catalog.size(); i++) {
             CatalogActivity a = catalog.get(i);
             sb.append(ActivityAliases.of(i)).append(" | ").append(a.name()).append(" | ").append(a.durationMinutes()).append(" min | ")
                     .append(a.price()).append(" EUR pp | min ").append(a.minPrice() == null ? "-" : a.minPrice())
-                    .append(" | ").append(String.join(",", a.categorySlugs())).append(" | ").append(a.oneLine()).append('\n');
+                    .append(" | ").append(String.join(",", a.categorySlugs())).append(" | ").append(a.oneLine())
+                    .append(" | ").append(a.includes() == null ? "-" : a.includes()).append('\n');
         }
         return sb.toString();
     }
@@ -170,7 +200,7 @@ public class PromptRenderer {
 
     /**
      * The brief, then the package: its price per person and every day with its items as
-     * "- SLOT code name | duration | about", so the copy can say what an activity is instead of
+     * "- SLOT code name | duration | about | includes: ...", so the copy can say what an activity is instead of
      * repeating its name. Built in code like {@link #plannerUser}: it is all data, no prose.
      */
     public String planTextsUser(PlanTextsRequest r) {
@@ -192,6 +222,9 @@ public class PromptRenderer {
                             .append(item.name()).append(" | ").append(item.durationMinutes()).append(" min");
                     if (activity != null) {
                         sb.append(" | ").append(activity.oneLine());
+                        if (activity.includes() != null) {
+                            sb.append(" | includes: ").append(activity.includes());
+                        }
                     }
                     sb.append('\n');
                 }
@@ -201,10 +234,10 @@ public class PromptRenderer {
         return sb.toString().strip();
     }
 
-    /** Nothing to edit, nothing to say about editing: a turn before the first generation gets no block. */
+    /** Nothing to edit, nothing to say about editing: a turn before the first generation only sees the offer. */
     private static String packagesBlock(ChatTurnRequest r) {
         if (r.packagesView() == null || r.packagesView().isBlank()) {
-            return "";
+            return r.catalogNames().isEmpty() ? "" : OFFER_BLOCK.formatted(String.join(", ", r.catalogNames()));
         }
         return PACKAGES_BLOCK.formatted(r.packagesView(), String.join(", ", r.catalogNames()));
     }

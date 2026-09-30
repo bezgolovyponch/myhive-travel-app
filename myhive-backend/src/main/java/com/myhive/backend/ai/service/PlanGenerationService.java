@@ -12,6 +12,7 @@ import com.myhive.backend.ai.graph.nodes.SelectNode;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationKind;
@@ -275,6 +276,15 @@ public class PlanGenerationService
         }
         generation.setResult(JsonCodec.write(plan));
         save(generation);
+    }
+
+    @Override
+    @Transactional
+    public void diagnostics(UUID generationId, List<AttemptDiagnostic> attempts) {
+        generationRepository.findById(generationId).ifPresent(generation -> {
+            generation.setDiagnostics(JsonCodec.write(attempts));
+            save(generation);
+        });
     }
 
     @Override

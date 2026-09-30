@@ -152,14 +152,14 @@ public class PlanTextWriter {
         }
         return new ComposedPlan.ItemResult(item.slot(), item.startHint(), item.activityId(), item.slug(), item.name(),
                 item.imageUrl(), item.durationMinutes(), item.price(), item.minPrice(), item.lineTotal(),
-                item.groupMinApplied(), why);
+                item.groupMinApplied(), why, item.includes());
     }
 
     /** The package with its texts and days replaced; prices, ids and duration are copied through untouched. */
     public static ComposedPlan.PackageResult withTexts(ComposedPlan.PackageResult p, String title, String tagline,
             String description, List<ComposedPlan.DayResult> days) {
         return new ComposedPlan.PackageResult(p.key(), title, tagline, description, p.pricePerPerson(), p.totalPrice(),
-                p.currency(), p.totalDurationMinutes(), p.activityIds(), days);
+                p.currency(), p.totalDurationMinutes(), p.activityIds(), days, p.nights());
     }
 
     private static boolean isBlank(String text) {

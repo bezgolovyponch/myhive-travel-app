@@ -19,6 +19,8 @@ public class AiProperties {
     private Duration plannerTimeout = Duration.ofSeconds(60);
     /** The copy call after a generation: ~1.5k tokens of prose, more than a chat turn's budget allows. */
     private Duration textsTimeout = Duration.ofSeconds(40);
+    /** Strict {@code json_schema} responses on the planner and copy legs; off falls back to plain JSON mode. */
+    private boolean strictSchema = true;
     private boolean turnstileRequired = false;
     /** Staff (ADMIN/MANAGER token) may use the planner while {@link #enabled} is off for the public. */
     private boolean staffPreview = true;

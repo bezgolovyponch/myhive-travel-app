@@ -256,6 +256,26 @@ class AiSessionServiceTest {
         assertThat(llm.chatRequests).isEmpty();
     }
 
+    /**
+     * The pickers set days and group size: the chat opens on taste, and the chips answer that question.
+     * The chips come from what the catalog sells - the destination here has no categories assigned at
+     * all, which is how Prague is set up in production.
+     */
+    @Test
+    void create_withAPreset_keepsItInTheBrief_greetsOnTaste_andSeedsOpeningChips() {
+        Brief expectedPreset = new Brief(3, 8, List.of(), null, null, null, DayEdge.EVENING, DayEdge.MORNING, null);
+        when(snapshotter.snapshot(any(), any(), any())).thenReturn(List.of(new CatalogActivity(UUID.randomUUID(),
+                "prague-pub-crawl", "Prague Pub Crawl", "Five bars", 240, true, new BigDecimal("25.00"), null, null,
+                List.of("nightlife"))));
+
+        AiSessionService.SessionView view = service.create("prague", "en", null, null, "1.2.3.4", expectedPreset);
+
+        assertThat(view.state().brief()).isEqualTo(expectedPreset);
+        assertThat(view.state().brief().missingFields()).containsExactly("preferences");
+        assertThat(view.state().messages().get(0).content()).startsWith("Hey! 3 days, 8 people");
+        assertThat(view.state().suggestedReplies()).containsExactly("Bar crawl + club night");
+    }
+
     @Test
     void create_withInitialMessage_runsOneTurn() {
         String expectedLocale = "de";
@@ -1015,7 +1035,8 @@ class AiSessionServiceTest {
     @Test
     void anOrdinaryTurn_handsBackOnlyItsOwnReply() {
         AiSession session = startedSession();
-        String expectedReply = "Sure, tell me more.";
+        // A question, as every reply is while the brief has gaps: one that asks nothing gets one added.
+        String expectedReply = "Sure - what else should I know?";
         llm.queueChat(turn("How many days?", Brief.empty()), turn(expectedReply, Brief.empty()));
         service.message(session.getToken(), "hello");
 

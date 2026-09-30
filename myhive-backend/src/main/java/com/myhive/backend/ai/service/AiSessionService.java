@@ -70,6 +70,10 @@ public class AiSessionService {
     private static final Map<String, String> GREETING = Map.of(
             "en", "Hey! I'm your stag-trip planner. How many days are you coming for, and how big is the group?",
             "de", "Hey! Ich bin dein Junggesellenabschied-Planer. Wie viele Tage kommt ihr, und wie groß ist die Gruppe?");
+    /** When the pickers already set days and group size: straight to taste, which is what the chips answer. */
+    private static final Map<String, String> TASTE_GREETING = Map.of(
+            "en", "Hey! %d days, %d people - noted. What should the weekend be built around?",
+            "de", "Hey! %d Tage, %d Leute - notiert. Worum soll sich das Wochenende drehen?");
     private static final List<AiGenerationStatus> IN_FLIGHT =
             List.of(AiGenerationStatus.QUEUED, AiGenerationStatus.RUNNING);
     private static final String TIMEOUT_MARKER = "timed out";
@@ -135,6 +139,12 @@ public class AiSessionService {
 
     public SessionView create(String destinationSlug, String locale, String turnstileToken, String initialMessage,
             String clientIp) {
+        return create(destinationSlug, locale, turnstileToken, initialMessage, clientIp, Brief.empty());
+    }
+
+    /** {@code preset} is what the entry screen's pickers chose (days, group size, arrival, departure). */
+    public SessionView create(String destinationSlug, String locale, String turnstileToken, String initialMessage,
+            String clientIp, Brief preset) {
         requireEnabled();
         // The captcha and the per-network daily cap are there for strangers. Staff sign in, and twenty
         // colleagues behind one office address would otherwise lock each other out by lunch.
@@ -156,7 +166,8 @@ public class AiSessionService {
         String lc = translationLocale == null ? Translations.DEFAULT_LOCALE : translationLocale;
         AiSession session = newSession(destination, lc, ipHash);
 
-        graph.seedParked(session.getToken(), seedFor(destination, lc, translationLocale));
+        graph.seedParked(session.getToken(), seedFor(destination, lc, translationLocale,
+                preset == null ? Brief.empty() : preset));
         if (initialMessage == null || initialMessage.isBlank()) {
             return view(session);
         }
@@ -428,7 +439,8 @@ public class AiSessionService {
      * The opening state of a thread. The greeting is seeded as a stored assistant message rather than
      * generated, so opening the planner costs nothing and the first model call carries a real question.
      */
-    private static Map<String, Object> seedFor(Destination destination, String lc, String translationLocale) {
+    private static Map<String, Object> seedFor(Destination destination, String lc, String translationLocale,
+            Brief preset) {
         List<String> categorySlugs = destination.getCategories().stream()
                 .map(Category::getSlug)
                 .sorted()
@@ -439,10 +451,19 @@ public class AiSessionService {
         seed.put(PlannerState.DESTINATION_NAME,
                 Translations.pick(destination.getTranslations(), translationLocale, "name", destination.getName()));
         seed.put(PlannerState.CATEGORY_SLUGS, categorySlugs);
-        seed.put(PlannerState.BRIEF, JsonCodec.write(Brief.empty()));
-        seed.put(PlannerState.MESSAGES, List.of(PlannerState.message(ChatMessage.ASSISTANT,
-                GREETING.getOrDefault(lc, GREETING.get(Translations.DEFAULT_LOCALE)))));
+        seed.put(PlannerState.BRIEF, JsonCodec.write(preset));
+        seed.put(PlannerState.MESSAGES, List.of(PlannerState.message(ChatMessage.ASSISTANT, greeting(lc, preset))));
+        // The opening chips are not seeded here: they depend on what the catalog can deliver, and the
+        // catalog is read by the seed turn itself (ChatTurnNode), which writes them next to its snapshot.
         return seed;
+    }
+
+    private static String greeting(String lc, Brief preset) {
+        if (preset.days() == null || preset.groupSize() == null) {
+            return GREETING.getOrDefault(lc, GREETING.get(Translations.DEFAULT_LOCALE));
+        }
+        return TASTE_GREETING.getOrDefault(lc, TASTE_GREETING.get(Translations.DEFAULT_LOCALE))
+                .formatted(preset.days(), preset.groupSize());
     }
 
     private void touch(AiSession session) {

@@ -19,6 +19,7 @@ import com.myhive.backend.ai.llm.FakeLlmGateway;
 import com.myhive.backend.ai.plan.FallbackPlanComposer;
 import com.myhive.backend.ai.plan.PlanAssembler;
 import com.myhive.backend.ai.plan.PlanTextWriter;
+import com.myhive.backend.ai.plan.PlanTrimmer;
 import com.myhive.backend.ai.plan.PlanValidator;
 import org.bsc.langgraph4j.checkpoint.BaseCheckpointSaver;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
@@ -57,10 +58,10 @@ public final class TestPlannerGraphs {
         PlanValidator validator = new PlanValidator();
         PlanAssembler assembler = new PlanAssembler();
         PlannerGraph.Nodes nodes = new PlannerGraph.Nodes(
-                new ChatTurnNode(llm),
+                new ChatTurnNode(llm, snapshotter),
                 new SnapshotCatalogNode(snapshotter),
                 new ComposeNode(llm),
-                new ValidateNode(validator, assembler),
+                new ValidateNode(validator, assembler, new PlanTrimmer(validator, assembler)),
                 new RepairNode(llm),
                 new FallbackNode(new FallbackPlanComposer()),
                 new PublishSkeletonNode(resultSink),

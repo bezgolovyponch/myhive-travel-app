@@ -117,4 +117,17 @@ class CatalogSnapshotterTest {
         assertThat(result).endsWith("…");
         assertThat(result.substring(0, expectedTruncatedLength)).isEqualTo("x".repeat(expectedTruncatedLength));
     }
+
+    /** Production "what is included" texts run to 450 characters, and every one of them rides in the prompt. */
+    @Test
+    void includes_isFlattenedAndCutLikeTheOneLiner_andAnEmptyOneIsNone() {
+        String expectedFlat = "Guide; transport; helmet";
+        String overlong = "Trivlu Guide; Private Transport (Roundtrip); ".repeat(12);
+
+        assertThat(CatalogSnapshotter.includes("  Guide;\n transport;   helmet ")).isEqualTo(expectedFlat);
+        assertThat(CatalogSnapshotter.includes(overlong))
+                .hasSizeLessThanOrEqualTo(CatalogSnapshotter.INCLUDES_MAX).endsWith("…");
+        assertThat(CatalogSnapshotter.includes("   ")).isNull();
+        assertThat(CatalogSnapshotter.includes(null)).isNull();
+    }
 }

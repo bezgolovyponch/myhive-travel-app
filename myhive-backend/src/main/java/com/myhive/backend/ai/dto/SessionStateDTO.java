@@ -7,12 +7,13 @@ import java.util.UUID;
 
 /**
  * The whole planner screen in one body: {@code GET /ai/sessions/&#123;token&#125;} rebuilds a chat a
- * group comes back to days later from nothing but the stored token.
+ * group comes back to days later from nothing but the stored token. {@code suggestedReplies} are the
+ * tap-to-send chips for the latest assistant message - the opening hooks on a fresh chat; never null.
  */
 public record SessionStateDTO(UUID token, String destinationSlug, String locale, String status, Brief brief,
                               List<String> missingFields, boolean readyToGenerate, List<MessageDTO> messages,
                               GenerationDTO latestGeneration, GenerationDTO latestReadyGeneration,
-                              FirstTurnErrorDTO firstTurnError, LimitsDTO limits) {
+                              FirstTurnErrorDTO firstTurnError, LimitsDTO limits, List<String> suggestedReplies) {
 
     /**
      * What is left of this chat's allowances, so the UI can offer "start a new chat" before a 429.

@@ -14,6 +14,13 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
     public static final int MAX_GROUP = 30;
     public static final int MAX_TEXT = 300;
 
+    /** The names {@link #missingFields()} reports a gap under; the API serves them as they are. */
+    public static final String FIELD_DAYS = "days";
+    public static final String FIELD_GROUP_SIZE = "groupSize";
+    public static final String FIELD_PREFERENCES = "preferences";
+    public static final String FIELD_ARRIVAL = "arrival";
+    public static final String FIELD_DEPARTURE = "departure";
+
     public Brief {
         categorySlugs = categorySlugs == null ? List.of() : List.copyOf(categorySlugs);
     }
@@ -41,22 +48,36 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
     public List<String> missingFields() {
         List<String> missing = new ArrayList<>();
         if (days == null) {
-            missing.add("days");
+            missing.add(FIELD_DAYS);
         }
         if (groupSize == null) {
-            missing.add("groupSize");
+            missing.add(FIELD_GROUP_SIZE);
         }
         boolean hasTaste = !categorySlugs.isEmpty() || (vibe != null && !vibe.isBlank());
         if (!hasTaste) {
-            missing.add("preferences");
+            missing.add(FIELD_PREFERENCES);
         }
         if (arrival == null) {
-            missing.add("arrival");
+            missing.add(FIELD_ARRIVAL);
         }
         if (departure == null) {
-            missing.add("departure");
+            missing.add(FIELD_DEPARTURE);
         }
         return missing;
+    }
+
+    /**
+     * The chat model sometimes files what the group likes under the notes ("likes beer, karting") and
+     * leaves the vibe empty. When taste is the only thing still missing and there are notes, they are
+     * read as the vibe; in every other case the brief comes back as it is. Whether the notes may be
+     * read that way is the caller's call - see {@code ChatTurnNode}.
+     */
+    public Brief withNotesAsTaste() {
+        boolean onlyTasteMissing = missingFields().equals(List.of(FIELD_PREFERENCES));
+        if (!onlyTasteMissing || notes == null || notes.isBlank()) {
+            return this;
+        }
+        return new Brief(days, groupSize, categorySlugs, notes, dislikes, budget, arrival, departure, null);
     }
 
     @JsonIgnore
