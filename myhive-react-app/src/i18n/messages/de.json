@@ -1160,7 +1160,7 @@
         "ADD": "{name} hinzugefügt",
         "REPLACE": "{name} gegen {replacement} getauscht"
       },
-      "priceFrom": "ab {price} p. P.",
+      "priceFrom": "ab {price}",
       "sendToPlanner": "An einen Prag-Planer senden"
     },
     "dock": {

@@ -226,10 +226,11 @@ test('once packages land they fill the page and the chat retracts into the dock'
     expect(screen.getByRole('tab', {name: /Medium/})).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('Karting')).toBeInTheDocument();
     expect(screen.getByText('Afternoon')).toBeInTheDocument(); // no startHint: the slot name
-    // Each trim shows a starting price per person; the planner confirms the final one on the call.
-    expect(within(screen.getByRole('tab', {name: /Basic/})).getByText('from €125 pp')).toBeInTheDocument();
-    expect(within(screen.getByRole('tab', {name: /Medium/})).getByText('from €195 pp')).toBeInTheDocument();
-    expect(within(screen.getByRole('tab', {name: /Premium/})).getByText('from €310 pp')).toBeInTheDocument();
+    // Each trim shows its starting group total — the same number the cart shows
+    // once it is picked; the planner confirms the final price on the call.
+    expect(within(screen.getByRole('tab', {name: /Basic/})).getByText('from €1,250')).toBeInTheDocument();
+    expect(within(screen.getByRole('tab', {name: /Medium/})).getByText('from €1,950')).toBeInTheDocument();
+    expect(within(screen.getByRole('tab', {name: /Premium/})).getByText('from €3,100')).toBeInTheDocument();
     expect(screen.getByText('10 people · 3 days · 2 activities')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
@@ -241,7 +242,9 @@ test('once packages land they fill the page and the chat retracts into the dock'
     await userEvent.click(screen.getByRole('button', {name: /Ask Stag Do AI to change anything/}));
     const drawer = screen.getByRole('dialog', {name: 'Stag Do AI'});
     expect(within(drawer).getByText('Building your three options…')).toBeInTheDocument();
-    expect(within(drawer).getByRole('button', {name: /Medium.*from €195 pp/})).toBeInTheDocument();
+    expect(within(drawer).getByRole('button', {name: /Medium.*from €1,950/})).toBeInTheDocument();
+    // The hand-off is reachable without closing the chat (v3 2d).
+    expect(within(drawer).getByRole('button', {name: 'Send to a Prague planner'})).toBeInTheDocument();
     // The trims are cards under the reply too; tapping one switches the package behind.
     await userEvent.click(within(drawer).getByRole('button', {name: /Basic.*Essentials/}));
     expect(screen.getByRole('heading', {name: 'Prague · Basic'})).toBeInTheDocument();

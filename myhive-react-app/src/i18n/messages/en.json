@@ -1170,7 +1170,7 @@
         "ADD": "Added {name}",
         "REPLACE": "Swapped {name} for {replacement}"
       },
-      "priceFrom": "from {price} pp",
+      "priceFrom": "from {price}",
       "sendToPlanner": "Send to a Prague planner"
     },
     "dock": {

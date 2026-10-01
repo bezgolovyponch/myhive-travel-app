@@ -211,6 +211,27 @@
     margin-top: 8px;
 }
 
+/* The same hand-off inside the open chat, under the trim cards and indented
+   like them (past the avatar column); full width on phones. */
+.aip-drawer-send {
+    margin-left: 34px;
+}
+
+@media (max-width: 640px) {
+    .aip-drawer-send {
+        margin-left: 0;
+    }
+}
+
+.aip-drawer-send .aip-cta {
+    margin-top: 0;
+    box-shadow: none;
+}
+
+.aip-drawer-send .ai-error {
+    margin-bottom: 8px;
+}
+
 .aip-drawer {
     display: flex;
     flex-direction: column;

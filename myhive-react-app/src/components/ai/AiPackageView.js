@@ -12,11 +12,11 @@ export const TIER_KEYS = ['BASIC', 'MEDIUM', 'PREMIUM'];
 
 export const activityCount = (pkg) => pkg.days.reduce((n, day) => n + day.items.length, 0);
 
-// "from €195 pp", or null when the package carries no price. Whole euros: a
-// starting price with cents reads as a quote.
+// "from €4,584": the package's group total — the number the cart shows once it
+// is picked — or null when there is none. Whole euros: cents read as a quote.
 export function priceFrom(t, pkg) {
-    const n = Number(pkg.pricePerPerson);
-    if (pkg.pricePerPerson == null || !Number.isFinite(n) || n <= 0) return null;
+    const n = Number(pkg.totalPrice);
+    if (pkg.totalPrice == null || !Number.isFinite(n) || n <= 0) return null;
     return t('result.priceFrom', {price: formatAmount(Math.round(n))});
 }
 

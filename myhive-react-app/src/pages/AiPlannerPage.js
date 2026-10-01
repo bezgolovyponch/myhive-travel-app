@@ -139,6 +139,22 @@ function AiPlannerPage({pollIntervalMs}) {
         </button>
     );
 
+    // "Send to a Prague planner", under the collapsed chat bar and inside the
+    // open chat (v3 2d) — the hand-off must never need the chat closed first.
+    const sendBlock = hasResult && (
+        <>
+            {handoffError && <div className="ai-error" role="alert">{t('errors.handoff')}</div>}
+            <button
+                type="button"
+                className="aip-cta"
+                onClick={sendToPlanner}
+                disabled={!destination || handingOff || sending || planner.building || generation.textsPending}
+            >
+                {t('result.sendToPlanner')}
+            </button>
+        </>
+    );
+
     const brief = generation?.brief || {};
     const startDate = planStart(trip, brief);
     const drawerMeta = [
@@ -198,8 +214,13 @@ function AiPlannerPage({pollIntervalMs}) {
                                     planner={planner}
                                     variant="drawer"
                                     placeholder={t('dock.placeholder')}
-                                    afterMessages={<TrimCards generation={generation} activeKey={activeKey}
-                                                              onTierChange={setActiveKey}/>}
+                                    afterMessages={(
+                                        <>
+                                            <TrimCards generation={generation} activeKey={activeKey}
+                                                       onTierChange={setActiveKey}/>
+                                            <div className="aip-drawer-send">{sendBlock}</div>
+                                        </>
+                                    )}
                                 />
                             </div>
                         ) : (
@@ -211,15 +232,7 @@ function AiPlannerPage({pollIntervalMs}) {
                                     </span>
                                     <i className="ph ph-caret-up aip-pill-caret" aria-hidden="true"/>
                                 </button>
-                                {handoffError && <div className="ai-error" role="alert">{t('errors.handoff')}</div>}
-                                <button
-                                    type="button"
-                                    className="aip-cta"
-                                    onClick={sendToPlanner}
-                                    disabled={!destination || handingOff || sending || planner.building || generation.textsPending}
-                                >
-                                    {t('result.sendToPlanner')}
-                                </button>
+                                {sendBlock}
                             </>
                         )}
                     </div>
