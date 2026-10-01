@@ -21,7 +21,6 @@ public class AiProperties {
     private Duration textsTimeout = Duration.ofSeconds(40);
     /** Strict {@code json_schema} responses on the planner and copy legs; off falls back to plain JSON mode. */
     private boolean strictSchema = true;
-    private boolean turnstileRequired = false;
     /** Staff (ADMIN/MANAGER token) may use the planner while {@link #enabled} is off for the public. */
     private boolean staffPreview = true;
     private int sessionTtlDays = 30;

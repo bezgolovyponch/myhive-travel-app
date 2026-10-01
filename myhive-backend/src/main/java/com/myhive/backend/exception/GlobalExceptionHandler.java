@@ -5,7 +5,6 @@ import com.myhive.backend.ai.exception.AiDisabledException;
 import com.myhive.backend.ai.exception.AiLimitException;
 import com.myhive.backend.ai.exception.AiNotFoundException;
 import com.myhive.backend.ai.exception.LlmCallFailedException;
-import com.myhive.backend.ai.exception.TurnstileFailedException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -249,11 +248,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AiNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAiNotFound(AiNotFoundException ex, HttpServletRequest request) {
         return error(HttpStatus.NOT_FOUND, ex.getCode(), ex.getMessage(), request);
-    }
-
-    @ExceptionHandler(TurnstileFailedException.class)
-    public ResponseEntity<ErrorResponse> handleTurnstileFailed(TurnstileFailedException ex, HttpServletRequest request) {
-        return error(HttpStatus.FORBIDDEN, "TURNSTILE_FAILED", ex.getMessage(), request);
     }
 
     @ExceptionHandler(LlmCallFailedException.class)

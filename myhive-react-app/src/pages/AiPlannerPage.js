@@ -1,11 +1,10 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import PageHead from '../components/PageHead';
 import AiThread from '../components/ai/AiThread';
 import AiPackageView, {AI_PICK_KEY, TrimCards, plural} from '../components/ai/AiPackageView';
 import StartGroupVoteModal from '../components/vote/StartGroupVoteModal';
 import {useAiPlanner} from '../hooks/useAiPlanner';
-import {useTurnstileWidget} from '../hooks/useTurnstileWidget';
 import {useTrip} from '../context/TripContext';
 import {useCatalog} from '../context/CatalogContext';
 import {DEFAULT_DESTINATION_SLUG} from '../services/config';
@@ -16,10 +15,6 @@ import {useLocale, useT} from '../i18n';
 import './AiPlannerPage.css';
 
 const STARTER_KEYS = ['one', 'two', 'three'];
-// How long the first message waits for the invisible human check before it
-// goes without a token (the API then answers TURNSTILE_FAILED where required).
-const TURNSTILE_WAIT_MS = 8000;
-const TURNSTILE_OPTIONS = {appearance: 'interaction-only'};
 
 // The brief the homepage hero handed over, read once (see HeroPlanner).
 function takeDraft() {
@@ -45,7 +40,7 @@ function planStart(trip, brief) {
 // Stag Do AI (v3 landing, 2d/2e). Result-first: until there are packages the
 // chat is the page; once there are, the packages are the page and the chat
 // retracts into a bottom bar that opens a sheet over them.
-function AiPlannerPage({pollIntervalMs, turnstileWaitMs = TURNSTILE_WAIT_MS}) {
+function AiPlannerPage({pollIntervalMs}) {
     const t = useT('aiPlanner');
     const locale = useLocale();
     const [params] = useSearchParams();
@@ -63,37 +58,6 @@ function AiPlannerPage({pollIntervalMs, turnstileWaitMs = TURNSTILE_WAIT_MS}) {
     const {generation, sending} = planner;
     const hasResult = Boolean(generation?.packages?.length);
 
-    // Production only opens a chat for a solved Turnstile check (staff skip
-    // it). It runs invisibly while there is no session; the first message
-    // waits for its token, and later messages need none.
-    const needsCheck = !planner.restoring && !planner.token;
-    const {token: humanToken, containerRef: turnstileRef} = useTurnstileWidget(needsCheck, TURNSTILE_OPTIONS);
-    const [waitingForCheck, setWaitingForCheck] = useState(null); // {text, preset}
-    const plannerSend = planner.send;
-    const startOrSend = useCallback((text, preset = {}) => {
-        if (planner.token) return plannerSend(text, preset);
-        if (humanToken) return plannerSend(text, {...preset, turnstileToken: humanToken});
-        if (turnstileWaitMs <= 0) return plannerSend(text, preset);
-        setWaitingForCheck({text, preset});
-        return undefined;
-    }, [planner.token, plannerSend, humanToken, turnstileWaitMs]);
-
-    useEffect(() => {
-        if (!waitingForCheck) return undefined;
-        if (humanToken) {
-            setWaitingForCheck(null);
-            plannerSend(waitingForCheck.text, {...waitingForCheck.preset, turnstileToken: humanToken});
-            return undefined;
-        }
-        const timer = setTimeout(() => {
-            setWaitingForCheck(null);
-            plannerSend(waitingForCheck.text, waitingForCheck.preset);
-        }, turnstileWaitMs);
-        return () => clearTimeout(timer);
-    }, [waitingForCheck, humanToken, plannerSend, turnstileWaitMs]);
-
-    const threadPlanner = {...planner, send: startOrSend, sending: planner.sending || Boolean(waitingForCheck)};
-
     // A brief from the homepage starts a fresh chat with its days and head-count
     // preset, even over an older chat in storage: the visitor just asked anew.
     const draftHandled = useRef(false);
@@ -106,8 +70,8 @@ function AiPlannerPage({pollIntervalMs, turnstileWaitMs = TURNSTILE_WAIT_MS}) {
         const preset = {};
         if (draft.days) preset.days = draft.days;
         if (draft.groupSize) preset.groupSize = draft.groupSize;
-        startOrSend(draft.message, preset);
-    }, [planner, startOrSend]);
+        planner.send(draft.message, preset);
+    }, [planner]);
 
     // First packages land: the chat steps aside so the result gets the screen.
     const hadResult = useRef(hasResult);
@@ -161,8 +125,7 @@ function AiPlannerPage({pollIntervalMs, turnstileWaitMs = TURNSTILE_WAIT_MS}) {
             <div className="aip-starters">
                 {STARTER_KEYS.map((key) => (
                     <button key={key} type="button" className="aip-starter"
-                            disabled={Boolean(waitingForCheck)}
-                            onClick={() => startOrSend(t(`intro.starters.${key}`))}>
+                            onClick={() => planner.send(t(`intro.starters.${key}`))}>
                         {t(`intro.starters.${key}`)}
                     </button>
                 ))}
@@ -211,10 +174,8 @@ function AiPlannerPage({pollIntervalMs, turnstileWaitMs = TURNSTILE_WAIT_MS}) {
                 <div className="aip-loading" role="status">{t('loading')}</div>
             ) : !hasResult ? (
                 <div className="aip-chat-screen">
-                    <AiThread planner={threadPlanner} variant="full" emptyState={starters}
+                    <AiThread planner={planner} variant="full" emptyState={starters}
                               footer={planner.messages.length > 0 ? newChat : null}/>
-                    {/* Invisible unless Cloudflare needs a tap; only before a chat exists. */}
-                    {needsCheck && <div className="aip-turnstile" ref={turnstileRef}/>}
                 </div>
             ) : (
                 <>
@@ -250,7 +211,7 @@ function AiPlannerPage({pollIntervalMs, turnstileWaitMs = TURNSTILE_WAIT_MS}) {
                                     </button>
                                 </div>
                                 <AiThread
-                                    planner={threadPlanner}
+                                    planner={planner}
                                     variant="drawer"
                                     placeholder={t('dock.placeholder')}
                                     afterMessages={(
