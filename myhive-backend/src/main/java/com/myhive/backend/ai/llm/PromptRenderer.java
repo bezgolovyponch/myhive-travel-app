@@ -51,7 +51,7 @@ public class PromptRenderer {
             - When the organizer picks one of the alternatives from an earlier reply ("the first one", "yes, add it"), emit it with the exact catalog name against the current packages above: an ADD when the activity they wanted out is already gone, a REPLACE only when it is still listed. Scope it to the package the earlier line says that activity was dropped from (packageKey), unless they name a package or say everywhere.
             - One edit per request: "remove X and add Y" is two edits, even if Y does not exist.
             - packageKey null means every package; set it only if the organizer names a package.
-            - Reply with one short sentence saying you are doing it now; never claim it is done.
+            - The system checks every edit and then says itself what changed and what could not be done, so the reply never announces or confirms an edit ("Swapping X for Y now" is wrong - it may not be possible): keep it to a short neutral line like "Let me check that." plus anything else worth saying.
             - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.
             """;
 
@@ -171,21 +171,27 @@ public class PromptRenderer {
                 "locale", r.locale()));
     }
 
-    /** One block per edited package: what it now holds, then the exact list of texts to rewrite for it. */
+    /**
+     * One block per edited package: what it now holds - names included, since an edit can leave the title
+     * or a day title naming an activity that is gone - then the exact list of texts to rewrite for it.
+     */
     public String textRefreshUser(TextRefreshRequest r) {
         StringBuilder sb = new StringBuilder();
         for (ComposedPlan.PackageResult p : r.packages()) {
             sb.append("PACKAGE ").append(p.key()).append(" \"").append(orDash(p.title())).append("\"\n");
+            sb.append("TAGLINE ").append(orDash(p.tagline())).append('\n');
             sb.append(orDash(p.description())).append('\n');
             for (ComposedPlan.DayResult day : p.days()) {
-                sb.append("DAY ").append(day.dayNumber()).append(" (").append(orDash(day.summary())).append(")\n");
+                sb.append("DAY ").append(day.dayNumber()).append(" \"").append(orDash(day.title())).append("\" (")
+                        .append(orDash(day.summary())).append(")\n");
                 for (ComposedPlan.ItemResult item : day.items()) {
                     sb.append("- ").append(item.slot()).append(' ').append(item.activityId()).append(' ')
                             .append(item.name()).append('\n');
                 }
             }
-            sb.append("REWRITE: description; why for ").append(joinIds(r.newActivityIdsOf(p.key())))
-                    .append("; summary for days ").append(joinDays(r.touchedDaysOf(p.key()))).append("\n\n");
+            sb.append("REWRITE: title; tagline; description; why for ").append(joinIds(r.newActivityIdsOf(p.key())))
+                    .append("; dayTitle and summary for days ").append(joinDays(r.touchedDaysOf(p.key())))
+                    .append("\n\n");
         }
         return textRefreshUser.render(Map.of("packages", sb.toString().strip()));
     }

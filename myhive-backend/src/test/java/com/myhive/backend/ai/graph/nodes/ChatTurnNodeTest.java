@@ -52,7 +52,24 @@ class ChatTurnNodeTest {
                 .contains(ACTIVITY_NAME).contains(REPLACEMENT_NAME).contains(EditOp.REPLACE.name());
         assertThat(update.get(PlannerState.BRIEF)).isEqualTo(JsonCodec.write(expectedBrief));
         assertThat(update.get(PlannerState.EDIT_REPORT)).isEqualTo("");
-        assertThat(messagesOf(update)).hasSize(1);
+        // The reply was written before anyone checked the edit, so it is held back for applyEdits to judge:
+        // said now, "On it!" would stand next to a rejection of the very same edit.
+        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("On it!");
+        assertThat(update).doesNotContainKey(PlannerState.MESSAGES);
+    }
+
+    /** A reply held back on an earlier edit turn must never surface on a turn that edits nothing. */
+    @Test
+    void aTurnWithoutEdits_clearsAnyHeldBackReply_andSaysItsReplyNow() {
+        llm.queueChat(turn("Anything else?", Brief.empty(), List.of()));
+        Map<String, Object> state = stateMapWithPackages(readyBrief());
+        state.put(PlannerState.PENDING_REPLY, "Swapping it now.");
+
+        Map<String, Object> update = node.apply(new PlannerState(state));
+
+        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+        assertThat(messagesOf(update)).singleElement()
+                .satisfies(message -> assertThat(message.get("content")).isEqualTo("Anything else?"));
     }
 
     @Test

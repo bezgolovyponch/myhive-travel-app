@@ -996,14 +996,13 @@ class AiSessionServiceTest {
     }
 
     /**
-     * A rejected op adds a second assistant message after the model's own reply, and only the last one
-     * used to reach the client - so on exactly the turns that needed explaining, the model's answer was
-     * dropped and the group saw the template line alone.
+     * The model's reply on an edit turn is written before the op is checked ("Swapping it now."), so a
+     * rejected op is answered by the rejection line alone - never by an announcement it then contradicts.
      */
     @Test
-    void editTurn_withARejectedOp_handsBackEveryAssistantMessageOfTheTurn() {
+    void editTurn_withARejectedOp_handsBackTheRejectionInPlaceOfTheReply() {
         AiSession session = startedSession();
-        String expectedReply = "I could not find that one.";
+        String expectedReply = "Swapping the balloon ride now.";
         String expectedUnknownName = "Hot Air Balloon";
         CatalogActivity inThePlan = catalogActivity("Beer Bike", "beer-bike");
         ComposedPlan plan = planWith(inThePlan);
@@ -1013,9 +1012,8 @@ class AiSessionServiceTest {
 
         AiSessionService.TurnOutcome outcome = service.message(session.getToken(), "swap the balloon ride");
 
-        assertThat(outcome.assistantMessages()).hasSize(2);
-        assertThat(outcome.assistantMessages().get(0).content()).isEqualTo(expectedReply);
-        assertThat(outcome.assistantMessages().get(1).content()).contains(expectedUnknownName);
+        assertThat(outcome.assistantMessages()).singleElement().satisfies(message ->
+                assertThat(message.content()).contains(expectedUnknownName).doesNotContain(expectedReply));
     }
 
     @Test
