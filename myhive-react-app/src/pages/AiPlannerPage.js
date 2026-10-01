@@ -1,0 +1,202 @@
+import {useEffect, useRef, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
+import PageHead from '../components/PageHead';
+import AiThread from '../components/ai/AiThread';
+import AiPackageView, {AI_PICK_KEY, TrimCards, plural} from '../components/ai/AiPackageView';
+import StartGroupVoteModal from '../components/vote/StartGroupVoteModal';
+import {useAiPlanner} from '../hooks/useAiPlanner';
+import {useTrip} from '../context/TripContext';
+import {useCatalog} from '../context/CatalogContext';
+import {DEFAULT_DESTINATION_SLUG} from '../services/config';
+import {pushEvent} from '../utils/analytics';
+import {useLocale, useT} from '../i18n';
+import './AiPlannerPage.css';
+
+const STARTER_KEYS = ['one', 'two', 'three'];
+
+// Stag Do AI (v3 landing, 2d/2e). Result-first: until there are packages the
+// chat is the page; once there are, the packages are the page and the chat
+// retracts into a bottom bar that opens a sheet over them.
+function AiPlannerPage({pollIntervalMs}) {
+    const t = useT('aiPlanner');
+    const locale = useLocale();
+    const [params] = useSearchParams();
+    const destinationSlug = params.get('destination') || DEFAULT_DESTINATION_SLUG;
+    const planner = useAiPlanner({destinationSlug, locale, pollMs: pollIntervalMs});
+    const {state: trip, dispatch} = useTrip();
+    const {state: catalog} = useCatalog();
+    const destination = catalog.destinations.find((d) => d.slug === destinationSlug);
+    const [activeKey, setActiveKey] = useState(AI_PICK_KEY);
+    const [dockOpen, setDockOpen] = useState(false);
+    const [removing, setRemoving] = useState(null);
+    const [handoff, setHandoff] = useState(null); // {activityIds, groupSize} once a trim is picked
+    const [handingOff, setHandingOff] = useState(false);
+    const [handoffError, setHandoffError] = useState(false);
+    const {generation, sending} = planner;
+    const hasResult = Boolean(generation?.packages?.length);
+
+    // First packages land: the chat steps aside so the result gets the screen.
+    const hadResult = useRef(hasResult);
+    useEffect(() => {
+        if (hasResult && !hadResult.current) setDockOpen(false);
+        hadResult.current = hasResult;
+    }, [hasResult]);
+
+    useEffect(() => {
+        if (!sending) setRemoving(null);
+    }, [sending]);
+
+    useEffect(() => {
+        if (!dockOpen) return undefined;
+        const onKey = (e) => e.key === 'Escape' && setDockOpen(false);
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [dockOpen]);
+
+    // × is a chat edit (REMOVE) so the planner's packages stay the truth.
+    const removeItem = (pkg, item) => {
+        setRemoving(item.name);
+        planner.send(t('result.removeMessage', {name: item.name, tier: t(`tiers.${pkg.key}`)}));
+    };
+
+    // The picked trim replaces the cart (so the Trip Builder shows the same
+    // plan later), then the organizer leaves their contact in the vote modal —
+    // which creates the vote session and opens the dashboard.
+    const sendToPlanner = async () => {
+        setHandingOff(true);
+        setHandoffError(false);
+        pushEvent('cta_click', {cta_label: 'Send to a Prague planner', block: 'ai_planner'});
+        try {
+            const picked = await planner.select(generation.id, activeKey);
+            dispatch({type: 'SET_TRIP_ITEMS', tripItems: picked.tripItems.map((a) => ({...a, id: a.activityId}))});
+            dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: picked.groupSize});
+            setDockOpen(false);
+            setHandoff({activityIds: picked.tripItems.map((a) => a.activityId), groupSize: picked.groupSize});
+        } catch (e) {
+            setHandoffError(true);
+        } finally {
+            setHandingOff(false);
+        }
+    };
+
+    const starters = (
+        <div className="aip-intro">
+            <span className="aip-intro-mark" aria-hidden="true"><i className="ph ph-sparkle"/></span>
+            <h1 className="aip-intro-title">{t('intro.title')}</h1>
+            <p className="aip-intro-sub">{t('intro.subtitle')}</p>
+            <div className="aip-starters">
+                {STARTER_KEYS.map((key) => (
+                    <button key={key} type="button" className="aip-starter"
+                            onClick={() => planner.send(t(`intro.starters.${key}`))}>
+                        {t(`intro.starters.${key}`)}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+
+    const newChat = (
+        <button type="button" className="aip-link-btn" onClick={planner.newChat}>
+            <i className="ph ph-plus" aria-hidden="true"/> {t('newChat')}
+        </button>
+    );
+
+    const brief = generation?.brief || {};
+    const drawerMeta = [
+        brief.groupSize && t('result.people', {count: brief.groupSize}),
+        brief.days && plural(t, 'result.days', brief.days),
+    ].filter(Boolean).join(' · ');
+
+    return (
+        <div className={`aip-page ${hasResult ? 'has-result' : 'is-chat'}`}>
+            <PageHead>
+                <title>{t('meta.title')}</title>
+                <meta name="robots" content="noindex"/>
+            </PageHead>
+
+            {planner.restoring ? (
+                <div className="aip-loading" role="status">{t('loading')}</div>
+            ) : !hasResult ? (
+                <div className="aip-chat-screen">
+                    <AiThread planner={planner} variant="full" emptyState={starters}
+                              footer={planner.messages.length > 0 ? newChat : null}/>
+                </div>
+            ) : (
+                <>
+                    <main className={`aip-canvas ${dockOpen ? 'is-dimmed' : ''}`}>
+                        <AiPackageView
+                            generation={generation}
+                            destinationName={destination?.name}
+                            activeKey={activeKey}
+                            onTierChange={setActiveKey}
+                            onRemove={removeItem}
+                            removing={removing}
+                            onAskAi={() => setDockOpen(true)}
+                            onUndo={planner.undo}
+                            busy={sending || planner.building}
+                        />
+                    </main>
+
+                    {dockOpen && <div className="aip-scrim" onClick={() => setDockOpen(false)} aria-hidden="true"/>}
+                    <div className={`aip-dock ${dockOpen ? 'is-open' : ''}`}>
+                        {dockOpen ? (
+                            <div className="aip-drawer" role="dialog" aria-label={t('dock.title')}>
+                                <div className="aip-drawer-head">
+                                    <span className="ai-avatar" aria-hidden="true"><i className="ph ph-sparkle"/></span>
+                                    <div className="aip-drawer-title">
+                                        {t('dock.title')}
+                                        {drawerMeta && <span>{drawerMeta}</span>}
+                                    </div>
+                                    {newChat}
+                                    <button type="button" className="aip-icon-btn" aria-label={t('dock.collapse')}
+                                            onClick={() => setDockOpen(false)}>
+                                        <i className="ph ph-caret-down" aria-hidden="true"/>
+                                    </button>
+                                </div>
+                                <AiThread
+                                    planner={planner}
+                                    variant="drawer"
+                                    placeholder={t('dock.placeholder')}
+                                    afterMessages={<TrimCards generation={generation} activeKey={activeKey}
+                                                              onTierChange={setActiveKey}/>}
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <button type="button" className="aip-pill" onClick={() => setDockOpen(true)}>
+                                    <i className="ph ph-sparkle aip-pill-mark" aria-hidden="true"/>
+                                    <span className="aip-pill-text">
+                                        {sending || planner.building ? t('dock.working') : t('dock.pill')}
+                                    </span>
+                                    <i className="ph ph-caret-up aip-pill-caret" aria-hidden="true"/>
+                                </button>
+                                {handoffError && <div className="ai-error" role="alert">{t('errors.handoff')}</div>}
+                                <button
+                                    type="button"
+                                    className="aip-cta"
+                                    onClick={sendToPlanner}
+                                    disabled={!destination || handingOff || sending || planner.building || generation.textsPending}
+                                >
+                                    {t('result.sendToPlanner')}
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </>
+            )}
+
+            <StartGroupVoteModal
+                isOpen={Boolean(handoff)}
+                onClose={() => setHandoff(null)}
+                destinationId={destination?.id}
+                destinationName={destination?.name}
+                activityIds={handoff?.activityIds || []}
+                numberOfTravelers={handoff?.groupSize}
+                startDate={trip.tripStartDate}
+                endDate={trip.tripEndDate}
+            />
+        </div>
+    );
+}
+
+export default AiPlannerPage;

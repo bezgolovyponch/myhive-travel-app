@@ -1,0 +1,277 @@
+/* Package canvas (v3 landing, 2e). Tokens (--aip-*) come from AiPlannerPage.css. */
+.aip-view {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.aip-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--aip-purple-l);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+}
+
+.aip-title {
+    font-size: clamp(24px, 4.5vw, 34px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.aip-meta {
+    font-size: 13px;
+    color: var(--aip-muted);
+    margin: 4px 0 16px;
+}
+
+.aip-tiers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    background: var(--aip-card);
+    border: 1px solid var(--aip-line);
+    border-radius: 12px;
+}
+
+.aip-tier {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 8px 6px;
+    background: transparent;
+    border: 0;
+    border-radius: 9px;
+    color: var(--aip-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.aip-tier.is-active {
+    background: var(--aip-purple);
+}
+
+.aip-tier-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.aip-tier-tag {
+    font-size: 11px;
+    color: var(--aip-muted);
+}
+
+.aip-tier.is-active .aip-tier-tag {
+    color: #e4e1f3;
+}
+
+.aip-tagline {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--aip-muted);
+}
+
+.aip-day {
+    margin-top: 20px;
+}
+
+.aip-day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.aip-day-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.aip-day-title span {
+    font-weight: 500;
+    color: var(--aip-muted);
+}
+
+.aip-day-count {
+    font-size: 11px;
+    color: var(--aip-muted);
+}
+
+.aip-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 10px 10px 14px;
+    margin-bottom: 6px;
+    background: var(--aip-card-2);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition: opacity 0.2s;
+}
+
+.aip-item.is-added {
+    border-color: rgba(127, 119, 221, 0.5);
+}
+
+.aip-item.is-removing {
+    opacity: 0.5;
+}
+
+.aip-item-time {
+    width: 44px;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--aip-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.aip-item-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.aip-item-name {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.aip-item-sub {
+    font-size: 12px;
+    color: var(--aip-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aip-badge {
+    padding: 1px 6px;
+    background: rgba(127, 119, 221, 0.28);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #e7e2ff;
+}
+
+.aip-remove {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 0;
+    background: rgba(255, 255, 255, 0.06);
+    color: #ef8a98;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.aip-remove:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.aip-free {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px dashed var(--aip-line);
+    border-radius: 10px;
+    color: var(--aip-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.aip-hint {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--aip-muted);
+}
+
+.aip-toast {
+    position: sticky;
+    bottom: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 16px auto 0;
+    padding: 8px 8px 8px 14px;
+    background: #2e2b3a;
+    border: 1px solid var(--aip-line);
+    border-radius: 999px;
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.aip-toast button {
+    background: transparent;
+    border: 0;
+    color: var(--aip-purple-l);
+    font: inherit;
+    font-weight: 600;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+/* Trim cards inside the chat (2d). */
+.aip-trim-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-left: 34px;
+}
+
+.aip-trim-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
+    background: #221f2e;
+    border: 1px solid var(--aip-line, #34313f);
+    border-radius: 10px;
+    color: var(--aip-text, #fff);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aip-trim-card.is-active {
+    background: rgba(83, 74, 183, 0.25);
+    border-color: var(--aip-purple, #534AB7);
+}
+
+.aip-trim-card b {
+    font-size: 13px;
+}
+
+.aip-trim-card span {
+    font-size: 11px;
+    color: var(--aip-muted, #9a96a6);
+}
+
+.aip-trim-card em {
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--aip-purple-l, #7F77DD);
+}
+
+@media (max-width: 640px) {
+    .aip-trim-cards {
+        margin-left: 0;
+    }
+}

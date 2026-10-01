@@ -1,0 +1,286 @@
+/* Stag Do AI page. Palette mirrors HomePage.css so the two read as one site. */
+.aip-page {
+    --aip-bg: #16131c;
+    --aip-card: #1f1c27;
+    --aip-card-2: #262430;
+    --aip-line: #34313f;
+    --aip-purple: #534AB7;
+    --aip-purple-l: #7F77DD;
+    --aip-purple-ic: #CECBF6;
+    --aip-muted: #9a96a6;
+    --aip-text: #fff;
+    position: relative;
+    /* The site header is transparent and absolutely positioned over pages. */
+    padding-top: var(--header-height, 5rem);
+    min-height: 100vh;
+    background: radial-gradient(80% 60% at 50% 0%, rgba(83, 74, 183, 0.18), transparent 70%), var(--aip-bg);
+    color: var(--aip-text);
+}
+
+.aip-loading {
+    padding: 120px 16px;
+    text-align: center;
+    color: var(--aip-muted);
+}
+
+/* ---- first turn: the chat is the page ---- */
+.aip-chat-screen {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 8px 16px 16px;
+    height: calc(100vh - var(--header-height, 5rem));
+    height: calc(100dvh - var(--header-height, 5rem));
+    display: flex;
+    flex-direction: column;
+}
+
+.aip-intro {
+    text-align: center;
+    /* Centred in the empty thread, so the gap above the composer is not one big hole. */
+    margin: auto 0;
+    padding: 24px 0;
+}
+
+.aip-intro-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--aip-purple), var(--aip-purple-l));
+    font-size: 26px;
+    margin-bottom: 16px;
+}
+
+.aip-intro-title {
+    font-size: clamp(28px, 5vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+}
+
+.aip-intro-sub {
+    color: var(--aip-muted);
+    font-size: 16px;
+    margin: 0 auto 28px;
+    max-width: 480px;
+}
+
+.aip-starters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.aip-starter {
+    text-align: left;
+    padding: 14px 16px;
+    background: var(--aip-card);
+    border: 1px solid var(--aip-line);
+    border-radius: 14px;
+    color: var(--aip-text);
+    font: inherit;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.aip-starter:hover {
+    border-color: var(--aip-purple-l);
+}
+
+.aip-link-btn {
+    background: none;
+    border: 0;
+    color: var(--aip-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 6px;
+}
+
+.aip-link-btn:hover {
+    color: var(--aip-text);
+}
+
+/* ---- result: package canvas + retractable dock ---- */
+.aip-canvas {
+    padding: 28px 16px 170px;
+    transition: opacity 0.2s;
+}
+
+/* Fade the list out under the fixed chat bar + CTA. */
+.aip-page.has-result::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 190px;
+    background: linear-gradient(to bottom, rgba(22, 19, 28, 0), var(--aip-bg) 45%);
+    pointer-events: none;
+    z-index: 54;
+}
+
+.aip-canvas.is-dimmed {
+    opacity: 0.45;
+}
+
+/* Stacking: header 50 < scrim 53 < fade 54 < dock 55 < AppModal 70. */
+.aip-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 53;
+}
+
+.aip-dock {
+    position: fixed;
+    left: 50%;
+    /* Clear the consent sheet (height published by WhatsAppWidget) and the iOS home bar. */
+    bottom: calc(16px + var(--consent-bar-h, 0px) + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 55;
+    width: min(720px, calc(100% - 32px));
+}
+
+.aip-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 10px 12px 16px;
+    background: rgba(31, 28, 39, 0.94);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--aip-purple);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    color: var(--aip-muted);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aip-pill-mark {
+    color: var(--aip-purple-l);
+}
+
+.aip-pill-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aip-pill-caret {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--aip-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aip-cta {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 15px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--aip-purple);
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 12px 30px rgba(83, 74, 183, 0.35);
+}
+
+.aip-cta:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.aip-dock > .ai-error {
+    margin-top: 8px;
+}
+
+.aip-drawer {
+    display: flex;
+    flex-direction: column;
+    height: min(560px, 70vh);
+    background: rgba(31, 28, 39, 0.96);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 22px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: aip-slide-up 0.2s ease-out;
+}
+
+@keyframes aip-slide-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+}
+
+.aip-drawer-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px 12px 16px;
+    border-bottom: 1px solid var(--aip-line);
+}
+
+.aip-drawer-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.aip-drawer-title span {
+    display: block;
+    color: var(--aip-muted);
+    font-weight: 400;
+    font-size: 12px;
+}
+
+.aip-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--aip-line);
+    background: transparent;
+    color: var(--aip-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Phones: the dock is a full-width bottom sheet. */
+@media (max-width: 640px) {
+    .aip-dock {
+        bottom: calc(12px + var(--consent-bar-h, 0px) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .aip-dock.is-open {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        transform: none;
+    }
+
+    .aip-dock.is-open .aip-drawer {
+        height: 78vh;
+        border-radius: 22px 22px 0 0;
+        border-bottom: 0;
+    }
+
+}

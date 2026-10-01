@@ -6,10 +6,10 @@ export const DEFAULT_LOCALE = 'en';
 
 // URLs the legacy SPA owns (client-only flows), used by the Next catch-all to
 // decide between mounting the SPA and a real 404. /unsubscribe takes no
-// subpath; /vote and /payment require one; /admin owns its whole subtree
+// subpath (nor does /plan, the AI planner chat); /vote and /payment require one; /admin owns its whole subtree
 // including the bare form. They are locale-prefixed like everything else —
 // the SPA's BrowserRouter takes the prefix as its basename (see App.js).
-export const SPA_EXACT = new Set(['unsubscribe']);
+export const SPA_EXACT = new Set(['unsubscribe', 'plan']);
 export const SPA_NESTED = new Set(['vote', 'payment']);
 
 function firstSegment(pathname) {

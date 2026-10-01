@@ -12,6 +12,7 @@ const FULL_SCREEN_ROUTES = [
     /^\/vote\/[^/]+\/activities$/, // participant swipe page
     /^\/vote\/new\/curate$/,       // organizer swipe deck (same UI as above)
     /^\/vote\/new\/quiz$/,         // organizer quiz — fixed full-screen flow
+    /^\/plan$/,                   // Stag Do AI — the composer / AI dock sits bottom-right
 ];
 
 // Activity detail pages render a fixed mobile Add-to-Trip bar; the FAB is

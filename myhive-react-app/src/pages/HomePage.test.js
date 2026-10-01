@@ -83,21 +83,26 @@ test('Start Group Vote opens the vote setup modal with the only destination pres
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
 
-test('hero "Start Group Vote" fires cta_click with block hero before opening vote setup', async () => {
+test('hero offers the two main flows: Stag Do AI and browsing activities, no vote button', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
 
-  renderHome();
+  const {container} = renderHome();
 
   await screen.findByText('What the Lads Say');
 
-  await userEvent.click(screen.getAllByText('Start Group Vote')[0]);
+  const heroCtas = container.querySelector('.hero-cta-group');
+  expect([...heroCtas.children].map(el => el.textContent.trim()))
+    .toEqual(['Plan with Stag Do AI', 'Browse activities']);
+});
 
-  // The hero CTA fires cta_click first; opening the vote setup modal then fires
-  // tb_start, so pushEvent is called more than once. Assert the FIRST call is the
-  // cta_click — proving it fired before the modal opened.
-  expect(pushEvent.mock.calls[0]).toEqual(['cta_click', {cta_label: 'Start Group Vote', block: 'hero'}]);
-  // The vote setup modal should still open (existing action not broken).
-  expect(await screen.findByText('Continue')).toBeInTheDocument();
+test('hero "Plan with Stag Do AI" links to the planner chat and fires cta_click', async () => {
+  api.getFeaturedActivities.mockResolvedValue([]);
+  renderHome();
+
+  const cta = screen.getByRole('link', {name: /Plan with Stag Do AI/i});
+  expect(cta).toHaveAttribute('href', '/plan');
+  await userEvent.click(cta);
+  expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Stag Do AI', block: 'hero'});
 });
 
 test('vote setup modal keeps the picker hidden even with several destinations in the API', async () => {
@@ -134,16 +139,16 @@ test('hero headline is plain text, not a link or button', async () => {
   expect(headline.querySelector('a')).toBeNull();
 });
 
-test('Explore activities CTA links to the destination activities catalog', async () => {
+test('Browse activities CTA links to the destination activities catalog', async () => {
   api.getFeaturedActivities.mockResolvedValue([]);
   renderHome();
 
-  const cta = screen.getByRole('link', {name: /Explore activities/i});
+  const cta = screen.getByRole('link', {name: /Browse activities/i});
   // Routes to the default destination's activities tab (the catalog page),
   // not an on-page anchor scroll.
   expect(cta).toHaveAttribute('href', '/destination/prague?tab=activities');
   await userEvent.click(cta);
-  expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Explore activities', block: 'hero'});
+  expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Browse activities', block: 'hero'});
 });
 
 test('hero title mentions Prague', () => {

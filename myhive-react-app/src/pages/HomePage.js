@@ -58,21 +58,24 @@ function HomePage({featuredActivities}) {
                         <VoteDemoCard/>
 
                         <div className="hero-cta-group">
-                            <button
+                            {/* The two main flows: plan it in a chat, or pick activities yourself. */}
+                            <a
                                 className="hp-btn-primary"
-                                onClick={() => {
-                                    pushEvent('cta_click', {cta_label: 'Start Group Vote', block: 'hero'});
-                                    startVote();
+                                href={lp('/plan')}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    pushEvent('cta_click', {cta_label: 'Stag Do AI', block: 'hero'});
+                                    navigate('/plan');
                                 }}
                             >
-                                <i className="ph ph-check-square" aria-hidden="true"/> {t('hero.startVoteCta')}
-                            </button>
+                                <i className="ph ph-sparkle" aria-hidden="true"/> {t('hero.aiPlannerCta')}
+                            </a>
                             <a
                                 className="hp-btn-secondary"
                                 href={lp(`/destination/${exploreActivitiesSlug}?tab=activities`)}
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'});
+                                    pushEvent('cta_click', {cta_label: 'Browse activities', block: 'hero'});
                                     navigate(`/destination/${exploreActivitiesSlug}?tab=activities`);
                                 }}
                             >
