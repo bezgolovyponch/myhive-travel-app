@@ -28,7 +28,7 @@ const textOf = (appendMessage) => appendMessage.content
 // Codes with their own line in aiPlanner.errors; anything else reads as generic.
 const KNOWN_ERRORS = new Set([
     'LLM_UNAVAILABLE', 'LLM_TIMEOUT', 'SESSION_BUSY', 'AI_BUSY', 'SESSION_NOT_FOUND',
-    'SESSION_TURN_LIMIT', 'GENERATION_LIMIT', 'SESSION_DAILY_LIMIT', 'AI_DISABLED', 'NETWORK',
+    'SESSION_TURN_LIMIT', 'GENERATION_LIMIT', 'SESSION_DAILY_LIMIT', 'AI_DISABLED', 'NETWORK', 'TURNSTILE_FAILED',
 ]);
 
 const Text = ({text}) => <p className="ai-thread-text">{text}</p>;

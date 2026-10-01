@@ -1125,6 +1125,7 @@
       "SESSION_TURN_LIMIT": "This chat is full. Start a new chat to keep planning.",
       "GENERATION_LIMIT": "You've used all rebuilds for this chat. Start a new chat for fresh packages.",
       "SESSION_DAILY_LIMIT": "You've started a lot of chats today. Please come back tomorrow.",
+      "TURNSTILE_FAILED": "We couldn't check that you're human. Reload the page and try again.",
       "AI_DISABLED": "The planner is offline right now. Browse the activities instead.",
       "handoff": "Couldn't move this package to your trip. Please try again."
     },

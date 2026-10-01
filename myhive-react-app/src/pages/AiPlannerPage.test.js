@@ -53,14 +53,14 @@ const readyGeneration = (over = {}) => ({
 const tripDispatch = jest.fn();
 const catalogState = {destinations: [{id: 'd1', slug: 'prague', name: 'Prague'}], loading: false, error: null};
 
-function renderPage(trip = {}) {
+function renderPage(trip = {}, {turnstileWaitMs = 0} = {}) {
     return render(
         <HelmetProvider>
             <CatalogContext.Provider value={{state: catalogState, dispatch: jest.fn()}}>
                 <TripContext.Provider value={{state: {tripItems: [], ...trip}, dispatch: tripDispatch}}>
                     <MemoryRouter initialEntries={['/plan']}>
                         <Routes>
-                            <Route path="/plan" element={<AiPlannerPage pollIntervalMs={5}/>}/>
+                            <Route path="/plan" element={<AiPlannerPage pollIntervalMs={5} turnstileWaitMs={turnstileWaitMs}/>}/>
                         </Routes>
                     </MemoryRouter>
                 </TripContext.Provider>
@@ -73,6 +73,55 @@ beforeEach(() => {
     jest.clearAllMocks();
     window.localStorage.clear();
     window.sessionStorage.clear();
+    delete window.turnstile;
+});
+
+// Cloudflare's widget, solved on the next tick like the real invisible check.
+function mockTurnstile(token = 'human-token') {
+    window.turnstile = {
+        render: jest.fn((el, opts) => {
+            setTimeout(() => opts.callback(token), 0);
+            return 'w1';
+        }),
+        reset: jest.fn(),
+    };
+}
+
+test('the first message carries the Turnstile token the production API requires', async () => {
+    mockTurnstile();
+    aiPlannerApi.createSession.mockResolvedValue(session());
+    renderPage({}, {turnstileWaitMs: 3000});
+
+    await userEvent.click(screen.getByRole('button', {name: '10 of us, 3 days in Prague, karting and beer'}));
+
+    await screen.findByText('Hey! Who is coming?');
+    expect(aiPlannerApi.createSession).toHaveBeenCalledWith('prague', 'en', {
+        initialMessage: '10 of us, 3 days in Prague, karting and beer', turnstileToken: 'human-token',
+    });
+    // The check is invisible unless Cloudflare needs an interaction.
+    expect(window.turnstile.render.mock.calls[0][1]).toMatchObject({appearance: 'interaction-only'});
+});
+
+test('a homepage brief waits for the Turnstile check before opening the chat', async () => {
+    mockTurnstile();
+    window.sessionStorage.setItem(PLANNER_DRAFT_KEY,
+        JSON.stringify({message: 'Karting and a beer spa', days: 3, groupSize: 10}));
+    aiPlannerApi.createSession.mockResolvedValue(session());
+    renderPage({}, {turnstileWaitMs: 3000});
+
+    await screen.findByText('Hey! Who is coming?');
+    expect(aiPlannerApi.createSession).toHaveBeenCalledWith('prague', 'en', {
+        initialMessage: 'Karting and a beer spa', days: 3, groupSize: 10, turnstileToken: 'human-token',
+    });
+});
+
+test('a failed human check says so', async () => {
+    aiPlannerApi.createSession.mockRejectedValue(
+        Object.assign(new Error('nope'), {status: 403, body: {error: 'TURNSTILE_FAILED'}}));
+    renderPage();
+    await userEvent.click(screen.getByRole('button', {name: '10 of us, 3 days in Prague, karting and beer'}));
+    expect(await screen.findByText("We couldn't check that you're human. Reload the page and try again."))
+        .toBeInTheDocument();
 });
 
 test('a brief handed over from the homepage opens a fresh chat with days and head-count preset', async () => {
