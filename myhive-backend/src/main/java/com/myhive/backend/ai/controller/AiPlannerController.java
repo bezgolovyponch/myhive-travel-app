@@ -47,7 +47,7 @@ public class AiPlannerController {
     public ResponseEntity<SessionStateDTO> create(@Valid @RequestBody CreateSessionRequest request,
             HttpServletRequest httpRequest) {
         AiSessionService.SessionView view = sessionService.create(request.destinationSlug(), request.locale(),
-                request.turnstileToken(), request.initialMessage(), clientIp(httpRequest), request.preset());
+                request.initialMessage(), clientIp(httpRequest), request.preset());
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.sessionState(view));
     }
 

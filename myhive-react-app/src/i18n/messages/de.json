@@ -1115,7 +1115,6 @@
       "SESSION_TURN_LIMIT": "Dieser Chat ist voll. Starte einen neuen Chat, um weiterzuplanen.",
       "GENERATION_LIMIT": "Du hast alle Neuaufbauten für diesen Chat genutzt. Starte einen neuen Chat für neue Pakete.",
       "SESSION_DAILY_LIMIT": "Du hast heute schon viele Chats gestartet. Bitte komm morgen wieder.",
-      "TURNSTILE_FAILED": "Wir konnten nicht prüfen, dass du ein Mensch bist. Lade die Seite neu und versuch es erneut.",
       "AI_DISABLED": "Der Planer ist gerade offline. Stöbere stattdessen in den Aktivitäten.",
       "handoff": "Das Paket konnte nicht in deine Reise übernommen werden. Bitte versuch es erneut."
     },

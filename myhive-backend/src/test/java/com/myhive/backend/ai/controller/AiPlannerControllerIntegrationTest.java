@@ -789,21 +789,6 @@ class AiPlannerControllerIntegrationTest {
     }
 
     @Test
-    void createSession_withoutTurnstileTokenWhenRequired_is403TurnstileFailed() throws Exception {
-        // Flipped on the live properties bean rather than in a second Spring context: this class owns
-        // its context, JUnit runs its methods one at a time, and the switch is restored either way.
-        aiProperties.setTurnstileRequired(true);
-        try {
-            mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
-                            .content(CREATE_BODY.formatted(destination.getSlug())))
-                    .andExpect(status().isForbidden())
-                    .andExpect(jsonPath("$.error", is("TURNSTILE_FAILED")));
-        } finally {
-            aiProperties.setTurnstileRequired(false);
-        }
-    }
-
-    @Test
     void createSession_forAnUnknownDestination_is400() throws Exception {
         mockMvc.perform(post("/ai/sessions").contentType(MediaType.APPLICATION_JSON)
                         .content(CREATE_BODY.formatted("no-such-destination")))
@@ -812,12 +797,13 @@ class AiPlannerControllerIntegrationTest {
     }
 
     /**
-     * Staff test the planner from the admin console with their own token: it lifts the captcha, the
-     * daily cap and the public kill switch, and changes nothing for the anonymous caller next to them.
+     * Staff test the planner from the admin console with their own token: it lifts the daily cap and
+     * the public kill switch, and changes nothing for the anonymous caller next to them.
      */
     @Test
-    void createSession_withAStaffJwt_needsNoTurnstile_andWorksWhileThePlannerIsOffForThePublic() throws Exception {
-        aiProperties.setTurnstileRequired(true);
+    void createSession_withAStaffJwt_worksWhileThePlannerIsOffForThePublic() throws Exception {
+        // Flipped on the live properties bean rather than in a second Spring context: this class owns
+        // its context, JUnit runs its methods one at a time, and the switches are restored either way.
         aiProperties.setEnabled(false);
         aiProperties.setDailySessionsPerIp(1);
         try {
@@ -835,7 +821,6 @@ class AiPlannerControllerIntegrationTest {
                     .andExpect(status().isServiceUnavailable())
                     .andExpect(jsonPath("$.error", is("AI_DISABLED")));
         } finally {
-            aiProperties.setTurnstileRequired(false);
             aiProperties.setEnabled(true);
             aiProperties.setDailySessionsPerIp(new AiProperties().getDailySessionsPerIp());
         }

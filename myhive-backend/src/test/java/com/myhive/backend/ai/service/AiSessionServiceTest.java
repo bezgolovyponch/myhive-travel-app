@@ -14,7 +14,6 @@ import com.myhive.backend.ai.exception.AiDisabledException;
 import com.myhive.backend.ai.exception.AiLimitException;
 import com.myhive.backend.ai.exception.AiNotFoundException;
 import com.myhive.backend.ai.exception.LlmCallFailedException;
-import com.myhive.backend.ai.exception.TurnstileFailedException;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerGraph;
 import com.myhive.backend.ai.graph.PlannerState;
@@ -43,7 +42,6 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.AiGenerationRepository;
 import com.myhive.backend.repository.AiSessionRepository;
 import com.myhive.backend.repository.DestinationRepository;
-import com.myhive.backend.service.TurnstileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -61,10 +59,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -78,7 +74,6 @@ class AiSessionServiceTest {
     private final AiSessionRepository sessionRepository = mock(AiSessionRepository.class);
     private final AiGenerationRepository generationRepository = mock(AiGenerationRepository.class);
     private final DestinationRepository destinationRepository = mock(DestinationRepository.class);
-    private final TurnstileService turnstile = mock(TurnstileService.class);
     private final AiProperties props = new AiProperties();
     /** Whether the request under test carries a staff token; false is the anonymous public caller. */
     private boolean staff;
@@ -120,7 +115,7 @@ class AiSessionServiceTest {
                 generationServiceSelf);
         when(generationServiceSelf.getObject()).thenReturn(generationService);
         service = new AiSessionService(props, graph, sessionRepository, generationRepository, destinationRepository,
-                generationService, turnstile, new SessionLocks(), new DailySessionCap(props),
+                generationService, new SessionLocks(), new DailySessionCap(props),
                 new ClientIpHasher("salt"), () -> staff);
         destination = TestDataFactory.destination("Prague");
         destination.setId(UUID.randomUUID());
@@ -239,14 +234,14 @@ class AiSessionServiceTest {
     }
 
     private AiSession startedSession() {
-        AiSession session = service.create("prague", "en", null, null, "1.2.3.4").session();
+        AiSession session = service.create("prague", "en", null, "1.2.3.4").session();
         when(sessionRepository.findByToken(session.getToken())).thenReturn(Optional.of(session));
         return session;
     }
 
     @Test
     void create_seedsGraphWithGreeting_andReturnsCollectingState() {
-        AiSessionService.SessionView view = service.create("prague", "en", null, null, "1.2.3.4");
+        AiSessionService.SessionView view = service.create("prague", "en", null, "1.2.3.4");
 
         assertThat(view.session().getStatus()).isEqualTo(AiSessionStatus.COLLECTING);
         assertThat(view.state().messages()).hasSize(1);
@@ -268,7 +263,7 @@ class AiSessionServiceTest {
                 "prague-pub-crawl", "Prague Pub Crawl", "Five bars", 240, true, new BigDecimal("25.00"), null, null,
                 List.of("nightlife"))));
 
-        AiSessionService.SessionView view = service.create("prague", "en", null, null, "1.2.3.4", expectedPreset);
+        AiSessionService.SessionView view = service.create("prague", "en", null, "1.2.3.4", expectedPreset);
 
         assertThat(view.state().brief()).isEqualTo(expectedPreset);
         assertThat(view.state().brief().missingFields()).containsExactly("preferences");
@@ -281,7 +276,7 @@ class AiSessionServiceTest {
         String expectedLocale = "de";
         llm.queueChat(turn("How many days?", Brief.empty()));
 
-        AiSessionService.SessionView view = service.create("prague", expectedLocale, null, "wir sind 8", "1.2.3.4");
+        AiSessionService.SessionView view = service.create("prague", expectedLocale, "wir sind 8", "1.2.3.4");
 
         List<String> roles = view.state().messages().stream().map(ChatMessage::role).toList();
         assertThat(roles).containsExactly(ChatMessage.ASSISTANT, ChatMessage.USER, ChatMessage.ASSISTANT);
@@ -298,7 +293,7 @@ class AiSessionServiceTest {
         String expectedErrorCode = "LLM_UNAVAILABLE";
         // nothing queued on the fake gateway: chatTurn blows up inside the graph
 
-        AiSessionService.SessionView view = service.create("prague", "en", null, "wir sind 8", "1.2.3.4");
+        AiSessionService.SessionView view = service.create("prague", "en", "wir sind 8", "1.2.3.4");
 
         assertThat(view.firstTurnErrorCode()).isEqualTo(expectedErrorCode);
         assertThat(view.session().getStatus()).isEqualTo(AiSessionStatus.COLLECTING);
@@ -311,32 +306,20 @@ class AiSessionServiceTest {
     void create_whenDisabled_throws503() {
         props.setEnabled(false);
 
-        assertThatThrownBy(() -> service.create("prague", "en", null, null, "1.2.3.4"))
+        assertThatThrownBy(() -> service.create("prague", "en", null, "1.2.3.4"))
                 .isInstanceOf(AiDisabledException.class);
     }
 
+    /** The per-network cap is for strangers; a signed-in colleague is not one. */
     @Test
-    void create_requiresTurnstileWhenConfigured() {
-        props.setTurnstileRequired(true);
-        when(turnstile.verifyToken(anyString())).thenReturn(false);
-
-        assertThatThrownBy(() -> service.create("prague", "en", "bad", null, "1.2.3.4"))
-                .isInstanceOf(TurnstileFailedException.class);
-        assertThatThrownBy(() -> service.create("prague", "en", null, null, "1.2.3.4"))
-                .isInstanceOf(TurnstileFailedException.class);
-    }
-
-    /** The captcha and the per-network cap are for strangers; a signed-in colleague is neither. */
-    @Test
-    void create_asStaff_skipsTurnstileAndTheDailyCap() {
+    void create_asStaff_skipsTheDailyCap() {
         staff = true;
-        props.setTurnstileRequired(true);
         props.setDailySessionsPerIp(1);
 
-        service.create("prague", "en", null, null, "1.2.3.4");
-        service.create("prague", "en", null, null, "1.2.3.4");
-
-        verify(turnstile, never()).verifyToken(any());
+        assertThatCode(() -> {
+            service.create("prague", "en", null, "1.2.3.4");
+            service.create("prague", "en", null, "1.2.3.4");
+        }).doesNotThrowAnyException();
     }
 
     @Test
@@ -353,9 +336,9 @@ class AiSessionServiceTest {
     @Test
     void create_overDailyCap_isRejected() {
         props.setDailySessionsPerIp(1);
-        service.create("prague", "en", null, null, "1.2.3.4");
+        service.create("prague", "en", null, "1.2.3.4");
 
-        assertThatThrownBy(() -> service.create("prague", "en", null, null, "1.2.3.4"))
+        assertThatThrownBy(() -> service.create("prague", "en", null, "1.2.3.4"))
                 .isInstanceOf(AiLimitException.class).hasFieldOrPropertyWithValue("code", "SESSION_DAILY_LIMIT");
     }
 
@@ -363,11 +346,11 @@ class AiSessionServiceTest {
     void create_withUnknownDestination_isBadRequest_andCostsNoDailySlot() {
         props.setDailySessionsPerIp(1);
 
-        assertThatThrownBy(() -> service.create("atlantis", "en", null, null, "1.2.3.4"))
+        assertThatThrownBy(() -> service.create("atlantis", "en", null, "1.2.3.4"))
                 .isInstanceOf(BadRequestException.class);
 
         // a typo in the slug must not spend one of the caller's chats for the day
-        assertThatCode(() -> service.create("prague", "en", null, null, "1.2.3.4")).doesNotThrowAnyException();
+        assertThatCode(() -> service.create("prague", "en", null, "1.2.3.4")).doesNotThrowAnyException();
     }
 
     @Test

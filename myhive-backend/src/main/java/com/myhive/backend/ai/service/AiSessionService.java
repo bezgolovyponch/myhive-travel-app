@@ -6,7 +6,6 @@ import com.myhive.backend.ai.exception.AiDisabledException;
 import com.myhive.backend.ai.exception.AiLimitException;
 import com.myhive.backend.ai.exception.AiNotFoundException;
 import com.myhive.backend.ai.exception.LlmCallFailedException;
-import com.myhive.backend.ai.exception.TurnstileFailedException;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerGraph;
 import com.myhive.backend.ai.graph.PlannerState;
@@ -27,7 +26,6 @@ import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.repository.AiGenerationRepository;
 import com.myhive.backend.repository.AiSessionRepository;
 import com.myhive.backend.repository.DestinationRepository;
-import com.myhive.backend.service.TurnstileService;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,7 +82,6 @@ public class AiSessionService {
     private final AiGenerationRepository generationRepository;
     private final DestinationRepository destinationRepository;
     private final PlanGenerationService generationService;
-    private final TurnstileService turnstileService;
     private final SessionLocks locks;
     private final DailySessionCap dailyCap;
     private final ClientIpHasher ipHasher;
@@ -137,22 +134,17 @@ public class AiSessionService {
     public record Selection(AiGeneration generation, Tier key, int groupSize, List<UUID> activityIds) {
     }
 
-    public SessionView create(String destinationSlug, String locale, String turnstileToken, String initialMessage,
-            String clientIp) {
-        return create(destinationSlug, locale, turnstileToken, initialMessage, clientIp, Brief.empty());
+    public SessionView create(String destinationSlug, String locale, String initialMessage, String clientIp) {
+        return create(destinationSlug, locale, initialMessage, clientIp, Brief.empty());
     }
 
     /** {@code preset} is what the entry screen's pickers chose (days, group size, arrival, departure). */
-    public SessionView create(String destinationSlug, String locale, String turnstileToken, String initialMessage,
-            String clientIp, Brief preset) {
+    public SessionView create(String destinationSlug, String locale, String initialMessage, String clientIp,
+            Brief preset) {
         requireEnabled();
-        // The captcha and the per-network daily cap are there for strangers. Staff sign in, and twenty
-        // colleagues behind one office address would otherwise lock each other out by lunch.
+        // The per-network daily cap is there for strangers. Staff sign in, and twenty colleagues behind
+        // one office address would otherwise lock each other out by lunch.
         boolean anonymous = !staff.isStaff();
-        if (anonymous && props.isTurnstileRequired()
-                && (turnstileToken == null || !turnstileService.verifyToken(turnstileToken))) {
-            throw new TurnstileFailedException();
-        }
         // The slug is validated first: a typo must not cost the caller one of its twenty daily chats.
         Destination destination = destinationRepository.findBySlugWithCategories(destinationSlug)
                 .orElseThrow(() -> new BadRequestException("Unknown destination: " + destinationSlug));

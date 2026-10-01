@@ -7,8 +7,8 @@ edits this file first.
 Design rationale: [`docs/superpowers/specs/2026-09-15-ai-stag-planner-design.md`](../superpowers/specs/2026-09-15-ai-stag-planner-design.md).
 
 **Staff access** (2026-09-28): a request to any `/ai/**` endpoint that carries an
-admin-console bearer token (`ROLE_ADMIN` / `ROLE_MANAGER`) skips Turnstile and the
-per-network daily session cap, and — while `AI_STAFF_PREVIEW=true`, the default —
+admin-console bearer token (`ROLE_ADMIN` / `ROLE_MANAGER`) skips the per-network
+daily session cap, and — while `AI_STAFF_PREVIEW=true`, the default —
 works even when `AI_ENABLED=false`. The admin console's AI planner page
 (`/admin/ai-planner`) sends that token; nothing changes for anonymous callers, and
 the `100 req/min/IP` rate limit still applies to everyone.
@@ -117,7 +117,6 @@ the `100 req/min/IP` rate limit still applies to everyone.
 | 404 | `SESSION_NOT_FOUND`, `GENERATION_NOT_FOUND` | Token/id unknown or expired (30 days idle). Drop the stored token, offer a new chat. |
 | 400 | `"Validation Failed"` | Bean-validation failure (e.g. message/`initialMessage` too long) — the app-wide convention (not an AI-specific code); `fieldErrors` map present. |
 | 400 | `"Bad Request"` | Three cases, same shape: an unknown `destinationSlug` on `POST /ai/sessions` (`message` names the slug); a malformed non-UUID `{token}`/`{id}` path variable — treat exactly like `SESSION_NOT_FOUND`/`GENERATION_NOT_FOUND` and drop the stored token; or a `packageKey` outside `BASIC`\|`MEDIUM`\|`PREMIUM` on `select`. |
-| 403 | `TURNSTILE_FAILED` | Captcha rejected. Re-render Turnstile and retry. |
 | 409 | `BRIEF_INCOMPLETE` | Manual generate before the agent knows days/group/preferences/arrival/departure. Show `missingFields`. |
 | 409 | `GENERATION_IN_PROGRESS` | A generation is already QUEUED or RUNNING. On `select` this also fires while *any* generation of the session is in flight, not only the one being picked — an older package set cannot be selected mid-regeneration. Poll instead. |
 | 409 | `GENERATION_NOT_READY` | `select` called on a generation that is not `READY`. |
@@ -158,7 +157,6 @@ packages are built from scratch.
 
 ```json
 { "destinationSlug": "prague", "locale": "en",
-  "turnstileToken": "…optional, required in prod…",
   "initialMessage": "optional first user message",
   "days": 3, "groupSize": 8,                   // optional, from the entry screen's pickers (1..7, 2..30)
   "arrival": "EVENING", "departure": "MORNING" } // optional, MORNING | AFTERNOON | EVENING
