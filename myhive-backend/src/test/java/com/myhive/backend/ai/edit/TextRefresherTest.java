@@ -9,6 +9,8 @@ import com.myhive.backend.ai.llm.TextRefreshResult;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.plan.PlaceholderTexts;
+import com.myhive.backend.ai.plan.PlanTextWriter;
 import com.myhive.backend.ai.plan.PlanValidator;
 import org.junit.jupiter.api.Test;
 
@@ -127,6 +129,97 @@ class TextRefresherTest {
         assertThat(packageOf(refreshed.plan(), Tier.BASIC).description()).isEqualTo(expectedBasicDescription);
         assertThat(gateway.refreshRequests).singleElement().satisfies(request ->
                 assertThat(request.packages()).extracting(ComposedPlan.PackageResult::key).containsExactly(Tier.BASIC));
+    }
+
+    /**
+     * The first write names the package and its days after its activities, so an edit that changes the
+     * activities has to rewrite those names too - a title still saying "VIP Club" over a package without
+     * the club is a lie. Day titles are taken for the touched days only, like the summaries.
+     */
+    @Test
+    void refresh_alsoRewritesTitleTaglineAndTheTouchedDayTitles() {
+        String expectedTitle = "Beer Spa · Karting";
+        String expectedTagline = "Two activities, no club";
+        String expectedDayTwoTitle = "Evening · Quiet one";
+        ComposedPlan plan = basicPlan();
+        gateway.queueRefresh(new TextRefreshResult(Map.of(Tier.BASIC, new PackageTexts(expectedTitle,
+                expectedTagline, "Rebuilt description", Map.of(2, expectedDayTwoTitle, 3, "day three was not edited"),
+                Map.of(), Map.of(2, "Quiet"))), FAKE_USAGE));
+
+        TextRefresher.Refreshed refreshed = refresher.refresh(plan, new EditOutcome(plan,
+                List.of(new AppliedEdit(EditOp.REMOVE, "Night Club", null, Tier.BASIC, 2, Slot.EVENING, null)),
+                List.of()), LOCALE, DESTINATION_NAME);
+
+        ComposedPlan.PackageResult basic = packageOf(refreshed.plan(), Tier.BASIC);
+        assertThat(basic.title()).isEqualTo(expectedTitle);
+        assertThat(basic.tagline()).isEqualTo(expectedTagline);
+        assertThat(basic.days()).extracting(ComposedPlan.DayResult::title)
+                .containsExactly("Day 1", expectedDayTwoTitle, "Day 3");
+    }
+
+    /**
+     * The model is best effort, the names are not: when it is down (or leaves a name out), a title that
+     * still names what was just removed falls back to the stock name instead of advertising it.
+     */
+    @Test
+    void namesThatStillMentionARemovedActivity_fallBackToPlaceholders_whenTheModelDoesNotRewriteThem() {
+        ComposedPlan plan = new ComposedPlan(List.of(new ComposedPlan.PackageResult(Tier.MEDIUM,
+                "Karting · VIP Club", "VIP table, bottle service", "description", new BigDecimal("40.00"),
+                new BigDecimal("160.00"), ComposedPlan.CURRENCY, 180, List.of(KARTING_ID, NIGHT_CLUB_ID), List.of(
+                        new ComposedPlan.DayResult(1, "Afternoon · Karting", "Karting",
+                                List.of(item(KARTING_ID, "Karting", Slot.AFTERNOON, "why"))),
+                        new ComposedPlan.DayResult(2, "VIP night", "Nightclub VIP Experience",
+                                List.of(item(RIVER_CRUISE_ID, "River Cruise", Slot.AFTERNOON, "why")))))), false);
+        gateway.failNextRefresh(new LlmUnavailableException("model down", new RuntimeException("connection reset")));
+
+        TextRefresher.Refreshed refreshed = refresher.refresh(plan, new EditOutcome(plan,
+                List.of(new AppliedEdit(EditOp.REMOVE, "Nightclub VIP Experience", null, Tier.MEDIUM, 2,
+                        Slot.EVENING, null)), List.of()), "en", DESTINATION_NAME);
+
+        assertThat(refreshed.refreshed()).isFalse();
+        ComposedPlan.PackageResult medium = packageOf(refreshed.plan(), Tier.MEDIUM);
+        assertThat(medium.title()).isEqualTo(PlaceholderTexts.packageTitle(Tier.MEDIUM, "en"));
+        assertThat(medium.tagline()).isNull();
+        assertThat(medium.days()).extracting(ComposedPlan.DayResult::title)
+                .containsExactly("Afternoon · Karting", PlaceholderTexts.dayTitle(2, "en"));
+    }
+
+    /** A swap removes too: the replaced activity's name goes stale exactly like a removed one's. */
+    @Test
+    void aReplacedActivitysNameLeftByTheModel_fallsBackToThePlaceholder() {
+        ComposedPlan.PackageResult before = packageOf(basicPlan(), Tier.BASIC);
+        // the plan as the editor hands it over: the club is already swapped out of day two
+        List<ComposedPlan.DayResult> afterTheSwap = List.of(before.days().get(0),
+                day(2, "Escape Room", item(ESCAPE_ROOM_ID, "Escape Room", Slot.EVENING, "why")),
+                before.days().get(2));
+        ComposedPlan named = new ComposedPlan(List.of(PlanTextWriter.withTexts(before, "Beer Spa · Night Club",
+                "tagline", before.description(), afterTheSwap)), false);
+        gateway.queueRefresh(new TextRefreshResult(Map.of(Tier.BASIC,
+                new PackageTexts("Rebuilt", Map.of(), Map.of())), FAKE_USAGE));
+
+        TextRefresher.Refreshed refreshed = refresher.refresh(named, new EditOutcome(named,
+                List.of(new AppliedEdit(EditOp.REPLACE, "Night Club", "Escape Room", Tier.BASIC, 2, Slot.EVENING,
+                        ESCAPE_ROOM_ID)), List.of()), LOCALE, DESTINATION_NAME);
+
+        assertThat(packageOf(refreshed.plan(), Tier.BASIC).title())
+                .isEqualTo(PlaceholderTexts.packageTitle(Tier.BASIC, LOCALE));
+    }
+
+    /** A word the package still carries through another activity is not stale: "Beer" stays with Beer Spa. */
+    @Test
+    void aWordStillCarriedByARemainingActivity_isNotStale() {
+        String expectedTitle = "Beer weekend";
+        ComposedPlan plan = basicPlan();
+        ComposedPlan.PackageResult before = packageOf(plan, Tier.BASIC);
+        ComposedPlan named = new ComposedPlan(List.of(PlanTextWriter.withTexts(before, expectedTitle, "tagline",
+                before.description(), before.days())), false);
+        gateway.failNextRefresh(new LlmUnavailableException("model down", new RuntimeException("connection reset")));
+
+        TextRefresher.Refreshed refreshed = refresher.refresh(named, new EditOutcome(named,
+                List.of(new AppliedEdit(EditOp.REMOVE, "Beer Bike", null, Tier.BASIC, 2, Slot.EVENING, null)),
+                List.of()), LOCALE, DESTINATION_NAME);
+
+        assertThat(packageOf(refreshed.plan(), Tier.BASIC).title()).isEqualTo(expectedTitle);
     }
 
     private static ComposedPlan basicPlan() {

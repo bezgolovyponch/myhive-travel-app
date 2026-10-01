@@ -61,6 +61,12 @@ public class PlannerState extends AgentState {
     public static final String EDITS_LEFT = "editsLeft";
     /** The tap-to-send answers offered under the latest assistant message; replaced every turn. */
     public static final String SUGGESTED_REPLIES = "suggestedReplies";
+    /**
+     * The model's reply on a turn that routes to {@code applyEdits}, held back until the edits were checked:
+     * it was written before Java knew whether they can be done, so the edit node decides whether it is
+     * said at all. Blank when nothing is pending.
+     */
+    public static final String PENDING_REPLY = "pendingReply";
     /** Set when the first build was held back for a pairing question, so that it is held back only once. */
     public static final String PAIRING_ASKED = "pairingAsked";
 
@@ -169,6 +175,11 @@ public class PlannerState extends AgentState {
     /** No allowance in state means unlimited: only the service that owns the per-session cap stamps one. */
     public int editsLeft() {
         return this.<Integer>value(EDITS_LEFT).orElse(Integer.MAX_VALUE);
+    }
+
+    /** The edit turn's held-back reply (see {@link #PENDING_REPLY}); empty when there is none. */
+    public Optional<String> pendingReply() {
+        return nonBlank(PENDING_REPLY);
     }
 
     public LlmUsage usage() {

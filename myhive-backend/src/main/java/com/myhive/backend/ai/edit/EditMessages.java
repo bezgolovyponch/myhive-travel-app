@@ -39,6 +39,10 @@ public final class EditMessages {
     private static final String DE_REBUILDING_FIRST =
             "Ich baue die Pakete erst mit den neuen Angaben neu - frag danach noch mal nach diesen Änderungen.";
 
+    /** The line for a batch that failed so early not even its activity names could be read back. */
+    private static final String EN_INTERNAL_FAILURE = "Something went wrong while changing the packages - give it another try.";
+    private static final String DE_INTERNAL_FAILURE = "Beim Ändern der Pakete ist etwas schiefgelaufen - probier es noch mal.";
+
     /** Stands in for a name the model left out; only a parser bug gets this far. */
     private static final String EN_UNNAMED = "that activity";
     private static final String DE_UNNAMED = "diese Aktivität";
@@ -153,6 +157,11 @@ public final class EditMessages {
      */
     public static String rebuildingFirst(String locale) {
         return german(locale) ? DE_REBUILDING_FIRST : EN_REBUILDING_FIRST;
+    }
+
+    /** Said when an edit batch failed before even its names could be read; it names nothing for that reason. */
+    public static String internalFailure(String locale) {
+        return german(locale) ? DE_INTERNAL_FAILURE : EN_INTERNAL_FAILURE;
     }
 
     /**

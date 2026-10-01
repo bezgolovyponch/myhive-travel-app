@@ -64,3 +64,6 @@ neon_backup*.sql
 
 # Local review material and prod credentials, never committed
 fixes/
+
+# local data exports (contain customer PII)
+exports/

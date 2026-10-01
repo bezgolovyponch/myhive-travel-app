@@ -1,4 +1,5 @@
-import {Route, Routes} from 'react-router-dom';
+import {lazy, Suspense} from 'react';
+import {Route, Routes, useLocation} from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import WhatsAppWidget from './WhatsAppWidget';
@@ -29,9 +30,21 @@ import {useTripLeadSync} from '../hooks/useTripLeadSync';
 import {useT} from '../i18n';
 import AppModal from './AppModal';
 
+// Stag Do AI pulls in assistant-ui (~120 kB gz) — load it only when /plan is
+// opened, the way App.js splits off the admin console. A failed chunk load
+// (stale cached HTML after a redeploy) must not white-screen the app.
+const AiPlannerPage = lazy(() => import('../pages/AiPlannerPage').catch(() => ({
+    default: () => (
+        <div style={{padding: '4rem', textAlign: 'center'}}>
+            This page failed to load. Please refresh the page.
+        </div>
+    ),
+})));
+
 function Layout() {
   useTripLeadSync();
   const t = useT('chrome');
+  const {pathname} = useLocation();
   const {state, dispatch} = useDestinationModal();
   const closeDestinationModal = () => dispatch({type: 'CLOSE_DESTINATION_MODAL'});
 
@@ -54,6 +67,11 @@ function Layout() {
             <Route path="/terms" element={<TermsPage/>}/>
             <Route path="/refund-policy" element={<RefundPolicyPage/>}/>
             <Route path="/unsubscribe" element={<UnsubscribePage/>}/>
+            <Route path="/plan" element={
+                <Suspense fallback={<div style={{padding: '4rem', textAlign: 'center'}}>Loading…</div>}>
+                    <AiPlannerPage/>
+                </Suspense>
+            }/>
             <Route path="/vote/new" element={<VoteEntryPage />} />
             <Route path="/vote/new/quiz" element={<QuizPage />} />
             <Route path="/vote/new/curate" element={<CuratePage />} />
@@ -65,7 +83,8 @@ function Layout() {
             <Route path="/payment/cancelled" element={<PaymentCancelledPage />} />
         </Routes>
       </main>
-        <Footer/>
+        {/* /plan is a full-height chat with a fixed dock: a footer under it is only a gap. */}
+        {pathname !== '/plan' && <Footer/>}
         <WhatsAppWidget/>
         <AppModal
             isOpen={state.destinationModalOpen}

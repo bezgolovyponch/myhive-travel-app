@@ -16,15 +16,19 @@ function turnstileSitekey() {
  * Renders a Cloudflare Turnstile widget into `containerRef` once the Cloudflare script is present
  * (polling until it loads) and exposes the solved token ('' until solved / after expiry).
  * Deactivating (active=false) resets the widget so a re-activation renders a fresh one.
+ * `renderOptions` go to turnstile.render as-is (e.g. {appearance: 'interaction-only'}).
  */
-export function useTurnstileWidget(active) {
+export function useTurnstileWidget(active, renderOptions) {
     const [token, setToken] = useState('');
     const containerRef = useRef(null);
     const widgetIdRef = useRef(null);
+    const optionsRef = useRef(renderOptions);
+    optionsRef.current = renderOptions;
 
     const renderWidget = useCallback(() => {
         if (window.turnstile && containerRef.current && widgetIdRef.current === null) {
             widgetIdRef.current = window.turnstile.render(containerRef.current, {
+                ...optionsRef.current,
                 sitekey: turnstileSitekey(),
                 callback: (newToken) => setToken(newToken),
                 'expired-callback': () => setToken(''),

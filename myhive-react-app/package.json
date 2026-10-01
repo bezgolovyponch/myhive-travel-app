@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@assistant-ui/react": "^0.15.22",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -34,7 +35,7 @@
   },
   "jest": {
     "transformIgnorePatterns": [
-      "[/\\\\]node_modules[/\\\\](?!(react-day-picker|date-fns|date-fns-jalali|react-markdown|remark-.*|rehype-.*|micromark.*|mdast-.*|unist-.*|unified|bail|is-plain-obj|trough|vfile.*|hast-.*|property-information|html-url-attributes|space-separated-tokens|comma-separated-tokens|devlop|estree-util-is-identifier-name|ccount|escape-string-regexp|markdown-table|trim-lines|decode-named-character-reference|character-entities.*|longest-streak|zwitch)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
+      "[/\\\\]node_modules[/\\\\](?!(@assistant-ui|nanoid|assistant-stream|assistant-cloud|safe-content-frame|react-day-picker|date-fns|date-fns-jalali|react-markdown|remark-.*|rehype-.*|micromark.*|mdast-.*|unist-.*|unified|bail|is-plain-obj|trough|vfile.*|hast-.*|property-information|html-url-attributes|space-separated-tokens|comma-separated-tokens|devlop|estree-util-is-identifier-name|ccount|escape-string-regexp|markdown-table|trim-lines|decode-named-character-reference|character-entities.*|longest-streak|zwitch)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
       "^.+\\.module\\.(css|sass|scss)$"
     ],
     "moduleNameMapper": {
@@ -44,7 +45,18 @@
       "^unist-util-visit-parents/do-not-use-color$": "<rootDir>/node_modules/unist-util-visit-parents/lib/color.js",
       "^#minpath$": "<rootDir>/node_modules/vfile/lib/minpath.js",
       "^#minproc$": "<rootDir>/node_modules/vfile/lib/minproc.js",
-      "^#minurl$": "<rootDir>/node_modules/vfile/lib/minurl.js"
+      "^#minurl$": "<rootDir>/node_modules/vfile/lib/minurl.js",
+      "^@assistant-ui/tap/react-shim$": "<rootDir>/node_modules/@assistant-ui/tap/dist/react-shim/index.js",
+      "^@assistant-ui/tap/react-shim/compiler-runtime$": "<rootDir>/node_modules/@assistant-ui/tap/dist/react-shim/compiler-runtime.js",
+      "^@assistant-ui/core/react$": "<rootDir>/node_modules/@assistant-ui/core/dist/react/index.js",
+      "^@assistant-ui/core/internal$": "<rootDir>/node_modules/@assistant-ui/core/dist/internal.js",
+      "^@assistant-ui/core/store$": "<rootDir>/node_modules/@assistant-ui/core/dist/store/index.js",
+      "^@assistant-ui/store/client$": "<rootDir>/node_modules/@assistant-ui/store/dist/client.js",
+      "^@assistant-ui/store/internal$": "<rootDir>/node_modules/@assistant-ui/store/dist/internal.js",
+      "^assistant-stream/utils$": "<rootDir>/node_modules/assistant-stream/dist/utils.js",
+      "^radix-ui/internal$": "<rootDir>/node_modules/radix-ui/dist/internal.js",
+      "^assistant-cloud/ai-sdk$": "<rootDir>/node_modules/assistant-cloud/dist/ai-sdk/index.js",
+      "^@radix-ui/primitive/is-development$": "<rootDir>/node_modules/@radix-ui/primitive/dist/internal/is-development.true.js"
     }
   },
   "browserslist": {

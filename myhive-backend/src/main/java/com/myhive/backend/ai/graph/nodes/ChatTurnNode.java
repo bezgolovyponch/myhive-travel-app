@@ -85,6 +85,9 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // applyEdits write the new one over it. The service clears it before resuming as well - one of the
         // two owns the graph, the other owns the API, and neither can see the other's failure.
         update.put(PlannerState.EDIT_REPORT, "");
+        // Same for a reply an earlier edit turn held back: it belongs to that turn and is never said later.
+        update.put(PlannerState.PENDING_REPLY, "");
+        boolean routesToEdit = false;
         String reply = PlanAssembler.clean(result.reply());
         List<String> suggestedReplies = result.suggestedReplies();
         List<String> notes = new ArrayList<>();
@@ -115,6 +118,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         } else {
             update.put(PlannerState.ACTION, PlannerState.ACTION_EDIT);
             update.put(PlannerState.EDITS, JsonCodec.write(result.edits()));
+            routesToEdit = true;
         }
         Optional<String> question = asksNothing
                 ? MissingFieldQuestion.of(merged.missingFields(), state.locale()) : Optional.empty();
@@ -134,7 +138,20 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             log.info("planner chat asked nothing with the brief incomplete gap={} question={}",
                     merged.missingFields(), announcedABuild ? "replaced the reply" : "followed the reply");
         }
-        update.put(PlannerState.MESSAGES, messages(reply, notes));
+        if (routesToEdit) {
+            // The model wrote this reply in the same breath as the ops, before Java checked any of them, so
+            // it tends to announce them ("Swapping X for Y now."). Said here, it would stand next to the
+            // rejection of that very swap; applyEdits says it only when every op actually landed.
+            update.put(PlannerState.PENDING_REPLY, reply == null ? "" : reply);
+            if (!notes.isEmpty()) {
+                update.put(PlannerState.MESSAGES, messages(notes));
+            }
+        } else {
+            List<String> all = new ArrayList<>();
+            all.add(reply);
+            all.addAll(notes);
+            update.put(PlannerState.MESSAGES, messages(all));
+        }
         update.put(PlannerState.SUGGESTED_REPLIES, suggestedReplies);
         update.put(PlannerState.BRIEF, mergedJson);
         update.put(PlannerState.MISSING_FIELDS, merged.missingFields());
@@ -198,11 +215,10 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
     }
 
     /** The reply first, then Java's own notes, stamped in that order. */
-    private static List<Map<String, String>> messages(String reply, List<String> notes) {
+    private static List<Map<String, String>> messages(List<String> texts) {
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(PlannerState.message(ChatMessage.ASSISTANT, reply));
-        for (String note : notes) {
-            messages.add(PlannerState.message(ChatMessage.ASSISTANT, note));
+        for (String text : texts) {
+            messages.add(PlannerState.message(ChatMessage.ASSISTANT, text));
         }
         return messages;
     }

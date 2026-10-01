@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.NodeAction;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +86,7 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
     private Map<String, Object> applyGuarded(PlannerState state) {
         List<EditRequest> edits = state.edits();
         String locale = state.locale();
+        Optional<String> reply = state.pendingReply();
         if (state.editsLeft() <= 0) {
             return rejectAll(locale, edits, EditRejectionReason.EDIT_LIMIT);
         }
@@ -105,7 +107,7 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
                 : new TextRefresher.Refreshed(plan, false, LlmUsage.none());
         EditReport report = EditReport.of(outcome, refreshed.refreshed());
         if (!outcome.anyApplied()) {
-            return consumed(locale, report);
+            return consumed(locale, report, reply);
         }
         Optional<UUID> stored = store(parent.get(), refreshed, report);
         if (stored.isEmpty()) {
@@ -113,7 +115,7 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
             // generation that is actually stored, and the batch is reported as INTERNAL rather than lost.
             return rejectAll(locale, edits, EditRejectionReason.INTERNAL);
         }
-        Map<String, Object> update = consumed(locale, report);
+        Map<String, Object> update = consumed(locale, report, reply);
         update.put(PlannerState.RESULT, JsonCodec.write(refreshed.plan()));
         update.put(PlannerState.GENERATION_ID, stored.get().toString());
         // The edited row is now the one the plan in RESULT came from, so the next edit hangs off it.
@@ -161,27 +163,40 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
 
     /** Every op rejected for the same reason, before the editor ever saw them. */
     private static Map<String, Object> rejectAll(String locale, List<EditRequest> edits, EditRejectionReason reason) {
-        return consumed(locale, EditReport.allRejected(edits, reason));
+        return consumed(locale, EditReport.allRejected(edits, reason), Optional.empty());
     }
 
     /**
      * The minimal update that parks the thread cleanly whatever went wrong: the batch is consumed, the
-     * action cleared, and the turn is reported as INTERNAL. It writes no message and touches neither
-     * RESULT nor GENERATION_ID, so the organizer keeps exactly the packages they had.
+     * action cleared, and the turn is reported as INTERNAL. It touches neither RESULT nor GENERATION_ID,
+     * so the organizer keeps exactly the packages they had; its one message is a constant, because the
+     * held-back reply is dropped like on every other failure and the turn must still answer.
      */
     private static Map<String, Object> parkedWithInternalReport(PlannerState state) {
-        return parked(internalReport(state));
+        Map<String, Object> update = parked(internalReport(state));
+        update.put(PlannerState.MESSAGES, List.of(PlannerState.message(ChatMessage.ASSISTANT,
+                EditMessages.internalFailure(localeOrDefault(state)))));
+        return update;
+    }
+
+    private static String localeOrDefault(PlannerState state) {
+        try {
+            return state.locale();
+        } catch (RuntimeException e) {
+            return "en";
+        }
     }
 
     /**
-     * The four keys every path out of this node writes: the report it is answering with, the batch
-     * consumed, and a thread parked with nothing pending. The edits are cleared here and nowhere else -
-     * a batch left in state would be applied again next turn.
+     * The keys every path out of this node writes: the report it is answering with, the batch and the
+     * held-back reply consumed, and a thread parked with nothing pending. The edits are cleared here and
+     * nowhere else - a batch left in state would be applied again next turn.
      */
     private static Map<String, Object> parked(String reportJson) {
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.EDIT_REPORT, reportJson);
         update.put(PlannerState.EDITS, PlannerState.NO_EDITS);
+        update.put(PlannerState.PENDING_REPLY, "");
         update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
         update.put(PlannerState.RESUME_REASON, "");
         return update;
@@ -200,20 +215,35 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
     }
 
     /**
-     * A finished batch: {@link #parked} plus the line that says what landed where and what did not. The
-     * model is told never to claim a change is done, so this line is the confirmation - and, because it
-     * names the package, it is what the model scopes a later "yes, add it" by.
+     * A finished batch: {@link #parked} plus the line that says what landed where and what did not. This
+     * line is the confirmation - and, because it names the package, it is what the model scopes a later
+     * "yes, add it" by.
+     *
+     * <p>The model's own reply ({@code reply}, held back by the chat turn) was written before any op was
+     * checked and usually announces them. It is said, ahead of the confirmation, only when every op landed;
+     * with anything rejected it would contradict the rejection that follows it ("Swapping X for Y now." /
+     * "X is not in the Medium package"), so Java's line replaces it.
      */
-    private static Map<String, Object> consumed(String locale, EditReport report) {
+    private static Map<String, Object> consumed(String locale, EditReport report, Optional<String> reply) {
         log.info("planner edits applied={} rejected={} refreshed={}", report.applied().size(),
                 report.rejected().size(), report.textsRefreshed());
         Map<String, Object> update = parked(JsonCodec.write(report));
+        List<Map<String, String>> messages = new ArrayList<>();
+        boolean everyOpLanded = report.anyApplied() && report.rejected().isEmpty();
+        if (everyOpLanded && reply.isPresent()) {
+            messages.add(PlannerState.message(ChatMessage.ASSISTANT, reply.get()));
+        } else if (reply.isPresent()) {
+            // The chips answer a question in the reply that is no longer said; offered alone they make no sense.
+            update.put(PlannerState.SUGGESTED_REPLIES, List.of());
+        }
         String summary = EditMessages.summary(locale, report);
         if (!summary.isEmpty()) {
             // The templates are ours but the names they interpolate can still be the model's spelling, so
             // the finished sentence goes through the same cleaning every other stored text does.
-            update.put(PlannerState.MESSAGES, List.of(PlannerState.message(ChatMessage.ASSISTANT,
-                    PlanAssembler.clean(summary))));
+            messages.add(PlannerState.message(ChatMessage.ASSISTANT, PlanAssembler.clean(summary)));
+        }
+        if (!messages.isEmpty()) {
+            update.put(PlannerState.MESSAGES, messages);
         }
         return update;
     }

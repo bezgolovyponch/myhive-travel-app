@@ -340,6 +340,8 @@ public class PlannerGraph {
         // back as "nothing pending" and what applyEdits itself writes when it is done.
         values.put(PlannerState.EDITS, PlannerState.NO_EDITS);
         values.put(PlannerState.EDIT_REPORT, "");
+        // and the reply chatTurn held back for that batch: it announced edits nobody will now check.
+        values.put(PlannerState.PENDING_REPLY, "");
         // snapshotCatalog stamps this one early, so a run that dies later leaves the chat believing
         // packages exist for the current brief: it would never regenerate on its own again. Restoring
         // the brief of the last generation that really delivered is the middle ground - small talk

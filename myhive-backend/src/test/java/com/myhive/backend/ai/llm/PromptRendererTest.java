@@ -114,11 +114,12 @@ class PromptRendererTest {
 
         assertThat(prompt).contains("PACKAGE BASIC \"" + expectedTitle + "\"")
                 .contains(expectedDescription)
-                .contains("DAY " + expectedDayNumber + " (" + expectedSummary + ")")
+                .contains("TAGLINE tagline")
+                .contains("DAY " + expectedDayNumber + " \"Day one\" (" + expectedSummary + ")")
                 .contains("- AFTERNOON " + expectedActivityId + " " + expectedName)
                 .contains("- MORNING " + untouchedActivityId + " Beer Spa")
-                .contains("REWRITE: description; why for " + expectedActivityId
-                        + "; summary for days " + expectedDayNumber);
+                .contains("REWRITE: title; tagline; description; why for " + expectedActivityId
+                        + "; dayTitle and summary for days " + expectedDayNumber);
     }
 
     @Test
@@ -137,8 +138,10 @@ class PromptRendererTest {
 
         assertThat(prompt).doesNotContain("null")
                 .contains("PACKAGE BASIC \"-\"")
-                .contains("DAY " + expectedDayNumber + " (-)")
-                .contains("REWRITE: description; why for -; summary for days " + expectedDayNumber);
+                .contains("TAGLINE -")
+                .contains("DAY " + expectedDayNumber + " \"-\" (-)")
+                .contains("REWRITE: title; tagline; description; why for -; dayTitle and summary for days "
+                        + expectedDayNumber);
     }
 
     @Test

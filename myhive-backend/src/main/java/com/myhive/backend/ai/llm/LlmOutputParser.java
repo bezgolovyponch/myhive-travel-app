@@ -151,7 +151,7 @@ public class LlmOutputParser {
         return name.substring(0, MAX_ACTIVITY_NAME_CHARS).strip();
     }
 
-    /** The post-edit refresh reads the same shape as the first write; it names activities by id and asks for no titles. */
+    /** The post-edit refresh reads the same shape as the first write; it names activities by id, not by code. */
     public Map<Tier, PackageTexts> parseTextRefresh(String raw) {
         return parsePackageTexts(raw, Map.of(), "text refresh");
     }

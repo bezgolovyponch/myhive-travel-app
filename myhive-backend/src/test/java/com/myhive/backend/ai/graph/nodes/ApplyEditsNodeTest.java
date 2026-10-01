@@ -347,6 +347,90 @@ class ApplyEditsNodeTest {
                 .satisfies(rejected -> assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NO_PACKAGES_YET));
     }
 
+    /**
+     * The model's reply was written before anything was checked. When every op landed it may stand - the
+     * confirmation follows it - and the held-back reply is cleared either way.
+     */
+    @Test
+    void everyOpApplied_saysTheHeldBackReply_thenTheConfirmation() {
+        String expectedReply = "Let me check that.";
+        queueRefresh("Now with karting");
+        Map<String, Object> initData = stateMap(List.of(replace(beerBike.name(), karting.name())));
+        initData.put(PlannerState.PENDING_REPLY, expectedReply);
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        String expectedSummary = EditMessages.summary(LOCALE, reportOf(update));
+        assertThat(messagesOf(update)).extracting(message -> message.get("content"))
+                .containsExactly(expectedReply, expectedSummary);
+        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+    }
+
+    /**
+     * "Swapping X for Y now." followed by "X is not in the Medium package" contradicts itself: a rejection
+     * replaces the announcement instead of following it.
+     */
+    @Test
+    void nothingApplied_dropsTheHeldBackReply_andSaysOnlyTheRejection() {
+        String expectedMessage = EditMessages.rejectionSummary(LOCALE, List.of(new RejectedEdit(EditOp.ADD,
+                beerSpa.name(), Tier.BASIC, EditRejectionReason.ALREADY_IN_PACKAGE, null)));
+        Map<String, Object> initData = stateMap(List.of(add(beerSpa.name())));
+        initData.put(PlannerState.PENDING_REPLY, "Adding " + beerSpa.name() + " now. Want karting too?");
+        initData.put(PlannerState.SUGGESTED_REPLIES, List.of("Yes", "No"));
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        assertThat(messagesOf(update)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).isEqualTo(expectedMessage));
+        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+        // the chips answered the question in the dropped reply
+        assertThat(update.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(List.of());
+    }
+
+    /** Half a batch landing is not what the reply announced either: Java's own line says which half. */
+    @Test
+    void someOpsRejected_dropsTheHeldBackReply_andSaysWhatLandedAndWhatDidNot() {
+        queueRefresh("Now with karting");
+        Map<String, Object> initData = stateMap(List.of(replace(beerBike.name(), karting.name()), add(beerSpa.name())));
+        initData.put(PlannerState.PENDING_REPLY, "Swapping the bike and adding the spa now.");
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        EditReport report = reportOf(update);
+        assertThat(report.applied()).hasSize(1);
+        assertThat(report.rejected()).hasSize(1);
+        assertThat(messagesOf(update)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).isEqualTo(EditMessages.summary(LOCALE, report)));
+    }
+
+    /** A batch refused before the editor ran (here: the session's edits are used up) drops the reply too. */
+    @Test
+    void editLimitReached_dropsTheHeldBackReply() {
+        Map<String, Object> initData = stateMap(List.of(replace(beerBike.name(), karting.name())));
+        initData.put(PlannerState.EDITS_LEFT, 0);
+        initData.put(PlannerState.PENDING_REPLY, "Swapping it now.");
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        assertThat(messagesOf(update)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).asString().doesNotContain("now").contains(beerBike.name()));
+        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+    }
+
+    /** Even the last-resort path, which cannot read the batch, must not leave the announcement to stand alone. */
+    @Test
+    void anUnreadableBatch_dropsTheHeldBackReply_andStillSaysSomething() {
+        Map<String, Object> initData = stateMap(List.of(replace(beerBike.name(), karting.name())));
+        initData.put(PlannerState.EDITS, "{not even json");
+        initData.put(PlannerState.PENDING_REPLY, "Swapping it now.");
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+        assertThat(messagesOf(update)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).isEqualTo(EditMessages.internalFailure(LOCALE)));
+    }
+
     private void queueRefresh(String description) {
         llm.queueRefresh(new TextRefreshResult(
                 Map.of(Tier.BASIC, new PackageTexts(description, Map.of(), Map.of())), EXPECTED_REFRESH_USAGE));

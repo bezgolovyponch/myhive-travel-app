@@ -131,7 +131,8 @@
       "title": "Prague Stag Do. Planned in 10 minutes.",
       "subtitle": "Your group votes, we do the rest.",
       "startVoteCta": "Start Group Vote",
-      "exploreCta": "Explore activities"
+      "exploreCta": "Browse activities",
+      "aiPlannerCta": "Stag Do AI"
     },
     "featured": {
       "heading": "70+ Activities. Something for Every Group.",
@@ -203,6 +204,59 @@
       "cardName": "Steak & Strip",
       "cardMeta": "1.5h · €45 / person",
       "likeStamp": "LIKE"
+    },
+    "planner": {
+      "eyebrow": "Prague stag do planner",
+      "title": "Be the best man, not the travel agent.",
+      "subtitle": "Pick your dates and build the weekend day by day. A local planner calls you within the hour with the route and the price. No agency fee.",
+      "steps": {
+        "pick": {
+          "time": "0:00",
+          "title": "You pick dates and head-count",
+          "sub": "No sign-up, no deposit"
+        },
+        "weekends": {
+          "time": "0:01",
+          "title": "Three ready weekends",
+          "sub": "Basic, Medium, Premium — swap anything"
+        },
+        "lads": {
+          "time": "0:05",
+          "title": "The lads pick one",
+          "sub": "One link in the WhatsApp group"
+        },
+        "call": {
+          "time": "<1h",
+          "title": "A Prague planner calls you",
+          "sub": "Checks every venue, you just turn up"
+        }
+      },
+      "datesLabel": "Travel dates",
+      "datesHint": "· can be changed",
+      "datesPlaceholder": "Select travel dates",
+      "peopleLabel": "People",
+      "peopleHint": "· incl. groom",
+      "fewer": "Fewer people",
+      "more": "More people",
+      "inputPlaceholder": "Pick the dates or write it here",
+      "sendAria": "Plan it",
+      "chipsHead": "Next step — tap to fill",
+      "chipsHeadEmpty": "Or start with",
+      "nights": {
+        "zero": "a day trip",
+        "one": "1 night",
+        "other": "{count} nights"
+      },
+      "chips": {
+        "plan": "Plan {nights} for {people} of us — nightlife first",
+        "big": "Something big on {day}: tanks or shooting",
+        "chill": "Keep it chill on {day} for the groom",
+        "compare": "Show me Basic vs Premium",
+        "anyWeekend": "{people} of us, any weekend in {month}",
+        "flexible": "2 nights, dates still flexible",
+        "popular": "What do most groups of {people} book?"
+      },
+      "defaultMessage": "Plan {nights} in Prague for {people} of us, {range}."
     }
   },
   "destination": {
@@ -592,34 +646,6 @@
     "likeAria": "Like",
     "linkCopied": "✓ Link Copied!",
     "copyInviteLink": "Copy Invite Link"
-  },
-  "chat": {
-    "greeting": "Hi! I'm your AI travel assistant. What type of trip are you looking for?",
-    "autoEngage": "Planning a stag do? Tell me what your group is into and I'll point you to the right activities!",
-    "responses": {
-      "default": "I can help you plan the perfect group getaway! What interests you most?",
-      "nightlife": "For epic nightlife, check the Nightlife category in Activities — bar crawls, club entries and boat parties are group favourites.",
-      "adventure": "Adventure awaits! Browse the Adventure category for go-karting, water sports and adrenaline activities your group can do together.",
-      "relax": "Perfect for unwinding — look for spa, beach club and relaxed daytime activities to balance out the big nights.",
-      "packages": "Our packages bundle several activities at a discount — check the Packages tab on the destination page and customize any of them in the Trip Builder!",
-      "suggestPackages": "Packages are the easiest start — a ready-made mix of activities at a discount that you can still customize in the Trip Builder!",
-      "suggestTripBuilder": "You have {count} activities selected.",
-      "suggestAddMore": "Consider adding more for a full experience!",
-      "suggestBalanced": "This looks like a great balanced trip!",
-      "suggestDefault": "Start with the featured activities on the home page — they're the most popular with groups. Add anything you like to the Trip Builder!",
-      "prices": "Prices are shown per person on every activity card, and packages give you a discount for booking several activities together. The Trip Builder totals everything for your group size.",
-      "groups": "Everything here is built for groups! You can even start a group vote from the Trip Builder so the whole crew picks the activities together.",
-      "hello": "Hello! I'm here to help you plan the perfect trip. Are you looking for adventure, nightlife, relaxation, or a mix of everything?"
-    },
-    "title": "AI Travel Assistant",
-    "closeAria": "Close chat",
-    "avatarAi": "AI",
-    "avatarYou": "You",
-    "inputAria": "Chat message",
-    "inputPlaceholder": "Tell me about your ideal trip...",
-    "sendAria": "Send message",
-    "send": "Send",
-    "openAria": "Open chat assistant"
   },
   "datePicker": {
     "startLabel": "Start",
@@ -1065,6 +1091,96 @@
       "wellness": "Chillout",
       "stag-hot-babies-and-pranks": "Pranks & Adults",
       "transfer": "Transfers"
+    }
+  },
+  "aiPlanner": {
+    "meta": {
+      "title": "Stag Do AI — plan your stag do in a chat | Trivlu"
+    },
+    "loading": "Loading your chat…",
+    "intro": {
+      "title": "Stag Do AI",
+      "subtitle": "Tell us who's coming and what you're into. You get three ready weekends — Basic, Medium and Premium — in about a minute.",
+      "starters": {
+        "one": "10 of us, 3 days in Prague, karting and beer",
+        "two": "8 guys, Friday to Sunday, something wild",
+        "three": "6 of us, a chilled weekend with good food and a spa"
+      }
+    },
+    "placeholder": "Tell me about your group…",
+    "inputAria": "Message Stag Do AI",
+    "sendAria": "Send",
+    "thinking": "Stag Do AI is typing",
+    "building": "Building your three packages…",
+    "retry": "Try again",
+    "newChat": "New chat",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "NETWORK": "No connection. Check your internet and try again.",
+      "LLM_UNAVAILABLE": "The assistant didn't answer. Your message is saved.",
+      "LLM_TIMEOUT": "The assistant took too long. Your message is saved.",
+      "SESSION_BUSY": "Still working on your last message.",
+      "AI_BUSY": "We're very busy right now. Try again in a few seconds.",
+      "SESSION_NOT_FOUND": "This chat has expired. Start a new one.",
+      "SESSION_TURN_LIMIT": "This chat is full. Start a new chat to keep planning.",
+      "GENERATION_LIMIT": "You've used all rebuilds for this chat. Start a new chat for fresh packages.",
+      "SESSION_DAILY_LIMIT": "You've started a lot of chats today. Please come back tomorrow.",
+      "TURNSTILE_FAILED": "We couldn't check that you're human. Reload the page and try again.",
+      "AI_DISABLED": "The planner is offline right now. Browse the activities instead.",
+      "handoff": "Couldn't move this package to your trip. Please try again."
+    },
+    "tiers": {
+      "BASIC": "Basic",
+      "MEDIUM": "Medium",
+      "PREMIUM": "Premium"
+    },
+    "tierTags": {
+      "BASIC": "Essentials",
+      "MEDIUM": "AI pick",
+      "PREMIUM": "VIP upgrades"
+    },
+    "slots": {
+      "MORNING": "Morning",
+      "AFTERNOON": "Afternoon",
+      "EVENING": "Evening",
+      "NIGHT": "Night"
+    },
+    "result": {
+      "eyebrow": "Your weekend",
+      "people": "{count} people",
+      "days": {
+        "one": "1 day",
+        "other": "{count} days"
+      },
+      "activities": {
+        "one": "1 activity",
+        "other": "{count} activities"
+      },
+      "tiersAria": "Package trims",
+      "day": "Day {n}",
+      "aiAdded": "AI added",
+      "writing": "Writing the details…",
+      "removing": "Removing…",
+      "removeAria": "Remove {name}",
+      "removeMessage": "Remove {name} from the {tier} package",
+      "freeTime": "Free time — ask Stag Do AI to fill it",
+      "degraded": "Auto-composed",
+      "undo": "Undo",
+      "changed": {
+        "REMOVE": "Removed {name}",
+        "ADD": "Added {name}",
+        "REPLACE": "Swapped {name} for {replacement}"
+      },
+      "priceFrom": "from {price}",
+      "sendToPlanner": "Send to a Prague planner"
+    },
+    "dock": {
+      "title": "Stag Do AI",
+      "subtitle": "editing your package",
+      "pill": "Ask Stag Do AI to change anything…",
+      "working": "Working on it…",
+      "collapse": "Collapse chat",
+      "placeholder": "Change anything…"
     }
   }
 }

@@ -1,0 +1,258 @@
+/* Chat thread (assistant-ui primitives). Colours come from the page tokens
+   (--aip-*, AiPlannerPage.css) with fallbacks so the thread renders anywhere. */
+.ai-thread {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.ai-thread-full {
+    height: 100%;
+}
+
+.ai-thread-viewport {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px 4px 16px;
+}
+
+.ai-thread-drawer .ai-thread-viewport {
+    padding: 16px;
+}
+
+.ai-msg {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 88%;
+}
+
+.ai-msg-user {
+    align-self: flex-end;
+}
+
+.ai-msg-assistant {
+    align-self: flex-start;
+}
+
+.ai-avatar {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--aip-purple, #534AB7), var(--aip-purple-l, #7F77DD));
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.ai-bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.ai-msg-assistant .ai-bubble {
+    background: var(--aip-card-2, #262430);
+    border-bottom-left-radius: 4px;
+}
+
+.ai-msg-user .ai-bubble {
+    background: var(--aip-purple, #534AB7);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.ai-thread-text {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.ai-typing {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.ai-typing > span:not(.visually-hidden) {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--aip-muted, #9a96a6);
+    animation: ai-pulse 1.2s infinite ease-in-out;
+}
+
+.ai-typing > span:nth-child(2) { animation-delay: 0.15s; }
+.ai-typing > span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes ai-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.25); }
+}
+
+.ai-status {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--aip-purple-ic, #CECBF6);
+}
+
+.ai-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--aip-purple-l, #7F77DD);
+    animation: ai-pulse 1.2s infinite ease-in-out;
+}
+
+.ai-error {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(239, 90, 109, 0.12);
+    border: 1px solid rgba(239, 90, 109, 0.35);
+    font-size: 14px;
+}
+
+.ai-error-retry {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: inherit;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.ai-thread-bottom {
+    padding: 8px 0 4px;
+}
+
+.ai-thread-drawer .ai-thread-bottom {
+    padding: 8px 12px 12px;
+    border-top: 1px solid var(--aip-line, #34313f);
+}
+
+.ai-suggestions {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+}
+
+.ai-suggestions:empty {
+    display: none;
+}
+
+.ai-chip {
+    flex-shrink: 0;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(83, 74, 183, 0.14);
+    border: 1px solid rgba(127, 119, 221, 0.4);
+    color: var(--aip-purple-ic, #CECBF6);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ai-chip:hover {
+    background: rgba(83, 74, 183, 0.28);
+}
+
+.ai-composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 8px 8px 8px 16px;
+    background: var(--aip-card, #1f1c27);
+    border: 1px solid var(--aip-line, #34313f);
+    border-radius: 22px;
+}
+
+.ai-composer:focus-within {
+    border-color: var(--aip-purple-l, #7F77DD);
+}
+
+.ai-composer-input {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--aip-text, #fff);
+    font: inherit;
+    /* 16px keeps iOS Safari from zooming on focus. */
+    font-size: 16px;
+    /* Whole pixels: 7 + 22 + 7 = the autosized 36px height exactly. A fractional
+       line-height (1.4 = 22.4px) overflowed it by a sub-pixel and kept a
+       permanent scrollbar in the box. */
+    line-height: 22px;
+    padding: 7px 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* Safari / older Chrome ignore scrollbar-color: same thin, dark thumb. */
+.ai-thread-viewport::-webkit-scrollbar,
+.ai-composer-input::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ai-thread-viewport::-webkit-scrollbar-track,
+.ai-composer-input::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ai-thread-viewport::-webkit-scrollbar-thumb,
+.ai-composer-input::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 3px;
+}
+
+.ai-composer-input::placeholder {
+    color: var(--aip-muted, #9a96a6);
+}
+
+.ai-composer-send {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--aip-purple, #534AB7);
+    color: #fff;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.ai-composer-send:disabled {
+    opacity: 0.4;
+    cursor: default;
+}

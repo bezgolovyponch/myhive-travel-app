@@ -1,0 +1,341 @@
+/* Homepage hero, v3 landing 2a. Tokens (--purple, --line, --bg ...) come from
+   .homepage in HomePage.css; sizes follow the mockup's 390px phone. */
+.hero-planner {
+    width: 100%;
+    max-width: 30rem;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.hero-planner .hero-title {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hero-eyebrow {
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #cfcaf8;
+    text-shadow: none;
+}
+
+.hero-title-text {
+    font-size: clamp(2.1875rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.03;
+    letter-spacing: -0.025em;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.4);
+    text-wrap: pretty;
+}
+
+.hero-planner .hero-subtitle {
+    margin-top: 10px;
+    max-width: none;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #ece7f6;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+    text-wrap: pretty;
+}
+
+/* ---- timeline ---- */
+.hp-steps {
+    margin: 18px 0 0;
+    padding: 14px 16px;
+    list-style: none;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 16px;
+    background: rgba(22, 19, 28, 0.72);
+    backdrop-filter: blur(10px);
+}
+
+.hp-step {
+    display: grid;
+    grid-template-columns: 48px 14px minmax(0, 1fr);
+    column-gap: 10px;
+    align-items: start;
+}
+
+.hp-step-time {
+    padding-top: 1px;
+    font-size: 12px;
+    color: var(--purple-ll);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Dot plus the line down to the next step; the last step has no line. */
+.hp-step-dot {
+    position: relative;
+    align-self: stretch;
+    display: flex;
+    justify-content: center;
+}
+
+.hp-step-dot::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    margin-top: 4px;
+    border-radius: 50%;
+    background: var(--purple);
+}
+
+.hp-step-dot::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    background: var(--line);
+}
+
+.hp-step--done .hp-step-time {
+    color: #4caf50;
+}
+
+.hp-step--done .hp-step-dot::before {
+    background: #4caf50;
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+}
+
+.hp-step--done .hp-step-dot::after {
+    display: none;
+}
+
+.hp-step-body {
+    padding-bottom: 10px;
+}
+
+.hp-step:last-child .hp-step-body {
+    padding-bottom: 0;
+}
+
+.hp-step-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.hp-step-sub {
+    font-size: 12px;
+    color: var(--hp-muted-l);
+}
+
+/* ---- dates, people, chat box ---- */
+.hp-form {
+    margin-top: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 18px;
+    background: var(--bg-alt);
+}
+
+.hp-form-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.hp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.hp-field-label {
+    font-size: 11px;
+    color: var(--hp-muted-l);
+    white-space: nowrap;
+}
+
+.hp-field-label span {
+    color: var(--hp-muted);
+}
+
+.hp-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+}
+
+.hp-stepper button {
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.hp-stepper button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.hp-stepper span {
+    min-width: 28px;
+    text-align: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+}
+
+.hp-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 6px 6px 12px;
+    border: 1px solid var(--purple);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--purple-ll);
+}
+
+.hp-input:focus-within {
+    border-color: var(--purple-l);
+}
+
+.hp-input svg {
+    flex: none;
+}
+
+.hp-input input {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+    /* 16px keeps iOS Safari from zooming on focus. */
+    font-size: 16px;
+}
+
+.hp-input input::placeholder {
+    color: var(--hp-muted);
+}
+
+.hp-input-send {
+    flex: none;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: var(--purple);
+    color: #fff;
+    cursor: pointer;
+}
+
+.hp-input-send:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.hp-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.hp-chips-head {
+    font-size: 11px;
+    color: var(--hp-muted);
+}
+
+.hp-chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.hp-chip {
+    padding: 7px 11px;
+    border: 1px solid #3a3648;
+    border-radius: 999px;
+    background: #221f2e;
+    color: #e4e1f3;
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.3;
+    text-align: left;
+    cursor: pointer;
+}
+
+.hp-chip:hover {
+    border-color: var(--purple-l);
+}
+
+/* ---- the two buttons: equal halves, Browse first ---- */
+.hero-planner .hero-cta-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.hero-planner .hp-btn-primary,
+.hero-planner .hp-btn-secondary {
+    min-height: 52px;
+    padding: 0 12px;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.hero-planner .hp-btn-secondary {
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-planner .hp-btn-primary {
+    text-decoration: none;
+    box-shadow: 0 10px 30px -10px var(--purple);
+}
+
+/* Phones: the mockup's photo treatment — the photo fills the top 560px only,
+   darker behind the headline and copy, fully opaque by the form — and room
+   under the buttons. */
+@media (max-width: 768px) {
+    .hero.hero--planner {
+        align-items: flex-start;
+        padding-bottom: 40px;
+        background-size: auto 560px;
+        background-position: 42% 0;
+    }
+
+    .hero--planner .hero-overlay {
+        background: linear-gradient(180deg,
+            rgba(22, 19, 28, 0.55) 0,
+            rgba(22, 19, 28, 0.3) 150px,
+            rgba(22, 19, 28, 0.85) 380px,
+            var(--bg) 560px);
+    }
+}
+
+.hero-planner .hp-btn-secondary:hover {
+    color: #fff;
+}

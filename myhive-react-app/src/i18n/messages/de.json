@@ -121,7 +121,8 @@
       "title": "JGA in Prag. Geplant in 10 Minuten.",
       "subtitle": "Deine Gruppe stimmt ab, wir erledigen den Rest.",
       "startVoteCta": "Gruppen-Voting starten",
-      "exploreCta": "Aktivitäten entdecken"
+      "exploreCta": "Aktivitäten durchstöbern",
+      "aiPlannerCta": "JGA-KI"
     },
     "featured": {
       "heading": "70+ Aktivitäten. Für jede Gruppe das Richtige.",
@@ -193,6 +194,59 @@
       "cardName": "Steak & Strip",
       "cardMeta": "1,5 Std. · 45 € / Person",
       "likeStamp": "LIKE"
+    },
+    "planner": {
+      "eyebrow": "JGA-Planer für Prag",
+      "title": "Sei der Trauzeuge, nicht das Reisebüro.",
+      "subtitle": "Wähl eure Daten und bau das Wochenende Tag für Tag. Ein Planer vor Ort ruft dich innerhalb einer Stunde mit Route und Preis an. Keine Agenturgebühr.",
+      "steps": {
+        "pick": {
+          "time": "0:00",
+          "title": "Du wählst Daten und Personenzahl",
+          "sub": "Ohne Anmeldung, ohne Anzahlung"
+        },
+        "weekends": {
+          "time": "0:01",
+          "title": "Drei fertige Wochenenden",
+          "sub": "Basic, Medium, Premium — alles tauschbar"
+        },
+        "lads": {
+          "time": "0:05",
+          "title": "Die Jungs wählen eins",
+          "sub": "Ein Link in die WhatsApp-Gruppe"
+        },
+        "call": {
+          "time": "<1 Std.",
+          "title": "Ein Prag-Planer ruft dich an",
+          "sub": "Prüft jede Location, ihr kommt nur noch hin"
+        }
+      },
+      "datesLabel": "Reisedaten",
+      "datesHint": "· änderbar",
+      "datesPlaceholder": "Reisedaten wählen",
+      "peopleLabel": "Personen",
+      "peopleHint": "· inkl. Bräutigam",
+      "fewer": "Weniger Personen",
+      "more": "Mehr Personen",
+      "inputPlaceholder": "Wähl die Daten oder schreib es hier",
+      "sendAria": "Planen",
+      "chipsHead": "Nächster Schritt — antippen zum Übernehmen",
+      "chipsHeadEmpty": "Oder starte mit",
+      "nights": {
+        "zero": "einen Tagesausflug",
+        "one": "1 Nacht",
+        "other": "{count} Nächte"
+      },
+      "chips": {
+        "plan": "Plane {nights} für {people} Leute — Nightlife zuerst",
+        "big": "Etwas Großes am {day}: Panzer oder Schießen",
+        "chill": "Am {day} entspannt für den Bräutigam",
+        "compare": "Zeig mir Basic vs. Premium",
+        "anyWeekend": "{people} Leute, irgendein Wochenende im {month}",
+        "flexible": "2 Nächte, Daten noch flexibel",
+        "popular": "Was buchen die meisten Gruppen mit {people} Leuten?"
+      },
+      "defaultMessage": "Plane {nights} in Prag für {people} Leute, {range}."
     }
   },
   "destination": {
@@ -582,34 +636,6 @@
     "likeAria": "Gefällt mir",
     "linkCopied": "✓ Link kopiert!",
     "copyInviteLink": "Einladungslink kopieren"
-  },
-  "chat": {
-    "greeting": "Hi! Ich bin dein KI-Reiseassistent. Was für einen Trip suchst du?",
-    "autoEngage": "Planst du einen JGA? Sag mir, worauf deine Gruppe steht, und ich zeige dir die passenden Aktivitäten!",
-    "responses": {
-      "default": "Ich helfe dir, den perfekten Gruppentrip zu planen! Was interessiert dich am meisten?",
-      "nightlife": "Für episches Nachtleben schau in die Kategorie Nachtleben bei den Aktivitäten — Kneipentouren, Club-Eintritte und Bootspartys sind Gruppenfavoriten.",
-      "adventure": "Abenteuer wartet! Stöbere in der Kategorie Abenteuer nach Kartfahren, Wassersport und Adrenalin-Aktivitäten, die deine Gruppe zusammen machen kann.",
-      "relax": "Perfekt zum Runterkommen — schau nach Spa, Beachclub und entspannten Tagesaktivitäten, um die großen Nächte auszugleichen.",
-      "packages": "Unsere Pakete bündeln mehrere Aktivitäten mit Rabatt — schau auf der Reiseziel-Seite in den Tab Pakete und passe jedes davon im Trip-Planer an!",
-      "suggestPackages": "Pakete sind der einfachste Start — eine fertige Mischung aus Aktivitäten mit Rabatt, die du im Trip-Planer trotzdem anpassen kannst!",
-      "suggestTripBuilder": "Du hast {count} Aktivitäten ausgewählt.",
-      "suggestAddMore": "Füge noch ein paar hinzu für das volle Erlebnis!",
-      "suggestBalanced": "Das sieht nach einem richtig ausgewogenen Trip aus!",
-      "suggestDefault": "Starte mit den vorgestellten Aktivitäten auf der Startseite — sie sind bei Gruppen am beliebtesten. Füge alles, was dir gefällt, zum Trip-Planer hinzu!",
-      "prices": "Preise stehen pro Person auf jeder Aktivitätskarte, und Pakete geben dir Rabatt, wenn du mehrere Aktivitäten zusammen buchst. Der Trip-Planer rechnet alles für deine Gruppengröße zusammen.",
-      "groups": "Hier ist alles für Gruppen gemacht! Du kannst aus dem Trip-Planer sogar ein Gruppen-Voting starten, damit die ganze Crew die Aktivitäten gemeinsam auswählt.",
-      "hello": "Hallo! Ich helfe dir, den perfekten Trip zu planen. Suchst du Abenteuer, Nachtleben, Entspannung oder eine Mischung aus allem?"
-    },
-    "title": "KI-Reiseassistent",
-    "closeAria": "Chat schließen",
-    "avatarAi": "KI",
-    "avatarYou": "Du",
-    "inputAria": "Chat-Nachricht",
-    "inputPlaceholder": "Erzähl mir von deinem idealen Trip...",
-    "sendAria": "Nachricht senden",
-    "send": "Senden",
-    "openAria": "Chat-Assistent öffnen"
   },
   "datePicker": {
     "startLabel": "Start",
@@ -1055,6 +1081,96 @@
       "wellness": "Chillout",
       "stag-hot-babies-and-pranks": "Heiße Girls & Pranks",
       "transfer": "Transfers"
+    }
+  },
+  "aiPlanner": {
+    "meta": {
+      "title": "JGA-KI — plane deinen JGA im Chat | Trivlu"
+    },
+    "loading": "Dein Chat wird geladen…",
+    "intro": {
+      "title": "JGA-KI",
+      "subtitle": "Sag uns, wer mitkommt und worauf ihr Lust habt. In etwa einer Minute bekommst du drei fertige Wochenenden — Basic, Medium und Premium.",
+      "starters": {
+        "one": "Wir sind 10, 3 Tage Prag, Kart und Bier",
+        "two": "8 Jungs, Freitag bis Sonntag, etwas Verrücktes",
+        "three": "Wir sind 6, entspanntes Wochenende mit gutem Essen und Spa"
+      }
+    },
+    "placeholder": "Erzähl mir von eurer Gruppe…",
+    "inputAria": "Nachricht an die JGA-KI",
+    "sendAria": "Senden",
+    "thinking": "Die JGA-KI schreibt",
+    "building": "Deine drei Pakete werden erstellt…",
+    "retry": "Erneut versuchen",
+    "newChat": "Neuer Chat",
+    "errors": {
+      "generic": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
+      "NETWORK": "Keine Verbindung. Prüf dein Internet und versuch es erneut.",
+      "LLM_UNAVAILABLE": "Der Assistent hat nicht geantwortet. Deine Nachricht ist gespeichert.",
+      "LLM_TIMEOUT": "Der Assistent hat zu lange gebraucht. Deine Nachricht ist gespeichert.",
+      "SESSION_BUSY": "Deine letzte Nachricht wird noch bearbeitet.",
+      "AI_BUSY": "Gerade ist viel los. Versuch es in ein paar Sekunden erneut.",
+      "SESSION_NOT_FOUND": "Dieser Chat ist abgelaufen. Starte einen neuen.",
+      "SESSION_TURN_LIMIT": "Dieser Chat ist voll. Starte einen neuen Chat, um weiterzuplanen.",
+      "GENERATION_LIMIT": "Du hast alle Neuaufbauten für diesen Chat genutzt. Starte einen neuen Chat für neue Pakete.",
+      "SESSION_DAILY_LIMIT": "Du hast heute schon viele Chats gestartet. Bitte komm morgen wieder.",
+      "TURNSTILE_FAILED": "Wir konnten nicht prüfen, dass du ein Mensch bist. Lade die Seite neu und versuch es erneut.",
+      "AI_DISABLED": "Der Planer ist gerade offline. Stöbere stattdessen in den Aktivitäten.",
+      "handoff": "Das Paket konnte nicht in deine Reise übernommen werden. Bitte versuch es erneut."
+    },
+    "tiers": {
+      "BASIC": "Basic",
+      "MEDIUM": "Medium",
+      "PREMIUM": "Premium"
+    },
+    "tierTags": {
+      "BASIC": "Das Wichtigste",
+      "MEDIUM": "KI-Tipp",
+      "PREMIUM": "VIP-Extras"
+    },
+    "slots": {
+      "MORNING": "Morgens",
+      "AFTERNOON": "Nachmittags",
+      "EVENING": "Abends",
+      "NIGHT": "Nachts"
+    },
+    "result": {
+      "eyebrow": "Euer Wochenende",
+      "people": "{count} Personen",
+      "days": {
+        "one": "1 Tag",
+        "other": "{count} Tage"
+      },
+      "activities": {
+        "one": "1 Aktivität",
+        "other": "{count} Aktivitäten"
+      },
+      "tiersAria": "Paketvarianten",
+      "day": "Tag {n}",
+      "aiAdded": "Von KI ergänzt",
+      "writing": "Details werden geschrieben…",
+      "removing": "Wird entfernt…",
+      "removeAria": "{name} entfernen",
+      "removeMessage": "Entferne {name} aus dem {tier}-Paket",
+      "freeTime": "Freie Zeit — lass die JGA-KI sie füllen",
+      "degraded": "Automatisch zusammengestellt",
+      "undo": "Rückgängig",
+      "changed": {
+        "REMOVE": "{name} entfernt",
+        "ADD": "{name} hinzugefügt",
+        "REPLACE": "{name} gegen {replacement} getauscht"
+      },
+      "priceFrom": "ab {price}",
+      "sendToPlanner": "An einen Prag-Planer senden"
+    },
+    "dock": {
+      "title": "JGA-KI",
+      "subtitle": "bearbeitet dein Paket",
+      "pill": "Bitte die JGA-KI um eine Änderung…",
+      "working": "Wird bearbeitet…",
+      "collapse": "Chat einklappen",
+      "placeholder": "Ändere, was du willst…"
     }
   }
 }

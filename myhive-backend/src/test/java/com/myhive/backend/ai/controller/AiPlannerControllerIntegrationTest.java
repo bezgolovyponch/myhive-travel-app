@@ -65,6 +65,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -455,12 +456,12 @@ class AiPlannerControllerIntegrationTest {
     }
 
     /**
-     * A partially rejected batch writes two assistant messages, and {@code message} is only the last of
-     * them - so a client reading that field alone lost the model's actual answer on exactly the turns
-     * that needed explaining. {@code messages} carries the whole turn.
+     * A partially rejected batch is answered by Java's line alone: the model's reply was written before
+     * any op was checked, so next to a rejection it contradicts it ("Swapped one of them." / "could not
+     * find ..."). The line says what landed and what did not; {@code message} is that same line.
      */
     @Test
-    void editTurn_withOneOpRejected_carriesEveryAssistantMessageOfTheTurn() throws Exception {
+    void editTurn_withOneOpRejected_answersWithTheEditLineInPlaceOfTheReply() throws Exception {
         String expectedReply = "Swapped one of them.";
         String expectedUnknownName = "Hot Air Balloon";
         String expectedApplied = activities.get(BASIC_INDEX).getName();
@@ -484,15 +485,16 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.edit.rejected[0].reason", is("UNKNOWN_ACTIVITY")))
                 .andExpect(jsonPath("$.edit.rejected[0].activity", is(expectedUnknownName)))
                 .andExpect(jsonPath("$.generation.kind", is("EDITED")))
-                .andExpect(jsonPath("$.messages", hasSize(2)))
+                .andExpect(jsonPath("$.messages", hasSize(1)))
                 .andExpect(jsonPath("$.messages[0].role", is("ASSISTANT")))
-                .andExpect(jsonPath("$.messages[0].content", is(expectedReply)))
-                .andExpect(jsonPath("$.messages[1].content", containsString(expectedUnknownName)))
+                .andExpect(jsonPath("$.messages[0].content", not(containsString(expectedReply))))
+                .andExpect(jsonPath("$.messages[0].content", containsString(expectedApplied)))
+                .andExpect(jsonPath("$.messages[0].content", containsString(expectedUnknownName)))
                 // unchanged meaning: the last message of the turn, which is the rejection line
                 .andExpect(jsonPath("$.message.content", containsString(expectedUnknownName)));
     }
 
-    /** The whole edit path in German: the reply, the stored row and the rejection line the group reads. */
+    /** The whole edit path in German: the stored row and the line the group reads in place of the reply. */
     @Test
     void editTurn_inGerman_servesTheGermanRejectionLine() throws Exception {
         String expectedReply = "Getauscht.";
@@ -517,15 +519,14 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.generation.status", is(AiGenerationStatus.READY.name())))
                 .andExpect(jsonPath("$.edit.applied", hasSize(1)))
                 .andExpect(jsonPath("$.edit.rejected[0].reason", is("UNKNOWN_ACTIVITY")))
-                .andExpect(jsonPath("$.messages", hasSize(2)))
-                .andExpect(jsonPath("$.messages[0].content", is(expectedReply)))
+                .andExpect(jsonPath("$.messages", hasSize(1)))
                 // The template line confirms what landed (naming the package) before it explains the rest.
-                .andExpect(jsonPath("$.messages[1].content", startsWith(
+                .andExpect(jsonPath("$.messages[0].content", startsWith(
                         expectedApplied + " im Basic-Paket gegen " + expectedReplacement + " getauscht. ")))
-                .andExpect(jsonPath("$.messages[1].content",
+                .andExpect(jsonPath("$.messages[0].content",
                         endsWith(EditMessages.rejectionSummary("de", List.of(new RejectedEdit(EditOp.REPLACE,
                                 expectedUnknownName, null, EditRejectionReason.UNKNOWN_ACTIVITY, null))))))
-                .andExpect(jsonPath("$.messages[1].content", containsString("Katalog")));
+                .andExpect(jsonPath("$.messages[0].content", containsString("Katalog")));
     }
 
     /**

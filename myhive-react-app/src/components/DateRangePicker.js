@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useLayoutEffect, useRef } from 'react
 import { DayPicker } from 'react-day-picker';
 import { de } from 'react-day-picker/locale';
 import { useLocale, useT } from '../i18n';
+import { formatDayLabel, formatDayRange } from '../utils/format';
 import './DateRangePicker.css';
 
 // Calendar locale (month/weekday names, week start) and the field's date
@@ -59,10 +60,15 @@ const CAL_CLASSES = {
   hidden: 'drp-hidden',
 };
 
-function DateRangePicker({ from, to, onChange, collapsible = false, popover = false }) {
+// `single`: one compact field ("Fri 16 – Sun 18 Oct") opening the same calendar
+// as a popover — for tight layouts like the homepage hero. `placeholder` is its
+// empty text.
+function DateRangePicker({ from, to, onChange, collapsible = false, popover: popoverProp = false, single = false, placeholder }) {
   const t = useT('datePicker');
   const locale = useLocale();
-  const [numMonths, setNumMonths] = useState(() => window.innerWidth >= 640 ? 2 : 1);
+  const popover = popoverProp || single;
+  // No window during the server render of the homepage.
+  const [numMonths, setNumMonths] = useState(() => (typeof window !== 'undefined' && window.innerWidth >= 640 ? 2 : 1));
   const [hoveredDay, setHoveredDay] = useState(null);
   // Collapsible mode (inline booking panel): the calendar folds away once the range is
   // complete so the panel fits without scrolling; clicking a field brings it back.
@@ -185,6 +191,22 @@ function DateRangePicker({ from, to, onChange, collapsible = false, popover = fa
 
   return (
     <div className={`drp${popover ? ' drp--popover' : ''}`} ref={rootRef}>
+      {single ? (
+        <div className="drp-fields drp-fields--single" ref={fieldsRef}>
+          <button type="button" className={`drp-single${popOpen ? ' drp-single--open' : ''}`}
+                  onClick={handleFieldClick} aria-haspopup="dialog" aria-expanded={popOpen}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <path d="M16 2v4M8 2v4M3 10h18"/>
+            </svg>
+            <span className={`drp-single-value${!from ? ' drp-single-value--empty' : ''}`}>
+              {from && to ? formatDayRange(fromDate, toDateObj)
+                : from ? `${formatDayLabel(fromDate)} –`
+                : (placeholder || t('addDate'))}
+            </span>
+          </button>
+        </div>
+      ) : (
       <div className="drp-fields" ref={fieldsRef}>
         <div className={`drp-field${activeField === 'from' ? ' drp-field--active' : ''}`}
              onClick={handleFieldClick}>
@@ -221,6 +243,7 @@ function DateRangePicker({ from, to, onChange, collapsible = false, popover = fa
           </div>
         </div>
       </div>
+      )}
 
       {calendarVisible && (
         <div className={popover ? 'drp-pop' : undefined} style={popover ? popPos : undefined} ref={popover ? popRef : undefined}>

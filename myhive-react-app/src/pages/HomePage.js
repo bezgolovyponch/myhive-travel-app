@@ -1,5 +1,4 @@
 import PageHead from '../components/PageHead';
-import {useNavigate} from 'react-router-dom';
 import {useCatalog} from '../context/CatalogContext';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import {DEFAULT_DESTINATION_SLUG} from '../services/config';
@@ -10,11 +9,10 @@ import HowItWorksSection from '../components/home/HowItWorksSection';
 import FeaturedActivitiesSection from '../components/home/FeaturedActivitiesSection';
 import ReviewsSection from '../components/home/ReviewsSection';
 import ContactCtaSection from '../components/home/ContactCtaSection';
-import VoteDemoCard from '../components/home/VoteDemoCard';
+import HeroPlanner from '../components/home/HeroPlanner';
 import StickyVoteCta from '../components/home/StickyVoteCta';
 import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
-import {pushEvent} from '../utils/analytics';
-import {useLocalePath, useT} from '../i18n';
+import {useT} from '../i18n';
 import './HomePage.css';
 
 // `featuredActivities` exists only for the server-rendered copy of this page
@@ -25,10 +23,7 @@ import './HomePage.css';
 // handler carries the setup through /vote/new's query string (useStartGroupVote),
 // which survives the full page load a server-rendered mount makes.
 function HomePage({featuredActivities}) {
-    const t = useT('home');
     const tMeta = useT('meta');
-    const lp = useLocalePath();
-    const navigate = useNavigate();
     const {state: catalog} = useCatalog();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
     const startVote = openVoteSetup;
@@ -45,40 +40,13 @@ function HomePage({featuredActivities}) {
                 <link rel="canonical" href={`${SITE_URL}/`}/>
             </PageHead>
 
-            <section className="hero">
+            <section className="hero hero--planner">
                 <div className="hero-overlay"/>
                 <div className="hero-fade" aria-hidden="true"/>
                 <div className="hero-content">
                     <div className="hero-text">
-                        <h1 className="hero-title">{t('hero.title')}</h1>
-                        <p className="hero-subtitle">
-                            {t('hero.subtitle')}
-                        </p>
-
-                        <VoteDemoCard/>
-
-                        <div className="hero-cta-group">
-                            <button
-                                className="hp-btn-primary"
-                                onClick={() => {
-                                    pushEvent('cta_click', {cta_label: 'Start Group Vote', block: 'hero'});
-                                    startVote();
-                                }}
-                            >
-                                <i className="ph ph-check-square" aria-hidden="true"/> {t('hero.startVoteCta')}
-                            </button>
-                            <a
-                                className="hp-btn-secondary"
-                                href={lp(`/destination/${exploreActivitiesSlug}?tab=activities`)}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    pushEvent('cta_click', {cta_label: 'Explore activities', block: 'hero'});
-                                    navigate(`/destination/${exploreActivitiesSlug}?tab=activities`);
-                                }}
-                            >
-                                {t('hero.exploreCta')}
-                            </a>
-                        </div>
+                        {/* v3 landing 2a: dates and head-count, then the planner chat. */}
+                        <HeroPlanner explorePath={`/destination/${exploreActivitiesSlug}?tab=activities`}/>
                     </div>
                 </div>
             </section>

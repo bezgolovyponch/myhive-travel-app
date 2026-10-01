@@ -104,3 +104,61 @@ export const STATUS_VARIANTS = {
     PENDING: 'warning',
     CANCELLED: 'danger',
 };
+
+// ---- Trip dates as the planner shows them (ISO 'YYYY-MM-DD' in, local midnight) ----
+
+export function parseISODate(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    const d = new Date(`${iso}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+export function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+// Whole days from `from` to `to` (DST-safe: both are local midnights).
+export function nightsBetween(from, to) {
+    return Math.round((to - from) / 86400000);
+}
+
+const fmt = (options) => new Intl.DateTimeFormat(localeTag(), options);
+const DAY = {weekday: 'short', day: 'numeric', month: 'short'};
+
+/** "Fri 16 Oct" (de: "Fr., 16. Okt."). */
+export function formatDayLabel(date) {
+    return fmt(DAY).format(date);
+}
+
+/** "Fri 16 – Sun 18 Oct": the month once when both ends share it. */
+export function formatDayRange(from, to) {
+    const f = fmt(DAY);
+    // Intl's own range repeats the month in English ("Fri 16 Oct – Sun 18 Oct").
+    if (from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth()) {
+        return `${fmt({weekday: 'short', day: 'numeric'}).format(from)} – ${f.format(to)}`;
+    }
+    return typeof f.formatRange === 'function' ? f.formatRange(from, to) : `${f.format(from)} – ${f.format(to)}`;
+}
+
+/** "16–18 Oct": the compact form for tight headers. */
+export function formatShortRange(from, to) {
+    const f = fmt({day: 'numeric', month: 'short'});
+    return typeof f.formatRange === 'function' ? f.formatRange(from, to) : `${f.format(from)} – ${f.format(to)}`;
+}
+
+/** "Sat 17" — a day inside the trip, for chat phrases. */
+export function formatWeekdayDay(date) {
+    return fmt({weekday: 'short', day: 'numeric'}).format(date);
+}
+
+/** "Sun". */
+export function formatWeekday(date) {
+    return fmt({weekday: 'short'}).format(date);
+}
+
+/** "October". */
+export function formatMonth(date) {
+    return fmt({month: 'long'}).format(date);
+}
