@@ -13,6 +13,19 @@ jest.mock('../../services/voteApi', () => ({
 
 jest.mock('../../utils/analytics', () => ({ pushEvent: jest.fn() }));
 
+// The modal uses the site's DateRangePicker (DayPicker); two plain inputs stand
+// in for it so tests set dates without calendar interaction (as in TripSetupModal.test).
+jest.mock('../DateRangePicker', () =>
+  function MockDateRangePicker({ from, to, onChange }) {
+    return (
+      <>
+        <input data-testid="date-from" value={from} onChange={e => onChange(e.target.value, to)} />
+        <input data-testid="date-to" value={to} onChange={e => onChange(from, e.target.value)} />
+      </>
+    );
+  }
+);
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -163,11 +176,11 @@ test('missing trip dates block creation even with a valid email', async () => {
   expect(voteApi.createCartSession).not.toHaveBeenCalled();
 });
 
-test('accepts dates typed into its own date inputs', async () => {
+test('accepts dates picked in its calendar', async () => {
   voteApi.createCartSession.mockResolvedValue({ shareToken: 't-2', managerToken: 'm-2' });
   renderModal({ startDate: '', endDate: '' });
-  fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-09-04' } });
-  fireEvent.change(screen.getByLabelText('End date'), { target: { value: '2026-09-06' } });
+  fireEvent.change(screen.getByTestId('date-from'), { target: { value: '2026-09-04' } });
+  fireEvent.change(screen.getByTestId('date-to'), { target: { value: '2026-09-06' } });
 
   await launchWith('sam@example.com');
 

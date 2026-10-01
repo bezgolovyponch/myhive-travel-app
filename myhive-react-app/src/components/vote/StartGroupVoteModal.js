@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppModal from '../AppModal';
+import DateRangePicker from '../DateRangePicker';
 import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
 import { clearTripLead } from '../../utils/tripLead';
@@ -215,23 +216,18 @@ function StartGroupVoteModal({
             </ul>
             {needsDates && (
                 <div className="start-vote-dates">
-                    <label htmlFor="start-vote-start-date">{t('start.tripDates')}</label>
-                    <div className="start-vote-modal-dates">
-                        <input
-                            id="start-vote-start-date"
-                            aria-label={t('start.startDate')}
-                            type="date"
-                            value={voteStartDate}
-                            onChange={(e) => setVoteStartDate(e.target.value)}
-                        />
-                        <input
-                            id="start-vote-end-date"
-                            aria-label={t('start.endDate')}
-                            type="date"
-                            value={voteEndDate}
-                            onChange={(e) => setVoteEndDate(e.target.value)}
-                        />
-                    </div>
+                    <div className="start-vote-dates-label">{t('start.tripDates')}</div>
+                    {/* The site's dark range calendar (as in TripSetupModal), not the
+                        browser's white native date popup. */}
+                    <DateRangePicker
+                        from={voteStartDate}
+                        to={voteEndDate}
+                        onChange={(from, to) => {
+                            setVoteStartDate(from);
+                            setVoteEndDate(to);
+                        }}
+                        popover
+                    />
                     {errors.dates && <span className="error-message" role="alert">{errors.dates}</span>}
                 </div>
             )}
