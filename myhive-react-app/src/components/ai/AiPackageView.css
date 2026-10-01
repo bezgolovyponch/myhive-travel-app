@@ -68,6 +68,18 @@
     color: #e4e1f3;
 }
 
+.aip-tier-price {
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--aip-purple-ic);
+    white-space: nowrap;
+}
+
+.aip-tier.is-active .aip-tier-price {
+    color: #fff;
+}
+
 .aip-tagline {
     margin: 10px 0 0;
     font-size: 13px;
@@ -261,6 +273,13 @@
 .aip-trim-card span {
     font-size: 11px;
     color: var(--aip-muted, #9a96a6);
+}
+
+.aip-trim-card strong {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--aip-text, #fff);
+    white-space: nowrap;
 }
 
 .aip-trim-card em {

@@ -1,4 +1,5 @@
 import {useT} from '../../i18n';
+import {formatAmount} from '../../utils/format';
 import './AiPackageView.css';
 
 // The result canvas (v3 landing, 2e): once the planner has packages they ARE
@@ -10,6 +11,14 @@ export const AI_PICK_KEY = 'MEDIUM';
 export const TIER_KEYS = ['BASIC', 'MEDIUM', 'PREMIUM'];
 
 export const activityCount = (pkg) => pkg.days.reduce((n, day) => n + day.items.length, 0);
+
+// "from €195 pp", or null when the package carries no price. Whole euros: a
+// starting price with cents reads as a quote.
+export function priceFrom(t, pkg) {
+    const n = Number(pkg.pricePerPerson);
+    if (pkg.pricePerPerson == null || !Number.isFinite(n) || n <= 0) return null;
+    return t('result.priceFrom', {price: formatAmount(Math.round(n))});
+}
 
 // useT has no plurals: count keys are {one, other} objects.
 export const plural = (t, key, count) => t(`${key}.${count === 1 ? 'one' : 'other'}`, {count});
@@ -70,6 +79,7 @@ function AiPackageView({generation, destinationName, activeKey, onTierChange, on
                     >
                         <span className="aip-tier-name">{t(`tiers.${p.key}`)}</span>
                         <span className="aip-tier-tag">{t(`tierTags.${p.key}`)}</span>
+                        {priceFrom(t, p) && <span className="aip-tier-price">{priceFrom(t, p)}</span>}
                     </button>
                 ))}
             </div>
@@ -152,6 +162,7 @@ export function TrimCards({generation, activeKey, onTierChange}) {
                     <b>{t(`tiers.${p.key}`)}</b>
                     <span>{t(`tierTags.${p.key}`)}</span>
                     <em>{plural(t, 'result.activities', activityCount(p))}</em>
+                    {priceFrom(t, p) && <strong>{priceFrom(t, p)}</strong>}
                 </button>
             ))}
         </div>
