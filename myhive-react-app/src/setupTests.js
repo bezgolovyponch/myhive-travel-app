@@ -35,6 +35,7 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
-if (typeof Element.prototype.scrollTo !== 'function') {
+// (Guarded: server-render tests run in the node environment, with no Element.)
+if (typeof Element !== 'undefined' && typeof Element.prototype.scrollTo !== 'function') {
   Element.prototype.scrollTo = function scrollTo() {};
 }

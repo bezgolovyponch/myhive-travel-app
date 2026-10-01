@@ -124,7 +124,9 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         }
     }, [api, adoptSession]);
 
-    const send = useCallback(async (text) => {
+    // `preset` ({days, groupSize}) only counts when this message opens the
+    // session: what the homepage pickers chose, so the chat never asks again.
+    const send = useCallback(async (text, preset = {}) => {
         const content = text.trim();
         if (!content || sending) return;
         setError(null);
@@ -139,7 +141,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setSending(true);
         try {
             if (!tokenRef.current) {
-                const state = await api.createSession(destinationSlug, locale, {initialMessage: content});
+                const state = await api.createSession(destinationSlug, locale, {...preset, initialMessage: content});
                 adoptSession(state);
                 if (state.firstTurnError) {
                     setError({code: state.firstTurnError.code, retryText: content});
@@ -153,7 +155,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                 reset();
                 setError({code: 'SESSION_NOT_FOUND'});
             } else {
-                setError({code, retryText: RETRYABLE_CODES.has(code) || code === 'NETWORK' ? content : null});
+                setError({code, retryText: RETRYABLE_CODES.has(code) || code === 'NETWORK' ? content : null, retryPreset: preset});
             }
         } finally {
             setSending(false);
@@ -161,7 +163,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     }, [sending, api, destinationSlug, locale, adoptSession, applyTurn, reset]);
 
     const retry = useCallback(() => {
-        if (error?.retryText) send(error.retryText);
+        if (error?.retryText) send(error.retryText, error.retryPreset);
     }, [error, send]);
 
     // Poll the generation a turn started until it is READY or FAILED.

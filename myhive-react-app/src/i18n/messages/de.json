@@ -122,7 +122,7 @@
       "subtitle": "Deine Gruppe stimmt ab, wir erledigen den Rest.",
       "startVoteCta": "Gruppen-Voting starten",
       "exploreCta": "Aktivitäten durchstöbern",
-      "aiPlannerCta": "Mit der JGA-KI planen"
+      "aiPlannerCta": "JGA-KI"
     },
     "featured": {
       "heading": "70+ Aktivitäten. Für jede Gruppe das Richtige.",
@@ -194,6 +194,59 @@
       "cardName": "Steak & Strip",
       "cardMeta": "1,5 Std. · 45 € / Person",
       "likeStamp": "LIKE"
+    },
+    "planner": {
+      "eyebrow": "JGA-Planer für Prag",
+      "title": "Sei der Trauzeuge, nicht das Reisebüro.",
+      "subtitle": "Wähl eure Daten und bau das Wochenende Tag für Tag. Ein Planer vor Ort ruft dich innerhalb einer Stunde mit Route und Preis an. Keine Agenturgebühr.",
+      "steps": {
+        "pick": {
+          "time": "0:00",
+          "title": "Du wählst Daten und Personenzahl",
+          "sub": "Ohne Anmeldung, ohne Anzahlung"
+        },
+        "weekends": {
+          "time": "0:01",
+          "title": "Drei fertige Wochenenden",
+          "sub": "Basic, Medium, Premium — alles tauschbar"
+        },
+        "lads": {
+          "time": "0:05",
+          "title": "Die Jungs wählen eins",
+          "sub": "Ein Link in die WhatsApp-Gruppe"
+        },
+        "call": {
+          "time": "<1 Std.",
+          "title": "Ein Prag-Planer ruft dich an",
+          "sub": "Prüft jede Location, ihr kommt nur noch hin"
+        }
+      },
+      "datesLabel": "Reisedaten",
+      "datesHint": "· änderbar",
+      "datesPlaceholder": "Reisedaten wählen",
+      "peopleLabel": "Personen",
+      "peopleHint": "· inkl. Bräutigam",
+      "fewer": "Weniger Personen",
+      "more": "Mehr Personen",
+      "inputPlaceholder": "Wähl die Daten oder schreib es hier",
+      "sendAria": "Planen",
+      "chipsHead": "Nächster Schritt — antippen zum Übernehmen",
+      "chipsHeadEmpty": "Oder starte mit",
+      "nights": {
+        "zero": "einen Tagesausflug",
+        "one": "1 Nacht",
+        "other": "{count} Nächte"
+      },
+      "chips": {
+        "plan": "Plane {nights} für {people} Leute — Nightlife zuerst",
+        "big": "Etwas Großes am {day}: Panzer oder Schießen",
+        "chill": "Am {day} entspannt für den Bräutigam",
+        "compare": "Zeig mir Basic vs. Premium",
+        "anyWeekend": "{people} Leute, irgendein Wochenende im {month}",
+        "flexible": "2 Nächte, Daten noch flexibel",
+        "popular": "Was buchen die meisten Gruppen mit {people} Leuten?"
+      },
+      "defaultMessage": "Plane {nights} in Prag für {people} Leute, {range}."
     }
   },
   "destination": {

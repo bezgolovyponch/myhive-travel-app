@@ -1,5 +1,5 @@
 import {useT} from '../../i18n';
-import {formatAmount} from '../../utils/format';
+import {addDays, formatAmount, formatDayLabel, formatDayRange} from '../../utils/format';
 import './AiPackageView.css';
 
 // The result canvas (v3 landing, 2e): once the planner has packages they ARE
@@ -38,13 +38,14 @@ function addedNames(generation, packageKey) {
 }
 
 /**
+ * @param startDate  the trip's first day (a Date) when its dates match the plan, else null
  * @param removing   name of the activity whose removal is in flight, if any
  * @param onRemove   (pkg, item) => void — asks the planner to drop it (a chat edit)
  * @param onAskAi    () => void — opens the chat (the "free time" row)
  * @param onUndo     (packageKey) => void — back to the generation before the edit
  * @param busy       a chat turn is in flight: edits wait for it
  */
-function AiPackageView({generation, destinationName, activeKey, onTierChange, onRemove, removing, onAskAi, onUndo, busy}) {
+function AiPackageView({generation, destinationName, startDate, activeKey, onTierChange, onRemove, removing, onAskAi, onUndo, busy}) {
     const t = useT('aiPlanner');
     const packages = generation.packages;
     const pkg = packages.find((p) => p.key === activeKey) || packages[0];
@@ -62,7 +63,8 @@ function AiPackageView({generation, destinationName, activeKey, onTierChange, on
             <div className="aip-meta">
                 {[
                     brief.groupSize && t('result.people', {count: brief.groupSize}),
-                    brief.days && plural(t, 'result.days', brief.days),
+                    startDate ? formatDayRange(startDate, addDays(startDate, brief.days - 1))
+                        : brief.days && plural(t, 'result.days', brief.days),
                     plural(t, 'result.activities', activityCount(pkg)),
                 ].filter(Boolean).join(' · ')}
             </div>
@@ -89,7 +91,8 @@ function AiPackageView({generation, destinationName, activeKey, onTierChange, on
                 <section key={day.dayNumber} className="aip-day">
                     <div className="aip-day-head">
                         <h2 className="aip-day-title">
-                            {t('result.day', {n: day.dayNumber})}
+                            {startDate ? formatDayLabel(addDays(startDate, day.dayNumber - 1))
+                                : t('result.day', {n: day.dayNumber})}
                             {day.title && !pending && <span> · {day.title}</span>}
                         </h2>
                         <span className="aip-day-count">{plural(t, 'result.activities', day.items.length)}</span>

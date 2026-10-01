@@ -9,10 +9,33 @@ import {useTrip} from '../context/TripContext';
 import {useCatalog} from '../context/CatalogContext';
 import {DEFAULT_DESTINATION_SLUG} from '../services/config';
 import {pushEvent} from '../utils/analytics';
+import {addDays, formatShortRange, nightsBetween, parseISODate} from '../utils/format';
+import {PLANNER_DRAFT_KEY} from '../components/home/HeroPlanner';
 import {useLocale, useT} from '../i18n';
 import './AiPlannerPage.css';
 
 const STARTER_KEYS = ['one', 'two', 'three'];
+
+// The brief the homepage hero handed over, read once (see HeroPlanner).
+function takeDraft() {
+    try {
+        const raw = window.sessionStorage.getItem(PLANNER_DRAFT_KEY);
+        window.sessionStorage.removeItem(PLANNER_DRAFT_KEY);
+        const draft = raw ? JSON.parse(raw) : null;
+        return draft?.message ? draft : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// The trip's dates, when they cover exactly the days the plan has: then a
+// package day is a calendar day ("Fri 16 Oct"), otherwise it stays "Day 1".
+function planStart(trip, brief) {
+    const from = parseISODate(trip.tripStartDate);
+    const to = parseISODate(trip.tripEndDate);
+    if (!from || !to || !brief?.days) return null;
+    return nightsBetween(from, to) + 1 === brief.days ? from : null;
+}
 
 // Stag Do AI (v3 landing, 2d/2e). Result-first: until there are packages the
 // chat is the page; once there are, the packages are the page and the chat
@@ -34,6 +57,21 @@ function AiPlannerPage({pollIntervalMs}) {
     const [handoffError, setHandoffError] = useState(false);
     const {generation, sending} = planner;
     const hasResult = Boolean(generation?.packages?.length);
+
+    // A brief from the homepage starts a fresh chat with its days and head-count
+    // preset, even over an older chat in storage: the visitor just asked anew.
+    const draftHandled = useRef(false);
+    useEffect(() => {
+        if (planner.restoring || draftHandled.current) return;
+        draftHandled.current = true;
+        const draft = takeDraft();
+        if (!draft) return;
+        if (planner.token || planner.messages.length) planner.newChat();
+        const preset = {};
+        if (draft.days) preset.days = draft.days;
+        if (draft.groupSize) preset.groupSize = draft.groupSize;
+        planner.send(draft.message, preset);
+    }, [planner]);
 
     // First packages land: the chat steps aside so the result gets the screen.
     const hadResult = useRef(hasResult);
@@ -102,9 +140,11 @@ function AiPlannerPage({pollIntervalMs}) {
     );
 
     const brief = generation?.brief || {};
+    const startDate = planStart(trip, brief);
     const drawerMeta = [
         brief.groupSize && t('result.people', {count: brief.groupSize}),
-        brief.days && plural(t, 'result.days', brief.days),
+        startDate ? formatShortRange(startDate, addDays(startDate, brief.days - 1))
+            : brief.days && plural(t, 'result.days', brief.days),
     ].filter(Boolean).join(' · ');
 
     return (
@@ -127,6 +167,7 @@ function AiPlannerPage({pollIntervalMs}) {
                         <AiPackageView
                             generation={generation}
                             destinationName={destination?.name}
+                            startDate={startDate}
                             activeKey={activeKey}
                             onTierChange={setActiveKey}
                             onRemove={removeItem}

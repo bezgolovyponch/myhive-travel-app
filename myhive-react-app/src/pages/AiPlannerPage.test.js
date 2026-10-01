@@ -7,6 +7,7 @@ import aiPlannerApi from '../services/aiPlannerApi';
 import {TripContext} from '../context/TripContext';
 import {CatalogContext} from '../context/CatalogContext';
 import {SESSION_STORAGE_KEY} from '../hooks/useAiPlanner';
+import {PLANNER_DRAFT_KEY} from '../components/home/HeroPlanner';
 
 jest.mock('../services/aiPlannerApi');
 jest.mock('../utils/analytics', () => ({pushEvent: jest.fn()}));
@@ -52,11 +53,11 @@ const readyGeneration = (over = {}) => ({
 const tripDispatch = jest.fn();
 const catalogState = {destinations: [{id: 'd1', slug: 'prague', name: 'Prague'}], loading: false, error: null};
 
-function renderPage() {
+function renderPage(trip = {}) {
     return render(
         <HelmetProvider>
             <CatalogContext.Provider value={{state: catalogState, dispatch: jest.fn()}}>
-                <TripContext.Provider value={{state: {tripItems: []}, dispatch: tripDispatch}}>
+                <TripContext.Provider value={{state: {tripItems: [], ...trip}, dispatch: tripDispatch}}>
                     <MemoryRouter initialEntries={['/plan']}>
                         <Routes>
                             <Route path="/plan" element={<AiPlannerPage pollIntervalMs={5}/>}/>
@@ -71,6 +72,55 @@ function renderPage() {
 beforeEach(() => {
     jest.clearAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
+});
+
+test('a brief handed over from the homepage opens a fresh chat with days and head-count preset', async () => {
+    // An older chat is in storage: the homepage brief replaces it rather than landing in it.
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-old');
+    aiPlannerApi.getSession.mockResolvedValue(session({token: 'tok-old'}));
+    window.sessionStorage.setItem(PLANNER_DRAFT_KEY,
+        JSON.stringify({message: 'Karting and a beer spa', days: 3, groupSize: 10}));
+    aiPlannerApi.createSession.mockResolvedValue(session({
+        messages: [greeting, {role: 'USER', content: 'Karting and a beer spa', at},
+            {role: 'ASSISTANT', content: 'When do you land on Friday?', at}],
+    }));
+    renderPage();
+
+    expect(await screen.findByText('When do you land on Friday?')).toBeInTheDocument();
+    expect(aiPlannerApi.createSession).toHaveBeenCalledTimes(1);
+    expect(aiPlannerApi.createSession).toHaveBeenCalledWith('prague', 'en',
+        {initialMessage: 'Karting and a beer spa', days: 3, groupSize: 10});
+    expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
+    // Used once: a reload does not send it again.
+    expect(window.sessionStorage.getItem(PLANNER_DRAFT_KEY)).toBeNull();
+});
+
+test('with trip dates that match the plan, days are real dates', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [
+        {dayNumber: 1, title: 'Landing night', summary: null, items: p.days[0].items},
+        {dayNumber: 2, title: 'Big day', summary: null, items: []},
+        {dayNumber: 3, title: 'Recovery', summary: null, items: []},
+    ]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-18'});
+
+    expect(await screen.findByRole('heading', {name: /Fri 16 Oct/})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Sat 17 Oct/})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Sun 18 Oct/})).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: /Day 1/})).not.toBeInTheDocument();
+    expect(screen.getByText('10 people · Fri 16 – Sun 18 Oct · 2 activities')).toBeInTheDocument();
+});
+
+test('trip dates that do not match the plan length keep Day 1, Day 2', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: readyGeneration()}));
+    renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-22'});
+
+    expect(await screen.findByRole('heading', {name: /Day 1/})).toBeInTheDocument();
+    expect(screen.getByText('10 people · 3 days · 2 activities')).toBeInTheDocument();
 });
 
 test('first visit: the chat is the page, a starter opens a session with it as the first message', async () => {

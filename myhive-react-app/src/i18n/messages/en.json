@@ -132,7 +132,7 @@
       "subtitle": "Your group votes, we do the rest.",
       "startVoteCta": "Start Group Vote",
       "exploreCta": "Browse activities",
-      "aiPlannerCta": "Plan with Stag Do AI"
+      "aiPlannerCta": "Stag Do AI"
     },
     "featured": {
       "heading": "70+ Activities. Something for Every Group.",
@@ -204,6 +204,59 @@
       "cardName": "Steak & Strip",
       "cardMeta": "1.5h · €45 / person",
       "likeStamp": "LIKE"
+    },
+    "planner": {
+      "eyebrow": "Prague stag do planner",
+      "title": "Be the best man, not the travel agent.",
+      "subtitle": "Pick your dates and build the weekend day by day. A local planner calls you within the hour with the route and the price. No agency fee.",
+      "steps": {
+        "pick": {
+          "time": "0:00",
+          "title": "You pick dates and head-count",
+          "sub": "No sign-up, no deposit"
+        },
+        "weekends": {
+          "time": "0:01",
+          "title": "Three ready weekends",
+          "sub": "Basic, Medium, Premium — swap anything"
+        },
+        "lads": {
+          "time": "0:05",
+          "title": "The lads pick one",
+          "sub": "One link in the WhatsApp group"
+        },
+        "call": {
+          "time": "<1h",
+          "title": "A Prague planner calls you",
+          "sub": "Checks every venue, you just turn up"
+        }
+      },
+      "datesLabel": "Travel dates",
+      "datesHint": "· can be changed",
+      "datesPlaceholder": "Select travel dates",
+      "peopleLabel": "People",
+      "peopleHint": "· incl. groom",
+      "fewer": "Fewer people",
+      "more": "More people",
+      "inputPlaceholder": "Pick the dates or write it here",
+      "sendAria": "Plan it",
+      "chipsHead": "Next step — tap to fill",
+      "chipsHeadEmpty": "Or start with",
+      "nights": {
+        "zero": "a day trip",
+        "one": "1 night",
+        "other": "{count} nights"
+      },
+      "chips": {
+        "plan": "Plan {nights} for {people} of us — nightlife first",
+        "big": "Something big on {day}: tanks or shooting",
+        "chill": "Keep it chill on {day} for the groom",
+        "compare": "Show me Basic vs Premium",
+        "anyWeekend": "{people} of us, any weekend in {month}",
+        "flexible": "2 nights, dates still flexible",
+        "popular": "What do most groups of {people} book?"
+      },
+      "defaultMessage": "Plan {nights} in Prague for {people} of us, {range}."
     }
   },
   "destination": {
