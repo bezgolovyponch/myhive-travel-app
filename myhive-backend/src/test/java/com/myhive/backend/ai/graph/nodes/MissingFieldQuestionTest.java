@@ -19,7 +19,8 @@ class MissingFieldQuestionTest {
 
     @Test
     void asksForBothEndsOfTheTripTogether_whenNeitherIsKnown() {
-        String expectedQuestion = "When do you land on day 1 and leave on the last day - morning, afternoon or evening?";
+        String expectedQuestion = "When do you land on day 1 and leave on the last day - morning, afternoon or evening?"
+                + " No tickets yet is fine too.";
         Brief noEdges = new Brief(3, 8, List.of(), "beer", null, null, null, null, null);
 
         assertThat(MissingFieldQuestion.of(noEdges.missingFields(), "en")).contains(expectedQuestion);
@@ -27,10 +28,17 @@ class MissingFieldQuestionTest {
 
     @Test
     void asksForTheOneEndThatIsMissing() {
-        String expectedQuestion = "When do you leave on the last day - morning, afternoon or evening?";
+        String expectedQuestion = "When do you leave on the last day - morning, afternoon or evening? No tickets yet is fine too.";
         Brief noDeparture = new Brief(3, 8, List.of(), "beer", null, null, DayEdge.EVENING, null, null);
 
         assertThat(MissingFieldQuestion.of(noDeparture.missingFields(), "en")).contains(expectedQuestion);
+    }
+
+    @Test
+    void asksNothingAboutTravelTimes_onceTheyAreFlexible() {
+        Brief noTickets = new Brief(3, 8, List.of(), "beer", null, null, DayEdge.FLEXIBLE, DayEdge.FLEXIBLE, null);
+
+        assertThat(MissingFieldQuestion.of(noTickets.missingFields(), "en")).isEmpty();
     }
 
     @Test

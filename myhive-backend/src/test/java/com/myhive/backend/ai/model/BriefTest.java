@@ -39,4 +39,12 @@ class BriefTest {
         assertThat(withVibe.withNotesAsTaste()).isEqualTo(withVibe);
         assertThat(withoutNotes.withNotesAsTaste()).isEqualTo(withoutNotes);
     }
+
+    @Test
+    void flexibleTravelTimes_areAnAnswer_soTheBriefIsReady() {
+        Brief noTickets = new Brief(3, 8, List.of(), "beer", null, null, DayEdge.FLEXIBLE, DayEdge.FLEXIBLE, null);
+
+        assertThat(noTickets.missingFields()).isEmpty();
+        assertThat(noTickets.isReady()).isTrue();
+    }
 }

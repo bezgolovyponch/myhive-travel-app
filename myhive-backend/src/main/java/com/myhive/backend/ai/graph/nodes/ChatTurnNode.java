@@ -40,6 +40,11 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
     /** How many chips have to name a catalog activity for a question to count as one about its variants. */
     private static final int MIN_VARIANTS = 2;
     private static final String QUESTION_MARK = "?";
+    /** Chips for the travel-times question; the last one is what the chat files as {@code FLEXIBLE}. */
+    private static final List<String> EDGE_CHIPS_EN =
+            List.of("Arrive evening, leave morning", "Arrive afternoon, leave evening", "No tickets yet");
+    private static final List<String> EDGE_CHIPS_DE =
+            List.of("Abends an, morgens ab", "Nachmittags an, abends ab", "Noch keine Tickets");
 
     private final LlmGateway llm;
     /** Null where no catalog is wired (unit tests): the chat then offers no catalog-backed follow-ups. */
@@ -208,11 +213,22 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         return named >= MIN_VARIANTS;
     }
 
-    /** Tap-to-send answers to the taste question, from what the catalog can deliver; none for the others. */
+    /**
+     * Tap-to-send answers: for the taste question, from what the catalog can deliver; for the travel
+     * times, the usual weekend shapes plus "no tickets yet", which the chat files as FLEXIBLE; none for
+     * the others.
+     */
     private static List<String> chipsFor(Brief brief, PlannerState state) {
-        boolean asksForTaste = Brief.FIELD_PREFERENCES.equals(brief.missingFields().get(0));
-        return asksForTaste ? OpeningReplies.forCatalog(state.catalog(), state.locale()) : List.of();
+        String first = brief.missingFields().get(0);
+        if (Brief.FIELD_PREFERENCES.equals(first)) {
+            return OpeningReplies.forCatalog(state.catalog(), state.locale());
+        }
+        if (Brief.FIELD_ARRIVAL.equals(first) || Brief.FIELD_DEPARTURE.equals(first)) {
+            return "de".equalsIgnoreCase(state.locale()) ? EDGE_CHIPS_DE : EDGE_CHIPS_EN;
+        }
+        return List.of();
     }
+
 
     /** The reply first, then Java's own notes, stamped in that order. */
     private static List<Map<String, String>> messages(List<String> texts) {

@@ -418,6 +418,23 @@ class ChatTurnNodeTest {
         assertThat(update.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(List.of());
     }
 
+    /** The travel-times question comes with chips, one of them the way out for a group without tickets. */
+    @Test
+    void theTravelTimesQuestion_offersNoTicketsYetAsAChip() {
+        String expectedQuestion = "When do you land on day 1 and leave on the last day - morning, afternoon or evening?"
+                + " No tickets yet is fine too.";
+        List<String> expectedChips =
+                List.of("Arrive evening, leave morning", "Arrive afternoon, leave evening", "No tickets yet");
+        Brief noEdges = new Brief(3, 8, List.of("nightlife"), null, null, null, null, null, null);
+        llm.queueChat(turn("Building three options right now.", Brief.empty(), List.of()));
+
+        Map<String, Object> update = node.apply(new PlannerState(baseState(noEdges)));
+
+        assertThat(messagesOf(update)).singleElement()
+                .satisfies(message -> assertThat(message.get("content")).isEqualTo(expectedQuestion));
+        assertThat(update.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(expectedChips);
+    }
+
     /** Packages exist, so the brief has no gap: a reply that asks nothing is just a reply. */
     @Test
     void aReplyThatAsksNothing_isLeftAlone_whenTheBriefIsComplete() {

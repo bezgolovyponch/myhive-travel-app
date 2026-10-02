@@ -41,6 +41,16 @@ class LlmOutputParserTest {
     }
 
     @Test
+    void parseChatTurn_readsFlexibleTravelTimes() {
+        String raw = "{\"reply\":\"ok\",\"brief\":{\"arrival\":\"FLEXIBLE\",\"departure\":\"FLEXIBLE\"},\"missingFields\":[]}";
+
+        ChatTurnResult result = parser.parseChatTurn(raw);
+
+        assertThat(result.briefUpdate().arrival()).isEqualTo(DayEdge.FLEXIBLE);
+        assertThat(result.briefUpdate().departure()).isEqualTo(DayEdge.FLEXIBLE);
+    }
+
+    @Test
     void parseChatTurn_toleratesMarkdownFenceAroundJson() {
         String expectedReply = "hi";
         String fenced = "```json\n{\"reply\":\"" + expectedReply + "\",\"brief\":{},\"missingFields\":[]}\n```";

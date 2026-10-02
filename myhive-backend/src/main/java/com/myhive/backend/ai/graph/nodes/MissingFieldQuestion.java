@@ -31,15 +31,18 @@ final class MissingFieldQuestion {
                     ENGLISH, "What is the group into - beer, action, a big night out?",
                     GERMAN, "Worauf hat die Gruppe Lust - Bier, Action, eine lange Partynacht?"),
             BOTH_EDGES, Map.of(
-                    ENGLISH, "When do you land on day 1 and leave on the last day - morning, afternoon or evening?",
+                    ENGLISH, "When do you land on day 1 and leave on the last day - morning, afternoon or evening?"
+                            + " No tickets yet is fine too.",
                     GERMAN, "Wann kommt ihr am ersten Tag an und wann reist ihr am letzten ab - morgens,"
-                            + " nachmittags oder abends?"),
+                            + " nachmittags oder abends? Noch keine Tickets ist auch okay."),
             Brief.FIELD_ARRIVAL, Map.of(
-                    ENGLISH, "When do you land on day 1 - morning, afternoon or evening?",
-                    GERMAN, "Wann kommt ihr am ersten Tag an - morgens, nachmittags oder abends?"),
+                    ENGLISH, "When do you land on day 1 - morning, afternoon or evening? No tickets yet is fine too.",
+                    GERMAN, "Wann kommt ihr am ersten Tag an - morgens, nachmittags oder abends?"
+                            + " Noch keine Tickets ist auch okay."),
             Brief.FIELD_DEPARTURE, Map.of(
-                    ENGLISH, "When do you leave on the last day - morning, afternoon or evening?",
-                    GERMAN, "Wann reist ihr am letzten Tag ab - morgens, nachmittags oder abends?"));
+                    ENGLISH, "When do you leave on the last day - morning, afternoon or evening? No tickets yet is fine too.",
+                    GERMAN, "Wann reist ihr am letzten Tag ab - morgens, nachmittags oder abends?"
+                            + " Noch keine Tickets ist auch okay."));
 
     private MissingFieldQuestion() {
     }

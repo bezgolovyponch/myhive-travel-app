@@ -342,4 +342,15 @@ class PlanValidatorTest {
         assertThat(validator.validatePackage(p, brief, catalog))
                 .extracting(Violation::code).contains(ViolationCode.DAY_OVER_MINUTES);
     }
+
+    /** No tickets yet: both edges sit at midday, so neither end of the trip is left with nothing to do. */
+    @Test
+    void flexibleEdges_openTheAfternoonOfDayOneAndTheMorningAndAfternoonOfTheLastDay() {
+        Brief noTickets = new Brief(3, 8, List.of("nightlife"), null, null, null, DayEdge.FLEXIBLE, DayEdge.FLEXIBLE, null);
+
+        assertThat(PlanValidator.allowedSlots(1, noTickets))
+                .containsExactlyInAnyOrder(Slot.AFTERNOON, Slot.EVENING, Slot.NIGHT);
+        assertThat(PlanValidator.allowedSlots(3, noTickets))
+                .containsExactlyInAnyOrder(Slot.MORNING, Slot.AFTERNOON);
+    }
 }

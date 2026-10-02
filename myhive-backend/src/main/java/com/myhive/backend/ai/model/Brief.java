@@ -43,6 +43,7 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
      * departure are required, not defaulted: the edges decide how much of day 1 and the last day is
      * usable, and generating on the defaults first cost a second full generation the moment the
      * organizer mentioned when they land. Budget stays optional - many groups will not name one.
+     * A group without tickets answers {@link DayEdge#FLEXIBLE}, which closes the gap like any other edge.
      */
     @JsonIgnore
     public List<String> missingFields() {
