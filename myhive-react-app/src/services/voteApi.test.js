@@ -139,3 +139,29 @@ describe('castVotes', () => {
     await expect(voteApi.castVotes('t-1', { voterToken: 'v', votes: [] })).rejects.toThrow('Session is full');
   });
 });
+
+describe('creating a vote', () => {
+  afterEach(() => {
+    delete global.fetch;
+  });
+
+  it('sends the contact and the link token the browser picked', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ shareToken: 'tok-1' }) });
+
+    await voteApi.createCartSession({
+      destinationId: 'd-1', initiatorPhone: '+447700900123', shareToken: 'tok-1', numberOfTravelers: 10,
+      startDate: '2026-10-16', endDate: '2026-10-18', activityIds: ['a-1'],
+    });
+    await voteApi.createSession({
+      destinationId: 'd-1', initiatorEmail: 'max@example.com', shareToken: 'tok-2', numberOfTravelers: 10,
+      startDate: '2026-10-16', endDate: '2026-10-18', activityIds: ['a-1'], quizResponses: [], voterToken: 'v',
+    });
+
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual(expect.objectContaining({
+      initiatorPhone: '+447700900123', shareToken: 'tok-1',
+    }));
+    expect(JSON.parse(global.fetch.mock.calls[1][1].body)).toEqual(expect.objectContaining({
+      initiatorEmail: 'max@example.com', shareToken: 'tok-2',
+    }));
+  });
+});

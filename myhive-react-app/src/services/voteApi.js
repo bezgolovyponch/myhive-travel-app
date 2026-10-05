@@ -22,13 +22,15 @@ const voteApi = {
   },
 
   // Atomic session creation
-  async createSession({ destinationId, initiatorEmail, initiatorPhone, numberOfTravelers, startDate, endDate,
-                        budget, voterToken, quizResponses, activityIds }) {
+  // shareToken: the link token the browser picked, so the group's WhatsApp
+  // message can carry the link before this request returns.
+  async createSession({ destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers, startDate,
+                        endDate, budget, voterToken, quizResponses, activityIds }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        destinationId, initiatorEmail, initiatorPhone, numberOfTravelers, startDate, endDate,
+        destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers, startDate, endDate,
         budget, voterToken, quizResponses, activityIds,
         // Language of the organizer's emails (vote created / result) and their links.
         ...localeField(),
@@ -116,13 +118,14 @@ const voteApi = {
   },
 
   // Cart-seeded session creation (no quiz) — the ballot is the initiator's cart.
-  async createCartSession({ destinationId, initiatorEmail, initiatorPhone, numberOfTravelers,
+  async createCartSession({ destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers,
                             startDate, endDate, activityIds }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        destinationId, initiatorEmail, initiatorPhone, numberOfTravelers, startDate, endDate, activityIds,
+        destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers, startDate, endDate,
+        activityIds,
         ...localeField(),
       }),
     });
