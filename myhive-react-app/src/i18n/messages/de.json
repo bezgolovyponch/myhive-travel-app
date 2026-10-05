@@ -638,6 +638,32 @@
     },
     "success": {
       "defaultUserName": "Reisender"
+    },
+    "dashboard": {
+      "eyebrow": "{destination}-JGA · {dates}",
+      "eyebrowNoDates": "{destination}-JGA",
+      "organiser": "Organisator",
+      "title": "Euer Wochenende",
+      "voted": "{voted} von {total} haben abgestimmt",
+      "votedNoTotal": "{voted} haben abgestimmt",
+      "left": "{count} fehlen noch",
+      "everyone": "alle haben abgestimmt",
+      "closed": "Das Voting ist beendet",
+      "yes": "{count} Ja",
+      "no": "{count} Nein",
+      "noVotesYet": "Neu · noch keine Stimmen",
+      "restore": "Zurückholen",
+      "inviteTitle": "Einladungslink für die Gruppe",
+      "copyLink": "Link kopieren",
+      "copied": "Kopiert ✓",
+      "recsTitle": "Von der Gruppe empfohlen",
+      "recsSubtitle": "Aktivitäten, die deine Jungs dazunehmen wollen",
+      "recByOne": "Von {count} Kumpel empfohlen",
+      "recByOther": "Von {count} Kumpels empfohlen",
+      "add": "Hinzufügen",
+      "added": "Hinzugefügt",
+      "lockTitle": "Passt der Plan?",
+      "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten."
     }
   },
   "swipe": {

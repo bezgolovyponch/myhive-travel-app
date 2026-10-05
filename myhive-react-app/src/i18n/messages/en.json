@@ -648,6 +648,32 @@
     },
     "success": {
       "defaultUserName": "Traveler"
+    },
+    "dashboard": {
+      "eyebrow": "{destination} stag · {dates}",
+      "eyebrowNoDates": "{destination} stag",
+      "organiser": "Organiser",
+      "title": "Your weekend",
+      "voted": "{voted} of {total} voted",
+      "votedNoTotal": "{voted} voted",
+      "left": "{count} still to vote",
+      "everyone": "everyone voted",
+      "closed": "Voting has closed",
+      "yes": "{count} yes",
+      "no": "{count} no",
+      "noVotesYet": "New · not voted yet",
+      "restore": "Restore",
+      "inviteTitle": "Invite link for the group",
+      "copyLink": "Copy link",
+      "copied": "Copied ✓",
+      "recsTitle": "Recommended by the group",
+      "recsSubtitle": "Activities your friends want to add",
+      "recByOne": "Recommended by {count} friend",
+      "recByOther": "Recommended by {count} friends",
+      "add": "Add",
+      "added": "Added",
+      "lockTitle": "Happy with the plan?",
+      "lockText": "Lock it in now — no need to wait for the last votes."
     }
   },
   "swipe": {

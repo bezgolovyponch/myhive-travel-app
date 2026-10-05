@@ -1,0 +1,249 @@
+/* Organiser dashboard (v3 4b) inside the Trip Builder tab. Same colours as
+   the contact modal (StartGroupVoteModal.css, whose .sgv-scope tokens and
+   WhatsApp preview the invite panel reuses). */
+.vd-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-bottom: var(--gap);
+}
+
+.vd-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-sm);
+}
+
+.vd-eyebrow {
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8b82e6;
+}
+
+.vd-badge {
+    flex: none;
+    padding: 0.3125rem 0.625rem;
+    border-radius: var(--radius-full);
+    background: #262430;
+    font-size: 0.75rem;
+    color: #cfcaf8;
+}
+
+.vd-title {
+    margin: 0;
+    font-size: 1.625rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.vd-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-top: 0.375rem;
+}
+
+.vd-progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+}
+
+.vd-progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #2a2733;
+    overflow: hidden;
+}
+
+.vd-progress-bar span {
+    display: block;
+    height: 100%;
+    background: #3fae66;
+    transition: width 0.3s;
+}
+
+.vd-muted {
+    color: #9a96a6;
+    font-size: 0.75rem;
+}
+
+/* Yes/no on an itinerary line. */
+.vd-counts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.375rem;
+    max-width: 16rem;
+}
+
+.vd-pills {
+    display: flex;
+    gap: 0.375rem;
+}
+
+.vd-pill {
+    padding: 0.0625rem 0.4375rem;
+    border-radius: var(--radius-full);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.vd-pill--yes {
+    background: rgba(37, 211, 102, 0.15);
+    color: #5fdc8f;
+}
+
+.vd-pill--no {
+    background: rgba(224, 100, 108, 0.16);
+    color: #ff8f95;
+}
+
+.vd-split {
+    display: flex;
+    height: 3px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: #e0646c;
+}
+
+.vd-split span {
+    background: #25d366;
+}
+
+/* A dropped activity: still listed, struck through, with Restore. */
+.itinerary-item.is-dropped {
+    opacity: 0.5;
+}
+
+.itinerary-item.is-dropped .itinerary-item-title {
+    text-decoration: line-through;
+}
+
+.vd-restore-btn {
+    flex: none;
+    align-self: center;
+    height: 40px;
+    padding: 0 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--purple);
+    background: transparent;
+    color: #dcd8fb;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vd-section-title {
+    margin: 0 0 0.25rem;
+    font-size: 1.0625rem;
+    font-weight: 700;
+}
+
+/* Invite link for the group chat. */
+.vd-invite {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: var(--gap-lg) 0;
+}
+
+.vd-invite-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+}
+
+.vd-btn-outline {
+    padding: 0 1.25rem;
+    background: transparent;
+    border: 1px solid #3a3648;
+    color: var(--text);
+}
+
+/* Recommended by the group. */
+.vd-recs {
+    margin: var(--gap-lg) 0;
+}
+
+.vd-recs-sub {
+    margin: 0 0 0.625rem;
+}
+
+.vd-recs-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.vd-rec {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem;
+    border-radius: 14px;
+    background: #1f1c27;
+    border: 1px solid #2e2b3a;
+}
+
+.vd-rec-img {
+    width: 56px;
+    height: 56px;
+    flex: none;
+    border-radius: 10px;
+    object-fit: cover;
+    background: #262430;
+}
+
+.vd-rec-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.vd-rec-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.vd-rec-btn {
+    height: 40px;
+    padding: 0 1rem;
+    flex: none;
+    border: 0;
+    border-radius: 10px;
+    background: var(--purple);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vd-rec-btn.is-added {
+    background: #8a8693;
+    color: #efeef3;
+    cursor: default;
+}
+
+/* Above Complete booking. */
+.vd-lock-note {
+    margin: 0 0 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 12px;
+    background: #1f1c27;
+    border: 1px solid #2e2b3a;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #d6d2e2;
+    text-align: center;
+}
+
+.vd-lock-note b {
+    color: #fff;
+}

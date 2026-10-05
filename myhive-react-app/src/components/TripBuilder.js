@@ -13,11 +13,14 @@ import {clearQuizFlow, readQuizFlow} from '../utils/quizFlow';
 import {clearTripLead} from '../utils/tripLead';
 import {voteAppliedKey} from '../utils/voterToken';
 import {useTripLeadRestore} from '../hooks/useTripLeadRestore';
+import {useOrganizerVote} from '../hooks/useOrganizerVote';
+import {tripDates} from '../utils/groupVote';
 import {useEmailLeadCapture} from '../hooks/useEmailLeadCapture';
 import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
 import ActiveVoteModal from './vote/ActiveVoteModal';
+import {GroupRecommendations, VoteCounts, VoteDashboardHeader, VoteInvitePanel} from './vote/VoteDashboard';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
 import {useT} from '../i18n';
@@ -223,6 +226,28 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // below, and its winners then wear their ♥ counts the same way.
   const [voteAnnotation, setVoteAnnotation] = useState(null);
 
+  // The organiser dashboard (v3 4b): this browser holds the vote's manager
+  // token, so the itinerary shows the live yes/no counts, the invite link and
+  // the group's recommendations, and edits here change what friends vote on.
+  const organizerVote = useOrganizerVote({
+    shareToken: annotationToken,
+    managerParam: searchParams.get('manager'),
+    restored: state.restored,
+    cartEmpty: state.tripItems.length === 0,
+    dispatch,
+    stripManagerParam: () => setSearchParams(params => {
+      params.delete('manager');
+      return params;
+    }, {replace: true}),
+  });
+  const dashboard = organizerVote.hasDashboard;
+  const liveVote = dashboard && organizerVote.active;
+  const tallyById = {};
+  (organizerVote.tally?.rows || []).forEach(row => {
+    tallyById[row.activityId] = row;
+  });
+  const onBallot = (activityId) => tallyById[activityId] != null && !tallyById[activityId].excluded;
+
   // Waits for the saved cart: RESTORE_FROM_STORAGE replaces tripItems wholesale,
   // so a result applied before it would be wiped — and the package items this
   // effect preserves are not in state yet either.
@@ -355,12 +380,30 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.tripItems, state.tripId, state.tripTravelers, annotationToken, dispatch]);
 
+  // While the vote runs the plan is the ballot: dropping or adding an activity
+  // here changes what the friends who have not voted yet see.
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
+    if (liveVote && onBallot(activityId)) {
+      organizerVote.excludeActivity(activityId);
+    }
   };
 
   const handleAddActivity = (activity) => {
       dispatch({type: 'ADD_TO_TRIP', activity, silent: true});
+      if (liveVote && !onBallot(activity.id)) {
+        organizerVote.addActivity(activity.id);
+      }
+  };
+
+  const handleRestoreActivity = (row) => {
+    const known = browseActivities.find(a => a.id === row.activityId);
+    dispatch({
+      type: 'ADD_TO_TRIP',
+      activity: known || {id: row.activityId, name: row.name, price: row.price, destinationSlug},
+      silent: true,
+    });
+    organizerVote.restoreActivity(row.activityId);
   };
 
   const getPreviewLink = (activity) => {
@@ -535,6 +578,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         }));
       }
 
+      // Booked: the plan is locked in, so the vote stops here too.
+      if (liveVote) {
+        organizerVote.closeVote();
+      }
       dispatch({ type: 'CANCEL_TRIP_SETUP' });
       dispatch({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 1 });
       dispatch({ type: 'UPDATE_TRIP_DATES', startDate: '', endDate: '' });
@@ -612,7 +659,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // While the vote CTA is on screen it carries the primary emphasis and
   // Complete Booking steps back to the outlined look; once the vote ends (or
   // there is nothing to vote on) the booking button is primary again.
-  const voteCtaVisible = standalone.length > 0 && !voteEnded;
+  const voteCtaVisible = standalone.length > 0 && !voteEnded && !dashboard;
   // The sticky rail now carries only the vote CTA (and the vote-session budget
   // panel); with neither to show it disappears entirely so the layout doesn't
   // reserve an empty column / bottom bar.
@@ -622,6 +669,11 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     voteButtonTitle = t('vote.foreignDestinationTitle');
   }
   const totalPrice = computeTripTotal(state.tripItems, travelers);
+  const inCart = (activityId) => state.tripItems.some(item => item.id === activityId);
+  // Dropped by the organiser while the vote runs: listed under the plan, struck through, with Restore.
+  const droppedRows = dashboard
+      ? (organizerVote.tally?.rows || []).filter(row => row.excluded && !inCart(row.activityId))
+      : [];
 
   const filteredBrowseActivities = browseFilter === 'all'
       ? browseActivities
@@ -679,6 +731,13 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   return (
     <div className={layoutClasses}>
       <div className="trip-builder-main">
+        {dashboard ? (
+            <VoteDashboardHeader
+                destinationName={destinationName}
+                dates={tripDates(state.tripStartDate, state.tripEndDate)}
+                tally={organizerVote.tally}
+            />
+        ) : (
         <div className="itinerary-header">
           {/* While the group can still be sent to vote (the Start group vote CTA
               is up) this is the list they'll vote on; once voting ends — or
@@ -688,7 +747,17 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
               ? t('heading.selectedOne', {count: state.tripItems.length})
               : t('heading.selectedOther', {count: state.tripItems.length})}</p>
         </div>
+        )}
         {tripSummary}
+        {liveVote && (
+            <VoteInvitePanel
+                shareToken={annotationToken}
+                destinationName={destinationName}
+                members={travelers}
+                startDate={state.tripStartDate}
+                endDate={state.tripEndDate}
+            />
+        )}
         <div className="itinerary-list">
           {state.tripItems.length > 0 ? (
             <>
@@ -733,7 +802,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     <div className="itinerary-item-price">
                       {itemPriceLabel(item)}
                     </div>
-                    {voteAnnotation && voteAnnotation.counts[item.id] != null && (
+                    {dashboard && tallyById[item.id] && <VoteCounts row={tallyById[item.id]}/>}
+                    {!dashboard && voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
                           <span className="itinerary-item-votes-count">♥ {voteAnnotation.counts[item.id]}</span>
                           <span className="itinerary-item-votes-bar">
@@ -757,6 +827,19 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   </button>
                 </div>
               ))}
+              {droppedRows.map(row => (
+                <div key={row.activityId} className="itinerary-item is-dropped">
+                  <div className="itinerary-item-content">
+                    <div className="itinerary-item-title">{row.name}</div>
+                    <VoteCounts row={row}/>
+                  </div>
+                  {liveVote && (
+                      <button type="button" className="vd-restore-btn" onClick={() => handleRestoreActivity(row)}>
+                        {t('dashboard.restore')}
+                      </button>
+                  )}
+                </div>
+              ))}
             </>
           ) : (
             <div className="empty-state">
@@ -771,6 +854,11 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             only. */}
         {state.tripItems.length > 0 && (
             <div className="itinerary-footer">
+              {liveVote && (
+                  <p className="vd-lock-note">
+                    <b>{t('dashboard.lockTitle')}</b> {t('dashboard.lockText')}
+                  </p>
+              )}
               <button
                   className="btn btn--primary btn--full-width confirm-btn"
                   onClick={handleConfirmTrip}
@@ -814,6 +902,22 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             <p className="text-error">
               {t('vote.loadError')}
             </p>
+        )}
+        {dashboard && (
+            <GroupRecommendations
+                recommendations={organizerVote.tally?.recommendations}
+                isAdded={inCart}
+                onAdd={rec => handleAddActivity({
+                    id: rec.activityId,
+                    name: rec.name,
+                    price: rec.price,
+                    minPrice: rec.minPrice,
+                    slug: rec.slug,
+                    destinationSlug,
+                    imageUrl: rec.imageUrl,
+                    duration: rec.duration,
+                })}
+            />
         )}
         {quizMode && recommended.length > 0 && (
             <div className="trip-vote-suggestions">
