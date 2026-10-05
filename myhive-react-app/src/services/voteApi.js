@@ -22,13 +22,13 @@ const voteApi = {
   },
 
   // Atomic session creation
-  async createSession({ destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
+  async createSession({ destinationId, initiatorEmail, initiatorPhone, numberOfTravelers, startDate, endDate,
                         budget, voterToken, quizResponses, activityIds }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        destinationId, initiatorEmail, numberOfTravelers, startDate, endDate,
+        destinationId, initiatorEmail, initiatorPhone, numberOfTravelers, startDate, endDate,
         budget, voterToken, quizResponses, activityIds,
         // Language of the organizer's emails (vote created / result) and their links.
         ...localeField(),
@@ -82,13 +82,17 @@ const voteApi = {
     if (!response.ok) throw new Error('Failed to cast vote');
   },
 
-  async castVotes(shareToken, { voterToken, votes }) {
+  // One ballot per friend: the votes and the recommendations go together, once.
+  async castVotes(shareToken, { voterToken, votes, recommendedActivityIds = [] }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/votes/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ voterToken, votes }),
+      body: JSON.stringify({ voterToken, votes, recommendedActivityIds }),
     });
-    if (response.status === 409) throw new Error('Session is full');
+    if (response.status === 409) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.message === 'You have already voted' ? 'Already voted' : 'Session is full');
+    }
     if (!response.ok) throw new Error('Failed to cast votes');
   },
 
@@ -112,13 +116,13 @@ const voteApi = {
   },
 
   // Cart-seeded session creation (no quiz) — the ballot is the initiator's cart.
-  async createCartSession({ destinationId, initiatorEmail, numberOfTravelers,
+  async createCartSession({ destinationId, initiatorEmail, initiatorPhone, numberOfTravelers,
                             startDate, endDate, activityIds }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        destinationId, initiatorEmail, numberOfTravelers, startDate, endDate, activityIds,
+        destinationId, initiatorEmail, initiatorPhone, numberOfTravelers, startDate, endDate, activityIds,
         ...localeField(),
       }),
     });
@@ -129,21 +133,59 @@ const voteApi = {
     return response.json();
   },
 
-  // Live tally (CART sessions): server requires that voterToken has voted, or a managerToken.
-  async getTally(shareToken, { voterToken, managerToken } = {}) {
+  // Live tally (CART sessions): the organiser's dashboard only — it needs the managerToken.
+  async getTally(shareToken, { managerToken } = {}) {
     const params = new URLSearchParams();
-    if (voterToken) {
-      params.set('voterToken', voterToken);
-    }
     if (managerToken) {
       params.set('managerToken', managerToken);
     }
     const response = await fetch(
         withLocaleParam(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}/tally?${params}`));
-    if (response.status === 403) throw new Error('Vote first to see the live tally');
+    if (response.status === 403) throw new Error('Only the organiser sees the live tally');
     if (!response.ok) throw new Error('Failed to fetch tally');
     return response.json();
   },
+
+  // The organiser's other contact (email or WhatsApp number), added to the same vote.
+  async updateContact(shareToken, managerToken, { initiatorEmail, initiatorPhone }) {
+    const response = await fetch(managerUrl(shareToken, '/contact', managerToken), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initiatorEmail, initiatorPhone }),
+    });
+    if (!response.ok) throw new Error('Failed to save the contact');
+  },
+
+  // The organiser drops an activity from the running vote / brings it back / adds one.
+  async excludeActivity(shareToken, managerToken, activityId) {
+    const response = await fetch(
+        managerUrl(shareToken, `/activities/${encodeURIComponent(activityId)}/exclude`, managerToken),
+        { method: 'POST' });
+    if (!response.ok) throw new Error('Failed to drop the activity');
+  },
+
+  async restoreActivity(shareToken, managerToken, activityId) {
+    const response = await fetch(
+        managerUrl(shareToken, `/activities/${encodeURIComponent(activityId)}/restore`, managerToken),
+        { method: 'POST' });
+    if (!response.ok) throw new Error('Failed to restore the activity');
+  },
+
+  async addActivity(shareToken, managerToken, activityId) {
+    const response = await fetch(managerUrl(shareToken, '/activities', managerToken), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activityId }),
+    });
+    if (!response.ok) throw new Error('Failed to add the activity');
+  },
 };
+
+// managerToken arrives via a shared URL's query param — encode it so it cannot
+// inject extra query parameters into the request.
+function managerUrl(shareToken, path, managerToken) {
+  return `${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}${path}`
+      + `?managerToken=${encodeURIComponent(managerToken)}`;
+}
 
 export default voteApi;

@@ -399,7 +399,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     // conversion. cta_label/block mirror the taxonomy HomePage/HowItWorksSection
     // already use for cta_click.
     pushEvent('cta_click', {
-      cta_label: 'Let your mates vote',
+      cta_label: 'Ask the group',
       block: 'trip_builder',
     });
     if (checkingVote) {
@@ -1005,6 +1005,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           onClose={() => setShowVoteModal(false)}
           destinationId={destinationId}
           destinationName={destinationName}
+          destinationSlug={destinationSlug}
           activityIds={standalone.map(item => item.id)}
           numberOfTravelers={travelers}
           startDate={state.tripStartDate}

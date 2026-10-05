@@ -14,6 +14,7 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.ConflictException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
@@ -205,6 +206,20 @@ class VoteSessionGroupVoteTest {
 
         assertThatThrownBy(() -> voteSessionService.updateContact(session.getShareToken(), UUID.randomUUID(), contact))
                 .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void createCartSession_usesTheLinkTokenTheBrowserPicked_andRefusesAReusedOne() {
+        UUID shareToken = UUID.randomUUID();
+        VoteSessionCartCreateRequest request = cartRequest(shooting);
+        request.setShareToken(shareToken);
+
+        VoteSessionResponse session = voteSessionService.createCartSession(request);
+
+        assertThat(session.getShareToken()).isEqualTo(shareToken);
+        VoteSessionCartCreateRequest again = cartRequest(shooting);
+        again.setShareToken(shareToken);
+        assertThatThrownBy(() -> voteSessionService.createCartSession(again)).isInstanceOf(ConflictException.class);
     }
 
     @Test

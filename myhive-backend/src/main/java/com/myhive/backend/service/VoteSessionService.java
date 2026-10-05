@@ -27,6 +27,7 @@ import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.entity.VoteSessionQuizResponse;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.ConflictException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.exception.ResultNotReadyException;
 import com.myhive.backend.exception.SessionFullException;
@@ -118,7 +119,8 @@ public class VoteSessionService {
         Map<UUID, Activity> activitiesById =
                 loadAndValidateDestinationActivities(destination, request.getActivityIds());
 
-        VoteSession session = newSession(destination, request.getInitiatorEmail(), null, request.getNumberOfTravelers(),
+        VoteSession session = newSession(request.getShareToken(), destination, request.getInitiatorEmail(),
+                parsePhone(request.getInitiatorPhone()), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(), request.getLocale());
 
         persistBallot(session, request.getActivityIds(), activitiesById);
@@ -159,7 +161,8 @@ public class VoteSessionService {
         List<UUID> activityIds = new ArrayList<>(new LinkedHashSet<>(request.getActivityIds()));
         Map<UUID, Activity> activitiesById = loadAndValidateDestinationActivities(destination, activityIds);
 
-        VoteSession session = newSession(destination, request.getInitiatorEmail(), phone, request.getNumberOfTravelers(),
+        VoteSession session = newSession(request.getShareToken(), destination, request.getInitiatorEmail(), phone,
+                request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.CART, null, request.getLocale());
 
         persistBallot(session, activityIds, activitiesById);
@@ -169,11 +172,14 @@ public class VoteSessionService {
         return toResponse(session, 0, session.getManagerToken());
     }
 
-    private VoteSession newSession(Destination destination, String initiatorEmail, String initiatorPhone,
-                                   Integer numberOfTravelers, LocalDate startDate, LocalDate endDate,
-                                   VoteMode voteMode, BigDecimal budget, String locale) {
+    private VoteSession newSession(UUID requestedShareToken, Destination destination, String initiatorEmail,
+                                   String initiatorPhone, Integer numberOfTravelers, LocalDate startDate,
+                                   LocalDate endDate, VoteMode voteMode, BigDecimal budget, String locale) {
+        if (requestedShareToken != null && voteSessionRepository.findByShareToken(requestedShareToken).isPresent()) {
+            throw new ConflictException("This vote link is already in use");
+        }
         VoteSession session = new VoteSession();
-        session.setShareToken(UUID.randomUUID());
+        session.setShareToken(requestedShareToken != null ? requestedShareToken : UUID.randomUUID());
         session.setManagerToken(UUID.randomUUID());
         session.setDestination(destination);
         String email = normalizeEmail(initiatorEmail);

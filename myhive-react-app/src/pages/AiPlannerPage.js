@@ -97,13 +97,13 @@ function AiPlannerPage({pollIntervalMs}) {
         planner.send(t('result.removeMessage', {name: item.name, tier: t(`tiers.${pkg.key}`)}));
     };
 
-    // The picked trim replaces the cart (so the Trip Builder shows the same
-    // plan later), then the organizer leaves their contact in the vote modal —
-    // which creates the vote session and opens the dashboard.
-    const sendToPlanner = async () => {
+    // "Ask the group": the picked trim replaces the cart (so the Trip Builder
+    // dashboard shows the same plan), then the organizer leaves their contact
+    // in the vote modal — which creates the vote and opens the dashboard.
+    const askTheGroup = async () => {
         setHandingOff(true);
         setHandoffError(false);
-        pushEvent('cta_click', {cta_label: 'Send to a Prague planner', block: 'ai_planner'});
+        pushEvent('cta_click', {cta_label: 'Ask the group', block: 'ai_planner'});
         try {
             const picked = await planner.select(generation.id, activeKey);
             dispatch({type: 'SET_TRIP_ITEMS', tripItems: picked.tripItems.map((a) => ({...a, id: a.activityId}))});
@@ -139,15 +139,15 @@ function AiPlannerPage({pollIntervalMs}) {
         </button>
     );
 
-    // "Send to a Prague planner", under the collapsed chat bar and inside the
-    // open chat (v3 2d) — the hand-off must never need the chat closed first.
+    // "Ask the group", under the collapsed chat bar and inside the open chat
+    // (v3 2d) — the hand-off must never need the chat closed first.
     const sendBlock = hasResult && (
         <>
             {handoffError && <div className="ai-error" role="alert">{t('errors.handoff')}</div>}
             <button
                 type="button"
                 className="aip-cta"
-                onClick={sendToPlanner}
+                onClick={askTheGroup}
                 disabled={!destination || handingOff || sending || planner.building || generation.textsPending}
             >
                 {t('result.sendToPlanner')}
@@ -244,6 +244,7 @@ function AiPlannerPage({pollIntervalMs}) {
                 onClose={() => setHandoff(null)}
                 destinationId={destination?.id}
                 destinationName={destination?.name}
+                destinationSlug={destination?.slug}
                 activityIds={handoff?.activityIds || []}
                 numberOfTravelers={handoff?.groupSize}
                 startDate={trip.tripStartDate}

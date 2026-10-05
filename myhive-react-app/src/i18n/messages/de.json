@@ -512,37 +512,51 @@
   },
   "voteComponents": {
     "start": {
-      "title": "Voting für {destination} starten",
-      "titleGeneric": "Voting starten",
-      "summary": {
-        "activitiesOne": "{count} Aktivität",
-        "activitiesOther": "{count} Aktivitäten",
-        "peopleOne": "{count} Person",
-        "peopleOther": "{count} Personen",
-        "closes": "endet in 24 h"
+      "headline": "Deine Gruppe stimmt ab. Du bekommst das Ergebnis.",
+      "timeline": {
+        "todayLabel": "Heute",
+        "today": "Die Gruppe bekommt den Plan",
+        "halfLabel": "In 12 Stunden",
+        "half": "Wir halten alle auf dem Laufenden",
+        "endLabel": "In 24 Stunden",
+        "end": "Der Plan steht, von allen abgestimmt"
       },
-      "benefits": {
-        "seeWhoVoted": "Sehen, wer abgestimmt hat",
-        "followLive": "Voting live verfolgen",
-        "editActivities": "Gewählte Aktivitäten bearbeiten"
-      },
-      "tripDates": "Reisedaten",
-      "startDate": "Startdatum",
-      "endDate": "Enddatum",
-      "create": "Voting erstellen",
-      "creating": "Wird erstellt…",
-      "noSpam": "Kein Konto nötig. Kein Spam.",
-      "email": {
-        "label": "Ergebnisse senden an",
-        "placeholder": "name@email.com",
-        "errors": {
-          "invalid": "Bitte prüf die E-Mail-Adresse."
+      "card": {
+        "label": "Die Wahl der Gruppe",
+        "voted": "{voted} von {total} haben abgestimmt",
+        "yes": "{count} Ja",
+        "no": "{count} Nein",
+        "recommendations": "Empfehlungen der Gruppe",
+        "activities": {
+          "first": "AK-47 schießen",
+          "second": "Steak und Titten",
+          "third": "Panzer fahren"
         }
       },
+      "chat": {
+        "title": "{destination}-JGA 🍻",
+        "members": "{count} Mitglieder",
+        "linkTitle": "Stimm über den {destination}-JGA-Plan ab",
+        "linkHost": "trivlu.com"
+      },
+      "phone": {
+        "countryLabel": "Ländervorwahl",
+        "placeholder": "Deine WhatsApp-Nummer"
+      },
+      "sendWhatsApp": "An WhatsApp-Gruppe senden",
+      "sent": "Gesendet ✓",
+      "or": "oder",
+      "email": {
+        "placeholder": "Deine E-Mail"
+      },
+      "startPlanning": "Gemeinsam planen",
+      "creating": "Einen Moment…",
+      "footer": "Wir schreiben dir nur zu diesem Trip.",
+      "tripDates": "Reisedaten",
       "errors": {
         "datesRequired": "Reisedaten sind erforderlich",
         "endBeforeStart": "Das Enddatum muss am oder nach dem Startdatum liegen",
-        "createFailed": "Voting konnte nicht erstellt werden. Bitte versuch es erneut."
+        "createFailed": "Das Voting konnte nicht starten. Bitte versuch es erneut."
       }
     },
     "active": {
@@ -554,6 +568,10 @@
       "title": "Voting-Ergebnisse",
       "votedOne": "{count} Kumpel hat abgestimmt",
       "votedOther": "{count} Kumpels haben abgestimmt"
+    },
+    "groupMessage": {
+      "text": "Jungs! {destination}-JGA, {dates}. Stimmt mit Ja oder Nein über den Plan ab. Dauert 1 Minute 👇",
+      "textNoDates": "Jungs! {destination}-JGA. Stimmt mit Ja oder Nein über den Plan ab. Dauert 1 Minute 👇"
     }
   },
   "tripBuilder": {
@@ -587,7 +605,7 @@
       "submitFailed": "Buchung konnte nicht gesendet werden. Bitte versuch es erneut."
     },
     "vote": {
-      "startCta": "Gruppen-Voting starten",
+      "startCta": "Frag die Gruppe",
       "foreignDestinationTitle": "Gruppen-Voting funktioniert nur für ein Reiseziel gleichzeitig — entferne zuerst die Aktivitäten anderer Reiseziele.",
       "loadError": "Die Voting-Ergebnisse deiner Gruppe konnten nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen."
     },
@@ -1161,7 +1179,7 @@
         "REPLACE": "{name} gegen {replacement} getauscht"
       },
       "priceFrom": "ab {price}",
-      "sendToPlanner": "An einen Prag-Planer senden"
+      "sendToPlanner": "Frag die Gruppe"
     },
     "dock": {
       "title": "JGA-KI",

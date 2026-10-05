@@ -522,37 +522,51 @@
   },
   "voteComponents": {
     "start": {
-      "title": "Start the vote for {destination}",
-      "titleGeneric": "Start the vote",
-      "summary": {
-        "activitiesOne": "{count} activity",
-        "activitiesOther": "{count} activities",
-        "peopleOne": "{count} person",
-        "peopleOther": "{count} people",
-        "closes": "closes in 24 h"
+      "headline": "Your group votes. You get the result.",
+      "timeline": {
+        "todayLabel": "Today",
+        "today": "The group gets the plan",
+        "halfLabel": "In 12 hours",
+        "half": "We keep everyone up to date",
+        "endLabel": "In 24 hours",
+        "end": "The plan is ready, agreed by all"
       },
-      "benefits": {
-        "seeWhoVoted": "See who has voted",
-        "followLive": "Follow the poll live",
-        "editActivities": "Edit chosen activities"
-      },
-      "tripDates": "Trip dates",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "create": "Create vote",
-      "creating": "Creating…",
-      "noSpam": "No account needed. No spam.",
-      "email": {
-        "label": "Send the results to",
-        "placeholder": "name@email.com",
-        "errors": {
-          "invalid": "Please check the email address."
+      "card": {
+        "label": "The group's choice",
+        "voted": "{voted} of {total} voted",
+        "yes": "{count} yes",
+        "no": "{count} no",
+        "recommendations": "Group's recommendations",
+        "activities": {
+          "first": "AK-47 shooting",
+          "second": "Steak and tits",
+          "third": "Tank driving"
         }
       },
+      "chat": {
+        "title": "{destination} stag 🍻",
+        "members": "{count} members",
+        "linkTitle": "Vote on the {destination} stag plan",
+        "linkHost": "trivlu.com"
+      },
+      "phone": {
+        "countryLabel": "Country code",
+        "placeholder": "Your WhatsApp number"
+      },
+      "sendWhatsApp": "Send to WhatsApp group",
+      "sent": "Sent ✓",
+      "or": "or",
+      "email": {
+        "placeholder": "Your email"
+      },
+      "startPlanning": "Start planning together",
+      "creating": "One moment…",
+      "footer": "We only write to you about this trip.",
+      "tripDates": "Trip dates",
       "errors": {
         "datesRequired": "Trip dates are required",
         "endBeforeStart": "End date must be on or after the start date",
-        "createFailed": "Failed to create the vote. Please try again."
+        "createFailed": "We couldn't start the vote. Please try again."
       }
     },
     "active": {
@@ -564,6 +578,10 @@
       "title": "Vote results",
       "votedOne": "{count} mate has voted",
       "votedOther": "{count} mates have voted"
+    },
+    "groupMessage": {
+      "text": "Lads! {destination} stag, {dates}. Vote yes or no on the plan. Takes 1 minute 👇",
+      "textNoDates": "Lads! {destination} stag. Vote yes or no on the plan. Takes 1 minute 👇"
     }
   },
   "tripBuilder": {
@@ -597,7 +615,7 @@
       "submitFailed": "Failed to submit booking. Please try again."
     },
     "vote": {
-      "startCta": "Start group vote",
+      "startCta": "Ask the group",
       "foreignDestinationTitle": "Group voting works for one destination at a time — remove activities from other destinations first.",
       "loadError": "Couldn't load your group's vote results. Refresh the page to try again."
     },
@@ -1171,7 +1189,7 @@
         "REPLACE": "Swapped {name} for {replacement}"
       },
       "priceFrom": "from {price}",
-      "sendToPlanner": "Send to a Prague planner"
+      "sendToPlanner": "Ask the group"
     },
     "dock": {
       "title": "Stag Do AI",

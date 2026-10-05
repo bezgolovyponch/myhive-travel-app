@@ -244,7 +244,7 @@ test('once packages land they fill the page and the chat retracts into the dock'
     expect(within(drawer).getByText('Building your three options…')).toBeInTheDocument();
     expect(within(drawer).getByRole('button', {name: /Medium.*from €1,950/})).toBeInTheDocument();
     // The hand-off is reachable without closing the chat (v3 2d).
-    expect(within(drawer).getByRole('button', {name: 'Send to a Prague planner'})).toBeInTheDocument();
+    expect(within(drawer).getByRole('button', {name: 'Ask the group'})).toBeInTheDocument();
     // The trims are cards under the reply too; tapping one switches the package behind.
     await userEvent.click(within(drawer).getByRole('button', {name: /Basic.*Essentials/}));
     expect(screen.getByRole('heading', {name: 'Prague · Basic'})).toBeInTheDocument();
@@ -315,7 +315,7 @@ test('× asks the planner to drop the activity, and Undo goes back to the genera
     expect(await screen.findByText('Karting')).toBeInTheDocument();
 });
 
-test('"Send to a Prague planner" picks the trim, fills the cart and opens the contact step', async () => {
+test('"Ask the group" picks the trim, fills the cart and opens the contact step', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
     aiPlannerApi.selectPackage.mockResolvedValue({
@@ -324,7 +324,7 @@ test('"Send to a Prague planner" picks the trim, fills the cart and opens the co
     });
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Send to a Prague planner'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Ask the group'}));
 
     expect(aiPlannerApi.selectPackage).toHaveBeenCalledWith('gen-1', 'MEDIUM');
     expect(tripDispatch).toHaveBeenCalledWith({
@@ -333,6 +333,6 @@ test('"Send to a Prague planner" picks the trim, fills the cart and opens the co
     });
     expect(tripDispatch).toHaveBeenCalledWith({type: 'UPDATE_TRIP_TRAVELERS', travelers: 10});
     // The existing vote modal is the contact step: it creates the session and opens the dashboard.
-    expect(await screen.findByText('Start the vote for Prague')).toBeInTheDocument();
-    expect(screen.getByText('Send the results to')).toBeInTheDocument();
+    expect(await screen.findByText('Your group votes. You get the result.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Your WhatsApp number')).toBeInTheDocument();
 });

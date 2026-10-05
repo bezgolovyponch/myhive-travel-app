@@ -24,15 +24,20 @@ function isMobile(nav) {
 //             fall back to wa.me in the same tab.
 //   desktop → open wa.me in a new tab (there's no app scheme; keep our page).
 //
+// Opens Trivlu's chat by default; pass webUrl/appUrl to open WhatsApp with
+// another message (the group vote's "Send to WhatsApp group").
+//
 // Deps are injected so the timer/visibility logic is unit-testable.
 export function openWhatsApp({
+    webUrl = WHATSAPP_URL,
+    appUrl = WHATSAPP_APP_URL,
     nav = typeof navigator !== 'undefined' ? navigator : {userAgent: ''},
     doc = typeof document !== 'undefined' ? document : undefined,
     openWindow = typeof window !== 'undefined' ? window.open.bind(window) : () => {},
     setHref = (url) => { window.location.href = url; },
 } = {}) {
     if (!isMobile(nav)) {
-        openWindow(WHATSAPP_URL, '_blank', 'noopener,noreferrer');
+        openWindow(webUrl, '_blank', 'noopener,noreferrer');
         return;
     }
 
@@ -47,13 +52,13 @@ export function openWhatsApp({
     };
     doc?.addEventListener('visibilitychange', onHidden);
 
-    setHref(WHATSAPP_APP_URL);
+    setHref(appUrl);
 
     setTimeout(() => {
         doc?.removeEventListener('visibilitychange', onHidden);
         // Still here and never backgrounded → the app didn't open. Fall back.
         if (!bounced && (!doc || doc.visibilityState === 'visible')) {
-            setHref(WHATSAPP_URL);
+            setHref(webUrl);
         }
     }, APP_HANDOFF_MS);
 }
