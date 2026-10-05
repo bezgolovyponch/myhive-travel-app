@@ -54,9 +54,24 @@
     gap: 0.5rem;
 }
 
+/* Every block keeps its size: on a short screen the body scrolls instead of
+   squeezing the 54px fields and buttons. */
+.start-vote-modal .app-modal-body > * {
+    flex-shrink: 0;
+}
+
+/* A phone-sized sheet on a wide screen too. */
 @media (min-width: 769px) {
     .app-modal-content.start-vote-modal {
-        max-width: 420px;
+        max-width: 375px;
+    }
+}
+
+/* On a phone the sheet keeps a small gap to the screen edges, as in the design. */
+@media (max-width: 768px) {
+    .app-modal-content.start-vote-modal {
+        width: calc(100% - 20px);
+        margin: 0 10px;
     }
 }
 
