@@ -28,7 +28,7 @@
         <table>
             <thead>
             <tr>
-                <th>Email</th>
+                <th>Email / WhatsApp</th>
                 <th>Name</th>
                 <th>Source</th>
                 <th>First seen</th>
@@ -38,7 +38,8 @@
             <tbody>
             <tr th:each="c : ${contacts}">
                 <td>
-                    <a th:href="'mailto:' + ${c.email}" th:text="${c.email}">anna@example.com</a>
+                    <div th:if="${c.email != null}"><a th:href="'mailto:' + ${c.email}" th:text="${c.email}">anna@example.com</a></div>
+                    <div th:if="${c.phone != null}"><a th:href="'https://wa.me/' + ${#strings.substring(c.phone, 1)}" th:text="${c.phone}">+447700900123</a></div>
                     <span class="badge" th:if="${c.unsubscribed}">Unsubscribed</span>
                 </td>
                 <td><span th:text="${c.name}" th:classappend="${c.name == ''} ? 'muted'">Anna Example</span></td>

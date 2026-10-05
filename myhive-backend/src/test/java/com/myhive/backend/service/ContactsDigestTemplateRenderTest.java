@@ -18,9 +18,9 @@ class ContactsDigestTemplateRenderTest {
         context.setVariable("digestDate", "2026-09-13");
         context.setVariable("adminUrl", expectedAdminUrl);
         context.setVariable("contacts", List.of(
-                new EmailService.ContactDigestRow("anna@example.com", "Anna Example", "VOTE → BOOKING",
+                new EmailService.ContactDigestRow("anna@example.com", null, "Anna Example", "VOTE → BOOKING",
                         "2026-09-12 08:30 UTC", "DE", false),
-                new EmailService.ContactDigestRow("bob@example.com", "", "CONTACT_FORM",
+                new EmailService.ContactDigestRow("bob@example.com", null, "", "CONTACT_FORM",
                         "2026-09-12 19:05 UTC", "EN", true)));
 
         String html = EmailTemplateTestSupport.engine().process("contacts-digest", context);

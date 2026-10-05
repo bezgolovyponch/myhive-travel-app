@@ -7,6 +7,7 @@ import com.myhive.backend.model.ContactSource;
 import com.myhive.backend.repository.ContactRepository;
 import com.myhive.backend.repository.EmailSuppressionRepository;
 import com.myhive.backend.util.EmailMasker;
+import com.myhive.backend.util.PhoneNumbers;
 import com.myhive.backend.util.Translations;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,6 +24,7 @@ import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,7 +32,8 @@ import java.util.stream.Collectors;
 /**
  * The sales/ops address book. {@link #touch} is called from every place a visitor types an email
  * (Trip Builder lead, vote creation, booking, contact form, Stripe payment) and upserts one
- * {@link Contact} per normalized address.
+ * {@link Contact} per normalized address; {@link #touchPhone} does the same for the WhatsApp number
+ * the vote modal takes.
  */
 @Service
 @Slf4j
@@ -62,7 +65,7 @@ public class ContactService {
             return;
         }
         try {
-            requiresNew.executeWithoutResult(status -> upsert(email, source, name, locale));
+            requiresNew.executeWithoutResult(status -> upsert(email, null, source, name, locale));
         } catch (DataIntegrityViolationException e) {
             // The other concurrent touch() won the insert race; its write already recorded this
             // address. Never log e.getMessage()/e here — both H2 and Postgres embed the raw email
@@ -77,13 +80,35 @@ public class ContactService {
         }
     }
 
+    /**
+     * Records that {@code rawPhone} (E.164, see {@link PhoneNumbers#normalize}) was entered at
+     * {@code source}. Same contract as {@link #touch}: own transaction, never throws, invalid numbers
+     * are ignored, and only the masked number reaches the logs.
+     */
+    public void touchPhone(String rawPhone, ContactSource source, String locale) {
+        String phone = PhoneNumbers.normalize(rawPhone);
+        if (phone == null) {
+            return;
+        }
+        try {
+            requiresNew.executeWithoutResult(status -> upsert(null, phone, source, null, locale));
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Contact {} from {} hit an integrity violation (most likely a concurrent insert "
+                            + "of the same number); the row was not written",
+                    PhoneNumbers.mask(phone), source);
+        } catch (Exception e) {
+            log.error("Failed to record contact {} from {}: {}",
+                    PhoneNumbers.mask(phone), source, e.getMessage(), e);
+        }
+    }
+
     @Transactional(readOnly = true)
     public Page<ContactDTO> search(String query, Pageable pageable) {
         String term = query == null ? "" : query.trim();
         Page<Contact> page = contactRepository
-                .findByEmailContainingIgnoreCaseOrNameContainingIgnoreCase(term, term, pageable);
+                .findByEmailContainingIgnoreCaseOrNameContainingIgnoreCaseOrPhoneContaining(term, term, term, pageable);
         Set<String> suppressed = suppressedEmails(page.getContent());
-        return page.map(contact -> toDto(contact, suppressed.contains(contact.getEmail())));
+        return page.map(contact -> toDto(contact, isSuppressed(contact, suppressed)));
     }
 
     /**
@@ -105,7 +130,7 @@ public class ContactService {
     private List<ContactDTO> toDtosWithSuppression(List<Contact> contacts) {
         Set<String> suppressed = allSuppressedEmails();
         return contacts.stream()
-                .map(contact -> toDto(contact, suppressed.contains(contact.getEmail())))
+                .map(contact -> toDto(contact, isSuppressed(contact, suppressed)))
                 .toList();
     }
 
@@ -118,10 +143,13 @@ public class ContactService {
         contactRepository.markDigested(ids, sentAt);
     }
 
-    private void upsert(String email, ContactSource source, String name, String locale) {
+    /** Exactly one of {@code email} / {@code phone} is non-null: each capture point records one channel. */
+    private void upsert(String email, String phone, ContactSource source, String name, String locale) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Contact contact = contactRepository.findByEmail(email)
-                .orElseGet(() -> newContact(email, source, now));
+        Optional<Contact> existing = email != null
+                ? contactRepository.findByEmail(email)
+                : contactRepository.findByPhone(phone);
+        Contact contact = existing.orElseGet(() -> newContact(email, phone, source, now));
         contact.setLastSource(source);
         contact.setLastSeenAt(now);
         contact.setTouchCount(contact.getTouchCount() + 1);
@@ -135,17 +163,23 @@ public class ContactService {
         contactRepository.save(contact);
     }
 
-    private static Contact newContact(String email, ContactSource source, LocalDateTime now) {
+    private static Contact newContact(String email, String phone, ContactSource source, LocalDateTime now) {
         Contact contact = new Contact();
         contact.setEmail(email);
+        contact.setPhone(phone);
         contact.setFirstSource(source);
         contact.setFirstSeenAt(now);
         contact.setTouchCount(0);
         return contact;
     }
 
+    /** A phone-only contact has no address to suppress; Set.of() also rejects a null lookup. */
+    private static boolean isSuppressed(Contact contact, Set<String> suppressed) {
+        return contact.getEmail() != null && suppressed.contains(contact.getEmail());
+    }
+
     private Set<String> suppressedEmails(List<Contact> contacts) {
-        List<String> emails = contacts.stream().map(Contact::getEmail).toList();
+        List<String> emails = contacts.stream().map(Contact::getEmail).filter(e -> e != null).toList();
         if (emails.isEmpty()) {
             return Set.of();
         }
@@ -161,7 +195,8 @@ public class ContactService {
     }
 
     private static ContactDTO toDto(Contact contact, boolean unsubscribed) {
-        return new ContactDTO(contact.getId(), contact.getEmail(), contact.getName(), contact.getLocale(),
+        return new ContactDTO(contact.getId(), contact.getEmail(), contact.getPhone(), contact.getName(),
+                contact.getLocale(),
                 contact.getFirstSource(), contact.getLastSource(), contact.getFirstSeenAt(),
                 contact.getLastSeenAt(), contact.getTouchCount(), unsubscribed);
     }

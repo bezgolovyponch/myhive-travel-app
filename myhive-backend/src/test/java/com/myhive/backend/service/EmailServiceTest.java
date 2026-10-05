@@ -246,7 +246,7 @@ class EmailServiceTest {
 
     @Test
     void sendNewContactsDigest_sendsSynchronouslyToBookingsAddress() throws Exception {
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", "Anna", "de",
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, "Anna", "de",
                 ContactSource.VOTE, ContactSource.BOOKING,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 9, 0), 2, false);
         MimeMessage mimeMessage = mock(MimeMessage.class);
@@ -264,7 +264,7 @@ class EmailServiceTest {
     @Test
     void sendNewContactsDigest_whenEmailDisabled_throwsSoRowsStayQueued() {
         ReflectionTestUtils.setField(emailService, "emailEnabled", false);
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null,
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null, null,
                 ContactSource.VOTE, ContactSource.VOTE,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 8, 30), 1, false);
 
@@ -277,7 +277,7 @@ class EmailServiceTest {
     void sendNewContactsDigest_mapsSourcesLocaleAndTimestampIntoRows() {
         String expectedSource = "VOTE → BOOKING";
         String expectedFirstSeen = "2026-09-12 08:30 UTC";
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", "Anna", "de",
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, "Anna", "de",
                 ContactSource.VOTE, ContactSource.BOOKING,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 9, 0), 2, false);
         when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
@@ -298,7 +298,7 @@ class EmailServiceTest {
 
     @Test
     void sendNewContactsDigest_defaultsNullNameAndLocale() {
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null,
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null, null,
                 ContactSource.VOTE, ContactSource.VOTE,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 8, 30), 1, true);
         when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));

@@ -45,7 +45,7 @@ class ContactRepositoryTest {
         contactRepository.save(contact("c-" + UUID.randomUUID() + "@example.com", "Nobody"));
 
         Page<Contact> page = contactRepository
-                .findByEmailContainingIgnoreCaseOrNameContainingIgnoreCase(marker, marker, PageRequest.of(0, 10));
+                .findByEmailContainingIgnoreCaseOrNameContainingIgnoreCaseOrPhoneContaining(marker, marker, marker, PageRequest.of(0, 10));
 
         assertThat(page.getContent()).extracting(Contact::getEmail)
                 .containsExactlyInAnyOrder(expectedByEmail, expectedByName);

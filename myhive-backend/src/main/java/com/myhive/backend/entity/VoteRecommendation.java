@@ -6,6 +6,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -15,24 +16,29 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * An activity a friend recommends while voting. Anonymous like the votes: only the voter token is
+ * stored. The organiser sees the counts per activity on the dashboard and can add one to the plan.
+ */
 @Entity
-@Table(name = "vote_session_activities",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"session_id", "activity_id"}))
+@Table(name = "vote_recommendations",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_vote_recommendations_session_voter_activity",
+                columnNames = {"session_id", "voter_token", "activity_id"}),
+        indexes = @Index(name = "idx_vote_recommendations_session", columnList = "session_id"))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = {"session", "activity"})
-public class VoteSessionActivity {
+public class VoteRecommendation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -43,20 +49,15 @@ public class VoteSessionActivity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private VoteSession session;
 
+    @Column(name = "voter_token", nullable = false)
+    private UUID voterToken;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Activity activity;
 
-    @Column(name = "activity_name", nullable = false, length = 255)
-    private String activityName;
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
-
-    @Column(name = "sort_order", nullable = false)
-    private int sortOrder;
-
-    /** Set while the organiser has dropped this activity from the running vote; null = on the ballot. */
-    @Column(name = "excluded_at")
-    private LocalDateTime excludedAt;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 }

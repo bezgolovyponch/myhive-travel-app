@@ -19,9 +19,14 @@ public interface ContactRepository extends JpaRepository<Contact, UUID> {
 
     Optional<Contact> findByEmail(String email);
 
-    /** Both parameters receive the same search term; an empty term matches every row via the email clause. */
-    Page<Contact> findByEmailContainingIgnoreCaseOrNameContainingIgnoreCase(
-            String email, String name, Pageable pageable);
+    Optional<Contact> findByPhone(String phone);
+
+    /**
+     * All three parameters receive the same search term; an empty term matches every row (a phone-only
+     * row has no email, so the phone clause matches it).
+     */
+    Page<Contact> findByEmailContainingIgnoreCaseOrNameContainingIgnoreCaseOrPhoneContaining(
+            String email, String name, String phone, Pageable pageable);
 
     /** Contacts the daily digest has not reported yet, oldest first, ties broken by email. */
     List<Contact> findByDigestSentAtIsNullOrderByFirstSeenAtAscEmailAsc();

@@ -129,16 +129,20 @@ public class EmailService {
 
     /** One line of the daily new-contacts digest; dates are pre-formatted because the templates have no #temporals. */
     public static class ContactDigestRow {
+        /** Null for a phone-only contact. */
         public final String email;
+        /** E.164; null for an email-only contact. */
+        public final String phone;
         public final String name;
         public final String source;
         public final String firstSeen;
         public final String locale;
         public final boolean unsubscribed;
 
-        public ContactDigestRow(String email, String name, String source, String firstSeen,
+        public ContactDigestRow(String email, String phone, String name, String source, String firstSeen,
                                 String locale, boolean unsubscribed) {
             this.email = email;
+            this.phone = phone;
             this.name = name;
             this.source = source;
             this.firstSeen = firstSeen;
@@ -304,7 +308,7 @@ public class EmailService {
                 ? c.getFirstSource().name()
                 : c.getFirstSource().name() + " → " + c.getLastSource().name();
         String locale = c.getLocale() == null ? "EN" : c.getLocale().toUpperCase(Locale.ROOT);
-        return new ContactDigestRow(c.getEmail(), c.getName() == null ? "" : c.getName(), source,
+        return new ContactDigestRow(c.getEmail(), c.getPhone(), c.getName() == null ? "" : c.getName(), source,
                 DIGEST_TIMESTAMP.format(c.getFirstSeenAt()), locale, c.isUnsubscribed());
     }
 
