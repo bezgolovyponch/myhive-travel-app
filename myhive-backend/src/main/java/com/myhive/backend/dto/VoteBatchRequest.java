@@ -16,6 +16,8 @@ public class VoteBatchRequest {
 
     @NotNull private UUID voterToken;
     @NotNull @NotEmpty @Valid @Size(max = 100) private List<VoteItem> votes;
+    /** Activities this friend recommends adding; optional, same destination as the vote. */
+    @Size(max = 50) private List<UUID> recommendedActivityIds;
 
     @Getter
     @Setter

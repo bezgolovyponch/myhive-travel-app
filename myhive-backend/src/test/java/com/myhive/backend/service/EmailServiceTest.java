@@ -449,7 +449,7 @@ class EmailServiceTest {
         String dashboardUrl = (String) context.getVariable("dashboardUrl");
         String inviteUrl = (String) context.getVariable("inviteUrl");
         assertThat(dashboardUrl)
-                .contains("/vote/" + shareToken + "/waiting")
+                .contains("/destination/bali?tab=trip-builder&voteSession=" + shareToken)
                 .contains("manager=" + managerToken);
         assertThat(inviteUrl)
                 .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities?ref=invite");
@@ -815,8 +815,8 @@ class EmailServiceTest {
     @Test
     void sendVoteHalfway_passesManagerDashboardUrlAndStandings() throws Exception {
         VoteSession session = halfwaySession("alice@example.com");
-        String expectedDashboardUrl = "https://trivlu.com/vote/" + session.getShareToken()
-                + "/waiting?manager=" + session.getManagerToken();
+        String expectedDashboardUrl = "https://trivlu.com/destination/prague?tab=trip-builder&voteSession="
+                + session.getShareToken() + "&manager=" + session.getManagerToken();
         List<EmailService.VoteStandingView> expectedStandings =
                 List.of(new EmailService.VoteStandingView("Bar Crawl", 4));
 
@@ -838,8 +838,8 @@ class EmailServiceTest {
     void sendVoteHalfway_germanSessionUsesGermanSubjectAndLocalePrefix() throws Exception {
         VoteSession session = halfwaySession("alice@example.com");
         session.setLocale("de");
-        String expectedDashboardUrl = "https://trivlu.com/de/vote/" + session.getShareToken()
-                + "/waiting?manager=" + session.getManagerToken();
+        String expectedDashboardUrl = "https://trivlu.com/de/destination/prague?tab=trip-builder&voteSession="
+                + session.getShareToken() + "&manager=" + session.getManagerToken();
 
         MimeMessage realMessage = new MimeMessage((Session) null);
         when(mailSender.createMimeMessage()).thenReturn(realMessage);

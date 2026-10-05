@@ -17,9 +17,10 @@ import java.util.UUID;
 @Setter
 public class VoteSessionCartCreateRequest {
     @NotNull private UUID destinationId;
-    // Optional on the API; the Create-vote modal's email step supplies it, and the
-    // booking page still captures an address for organizers who skip the vote.
+    // The organiser leaves a WhatsApp number or an email (or both); a vote without either is rejected.
     @Email private String initiatorEmail;
+    /** E.164 with the country code ("+447700900123"); spaces and dashes are tolerated. */
+    @Size(max = 32) private String initiatorPhone;
     @NotNull @Min(1) @Max(50) private Integer numberOfTravelers;
     @NotNull private LocalDate startDate;
     @NotNull private LocalDate endDate;

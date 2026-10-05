@@ -6,7 +6,9 @@ import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteRequest;
 import com.myhive.backend.dto.VoteResultResponse;
+import com.myhive.backend.dto.VoteSessionActivityAddRequest;
 import com.myhive.backend.dto.VoteSessionCartCreateRequest;
+import com.myhive.backend.dto.VoteSessionContactRequest;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.dto.VoteTallyResponse;
@@ -15,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,10 +57,40 @@ public class VoteSessionController {
         return voteSessionService.getSession(shareToken, locale);
     }
 
+    /** Adds the organiser's other contact (email or WhatsApp number) to the vote. */
+    @PatchMapping("/{shareToken}/contact")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateContact(@PathVariable UUID shareToken, @RequestParam UUID managerToken,
+                              @Valid @RequestBody VoteSessionContactRequest request) {
+        voteSessionService.updateContact(shareToken, managerToken, request);
+    }
+
     @GetMapping("/{shareToken}/activities")
     public List<VoteActivityResponse> getActivities(@PathVariable UUID shareToken,
                                                     @RequestParam(required = false) String locale) {
         return voteSessionService.getActivities(shareToken, locale);
+    }
+
+    /** The organiser adds an activity (usually a recommended one) to the running vote. */
+    @PostMapping("/{shareToken}/activities")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addActivity(@PathVariable UUID shareToken, @RequestParam UUID managerToken,
+                            @Valid @RequestBody VoteSessionActivityAddRequest request) {
+        voteSessionService.addActivity(shareToken, managerToken, request);
+    }
+
+    @PostMapping("/{shareToken}/activities/{activityId}/exclude")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void excludeActivity(@PathVariable UUID shareToken, @PathVariable UUID activityId,
+                                @RequestParam UUID managerToken) {
+        voteSessionService.excludeActivity(shareToken, managerToken, activityId);
+    }
+
+    @PostMapping("/{shareToken}/activities/{activityId}/restore")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void restoreActivity(@PathVariable UUID shareToken, @PathVariable UUID activityId,
+                                @RequestParam UUID managerToken) {
+        voteSessionService.restoreActivity(shareToken, managerToken, activityId);
     }
 
     @PostMapping("/{shareToken}/votes")

@@ -58,6 +58,8 @@ public class SecurityConfig {
                         .requestMatchers("/blog/**").permitAll()
                         .requestMatchers("/bookings/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/contact").permitAll()
+                        // "from €X" for a Trip Builder plan
+                        .requestMatchers(HttpMethod.POST, "/pricing/quote").permitAll()
                         // Vote Together
                         .requestMatchers("/vote/**").permitAll()
                         // AI stag planner — public (session token authorized, never JWT)

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
@@ -18,4 +19,7 @@ public class VoteSessionResponse {
     private int numberOfTravelers;
     private UUID managerToken;
     private String voteMode;
+    /** Trip dates, for the friend's "{destination} stag · {dates}" line. */
+    private LocalDate startDate;
+    private LocalDate endDate;
 }

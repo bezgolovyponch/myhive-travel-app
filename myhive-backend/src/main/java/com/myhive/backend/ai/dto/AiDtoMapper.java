@@ -19,6 +19,7 @@ import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.util.FromPrice;
 import com.myhive.backend.util.Translations;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -208,7 +209,8 @@ public class AiDtoMapper {
 
     private static PackageDTO plannedPackage(ComposedPlan.PackageResult result) {
         return new PackageDTO(result.key().name(), result.title(), result.tagline(), result.description(),
-                result.pricePerPerson(), result.totalPrice(), result.currency(), result.totalDurationMinutes(),
+                result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice()), result.currency(),
+                result.totalDurationMinutes(),
                 result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights());
     }
 

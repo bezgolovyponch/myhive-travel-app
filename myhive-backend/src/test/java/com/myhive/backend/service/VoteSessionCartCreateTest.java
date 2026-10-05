@@ -155,18 +155,48 @@ class VoteSessionCartCreateTest {
     }
 
     @Test
-    void createCartSession_leavesCaptureTimeNullWithoutEmail() {
+    void createCartSession_phoneOnly_storesE164AndLeavesEmailCaptureTimeNull() {
         Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
         Activity barCrawl = activityRepository.saveAndFlush(
                 TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
         VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
         request.setInitiatorEmail(null);
+        request.setInitiatorPhone("+44 7700 900-123");
 
         VoteSessionResponse response = voteSessionService.createCartSession(request);
 
         VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
         assertThat(session.getInitiatorEmail()).isNull();
+        assertThat(session.getInitiatorPhone()).isEqualTo("+447700900123");
         assertThat(session.getEmailCapturedAt()).isNull();
+    }
+
+    @Test
+    void createCartSession_withoutAnyContact_isRejected() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        request.setInitiatorEmail("  ");
+        request.setInitiatorPhone(null);
+
+        assertThatThrownBy(() -> voteSessionService.createCartSession(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("WhatsApp number or an email");
+    }
+
+    @Test
+    void createCartSession_numberWithoutCountryCode_isRejected() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        request.setInitiatorEmail(null);
+        request.setInitiatorPhone("07700 900123");
+
+        assertThatThrownBy(() -> voteSessionService.createCartSession(request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("country code");
     }
 
     private VoteSessionCartCreateRequest cartRequest(UUID destinationId, List<UUID> activityIds) {

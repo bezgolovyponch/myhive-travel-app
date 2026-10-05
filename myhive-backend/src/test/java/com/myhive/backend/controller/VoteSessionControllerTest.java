@@ -29,8 +29,10 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -67,7 +69,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 expectedToken, "Bali", "bali", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 2,
-                expectedManagerToken, "QUIZ");
+                expectedManagerToken, "QUIZ", null, null);
 
         when(voteSessionService.createSession(any())).thenReturn(response);
 
@@ -97,7 +99,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 expectedToken, "Prague", "prague", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 0L, 4,
-                expectedManagerToken, "CART");
+                expectedManagerToken, "CART", null, null);
 
         when(voteSessionService.createCartSession(any())).thenReturn(response);
 
@@ -148,7 +150,7 @@ class VoteSessionControllerTest {
         VoteSessionResponse response = new VoteSessionResponse(
                 shareToken, "Bali", "bali", "ACTIVE",
                 java.time.Instant.now().plus(24, java.time.temporal.ChronoUnit.HOURS), 5L, 3,
-                null, "QUIZ");
+                null, "QUIZ", java.time.LocalDate.of(2026, 10, 16), java.time.LocalDate.of(2026, 10, 18));
 
         when(voteSessionService.getSession(eq(shareToken), isNull())).thenReturn(response);
 
@@ -226,17 +228,69 @@ class VoteSessionControllerTest {
     void getTally_returns200WithRows() throws Exception {
         UUID shareToken = UUID.randomUUID();
         VoteTallyResponse tally = new VoteTallyResponse("ACTIVE",
-                java.time.Instant.now().plus(12, java.time.temporal.ChronoUnit.HOURS), 3L,
+                java.time.Instant.now().plus(12, java.time.temporal.ChronoUnit.HOURS), 3L, 10,
                 List.of(new VoteTallyResponse.TallyRow(
-                        UUID.randomUUID(), "Bar Crawl", new java.math.BigDecimal("45.00"), 2L)));
+                        UUID.randomUUID(), "Bar Crawl", new java.math.BigDecimal("45.00"), 2L, 1L, false)),
+                List.of(new VoteTallyResponse.RecommendationRow(UUID.randomUUID(), "Pub golf", "pub-golf",
+                        null, new java.math.BigDecimal("30.00"), null, 120, 2L)));
 
         when(voteSessionService.getTally(any(), any(), any(), any())).thenReturn(tally);
 
         mockMvc.perform(get("/vote/sessions/{shareToken}/tally", shareToken)
-                        .param("voterToken", UUID.randomUUID().toString()))
+                        .param("managerToken", UUID.randomUUID().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.participantCount").value(3))
+                .andExpect(jsonPath("$.numberOfTravelers").value(10))
                 .andExpect(jsonPath("$.rows[0].name").value("Bar Crawl"))
-                .andExpect(jsonPath("$.rows[0].likeCount").value(2));
+                .andExpect(jsonPath("$.rows[0].likeCount").value(2))
+                .andExpect(jsonPath("$.rows[0].skipCount").value(1))
+                .andExpect(jsonPath("$.rows[0].excluded").value(false))
+                .andExpect(jsonPath("$.recommendations[0].name").value("Pub golf"))
+                .andExpect(jsonPath("$.recommendations[0].recommendationCount").value(2));
+    }
+
+    @Test
+    void updateContact_returns204() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        UUID managerToken = UUID.randomUUID();
+
+        mockMvc.perform(patch("/vote/sessions/{shareToken}/contact", shareToken)
+                        .param("managerToken", managerToken.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"initiatorEmail\":\"organiser@example.com\"}"))
+                .andExpect(status().isNoContent());
+
+        verify(voteSessionService).updateContact(eq(shareToken), eq(managerToken), any());
+    }
+
+    @Test
+    void excludeAndRestoreActivity_return204() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        UUID managerToken = UUID.randomUUID();
+        UUID activityId = UUID.randomUUID();
+
+        mockMvc.perform(post("/vote/sessions/{shareToken}/activities/{activityId}/exclude", shareToken, activityId)
+                        .param("managerToken", managerToken.toString()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/vote/sessions/{shareToken}/activities/{activityId}/restore", shareToken, activityId)
+                        .param("managerToken", managerToken.toString()))
+                .andExpect(status().isNoContent());
+
+        verify(voteSessionService).excludeActivity(shareToken, managerToken, activityId);
+        verify(voteSessionService).restoreActivity(shareToken, managerToken, activityId);
+    }
+
+    @Test
+    void addActivity_returns204() throws Exception {
+        UUID shareToken = UUID.randomUUID();
+        UUID managerToken = UUID.randomUUID();
+
+        mockMvc.perform(post("/vote/sessions/{shareToken}/activities", shareToken)
+                        .param("managerToken", managerToken.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"activityId\":\"" + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isNoContent());
+
+        verify(voteSessionService).addActivity(eq(shareToken), eq(managerToken), any());
     }
 }

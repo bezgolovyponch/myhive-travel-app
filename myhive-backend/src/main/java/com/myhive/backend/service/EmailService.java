@@ -403,9 +403,13 @@ public class EmailService {
         return base + "/vote/" + session.getShareToken() + "/activities?ref=invite";
     }
 
-    /** Waiting page with the manager token, which the page adopts so the organizer can manage from any device. */
+    /**
+     * The organiser's dashboard: the Trip Builder tab with the vote and the manager token, which the
+     * page adopts so the organiser can manage the vote from any device.
+     */
     private static String dashboardUrlFor(VoteSession session, String base) {
-        return base + "/vote/" + session.getShareToken() + "/waiting?manager=" + session.getManagerToken();
+        return base + "/destination/" + session.getDestination().getSlug() + "?tab=trip-builder&voteSession="
+                + session.getShareToken() + "&manager=" + session.getManagerToken();
     }
 
     public void sendPaymentReceived(String toEmail, String customerName, String tripId,
