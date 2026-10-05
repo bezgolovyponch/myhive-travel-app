@@ -1,9 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SwipeCard from './SwipeCard';
-import { copyToClipboard } from '../utils/clipboard';
 
-jest.mock('../utils/clipboard');
 
 const cards = [
   {
@@ -34,18 +32,6 @@ test('clicking the card name opens the info modal and does not trigger a swipe',
   expect(onSwipe).not.toHaveBeenCalled();
 });
 
-test('shows the copied confirmation only when the clipboard write succeeds', async () => {
-  copyToClipboard.mockResolvedValue(true);
-  render(
-    <SwipeCard cards={cards} currentIndex={0} onSwipe={jest.fn()} shareUrl="https://trivlu.com/vote/x" />
-  );
-
-  await userEvent.click(screen.getByRole('button', { name: 'Copy Invite Link' }));
-
-  expect(copyToClipboard).toHaveBeenCalledWith('https://trivlu.com/vote/x');
-  expect(await screen.findByRole('button', { name: /Link Copied/i })).toBeInTheDocument();
-});
-
 test('preloads the next few card images so a swipe reveals a ready photo', () => {
     const preloadedUrls = [];
     const OriginalImage = window.Image;
@@ -68,15 +54,16 @@ test('preloads the next few card images so a swipe reveals a ready photo', () =>
     window.Image = OriginalImage;
 });
 
-test('keeps the default label when the clipboard write fails', async () => {
-  copyToClipboard.mockResolvedValue(false);
+test('shows how long an activity takes but never a price', () => {
   render(
-    <SwipeCard cards={cards} currentIndex={0} onSwipe={jest.fn()} shareUrl="https://trivlu.com/vote/x" />
+    <SwipeCard
+      cards={[{ id: 'a', name: 'Tank driving', imageUrl: 'http://img/a.jpg', duration: 120, price: 149, minPrice: 400 }]}
+      currentIndex={0}
+      onSwipe={jest.fn()}
+    />,
   );
 
-  await userEvent.click(screen.getByRole('button', { name: 'Copy Invite Link' }));
-
-  await waitFor(() => expect(copyToClipboard).toHaveBeenCalledTimes(1));
-  expect(screen.queryByText(/Link Copied/i)).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Copy Invite Link' })).toBeInTheDocument();
+  expect(screen.getByText('2h')).toBeInTheDocument();
+  expect(screen.queryByText(/149|person|Group minimum/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /invite link/i })).not.toBeInTheDocument();
 });

@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import './SwipeCard.css';
 import ActivityPreviewModal from './ActivityPreviewModal';
-import { copyToClipboard } from '../utils/clipboard';
-import { formatAmount, formatPrice, hasGroupMin } from '../utils/format';
 import { useT } from '../i18n';
 
 const SWIPE_THRESHOLD = 80;
 
-function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subtitle, shareUrl, getCardLink }) {
+// Cards show what the activity is and how long it takes, never a price: the
+// group decides on the plan, the organiser sees the price.
+// `fullscreen` covers the site header too (the friend's Tinder-style vote).
+function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subtitle, getCardLink, fullscreen = false }) {
     const t = useT('swipe');
     const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
-    const [copied, setCopied] = useState(false);
     const [infoCard, setInfoCard] = useState(null);
+    const pageClass = `swipe-card-page${fullscreen ? ' swipe-card-page--fullscreen' : ''}`;
 
     // Warm the browser cache a few cards ahead so a swipe reveals an already-loaded
     // photo instead of the previous card's image lingering while the next downloads.
@@ -22,15 +23,6 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
             }
         });
     }, [cards, currentIndex]);
-
-    const handleCopy = useCallback(() => {
-        copyToClipboard(shareUrl).then(ok => {
-            if (ok) {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            }
-        });
-    }, [shareUrl]);
 
     const handlePointerDown = useCallback((e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -66,7 +58,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
 
     if (currentIndex >= cards.length) {
         return (
-            <div className="swipe-card-page">
+            <div className={pageClass}>
                 <div className="swipe-done">
                     <p>{t('processing')}</p>
                 </div>
@@ -93,7 +85,7 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
     );
 
     return (
-        <div className="swipe-card-page">
+        <div className={pageClass}>
             {title && <h2 className="swipe-card-title">{title}</h2>}
             {subtitle && <p className="swipe-card-subtitle">{subtitle}</p>}
             <div className="swipe-card-progress">
@@ -144,20 +136,11 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
                                      draggable={false} decoding="async" />
                                 <div className="swipe-card-info">
                                     <div className="swipe-card-name">{renderName(card.name)}</div>
-                                    <div className="swipe-card-meta">
-                                        {card.duration && <span>{t('durationHours', { hours: Math.round(card.duration / 60) })}</span>}
-                                        {card.duration && card.price && <span> · </span>}
-                                        {card.price && (
-                                            <span>
-                                                {hasGroupMin(card)
-                                                    ? t('fromPerPerson', { price: formatPrice(card.price) })
-                                                    : t('perPersonPrice', { price: formatPrice(card.price) })}
-                                            </span>
-                                        )}
-                                        {card.price && hasGroupMin(card) && (
-                                            <span> · {t('groupMinimum', { amount: formatAmount(Number(card.minPrice)) })}</span>
-                                        )}
-                                    </div>
+                                    {card.duration > 0 && (
+                                        <div className="swipe-card-meta">
+                                            {t('durationHours', { hours: Math.max(1, Math.round(card.duration / 60)) })}
+                                        </div>
+                                    )}
                                 </div>
                             </>
                             : <div className="swipe-card-text-only">
@@ -199,14 +182,6 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
                     aria-label={t('likeAria')}
                 >♥</button>
             </div>
-
-            {shareUrl && (
-                <div className="swipe-share">
-                    <button className="swipe-share-btn" onClick={handleCopy}>
-                        {copied ? t('linkCopied') : t('copyInviteLink')}
-                    </button>
-                </div>
-            )}
 
             <ActivityPreviewModal
                 activity={infoCard}

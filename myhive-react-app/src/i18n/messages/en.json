@@ -760,7 +760,7 @@
       "sessionGoneHint": "It may have expired or been removed — ask the organiser for a new link.",
       "empty": "No activities found for the selected categories.",
       "title": "Which activities are you up for?",
-      "subtitle": "Swipe right to vote yes, left to skip"
+      "subtitle": "Swipe right for yes, left for no"
     },
     "waiting": {
       "processing": "Processing results...",
@@ -802,6 +802,34 @@
       "remaining": "Remaining: {amount}",
       "openTripBuilder": "Open in Trip Builder",
       "suggestionsTitle": "Suggestions"
+    },
+    "review": {
+      "eyebrow": "{destination} stag · {dates}",
+      "eyebrowNoDates": "{destination} stag",
+      "title": "My votes",
+      "kept": "You kept {kept} of {total}",
+      "recommended": "{count} recommended",
+      "browse": "Browse activities and add more",
+      "keep": "Keep",
+      "drop": "Drop",
+      "yourRecommendation": "Your recommendation",
+      "remove": "Remove",
+      "removeAria": "Remove {name}",
+      "recommendTitle": "Recommend more activities",
+      "recommendText": "Added activities join your votes and go to the organiser",
+      "all": "All",
+      "add": "Add",
+      "added": "Added",
+      "addAria": "Add {name}",
+      "addedAria": "Remove {name} from your recommendations",
+      "send": "Send to group",
+      "sending": "Sending…"
+    },
+    "thanks": {
+      "title": "Thanks, your vote is in.",
+      "text": "The organiser will share the plan with the group.",
+      "closedTitle": "Voting has closed.",
+      "closedText": "The organiser will share the plan with the group."
     }
   },
   "landing": {

@@ -750,7 +750,7 @@
       "sessionGoneHint": "Es ist vielleicht abgelaufen oder wurde entfernt — frag den Organisator nach einem neuen Link.",
       "empty": "Keine Aktivitäten für die gewählten Kategorien gefunden.",
       "title": "Auf welche Aktivitäten hast du Lust?",
-      "subtitle": "Nach rechts swipen für Ja, nach links zum Überspringen"
+      "subtitle": "Nach rechts für Ja, nach links für Nein"
     },
     "waiting": {
       "processing": "Ergebnisse werden verarbeitet...",
@@ -792,6 +792,34 @@
       "remaining": "Übrig: {amount}",
       "openTripBuilder": "Im Trip-Planer öffnen",
       "suggestionsTitle": "Vorschläge"
+    },
+    "review": {
+      "eyebrow": "{destination}-JGA · {dates}",
+      "eyebrowNoDates": "{destination}-JGA",
+      "title": "Meine Stimmen",
+      "kept": "Du behältst {kept} von {total}",
+      "recommended": "{count} empfohlen",
+      "browse": "Stöbere in den Aktivitäten und füge mehr hinzu",
+      "keep": "Behalten",
+      "drop": "Streichen",
+      "yourRecommendation": "Deine Empfehlung",
+      "remove": "Entfernen",
+      "removeAria": "{name} entfernen",
+      "recommendTitle": "Mehr Aktivitäten empfehlen",
+      "recommendText": "Hinzugefügte Aktivitäten kommen zu deinen Stimmen und gehen an den Organisator",
+      "all": "Alle",
+      "add": "Hinzufügen",
+      "added": "Hinzugefügt",
+      "addAria": "{name} hinzufügen",
+      "addedAria": "{name} aus deinen Empfehlungen entfernen",
+      "send": "An die Gruppe senden",
+      "sending": "Wird gesendet…"
+    },
+    "thanks": {
+      "title": "Danke, deine Stimme ist da.",
+      "text": "Der Organisator teilt den Plan mit der Gruppe.",
+      "closedTitle": "Das Voting ist beendet.",
+      "closedText": "Der Organisator teilt den Plan mit der Gruppe."
     }
   },
   "landing": {
