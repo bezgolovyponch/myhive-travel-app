@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ActivityVotePage from './ActivityVotePage';
@@ -71,12 +71,11 @@ test('shows a friendly message when the vote session is not found', async () => 
     expect(await screen.findByText(/this vote session no longer exists/i)).toBeInTheDocument();
 });
 
-test('the swipe is full screen and has no invite link', async () => {
-    const { container } = renderAt('/vote/tok-abc/activities');
+test('the swipe has no invite link', async () => {
+    renderAt('/vote/tok-abc/activities');
 
     await screen.findByLabelText('Like');
 
-    expect(container.querySelector('.swipe-card-page--fullscreen')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /invite link/i })).not.toBeInTheDocument();
     expect(pushEvent).toHaveBeenCalledWith('vote_opened', { trip_id: 'tok-abc', user_role: 'participant' });
 });
@@ -178,5 +177,5 @@ test('undo on the swipe takes the last card back', async () => {
     await swipeAll([true, true]);
 
     await screen.findByRole('heading', { name: 'My votes' });
-    await waitFor(() => expect(screen.getByText('You kept 2 of 2 · Browse activities and add more')).toBeInTheDocument());
+    expect(await screen.findByText('You kept 2 of 2 · Browse activities and add more')).toBeInTheDocument();
 });

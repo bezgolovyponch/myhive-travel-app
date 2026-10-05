@@ -92,7 +92,7 @@ function renderDashboard({state = tripState(), route = '/destination/prague?tab=
             <LocationSpy/>
         </MemoryRouter>,
     );
-    return dispatch;
+    return {dispatch};
 }
 
 beforeEach(() => {
@@ -142,7 +142,7 @@ test('Send to WhatsApp group opens the message with the invite link', async () =
 });
 
 test('removing an activity drops it from the running vote', async () => {
-    const dispatch = renderDashboard();
+    const {dispatch} = renderDashboard();
     await screen.findByText('3 of 10 voted');
 
     await userEvent.click(screen.getByRole('button', {name: 'Remove Steak dinner'}));
@@ -152,7 +152,7 @@ test('removing an activity drops it from the running vote', async () => {
 });
 
 test('a dropped activity is listed struck through and Restore brings it back', async () => {
-    const dispatch = renderDashboard();
+    const {dispatch} = renderDashboard();
     await screen.findByText('Tank driving');
 
     await userEvent.click(screen.getByRole('button', {name: 'Restore'}));
@@ -164,7 +164,7 @@ test('a dropped activity is listed struck through and Restore brings it back', a
 });
 
 test('adding a recommendation puts it in the plan and in the vote', async () => {
-    const dispatch = renderDashboard();
+    const {dispatch} = renderDashboard();
     await screen.findByText('Pub golf');
 
     await userEvent.click(screen.getByRole('button', {name: 'Add'}));
@@ -190,7 +190,7 @@ test('the email link: the manager token is kept and taken out of the address bar
 test('on a device with an empty cart, the ballot becomes the plan', async () => {
     voteApi.getActivities.mockResolvedValue([shooting, steak]);
 
-    const dispatch = renderDashboard({state: tripState({tripItems: [], tripTravelers: 1, tripStartDate: '', tripEndDate: ''})});
+    const {dispatch} = renderDashboard({state: tripState({tripItems: [], tripTravelers: 1, tripStartDate: '', tripEndDate: ''})});
 
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith({type: 'SET_TRIP_ITEMS', tripItems: [shooting, steak]}));
     expect(dispatch).toHaveBeenCalledWith({type: 'UPDATE_TRIP_TRAVELERS', travelers: 10});
