@@ -80,14 +80,7 @@ test('closing the preview via backdrop does not navigate to the detail page', as
   expect(screen.getByRole('button', {name: /More info/i})).toBeInTheDocument();
 });
 
-test('shows from-price and group minimum note when minPrice is set', () => {
+test('a card in a list shows no per-person price or group minimum', () => {
   renderCard({id: 'a1', name: 'Boat Rental', price: 50, minPrice: 300});
-  expect(screen.getByText(/from €50 \/ person/)).toBeInTheDocument();
-  expect(screen.getByText('Group minimum €300')).toBeInTheDocument();
-});
-
-test('no from-prefix or note without minPrice', () => {
-  renderCard({id: 'a1', name: 'Bar Crawl', price: 40});
-  expect(screen.getByText('€40 / person')).toBeInTheDocument();
-  expect(screen.queryByText(/Group minimum/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/€50|€300|person|Group minimum/)).not.toBeInTheDocument();
 });

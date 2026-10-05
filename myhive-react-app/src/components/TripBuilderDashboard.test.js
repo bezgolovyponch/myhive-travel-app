@@ -32,6 +32,7 @@ jest.mock('../services/voteApi', () => ({
 }));
 
 jest.mock('../services/paymentApi', () => ({paymentApi: {createBookingDepositSession: jest.fn()}}));
+jest.mock('../services/pricingApi', () => ({__esModule: true, default: {quote: jest.fn(() => Promise.resolve({fromPrice: null}))}}));
 jest.mock('../utils/analytics', () => ({pushEvent: jest.fn(), navigateAfterEvents: jest.fn()}));
 jest.mock('../utils/openWhatsApp', () => ({openWhatsApp: jest.fn()}));
 jest.mock('../context/CatalogContext', () => ({

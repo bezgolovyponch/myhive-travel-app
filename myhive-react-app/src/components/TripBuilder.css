@@ -162,10 +162,18 @@
     color: var(--text);
 }
 
-.itinerary-item-price {
-    font-size: 0.75rem;
-    color: var(--text);
-    font-weight: 700;
+.itinerary-plan-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--gap-sm);
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.itinerary-plan-price strong {
+    font-size: 1.125rem;
+    color: #f2c46d;
 }
 
 /* Plain × — no circle/background. */
@@ -244,12 +252,6 @@
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--text);
-}
-
-.browse-activity-price {
-    font-size: 0.6875rem;
-    color: var(--text);
-    font-weight: 700;
 }
 
 .browse-add-btn {

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice, hasGroupMin} from '../utils/format';
+import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE} from '../utils/format';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import {useLocalePath, useT} from '../i18n';
 import './ActivityCard.css';
@@ -43,11 +43,6 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
 
     const imageUrl = activity.imageUrl || DEFAULT_ACTIVITY_IMAGE;
     const title = activity.name || activity.title;
-    // "/ person" lives in the key, not utils/format.js: German flips the whole
-    // phrase ("ab {price} / Person"), so the format string must be translatable.
-    const formattedPrice = hasGroupMin(activity)
-        ? t('fromPerPerson', {price: formatPrice(activity.price)})
-        : t('perPersonPrice', {price: formatPrice(activity.price)});
     const primaryCategory = activity.categories && activity.categories.length > 0
         ? activity.categories[0].name
         : null;
@@ -94,14 +89,6 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                     </a>
                 </h3>
                 <div className="activity-footer">
-                    <span className="activity-price">
-                        {formattedPrice}
-                        {hasGroupMin(activity) && (
-                            <span className="activity-min-note">
-                                {t('groupMinimum', {amount: formatAmount(Number(activity.minPrice))})}
-                            </span>
-                        )}
-                    </span>
                     <div className="activity-actions">
                         <button
                             className="more-info-btn"

@@ -277,9 +277,6 @@
   "cards": {
     "viewAria": "View {name}",
     "activityCategory": "Activity",
-    "fromPerPerson": "from {price} / person",
-    "perPersonPrice": "{price} / person",
-    "groupMinimum": "Group minimum {amount}",
     "moreInfo": "More info",
     "added": "Added",
     "addToTrip": "Add to trip",
@@ -601,9 +598,8 @@
       "removeAria": "Remove {name}"
     },
     "price": {
-      "perPerson": "{price} / person",
-      "multiplied": "{price} × {travelers} = {total}",
-      "groupMinLine": "{price} × {travelers} = {total} (group min)"
+      "plan": "Your plan",
+      "from": "from {price}"
     },
     "emptyState": "Start building your trip by adding activities!",
     "footer": {
@@ -680,16 +676,11 @@
     "processing": "Processing your choices...",
     "progress": "{current} / {total}",
     "durationHours": "{hours}h",
-    "fromPerPerson": "from {price} / person",
-    "perPersonPrice": "{price} / person",
-    "groupMinimum": "Group minimum {amount}",
     "likeOverlay": "LIKE ♥",
     "nopeOverlay": "NOPE ✕",
     "dislikeAria": "Dislike",
     "undoAria": "Undo last swipe",
-    "likeAria": "Like",
-    "linkCopied": "✓ Link Copied!",
-    "copyInviteLink": "Copy Invite Link"
+    "likeAria": "Like"
   },
   "datePicker": {
     "startLabel": "Start",
@@ -880,10 +871,7 @@
       "viewAll": "View all {count} activities →",
       "addToTrip": "Add to trip",
       "added": "Added ✓",
-      "photoComing": "Photo coming soon",
-      "perPerson": "/ person",
-      "from": "from",
-      "minPerGroup": "min €{min} per group"
+      "photoComing": "Photo coming soon"
     },
     "calc": {
       "eyebrow": "A weekend for every budget",

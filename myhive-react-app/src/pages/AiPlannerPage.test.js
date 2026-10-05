@@ -35,7 +35,8 @@ const item = (name, over = {}) => ({
 
 const pkg = (key, pricePerPerson, items) => ({
     key, title: `${key} weekend`, tagline: `${key} tagline`, pricePerPerson,
-    totalPrice: pricePerPerson * 10, currency: 'EUR',
+    // fromPrice is the backend's "from" (the total less its margin); the page shows it as is.
+    totalPrice: pricePerPerson * 10, fromPrice: pricePerPerson * 9, currency: 'EUR',
     days: [{dayNumber: 1, title: 'Landing night', summary: null, items}],
 });
 
@@ -228,9 +229,9 @@ test('once packages land they fill the page and the chat retracts into the dock'
     expect(screen.getByText('Afternoon')).toBeInTheDocument(); // no startHint: the slot name
     // Each trim shows its starting group total — the same number the cart shows
     // once it is picked; the planner confirms the final price on the call.
-    expect(within(screen.getByRole('tab', {name: /Basic/})).getByText('from €1,250')).toBeInTheDocument();
-    expect(within(screen.getByRole('tab', {name: /Medium/})).getByText('from €1,950')).toBeInTheDocument();
-    expect(within(screen.getByRole('tab', {name: /Premium/})).getByText('from €3,100')).toBeInTheDocument();
+    expect(within(screen.getByRole('tab', {name: /Basic/})).getByText('from €1,125')).toBeInTheDocument();
+    expect(within(screen.getByRole('tab', {name: /Medium/})).getByText('from €1,755')).toBeInTheDocument();
+    expect(within(screen.getByRole('tab', {name: /Premium/})).getByText('from €2,790')).toBeInTheDocument();
     expect(screen.getByText('10 people · 3 days · 2 activities')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
@@ -242,7 +243,7 @@ test('once packages land they fill the page and the chat retracts into the dock'
     await userEvent.click(screen.getByRole('button', {name: /Ask Stag Do AI to change anything/}));
     const drawer = screen.getByRole('dialog', {name: 'Stag Do AI'});
     expect(within(drawer).getByText('Building your three options…')).toBeInTheDocument();
-    expect(within(drawer).getByRole('button', {name: /Medium.*from €1,950/})).toBeInTheDocument();
+    expect(within(drawer).getByRole('button', {name: /Medium.*from €1,755/})).toBeInTheDocument();
     // The hand-off is reachable without closing the chat (v3 2d).
     expect(within(drawer).getByRole('button', {name: 'Ask the group'})).toBeInTheDocument();
     // The trims are cards under the reply too; tapping one switches the package behind.

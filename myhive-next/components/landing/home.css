@@ -205,7 +205,6 @@
 .tl--home .dcard__name { font-family: var(--display); font-weight: 700; font-size: 1.45rem; line-height: 1.1; letter-spacing: -0.02em; }
 .tl--home .dcard__meta { display: flex; align-items: baseline; gap: 0.55rem; margin-top: 0.5rem; font-family: var(--tally); font-size: 0.9rem; color: #e6e2ee; }
 .tl--home .dcard__meta i { font-style: normal; color: var(--muted); }
-.tl--home .dcard__min { margin-top: 0.3rem; font-family: var(--tally); font-size: 0.72rem; color: var(--muted); }
 .tl--home .dcard__stamp {
   position: absolute;
   top: 1.6rem;
@@ -312,7 +311,6 @@
 .tl--home .short__list li { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.6rem; border-radius: var(--r); background: #262430; }
 .tl--home .short__list img { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; flex: none; }
 .tl--home .short__nm { flex: 1; min-width: 0; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tl--home .short__pr { font-family: var(--tally); font-size: 0.85rem; color: var(--brand-ic); }
 .tl--home .short__empty { text-align: center; color: var(--muted-l); font-size: 0.9rem; padding: 1.5rem 0; }
 
 /* ---------- trust strip ---------- */

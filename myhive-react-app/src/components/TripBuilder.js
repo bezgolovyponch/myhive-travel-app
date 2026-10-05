@@ -4,7 +4,7 @@ import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice} from '../utils/format';
-import {computeTripTotal, groupMinApplied, groupTripItems, lineTotal} from '../utils/tripPricing';
+import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
@@ -14,6 +14,7 @@ import {clearTripLead} from '../utils/tripLead';
 import {voteAppliedKey} from '../utils/voterToken';
 import {useTripLeadRestore} from '../hooks/useTripLeadRestore';
 import {useOrganizerVote} from '../hooks/useOrganizerVote';
+import {usePlanFromPrice} from '../hooks/usePlanFromPrice';
 import {tripDates} from '../utils/groupVote';
 import {useEmailLeadCapture} from '../hooks/useEmailLeadCapture';
 import ContactForm from './ContactForm';
@@ -617,24 +618,9 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // Same shape as the stepper in TripSetupModal.js.
   const [travelersDraft, setTravelersDraft] = useState(null);
 
-  // One price label for both standalone and package lines; shows the floored
-  // total with a marker whenever the group minimum binds — including travelers = 1.
-  const itemPriceLabel = (item) => {
-    if (groupMinApplied(item, travelers)) {
-      return t('price.groupMinLine', {
-        price: formatPrice(item.price),
-        travelers,
-        total: formatPrice(lineTotal(item, travelers)),
-      });
-    }
-    return travelers > 1
-        ? t('price.multiplied', {
-          price: formatPrice(item.price),
-          travelers,
-          total: formatPrice(item.price * travelers),
-        })
-        : t('price.perPerson', {price: formatPrice(item.price)});
-  };
+  // The plan carries one price, "from €X" for the whole group, priced on the
+  // server; activity lines and lists carry none.
+  const planFromPrice = usePlanFromPrice(state.tripItems.map(item => item.id), travelers);
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
   // Display-only ranking for a completed CART vote — ties/unballoted items keep
@@ -784,9 +770,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                              className="itinerary-item-image" loading="lazy"/>
                         <div className="itinerary-item-content">
                           <div className="itinerary-item-title">{item.name}</div>
-                          <div className="itinerary-item-price">
-                            {itemPriceLabel(item)}
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -799,9 +782,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                        loading="lazy"/>
                   <div className="itinerary-item-content">
                     <div className="itinerary-item-title">{item.name}</div>
-                    <div className="itinerary-item-price">
-                      {itemPriceLabel(item)}
-                    </div>
                     {dashboard && tallyById[item.id] && <VoteCounts row={tallyById[item.id]}/>}
                     {!dashboard && voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
@@ -854,6 +834,12 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             only. */}
         {state.tripItems.length > 0 && (
             <div className="itinerary-footer">
+              {planFromPrice != null && (
+                  <div className="itinerary-plan-price">
+                    <span>{t('price.plan')}</span>
+                    <strong>{t('price.from', {price: formatPrice(Number(planFromPrice))})}</strong>
+                  </div>
+              )}
               {liveVote && (
                   <p className="vd-lock-note">
                     <b>{t('dashboard.lockTitle')}</b> {t('dashboard.lockText')}
@@ -941,7 +927,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                             >
                               {a.name}
                             </button>
-                            <div className="browse-activity-price">{t('price.perPerson', {price: formatPrice(a.price)})}</div>
                           </div>
                           <button
                               className="browse-add-btn"
@@ -982,7 +967,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                           )}
                           <div className="browse-activity-content">
                             <div className="browse-activity-title">{s.name}</div>
-                            <div className="browse-activity-price">{t('price.perPerson', {price: formatPrice(s.price)})}</div>
                           </div>
                           <button
                               className="browse-add-btn"
@@ -1049,7 +1033,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                        className="browse-activity-image" loading="lazy"/>
                   <div className="browse-activity-content">
                     <div className="browse-activity-title">{activity.name}</div>
-                    <div className="browse-activity-price">{t('price.perPerson', {price: formatPrice(activity.price)})}</div>
                   </div>
                   <button
                       className="browse-add-btn"

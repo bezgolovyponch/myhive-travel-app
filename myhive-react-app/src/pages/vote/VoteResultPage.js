@@ -4,7 +4,7 @@ import voteApi from '../../services/voteApi';
 import ActivityCard from '../../components/ActivityCard';
 import VoteTallyCard from '../../components/vote/VoteTallyCard';
 import {useTrip} from '../../context/TripContext';
-import { formatPrice, formatPricePerPerson } from '../../utils/format';
+import { formatPrice } from '../../utils/format';
 import { pushEvent } from '../../utils/analytics';
 import { getAttribution, getRef } from '../../utils/attribution';
 import { resolveUserRole } from '../../utils/userRole';
@@ -144,10 +144,8 @@ function VoteResultContent() {
                         rows={data.result.map(row => ({
                             activityId: row.activityId,
                             name: row.name,
-                            price: row.price,
                             likeCount: row.likeCount,
                         }))}
-                        showPrices
                     />
                     {isInitiator && data.destinationSlug && (
                         <button
@@ -181,7 +179,6 @@ function VoteResultContent() {
                                 <li key={row.activityId} className="result-row">
                                     <div className="result-row-main">
                                         <strong>{row.name}</strong>
-                                        <span className="result-row-price">{formatPricePerPerson(row.price)}</span>
                                     </div>
                                     <div className="result-row-counts">
                                         {t('result.counts', { likes: row.likeCount, skips: row.skipCount })}
