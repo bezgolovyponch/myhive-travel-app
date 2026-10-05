@@ -401,7 +401,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     const known = browseActivities.find(a => a.id === row.activityId);
     dispatch({
       type: 'ADD_TO_TRIP',
-      activity: known || {id: row.activityId, name: row.name, price: row.price, destinationSlug},
+      activity: known || {id: row.activityId, name: row.name, price: row.price, imageUrl: row.imageUrl, destinationSlug},
       silent: true,
     });
     organizerVote.restoreActivity(row.activityId);
@@ -809,6 +809,9 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
               ))}
               {droppedRows.map(row => (
                 <div key={row.activityId} className="itinerary-item is-dropped">
+                  {row.imageUrl && (
+                      <img src={row.imageUrl} alt={row.name} className="itinerary-item-image" loading="lazy"/>
+                  )}
                   <div className="itinerary-item-content">
                     <div className="itinerary-item-title">{row.name}</div>
                     <VoteCounts row={row}/>

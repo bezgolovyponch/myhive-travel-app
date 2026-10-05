@@ -143,11 +143,13 @@
     font-weight: 700;
 }
 
-/* Invite link for the group chat. */
+/* Invite link for the group chat: as wide as a phone, also on a wide screen. */
 .vd-invite {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    width: 100%;
+    max-width: 480px;
     margin: var(--gap-lg) 0;
 }
 

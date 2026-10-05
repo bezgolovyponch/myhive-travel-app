@@ -25,6 +25,8 @@ public class VoteTallyResponse {
     public static class TallyRow {
         private UUID activityId;
         private String name;
+        /** The activity's photo, so a dropped row keeps its picture in the organiser's list. */
+        private String imageUrl;
         private BigDecimal price;
         private long likeCount;
         /** "No" votes. */

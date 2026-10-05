@@ -13,6 +13,9 @@
 }
 
 .trip-builder-main {
+    /* A grid item's min width defaults to its content: without this, one long
+       unbroken string (the invite link) widens the column past the screen. */
+    min-width: 0;
     background: var(--surface);
     border-radius: var(--radius-lg);
     padding: var(--gap-lg);
@@ -38,6 +41,14 @@
     .trip-builder-rail {
         position: sticky;
         top: var(--gap-lg);
+    }
+
+    /* On a wide screen the plan price, the note and Complete Booking sit in a
+       compact column on the right instead of stretching across the page. */
+    .itinerary-footer > * {
+        width: 100%;
+        max-width: 480px;
+        align-self: flex-end;
     }
 }
 
@@ -78,7 +89,9 @@
 }
 
 .trip-info-input {
-    width: 2.25rem;
+    /* Two digits at the 16px font below, plus the number spinner: a group of 10
+       must not read "1(". */
+    width: 3.5rem;
     padding: 0.25rem 0.25rem;
     border: 1px solid var(--card-border);
     border-radius: var(--radius);

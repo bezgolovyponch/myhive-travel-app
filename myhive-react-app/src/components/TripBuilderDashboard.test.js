@@ -53,7 +53,8 @@ const TALLY = {
     rows: [
         {activityId: 'act-1', name: 'AK-47 shooting', price: 89, likeCount: 3, skipCount: 0, excluded: false},
         {activityId: 'act-2', name: 'Steak dinner', price: 59, likeCount: 1, skipCount: 2, excluded: false},
-        {activityId: 'act-3', name: 'Tank driving', price: 149, likeCount: 0, skipCount: 3, excluded: true},
+        {activityId: 'act-3', name: 'Tank driving', imageUrl: 'http://img/tank.jpg', price: 149, likeCount: 0,
+            skipCount: 3, excluded: true},
     ],
     recommendations: [
         {activityId: 'act-9', name: 'Pub golf', slug: 'pub-golf', imageUrl: null, price: 29, minPrice: null,
@@ -151,9 +152,10 @@ test('removing an activity drops it from the running vote', async () => {
     expect(voteApi.excludeActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-2');
 });
 
-test('a dropped activity is listed struck through and Restore brings it back', async () => {
+test('a dropped activity is listed struck through, with its picture, and Restore brings it back', async () => {
     const {dispatch} = renderDashboard();
     await screen.findByText('Tank driving');
+    expect(screen.getByRole('img', {name: 'Tank driving'})).toHaveAttribute('src', 'http://img/tank.jpg');
 
     await userEvent.click(screen.getByRole('button', {name: 'Restore'}));
 

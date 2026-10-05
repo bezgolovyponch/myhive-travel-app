@@ -613,6 +613,7 @@ public class VoteSessionService {
                     return new VoteTallyResponse.TallyRow(
                             row.getActivity().getId(),
                             Translations.pick(row.getActivity().getTranslations(), lc, "name", row.getActivityName()),
+                            row.getActivity().getImageUrl(),
                             row.getPrice(),
                             VoteRanking.likeCountOf(counts, row),
                             c == null ? 0 : c.getSkipCount(),

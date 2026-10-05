@@ -230,7 +230,8 @@ class VoteSessionControllerTest {
         VoteTallyResponse tally = new VoteTallyResponse("ACTIVE",
                 java.time.Instant.now().plus(12, java.time.temporal.ChronoUnit.HOURS), 3L, 10,
                 List.of(new VoteTallyResponse.TallyRow(
-                        UUID.randomUUID(), "Bar Crawl", new java.math.BigDecimal("45.00"), 2L, 1L, false)),
+                        UUID.randomUUID(), "Bar Crawl", "https://img/bar.jpg", new java.math.BigDecimal("45.00"), 2L, 1L,
+                        false)),
                 List.of(new VoteTallyResponse.RecommendationRow(UUID.randomUUID(), "Pub golf", "pub-golf",
                         null, new java.math.BigDecimal("30.00"), null, 120, 2L)));
 
