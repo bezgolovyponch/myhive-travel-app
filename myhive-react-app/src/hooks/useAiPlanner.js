@@ -61,6 +61,13 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const [showRequest, setShowRequest] = useState(null);
     // The activity whose draft tap is in flight, if any.
     const [editing, setEditing] = useState(null);
+    // Per package key, the themes it lacks next to the presets of its tier: [{categorySlug, name}].
+    const [gaps, setGaps] = useState({});
+    // The trim on screen: every message tells the planner it is the one draft to change.
+    const workingPackageRef = useRef(null);
+    const setWorkingPackage = useCallback((key) => {
+        workingPackageRef.current = key || null;
+    }, []);
     const tokenRef = useRef(null);
 
     const adoptSession = useCallback((state) => {
@@ -70,6 +77,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setMessages((state.messages || []).map(toEntry));
         setSuggestedReplies(state.suggestedReplies || []);
         setRecommendations(state.recommendations || []);
+        setGaps(state.gaps || {});
         const ready = state.latestReadyGeneration;
         const latest = state.latestGeneration;
         const inFlight = latest && (latest.status === 'QUEUED' || latest.status === 'RUNNING');
@@ -86,6 +94,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setSuggestedReplies([]);
         setGeneration(null);
         setRecommendations([]);
+        setGaps({});
         setShowRequest(null);
         setBuilding(false);
         setWatchedId(null);
@@ -119,6 +128,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
 
     const applyTurn = useCallback(async (turn) => {
         setRecommendations(turn.recommendations || []);
+        if (turn.gaps) setGaps(turn.gaps);
         if (turn.showPackage) setShowRequest({key: turn.showPackage, at: Date.now()});
         setMessages((prev) => [...prev, ...(turn.messages || []).map(toEntry)]);
         setSuggestedReplies(turn.suggestedReplies || []);
@@ -158,7 +168,10 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                     setError({code: state.firstTurnError.code, retryText: content});
                 }
             } else {
-                await applyTurn(await api.sendMessage(tokenRef.current, content));
+                const draftKey = workingPackageRef.current;
+                await applyTurn(await (draftKey
+                    ? api.sendMessage(tokenRef.current, content, draftKey)
+                    : api.sendMessage(tokenRef.current, content)));
             }
         } catch (e) {
             const code = errorCode(e) || 'NETWORK';
@@ -191,9 +204,13 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                     setGeneration(gen);
                     setBuilding(false);
                     setWatchedId(null);
-                    // The session now has chips for "what next" and fresh limits.
+                    // The session now has chips for "what next", the draft's gaps and fresh limits.
                     api.getSession(tokenRef.current)
-                        .then((state) => !stopped && setSuggestedReplies(state.suggestedReplies || []))
+                        .then((state) => {
+                            if (stopped) return;
+                            setSuggestedReplies(state.suggestedReplies || []);
+                            setGaps(state.gaps || {});
+                        })
                         .catch(() => {});
                     return;
                 }
@@ -262,6 +279,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         sending,
         generation,
         recommendations,
+        gaps,
+        setWorkingPackage,
         showRequest,
         editing,
         building,

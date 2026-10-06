@@ -52,10 +52,11 @@ const aiPlannerApi = {
     return request(`/ai/sessions/${encodeURIComponent(token)}`, {}, 'Failed to load the planner chat');
   },
 
-  sendMessage(token, content) {
+  // packageKey: the trim on screen once there are packages - the only one the turn may change.
+  sendMessage(token, content, packageKey) {
     return request(`/ai/sessions/${encodeURIComponent(token)}/messages`, {
       method: 'POST',
-      body: { content },
+      body: packageKey ? { content, packageKey } : { content },
       timeoutMs: MESSAGE_TIMEOUT_MS,
     }, 'The planner did not answer');
   },

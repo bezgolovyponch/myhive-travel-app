@@ -1226,8 +1226,7 @@
       "suggestions": "Vorgeschlagene Aktivitäten",
       "daySlot": "Tag {n} · {slot}",
       "added": "Drin ✓",
-      "addAria": "{name} zum Entwurf hinzufügen",
-      "perPerson": "{price} p. P."
+      "addAria": "{name} zum Entwurf hinzufügen"
     },
     "dock": {
       "title": "JGA-KI",
@@ -1236,7 +1235,9 @@
       "working": "Wird bearbeitet…",
       "collapse": "Chat einklappen",
       "placeholder": "Ändere, was du willst…",
-      "expand": "Chat öffnen"
+      "expand": "Chat öffnen",
+      "gapsAria": "Was dem Entwurf noch fehlt",
+      "gapMessage": "Füg etwas aus {name} hinzu"
     }
   }
 }

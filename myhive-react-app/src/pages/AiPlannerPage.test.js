@@ -381,10 +381,13 @@ test('"we want to shoot": the top match and related tags sit above the open chat
 
     await userEvent.type(await screen.findByRole('textbox', {name: 'Message Stag Do AI'}),
         'We want to shoot kalashnikov{Enter}');
+    // The trim on screen goes with the message: it is the one draft the turn may change.
+    expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'We want to shoot kalashnikov', 'MEDIUM');
 
     const offered = await screen.findByRole('group', {name: 'Suggested activities'});
     expect(within(offered).getByText('AK-47 shooting')).toBeInTheDocument();
-    expect(within(offered).getByText('1 h 30 min · €89 pp')).toBeInTheDocument();
+    // No price in the draft's chat: duration only (the draft shows one "from" total).
+    expect(within(offered).getByText('1 h 30 min')).toBeInTheDocument();
     expect(within(offered).getByRole('button', {name: 'Add Pistol + AK combo to the trip draft'}))
         .toHaveTextContent('+ Pistol + AK combo');
     // A wish is not an edit: the draft is unchanged until a tap.
@@ -426,4 +429,28 @@ test('the chat brings the trims back ("what were the other options?") and switch
     const draft = await screen.findByRole('region', {name: 'Trip draft'});
     expect(await within(draft).findByText('VIP Club')).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+});
+
+test('a ready draft offers what it lacks next to the presets as tags, in place of the last line; a tag asks the chat', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session({
+        latestReadyGeneration: readyGeneration(), status: 'READY',
+        messages: [greeting, {role: 'ASSISTANT', content: 'On it - building your three options now.', at}],
+        gaps: {MEDIUM: [{categorySlug: 'nightlife', name: 'Nightlife'}, {categorySlug: 'czech-beer', name: 'Czech Beer'}],
+            PREMIUM: [{categorySlug: 'extreme', name: 'Extreme'}]},
+    }));
+    aiPlannerApi.sendMessage.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'The top match is above.', at}], suggestedReplies: [],
+        generation: null, recommendations: [],
+    });
+    renderPage();
+
+    const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
+    const tags = within(dock).getByRole('group', {name: 'What the draft could use'});
+    expect(within(tags).getByRole('button', {name: '+ Nightlife'})).toBeInTheDocument();
+    expect(within(tags).queryByText(/Extreme/)).not.toBeInTheDocument(); // another trim's gaps
+
+    await userEvent.click(within(tags).getByRole('button', {name: '+ Czech Beer'}));
+
+    expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'Add something from Czech Beer', 'MEDIUM');
 });

@@ -1,13 +1,9 @@
-import {formatAmount} from '../../utils/format';
 import {useT} from '../../i18n';
 import {duration} from './AiPackageView';
 
-// "1 h 30 min · €89 pp": what the top match needs to be picked without opening it.
-function meta(t, rec) {
-    return [
-        duration(rec.durationMinutes),
-        rec.pricePerPerson != null && t('result.perPerson', {price: formatAmount(Math.round(Number(rec.pricePerPerson)))}),
-    ].filter(Boolean).join(' · ');
+// "1 h 30 min · Action packed, ...": no price - the draft shows one "from" total only.
+function meta(rec) {
+    return [duration(rec.durationMinutes), rec.oneLine].filter(Boolean).join(' · ');
 }
 
 /**
@@ -16,7 +12,7 @@ function meta(t, rec) {
  * tap adds it to the draft, a tap on an added one ("Added ✓" / "✓ name")
  * takes it out again - with no chat turn in between.
  *
- * @param recommendations  [{activityId, name, durationMinutes, pricePerPerson, imageUrl}], best first
+ * @param recommendations  [{activityId, name, oneLine, durationMinutes, imageUrl}], best first
  * @param isAdded          (activityId) => whether the draft holds it
  * @param onToggle         (rec, added) => void
  * @param pendingId        the activity whose tap is in flight
@@ -35,7 +31,7 @@ function AiRecommendations({recommendations, isAdded, onToggle, pendingId, disab
                 </span>
                 <div className="aip-suggest-body">
                     <div className="aip-suggest-name">{top.name}</div>
-                    {meta(t, top) && <div className="aip-suggest-meta">{meta(t, top)}</div>}
+                    {meta(top) && <div className="aip-suggest-meta">{meta(top)}</div>}
                 </div>
                 <button
                     type="button"

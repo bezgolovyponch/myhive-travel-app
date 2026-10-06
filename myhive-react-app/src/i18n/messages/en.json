@@ -1236,8 +1236,7 @@
       "suggestions": "Suggested activities",
       "daySlot": "Day {n} · {slot}",
       "added": "Added ✓",
-      "addAria": "Add {name} to the trip draft",
-      "perPerson": "{price} pp"
+      "addAria": "Add {name} to the trip draft"
     },
     "dock": {
       "title": "Stag Do AI",
@@ -1246,7 +1245,9 @@
       "working": "Working on it…",
       "collapse": "Collapse chat",
       "placeholder": "Change anything…",
-      "expand": "Open chat"
+      "expand": "Open chat",
+      "gapsAria": "What the draft could use",
+      "gapMessage": "Add something from {name}"
     }
   }
 }

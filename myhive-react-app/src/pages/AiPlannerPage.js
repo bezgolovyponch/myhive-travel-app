@@ -201,6 +201,25 @@ function AiPlannerPage({pollIntervalMs}) {
         ? activePkg.days.flatMap((day) => day.items).find((item) => item.activityId === planner.editing)?.name
         : null;
     const busy = sending || planner.building || Boolean(planner.editing);
+    // The trim on screen is the one draft: messages change it and nothing else.
+    const workingKey = activePkg?.key || null;
+    const {setWorkingPackage} = planner;
+    useEffect(() => {
+        setWorkingPackage(workingKey);
+    }, [workingKey, setWorkingPackage]);
+    // What the draft lacks next to the presets of its trim: tags that ask the chat for it.
+    const gaps = (workingKey && planner.gaps?.[workingKey]) || [];
+    const gapTags = gaps.length > 0 && (
+        <div className="aip-gaps" role="group" aria-label={t('dock.gapsAria')}>
+            {gaps.map((gap) => (
+                <button key={gap.categorySlug} type="button" disabled={busy}
+                        onClick={() => dockPlanner.send(t('dock.gapMessage', {name: gap.name}))}>
+                    + {gap.name}
+                </button>
+            ))}
+        </div>
+    );
+    const showRecommendations = (planner.recommendations || []).length > 0;
     const toggleRecommendation = (rec, added) => {
         setChatted(true);
         setShowAll(false);
@@ -252,6 +271,7 @@ function AiPlannerPage({pollIntervalMs}) {
                                 <i className={`ph ph-caret-${dockOpen ? 'down' : 'up'}`}/>
                             </span>
                         </button>
+                        {dockOpen && !showRecommendations && gapTags}
                         {dockOpen && (
                             <AiRecommendations
                                 recommendations={planner.recommendations}
@@ -261,7 +281,9 @@ function AiPlannerPage({pollIntervalMs}) {
                                 disabled={busy}
                             />
                         )}
-                        {!dockOpen && <div className="aip-dock-line">{dockLine}</div>}
+                        {/* Collapsed: what the draft could use next; the last line only while
+                            the planner is working or there is nothing to suggest. */}
+                        {!dockOpen && (gapTags && !busy ? gapTags : <div className="aip-dock-line">{dockLine}</div>)}
                         <AiThread
                             planner={dockPlanner}
                             variant="drawer"

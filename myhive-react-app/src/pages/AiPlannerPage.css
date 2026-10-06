@@ -375,3 +375,48 @@
     opacity: 0.5;
     cursor: default;
 }
+
+/* What the draft could use next (its gaps next to the presets of its trim):
+   tags that ask the chat for it, in place of a stale last line. */
+.aip-gaps {
+    flex: none;
+    display: flex;
+    gap: 6px;
+    padding: 2px 14px 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.aip-gaps::-webkit-scrollbar {
+    display: none;
+}
+
+.aip-dock.is-open .aip-gaps {
+    padding: 10px 14px;
+    background: #201d2a;
+    border-top: 1px solid #2e2b3a;
+    border-bottom: 1px solid #2e2b3a;
+}
+
+.aip-gaps button {
+    flex: none;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid #3a3550;
+    border-radius: 999px;
+    background: transparent;
+    color: #d8d5e3;
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.aip-gaps button:hover {
+    border-color: var(--aip-purple);
+}
+
+.aip-gaps button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
