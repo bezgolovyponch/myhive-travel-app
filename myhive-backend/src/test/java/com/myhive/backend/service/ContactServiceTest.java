@@ -35,12 +35,24 @@ class ContactServiceTest {
     @Autowired private EmailSuppressionRepository emailSuppressionRepository;
 
     private final List<String> createdEmails = new ArrayList<>();
+    private final List<String> createdPhones = new ArrayList<>();
 
     @AfterEach
     void cleanUp() {
         for (String email : createdEmails) {
             contactRepository.findByEmail(email).ifPresent(contactRepository::delete);
         }
+        for (String phone : createdPhones) {
+            contactRepository.findByPhone(phone).ifPresent(contactRepository::delete);
+        }
+    }
+
+    /** A unique UK mobile in E.164, so parallel test data never collides on the unique phone index. */
+    private String uniquePhone() {
+        String digits = String.valueOf(Math.abs(UUID.randomUUID().getMostSignificantBits())).substring(0, 9);
+        String phone = "+447" + digits;
+        createdPhones.add(phone);
+        return phone;
     }
 
     private String uniqueEmail() {
@@ -61,6 +73,54 @@ class ContactServiceTest {
         assertThat(contact.getLocale()).isEqualTo("de");
         assertThat(contact.getTouchCount()).isEqualTo(1);
         assertThat(contact.getFirstSeenAt()).isEqualTo(contact.getLastSeenAt());
+    }
+
+    @Test
+    void touchPhone_newNumber_createsPhoneOnlyContactInE164() {
+        String expectedPhone = uniquePhone();
+        String typed = expectedPhone.substring(0, 3) + " " + expectedPhone.substring(3, 7) + "-" + expectedPhone.substring(7);
+
+        contactService.touchPhone(typed, ContactSource.VOTE, "de");
+
+        Contact contact = contactRepository.findByPhone(expectedPhone).orElseThrow();
+        assertThat(contact.getEmail()).isNull();
+        assertThat(contact.getFirstSource()).isEqualTo(ContactSource.VOTE);
+        assertThat(contact.getLocale()).isEqualTo("de");
+        assertThat(contact.getTouchCount()).isEqualTo(1);
+    }
+
+    @Test
+    void touchPhone_existingNumber_updatesTheSameRow() {
+        String phone = uniquePhone();
+        contactService.touchPhone(phone, ContactSource.VOTE, null);
+        Contact first = contactRepository.findByPhone(phone).orElseThrow();
+
+        contactService.touchPhone(phone, ContactSource.VOTE, null);
+
+        Contact updated = contactRepository.findByPhone(phone).orElseThrow();
+        assertThat(updated.getId()).isEqualTo(first.getId());
+        assertThat(updated.getTouchCount()).isEqualTo(2);
+    }
+
+    @Test
+    void touchPhone_invalidNumber_writesNothing() {
+        long before = contactRepository.count();
+
+        contactService.touchPhone("07700 900123", ContactSource.VOTE, null);
+        contactService.touchPhone("+12", ContactSource.VOTE, null);
+        contactService.touchPhone(null, ContactSource.VOTE, null);
+
+        assertThat(contactRepository.count()).isEqualTo(before);
+    }
+
+    @Test
+    void search_findsPhoneOnlyContactsByNumber() {
+        String phone = uniquePhone();
+        contactService.touchPhone(phone, ContactSource.VOTE, null);
+
+        Page<ContactDTO> page = contactService.search(phone.substring(4), PageRequest.of(0, 10));
+
+        assertThat(page.getContent()).extracting(ContactDTO::getPhone).contains(phone);
     }
 
     @Test

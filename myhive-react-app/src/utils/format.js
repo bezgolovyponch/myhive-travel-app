@@ -70,12 +70,6 @@ export function formatPrice(price) {
     return price;
 }
 
-export function formatPricePerPerson(price) {
-    const base = formatPrice(price);
-    if (!base) return base;
-    return `${base} / person`;
-}
-
 export function hasGroupMin(activity) {
     return Number(activity?.minPrice) > 0;
 }

@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -58,7 +59,22 @@ class VoteSessionTallyTest {
     }
 
     @Test
-    void getTally_returnsSortedCountsForVoter() {
+    void getTally_forbiddenForFriendWhoHasVoted_403() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        VoteSessionResponse session = createCartSession(prague, barCrawl);
+        UUID voterToken = UUID.randomUUID();
+        castBallot(session.getShareToken(), voterToken, Map.of(barCrawl.getId(), true));
+
+        assertThatThrownBy(() -> voteSessionService.getTally(session.getShareToken(), voterToken, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    @Test
+    void getTally_returnsSortedCountsForOrganiser() {
         Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
         Activity barCrawl = activityRepository.saveAndFlush(
                 TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));   // 0 votes, cart position 1
@@ -66,12 +82,12 @@ class VoteSessionTallyTest {
                 TestDataFactory.activity(prague, "Karting", new BigDecimal("45.00")));     // 1 vote, cart position 2
         VoteSessionResponse session = createCartSession(prague, barCrawl, karting);
 
-        UUID voterToken = UUID.randomUUID();
-        castVote(session.getShareToken(), voterToken, karting.getId(), true);
+        castBallot(session.getShareToken(), UUID.randomUUID(), Map.of(karting.getId(), true));
 
-        VoteTallyResponse tally = voteSessionService.getTally(session.getShareToken(), voterToken, null);
+        VoteTallyResponse tally = voteSessionService.getTally(session.getShareToken(), null, session.getManagerToken());
 
         assertThat(tally.getParticipantCount()).isEqualTo(1);
+        assertThat(tally.getNumberOfTravelers()).isEqualTo(4);
         assertThat(tally.getStatus()).isEqualTo("ACTIVE");
         assertThat(tally.getRows()).extracting(VoteTallyResponse.TallyRow::getName)
                 .containsExactly("Karting", "Bar Crawl");
@@ -80,7 +96,7 @@ class VoteSessionTallyTest {
     }
 
     @Test
-    void getTally_allSkipsVoterIsParticipantWithTallyAccess() {
+    void getTally_allSkipsVoterCountsAsParticipant() {
         long expectedParticipants = 1L;
 
         Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
@@ -88,13 +104,13 @@ class VoteSessionTallyTest {
                 TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
         VoteSessionResponse session = createCartSession(prague, barCrawl);
 
-        UUID voterToken = UUID.randomUUID();
-        castVote(session.getShareToken(), voterToken, barCrawl.getId(), false);
+        castBallot(session.getShareToken(), UUID.randomUUID(), Map.of(barCrawl.getId(), false));
 
-        VoteTallyResponse tally = voteSessionService.getTally(session.getShareToken(), voterToken, null);
+        VoteTallyResponse tally = voteSessionService.getTally(session.getShareToken(), null, session.getManagerToken());
 
         assertThat(tally.getParticipantCount()).isEqualTo(expectedParticipants);
         assertThat(tally.getRows().get(0).getLikeCount()).isZero();
+        assertThat(tally.getRows().get(0).getSkipCount()).isEqualTo(1);
     }
 
     @Test
@@ -106,20 +122,18 @@ class VoteSessionTallyTest {
                 TestDataFactory.activity(prague, "Karting", new BigDecimal("45.00")));     // 1 like, 1 skip
         VoteSessionResponse session = createCartSession(prague, barCrawl, karting);
 
-        UUID voterA = UUID.randomUUID();
-        UUID voterB = UUID.randomUUID();
-        castVote(session.getShareToken(), voterA, barCrawl.getId(), false);
-        castVote(session.getShareToken(), voterA, karting.getId(), true);
-        castVote(session.getShareToken(), voterB, barCrawl.getId(), false);
-        castVote(session.getShareToken(), voterB, karting.getId(), false);
+        castBallot(session.getShareToken(), UUID.randomUUID(), Map.of(barCrawl.getId(), false, karting.getId(), true));
+        castBallot(session.getShareToken(), UUID.randomUUID(), Map.of(barCrawl.getId(), false, karting.getId(), false));
 
-        VoteTallyResponse tally = voteSessionService.getTally(session.getShareToken(), voterA, null);
+        VoteTallyResponse tally = voteSessionService.getTally(session.getShareToken(), null, session.getManagerToken());
 
         assertThat(tally.getParticipantCount()).isEqualTo(2);
         assertThat(tally.getRows()).extracting(VoteTallyResponse.TallyRow::getName)
                 .containsExactly("Karting", "Bar Crawl");
         assertThat(tally.getRows().get(0).getLikeCount()).isEqualTo(1);
+        assertThat(tally.getRows().get(0).getSkipCount()).isEqualTo(1);
         assertThat(tally.getRows().get(1).getLikeCount()).isZero();
+        assertThat(tally.getRows().get(1).getSkipCount()).isEqualTo(2);
     }
 
     @Test
@@ -163,13 +177,16 @@ class VoteSessionTallyTest {
                         .isEqualTo(HttpStatus.CONFLICT));
     }
 
-    private void castVote(UUID shareToken, UUID voterToken, UUID activityId, boolean liked) {
+    /** One friend's whole ballot, sent once as the friend flow does. */
+    private void castBallot(UUID shareToken, UUID voterToken, Map<UUID, Boolean> votes) {
         VoteBatchRequest batch = new VoteBatchRequest();
         batch.setVoterToken(voterToken);
-        VoteBatchRequest.VoteItem item = new VoteBatchRequest.VoteItem();
-        item.setActivityId(activityId);
-        item.setLiked(liked);
-        batch.setVotes(List.of(item));
+        batch.setVotes(votes.entrySet().stream().map(e -> {
+            VoteBatchRequest.VoteItem item = new VoteBatchRequest.VoteItem();
+            item.setActivityId(e.getKey());
+            item.setLiked(e.getValue());
+            return item;
+        }).toList());
         voteSessionService.castVotes(shareToken, batch);
     }
 

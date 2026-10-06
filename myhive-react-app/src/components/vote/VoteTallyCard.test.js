@@ -25,10 +25,3 @@ test('bar width is likeCount over participantCount', () => {
   expect(fills[0].style.width).toBe('100%');
   expect(fills[1].style.width).toBe('50%');
 });
-
-test('shows prices only when showPrices is set', () => {
-  const { rerender } = render(<VoteTallyCard participantCount={9} rows={rows} />);
-  expect(screen.queryByText(/€45/)).not.toBeInTheDocument();
-  rerender(<VoteTallyCard participantCount={9} rows={rows} showPrices />);
-  expect(screen.getByText(/€45/)).toBeInTheDocument();
-});

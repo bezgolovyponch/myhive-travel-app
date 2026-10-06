@@ -49,7 +49,7 @@ test('typing a search term refetches with the query', async () => {
     render(<AdminContacts/>);
     await screen.findByText('anna@example.com');
 
-    await user.type(screen.getByPlaceholderText('Search email or name'), 'anna');
+    await user.type(screen.getByPlaceholderText('Search email, name or number'), 'anna');
 
     await waitFor(() => expect(mockApi.getContactsPaged).toHaveBeenLastCalledWith(0, 20, 'anna'));
 });

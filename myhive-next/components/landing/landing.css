@@ -92,10 +92,10 @@ body:has(.tl) {
 .tl .t-lede { color: var(--muted-l); font-size: clamp(1rem, 1.5vw, 1.125rem); max-width: 52ch; margin: 0.85rem 0 0; }
 .tl .num { font-family: var(--tally); font-variant-numeric: tabular-nums; }
 .tl .t-eyebrow, .tl .num, .tl .tile__n, .tl .tc-row__t, .tl .tc-row__p, .tl .acard__cat,
-.tl .acard__pr, .tl .acard__min, .tl .acard__dur, .tl .crow b, .tl .seller__live,
+.tl .acard__dur, .tl .crow b, .tl .seller__live,
 .tl .rev__mt, .tl .ftr h4, .tl .ftr__bot, .tl .final__fine, .tl .hero__pf, .tl .mini,
-.tl .rules__badge, .tl .deck__count, .tl .dcard__meta, .tl .dcard__min,
-.tl .short__hd span, .tl .short__pr {
+.tl .rules__badge, .tl .deck__count, .tl .dcard__meta,
+.tl .short__hd span {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
@@ -415,9 +415,6 @@ body:has(.tl) {
   overflow: hidden;
 }
 .tl .acard__dur { font-family: var(--tally); font-size: 0.74rem; color: var(--muted); margin-bottom: 0.45rem; }
-.tl .acard__pr { font-family: var(--tally); font-size: 1rem; color: var(--brand-ic); }
-.tl .acard__pr span { font-size: 0.76rem; color: var(--muted); }
-.tl .acard__min { font-family: var(--tally); font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
 .tl .acard__row { margin-top: auto; padding-top: 0.9rem; }
 .tl .acard__row .btn { width: 100%; padding: 0.58rem 0.8rem; font-size: 0.86rem; }
 .tl .grid__more { text-align: center; margin-top: 2.5rem; }
@@ -438,9 +435,6 @@ body:has(.tl) {
   .tl .acard__bd { padding: 0.6rem 0.65rem 0.7rem; }
   .tl .acard__nm { font-size: 0.84rem; margin-bottom: 0.25rem; }
   .tl .acard__dur { font-size: 0.68rem; margin-bottom: 0.3rem; }
-  .tl .acard__pr { font-size: 0.86rem; }
-  .tl .acard__pr span { display: none; }
-  .tl .acard__min { font-size: 0.66rem; }
   .tl .acard__row { padding-top: 0.6rem; }
   .tl .acard__row .btn { padding: 0.5rem 0.4rem; font-size: 0.76rem; }
 }

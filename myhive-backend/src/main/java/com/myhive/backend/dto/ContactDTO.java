@@ -13,7 +13,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ContactDTO {
     private UUID id;
+    /** Null for a phone-only contact. */
     private String email;
+    /** E.164; null for an email-only contact. */
+    private String phone;
     private String name;
     private String locale;
     private ContactSource firstSource;

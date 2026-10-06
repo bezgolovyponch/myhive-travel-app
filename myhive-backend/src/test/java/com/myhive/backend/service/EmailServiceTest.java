@@ -246,7 +246,7 @@ class EmailServiceTest {
 
     @Test
     void sendNewContactsDigest_sendsSynchronouslyToBookingsAddress() throws Exception {
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", "Anna", "de",
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, "Anna", "de",
                 ContactSource.VOTE, ContactSource.BOOKING,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 9, 0), 2, false);
         MimeMessage mimeMessage = mock(MimeMessage.class);
@@ -264,7 +264,7 @@ class EmailServiceTest {
     @Test
     void sendNewContactsDigest_whenEmailDisabled_throwsSoRowsStayQueued() {
         ReflectionTestUtils.setField(emailService, "emailEnabled", false);
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null,
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null, null,
                 ContactSource.VOTE, ContactSource.VOTE,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 8, 30), 1, false);
 
@@ -277,7 +277,7 @@ class EmailServiceTest {
     void sendNewContactsDigest_mapsSourcesLocaleAndTimestampIntoRows() {
         String expectedSource = "VOTE → BOOKING";
         String expectedFirstSeen = "2026-09-12 08:30 UTC";
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", "Anna", "de",
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, "Anna", "de",
                 ContactSource.VOTE, ContactSource.BOOKING,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 9, 0), 2, false);
         when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
@@ -298,7 +298,7 @@ class EmailServiceTest {
 
     @Test
     void sendNewContactsDigest_defaultsNullNameAndLocale() {
-        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null,
+        ContactDTO contact = new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null, null,
                 ContactSource.VOTE, ContactSource.VOTE,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 8, 30), 1, true);
         when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
@@ -449,7 +449,7 @@ class EmailServiceTest {
         String dashboardUrl = (String) context.getVariable("dashboardUrl");
         String inviteUrl = (String) context.getVariable("inviteUrl");
         assertThat(dashboardUrl)
-                .contains("/vote/" + shareToken + "/waiting")
+                .contains("/destination/bali?tab=trip-builder&voteSession=" + shareToken)
                 .contains("manager=" + managerToken);
         assertThat(inviteUrl)
                 .isEqualTo("https://trivlu.com/vote/" + shareToken + "/activities?ref=invite");
@@ -815,8 +815,8 @@ class EmailServiceTest {
     @Test
     void sendVoteHalfway_passesManagerDashboardUrlAndStandings() throws Exception {
         VoteSession session = halfwaySession("alice@example.com");
-        String expectedDashboardUrl = "https://trivlu.com/vote/" + session.getShareToken()
-                + "/waiting?manager=" + session.getManagerToken();
+        String expectedDashboardUrl = "https://trivlu.com/destination/prague?tab=trip-builder&voteSession="
+                + session.getShareToken() + "&manager=" + session.getManagerToken();
         List<EmailService.VoteStandingView> expectedStandings =
                 List.of(new EmailService.VoteStandingView("Bar Crawl", 4));
 
@@ -838,8 +838,8 @@ class EmailServiceTest {
     void sendVoteHalfway_germanSessionUsesGermanSubjectAndLocalePrefix() throws Exception {
         VoteSession session = halfwaySession("alice@example.com");
         session.setLocale("de");
-        String expectedDashboardUrl = "https://trivlu.com/de/vote/" + session.getShareToken()
-                + "/waiting?manager=" + session.getManagerToken();
+        String expectedDashboardUrl = "https://trivlu.com/de/destination/prague?tab=trip-builder&voteSession="
+                + session.getShareToken() + "&manager=" + session.getManagerToken();
 
         MimeMessage realMessage = new MimeMessage((Session) null);
         when(mailSender.createMimeMessage()).thenReturn(realMessage);

@@ -14,9 +14,10 @@ export const activityCount = (pkg) => pkg.days.reduce((n, day) => n + day.items.
 
 // "from €4,584": the package's group total — the number the cart shows once it
 // is picked — or null when there is none. Whole euros: cents read as a quote.
+// "from €X": the group total less the fixed margin, calculated on the backend.
 export function priceFrom(t, pkg) {
-    const n = Number(pkg.totalPrice);
-    if (pkg.totalPrice == null || !Number.isFinite(n) || n <= 0) return null;
+    const n = Number(pkg.fromPrice);
+    if (pkg.fromPrice == null || !Number.isFinite(n) || n <= 0) return null;
     return t('result.priceFrom', {price: formatAmount(Math.round(n))});
 }
 

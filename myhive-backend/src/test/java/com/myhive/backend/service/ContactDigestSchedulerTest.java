@@ -44,7 +44,7 @@ class ContactDigestSchedulerTest {
     }
 
     private static ContactDTO contact() {
-        return new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null,
+        return new ContactDTO(UUID.randomUUID(), "anna@example.com", null, null, null,
                 ContactSource.VOTE, ContactSource.VOTE,
                 LocalDateTime.of(2026, 9, 12, 8, 30), LocalDateTime.of(2026, 9, 12, 8, 30), 1, false);
     }

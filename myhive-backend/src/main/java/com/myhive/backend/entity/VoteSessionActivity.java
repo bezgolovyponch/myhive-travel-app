@@ -20,6 +20,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -54,4 +55,8 @@ public class VoteSessionActivity {
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
+
+    /** Set while the organiser has dropped this activity from the running vote; null = on the ballot. */
+    @Column(name = "excluded_at")
+    private LocalDateTime excludedAt;
 }

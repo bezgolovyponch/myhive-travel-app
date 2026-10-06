@@ -21,9 +21,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * One row per email address ever typed into the site (Trip Builder, vote, booking, contact form,
- * payment). Rows are never auto-deleted — this is the sales/ops address book. Opt-out lives in
- * {@link EmailSuppression}, not here.
+ * One row per email address or phone number ever typed into the site (Trip Builder, vote, booking,
+ * contact form, payment). Every row has an email, a phone, or both. Rows are never auto-deleted — this
+ * is the sales/ops address book. Opt-out lives in {@link EmailSuppression}, not here.
  */
 @Entity
 @Table(name = "contacts")
@@ -38,9 +38,13 @@ public class Contact {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    /** Normalized (trimmed, lowercase) — see ContactService.normalizeEmail. */
-    @Column(unique = true, nullable = false)
+    /** Normalized (trimmed, lowercase) — see ContactService.normalizeEmail. Null for a phone-only contact. */
+    @Column(unique = true)
     private String email;
+
+    /** E.164 ("+447700900123") — see ContactService.normalizePhone. Null for an email-only contact. */
+    @Column(unique = true, length = 32)
+    private String phone;
 
     /** Latest non-blank name the visitor gave us (booking or contact form); null when never given. */
     private String name;

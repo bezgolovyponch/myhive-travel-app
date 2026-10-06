@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import StartGroupVoteModal from './StartGroupVoteModal';
 import voteApi from '../../services/voteApi';
 import { pushEvent } from '../../utils/analytics';
+import { openWhatsApp } from '../../utils/openWhatsApp';
 
 jest.mock('../../services/voteApi', () => ({
   __esModule: true,
@@ -12,6 +13,8 @@ jest.mock('../../services/voteApi', () => ({
 }));
 
 jest.mock('../../utils/analytics', () => ({ pushEvent: jest.fn() }));
+jest.mock('../../utils/openWhatsApp', () => ({ openWhatsApp: jest.fn() }));
+jest.mock('../../utils/uuid', () => ({ generateUuid: () => 'tok-1' }));
 
 // The modal uses the site's DateRangePicker (DayPicker); two plain inputs stand
 // in for it so tests set dates without calendar interaction (as in TripSetupModal.test).
@@ -32,8 +35,10 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-const SUBMIT = 'Create vote';
-const EMAIL = 'Send the results to';
+const WHATSAPP = 'Send to WhatsApp group';
+const START = 'Start planning together';
+const PHONE = 'Your WhatsApp number';
+const EMAIL = 'Your email';
 
 function renderModal(props = {}) {
   return render(
@@ -43,267 +48,194 @@ function renderModal(props = {}) {
         onClose={jest.fn()}
         destinationId="d-1"
         destinationName="Prague"
+        destinationSlug="prague"
         activityIds={['a-1', 'a-2']}
-        numberOfTravelers={4}
-        startDate="2026-08-01"
-        endDate="2026-08-03"
+        numberOfTravelers={10}
+        startDate="2026-10-16"
+        endDate="2026-10-18"
         {...props}
       />
     </MemoryRouter>,
   );
 }
 
-async function launchWith(email) {
-  await userEvent.type(screen.getByLabelText(EMAIL), email);
-  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
-}
+beforeEach(() => {
+  voteApi.createCartSession.mockResolvedValue({ shareToken: 'tok-1', managerToken: 'mgr-1' });
+  voteApi.createSession.mockResolvedValue({ shareToken: 'tok-1', managerToken: 'mgr-1' });
+});
 
 afterEach(() => {
   localStorage.clear();
+  jest.clearAllMocks();
 });
 
-test('one screen: destination title, trip summary, benefits, email field and Create vote', async () => {
+test('shows the headline, the 3 steps, the example result and the message for the group', () => {
   renderModal();
 
-  expect(screen.getByRole('heading', { name: 'Start the vote for Prague' })).toBeInTheDocument();
-  expect(screen.getByText('2 activities · 4 people · closes in 24 h')).toBeInTheDocument();
-  expect(screen.getByText('See who has voted')).toBeInTheDocument();
-  expect(screen.getByText('Follow the poll live')).toBeInTheDocument();
-  expect(screen.getByText('Edit chosen activities')).toBeInTheDocument();
-  const input = screen.getByLabelText(EMAIL);
-  expect(input).toHaveAttribute('type', 'email');
-  expect(input).toHaveAttribute('autocomplete', 'email');
-  expect(input).toHaveAttribute('placeholder', 'name@email.com');
-  expect(screen.getAllByRole('textbox')).toHaveLength(1);
-  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: SUBMIT })).toBeInTheDocument();
-  expect(screen.getByText('No account needed. No spam.')).toBeInTheDocument();
-  expect(voteApi.createCartSession).not.toHaveBeenCalled();
-  // The email field is on the first (only) screen, so a view counts on open.
-  expect(pushEvent).toHaveBeenCalledWith('email_screen_view', { vote_mode: 'CART' });
+  expect(screen.getByRole('heading', { name: 'Your group votes. You get the result.' })).toBeInTheDocument();
+  expect(screen.getByText('The group gets the plan')).toBeInTheDocument();
+  expect(screen.getByText('We keep everyone up to date')).toBeInTheDocument();
+  expect(screen.getByText('The plan is ready, agreed by all')).toBeInTheDocument();
+  expect(screen.getByText("The group's choice")).toBeInTheDocument();
+  expect(screen.getByText('9 of 10 voted')).toBeInTheDocument();
+  expect(screen.getByText('AK-47 shooting')).toBeInTheDocument();
+  expect(screen.getByText('Steak and tits')).toBeInTheDocument();
+  expect(screen.getByText('Tank driving')).toBeInTheDocument();
+  expect(screen.getByText('✓ 8 yes')).toBeInTheDocument();
+  expect(screen.getByText('✗ 6 no')).toBeInTheDocument();
+  expect(screen.getByText("Group's recommendations")).toBeInTheDocument();
+  expect(screen.getByText('Prague stag 🍻')).toBeInTheDocument();
+  expect(screen.getByText('10 members')).toBeInTheDocument();
+  expect(screen.getByText(/^Lads! Prague stag, .*16.*18 Oct\. Vote yes or no on the plan\. Takes 1 minute/))
+      .toBeInTheDocument();
+  expect(screen.getByText('We only write to you about this trip.')).toBeInTheDocument();
 });
 
-test('singular summary and a generic title without a destination name', () => {
-  renderModal({ destinationName: undefined, activityIds: ['a-1'], numberOfTravelers: 1 });
-
-  expect(screen.getByRole('heading', { name: 'Start the vote' })).toBeInTheDocument();
-  expect(screen.getByText('1 activity · 1 person · closes in 24 h')).toBeInTheDocument();
-});
-
-test('empty email shows the error, keeps focus and never calls the API', async () => {
+test('each button waits for its own contact', async () => {
   renderModal();
 
-  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
+  expect(screen.getByRole('button', { name: WHATSAPP })).toBeDisabled();
+  expect(screen.getByRole('button', { name: START })).toBeDisabled();
 
-  expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
-  expect(screen.getByLabelText(EMAIL)).toHaveFocus();
-  expect(voteApi.createCartSession).not.toHaveBeenCalled();
-  expect(pushEvent).toHaveBeenCalledWith('email_invalid_attempt', { vote_mode: 'CART', reason: 'empty' });
-  expect(pushEvent).not.toHaveBeenCalledWith('organizer_voted', expect.anything());
+  await userEvent.type(screen.getByLabelText(PHONE), '7700 9001');
+  expect(screen.getByRole('button', { name: WHATSAPP })).toBeEnabled();
+  expect(screen.getByRole('button', { name: START })).toBeDisabled();
+
+  await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
+  expect(screen.getByRole('button', { name: START })).toBeEnabled();
 });
 
-test('malformed email keeps the typed value', async () => {
+test('a number shorter than 7 digits does not count', async () => {
   renderModal();
-  const input = screen.getByLabelText(EMAIL);
-  await userEvent.type(input, 'sam@nowhere');
 
-  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
+  await userEvent.type(screen.getByLabelText(PHONE), '12345');
 
-  expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
-  expect(input).toHaveValue('sam@nowhere');
-  expect(input).toHaveAttribute('aria-describedby', 'start-vote-email-error');
-  expect(pushEvent).toHaveBeenCalledWith('email_invalid_attempt', { vote_mode: 'CART', reason: 'format' });
-  expect(voteApi.createCartSession).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: WHATSAPP })).toBeDisabled();
 });
 
-test('valid email creates the session with initiatorEmail, stores tokens, fires the funnel, navigates', async () => {
-  voteApi.createCartSession.mockResolvedValue({ shareToken: 't-1', managerToken: 'm-1' });
+test('WhatsApp: opens the group message with the link in the same tap, creates the vote with the number, opens the dashboard', async () => {
   renderModal();
+  await userEvent.selectOptions(screen.getByLabelText('Country code'), '+420');
+  await userEvent.type(screen.getByLabelText(PHONE), '602 123 456');
 
-  await launchWith('sam@example.com');
+  await userEvent.click(screen.getByRole('button', { name: WHATSAPP }));
 
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/vote/t-1/waiting'));
-  expect(voteApi.createCartSession).toHaveBeenCalledWith({
+  expect(openWhatsApp).toHaveBeenCalledTimes(1);
+  const { webUrl, appUrl } = openWhatsApp.mock.calls[0][0];
+  const text = decodeURIComponent(webUrl.split('text=')[1]);
+  expect(text).toMatch(/^Lads! Prague stag/);
+  expect(text).toContain('/vote/tok-1/activities?ref=invite');
+  expect(appUrl).toMatch(/^whatsapp:\/\/send\?text=/);
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
+      '/destination/prague?tab=trip-builder&voteSession=tok-1'));
+  expect(voteApi.createCartSession).toHaveBeenCalledWith(expect.objectContaining({
     destinationId: 'd-1',
-    initiatorEmail: 'sam@example.com',
-    numberOfTravelers: 4,
-    startDate: '2026-08-01',
-    endDate: '2026-08-03',
+    initiatorPhone: '+420602123456',
+    initiatorEmail: undefined,
+    shareToken: 'tok-1',
+    numberOfTravelers: 10,
+    startDate: '2026-10-16',
+    endDate: '2026-10-18',
     activityIds: ['a-1', 'a-2'],
-  });
-  expect(localStorage.getItem('myhive-manager-t-1')).toBe('m-1');
-  expect(localStorage.getItem('myhive-initiator-t-1')).toBe('true');
-  expect(localStorage.getItem('myhive-trip-vote-session')).toBe('t-1');
-  expect(pushEvent).toHaveBeenCalledWith('organizer_voted', { vote_mode: 'CART', selected_count: 2 });
-  expect(pushEvent).toHaveBeenCalledWith('contact_captured', {
-    trip_id: 't-1', vote_mode: 'CART', source: 'vote_email_screen',
-  });
-  expect(pushEvent).toHaveBeenCalledWith('vote_launched', {
-    trip_id: 't-1', user_role: 'organizer', selected_count: 2,
-  });
-  expect(pushEvent).toHaveBeenCalledWith('link_revealed', { trip_id: 't-1', vote_mode: 'CART' });
-  const order = pushEvent.mock.calls.map(([name]) => name);
-  expect(order.indexOf('organizer_voted')).toBeLessThan(order.indexOf('contact_captured'));
-  expect(order.indexOf('contact_captured')).toBeLessThan(order.indexOf('vote_launched'));
-  expect(order.indexOf('vote_launched')).toBeLessThan(order.indexOf('link_revealed'));
+  }));
+  expect(localStorage.getItem('myhive-manager-tok-1')).toBe('mgr-1');
+  expect(localStorage.getItem('myhive-initiator-tok-1')).toBe('true');
+  expect(localStorage.getItem('myhive-trip-vote-session')).toBe('tok-1');
+  expect(pushEvent).toHaveBeenCalledWith('contact_captured',
+      expect.objectContaining({ trip_id: 'tok-1', channel: 'whatsapp' }));
+  expect(pushEvent).toHaveBeenCalledWith('group_message_sent', expect.anything());
 });
 
-test('API failure keeps the email, fires no launch events, and allows a retry', async () => {
-  voteApi.createCartSession
-    .mockRejectedValueOnce(new Error('activityId x does not exist'))
-    .mockResolvedValueOnce({ shareToken: 't-3', managerToken: 'm-3' });
+test('a UK number typed with the leading 0 is sent without it', async () => {
   renderModal();
+  await userEvent.type(screen.getByLabelText(PHONE), '07700 900123');
 
-  await launchWith('sam@example.com');
-
-  expect(await screen.findByText('activityId x does not exist')).toBeInTheDocument();
-  expect(screen.getByLabelText(EMAIL)).toHaveValue('sam@example.com');
-  expect(pushEvent).not.toHaveBeenCalledWith('vote_launched', expect.anything());
-  expect(pushEvent).not.toHaveBeenCalledWith('link_revealed', expect.anything());
-
-  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
-
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/vote/t-3/waiting'));
-  expect(voteApi.createCartSession).toHaveBeenCalledTimes(2);
-});
-
-test('missing trip dates block creation even with a valid email', async () => {
-  renderModal({ startDate: '', endDate: '' });
-
-  await launchWith('sam@example.com');
-
-  expect(screen.getByText('Trip dates are required')).toBeInTheDocument();
-  expect(voteApi.createCartSession).not.toHaveBeenCalled();
-});
-
-test('accepts dates picked in its calendar', async () => {
-  voteApi.createCartSession.mockResolvedValue({ shareToken: 't-2', managerToken: 'm-2' });
-  renderModal({ startDate: '', endDate: '' });
-  fireEvent.change(screen.getByTestId('date-from'), { target: { value: '2026-09-04' } });
-  fireEvent.change(screen.getByTestId('date-to'), { target: { value: '2026-09-06' } });
-
-  await launchWith('sam@example.com');
+  await userEvent.click(screen.getByRole('button', { name: WHATSAPP }));
 
   await waitFor(() => expect(voteApi.createCartSession).toHaveBeenCalledWith(
-    expect.objectContaining({ startDate: '2026-09-04', endDate: '2026-09-06', initiatorEmail: 'sam@example.com' }),
-  ));
+      expect.objectContaining({ initiatorPhone: '+447700900123' })));
 });
 
-test('QUIZ mode creates a QUIZ session with quiz payload and email, and calls onLaunched', async () => {
-  voteApi.createSession.mockResolvedValue({ shareToken: 'tok1', managerToken: 'mgr1' });
-  const onLaunched = jest.fn();
-  renderModal({
-    voteMode: 'QUIZ', quizResponses: [{ questionId: 'q1', answerId: 'a1' }], budget: null, onLaunched,
-  });
-
-  await launchWith('sam@example.com');
-
-  await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledWith(
-    expect.objectContaining({
-      initiatorEmail: 'sam@example.com',
-      quizResponses: [{ questionId: 'q1', answerId: 'a1' }],
-      numberOfTravelers: 4,
-      startDate: '2026-08-01',
-      endDate: '2026-08-03',
-      activityIds: ['a-1', 'a-2'],
-    }),
-  ));
-  expect(voteApi.createCartSession).not.toHaveBeenCalled();
-  expect(onLaunched).toHaveBeenCalled();
-  expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
-  expect(mockNavigate).toHaveBeenCalledWith('/vote/tok1/waiting', { state: { managerToken: 'mgr1' } });
-});
-
-test('closing fires modal_abandoned reporting whether an address was typed', async () => {
-  const onClose = jest.fn();
-  renderModal({ onClose });
-
-  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
-    modal: 'start_vote', vote_mode: 'CART', has_email: false,
-  });
-  expect(onClose).toHaveBeenCalled();
-
-  await userEvent.type(screen.getByLabelText(EMAIL), 'sam@example.com');
-  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned', {
-    modal: 'start_vote', vote_mode: 'CART', has_email: true,
-  });
-});
-
-test('reopening clears stale errors, counts a new view, and keeps the typed draft', async () => {
-  const onClose = jest.fn();
-  const { rerender } = renderModal({ onClose });
-  await userEvent.type(screen.getByLabelText(EMAIL), 'sam@nowhere');
-  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
-  expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
-
-  // The modal stays mounted between openings (TripBuilder renders it with isOpen).
-  rerender(
-    <MemoryRouter>
-      <StartGroupVoteModal
-        isOpen={false}
-        onClose={onClose}
-        destinationId="d-1"
-        destinationName="Prague"
-        activityIds={['a-1', 'a-2']}
-        numberOfTravelers={4}
-        startDate="2026-08-01"
-        endDate="2026-08-03"
-      />
-    </MemoryRouter>,
-  );
-  rerender(
-    <MemoryRouter>
-      <StartGroupVoteModal
-        isOpen
-        onClose={onClose}
-        destinationId="d-1"
-        destinationName="Prague"
-        activityIds={['a-1', 'a-2']}
-        numberOfTravelers={4}
-        startDate="2026-08-01"
-        endDate="2026-08-03"
-      />
-    </MemoryRouter>,
-  );
-
-  expect(screen.queryByText('Please check the email address.')).not.toBeInTheDocument();
-  // Every open counts once in the funnel: the ratio link_revealed / email_screen_view
-  // is the metric the rollback decision reads.
-  expect(pushEvent.mock.calls.filter(([name]) => name === 'email_screen_view')).toHaveLength(2);
-  // The typed address survives as a draft, like the dates in TripSetupModal.
-  expect(screen.getByLabelText(EMAIL)).toHaveValue('sam@nowhere');
-});
-
-test('Enter in the email field submits, and a fixed address clears the error', async () => {
-  voteApi.createCartSession.mockResolvedValue({ shareToken: 't-4', managerToken: 'm-4' });
+test('email: creates the vote with the email and opens the dashboard, without opening WhatsApp', async () => {
   renderModal();
-  const input = screen.getByLabelText(EMAIL);
-  await userEvent.type(input, 'sam@nowhere');
-  await userEvent.click(screen.getByRole('button', { name: SUBMIT }));
-  expect(screen.getByText('Please check the email address.')).toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
 
-  await userEvent.clear(input);
-  await userEvent.type(input, 'sam@example.com{Enter}');
+  await userEvent.click(screen.getByRole('button', { name: START }));
 
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/vote/t-4/waiting'));
-  expect(screen.queryByText('Please check the email address.')).not.toBeInTheDocument();
-  expect(voteApi.createCartSession).toHaveBeenCalledWith(
-    expect.objectContaining({ initiatorEmail: 'sam@example.com' }),
-  );
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
+      '/destination/prague?tab=trip-builder&voteSession=tok-1'));
+  expect(openWhatsApp).not.toHaveBeenCalled();
+  expect(voteApi.createCartSession).toHaveBeenCalledWith(expect.objectContaining({
+    initiatorEmail: 'max@example.com', initiatorPhone: undefined,
+  }));
+  expect(pushEvent).toHaveBeenCalledWith('contact_captured',
+      expect.objectContaining({ trip_id: 'tok-1', channel: 'email' }));
 });
 
-test('does not fire modal_abandoned when closed after a successful launch', async () => {
-  voteApi.createCartSession.mockResolvedValue({ shareToken: 't-1', managerToken: 'm-1' });
+test('both contacts typed: both go with the vote', async () => {
+  renderModal();
+  await userEvent.type(screen.getByLabelText(PHONE), '7700900123');
+  await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
+
+  await userEvent.click(screen.getByRole('button', { name: START }));
+
+  await waitFor(() => expect(voteApi.createCartSession).toHaveBeenCalledWith(expect.objectContaining({
+    initiatorEmail: 'max@example.com', initiatorPhone: '+447700900123',
+  })));
+});
+
+test('a failed create shows an error and keeps the modal; a retry reuses the same link', async () => {
+  voteApi.createCartSession.mockRejectedValueOnce(new Error('boom'));
+  renderModal();
+  await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
+
+  await userEvent.click(screen.getByRole('button', { name: START }));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't start the vote. Please try again.");
+  expect(mockNavigate).not.toHaveBeenCalled();
+
+  await userEvent.click(screen.getByRole('button', { name: START }));
+
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+  expect(voteApi.createCartSession.mock.calls.map(c => c[0].shareToken)).toEqual(['tok-1', 'tok-1']);
+});
+
+test('quiz mode creates a quiz vote with the quiz answers and the contact', async () => {
+  renderModal({ voteMode: 'QUIZ', quizResponses: [{ questionId: 'q', answerId: 'a' }], budget: 500 });
+  await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
+
+  await userEvent.click(screen.getByRole('button', { name: START }));
+
+  await waitFor(() => expect(voteApi.createSession).toHaveBeenCalledWith(expect.objectContaining({
+    initiatorEmail: 'max@example.com', budget: 500, quizResponses: [{ questionId: 'q', answerId: 'a' }],
+  })));
+  expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
+});
+
+test('without trip dates the dates are asked for and both buttons wait for them', async () => {
+  renderModal({ startDate: null, endDate: null });
+  await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
+
+  expect(screen.getByText('Trip dates')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: START })).toBeDisabled();
+
+  fireEvent.change(screen.getByTestId('date-from'), { target: { value: '2026-10-16' } });
+  fireEvent.change(screen.getByTestId('date-to'), { target: { value: '2026-10-18' } });
+
+  expect(screen.getByRole('button', { name: START })).toBeEnabled();
+  await userEvent.click(screen.getByRole('button', { name: START }));
+  await waitFor(() => expect(voteApi.createCartSession).toHaveBeenCalledWith(
+      expect.objectContaining({ startDate: '2026-10-16', endDate: '2026-10-18' })));
+});
+
+test('closing without launching reports which contact was typed', async () => {
   const onClose = jest.fn();
   renderModal({ onClose });
+  await userEvent.type(screen.getByLabelText(PHONE), '77');
 
-  await launchWith('sam@example.com');
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
+  await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
 
-  pushEvent.mockClear();
-  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-
-  expect(pushEvent).not.toHaveBeenCalledWith('modal_abandoned', expect.anything());
+  expect(onClose).toHaveBeenCalled();
+  expect(pushEvent).toHaveBeenCalledWith('modal_abandoned',
+      expect.objectContaining({ modal: 'start_vote', has_phone: true, has_email: false }));
 });

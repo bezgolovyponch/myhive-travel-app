@@ -31,6 +31,12 @@ jest.mock('../services/paymentApi', () => ({
     paymentApi: { createBookingDepositSession: jest.fn() },
 }));
 
+jest.mock('../services/pricingApi', () => ({
+    __esModule: true,
+    default: { quote: jest.fn() },
+}));
+const pricingApi = require('../services/pricingApi').default;
+
 const voteApi = require('../services/voteApi').default;
 const { paymentApi } = require('../services/paymentApi');
 // Captures the Turnstile success callback so tests can simulate a solved captcha.
@@ -180,6 +186,7 @@ async function fillAndSubmitContactForm(user) {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
+    pricingApi.quote.mockResolvedValue({ fromPrice: null });
     api.getCategoriesForDestination.mockResolvedValue([]);
     api.getActivities.mockResolvedValue([]);
     api.createBookingFromTrip.mockResolvedValue({ id: 'booking-123' });
@@ -764,26 +771,27 @@ test('deposit: the success screen offers a Turnstile-gated 30% deposit for the c
 // Group minimum — floored itinerary line display
 // ---------------------------------------------------------------------------
 
-describe('itinerary line price label', () => {
-    test('floored line shows the group minimum total with a marker', async () => {
+describe('plan price', () => {
+    test('the plan shows one "from" price for the group, priced on the server; lines carry none', async () => {
+        pricingApi.quote.mockResolvedValue({ fromPrice: 1161 });
         renderTripBuilder(buildTripState({
             tripItems: [{id: 'a1', name: 'Boat Rental', price: 50, minPrice: 300, destinationSlug: 'tenerife'}],
             tripTravelers: 4,
             tripBuilderModalOpen: true,
         }));
 
-        // 4 × €50 = €200 -> floored to €300
-        expect(await screen.findByText('€50 × 4 = €300 (group min)')).toBeInTheDocument();
+        expect(await screen.findByText('from €1,161')).toBeInTheDocument();
+        expect(screen.getByText('Your plan')).toBeInTheDocument();
+        expect(pricingApi.quote).toHaveBeenCalledWith({ activityIds: ['a1'], travelers: 4 });
+        expect(screen.queryByText(/€50|× 4|person/)).not.toBeInTheDocument();
     });
 
-    test('regular line keeps the per-person math', async () => {
-        renderTripBuilder(buildTripState({
-            tripItems: [{id: 'a1', name: 'Bar Crawl', price: 40, destinationSlug: 'tenerife'}],
-            tripTravelers: 2,
-            tripBuilderModalOpen: true,
-        }));
+    test('no price when the quote fails', async () => {
+        pricingApi.quote.mockRejectedValue(new Error('down'));
+        renderTripBuilder(buildTripState());
 
-        expect(await screen.findByText('€40 × 2 = €80')).toBeInTheDocument();
+        await waitFor(() => expect(pricingApi.quote).toHaveBeenCalled());
+        expect(screen.queryByText('Your plan')).not.toBeInTheDocument();
     });
 });
 
@@ -841,7 +849,7 @@ describe('Let your mates vote button', () => {
     test('shows an enabled button when the cart has standalone activities', () => {
         renderTripBuilder(buildTripState({ tripItems: [activity1] }));
 
-        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Ask the group' })).toBeEnabled();
     });
 
     test('hides the button when the cart only contains package items', () => {
@@ -851,7 +859,7 @@ describe('Let your mates vote button', () => {
             ],
         }));
 
-        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Ask the group' })).not.toBeInTheDocument();
     });
 
     test('disables the button when standalone items span another destination', () => {
@@ -862,7 +870,7 @@ describe('Let your mates vote button', () => {
             ],
         }));
 
-        const voteButton = screen.getByRole('button', { name: 'Start group vote' });
+        const voteButton = screen.getByRole('button', { name: 'Ask the group' });
         expect(voteButton).toBeDisabled();
         expect(voteButton).toHaveAttribute(
             'title',
@@ -879,7 +887,7 @@ describe('CTA emphasis around the group vote', () => {
     test('Start group vote and Complete Booking share the primary purple style', () => {
         renderTripBuilder(buildTripState({ tripItems: [activity1] }));
 
-        expect(screen.getByRole('button', { name: 'Start group vote' })).toHaveClass('btn--primary');
+        expect(screen.getByRole('button', { name: 'Ask the group' })).toHaveClass('btn--primary');
         expect(screen.getByRole('button', { name: 'Complete Booking' })).toHaveClass('btn--primary');
     });
 
@@ -889,7 +897,7 @@ describe('CTA emphasis around the group vote', () => {
     test('heading reads "Your Voting List" while the vote CTA is available', () => {
         renderTripBuilder(buildTripState({ tripItems: [activity1] }));
 
-        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ask the group' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Your Voting List' })).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Your Itinerary' })).not.toBeInTheDocument();
     });
@@ -918,7 +926,7 @@ describe('CTA emphasis around the group vote', () => {
             ],
         }));
 
-        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Ask the group' })).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Your Itinerary' })).toBeInTheDocument();
     });
 
@@ -947,8 +955,8 @@ describe('itinerary footer: estimate + Complete Booking', () => {
         expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
         expect(screen.queryByText(hiddenTotal)).not.toBeInTheDocument();
         expect(screen.queryByText('Total')).not.toBeInTheDocument();
-        // Per-line prices are unaffected: they are what the user picks on.
-        expect(screen.getByText('€60 × 2 = €120')).toBeInTheDocument();
+        // Lines carry no price either: the plan's one "from" price is the only one.
+        expect(screen.queryByText(/€60/)).not.toBeInTheDocument();
     });
 
     test('reveals the trip total on the booking step', async () => {
@@ -977,7 +985,7 @@ describe('itinerary footer: estimate + Complete Booking', () => {
         const { container } = renderTripBuilder(buildTripState({ tripItems: [activity1] }));
 
         const rail = container.querySelector('.trip-builder-rail');
-        expect(rail).toContainElement(screen.getByRole('button', { name: 'Start group vote' }));
+        expect(rail).toContainElement(screen.getByRole('button', { name: 'Ask the group' }));
         expect(rail).not.toContainElement(screen.getByRole('button', { name: 'Complete Booking' }));
     });
 });
@@ -991,10 +999,10 @@ describe('cta_click on "Let your mates vote"', () => {
         const user = userEvent.setup();
         renderTripBuilder(buildTripState({ tripItems: [activity1, activity2] }));
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
         expect(pushEvent).toHaveBeenCalledWith('cta_click', {
-            cta_label: 'Let your mates vote',
+            cta_label: 'Ask the group',
             block: 'trip_builder',
         });
     });
@@ -1011,13 +1019,13 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
         expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Create vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Start planning together' })).not.toBeInTheDocument();
         // cta_click fires on every click regardless of which modal ends up opening.
         expect(pushEvent).toHaveBeenCalledWith('cta_click', {
-            cta_label: 'Let your mates vote',
+            cta_label: 'Ask the group',
             block: 'trip_builder',
         });
     });
@@ -1028,9 +1036,9 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
-        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Start planning together' })).toBeInTheDocument();
         expect(screen.queryByText('A vote is already running')).not.toBeInTheDocument();
     });
 
@@ -1040,9 +1048,9 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
-        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Start planning together' })).toBeInTheDocument();
         expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull();
     });
 
@@ -1050,9 +1058,9 @@ describe('active vote guard', () => {
         const user = userEvent.setup();
         renderTripBuilder();
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
-        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Start planning together' })).toBeInTheDocument();
         expect(voteApi.getSession).not.toHaveBeenCalled();
     });
 });
@@ -1169,7 +1177,7 @@ describe('vote button after a completed cart vote', () => {
         renderTripBuilder(buildTripState({ tripItems: [cartItem] }));
 
         expect(await screen.findByText('♥ 8')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Ask the group' })).not.toBeInTheDocument();
     });
 
     test('emptying the cart drops the finished session and re-enables voting for the next trip', async () => {
@@ -1186,7 +1194,7 @@ describe('vote button after a completed cart vote', () => {
         });
 
         rerender(buildTree([cartItem], dispatch));
-        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Ask the group' })).toBeEnabled();
     });
 
     test('emptying the cart strips the voteSession URL param so a refresh stays reset', async () => {
@@ -1272,9 +1280,9 @@ describe('quiz mode: one-click vote', () => {
             tripBudget: 2000,
         }));
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
-        expect(await screen.findByRole('heading', { name: 'Start the vote' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Your group votes. You get the result.' })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 
@@ -1282,9 +1290,9 @@ describe('quiz mode: one-click vote', () => {
         const user = userEvent.setup();
         renderQuizTripBuilder(buildTripState());
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
-        expect(await screen.findByRole('button', { name: 'Create vote' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Start planning together' })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 
@@ -1295,7 +1303,7 @@ describe('quiz mode: one-click vote', () => {
         const user = userEvent.setup();
         renderQuizTripBuilder(buildTripState());
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
         expect(await screen.findByText('A vote is already running')).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
@@ -1309,10 +1317,10 @@ describe('quiz mode: one-click vote', () => {
         const user = userEvent.setup();
         renderQuizTripBuilder(buildTripState());
 
-        await user.click(screen.getByRole('button', { name: 'Start group vote' }));
+        await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
         await waitFor(() => expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull());
-        expect(await screen.findByRole('heading', { name: 'Start the vote' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Your group votes. You get the result.' })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 });
@@ -1586,7 +1594,7 @@ describe('vote button after a completed QUIZ vote', () => {
         await waitFor(() => {
             expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
         });
-        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Ask the group' })).not.toBeInTheDocument();
     });
 
     test('emptying the cart strips the param and restores the button for the next trip', async () => {
@@ -1603,7 +1611,7 @@ describe('vote button after a completed QUIZ vote', () => {
         });
 
         rerender(buildTree([cartItem], dispatch));
-        expect(screen.getByRole('button', { name: 'Start group vote' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Ask the group' })).toBeEnabled();
     });
 });
 
@@ -1713,7 +1721,7 @@ describe('QUIZ vote result replaces the cart', () => {
         });
         expect(dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));
-        expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Ask the group' })).not.toBeInTheDocument();
     });
 
     test('a CART vote never replaces the cart — it only annotates it', async () => {
@@ -1790,7 +1798,7 @@ describe('QUIZ vote result replaces the cart', () => {
         renderWithCart(losingCart, dispatch);
 
         await waitFor(() => {
-            expect(screen.queryByRole('button', { name: 'Start group vote' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Ask the group' })).not.toBeInTheDocument();
         });
         expect(dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: 'SET_TRIP_ITEMS_FROM_VOTE' }));

@@ -1,4 +1,4 @@
-import {formatPrice, formatAmount, formatDuration, formatPricePerPerson, hasGroupMin, groupMinNote} from './format';
+import {formatPrice, formatAmount, formatDuration, hasGroupMin, groupMinNote} from './format';
 
 // currentLocale() reads the URL prefix in the browser; jsdom lets tests set it.
 function withPath(path, fn) {
@@ -89,25 +89,6 @@ describe('formatDuration', () => {
         expect(formatDuration(null, t)).toBeNull();
         expect(formatDuration(undefined, t)).toBeNull();
         expect(formatDuration(0, t)).toBeNull();
-    });
-});
-
-describe('formatPricePerPerson', () => {
-    it('appends the per-person suffix to the formatted price', () => {
-        expect(formatPricePerPerson(45)).toBe('€45 / person');
-    });
-
-    it('appends the suffix to a fractional price', () => {
-        expect(formatPricePerPerson(12.5)).toBe('€12.50 / person');
-    });
-
-    it('appends the suffix to a legacy string price', () => {
-        expect(formatPricePerPerson('€120')).toBe('€120 / person');
-    });
-
-    it('returns nullish input as-is without the suffix', () => {
-        expect(formatPricePerPerson(null)).toBeNull();
-        expect(formatPricePerPerson(undefined)).toBeUndefined();
     });
 });
 

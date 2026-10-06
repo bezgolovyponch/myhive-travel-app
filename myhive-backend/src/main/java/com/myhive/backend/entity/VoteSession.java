@@ -67,6 +67,10 @@ public class VoteSession {
     @Column(name = "initiator_email")
     private String initiatorEmail;
 
+    /** Organiser's WhatsApp number in E.164 ("+447700900123"); the other contact the vote modal takes. */
+    @Column(name = "initiator_phone", length = 32)
+    private String initiatorPhone;
+
     /** Locale the initiator was browsing in ("de"); null = English. Drives the language of the emails and their links. */
     @Column(length = 8)
     private String locale;

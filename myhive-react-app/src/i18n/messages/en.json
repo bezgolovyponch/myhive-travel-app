@@ -277,9 +277,6 @@
   "cards": {
     "viewAria": "View {name}",
     "activityCategory": "Activity",
-    "fromPerPerson": "from {price} / person",
-    "perPersonPrice": "{price} / person",
-    "groupMinimum": "Group minimum {amount}",
     "moreInfo": "More info",
     "added": "Added",
     "addToTrip": "Add to trip",
@@ -522,37 +519,51 @@
   },
   "voteComponents": {
     "start": {
-      "title": "Start the vote for {destination}",
-      "titleGeneric": "Start the vote",
-      "summary": {
-        "activitiesOne": "{count} activity",
-        "activitiesOther": "{count} activities",
-        "peopleOne": "{count} person",
-        "peopleOther": "{count} people",
-        "closes": "closes in 24 h"
+      "headline": "Your group votes. You get the result.",
+      "timeline": {
+        "todayLabel": "Today",
+        "today": "The group gets the plan",
+        "halfLabel": "In 12 hours",
+        "half": "We keep everyone up to date",
+        "endLabel": "In 24 hours",
+        "end": "The plan is ready, agreed by all"
       },
-      "benefits": {
-        "seeWhoVoted": "See who has voted",
-        "followLive": "Follow the poll live",
-        "editActivities": "Edit chosen activities"
-      },
-      "tripDates": "Trip dates",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "create": "Create vote",
-      "creating": "Creating…",
-      "noSpam": "No account needed. No spam.",
-      "email": {
-        "label": "Send the results to",
-        "placeholder": "name@email.com",
-        "errors": {
-          "invalid": "Please check the email address."
+      "card": {
+        "label": "The group's choice",
+        "voted": "{voted} of {total} voted",
+        "yes": "{count} yes",
+        "no": "{count} no",
+        "recommendations": "Group's recommendations",
+        "activities": {
+          "first": "AK-47 shooting",
+          "second": "Steak and tits",
+          "third": "Tank driving"
         }
       },
+      "chat": {
+        "title": "{destination} stag 🍻",
+        "members": "{count} members",
+        "linkTitle": "Vote on the {destination} stag plan",
+        "linkHost": "trivlu.com"
+      },
+      "phone": {
+        "countryLabel": "Country code",
+        "placeholder": "Your WhatsApp number"
+      },
+      "sendWhatsApp": "Send to WhatsApp group",
+      "sent": "Sent ✓",
+      "or": "or",
+      "email": {
+        "placeholder": "Your email"
+      },
+      "startPlanning": "Start planning together",
+      "creating": "One moment…",
+      "footer": "We only write to you about this trip.",
+      "tripDates": "Trip dates",
       "errors": {
         "datesRequired": "Trip dates are required",
         "endBeforeStart": "End date must be on or after the start date",
-        "createFailed": "Failed to create the vote. Please try again."
+        "createFailed": "We couldn't start the vote. Please try again."
       }
     },
     "active": {
@@ -564,6 +575,10 @@
       "title": "Vote results",
       "votedOne": "{count} mate has voted",
       "votedOther": "{count} mates have voted"
+    },
+    "groupMessage": {
+      "text": "Lads! {destination} stag, {dates}. Vote yes or no on the plan. Takes 1 minute 👇",
+      "textNoDates": "Lads! {destination} stag. Vote yes or no on the plan. Takes 1 minute 👇"
     }
   },
   "tripBuilder": {
@@ -583,9 +598,8 @@
       "removeAria": "Remove {name}"
     },
     "price": {
-      "perPerson": "{price} / person",
-      "multiplied": "{price} × {travelers} = {total}",
-      "groupMinLine": "{price} × {travelers} = {total} (group min)"
+      "plan": "Your plan",
+      "from": "from {price}"
     },
     "emptyState": "Start building your trip by adding activities!",
     "footer": {
@@ -597,7 +611,7 @@
       "submitFailed": "Failed to submit booking. Please try again."
     },
     "vote": {
-      "startCta": "Start group vote",
+      "startCta": "Ask the group",
       "foreignDestinationTitle": "Group voting works for one destination at a time — remove activities from other destinations first.",
       "loadError": "Couldn't load your group's vote results. Refresh the page to try again."
     },
@@ -630,22 +644,43 @@
     },
     "success": {
       "defaultUserName": "Traveler"
+    },
+    "dashboard": {
+      "eyebrow": "{destination} stag · {dates}",
+      "eyebrowNoDates": "{destination} stag",
+      "organiser": "Organiser",
+      "title": "Your weekend",
+      "voted": "{voted} of {total} voted",
+      "votedNoTotal": "{voted} voted",
+      "left": "{count} still to vote",
+      "everyone": "everyone voted",
+      "closed": "Voting has closed",
+      "yes": "{count} yes",
+      "no": "{count} no",
+      "noVotesYet": "New · not voted yet",
+      "restore": "Restore",
+      "inviteTitle": "Invite link for the group",
+      "copyLink": "Copy link",
+      "copied": "Copied ✓",
+      "recsTitle": "Recommended by the group",
+      "recsSubtitle": "Activities your friends want to add",
+      "recByOne": "Recommended by {count} friend",
+      "recByOther": "Recommended by {count} friends",
+      "add": "Add",
+      "added": "Added",
+      "lockTitle": "Happy with the plan?",
+      "lockText": "Lock it in now — no need to wait for the last votes."
     }
   },
   "swipe": {
     "processing": "Processing your choices...",
     "progress": "{current} / {total}",
     "durationHours": "{hours}h",
-    "fromPerPerson": "from {price} / person",
-    "perPersonPrice": "{price} / person",
-    "groupMinimum": "Group minimum {amount}",
     "likeOverlay": "LIKE ♥",
     "nopeOverlay": "NOPE ✕",
     "dislikeAria": "Dislike",
     "undoAria": "Undo last swipe",
-    "likeAria": "Like",
-    "linkCopied": "✓ Link Copied!",
-    "copyInviteLink": "Copy Invite Link"
+    "likeAria": "Like"
   },
   "datePicker": {
     "startLabel": "Start",
@@ -716,7 +751,7 @@
       "sessionGoneHint": "It may have expired or been removed — ask the organiser for a new link.",
       "empty": "No activities found for the selected categories.",
       "title": "Which activities are you up for?",
-      "subtitle": "Swipe right to vote yes, left to skip"
+      "subtitle": "Swipe right for yes, left for no"
     },
     "waiting": {
       "processing": "Processing results...",
@@ -758,6 +793,34 @@
       "remaining": "Remaining: {amount}",
       "openTripBuilder": "Open in Trip Builder",
       "suggestionsTitle": "Suggestions"
+    },
+    "review": {
+      "eyebrow": "{destination} stag · {dates}",
+      "eyebrowNoDates": "{destination} stag",
+      "title": "My votes",
+      "kept": "You kept {kept} of {total}",
+      "recommended": "{count} recommended",
+      "browse": "Browse activities and add more",
+      "keep": "Keep",
+      "drop": "Drop",
+      "yourRecommendation": "Your recommendation",
+      "remove": "Remove",
+      "removeAria": "Remove {name}",
+      "recommendTitle": "Recommend more activities",
+      "recommendText": "Added activities join your votes and go to the organiser",
+      "all": "All",
+      "add": "Add",
+      "added": "Added",
+      "addAria": "Add {name}",
+      "addedAria": "Remove {name} from your recommendations",
+      "send": "Send to group",
+      "sending": "Sending…"
+    },
+    "thanks": {
+      "title": "Thanks, your vote is in.",
+      "text": "The organiser will share the plan with the group.",
+      "closedTitle": "Voting has closed.",
+      "closedText": "The organiser will share the plan with the group."
     }
   },
   "landing": {
@@ -808,10 +871,7 @@
       "viewAll": "View all {count} activities →",
       "addToTrip": "Add to trip",
       "added": "Added ✓",
-      "photoComing": "Photo coming soon",
-      "perPerson": "/ person",
-      "from": "from",
-      "minPerGroup": "min €{min} per group"
+      "photoComing": "Photo coming soon"
     },
     "calc": {
       "eyebrow": "A weekend for every budget",
@@ -1171,7 +1231,7 @@
         "REPLACE": "Swapped {name} for {replacement}"
       },
       "priceFrom": "from {price}",
-      "sendToPlanner": "Send to a Prague planner"
+      "sendToPlanner": "Ask the group"
     },
     "dock": {
       "title": "Stag Do AI",

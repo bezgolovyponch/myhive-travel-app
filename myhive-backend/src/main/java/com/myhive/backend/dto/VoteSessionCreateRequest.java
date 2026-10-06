@@ -23,6 +23,13 @@ public class VoteSessionCreateRequest {
     // Optional on the API; the Create-vote modal's email step supplies it, and the
     // booking page still captures an address for organizers who skip the vote.
     @Email private String initiatorEmail;
+    /** E.164 with the country code; the vote modal sends it when the organiser chose WhatsApp. */
+    @Size(max = 32) private String initiatorPhone;
+    /**
+     * Optional link token picked by the browser, so the organiser's WhatsApp message (which carries
+     * the link) can open in the same tap, before this request returns. Null = the server picks one.
+     */
+    private UUID shareToken;
     @NotNull @Min(1) @Max(50) private Integer numberOfTravelers;
     @NotNull private LocalDate startDate;
     @NotNull private LocalDate endDate;

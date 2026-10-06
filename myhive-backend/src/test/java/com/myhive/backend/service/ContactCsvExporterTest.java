@@ -17,7 +17,7 @@ class ContactCsvExporterTest {
     @Test
     void exportAll_writesBomHeaderAndSanitizedRows() {
         String expectedEmail = "anna@example.com";
-        ContactDTO dto = new ContactDTO(UUID.randomUUID(), expectedEmail, "=HYPERLINK(evil)", "de",
+        ContactDTO dto = new ContactDTO(UUID.randomUUID(), expectedEmail, null, "=HYPERLINK(evil)", "de",
                 ContactSource.VOTE, ContactSource.BOOKING,
                 LocalDateTime.of(2026, 9, 1, 10, 0), LocalDateTime.of(2026, 9, 12, 8, 30), 3, true);
         ContactService contactService = mock(ContactService.class);
@@ -29,15 +29,15 @@ class ContactCsvExporterTest {
         String[] lines = csv.split("\r?\n");
         assertThat(lines[0]).startsWith("﻿");
         assertThat(lines[0].substring(1)).isEqualTo(
-                "email,name,locale,first_source,last_source,first_seen_at,last_seen_at,touch_count,unsubscribed");
+                "email,phone,name,locale,first_source,last_source,first_seen_at,last_seen_at,touch_count,unsubscribed");
         assertThat(lines[1]).isEqualTo(
-                expectedEmail + ",'=HYPERLINK(evil),de,VOTE,BOOKING,2026-09-01T10:00,2026-09-12T08:30,3,true");
+                expectedEmail + ",,'=HYPERLINK(evil),de,VOTE,BOOKING,2026-09-01T10:00,2026-09-12T08:30,3,true");
     }
 
     @Test
     void exportAll_sanitizesEmailStartingWithFormulaTrigger() {
         String expectedEmail = "+1+1@example.com";
-        ContactDTO dto = new ContactDTO(UUID.randomUUID(), expectedEmail, null, null,
+        ContactDTO dto = new ContactDTO(UUID.randomUUID(), expectedEmail, null, null, null,
                 ContactSource.VOTE, ContactSource.VOTE,
                 LocalDateTime.of(2026, 9, 1, 10, 0), LocalDateTime.of(2026, 9, 12, 8, 30), 1, false);
         ContactService contactService = mock(ContactService.class);
@@ -48,6 +48,21 @@ class ContactCsvExporterTest {
 
         String[] lines = csv.split("\r?\n");
         assertThat(lines[1]).isEqualTo(
-                "'" + expectedEmail + ",,,VOTE,VOTE,2026-09-01T10:00,2026-09-12T08:30,1,false");
+                "'" + expectedEmail + ",,,,VOTE,VOTE,2026-09-01T10:00,2026-09-12T08:30,1,false");
+    }
+
+    @Test
+    void exportAll_writesPhoneOnlyContactWithTheNumberGuardedAgainstFormulas() {
+        ContactDTO dto = new ContactDTO(UUID.randomUUID(), null, "+447700900123", null, null,
+                ContactSource.VOTE, ContactSource.VOTE,
+                LocalDateTime.of(2026, 9, 1, 10, 0), LocalDateTime.of(2026, 9, 12, 8, 30), 1, false);
+        ContactService contactService = mock(ContactService.class);
+        when(contactService.findAllForExport()).thenReturn(List.of(dto));
+        ContactCsvExporter exporter = new ContactCsvExporter(contactService);
+
+        String csv = exporter.exportAll();
+
+        String[] lines = csv.split("\r?\n");
+        assertThat(lines[1]).isEqualTo(",'+447700900123,,,VOTE,VOTE,2026-09-01T10:00,2026-09-12T08:30,1,false");
     }
 }

@@ -88,7 +88,7 @@ class AdminContactsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("contacts-")))
                 .andExpect(content().contentTypeCompatibleWith("text/csv"))
-                .andExpect(content().string(containsString("email,name,locale,first_source")))
+                .andExpect(content().string(containsString("email,phone,name,locale,first_source")))
                 .andExpect(content().string(containsString(expectedEmail)));
     }
 

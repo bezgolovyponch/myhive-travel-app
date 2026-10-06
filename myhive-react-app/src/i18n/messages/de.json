@@ -267,9 +267,6 @@
   "cards": {
     "viewAria": "{name} ansehen",
     "activityCategory": "Aktivität",
-    "fromPerPerson": "ab {price} / Person",
-    "perPersonPrice": "{price} / Person",
-    "groupMinimum": "Gruppen-Mindestbetrag {amount}",
     "moreInfo": "Mehr Infos",
     "added": "Hinzugefügt",
     "addToTrip": "Hinzufügen",
@@ -512,37 +509,51 @@
   },
   "voteComponents": {
     "start": {
-      "title": "Voting für {destination} starten",
-      "titleGeneric": "Voting starten",
-      "summary": {
-        "activitiesOne": "{count} Aktivität",
-        "activitiesOther": "{count} Aktivitäten",
-        "peopleOne": "{count} Person",
-        "peopleOther": "{count} Personen",
-        "closes": "endet in 24 h"
+      "headline": "Deine Gruppe stimmt ab. Du bekommst das Ergebnis.",
+      "timeline": {
+        "todayLabel": "Heute",
+        "today": "Die Gruppe bekommt den Plan",
+        "halfLabel": "In 12 Stunden",
+        "half": "Wir halten alle auf dem Laufenden",
+        "endLabel": "In 24 Stunden",
+        "end": "Der Plan steht, von allen abgestimmt"
       },
-      "benefits": {
-        "seeWhoVoted": "Sehen, wer abgestimmt hat",
-        "followLive": "Voting live verfolgen",
-        "editActivities": "Gewählte Aktivitäten bearbeiten"
-      },
-      "tripDates": "Reisedaten",
-      "startDate": "Startdatum",
-      "endDate": "Enddatum",
-      "create": "Voting erstellen",
-      "creating": "Wird erstellt…",
-      "noSpam": "Kein Konto nötig. Kein Spam.",
-      "email": {
-        "label": "Ergebnisse senden an",
-        "placeholder": "name@email.com",
-        "errors": {
-          "invalid": "Bitte prüf die E-Mail-Adresse."
+      "card": {
+        "label": "Die Wahl der Gruppe",
+        "voted": "{voted} von {total} haben abgestimmt",
+        "yes": "{count} Ja",
+        "no": "{count} Nein",
+        "recommendations": "Empfehlungen der Gruppe",
+        "activities": {
+          "first": "AK-47 schießen",
+          "second": "Steak und Titten",
+          "third": "Panzer fahren"
         }
       },
+      "chat": {
+        "title": "{destination}-JGA 🍻",
+        "members": "{count} Mitglieder",
+        "linkTitle": "Stimm über den {destination}-JGA-Plan ab",
+        "linkHost": "trivlu.com"
+      },
+      "phone": {
+        "countryLabel": "Ländervorwahl",
+        "placeholder": "Deine WhatsApp-Nummer"
+      },
+      "sendWhatsApp": "An WhatsApp-Gruppe senden",
+      "sent": "Gesendet ✓",
+      "or": "oder",
+      "email": {
+        "placeholder": "Deine E-Mail"
+      },
+      "startPlanning": "Gemeinsam planen",
+      "creating": "Einen Moment…",
+      "footer": "Wir schreiben dir nur zu diesem Trip.",
+      "tripDates": "Reisedaten",
       "errors": {
         "datesRequired": "Reisedaten sind erforderlich",
         "endBeforeStart": "Das Enddatum muss am oder nach dem Startdatum liegen",
-        "createFailed": "Voting konnte nicht erstellt werden. Bitte versuch es erneut."
+        "createFailed": "Das Voting konnte nicht starten. Bitte versuch es erneut."
       }
     },
     "active": {
@@ -554,6 +565,10 @@
       "title": "Voting-Ergebnisse",
       "votedOne": "{count} Kumpel hat abgestimmt",
       "votedOther": "{count} Kumpels haben abgestimmt"
+    },
+    "groupMessage": {
+      "text": "Jungs! {destination}-JGA, {dates}. Stimmt mit Ja oder Nein über den Plan ab. Dauert 1 Minute 👇",
+      "textNoDates": "Jungs! {destination}-JGA. Stimmt mit Ja oder Nein über den Plan ab. Dauert 1 Minute 👇"
     }
   },
   "tripBuilder": {
@@ -573,9 +588,8 @@
       "removeAria": "{name} entfernen"
     },
     "price": {
-      "perPerson": "{price} / Person",
-      "multiplied": "{price} × {travelers} = {total}",
-      "groupMinLine": "{price} × {travelers} = {total} (Gruppen-Minimum)"
+      "plan": "Euer Plan",
+      "from": "ab {price}"
     },
     "emptyState": "Füge Aktivitäten hinzu und stell dir deinen Trip zusammen!",
     "footer": {
@@ -587,7 +601,7 @@
       "submitFailed": "Buchung konnte nicht gesendet werden. Bitte versuch es erneut."
     },
     "vote": {
-      "startCta": "Gruppen-Voting starten",
+      "startCta": "Frag die Gruppe",
       "foreignDestinationTitle": "Gruppen-Voting funktioniert nur für ein Reiseziel gleichzeitig — entferne zuerst die Aktivitäten anderer Reiseziele.",
       "loadError": "Die Voting-Ergebnisse deiner Gruppe konnten nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen."
     },
@@ -620,22 +634,43 @@
     },
     "success": {
       "defaultUserName": "Reisender"
+    },
+    "dashboard": {
+      "eyebrow": "{destination}-JGA · {dates}",
+      "eyebrowNoDates": "{destination}-JGA",
+      "organiser": "Organisator",
+      "title": "Euer Wochenende",
+      "voted": "{voted} von {total} haben abgestimmt",
+      "votedNoTotal": "{voted} haben abgestimmt",
+      "left": "{count} fehlen noch",
+      "everyone": "alle haben abgestimmt",
+      "closed": "Das Voting ist beendet",
+      "yes": "{count} Ja",
+      "no": "{count} Nein",
+      "noVotesYet": "Neu · noch keine Stimmen",
+      "restore": "Zurückholen",
+      "inviteTitle": "Einladungslink für die Gruppe",
+      "copyLink": "Link kopieren",
+      "copied": "Kopiert ✓",
+      "recsTitle": "Von der Gruppe empfohlen",
+      "recsSubtitle": "Aktivitäten, die deine Jungs dazunehmen wollen",
+      "recByOne": "Von {count} Kumpel empfohlen",
+      "recByOther": "Von {count} Kumpels empfohlen",
+      "add": "Hinzufügen",
+      "added": "Hinzugefügt",
+      "lockTitle": "Passt der Plan?",
+      "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten."
     }
   },
   "swipe": {
     "processing": "Deine Auswahl wird verarbeitet...",
     "progress": "{current} / {total}",
     "durationHours": "{hours} Std.",
-    "fromPerPerson": "ab {price} / Person",
-    "perPersonPrice": "{price} / Person",
-    "groupMinimum": "Gruppen-Mindestbetrag {amount}",
     "likeOverlay": "LIKE ♥",
     "nopeOverlay": "NOPE ✕",
     "dislikeAria": "Gefällt mir nicht",
     "undoAria": "Letzten Swipe rückgängig machen",
-    "likeAria": "Gefällt mir",
-    "linkCopied": "✓ Link kopiert!",
-    "copyInviteLink": "Einladungslink kopieren"
+    "likeAria": "Gefällt mir"
   },
   "datePicker": {
     "startLabel": "Start",
@@ -706,7 +741,7 @@
       "sessionGoneHint": "Es ist vielleicht abgelaufen oder wurde entfernt — frag den Organisator nach einem neuen Link.",
       "empty": "Keine Aktivitäten für die gewählten Kategorien gefunden.",
       "title": "Auf welche Aktivitäten hast du Lust?",
-      "subtitle": "Nach rechts swipen für Ja, nach links zum Überspringen"
+      "subtitle": "Nach rechts für Ja, nach links für Nein"
     },
     "waiting": {
       "processing": "Ergebnisse werden verarbeitet...",
@@ -748,6 +783,34 @@
       "remaining": "Übrig: {amount}",
       "openTripBuilder": "Im Trip-Planer öffnen",
       "suggestionsTitle": "Vorschläge"
+    },
+    "review": {
+      "eyebrow": "{destination}-JGA · {dates}",
+      "eyebrowNoDates": "{destination}-JGA",
+      "title": "Meine Stimmen",
+      "kept": "Du behältst {kept} von {total}",
+      "recommended": "{count} empfohlen",
+      "browse": "Stöbere in den Aktivitäten und füge mehr hinzu",
+      "keep": "Behalten",
+      "drop": "Streichen",
+      "yourRecommendation": "Deine Empfehlung",
+      "remove": "Entfernen",
+      "removeAria": "{name} entfernen",
+      "recommendTitle": "Mehr Aktivitäten empfehlen",
+      "recommendText": "Hinzugefügte Aktivitäten kommen zu deinen Stimmen und gehen an den Organisator",
+      "all": "Alle",
+      "add": "Hinzufügen",
+      "added": "Hinzugefügt",
+      "addAria": "{name} hinzufügen",
+      "addedAria": "{name} aus deinen Empfehlungen entfernen",
+      "send": "An die Gruppe senden",
+      "sending": "Wird gesendet…"
+    },
+    "thanks": {
+      "title": "Danke, deine Stimme ist da.",
+      "text": "Der Organisator teilt den Plan mit der Gruppe.",
+      "closedTitle": "Das Voting ist beendet.",
+      "closedText": "Der Organisator teilt den Plan mit der Gruppe."
     }
   },
   "landing": {
@@ -798,10 +861,7 @@
       "viewAll": "Alle {count} Aktivitäten ansehen →",
       "addToTrip": "Hinzufügen",
       "added": "Hinzugefügt ✓",
-      "photoComing": "Foto folgt bald",
-      "perPerson": "/ Person",
-      "from": "ab",
-      "minPerGroup": "min. {min} € pro Gruppe"
+      "photoComing": "Foto folgt bald"
     },
     "calc": {
       "eyebrow": "Ein Wochenende für jedes Budget",
@@ -1161,7 +1221,7 @@
         "REPLACE": "{name} gegen {replacement} getauscht"
       },
       "priceFrom": "ab {price}",
-      "sendToPlanner": "An einen Prag-Planer senden"
+      "sendToPlanner": "Frag die Gruppe"
     },
     "dock": {
       "title": "JGA-KI",

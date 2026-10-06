@@ -81,19 +81,6 @@
 
 /* Lighter than .activity-title (600): the title is the primary information on
    the card, so the price must not out-weigh it. */
-.activity-price {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text);
-}
-
-.activity-min-note {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 400;
-    color: var(--text-muted, #6c757d);
-}
-
 .add-to-trip-btn {
     background: var(--purple);
     color: #fff;
@@ -131,10 +118,6 @@
     }
 
     .activity-title {
-        font-size: 0.875rem;
-    }
-
-    .activity-price {
         font-size: 0.875rem;
     }
 

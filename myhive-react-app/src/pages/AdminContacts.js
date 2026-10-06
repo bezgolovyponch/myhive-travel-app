@@ -8,7 +8,7 @@ import {formatDateTime} from '../utils/format';
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 300;
 
-const COLUMNS = ['Email', 'Name', 'Locale', 'Sources', 'First seen', 'Last seen', 'Touches', 'Status'];
+const COLUMNS = ['Email / WhatsApp', 'Name', 'Locale', 'Sources', 'First seen', 'Last seen', 'Touches', 'Status'];
 
 function AdminContacts() {
     const adminApi = useAdminApi();
@@ -80,7 +80,7 @@ function AdminContacts() {
             <Form.Control
                 type="search"
                 className="mb-3"
-                placeholder="Search email or name"
+                placeholder="Search email, name or number"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
             />
@@ -133,7 +133,12 @@ function ContactRow({contact}) {
         : `${contact.firstSource} → ${contact.lastSource}`;
     return (
         <tr>
-            <td><a href={`mailto:${contact.email}`}>{contact.email}</a></td>
+            <td>
+                {contact.email && <div><a href={`mailto:${contact.email}`}>{contact.email}</a></div>}
+                {contact.phone && (
+                    <div><a href={`https://wa.me/${contact.phone.slice(1)}`} target="_blank" rel="noreferrer">{contact.phone}</a></div>
+                )}
+            </td>
             <td>{contact.name || <span className="text-muted">—</span>}</td>
             <td>{(contact.locale || 'en').toUpperCase()}</td>
             <td className="small">{sources}</td>

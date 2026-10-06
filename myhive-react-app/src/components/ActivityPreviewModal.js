@@ -1,5 +1,4 @@
 import AppModal from './AppModal';
-import { formatAmount, formatPrice, hasGroupMin } from '../utils/format';
 import { useLocalePath, useT } from '../i18n';
 import './ActivityPreviewModal.css';
 
@@ -10,17 +9,8 @@ function ActivityPreviewModal({ activity, link, onClose }) {
         return null;
     }
 
+    // No per-person price: the plan shows one "from" price for the group.
     const meta = [];
-    if (activity.price != null) {
-        // "/ person" lives in the key (German flips the phrase), so the
-        // translatable format string replaces utils/format's English one.
-        meta.push(hasGroupMin(activity)
-            ? t('fromPerPerson', {price: formatPrice(activity.price)})
-            : t('perPersonPrice', {price: formatPrice(activity.price)}));
-    }
-    if (hasGroupMin(activity)) {
-        meta.push(t('groupMinimum', {amount: formatAmount(Number(activity.minPrice))}));
-    }
     if (activity.duration != null) {
         meta.push(t('durationHours', {hours: Math.round(activity.duration / 60)}));
     }

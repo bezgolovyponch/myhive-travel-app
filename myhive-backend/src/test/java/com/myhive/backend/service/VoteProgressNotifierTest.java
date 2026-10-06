@@ -89,6 +89,10 @@ class VoteProgressNotifierTest {
         VoteSessionCartCreateRequest request = new VoteSessionCartCreateRequest();
         request.setDestinationId(prague.getId());
         request.setInitiatorEmail(email);
+        if (email == null) {
+            // A vote needs a contact: the email-less organiser left a WhatsApp number instead.
+            request.setInitiatorPhone("+447700900123");
+        }
         request.setNumberOfTravelers(travelers);
         request.setStartDate(LocalDate.of(2026, 8, 1));
         request.setEndDate(LocalDate.of(2026, 8, 3));
