@@ -223,6 +223,10 @@ function StartGroupVoteModal({
             pushEvent('link_revealed', { trip_id: session.shareToken, vote_mode: voteMode });
             launchedRef.current = true;
             if (onLaunched) onLaunched();
+            // The dashboard is the Trip Builder tab this modal may sit on: close
+            // it, so the organiser (back from WhatsApp, too) lands on the dashboard.
+            setSubmitting(null);
+            onClose();
             navigate(dashboardPath(destinationSlug, session.shareToken));
         } catch (e) {
             setApiError(t('start.errors.createFailed'));
