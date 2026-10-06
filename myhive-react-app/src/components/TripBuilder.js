@@ -21,10 +21,10 @@ import ContactForm from './ContactForm';
 import SuccessModal from './SuccessModal';
 import StartGroupVoteModal from './vote/StartGroupVoteModal';
 import ActiveVoteModal from './vote/ActiveVoteModal';
-import {GroupRecommendations, VoteCounts, VoteDashboardHeader, VoteInvitePanel} from './vote/VoteDashboard';
+import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} from './vote/VoteDashboard';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
-import {useT} from '../i18n';
+import {useLocalePath, useT} from '../i18n';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
@@ -77,6 +77,7 @@ function seedTripSetupFromVote(result, dispatch) {
 
 function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const t = useT('tripBuilder');
+  const lp = useLocalePath();
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
   const [categories, setCategories] = useState([]);
@@ -390,11 +391,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     }
   };
 
+  // Adding (or restoring) only changes the plan: the effect below puts every
+  // planned activity on the ballot, whichever tab it was added in.
   const handleAddActivity = (activity) => {
       dispatch({type: 'ADD_TO_TRIP', activity, silent: true});
-      if (liveVote && !onBallot(activity.id)) {
-        organizerVote.addActivity(activity.id);
-      }
   };
 
   const handleRestoreActivity = (row) => {
@@ -404,8 +404,28 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       activity: known || {id: row.activityId, name: row.name, price: row.price, imageUrl: row.imageUrl, destinationSlug},
       silent: true,
     });
-    organizerVote.restoreActivity(row.activityId);
   };
+
+  // While the vote runs, the plan is the ballot: an activity in the plan that
+  // the vote lacks (added from a recommendation, or in the "Browse all" tab,
+  // whose cart reaches this one through storage) or has dropped is added to it
+  // — the server restores a dropped one. Once per activity until the tally
+  // that call refreshes arrives, so a slow edit is not sent twice.
+  const ballotSyncRef = useRef(new Set());
+  const planIdsKey = groupTripItems(state.tripItems).standalone.map(item => item.id).join(',');
+  useEffect(() => {
+    ballotSyncRef.current = new Set();
+  }, [organizerVote.tally]);
+  useEffect(() => {
+    if (!liveVote || !organizerVote.tally || !planIdsKey) return;
+    planIdsKey.split(',').forEach(id => {
+      if (onBallot(id) || ballotSyncRef.current.has(id)) return;
+      ballotSyncRef.current.add(id);
+      organizerVote.addActivity(id);
+    });
+    // onBallot and addActivity read the tally and token this effect keys on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveVote, organizerVote.tally, planIdsKey]);
 
   const getPreviewLink = (activity) => {
     if (!activity || !activity.slug || !activity.destinationSlug) {
@@ -620,7 +640,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
 
   // The plan carries one price, "from €X" for the whole group, priced on the
   // server; activity lines and lists carry none.
-  const planFromPrice = usePlanFromPrice(state.tripItems.map(item => item.id), travelers);
+  const planQuote = usePlanFromPrice(state.tripItems.map(item => item.id), travelers);
+  const planFromPrice = planQuote?.fromPrice ?? null;
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
   // Display-only ranking for a completed CART vote — ties/unballoted items keep
@@ -649,7 +670,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // The sticky rail now carries only the vote CTA (and the vote-session budget
   // panel); with neither to show it disappears entirely so the layout doesn't
   // reserve an empty column / bottom bar.
-  const railVisible = state.tripBudget != null || voteCtaVisible;
+  const railVisible = !dashboard && (state.tripBudget != null || voteCtaVisible);
   let voteButtonTitle;
   if (hasForeignStandalone) {
     voteButtonTitle = t('vote.foreignDestinationTitle');
@@ -711,30 +732,51 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const layoutClasses = [
     'trip-builder-layout',
     !railVisible && 'trip-builder-layout--no-rail',
-    state.tripBudget != null && 'trip-builder-layout--budget',
+    !dashboard && state.tripBudget != null && 'trip-builder-layout--budget',
+    dashboard && 'trip-builder-layout--dashboard',
   ].filter(Boolean).join(' ');
 
-  return (
-    <div className={layoutClasses}>
-      <div className="trip-builder-main">
-        {dashboard ? (
-            <VoteDashboardHeader
-                destinationName={destinationName}
-                dates={tripDates(state.tripStartDate, state.tripEndDate)}
-                tally={organizerVote.tally}
-            />
-        ) : (
-        <div className="itinerary-header">
-          {/* While the group can still be sent to vote (the Start group vote CTA
-              is up) this is the list they'll vote on; once voting ends — or
-              there's nothing to vote on — it's their itinerary. */}
-          <h2>{voteCtaVisible ? t('heading.votingList') : t('heading.itinerary')}</h2>
-          <p>{state.tripItems.length === 1
-              ? t('heading.selectedOne', {count: state.tripItems.length})
-              : t('heading.selectedOther', {count: state.tripItems.length})}</p>
-        </div>
-        )}
-        {tripSummary}
+  const bookingForm = (
+      <div className="trip-booking-form" ref={bookingFormRef}>
+        {/* ContactForm renders the trip total itself in inline mode — it
+            owns the traveler count the total has to agree with. */}
+        <ContactForm
+            inline
+            isOpen
+            onClose={() => setShowContactForm(false)}
+            onSubmit={handleContactSubmit}
+            submitLabel={t('footer.sendBookingRequest')}
+            tripData={{tripItems: state.tripItems, travelers, destinationName}}
+            initialValues={{
+              numberOfTravelers: travelers,
+              startDate: state.tripStartDate,
+              endDate: state.tripEndDate
+            }}
+            isSubmitting={isSubmitting}
+            submitError={submitError}
+            onEmailChange={captureCheckoutEmail}
+            showConsentNote
+        />
+      </div>
+  );
+
+  const submitErrorNote = submitError && (
+      <div className="export-error">
+        <p>{submitError}</p>
+      </div>
+  );
+
+  // The organiser dashboard (v3 4b): who has voted, the invite link, the plan
+  // with each activity's keep count, the group's recommendations, a way out to
+  // the full catalogue in a new tab, and Complete booking. Nothing else from the
+  // Trip Builder.
+  const dashboardMain = (
+      <div className="trip-builder-main vd-page">
+        <VoteDashboardHeader
+            destinationName={destinationName}
+            dates={tripDates(state.tripStartDate, state.tripEndDate)}
+            tally={organizerVote.tally}
+        />
         {liveVote && (
             <VoteInvitePanel
                 shareToken={annotationToken}
@@ -744,6 +786,95 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                 endDate={state.tripEndDate}
             />
         )}
+        <section className="vd-plan" aria-label={t('dashboard.planTitle')}>
+          <div className="vd-plan-head">
+            <h3 className="vd-section-title">{t('dashboard.planTitle')}</h3>
+            {planQuote?.fromPricePerPerson != null && (
+                <span className="vd-plan-price">
+                  {t('dashboard.fromPerPerson', {price: formatPrice(Number(planQuote.fromPricePerPerson))})}
+                </span>
+            )}
+          </div>
+          {state.tripItems.length === 0 && droppedRows.length === 0 ? (
+              <p className="vd-muted">{t('emptyState')}</p>
+          ) : (
+              <ul className="vd-rows">
+                {groupsArray.map(group => (
+                    <PlanRow
+                        key={group.packageId}
+                        name={group.packageName}
+                        onRemove={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
+                    />
+                ))}
+                {standalone.map(item => (
+                    <PlanRow
+                        key={item.id}
+                        name={item.name}
+                        row={tallyById[item.id]}
+                        onRemove={() => handleRemoveActivity(item.id)}
+                    />
+                ))}
+                {droppedRows.map(row => (
+                    <PlanRow
+                        key={row.activityId}
+                        name={row.name}
+                        row={row}
+                        dropped
+                        onRestore={liveVote ? () => handleRestoreActivity(row) : null}
+                    />
+                ))}
+              </ul>
+          )}
+        </section>
+        <GroupRecommendations
+            recommendations={organizerVote.tally?.recommendations}
+            isAdded={inCart}
+            onAdd={rec => handleAddActivity({
+                id: rec.activityId,
+                name: rec.name,
+                price: rec.price,
+                minPrice: rec.minPrice,
+                slug: rec.slug,
+                destinationSlug,
+                imageUrl: rec.imageUrl,
+                duration: rec.duration,
+            })}
+        />
+        <a className="vd-browse" href={lp(`/destination/${destinationSlug}?tab=activities`)}
+           target="_blank" rel="noopener noreferrer">
+          {t('dashboard.browseAll')}
+          <span aria-hidden="true">↗</span>
+        </a>
+        {showContactForm ? bookingForm : state.tripItems.length > 0 && (
+            <div className="vd-footer">
+              {liveVote && (
+                  <p className="vd-lock-note">
+                    <b>{t('dashboard.lockTitle')}</b> {t('dashboard.lockText')}
+                  </p>
+              )}
+              <button type="button" className="vd-book-btn" onClick={handleConfirmTrip}>
+                {t('footer.completeBooking')}
+              </button>
+              {submitErrorNote}
+            </div>
+        )}
+      </div>
+  );
+
+  return (
+    <div className={layoutClasses}>
+      {dashboard ? dashboardMain : (
+      <div className="trip-builder-main">
+        <div className="itinerary-header">
+          {/* While the group can still be sent to vote (the Start group vote CTA
+              is up) this is the list they'll vote on; once voting ends — or
+              there's nothing to vote on — it's their itinerary. */}
+          <h2>{voteCtaVisible ? t('heading.votingList') : t('heading.itinerary')}</h2>
+          <p>{state.tripItems.length === 1
+              ? t('heading.selectedOne', {count: state.tripItems.length})
+              : t('heading.selectedOther', {count: state.tripItems.length})}</p>
+        </div>
+        {tripSummary}
         <div className="itinerary-list">
           {state.tripItems.length > 0 ? (
             <>
@@ -782,8 +913,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                        loading="lazy"/>
                   <div className="itinerary-item-content">
                     <div className="itinerary-item-title">{item.name}</div>
-                    {dashboard && tallyById[item.id] && <VoteCounts row={tallyById[item.id]}/>}
-                    {!dashboard && voteAnnotation && voteAnnotation.counts[item.id] != null && (
+                    {voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
                           <span className="itinerary-item-votes-count">♥ {voteAnnotation.counts[item.id]}</span>
                           <span className="itinerary-item-votes-bar">
@@ -807,22 +937,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   </button>
                 </div>
               ))}
-              {droppedRows.map(row => (
-                <div key={row.activityId} className="itinerary-item is-dropped">
-                  {row.imageUrl && (
-                      <img src={row.imageUrl} alt={row.name} className="itinerary-item-image" loading="lazy"/>
-                  )}
-                  <div className="itinerary-item-content">
-                    <div className="itinerary-item-title">{row.name}</div>
-                    <VoteCounts row={row}/>
-                  </div>
-                  {liveVote && (
-                      <button type="button" className="vd-restore-btn" onClick={() => handleRestoreActivity(row)}>
-                        {t('dashboard.restore')}
-                      </button>
-                  )}
-                </div>
-              ))}
             </>
           ) : (
             <div className="empty-state">
@@ -843,70 +957,23 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     <strong>{t('price.from', {price: formatPrice(Number(planFromPrice))})}</strong>
                   </div>
               )}
-              {liveVote && (
-                  <p className="vd-lock-note">
-                    <b>{t('dashboard.lockTitle')}</b> {t('dashboard.lockText')}
-                  </p>
-              )}
               <button
                   className="btn btn--primary btn--full-width confirm-btn"
                   onClick={handleConfirmTrip}
               >
                 {t('footer.completeBooking')}
               </button>
-              {submitError && (
-                  <div className="export-error">
-                    <p>{submitError}</p>
-                  </div>
-              )}
+              {submitErrorNote}
             </div>
         )}
         {/* Below the itinerary in the main column: the booking form takes over
             when active, otherwise the suggestions + Browse More Activities. */}
-        {showContactForm ? (
-            <div className="trip-booking-form" ref={bookingFormRef}>
-              {/* ContactForm renders the trip total itself in inline mode — it
-                  owns the traveler count the total has to agree with. */}
-              <ContactForm
-                  inline
-                  isOpen
-                  onClose={() => setShowContactForm(false)}
-                  onSubmit={handleContactSubmit}
-                  submitLabel={t('footer.sendBookingRequest')}
-                  tripData={{tripItems: state.tripItems, travelers, destinationName}}
-                  initialValues={{
-                    numberOfTravelers: travelers,
-                    startDate: state.tripStartDate,
-                    endDate: state.tripEndDate
-                  }}
-                  isSubmitting={isSubmitting}
-                  submitError={submitError}
-                  onEmailChange={captureCheckoutEmail}
-                  showConsentNote
-              />
-            </div>
-        ) : (
+        {showContactForm ? bookingForm : (
         <>
         {voteError && (
             <p className="text-error">
               {t('vote.loadError')}
             </p>
-        )}
-        {dashboard && (
-            <GroupRecommendations
-                recommendations={organizerVote.tally?.recommendations}
-                isAdded={inCart}
-                onAdd={rec => handleAddActivity({
-                    id: rec.activityId,
-                    name: rec.name,
-                    price: rec.price,
-                    minPrice: rec.minPrice,
-                    slug: rec.slug,
-                    destinationSlug,
-                    imageUrl: rec.imageUrl,
-                    duration: rec.duration,
-                })}
-            />
         )}
         {quizMode && recommended.length > 0 && (
             <div className="trip-vote-suggestions">
@@ -1051,6 +1118,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         </>
         )}
       </div>
+      )}
 
       {/* Sticky vote rail — a side rail on desktop, a pinned bottom bar on
           mobile. Carries only the vote-session budget panel and the

@@ -188,6 +188,22 @@ export function TripProvider({children}) {
         }
     }, [state.restored, state.tripId]);
 
+    // Another tab of this site changed the cart (the organiser adds activities
+    // in the "Browse all" tab while the dashboard stays open): take its items,
+    // so each tab shows and books the same plan.
+    useEffect(() => {
+        const onStorage = (e) => {
+            if (e.key !== 'myhive-trip-items' || e.newValue == null) {
+                return;
+            }
+            try {
+                dispatch({type: 'SET_TRIP_ITEMS', tripItems: JSON.parse(e.newValue)});
+            } catch (err) { /* ignore corrupt storage */ }
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, []);
+
     useEffect(() => {
         if (!state.restored) {
             return;

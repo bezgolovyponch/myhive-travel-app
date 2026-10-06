@@ -114,7 +114,8 @@
     "voteTogether": "Stimm gemeinsam ab & plane deinen Trip",
     "totalOne": "Gesamt ({count} Person)",
     "totalOther": "Gesamt ({count} Personen)",
-    "continue": "Weiter"
+    "continue": "Weiter",
+    "backToTripBuilder": "Zurück zum Trip Builder"
   },
   "home": {
     "hero": {
@@ -641,8 +642,6 @@
       "left": "{count} fehlen noch",
       "everyone": "alle haben abgestimmt",
       "closed": "Das Voting ist beendet",
-      "yes": "{count} Ja",
-      "no": "{count} Nein",
       "noVotesYet": "Neu · noch keine Stimmen",
       "restore": "Zurückholen",
       "inviteTitle": "Einladungslink für die Gruppe",
@@ -655,7 +654,12 @@
       "add": "Hinzufügen",
       "added": "Hinzugefügt",
       "lockTitle": "Passt der Plan?",
-      "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten."
+      "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten.",
+      "keep": "{keep}/{votes} dafür",
+      "planTitle": "Der Plan",
+      "fromPerPerson": "ab {price} p. P.",
+      "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
+      "browseAll": "Alle Aktivitäten ansehen"
     }
   },
   "swipe": {

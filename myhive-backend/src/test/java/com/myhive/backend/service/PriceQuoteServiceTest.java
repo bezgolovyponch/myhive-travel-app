@@ -3,6 +3,7 @@ package com.myhive.backend.service;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.PriceQuoteRequest;
+import com.myhive.backend.dto.PriceQuoteResponse;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.BadRequestException;
@@ -42,8 +43,10 @@ class PriceQuoteServiceTest {
         request.setActivityIds(List.of(shooting.getId(), boat.getId(), shooting.getId()));
         request.setTravelers(10);
 
-        // 89 × 10 + max(20 × 10, 400) = 1290 → less the margin = 1161
-        assertThat(priceQuoteService.quote(request).fromPrice()).isEqualByComparingTo("1161");
+        // 89 × 10 + max(20 × 10, 400) = 1290 → less the margin = 1161 → 116.1 each, rounded up
+        PriceQuoteResponse quote = priceQuoteService.quote(request);
+        assertThat(quote.fromPrice()).isEqualByComparingTo("1161");
+        assertThat(quote.fromPricePerPerson()).isEqualByComparingTo("117");
     }
 
     @Test

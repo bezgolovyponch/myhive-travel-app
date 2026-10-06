@@ -339,3 +339,35 @@ describe('TripProvider — restore must win over the first persist', () => {
         carts.forEach(cart => expect(cart).toEqual([activity1, activity2]));
     });
 });
+
+describe('TripProvider — a cart changed in another tab', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it('takes the other tab\'s items (the organiser browsing in a new tab)', () => {
+        const {result} = renderTripHook();
+        const items = [{id: 'act-7', name: 'Beer spa', price: 49}];
+
+        act(() => {
+            window.dispatchEvent(new StorageEvent('storage', {key: 'myhive-trip-items', newValue: JSON.stringify(items)}));
+        });
+
+        expect(result.current.state.tripItems).toEqual(items);
+    });
+
+    it('ignores other keys and a cleared or corrupt value', () => {
+        const {result} = renderTripHook();
+        act(() => {
+            result.current.dispatch({type: 'ADD_TO_TRIP', activity: {id: 'act-1', name: 'Surfing', price: 50}, silent: true});
+        });
+
+        act(() => {
+            window.dispatchEvent(new StorageEvent('storage', {key: 'myhive-trip-setup', newValue: '[]'}));
+            window.dispatchEvent(new StorageEvent('storage', {key: 'myhive-trip-items', newValue: null}));
+            window.dispatchEvent(new StorageEvent('storage', {key: 'myhive-trip-items', newValue: '{oops'}));
+        });
+
+        expect(result.current.state.tripItems.map(item => item.id)).toEqual(['act-1']);
+    });
+});

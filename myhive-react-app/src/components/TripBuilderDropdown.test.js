@@ -62,6 +62,29 @@ describe('TripBuilderDropdown with items in the cart', () => {
     });
 });
 
+describe('TripBuilderDropdown for the organiser of a running vote', () => {
+    afterEach(() => localStorage.clear());
+
+    it('goes back to the Trip Builder dashboard of that vote', async () => {
+        localStorage.setItem('myhive-trip-vote-session', 'tok-1');
+        localStorage.setItem('myhive-manager-tok-1', 'mgr-1');
+        const user = userEvent.setup();
+        renderDropdown();
+
+        await user.click(screen.getByRole('button', {name: 'Back to Trip Builder'}));
+
+        expect(screen.getByTestId('location')).toHaveTextContent(
+            '/destination/prague?tab=trip-builder&voteSession=tok-1');
+    });
+
+    it('a friend\'s vote (no manager token) keeps Continue', () => {
+        localStorage.setItem('myhive-trip-vote-session', 'tok-1');
+        renderDropdown();
+
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
+    });
+});
+
 describe('TripBuilderDropdown with an empty cart', () => {
     it('keeps the vote CTA in the empty state', () => {
         renderDropdown({tripItems: []});

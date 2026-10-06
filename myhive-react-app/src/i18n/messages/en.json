@@ -124,7 +124,8 @@
     "voteTogether": "Vote together & build a trip",
     "totalOne": "Total ({count} person)",
     "totalOther": "Total ({count} people)",
-    "continue": "Continue"
+    "continue": "Continue",
+    "backToTripBuilder": "Back to Trip Builder"
   },
   "home": {
     "hero": {
@@ -651,8 +652,6 @@
       "left": "{count} still to vote",
       "everyone": "everyone voted",
       "closed": "Voting has closed",
-      "yes": "{count} yes",
-      "no": "{count} no",
       "noVotesYet": "New · not voted yet",
       "restore": "Restore",
       "inviteTitle": "Invite link for the group",
@@ -665,7 +664,12 @@
       "add": "Add",
       "added": "Added",
       "lockTitle": "Happy with the plan?",
-      "lockText": "Lock it in now — no need to wait for the last votes."
+      "lockText": "Lock it in now — no need to wait for the last votes.",
+      "keep": "{keep}/{votes} keep",
+      "planTitle": "The plan",
+      "fromPerPerson": "from {price} / person",
+      "recsEmpty": "Nothing yet. What your friends suggest shows up here.",
+      "browseAll": "Browse all activities"
     }
   },
   "swipe": {
