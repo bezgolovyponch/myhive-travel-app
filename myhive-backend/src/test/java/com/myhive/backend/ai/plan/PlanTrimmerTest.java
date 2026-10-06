@@ -36,6 +36,7 @@ class PlanTrimmerTest {
 
     private final CatalogActivity absinthBar = activity("Absinth Bar", 90, "50.00", "nightlife");
     private final CatalogActivity nightclub = activity("Nightclub VIP Experience", 300, "40.00", "nightlife");
+    private final CatalogActivity walk = activity("City Walk", 60, "5.00", "other");
 
     /** Friday evening to Sunday afternoon: day 1 EVENING-NIGHT, day 2 all four slots, day 3 MORNING-AFTERNOON. */
     private final Brief brief = briefWanting();
@@ -187,7 +188,11 @@ class PlanTrimmerTest {
 
         PlanTrimmer.Trimmed trimmed = trimmer.trim(draft, wantsNightlife, catalog).orElseThrow();
 
-        assertThat(namesOn(trimmed.draft(), Tier.PREMIUM, 2)).contains(tank.name());
+        // Still in the package, though not necessarily on day 2: once the day has lost what it had to lose,
+        // the tank may move to a day that was left empty.
+        PlanDraft.PackageDraft premiumAfter = trimmed.draft().packages().stream()
+                .filter(p -> p.key() == Tier.PREMIUM).findFirst().orElseThrow();
+        assertThat(PlanValidator.activityIds(premiumAfter)).contains(tank.id());
         assertThat(new PlanAssembler().assemble(trimmed.draft(), wantsNightlife, catalog, false).violations()).isEmpty();
         assertThat(validator.validate(trimmed.draft(), wantsNightlife, catalog)).isEmpty();
     }
@@ -313,16 +318,17 @@ class PlanTrimmerTest {
     /**
      * PREMIUM's day 2 runs 630 minutes against 540 and one of three has to go. Not the tank: without it
      * PREMIUM would cost less than MEDIUM. So it is the bar or the club - both of the night, either one
-     * enough - and what is left of the day says which one the brief spared.
+     * enough - and what is left of the day says which one the brief spared. Days 1 and 3 each hold
+     * something cheap: with a day left empty the trimmer would move an activity there and drop nothing.
      */
     private List<String> leftOfTheNight(Brief organizer) {
         PlanDraft draft = plan(basic(),
                 pkg(Tier.MEDIUM, day(1, item(Slot.EVENING, tasting)), day(2, item(Slot.NIGHT, nightclub)),
                         day(3, item(Slot.MORNING, breakfast), item(Slot.AFTERNOON, olympics))),
-                pkg(Tier.PREMIUM, day(1),
+                pkg(Tier.PREMIUM, day(1, item(Slot.EVENING, walk)),
                         day(2, item(Slot.MORNING, tank), item(Slot.EVENING, absinthBar),
                                 item(Slot.NIGHT, nightclub)),
-                        day(3)));
+                        day(3, item(Slot.MORNING, breakfast))));
         PlanTrimmer.Trimmed trimmed = trimmer.trim(draft, organizer, catalog).orElseThrow();
         assertThat(validator.validate(trimmed.draft(), organizer, catalog)).isEmpty();
         assertThat(trimmed.fixes()).hasSize(1);
@@ -387,5 +393,26 @@ class PlanTrimmerTest {
             names.add(catalog.get(item.activityId()).name());
         }
         return names;
+    }
+
+    /** The model put a whole package on day 1 and left the last morning empty: the daytime one moves there, nothing is lost. */
+    @Test
+    void aDayOverItsItemCount_withAnEmptyDayToGoTo_movesAnActivityInsteadOfDroppingIt() {
+        Brief weekend = new Brief(2, TRAVELERS, List.of(), null, null, null, DayEdge.AFTERNOON, DayEdge.MORNING, null);
+        PlanDraft draft = plan(pkg(Tier.BASIC,
+                        day(1, item(Slot.AFTERNOON, bowling), item(Slot.EVENING, tasting), item(Slot.NIGHT, pubCrawl)),
+                        day(2)),
+                pkg(Tier.MEDIUM, day(1, item(Slot.AFTERNOON, olympics), item(Slot.NIGHT, pubCrawl)),
+                        day(2, item(Slot.MORNING, limo))),
+                pkg(Tier.PREMIUM, day(1, item(Slot.AFTERNOON, tank), item(Slot.NIGHT, cabaret)),
+                        day(2, item(Slot.MORNING, breakfast))));
+
+        PlanTrimmer.Trimmed trimmed = trimmer.trim(draft, weekend, catalog).orElseThrow();
+
+        assertThat(namesOn(trimmed.draft(), Tier.BASIC, 1)).containsExactly(tasting.name(), pubCrawl.name());
+        assertThat(namesOn(trimmed.draft(), Tier.BASIC, 2)).containsExactly(bowling.name());
+        assertThat(trimmed.fixes()).singleElement().asString()
+                .startsWith("moved " + bowling.name() + " from BASIC day 1 to day 2 MORNING");
+        assertThat(validator.validate(trimmed.draft(), weekend, catalog)).isEmpty();
     }
 }

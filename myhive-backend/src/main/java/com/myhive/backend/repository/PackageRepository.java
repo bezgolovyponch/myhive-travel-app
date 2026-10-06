@@ -17,6 +17,9 @@ public interface PackageRepository extends SluggedRepository<Package> {
 
     List<Package> findByDestinationId(UUID destinationId);
 
+    /** The presets the AI planner builds its tiers from: a destination's packages that carry a price level. */
+    List<Package> findByDestinationIdAndTierIsNotNull(UUID destinationId);
+
     List<Package> findByCategoriesSlug(String categorySlug);
 
     List<Package> findByCategoriesId(UUID categoryId);

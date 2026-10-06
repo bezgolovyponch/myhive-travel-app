@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.plan;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
@@ -11,7 +12,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +28,10 @@ import java.util.UUID;
  * tier and filled in two passes per package: first give every day one item so no middle day is left empty,
  * then top up each day toward the tier's cap. Rejected candidates are never discarded — they stay available
  * for a later day or a later pass. Deterministic: no randomness, ties break on activity name.
+ *
+ * <p>A tier that has a ready-made package is not composed at all: it gets that package's activities, in
+ * the package's own order, and nothing else - the shared pool only fills a day the package left empty.
+ * Among several packages of one tier the one sharing most categories with the brief wins.
  */
 @Component
 public class FallbackPlanComposer {
@@ -32,6 +39,10 @@ public class FallbackPlanComposer {
     private static final int DEFAULT_TRAVELERS = 1;
 
     public PlanDraft compose(Brief brief, List<CatalogActivity> catalog, String locale) {
+        return compose(brief, catalog, List.of(), locale);
+    }
+
+    public PlanDraft compose(Brief brief, List<CatalogActivity> catalog, List<CatalogPreset> presets, String locale) {
         if (brief.days() == null) {
             throw new IllegalArgumentException("brief.days must be set before composing a fallback plan");
         }
@@ -42,16 +53,57 @@ public class FallbackPlanComposer {
         CatalogActivity[] signatures = reserveSignatures(catalog, wanted, travelers, tiers);
         List<CatalogActivity> shared = sharedPool(catalog, wanted, travelers, signatures);
 
+        Map<UUID, CatalogActivity> byId = new HashMap<>();
+        for (CatalogActivity activity : catalog) {
+            byId.putIfAbsent(activity.id(), activity);
+        }
+
         List<PlanDraft.PackageDraft> packages = new ArrayList<>();
         for (int t = 0; t < tiers.length; t++) {
+            List<CatalogActivity> fromPreset = presetActivities(tiers[t], presets, wanted, byId);
+            if (!fromPreset.isEmpty()) {
+                packages.add(fill(tiers[t], locale, brief, fromPreset, shared));
+                continue;
+            }
             List<CatalogActivity> pool = new ArrayList<>();
             if (signatures[t] != null) {
                 pool.add(signatures[t]);
             }
             pool.addAll(shared);
-            packages.add(fill(tiers[t], locale, brief, pool));
+            packages.add(fill(tiers[t], locale, brief, pool, List.of()));
         }
         return new PlanDraft(packages);
+    }
+
+    /**
+     * The activities of the tier's best-fitting ready-made package, in its order; empty when the tier has
+     * none. "Best fitting" is the most categories shared with the brief, the first listed on a tie.
+     */
+    private static List<CatalogActivity> presetActivities(Tier tier, List<CatalogPreset> presets, Set<String> wanted,
+            Map<UUID, CatalogActivity> byId) {
+        CatalogPreset best = null;
+        long bestOverlap = -1;
+        for (CatalogPreset preset : presets) {
+            if (preset.tier() != tier) {
+                continue;
+            }
+            long overlap = preset.categorySlugs().stream().filter(wanted::contains).count();
+            if (overlap > bestOverlap) {
+                best = preset;
+                bestOverlap = overlap;
+            }
+        }
+        if (best == null) {
+            return List.of();
+        }
+        List<CatalogActivity> activities = new ArrayList<>();
+        for (UUID id : best.activityIds()) {
+            CatalogActivity activity = byId.get(id);
+            if (activity != null) {
+                activities.add(activity);
+            }
+        }
+        return activities;
     }
 
     /**
@@ -126,9 +178,10 @@ public class FallbackPlanComposer {
      * Two passes per package: first walk every day once so no day is skipped entirely (pass 1), then walk
      * the days again topping each one up toward the tier's item/minute caps (pass 2). A rejected candidate
      * is left in {@code remaining} rather than discarded, so an over-long activity can no longer drain the
-     * pool and starve later days.
+     * pool and starve later days. {@code spare} is only reached for a day both passes left empty.
      */
-    private static PlanDraft.PackageDraft fill(Tier tier, String locale, Brief brief, List<CatalogActivity> pool) {
+    private static PlanDraft.PackageDraft fill(Tier tier, String locale, Brief brief, List<CatalogActivity> pool,
+            List<CatalogActivity> spare) {
         int dayCount = brief.days();
         List<List<PlanDraft.ItemDraft>> itemsPerDay = new ArrayList<>();
         List<Set<Slot>> usedSlotsPerDay = new ArrayList<>();
@@ -148,6 +201,16 @@ public class FallbackPlanComposer {
             while (itemsPerDay.get(d).size() < tier.maxItemsPerDay()
                     && placeOne(tier, allowedPerDay.get(d), itemsPerDay.get(d), usedSlotsPerDay.get(d), minutesPerDay, d, remaining)) {
                 // keep topping this day up until the cap, the minute budget, or the pool is exhausted
+            }
+        }
+        List<CatalogActivity> remainingSpare = new ArrayList<>(spare);
+        Set<UUID> placed = new HashSet<>();
+        itemsPerDay.forEach(items -> items.forEach(item -> placed.add(item.activityId())));
+        remainingSpare.removeIf(activity -> placed.contains(activity.id()));
+        for (int d = 0; d < dayCount; d++) {
+            if (itemsPerDay.get(d).isEmpty()) {
+                placeOne(tier, allowedPerDay.get(d), itemsPerDay.get(d), usedSlotsPerDay.get(d), minutesPerDay, d,
+                        remainingSpare);
             }
         }
 

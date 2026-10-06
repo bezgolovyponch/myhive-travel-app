@@ -32,7 +32,7 @@ final class DraftAttempt {
     /** The request compose sends and repair quotes back to the model unchanged. */
     static PlanRequest planRequest(PlannerState state) {
         return new PlanRequest(state.locale(), state.destinationName(), state.brief(), state.catalog(),
-                state.messages());
+                state.presets(), state.messages());
     }
 
     static Map<String, Object> run(String node, PlannerState state, Supplier<PlanDraftResult> call) {

@@ -17,6 +17,7 @@ const EMPTY_FORM = {
     destinationId: '',
     discountPct: '',
     duration: '',
+    tier: '',
     categoryIds: [],
     imageUrl: '',
     includes: '',
@@ -32,6 +33,7 @@ const COLUMNS = [
     {key: 'originalPrice', label: 'Original Price'},
     {key: 'discountedPrice', label: 'Discounted Price'},
     {key: 'discountPct', label: 'Discount %'},
+    {key: 'tier', label: 'AI price level'},
 ];
 
 function AdminPackages() {
@@ -58,6 +60,7 @@ function AdminPackages() {
             destinationId: p.destinationId || '',
             discountPct: p.discountPct ?? '',
             duration: p.duration ?? '',
+            tier: p.tier || '',
             categoryIds: p.categoryIds || (p.categories || []).map(c => c.id),
             imageUrl: p.imageUrl || '',
             includes: p.includes || '',
@@ -95,6 +98,7 @@ function AdminPackages() {
             ...form,
             discountPct: form.discountPct !== '' ? Number(form.discountPct) : null,
             duration: form.duration !== '' ? Number(form.duration) : null,
+            tier: form.tier || null,
             activities: form.activities.map((a, i) => ({activityId: a.activityId, position: i})),
         }),
     });
@@ -206,6 +210,7 @@ function AdminPackages() {
                                     <td className="small">{formatAmount(pkg.originalPrice)}</td>
                                     <td className="small fw-semibold">{formatAmount(pkg.discountedPrice)}</td>
                                     <td className="small">{pkg.discountPct != null ? `${pkg.discountPct}%` : '—'}</td>
+                                    <td className="small">{pkg.tier || '—'}</td>
                                     <td className="text-end">
                                         <Button variant="outline-primary" size="sm" className="me-1"
                                                 onClick={() => openEdit(pkg)}>
@@ -301,6 +306,24 @@ function AdminPackages() {
                                 />
                             </Col>
                         </Row>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="small fw-semibold text-white">AI planner price level</Form.Label>
+                            <Form.Select
+                                aria-label="AI planner price level"
+                                value={form.tier}
+                                onChange={e => updateField('tier', e.target.value)}
+                            >
+                                <option value="">None (not used by the AI planner)</option>
+                                <option value="BASIC">Basic</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="PREMIUM">Premium</option>
+                            </Form.Select>
+                            <Form.Text className="text-muted" style={{fontSize: '0.75rem'}}>
+                                The AI planner starts this tier from a package with a price level, then adds or
+                                removes activities to fit the request. Activity order matters: the last ones are
+                                dropped first on a short trip.
+                            </Form.Text>
+                        </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Categories</Form.Label>
                             <div className="border rounded p-2 d-flex flex-column gap-1"

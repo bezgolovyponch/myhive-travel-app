@@ -2,6 +2,7 @@ package com.myhive.backend.ai.graph;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.llm.ChatMessage;
@@ -40,6 +41,7 @@ public class PlannerState extends AgentState {
     public static final String DESTINATION_NAME = "destinationName";
     public static final String CATEGORY_SLUGS = "categorySlugs";
     public static final String CATALOG = "catalog";
+    public static final String PRESETS = "presets";
     public static final String DRAFT = "draft";
     public static final String VIOLATIONS = "violations";
     /** Every rejected draft of the current generation, in order; {@link #VIOLATIONS} only holds the latest. */
@@ -93,6 +95,7 @@ public class PlannerState extends AgentState {
     private static final String MESSAGE_AT = "at";
 
     private static final TypeReference<List<CatalogActivity>> CATALOG_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<CatalogPreset>> PRESETS_TYPE = new TypeReference<>() {};
     private static final TypeReference<List<Violation>> VIOLATIONS_TYPE = new TypeReference<>() {};
     private static final TypeReference<List<AttemptDiagnostic>> ATTEMPT_LOG_TYPE = new TypeReference<>() {};
     private static final TypeReference<List<EditRequest>> EDITS_TYPE = new TypeReference<>() {};
@@ -139,6 +142,11 @@ public class PlannerState extends AgentState {
 
     public List<CatalogActivity> catalog() {
         return this.<String>value(CATALOG).map(json -> JsonCodec.read(json, CATALOG_TYPE)).orElse(List.of());
+    }
+
+    /** The ready-made packages frozen with the catalog; empty for a checkpoint written before they existed. */
+    public List<CatalogPreset> presets() {
+        return this.<String>value(PRESETS).map(json -> JsonCodec.read(json, PRESETS_TYPE)).orElse(List.of());
     }
 
     /** The snapshot keyed for the validator and the assembler; a duplicate id can only mean a corrupt snapshot. */
