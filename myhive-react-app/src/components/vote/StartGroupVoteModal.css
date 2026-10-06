@@ -1,32 +1,31 @@
-/* Organiser contact sheet (group vote v3, 4a): headline, the 3-step timeline,
-   the example "The group's choice" card, the group's WhatsApp chat with the
+/* Organiser contact sheet (group vote v3, 4a): "How it works" and the headline,
+   one line of what happens, the three steps, the group's WhatsApp chat with the
    number field and its green button right under it, then email and the main
-   purple button. Built to fit one phone screen: every button is 54px tall and
-   full width, spacing is tight. The WhatsApp preview is also reused by the
-   organiser dashboard. */
+   button. Built to fit one phone screen without empty space: fields and buttons
+   are 44px tall and full width, spacing is tight. The WhatsApp preview is also
+   reused by the organiser dashboard. */
 .start-vote-modal,
 .sgv-scope {
-    --sgv-sheet: #17151d;
-    --sgv-card: #1f1c27;
-    --sgv-line: #2e2b3a;
-    --sgv-field: #100f15;
-    --sgv-field-line: #3a3648;
+    --sgv-sheet: #131217;
+    --sgv-card: #1a1920;
+    --sgv-line: #2a2733;
+    --sgv-field: #131217;
+    --sgv-field-line: #3a3842;
     --sgv-muted: #b0acbb;
+    --sgv-faint: #8f8b9a;
     --sgv-green: #25d366;
-    --sgv-green-text: #5fdc8f;
-    --sgv-red: #e0646c;
-    --sgv-red-text: #ff8f95;
-    --sgv-amber: #f2c46d;
-    --sgv-violet-text: #a9a2f5;
+    --sgv-violet: #7c3aed;
+    --sgv-violet-text: #c4b5fd;
 }
 
 .start-vote-modal {
     background: var(--sgv-sheet);
-    border: 1px solid #2a2733;
+    border: 1px solid var(--sgv-line);
+    border-radius: 26px;
 }
 
 .start-vote-modal .app-modal-header {
-    padding: var(--gap) var(--gap) 0;
+    padding: 1rem 1rem 0;
     border-bottom: none;
     background: transparent;
     align-items: flex-start;
@@ -34,28 +33,69 @@
 }
 
 .start-vote-modal .app-modal-header h2 {
-    font-size: 1.625rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    line-height: 1.08;
-    letter-spacing: -0.02em;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+.sgv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.625rem;
+    border-radius: var(--radius-full);
+    background: #24222b;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #d6d3df;
+}
+
+.sgv-chip::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8b5cf6;
+}
+
+/* "Your group votes." on one line, "You get the result." under it in violet. */
+.sgv-headline > span {
+    display: block;
+    color: var(--sgv-violet-text);
 }
 
 .start-vote-modal .app-modal-close-btn {
-    font-size: 1.75rem;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    background: #24222b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.125rem;
     line-height: 1;
-    font-weight: 300;
-    margin: -0.25rem -0.25rem 0 0;
+    color: var(--sgv-muted);
 }
 
 .start-vote-modal .app-modal-body {
-    padding: var(--gap-sm) var(--gap) calc(var(--gap) + env(safe-area-inset-bottom));
+    padding: 0.375rem 1rem calc(1.125rem + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 /* Every block keeps its size: on a short screen the body scrolls instead of
-   squeezing the 54px fields and buttons. */
+   squeezing the fields and buttons. */
 .start-vote-modal .app-modal-body > * {
     flex-shrink: 0;
 }
@@ -63,288 +103,182 @@
 /* A phone-sized sheet on a wide screen too. */
 @media (min-width: 769px) {
     .app-modal-content.start-vote-modal {
-        max-width: 375px;
+        max-width: 390px;
     }
 }
 
 /* On a phone the sheet keeps a small gap to the screen edges, as in the design. */
 @media (max-width: 768px) {
     .app-modal-content.start-vote-modal {
-        width: calc(100% - 20px);
-        margin: 0 10px;
+        width: calc(100% - 16px);
+        margin: 0 8px 8px;
+        border-radius: 26px;
     }
 }
 
-/* Timeline: three coloured bars, a small caps label and one plain line each. */
-.sgv-timeline {
-    list-style: none;
-    margin: 0 0 0.125rem;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.375rem;
-}
-
-.sgv-step {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    padding-top: 0.5rem;
-    border-top: 4px solid var(--sgv-green);
+.sgv-lede {
+    margin: 0;
     font-size: 0.75rem;
-    line-height: 1.2;
-    color: var(--text);
-}
-
-.sgv-step-label {
-    font-size: 0.625rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--sgv-green-text);
-}
-
-.sgv-step--half { border-top-color: var(--purple-l); }
-.sgv-step--half .sgv-step-label { color: var(--sgv-violet-text); }
-.sgv-step--end { border-top-color: var(--sgv-amber); }
-.sgv-step--end .sgv-step-label { color: var(--sgv-amber); }
-
-/* "The group's choice" example card. */
-.sgv-card,
-.sgv-chat {
-    border-radius: 14px;
-}
-
-.sgv-card {
-    padding: 0.5rem 0.75rem;
-    background: var(--sgv-card);
-    border: 1px solid var(--sgv-line);
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.sgv-card-head,
-.sgv-card-foot,
-.sgv-card-row {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-}
-
-.sgv-card-head,
-.sgv-card-foot {
-    justify-content: space-between;
-}
-
-.sgv-eyebrow {
-    font-size: 0.625rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #8b82e6;
-}
-
-.sgv-voters {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.6875rem;
+    line-height: 1.45;
     color: var(--sgv-muted);
-    white-space: nowrap;
 }
 
-.sgv-voter-dots {
-    display: flex;
-    gap: 2px;
-}
-
-.sgv-voter-dots span {
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 50%;
-    border: 1px solid #6a6578;
-}
-
-.sgv-voter-dots span.is-voted {
-    background: var(--purple);
-    border-color: var(--purple-l);
-}
-
-.sgv-card-rows {
+/* The three steps: a numbered dot each, joined by a hairline. */
+.sgv-steps {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--sgv-line);
+    border-radius: 12px;
+    background: var(--sgv-card);
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
 }
 
-.sgv-card-rows li {
+.sgv-steps li {
+    position: relative;
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    column-gap: 0.625rem;
+    padding-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.sgv-steps li:last-child {
+    padding-bottom: 0;
+}
+
+.sgv-steps li:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    bottom: 0;
+    left: 10.5px;
+    width: 1px;
+    background: #3a3842;
+}
+
+.sgv-step-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #2c2a33;
     display: flex;
-    flex-direction: column;
-    gap: 0.1875rem;
-}
-
-.sgv-card-name {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.875rem;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sgv-card-rows li.is-dropped .sgv-card-name {
-    color: var(--sgv-muted);
-    text-decoration: line-through;
-}
-
-.sgv-pill {
-    padding: 0.0625rem 0.4375rem;
-    border-radius: var(--radius-full);
+    align-items: center;
+    justify-content: center;
     font-size: 0.6875rem;
     font-weight: 700;
-    white-space: nowrap;
+    color: #d6d3df;
 }
 
-.sgv-pill--yes {
-    background: rgba(37, 211, 102, 0.15);
-    color: var(--sgv-green-text);
+.sgv-steps li.is-current .sgv-step-num {
+    background: var(--sgv-violet);
+    color: #fff;
 }
 
-.sgv-pill--no {
-    background: rgba(224, 100, 108, 0.16);
-    color: var(--sgv-red-text);
+.sgv-step-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
 }
 
-/* Yes part green, the rest red: one glance tells the split. */
-.sgv-split {
-    display: flex;
-    height: 3px;
-    border-radius: 2px;
-    overflow: hidden;
-    background: var(--sgv-red);
-}
-
-.sgv-split span {
-    background: var(--sgv-green);
-}
-
-.sgv-card-foot {
-    padding-top: 0.25rem;
-    border-top: 1px solid var(--sgv-line);
-    font-size: 0.75rem;
-    color: var(--sgv-muted);
-}
-
-.sgv-count {
-    padding: 0.0625rem 0.5625rem;
-    border-radius: var(--radius-full);
-    background: rgba(139, 130, 230, 0.2);
-    color: #c9c4fb;
-    font-size: 0.75rem;
-    font-weight: 700;
+.sgv-step-text {
+    font-size: 0.6875rem;
+    color: var(--sgv-faint);
 }
 
 .sgv-dates-label {
     margin-bottom: var(--gap-xs);
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.8125rem;
+    font-weight: 600;
 }
 
 /* The group's chat, drawn the way WhatsApp draws it. */
 .sgv-whatsapp {
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
+    gap: 0.75rem;
 }
 
 .sgv-chat {
     overflow: hidden;
-    border: 1px solid #1f2c34;
+    border: 1px solid var(--sgv-line);
+    border-radius: 12px;
+    background: #0b0b0e;
 }
 
 .sgv-chat-head {
     display: flex;
     align-items: center;
-    gap: 0.5625rem;
-    padding: 0.25rem 0.625rem;
-    background: #1f2c34;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #075e54;
+    color: #fff;
     line-height: 1.2;
 }
 
 .sgv-chat-avatar {
-    width: 1.625rem;
-    height: 1.625rem;
+    width: 24px;
+    height: 24px;
     flex: none;
     border-radius: 50%;
-    background: #2a3942;
+    background: rgba(255, 255, 255, 0.18);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9375rem;
 }
 
 .sgv-chat-title {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #e9edef;
+    flex: 1;
+    min-width: 0;
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.sgv-chat-sub {
-    font-size: 0.6875rem;
-    color: #8696a0;
+.sgv-chat-title b {
+    font-weight: 700;
+}
+
+.sgv-chat-menu {
+    flex: none;
 }
 
 .sgv-chat-body {
     display: flex;
     justify-content: flex-end;
-    padding: 0.3125rem 0.625rem 0.3125rem 2.5rem;
-    background-color: #0b141a;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.035' stroke-width='1.2'%3E%3Ccircle cx='10' cy='12' r='5'/%3E%3Cpath d='M38 8l6 6-6 6'/%3E%3Crect x='30' y='38' width='10' height='8' rx='2'/%3E%3Cpath d='M6 44c4-4 8 4 12 0'/%3E%3Ccircle cx='50' cy='50' r='2.5'/%3E%3C/g%3E%3C/svg%3E");
+    padding: 0.625rem 0.75rem 0.75rem;
 }
 
 .sgv-bubble {
-    position: relative;
     /* A flex item: without min-width 0 the unbroken invite link in the preview
        would size the bubble, and the page, past the screen. */
     min-width: 0;
-    max-width: 100%;
-    padding: 0.25rem 0.375rem 0.1875rem 0.5rem;
-    border-radius: 8px 0 8px 8px;
-    background: #005c4b;
+    width: 92%;
+    padding: 0.5rem 0.5rem 0.3125rem;
+    border-radius: 10px 2px 10px 10px;
+    background: #d9fdd3;
+    color: #111b21;
     display: flex;
     flex-direction: column;
-    gap: 0.1875rem;
-}
-
-/* The tail on the top-right corner. */
-.sgv-bubble::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: -7px;
-    border-left: 8px solid #005c4b;
-    border-bottom: 9px solid transparent;
+    gap: 0.375rem;
 }
 
 .sgv-bubble-text {
     margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.3;
-    color: #fff;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #111b21;
 }
 
 .sgv-link-preview {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0.4375rem 0.5rem;
     border-radius: 8px;
-    background: #025144;
-    line-height: 1.2;
+    background: #fff;
+    line-height: 1.25;
     min-width: 0;
 }
 
@@ -353,31 +287,35 @@
 }
 
 .sgv-link-logo {
-    width: 1.375rem;
-    height: 1.375rem;
+    width: 20px;
+    height: 20px;
     flex: none;
-    border-radius: 6px;
-    background: var(--purple);
+    border-radius: 50%;
+    background: var(--sgv-violet);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 0.875rem;
-    color: #fff;
-}
-
-.sgv-link-title {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-.sgv-link-host {
     font-size: 0.6875rem;
-    color: #a7c4bd;
+    color: #fff;
+}
+
+.sgv-link-title,
+.sgv-link-host {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.sgv-link-title {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #111b21;
+}
+
+.sgv-link-host {
+    font-size: 0.625rem;
+    color: #667781;
 }
 
 .sgv-bubble-meta {
@@ -385,37 +323,74 @@
     justify-content: flex-end;
     align-items: center;
     gap: 0.1875rem;
-    margin-top: -1px;
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
     line-height: 1;
-    color: #a7c4bd;
+    color: #667781;
 }
 
 .sgv-bubble-meta svg {
     color: #53bdeb;
 }
 
-/* Fields and buttons: 54px, full width. */
-.sgv-phone {
-    display: grid;
-    grid-template-columns: 6.5rem minmax(0, 1fr);
-    gap: 0.375rem;
+/* A field is a card with its lead (the country code, the mail icon) and the
+   input inside it. */
+.sgv-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem;
+    border: 1px solid var(--sgv-line);
+    border-radius: 12px;
+    background: var(--sgv-card);
+    color: var(--sgv-faint);
+}
+
+.sgv-field > svg {
+    flex: none;
+    margin-left: 0.25rem;
+}
+
+.sgv-field.is-valid-phone {
+    border-color: var(--sgv-green);
+}
+
+.sgv-field.is-valid-email {
+    border-color: var(--sgv-violet);
+}
+
+.sgv-code {
+    flex: none;
+    height: 44px;
+    padding: 0 0.375rem 0 0.5rem;
+    border: 0;
+    border-right: 1px solid var(--sgv-line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.875rem;
+}
+
+.sgv-code:focus {
+    outline: none;
+}
+
+.sgv-code:focus-visible {
+    outline: 2px solid var(--sgv-violet-text);
+    outline-offset: 2px;
+    border-radius: 6px;
 }
 
 .sgv-input {
+    flex: 1;
     width: 100%;
-    height: 54px;
+    height: 44px;
     min-width: 0;
-    padding: 0 0.875rem;
+    padding: 0 0.75rem;
     border: 1px solid var(--sgv-field-line);
-    border-radius: 12px;
+    border-radius: 6px;
     background: var(--sgv-field);
     color: var(--text);
     font-size: 1rem; /* ≥16px so iOS Safari does not zoom the field */
-}
-
-select.sgv-input {
-    padding: 0 0.625rem;
 }
 
 .sgv-input::placeholder {
@@ -424,59 +399,49 @@ select.sgv-input {
 
 .sgv-input:focus {
     outline: none;
-    border-color: var(--purple-l);
-    box-shadow: 0 0 0 3px rgba(127, 119, 221, 0.3);
-}
-
-.sgv-input.is-valid-phone {
-    border-color: var(--sgv-green);
-}
-
-.sgv-input.is-valid-email {
-    border-color: var(--purple-l);
+    border-color: var(--sgv-violet-text);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.3);
 }
 
 .sgv-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.625rem;
+    gap: 0.5rem;
     width: 100%;
-    height: 54px;
+    height: 44px;
     border: 0;
-    border-radius: 12px;
+    border-radius: 10px;
     font-family: var(--font);
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.875rem;
     cursor: pointer;
 }
 
 .sgv-btn:disabled {
-    opacity: 0.35;
+    opacity: 0.45;
     cursor: not-allowed;
 }
 
 .sgv-btn--whatsapp {
     background: var(--sgv-green);
-    color: #0b1a10;
+    color: #0b2a17;
 }
 
 .sgv-btn--primary {
-    background: var(--purple);
+    background: var(--sgv-violet);
     color: #fff;
-}
-
-.sgv-btn--primary:not(:disabled) {
-    box-shadow: 0 10px 30px -10px var(--purple);
 }
 
 .sgv-or {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    font-size: 0.75rem;
+    font-size: 0.625rem;
     line-height: 1;
-    color: #8a8699;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--sgv-faint);
 }
 
 .sgv-or::before,
@@ -484,20 +449,20 @@ select.sgv-input {
     content: "";
     flex: 1;
     height: 1px;
-    background: #34313f;
+    background: var(--sgv-line);
 }
 
 .sgv-footer {
     margin: 0;
     text-align: center;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     line-height: 1.2;
-    color: #9a96a6;
+    color: var(--sgv-faint);
 }
 
 .start-vote-modal .error-message {
     display: block;
     color: var(--error);
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     text-align: center;
 }

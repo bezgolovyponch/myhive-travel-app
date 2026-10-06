@@ -55,6 +55,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const [building, setBuilding] = useState(false);
     const [watchedId, setWatchedId] = useState(null);
     const [error, setError] = useState(null); // {code, retryText?}
+    // Catalog names the latest turn offered instead of something it could not do.
+    const [alternatives, setAlternatives] = useState([]);
     const tokenRef = useRef(null);
 
     const adoptSession = useCallback((state) => {
@@ -78,6 +80,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setMessages([]);
         setSuggestedReplies([]);
         setGeneration(null);
+        setAlternatives([]);
         setBuilding(false);
         setWatchedId(null);
         setError(null);
@@ -109,6 +112,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     }, [api, adoptSession]);
 
     const applyTurn = useCallback(async (turn) => {
+        setAlternatives([...new Set((turn.edit?.rejected || []).flatMap((r) => r.alternatives || []))]);
         setMessages((prev) => [...prev, ...(turn.messages || []).map(toEntry)]);
         setSuggestedReplies(turn.suggestedReplies || []);
         const gen = turn.generation;
@@ -235,6 +239,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         suggestedReplies,
         sending,
         generation,
+        alternatives,
         building,
         error,
         send,

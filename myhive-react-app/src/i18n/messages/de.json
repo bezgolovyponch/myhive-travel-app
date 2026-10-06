@@ -506,25 +506,22 @@
   },
   "voteComponents": {
     "start": {
-      "headline": "Deine Gruppe stimmt ab. Du bekommst das Ergebnis.",
-      "timeline": {
-        "todayLabel": "Heute",
-        "today": "Die Gruppe bekommt den Plan",
-        "halfLabel": "In 12 Stunden",
-        "half": "Wir halten alle auf dem Laufenden",
-        "endLabel": "In 24 Stunden",
-        "end": "Der Plan steht, von allen abgestimmt"
-      },
-      "card": {
-        "label": "Die Wahl der Gruppe",
-        "voted": "{voted} von {total} haben abgestimmt",
-        "yes": "{count} Ja",
-        "no": "{count} Nein",
-        "recommendations": "Empfehlungen der Gruppe",
-        "activities": {
-          "first": "AK-47 schießen",
-          "second": "Steak und Titten",
-          "third": "Panzer fahren"
+      "howItWorks": "So funktioniert’s",
+      "headlineLead": "Deine Gruppe stimmt ab.",
+      "headlineResult": "Du bekommst das Ergebnis.",
+      "lede": "Einmal in WhatsApp teilen, alle stimmen mit Ja oder Nein ab, der abgestimmte Plan steht in 24 Stunden.",
+      "steps": {
+        "share": {
+          "title": "In die Gruppe teilen",
+          "text": "Schick den Link zum Plan direkt in euren Gruppenchat."
+        },
+        "collect": {
+          "title": "Stimmen sammeln",
+          "text": "Freunde stimmen mit einem Tipp ab, ohne Anmeldung."
+        },
+        "lock": {
+          "title": "Plan festmachen",
+          "text": "Das Ergebnis wird innerhalb von 24 Stunden automatisch ausgezählt."
         }
       },
       "chat": {
@@ -1221,7 +1218,14 @@
         "REPLACE": "{name} gegen {replacement} getauscht"
       },
       "priceFrom": "ab {price}",
-      "sendToPlanner": "Frag die Gruppe"
+      "sendToPlanner": "Frag die Gruppe",
+      "title": "{destination}-JGA",
+      "draftLabel": "Trip-Entwurf",
+      "browseAll": "Alle ansehen",
+      "add": "Hinzufügen",
+      "addMessage": "Füge {name} hinzu",
+      "suggestions": "Vorgeschlagene Aktivitäten",
+      "daySlot": "Tag {n} · {slot}"
     },
     "dock": {
       "title": "JGA-KI",
@@ -1229,7 +1233,8 @@
       "pill": "Bitte die JGA-KI um eine Änderung…",
       "working": "Wird bearbeitet…",
       "collapse": "Chat einklappen",
-      "placeholder": "Ändere, was du willst…"
+      "placeholder": "Ändere, was du willst…",
+      "expand": "Chat öffnen"
     }
   }
 }

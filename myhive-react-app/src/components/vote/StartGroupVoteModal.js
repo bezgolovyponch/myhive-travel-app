@@ -15,19 +15,6 @@ import {
 import { useT, useLocalePath } from '../../i18n';
 import './StartGroupVoteModal.css';
 
-// The fixed example on the "The group's choice" card: the same for every
-// organiser, so it can never be mistaken for their own results.
-const EXAMPLE = {
-    voted: 9,
-    total: 10,
-    rows: [
-        { key: 'first', yes: 8, no: 1 },
-        { key: 'second', yes: 7, no: 2 },
-        { key: 'third', yes: 3, no: 6, dropped: true },
-    ],
-    recommendations: 7,
-};
-
 function datesError({ needsDates, voteStartDate, voteEndDate }, t) {
     if (!needsDates) {
         return undefined;
@@ -49,49 +36,22 @@ function WhatsAppIcon() {
     );
 }
 
+function GroupIcon() {
+    return (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="8" cy="9" r="3"/>
+            <circle cx="16" cy="9" r="3"/>
+            <path d="M2 19c0-3 3-5 6-5s6 2 6 5zM12 19c0-3 2-5 4-5 3 0 6 2 6 5z"/>
+        </svg>
+    );
+}
+
 function ReadTicks() {
     return (
         <svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <path d="M1 5.5l3 3L10 2"/>
             <path d="M6 8.5l1 0L13 2"/>
         </svg>
-    );
-}
-
-/** The "The group's choice" card: what the organiser sees once the group has voted. */
-function ExampleResultCard({ t }) {
-    return (
-        <div className="sgv-card">
-            <div className="sgv-card-head">
-                <span className="sgv-eyebrow">{t('start.card.label')}</span>
-                <span className="sgv-voters">
-                    <span className="sgv-voter-dots" aria-hidden="true">
-                        {Array.from({ length: EXAMPLE.total }, (_, i) => (
-                            <span key={i} className={i < EXAMPLE.voted ? 'is-voted' : ''}/>
-                        ))}
-                    </span>
-                    {t('start.card.voted', { voted: EXAMPLE.voted, total: EXAMPLE.total })}
-                </span>
-            </div>
-            <ul className="sgv-card-rows">
-                {EXAMPLE.rows.map(row => (
-                    <li key={row.key} className={row.dropped ? 'is-dropped' : ''}>
-                        <div className="sgv-card-row">
-                            <span className="sgv-card-name">{t(`start.card.activities.${row.key}`)}</span>
-                            <span className="sgv-pill sgv-pill--yes">✓ {t('start.card.yes', { count: row.yes })}</span>
-                            <span className="sgv-pill sgv-pill--no">✗ {t('start.card.no', { count: row.no })}</span>
-                        </div>
-                        <span className="sgv-split" aria-hidden="true">
-                            <span style={{ width: `${Math.round(row.yes / (row.yes + row.no) * 100)}%` }}/>
-                        </span>
-                    </li>
-                ))}
-            </ul>
-            <div className="sgv-card-foot">
-                <span>{t('start.card.recommendations')}</span>
-                <span className="sgv-count">+{EXAMPLE.recommendations}</span>
-            </div>
-        </div>
     );
 }
 
@@ -105,11 +65,14 @@ export function WhatsAppGroupPreview({ t, destinationName, members, message, lin
     return (
         <div className="sgv-chat">
             <div className="sgv-chat-head">
-                <span className="sgv-chat-avatar" aria-hidden="true">🍺</span>
-                <div>
-                    <div className="sgv-chat-title">{t('start.chat.title', { destination: destinationName })}</div>
-                    {members > 0 && <div className="sgv-chat-sub">{t('start.chat.members', { count: members })}</div>}
-                </div>
+                <span className="sgv-chat-avatar" aria-hidden="true"><GroupIcon/></span>
+                <span className="sgv-chat-title">
+                    <b>{t('start.chat.title', { destination: destinationName })}</b>
+                    {members > 0 && <> · {t('start.chat.members', { count: members })}</>}
+                </span>
+                <svg className="sgv-chat-menu" width="4" height="14" viewBox="0 0 4 14" fill="currentColor" aria-hidden="true">
+                    <circle cx="2" cy="2" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="2" cy="12" r="1.5"/>
+                </svg>
             </div>
             <div className="sgv-chat-body">
                 <div className="sgv-bubble">
@@ -117,8 +80,11 @@ export function WhatsAppGroupPreview({ t, destinationName, members, message, lin
                     <div className="sgv-link-preview">
                         <span className="sgv-link-logo" aria-hidden="true">t</span>
                         <div>
-                            <div className="sgv-link-title">{t('start.chat.linkTitle', { destination: destinationName })}</div>
-                            <div className="sgv-link-host">{linkUrl || t('start.chat.linkHost')}</div>
+                            <div className="sgv-link-title">
+                                {t('start.chat.linkTitle', { destination: destinationName })}
+                                {!linkUrl && <> · {t('start.chat.linkHost')}</>}
+                            </div>
+                            {linkUrl && <div className="sgv-link-host">{linkUrl}</div>}
                         </div>
                     </div>
                     <div className="sgv-bubble-meta">{time}<ReadTicks/></div>
@@ -128,9 +94,11 @@ export function WhatsAppGroupPreview({ t, destinationName, members, message, lin
     );
 }
 
-// The organiser's contact sheet (v3 4a). It shows what happens next, what the
-// result will look like and the message for the group, then takes a WhatsApp
-// number or an email: each button needs its own contact, and either one
+const STEPS = ['share', 'collect', 'lock'];
+
+// The organiser's contact sheet (v3 4a). It says how the vote works in three
+// steps, shows the message for the group, then takes a WhatsApp number or an
+// email: each button needs its own contact, and either one
 // creates the vote and opens the organiser's dashboard. The vote's link token
 // is picked here, so WhatsApp opens with the link in the same tap, before the
 // server answers. Dates are asked for only when the trip never captured them.
@@ -261,25 +229,28 @@ function StartGroupVoteModal({
             isOpen={isOpen}
             onClose={handleClose}
             closeOnBackdrop
-            title={t('start.headline')}
+            title={(
+                <>
+                    <span className="sgv-chip">{t('start.howItWorks')}</span>
+                    <span className="sgv-headline">
+                        {t('start.headlineLead')} <span>{t('start.headlineResult')}</span>
+                    </span>
+                </>
+            )}
             contentClassName="start-vote-modal"
         >
-            <ol className="sgv-timeline">
-                <li className="sgv-step sgv-step--today">
-                    <span className="sgv-step-label">{t('start.timeline.todayLabel')}</span>
-                    <span>{t('start.timeline.today')}</span>
-                </li>
-                <li className="sgv-step sgv-step--half">
-                    <span className="sgv-step-label">{t('start.timeline.halfLabel')}</span>
-                    <span>{t('start.timeline.half')}</span>
-                </li>
-                <li className="sgv-step sgv-step--end">
-                    <span className="sgv-step-label">{t('start.timeline.endLabel')}</span>
-                    <span>{t('start.timeline.end')}</span>
-                </li>
+            <p className="sgv-lede">{t('start.lede')}</p>
+            <ol className="sgv-steps">
+                {STEPS.map((step, i) => (
+                    <li key={step} className={i === 0 ? 'is-current' : ''}>
+                        <span className="sgv-step-num" aria-hidden="true">{i + 1}</span>
+                        <div>
+                            <div className="sgv-step-title">{t(`start.steps.${step}.title`)}</div>
+                            <div className="sgv-step-text">{t(`start.steps.${step}.text`)}</div>
+                        </div>
+                    </li>
+                ))}
             </ol>
-
-            <ExampleResultCard t={t}/>
 
             {needsDates && (
                 <div className="sgv-dates">
@@ -308,12 +279,12 @@ function StartGroupVoteModal({
                     members={numberOfTravelers}
                     message={message}
                 />
-                <div className="sgv-phone">
+                <div className={`sgv-field sgv-phone${e164 ? ' is-valid-phone' : ''}`}>
                     <select
                         aria-label={t('start.phone.countryLabel')}
                         value={countryCode}
                         onChange={(e) => setCountryCode(e.target.value)}
-                        className="sgv-input"
+                        className="sgv-code"
                     >
                         {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
                     </select>
@@ -328,7 +299,7 @@ function StartGroupVoteModal({
                             setPhone(e.target.value);
                             setSent(false);
                         }}
-                        className={`sgv-input${e164 ? ' is-valid-phone' : ''}`}
+                        className="sgv-input"
                     />
                 </div>
                 <button
@@ -344,29 +315,37 @@ function StartGroupVoteModal({
 
             <div className="sgv-or"><span>{t('start.or')}</span></div>
 
-            <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck={false}
-                aria-label={t('start.email.placeholder')}
-                placeholder={t('start.email.placeholder')}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        handleEmail();
-                    }
-                }}
-                className={`sgv-input sgv-email${emailOk ? ' is-valid-email' : ''}`}
-            />
+            <div className={`sgv-field sgv-email${emailOk ? ' is-valid-email' : ''}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>
+                </svg>
+                <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    aria-label={t('start.email.placeholder')}
+                    placeholder={t('start.email.placeholder')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            handleEmail();
+                        }
+                    }}
+                    className="sgv-input"
+                />
+            </div>
             <button
                 type="button"
                 className="sgv-btn sgv-btn--primary"
                 onClick={handleEmail}
                 disabled={!emailReady}
             >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                    <path d="M2 7h10M8 3l4 4-4 4"/>
+                </svg>
                 {submitting === 'email' ? t('start.creating') : t('start.startPlanning')}
             </button>
             {apiError && <p className="error-message" role="alert">{apiError}</p>}

@@ -6,11 +6,11 @@ import {formatShortRange, parseISODate} from './format';
 
 // The countries the number picker offers; the first is the default.
 export const COUNTRY_CODES = [
-    {code: '+44', label: 'UK +44'},
-    {code: '+353', label: 'IE +353'},
-    {code: '+420', label: 'CZ +420'},
-    {code: '+49', label: 'DE +49'},
-    {code: '+1', label: 'US +1'},
+    {code: '+44', label: '🇬🇧 +44'},
+    {code: '+353', label: '🇮🇪 +353'},
+    {code: '+420', label: '🇨🇿 +420'},
+    {code: '+49', label: '🇩🇪 +49'},
+    {code: '+1', label: '🇺🇸 +1'},
 ];
 
 /**

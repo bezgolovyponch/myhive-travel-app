@@ -69,26 +69,23 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('shows the headline, the 3 steps, the example result and the message for the group', () => {
+test('shows the headline, how it works in 3 steps and the message for the group', () => {
   renderModal();
 
-  expect(screen.getByRole('heading', { name: 'Your group votes. You get the result.' })).toBeInTheDocument();
-  expect(screen.getByText('The group gets the plan')).toBeInTheDocument();
-  expect(screen.getByText('We keep everyone up to date')).toBeInTheDocument();
-  expect(screen.getByText('The plan is ready, agreed by all')).toBeInTheDocument();
-  expect(screen.getByText("The group's choice")).toBeInTheDocument();
-  expect(screen.getByText('9 of 10 voted')).toBeInTheDocument();
-  expect(screen.getByText('AK-47 shooting')).toBeInTheDocument();
-  expect(screen.getByText('Steak and tits')).toBeInTheDocument();
-  expect(screen.getByText('Tank driving')).toBeInTheDocument();
-  expect(screen.getByText('✓ 8 yes')).toBeInTheDocument();
-  expect(screen.getByText('✗ 6 no')).toBeInTheDocument();
-  expect(screen.getByText("Group's recommendations")).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'How it works Your group votes. You get the result.' }))
+      .toBeInTheDocument();
+  expect(screen.getByText(
+      'Share once to WhatsApp, everyone votes yes or no, the agreed itinerary is ready in 24 hours.',
+  )).toBeInTheDocument();
+  expect(screen.getByText('Share to group')).toBeInTheDocument();
+  expect(screen.getByText('Collect votes')).toBeInTheDocument();
+  expect(screen.getByText('Lock final plan')).toBeInTheDocument();
   expect(screen.getByText('Prague stag 🍻')).toBeInTheDocument();
-  expect(screen.getByText('10 members')).toBeInTheDocument();
+  expect(screen.getByText(/10 members/)).toBeInTheDocument();
+  expect(screen.getByText(/Vote on the Prague stag plan · trivlu\.com/)).toBeInTheDocument();
   expect(screen.getByText(/^Lads! Prague stag, .*16.*18 Oct\. Vote yes or no on the plan\. Takes 1 minute/))
       .toBeInTheDocument();
-  expect(screen.getByText('We only write to you about this trip.')).toBeInTheDocument();
+  expect(screen.getByText('We only contact you about this trip.')).toBeInTheDocument();
 });
 
 test('each button waits for its own contact', async () => {

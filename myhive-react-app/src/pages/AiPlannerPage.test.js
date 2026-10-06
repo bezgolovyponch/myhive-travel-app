@@ -108,11 +108,10 @@ test('with trip dates that match the plan, days are real dates', async () => {
     aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
     renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-18'});
 
-    expect(await screen.findByRole('heading', {name: /Fri 16 Oct/})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: /Sat 17 Oct/})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: /Sun 18 Oct/})).toBeInTheDocument();
-    expect(screen.queryByRole('heading', {name: /Day 1/})).not.toBeInTheDocument();
-    expect(screen.getByText('10 people · Fri 16 – Sun 18 Oct · 2 activities')).toBeInTheDocument();
+    expect(await screen.findByText('2 h · Fri 16 Oct · 20:00')).toBeInTheDocument();
+    expect(screen.getByText('2 h · Fri 16 Oct · Afternoon')).toBeInTheDocument();
+    expect(screen.queryByText(/Day 1/)).not.toBeInTheDocument();
+    expect(screen.getByText('Fri 16 – Sun 18 Oct · 10 people')).toBeInTheDocument();
 });
 
 test('trip dates that do not match the plan length keep Day 1, Day 2', async () => {
@@ -120,8 +119,8 @@ test('trip dates that do not match the plan length keep Day 1, Day 2', async () 
     aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: readyGeneration()}));
     renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-22'});
 
-    expect(await screen.findByRole('heading', {name: /Day 1/})).toBeInTheDocument();
-    expect(screen.getByText('10 people · 3 days · 2 activities')).toBeInTheDocument();
+    expect(await screen.findByText('2 h · Day 1 · 20:00')).toBeInTheDocument();
+    expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
 });
 
 test('first visit: the chat is the page, a starter opens a session with it as the first message', async () => {
@@ -207,7 +206,7 @@ test('a failed first reply keeps the message and "Try again" re-sends the same t
     expect(screen.getAllByText('hi there')).toHaveLength(1);
 });
 
-test('once packages land they fill the page and the chat retracts into the dock', async () => {
+test('once packages land the trip draft fills the page and the chat docks collapsed under it', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session());
     aiPlannerApi.sendMessage.mockResolvedValue({
@@ -223,34 +222,39 @@ test('once packages land they fill the page and the chat retracts into the dock'
         'Friday evening to Sunday{Enter}');
 
     // MEDIUM is the AI pick and opens first.
-    expect(await screen.findByRole('heading', {name: 'Prague · Medium'})).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: 'Prague stag'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: /Medium/})).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByText('Karting')).toBeInTheDocument();
-    expect(screen.getByText('Afternoon')).toBeInTheDocument(); // no startHint: the slot name
+    const draft = screen.getByRole('region', {name: 'Trip draft'});
+    expect(within(draft).getByText('Karting')).toBeInTheDocument();
+    expect(within(draft).getByText('2 h · Day 1 · Afternoon')).toBeInTheDocument(); // no startHint: the slot name
+    expect(within(draft).getByText('2 activities')).toBeInTheDocument();
+    // One price for the whole group at the foot of the draft, none per activity.
+    expect(within(draft).getByText('from €1,755')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Browse all/}))
+        .toHaveAttribute('href', '/destination/prague?tab=activities');
     // Each trim shows its starting group total — the same number the cart shows
     // once it is picked; the planner confirms the final price on the call.
     expect(within(screen.getByRole('tab', {name: /Basic/})).getByText('from €1,125')).toBeInTheDocument();
     expect(within(screen.getByRole('tab', {name: /Medium/})).getByText('from €1,755')).toBeInTheDocument();
     expect(within(screen.getByRole('tab', {name: /Premium/})).getByText('from €2,790')).toBeInTheDocument();
-    expect(screen.getByText('10 people · 3 days · 2 activities')).toBeInTheDocument();
+    expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
-    expect(screen.getByRole('heading', {name: 'Prague · Premium'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /Premium/})).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByText('Karting')).not.toBeInTheDocument();
+    expect(within(draft).getByText('from €2,790')).toBeInTheDocument();
 
-    // Collapsed pill by default; it opens the drawer with the same transcript.
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: /Ask Stag Do AI to change anything/}));
-    const drawer = screen.getByRole('dialog', {name: 'Stag Do AI'});
-    expect(within(drawer).getByText('Building your three options…')).toBeInTheDocument();
-    expect(within(drawer).getByRole('button', {name: /Medium.*from €1,755/})).toBeInTheDocument();
-    // The hand-off is reachable without closing the chat (v3 2d).
-    expect(within(drawer).getByRole('button', {name: 'Ask the group'})).toBeInTheDocument();
-    // The trims are cards under the reply too; tapping one switches the package behind.
-    await userEvent.click(within(drawer).getByRole('button', {name: /Basic.*Essentials/}));
-    expect(screen.getByRole('heading', {name: 'Prague · Basic'})).toBeInTheDocument();
-    await userEvent.click(within(drawer).getByRole('button', {name: 'Collapse chat'}));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Docked and collapsed by default: its top bar opens it on the same transcript and closes it again.
+    const dock = screen.getByRole('region', {name: 'Stag Do AI'});
+    const bar = within(dock).getByRole('button', {name: 'Open chat'});
+    expect(bar).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(bar);
+    expect(within(dock).getByRole('button', {name: 'Collapse chat'})).toHaveAttribute('aria-expanded', 'true');
+    expect(within(dock).getByText('Building your three options…')).toBeInTheDocument();
+    // The hand-off sits under the draft, reachable whether the chat is open or not.
+    expect(screen.getByRole('button', {name: 'Ask the group'})).toBeInTheDocument();
+    await userEvent.click(within(dock).getByRole('button', {name: 'Collapse chat'}));
+    expect(within(dock).getByRole('button', {name: 'Open chat'})).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('an applied edit updates the packages in place and marks what the AI added', async () => {
@@ -272,8 +276,14 @@ test('an applied edit updates the packages in place and marks what the AI added'
     });
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', {name: /Ask Stag Do AI to change anything/}));
+    // Until the organizer asks for a change the three trims are on offer.
+    expect(await screen.findByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Open chat'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'swap karting for a cruise{Enter}');
+
+    // From the first message on it is their own draft: no trims any more.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Trip draft'})).toBeInTheDocument();
 
     // Both assistant lines of an edit turn are shown, not only `message`.
     expect(await screen.findByText('Swapped Karting for River Cruise in the Medium package.')).toBeInTheDocument();
@@ -334,6 +344,53 @@ test('"Ask the group" picks the trim, fills the cart and opens the contact step'
     });
     expect(tripDispatch).toHaveBeenCalledWith({type: 'UPDATE_TRIP_TRAVELERS', travelers: 10});
     // The existing vote modal is the contact step: it creates the session and opens the dashboard.
-    expect(await screen.findByText('Your group votes. You get the result.')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: /Your group votes\. You get the result\./})).toBeInTheDocument();
     expect(screen.getByLabelText('Your WhatsApp number')).toBeInTheDocument();
+});
+
+test('what the planner offered instead sits above the open chat, one tap adds it', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const refused = readyGeneration({
+        id: 'gen-2', kind: 'EDITED', parentId: 'gen-1',
+        editReport: {applied: [], rejected: [{
+            op: 'ADD', activity: 'kalashnikov', packageKey: null, reason: 'UNKNOWN_ACTIVITY', detail: null,
+            // Karting is in the draft already, so it is not offered again.
+            alternatives: ['AK-47 shooting', 'Karting', 'Paintball'],
+        }]},
+    });
+    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: refused, status: 'READY'}));
+    aiPlannerApi.sendMessage.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'Let me check that.', at}], suggestedReplies: [], generation: refused,
+    });
+    renderPage();
+
+    // An edited generation is the organizer's own draft from the start.
+    await userEvent.click(await screen.findByRole('button', {name: 'Open chat'}));
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    const offered = screen.getByRole('group', {name: 'Suggested activities'});
+    expect(within(offered).getByText('AK-47 shooting')).toBeInTheDocument();
+    expect(within(offered).getByRole('button', {name: '+ Paintball'})).toBeInTheDocument();
+    expect(within(offered).queryByText(/Karting/)).not.toBeInTheDocument();
+
+    await userEvent.click(within(offered).getByRole('button', {name: 'Add'}));
+
+    expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'Add AK-47 shooting');
+});
+
+test('alternatives named in a reply that changed nothing are offered above the chat too', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
+    aiPlannerApi.sendMessage.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'I could not find "ride a tank". Closest: Army Tank.', at}],
+        suggestedReplies: [], generation: null,
+        edit: {applied: [], rejected: [{op: 'ADD', activity: 'ride a tank', alternatives: ['Army Tank']}]},
+    });
+    renderPage();
+
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Message Stag Do AI'}), 'ride a tank{Enter}');
+
+    // A message from the collapsed dock opens it on the answer.
+    expect(await screen.findByRole('button', {name: 'Collapse chat'})).toBeInTheDocument();
+    const offered = await screen.findByRole('group', {name: 'Suggested activities'});
+    expect(within(offered).getByText('Army Tank')).toBeInTheDocument();
 });

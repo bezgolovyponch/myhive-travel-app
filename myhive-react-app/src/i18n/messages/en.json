@@ -516,25 +516,22 @@
   },
   "voteComponents": {
     "start": {
-      "headline": "Your group votes. You get the result.",
-      "timeline": {
-        "todayLabel": "Today",
-        "today": "The group gets the plan",
-        "halfLabel": "In 12 hours",
-        "half": "We keep everyone up to date",
-        "endLabel": "In 24 hours",
-        "end": "The plan is ready, agreed by all"
-      },
-      "card": {
-        "label": "The group's choice",
-        "voted": "{voted} of {total} voted",
-        "yes": "{count} yes",
-        "no": "{count} no",
-        "recommendations": "Group's recommendations",
-        "activities": {
-          "first": "AK-47 shooting",
-          "second": "Steak and tits",
-          "third": "Tank driving"
+      "howItWorks": "How it works",
+      "headlineLead": "Your group votes.",
+      "headlineResult": "You get the result.",
+      "lede": "Share once to WhatsApp, everyone votes yes or no, the agreed itinerary is ready in 24 hours.",
+      "steps": {
+        "share": {
+          "title": "Share to group",
+          "text": "Send the itinerary link directly to your group chat."
+        },
+        "collect": {
+          "title": "Collect votes",
+          "text": "Friends vote Yes or No in 1 tap without registration."
+        },
+        "lock": {
+          "title": "Lock final plan",
+          "text": "Results tally automatically within 24 hours."
         }
       },
       "chat": {
@@ -555,7 +552,7 @@
       },
       "startPlanning": "Start planning together",
       "creating": "One moment…",
-      "footer": "We only write to you about this trip.",
+      "footer": "We only contact you about this trip.",
       "tripDates": "Trip dates",
       "errors": {
         "datesRequired": "Trip dates are required",
@@ -1231,7 +1228,14 @@
         "REPLACE": "Swapped {name} for {replacement}"
       },
       "priceFrom": "from {price}",
-      "sendToPlanner": "Ask the group"
+      "sendToPlanner": "Ask the group",
+      "title": "{destination} stag",
+      "draftLabel": "Trip draft",
+      "browseAll": "Browse all",
+      "add": "Add",
+      "addMessage": "Add {name}",
+      "suggestions": "Suggested activities",
+      "daySlot": "Day {n} · {slot}"
     },
     "dock": {
       "title": "Stag Do AI",
@@ -1239,7 +1243,8 @@
       "pill": "Ask Stag Do AI to change anything…",
       "working": "Working on it…",
       "collapse": "Collapse chat",
-      "placeholder": "Change anything…"
+      "placeholder": "Change anything…",
+      "expand": "Open chat"
     }
   }
 }
