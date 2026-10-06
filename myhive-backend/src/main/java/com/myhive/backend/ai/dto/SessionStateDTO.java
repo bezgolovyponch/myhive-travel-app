@@ -18,7 +18,8 @@ public record SessionStateDTO(UUID token, String destinationSlug, String locale,
                               GenerationDTO latestGeneration, GenerationDTO latestReadyGeneration,
                               FirstTurnErrorDTO firstTurnError, LimitsDTO limits, List<String> suggestedReplies,
                               List<RecommendationDTO> recommendations, Map<String, List<DraftGapDTO>> gaps,
-                              Map<String, List<RecommendationDTO>> suggestions) {
+                              Map<String, List<RecommendationDTO>> suggestions,
+                              String workingPackage) {
 
     /**
      * What is left of this chat's allowances, so the UI can offer "start a new chat" before a 429.

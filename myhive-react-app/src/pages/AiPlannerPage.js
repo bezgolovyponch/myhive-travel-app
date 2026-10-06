@@ -38,6 +38,27 @@ function planStart(trip, brief) {
     return nightsBetween(from, to) + 1 === brief.days ? from : null;
 }
 
+// Where the docked chat's transcript starts, per chat: the number of messages said before its packages
+// landed. Kept in the browser so a reload cuts at the same place.
+const DRAFT_FROM_KEY = 'myhive-ai-draft-from';
+
+function readDraftFrom(token) {
+    try {
+        const stored = JSON.parse(window.localStorage.getItem(DRAFT_FROM_KEY) || 'null');
+        return stored && stored.token === token && Number.isInteger(stored.from) ? stored.from : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function writeDraftFrom(token, from) {
+    try {
+        if (token) window.localStorage.setItem(DRAFT_FROM_KEY, JSON.stringify({token, from}));
+    } catch (e) {
+        // Private mode: the cut is kept for this visit only.
+    }
+}
+
 // Stag Do AI (v3 landing, 2d/2e). Result-first: until there are packages the
 // chat is the page; once there are, the trip draft is the page and the chat is
 // docked to the bottom edge, where its top bar opens and collapses it. The
@@ -55,6 +76,9 @@ function AiPlannerPage({pollIntervalMs}) {
     const destination = catalog.destinations.find((d) => d.slug === destinationSlug);
     const [activeKey, setActiveKey] = useState(AI_PICK_KEY);
     const [dockOpen, setDockOpen] = useState(false);
+    // How many messages were said before the packages landed. The docked chat starts after them: what
+    // was said to gather the brief - down to "building your three options now" - is not about the draft.
+    const [draftFrom, setDraftFrom] = useState(0);
     const [chatted, setChatted] = useState(false); // the organizer has picked a trim or asked for a change
     const [showAll, setShowAll] = useState(false); // the chat brought every trim back
     const [handoff, setHandoff] = useState(null); // {activityIds, groupSize} once a trim is picked
@@ -78,14 +102,23 @@ function AiPlannerPage({pollIntervalMs}) {
         planner.send(draft.message, preset);
     }, [planner]);
 
-    // First packages land: the chat steps aside so the result gets the screen.
-    const hadResult = useRef(hasResult);
+    // Packages land, or come back with a stored chat: the chat opens on them, docked under the draft
+    // with what could go in next. A chat that comes back keeps the cut it was given when they landed.
+    const hadResult = useRef(false);
     useEffect(() => {
-        if (hasResult && !hadResult.current) setDockOpen(false);
+        if (hasResult && !hadResult.current) {
+            setDockOpen(true);
+            const stored = readDraftFrom(planner.token);
+            const from = stored == null ? planner.messages.length : Math.min(stored, planner.messages.length);
+            setDraftFrom(from);
+            if (stored == null) writeDraftFrom(planner.token, from);
+        }
+        if (!hasResult) setDraftFrom(0);
         hadResult.current = hasResult;
-    }, [hasResult]);
+    }, [hasResult, planner.token, planner.messages.length]);
 
-    // "Show me Premium" switches the draft; "what were the other options?" brings the trims back.
+    // The chat asked to switch the draft to a trim or to show all three again; a chat that comes back
+    // says the same way which trim was the draft.
     const {showRequest} = planner;
     useEffect(() => {
         if (!showRequest) return;
@@ -94,6 +127,7 @@ function AiPlannerPage({pollIntervalMs}) {
         } else {
             setActiveKey(showRequest.key);
             setShowAll(false);
+            setChatted(true);
         }
     }, [showRequest]);
 
@@ -108,6 +142,7 @@ function AiPlannerPage({pollIntervalMs}) {
     // here makes the plan the organizer's own draft and opens the chat on it.
     const dockPlanner = {
         ...planner,
+        messages: planner.messages.slice(draftFrom),
         send: (text, preset) => {
             setChatted(true);
             setShowAll(false);
@@ -240,7 +275,22 @@ function AiPlannerPage({pollIntervalMs}) {
         setShowAll(false);
         planner.editDraft(added ? 'REMOVE' : 'ADD', rec.activityId, activePkg.key);
     };
-    const dockLine = busy ? t('dock.working') : t('dock.askMore');
+    const dockLine = busy ? t('dock.working') : custom ? t('dock.askMore') : t('dock.optionsReady');
+    // The chat's own first line on the draft, in place of the brief talk that came before it.
+    const people = generation?.brief?.groupSize;
+    const opening = (
+        <div className="ai-msg ai-msg-assistant aip-opening">
+            <div className="ai-bubble">
+                <p className="ai-thread-text">
+                    {!custom ? t('dock.optionsReady')
+                        : people ? t('dock.draftSet', {count: people}) : t('dock.draftSetNoCount')}
+                </p>
+            </div>
+        </div>
+    );
+    // Above the open chat: what the chat recommended, else what the ready-made packages suggest -
+    // the first as a card with Add, the rest as tags.
+    const offered = showRecommendations ? planner.recommendations : suggested;
 
     return (
         <div className={`aip-page ${hasResult ? 'has-result' : 'is-chat'}`}>
@@ -285,10 +335,9 @@ function AiPlannerPage({pollIntervalMs}) {
                                 <i className={`ph ph-caret-${dockOpen ? 'down' : 'up'}`}/>
                             </span>
                         </button>
-                        {dockOpen && !showRecommendations && nextTags}
                         {dockOpen && (
                             <AiRecommendations
-                                recommendations={planner.recommendations}
+                                recommendations={offered}
                                 isAdded={(id) => inDraft.has(id)}
                                 onToggle={toggleRecommendation}
                                 pendingId={planner.editing}
@@ -303,6 +352,7 @@ function AiPlannerPage({pollIntervalMs}) {
                             planner={dockPlanner}
                             variant="drawer"
                             placeholder={t('dock.placeholder')}
+                            beforeMessages={opening}
                             footer={dockOpen ? newChat : null}
                         />
                     </section>

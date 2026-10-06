@@ -58,6 +58,31 @@ class ChatTurnNodeTest {
         assertThat(update).doesNotContainKey(PlannerState.MESSAGES);
     }
 
+    /**
+     * The model is told to announce a build once the brief is complete, and the brief stays complete: in
+     * live chats it said "building your three options now" under a draft the organizer was editing.
+     * On a turn that builds nothing that line never reaches the chat.
+     */
+    @Test
+    void underADraft_theChatNeverSaysItIsBuilding() {
+        String staleLine = "On it - building your three options now.";
+        llm.queueChat(turn(staleLine, Brief.empty(), List.of()));
+        llm.queueChat(new ChatTurnResult(staleLine, Brief.empty(), List.of(), List.of(), LlmUsage.none(), List.of(),
+                List.of(REPLACEMENT_NAME)));
+        llm.queueChat(turn(staleLine, Brief.empty(), List.of(replaceEdit())));
+
+        Map<String, Object> plain = node.apply(stateWithPackages(readyBrief()));
+        Map<String, Object> recommending = node.apply(stateWithPackages(readyBrief()));
+        Map<String, Object> editing = node.apply(stateWithPackages(readyBrief()));
+
+        assertThat(messagesOf(plain)).singleElement()
+                .satisfies(message -> assertThat(message.get("content")).startsWith("Your trip draft stays as it is"));
+        assertThat(messagesOf(recommending)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).isEqualTo("The top match is above - add it, or try one of the others."));
+        // Before an edit's own line the announcement is simply dropped.
+        assertThat(editing.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+    }
+
     /** A reply held back on an earlier edit turn must never surface on a turn that edits nothing. */
     @Test
     void aTurnWithoutEdits_clearsAnyHeldBackReply_andSaysItsReplyNow() {

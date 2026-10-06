@@ -81,6 +81,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setRecommendations(state.recommendations || []);
         setGaps(state.gaps || {});
         setSuggestions(state.suggestions || {});
+        // The trim the organizer made their draft, so a reload lands on it and not on the planner's pick.
+        if (state.workingPackage) setShowRequest({key: state.workingPackage, at: Date.now()});
         const ready = state.latestReadyGeneration;
         const latest = state.latestGeneration;
         const inFlight = latest && (latest.status === 'QUEUED' || latest.status === 'RUNNING');

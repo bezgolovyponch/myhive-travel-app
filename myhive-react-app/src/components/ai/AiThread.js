@@ -70,9 +70,11 @@ const MESSAGE_COMPONENTS = {UserMessage, AssistantMessage};
  * @param planner  the useAiPlanner() result
  * @param variant  'full' (first turn, the whole screen) | 'drawer' (the dock)
  * @param emptyState  rendered while the transcript is empty (the intro + starters)
+ * @param beforeMessages  rendered above the transcript (the docked chat's opening line)
  * @param afterMessages  rendered under the latest reply (the trim cards)
  */
-function AiThread({planner, variant = 'full', placeholder, emptyState = null, afterMessages = null, footer = null}) {
+function AiThread({planner, variant = 'full', placeholder, emptyState = null, beforeMessages = null,
+                      afterMessages = null, footer = null}) {
     const t = useT('aiPlanner');
     const {messages, sending, building, suggestedReplies, error, send, retry} = planner;
 
@@ -92,6 +94,7 @@ function AiThread({planner, variant = 'full', placeholder, emptyState = null, af
             <ThreadPrimitive.Root className={`ai-thread ai-thread-${variant}`}>
                 <ThreadPrimitive.Viewport className="ai-thread-viewport" autoScroll>
                     {messages.length === 0 && emptyState}
+                    {beforeMessages}
                     <ThreadPrimitive.Messages components={MESSAGE_COMPONENTS}/>
                     {!sending && afterMessages}
 

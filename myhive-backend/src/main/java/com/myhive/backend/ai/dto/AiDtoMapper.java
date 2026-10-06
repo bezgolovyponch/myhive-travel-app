@@ -92,7 +92,7 @@ public class AiDtoMapper {
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
                         AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()),
                 state.suggestedReplies(), recommendations(state), gaps(state, session.getLocale()),
-                suggestions(state));
+                suggestions(state), state.workingPackage().map(Enum::name).orElse(null));
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
@@ -136,7 +136,33 @@ public class AiDtoMapper {
                 picked.putIfAbsent(activity.id(), recommendation(activity, travelers));
             }
         }
+        fillWithRelated(picked, catalog, travelers);
         return List.copyOf(picked.values());
+    }
+
+    /**
+     * A top match with nothing next to it is a dead end when it is not quite what the group meant. The
+     * row is filled up with what the catalog files under the same categories as the top match, in the
+     * catalog's own order - the planner's ranking for this brief.
+     */
+    private static void fillWithRelated(Map<UUID, RecommendationDTO> picked, List<CatalogActivity> catalog,
+            int travelers) {
+        if (picked.isEmpty() || picked.size() >= LlmOutputParser.MAX_RECOMMENDATIONS) {
+            return;
+        }
+        UUID topId = picked.keySet().iterator().next();
+        List<String> themes = catalog.stream().filter(activity -> activity.id().equals(topId)).findFirst()
+                .map(CatalogActivity::categorySlugs).orElse(List.of());
+        for (CatalogActivity activity : catalog) {
+            if (picked.size() == LlmOutputParser.MAX_RECOMMENDATIONS) {
+                return;
+            }
+            boolean related = activity.categorySlugs() != null
+                    && activity.categorySlugs().stream().anyMatch(themes::contains);
+            if (related) {
+                picked.putIfAbsent(activity.id(), recommendation(activity, travelers));
+            }
+        }
     }
 
     /**

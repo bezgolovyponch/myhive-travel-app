@@ -122,6 +122,18 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             update.put(PlannerState.EDITS, JsonCodec.write(intoTheDraft(result.edits(), state)));
             routesToEdit = true;
         }
+        if (!packages.isEmpty() && !readyToBuild) {
+            // The draft exists and this turn rebuilds nothing. What the chat says about it is not left to
+            // the model: with activities offered above it, it points at them; and it never says it is
+            // building options - before an edit's own line that reply is simply dropped.
+            if (routesToEdit) {
+                reply = BuildingReply.announcesABuild(reply) ? "" : reply;
+            } else if (!result.recommendations().isEmpty()) {
+                reply = BuildingReply.recommending(state.locale());
+            } else if (BuildingReply.announcesABuild(reply)) {
+                reply = BuildingReply.nothingToBuild(state.locale());
+            }
+        }
         Optional<String> question = asksNothing
                 ? MissingFieldQuestion.of(merged.missingFields(), state.locale()) : Optional.empty();
         if (question.isPresent()) {

@@ -46,12 +46,10 @@ class EditMessagesTest {
                 .contains(expectedActivityName).contains("Katalog").doesNotContain("Paket");
     }
 
-    /** "Not in the catalog" alone is a dead end; the offer that follows turns it into a plain "add X". */
+    /** "Not in the catalog" alone is a dead end; with something close to offer the line points at the offer instead. */
     @Test
-    void rejectionSummary_unknownActivityWithAlternatives_offersThemAfterTheNotFoundLine() {
+    void rejectionSummary_unknownActivityWithAlternatives_pointsAtTheOfferAboveTheChat() {
         String expectedActivityName = "strip shows";
-        String expectedAlternatives = "Nightclub VIP Experience, Rooftop Jazz Night";
-        int expectedSentences = 2;
         List<RejectedEdit> rejected = List.of(new RejectedEdit(EditOp.ADD, expectedActivityName, null,
                 EditRejectionReason.UNKNOWN_ACTIVITY, expectedActivityName,
                 List.of("Nightclub VIP Experience", "Rooftop Jazz Night")));
@@ -59,18 +57,21 @@ class EditMessagesTest {
         String english = EditMessages.rejectionSummary("en", rejected);
         String german = EditMessages.rejectionSummary("de", rejected);
 
-        assertThat(english.split("(?<=[.?]) ")).hasSize(expectedSentences);
-        assertThat(english).startsWith("I could not find \"" + expectedActivityName + "\"")
-                .endsWith("Closest to \"" + expectedActivityName + "\": " + expectedAlternatives + " - want one of those?");
-        assertThat(german).contains("Am nächsten an \"" + expectedActivityName + "\": " + expectedAlternatives);
+        // One line that points at the row above the chat: no "I could not find", no list of names.
+        assertThat(english).isEqualTo("The top match for \"" + expectedActivityName
+                + "\" is above - add it, or try one of the others.");
+        assertThat(english).doesNotContain("could not find").doesNotContain("Nightclub VIP Experience");
+        assertThat(german).isEqualTo("Der beste Treffer für \"" + expectedActivityName
+                + "\" steht oben - füg ihn hinzu oder nimm einen der anderen.");
     }
 
     @Test
     void rejectionSummary_unknownActivityWithoutAlternatives_makesNoOffer() {
         List<RejectedEdit> rejected = List.of(rejected("Sauna Tour", EditRejectionReason.UNKNOWN_ACTIVITY));
 
-        assertThat(EditMessages.rejectionSummary("en", rejected)).doesNotContain("Closest");
-        assertThat(EditMessages.rejectionSummary("de", rejected)).doesNotContain("nächsten");
+        assertThat(EditMessages.rejectionSummary("en", rejected)).startsWith("I could not find")
+                .doesNotContain("top match");
+        assertThat(EditMessages.rejectionSummary("de", rejected)).doesNotContain("beste Treffer");
     }
 
     /** The same unknown name twice (one op per package, say) gets one offer, not one per op. */
@@ -82,7 +83,7 @@ class EditMessagesTest {
 
         String summary = EditMessages.rejectionSummary("en", List.of(unknown, unknown));
 
-        assertThat(summary).containsOnlyOnce("Closest to");
+        assertThat(summary).containsOnlyOnce("The top match for");
     }
 
     @Test

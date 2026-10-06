@@ -60,6 +60,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -455,7 +456,7 @@ class AiPlannerControllerIntegrationTest {
                         .content(DRAFT_EDIT_BODY.formatted("ADD", expectedId, Tier.BASIC.name())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.edit.applied", hasSize(1)))
-                .andExpect(jsonPath("$.recommendations", hasSize(1)))
+                .andExpect(jsonPath("$.recommendations", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedId)));
 
         mockMvc.perform(get("/ai/sessions/" + token).header("CF-Connecting-IP", testClientIp))
@@ -559,7 +560,7 @@ class AiPlannerControllerIntegrationTest {
                         .content(MESSAGE_BODY.formatted("we want to shoot")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.edit").value(nullValue()))
-                .andExpect(jsonPath("$.recommendations", hasSize(1)))
+                .andExpect(jsonPath("$.recommendations", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedId)))
                 .andExpect(jsonPath("$.recommendations[0].name", is(expectedName)))
                 .andExpect(jsonPath("$.recommendations[0].pricePerPerson").isNumber());

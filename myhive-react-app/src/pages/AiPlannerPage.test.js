@@ -206,7 +206,7 @@ test('a failed first reply keeps the message and "Try again" re-sends the same t
     expect(screen.getAllByText('hi there')).toHaveLength(1);
 });
 
-test('once packages land the trip draft fills the page and the chat docks collapsed under it', async () => {
+test('once packages land the trip draft fills the page and the chat docks open under it, starting afresh', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session());
     aiPlannerApi.sendMessage.mockResolvedValue({
@@ -238,6 +238,9 @@ test('once packages land the trip draft fills the page and the chat docks collap
     expect(within(screen.getByRole('tab', {name: /Medium/})).getByText('from €1,755')).toBeInTheDocument();
     expect(within(screen.getByRole('tab', {name: /Premium/})).getByText('from €2,790')).toBeInTheDocument();
     expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
+    // With the three trims on offer the docked chat says so, in place of the brief talk before it.
+    expect(within(screen.getByRole('region', {name: 'Stag Do AI'}))
+        .getAllByText('Your three options are ready. Pick one to make it your trip draft.').length).toBeGreaterThan(0);
 
     // Picking a trim makes it the draft: the other trims leave the screen.
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
@@ -246,17 +249,22 @@ test('once packages land the trip draft fills the page and the chat docks collap
     expect(within(draft).getByText('VIP Club')).toBeInTheDocument();
     expect(within(draft).getByText('from €2,790')).toBeInTheDocument();
 
-    // Docked and collapsed by default: its top bar opens it on the same transcript and closes it again.
+    // Docked and open on the result. What was said to gather the brief - down to "building your three
+    // options" - is not about the draft: the chat starts with its own line.
     const dock = screen.getByRole('region', {name: 'Stag Do AI'});
-    const bar = within(dock).getByRole('button', {name: 'Open chat'});
-    expect(bar).toHaveAttribute('aria-expanded', 'false');
-    await userEvent.click(bar);
-    expect(within(dock).getByRole('button', {name: 'Collapse chat'})).toHaveAttribute('aria-expanded', 'true');
-    expect(within(dock).getByText('Building your three options…')).toBeInTheDocument();
+    const bar = within(dock).getByRole('button', {name: 'Collapse chat'});
+    expect(bar).toHaveAttribute('aria-expanded', 'true');
+    expect(within(dock).queryByText('Building your three options…')).not.toBeInTheDocument();
+    expect(within(dock).queryByText('Friday evening to Sunday')).not.toBeInTheDocument();
+    // A trim was picked above: it is the draft now, and the chat says that instead.
+    expect(within(dock).getByText('Your trip draft is set for 10. Anything to add?')).toBeInTheDocument();
     // The hand-off sits under the draft, reachable whether the chat is open or not.
     expect(screen.getByRole('button', {name: 'Ask the group'})).toBeInTheDocument();
-    await userEvent.click(within(dock).getByRole('button', {name: 'Collapse chat'}));
+    // Its top bar collapses it and opens it again.
+    await userEvent.click(bar);
     expect(within(dock).getByRole('button', {name: 'Open chat'})).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(within(dock).getByRole('button', {name: 'Open chat'}));
+    expect(within(dock).getByRole('button', {name: 'Collapse chat'})).toHaveAttribute('aria-expanded', 'true');
 });
 
 test('an applied edit updates the packages in place and marks what the AI added', async () => {
@@ -456,7 +464,14 @@ test('under a ready draft the chat asks what to add and offers what fits: an act
     renderPage();
 
     const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
-    // The question, not the stale last line of the chat.
+    // A chat that comes back opens on the result; the open chat puts the best suggestion on a card
+    // with Add, the stale last line of the brief talk is gone.
+    const offered = await within(dock).findByRole('group', {name: 'Suggested activities'});
+    expect(within(offered).getByText('Paintball')).toBeInTheDocument();
+    expect(within(dock).queryByText('On it - building your three options now.')).not.toBeInTheDocument();
+    // Collapsed, and with a trim made the draft, it asks what to add and offers the same as tags.
+    await userEvent.click(screen.getByRole('tab', {name: /Medium/}));
+    await userEvent.click(within(dock).getByRole('button', {name: 'Collapse chat'}));
     expect(within(dock).getByText('Would you like to add anything?')).toBeInTheDocument();
     const tags = within(dock).getByRole('group', {name: 'What the draft could use'});
     expect(within(tags).getByRole('button', {name: 'Add Paintball to the trip draft'})).toHaveTextContent('+ Paintball');
