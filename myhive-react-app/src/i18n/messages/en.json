@@ -1248,7 +1248,6 @@
       "expand": "Open chat",
       "gapsAria": "What the draft could use",
       "gapMessage": "What do you have for {name}?",
-      "askMore": "Would you like to add anything?",
       "optionsReady": "Your three options are ready. Pick one to make it your trip draft.",
       "draftSet": "Your trip draft is set for {count}. Anything to add?",
       "draftSetNoCount": "Your trip draft is set. Anything to add?"

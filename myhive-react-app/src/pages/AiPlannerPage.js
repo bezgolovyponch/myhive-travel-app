@@ -275,16 +275,17 @@ function AiPlannerPage({pollIntervalMs}) {
         setShowAll(false);
         planner.editDraft(added ? 'REMOVE' : 'ADD', rec.activityId, activePkg.key);
     };
-    const dockLine = busy ? t('dock.working') : custom ? t('dock.askMore') : t('dock.optionsReady');
-    // The chat's own first line on the draft, in place of the brief talk that came before it.
+    // The chat's own first line on the draft, in place of the brief talk that came before it. Collapsed,
+    // the bar shows the same line (or the latest reply once the organizer has written) over the tags.
     const people = generation?.brief?.groupSize;
+    const openingText = !custom ? t('dock.optionsReady')
+        : people ? t('dock.draftSet', {count: people}) : t('dock.draftSetNoCount');
+    const lastDraftReply = [...planner.messages.slice(draftFrom)].reverse().find((m) => m.role === 'assistant');
+    const dockLine = busy ? t('dock.working') : lastDraftReply?.content || openingText;
     const opening = (
         <div className="ai-msg ai-msg-assistant aip-opening">
             <div className="ai-bubble">
-                <p className="ai-thread-text">
-                    {!custom ? t('dock.optionsReady')
-                        : people ? t('dock.draftSet', {count: people}) : t('dock.draftSetNoCount')}
-                </p>
+                <p className="ai-thread-text">{openingText}</p>
             </div>
         </div>
     );

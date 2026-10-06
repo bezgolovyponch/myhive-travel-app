@@ -237,6 +237,11 @@ lacks next to the ready-made packages of its tier: `{ "categorySlug", "name" }`,
 name in the session's language. Show the working trim's as "what next" tags; tapping
 one asks the chat for it, which answers with `recommendations`.
 
+A typed add under a ready draft ("add paintball", or a bare "ak 47") is not carried out.
+What it names comes back in `recommendations` - the named activity first, then related
+ones - and `edit` stays null; the organizer adds it with `POST /ai/sessions/{token}/edits`.
+A typed remove or swap is still applied on the turn.
+
 `suggestions` (both bodies, never null) maps each package key to 0–4 activities for the
 "Would you like to add anything?" row under a ready draft. They are what the ready-made
 packages hold that the package lacks - its own tier's first, then the tier above - and

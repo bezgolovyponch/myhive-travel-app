@@ -591,12 +591,12 @@ class AiPlannerControllerIntegrationTest {
     }
 
     /**
-     * "add ak" while the organizer works on the Basic trim: the model names no package, which used to add it
-     * to all three. The trip draft is the only package there is - the other trims stay untouched.
+     * A swap typed while the organizer works on the Basic trim: the model names no package, which used to
+     * change all three. The trip draft is the only package there is - the other trims stay untouched.
      */
     @Test
     void chatEdit_onTheWorkingTrim_changesThatTrimAlone() throws Exception {
-        String expectedAddedId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String expectedSwappedInId = activities.get(REPLACEMENT_INDEX).getId().toString();
         String token = createSession();
         queueReadyTurn("Building it!");
         sendMessage(token, "1 day, 4 of us, bars");
@@ -604,15 +604,16 @@ class AiPlannerControllerIntegrationTest {
         String parentBody = awaitGeneration(parentId);
         List<String> mediumBefore = JsonPath.read(parentBody, "$.packages[1].days[*].items[*].activityId");
         List<String> premiumBefore = JsonPath.read(parentBody, "$.packages[2].days[*].items[*].activityId");
-        llm.queueChat(chatTurn("Let me check that.", Brief.empty(), List.of(new EditRequest(EditOp.ADD,
-                        activities.get(REPLACEMENT_INDEX).getName(), null, null, null, null))))
+        llm.queueChat(chatTurn("Let me check that.", Brief.empty(), List.of(new EditRequest(EditOp.REPLACE,
+                        activities.get(BASIC_INDEX).getName(), activities.get(REPLACEMENT_INDEX).getName(),
+                        null, null, null))))
                 .queueRefresh(new TextRefreshResult(Map.of(), new LlmUsage("fake-chat", 5, 7, 3L)));
 
         MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
                         .header("CF-Connecting-IP", testClientIp)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"content": "add it", "packageKey": "BASIC"}
+                                {"content": "swap it", "packageKey": "BASIC"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.edit.applied", hasSize(1)))
@@ -621,7 +622,7 @@ class AiPlannerControllerIntegrationTest {
         String body = edited.getResponse().getContentAsString();
 
         assertThat((List<String>) JsonPath.read(body, "$.generation.packages[0].days[*].items[*].activityId"))
-                .contains(expectedAddedId);
+                .contains(expectedSwappedInId);
         assertThat((List<String>) JsonPath.read(body, "$.generation.packages[1].days[*].items[*].activityId"))
                 .isEqualTo(mediumBefore);
         assertThat((List<String>) JsonPath.read(body, "$.generation.packages[2].days[*].items[*].activityId"))
@@ -629,6 +630,42 @@ class AiPlannerControllerIntegrationTest {
         // And the model saw the Basic draft alone.
         assertThat(llm.chatRequests.get(llm.chatRequests.size() - 1).packagesView()).startsWith("BASIC:")
                 .doesNotContain("MEDIUM:", "PREMIUM:");
+    }
+
+    /**
+     * A typed "add it" - or a bare activity name - under a draft is not carried out: the activity comes
+     * back on offer, to be added with a tap on its Add button, and the draft stays as it was.
+     */
+    @Test
+    void chatAdd_underADraft_isOfferedWithAnAddButton_notAdded() throws Exception {
+        String expectedOfferedId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        String parentId = latestGenerationId(token);
+        awaitGeneration(parentId);
+        llm.queueChat(chatTurn("Adding it now.", Brief.empty(), List.of(new EditRequest(EditOp.ADD,
+                activities.get(REPLACEMENT_INDEX).getName(), null, null, null, null))));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"content": "add it", "packageKey": "BASIC"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit").value(nullValue()))
+                .andExpect(jsonPath("$.generation").value(nullValue()))
+                .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedOfferedId)))
+                // Not the model's "Adding it now.": nothing was added.
+                .andExpect(jsonPath("$.message.content", is("The top match is above - add it, or try one of the others.")));
+
+        // The tap is what adds it.
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("ADD", expectedOfferedId, Tier.BASIC.name())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)));
     }
 
     /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */

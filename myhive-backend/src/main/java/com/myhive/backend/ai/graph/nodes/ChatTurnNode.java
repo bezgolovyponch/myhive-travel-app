@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.graph.nodes;
 
+import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.catalog.CatalogActivity;
@@ -90,6 +91,26 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // Same for a reply an earlier edit turn held back: it belongs to that turn and is never said later.
         update.put(PlannerState.PENDING_REPLY, "");
         boolean routesToEdit = false;
+        // Under a draft a typed "add X" - or a bare "ak 47" - is not carried out. What it names is offered
+        // above the chat, the best match on a card with Add, and the organizer puts it in with a tap: the
+        // draft only grows by their own hand. Taking out and swapping are still done on the word.
+        List<EditRequest> edits = result.edits();
+        List<String> offered = new ArrayList<>();
+        if (!packages.isEmpty() && !readyToBuild) {
+            List<EditRequest> carriedOut = new ArrayList<>();
+            for (EditRequest edit : edits) {
+                if (edit.op() == EditOp.ADD) {
+                    if (edit.activity() != null) {
+                        offered.add(edit.activity());
+                    }
+                    offered.addAll(edit.alternatives());
+                } else {
+                    carriedOut.add(edit);
+                }
+            }
+            edits = carriedOut;
+            offered.addAll(result.recommendations());
+        }
         String reply = PlanAssembler.clean(result.reply());
         List<String> suggestedReplies = result.suggestedReplies();
         List<String> notes = new ArrayList<>();
@@ -109,7 +130,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                 // to them after the rebuild, not quietly dropped.
                 notes.add(EditMessages.rebuildingFirst(state.locale()));
             }
-        } else if (result.edits().isEmpty()) {
+        } else if (edits.isEmpty()) {
             update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
         } else if (packages.isEmpty()) {
             // Nothing to edit yet: report the ops as rejected so the client sees why, and say so in chat.
@@ -119,7 +140,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             notes.add(EditMessages.noPackagesYet(state.locale()));
         } else {
             update.put(PlannerState.ACTION, PlannerState.ACTION_EDIT);
-            update.put(PlannerState.EDITS, JsonCodec.write(intoTheDraft(result.edits(), state)));
+            update.put(PlannerState.EDITS, JsonCodec.write(intoTheDraft(edits, state)));
             routesToEdit = true;
         }
         if (!packages.isEmpty() && !readyToBuild) {
@@ -128,7 +149,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             // building options - before an edit's own line that reply is simply dropped.
             if (routesToEdit) {
                 reply = BuildingReply.announcesABuild(reply) ? "" : reply;
-            } else if (!result.recommendations().isEmpty()) {
+            } else if (!offered.isEmpty()) {
                 reply = BuildingReply.recommending(state.locale());
             } else if (BuildingReply.announcesABuild(reply)) {
                 reply = BuildingReply.nothingToBuild(state.locale());
@@ -170,7 +191,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // Only for a draft that exists and stays: before the first build there is nothing to add them to,
         // and a rebuild replaces the packages they would be added to. Replaced every turn either way.
         update.put(PlannerState.RECOMMENDATIONS,
-                packages.isEmpty() || readyToBuild ? List.of() : result.recommendations());
+                packages.isEmpty() || readyToBuild ? List.of() : List.copyOf(offered));
         update.put(PlannerState.SHOW_PACKAGE,
                 packages.isEmpty() || readyToBuild || result.showPackage() == null ? "" : result.showPackage());
         update.put(PlannerState.BRIEF, mergedJson);

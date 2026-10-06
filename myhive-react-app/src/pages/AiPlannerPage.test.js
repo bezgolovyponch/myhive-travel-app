@@ -469,10 +469,10 @@ test('under a ready draft the chat asks what to add and offers what fits: an act
     const offered = await within(dock).findByRole('group', {name: 'Suggested activities'});
     expect(within(offered).getByText('Paintball')).toBeInTheDocument();
     expect(within(dock).queryByText('On it - building your three options now.')).not.toBeInTheDocument();
-    // Collapsed, and with a trim made the draft, it asks what to add and offers the same as tags.
+    // Collapsed, and with a trim made the draft, the bar carries the chat's line and offers the same as tags.
     await userEvent.click(screen.getByRole('tab', {name: /Medium/}));
     await userEvent.click(within(dock).getByRole('button', {name: 'Collapse chat'}));
-    expect(within(dock).getByText('Would you like to add anything?')).toBeInTheDocument();
+    expect(within(dock).getAllByText('Your trip draft is set for 10. Anything to add?').length).toBeGreaterThan(0);
     const tags = within(dock).getByRole('group', {name: 'What the draft could use'});
     expect(within(tags).getByRole('button', {name: 'Add Paintball to the trip draft'})).toHaveTextContent('+ Paintball');
     expect(within(tags).queryByText(/Karting/)).not.toBeInTheDocument();

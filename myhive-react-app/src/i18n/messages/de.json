@@ -1238,7 +1238,6 @@
       "expand": "Chat öffnen",
       "gapsAria": "Was dem Entwurf noch fehlt",
       "gapMessage": "Was habt ihr für {name}?",
-      "askMore": "Möchtest du noch etwas hinzufügen?",
       "optionsReady": "Deine drei Optionen sind fertig. Wähl eine als deinen Trip-Entwurf.",
       "draftSet": "Dein Trip-Entwurf für {count} steht. Soll noch etwas dazu?",
       "draftSetNoCount": "Dein Trip-Entwurf steht. Soll noch etwas dazu?"
