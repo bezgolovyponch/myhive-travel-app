@@ -1233,9 +1233,11 @@
       "draftLabel": "Trip draft",
       "browseAll": "Browse all",
       "add": "Add",
-      "addMessage": "Add {name}",
       "suggestions": "Suggested activities",
-      "daySlot": "Day {n} · {slot}"
+      "daySlot": "Day {n} · {slot}",
+      "added": "Added ✓",
+      "addAria": "Add {name} to the trip draft",
+      "perPerson": "{price} pp"
     },
     "dock": {
       "title": "Stag Do AI",

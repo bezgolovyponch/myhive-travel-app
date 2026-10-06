@@ -55,8 +55,12 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const [building, setBuilding] = useState(false);
     const [watchedId, setWatchedId] = useState(null);
     const [error, setError] = useState(null); // {code, retryText?}
-    // Catalog names the latest turn offered instead of something it could not do.
-    const [alternatives, setAlternatives] = useState([]);
+    // Activities the latest turn offered for the draft, best match first.
+    const [recommendations, setRecommendations] = useState([]);
+    // The trim the chat asked to show ({key: 'BASIC'..|'ALL', at}); `at` makes a repeat a new request.
+    const [showRequest, setShowRequest] = useState(null);
+    // The activity whose draft tap is in flight, if any.
+    const [editing, setEditing] = useState(null);
     const tokenRef = useRef(null);
 
     const adoptSession = useCallback((state) => {
@@ -65,6 +69,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         writeToken(state.token);
         setMessages((state.messages || []).map(toEntry));
         setSuggestedReplies(state.suggestedReplies || []);
+        setRecommendations(state.recommendations || []);
         const ready = state.latestReadyGeneration;
         const latest = state.latestGeneration;
         const inFlight = latest && (latest.status === 'QUEUED' || latest.status === 'RUNNING');
@@ -80,7 +85,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setMessages([]);
         setSuggestedReplies([]);
         setGeneration(null);
-        setAlternatives([]);
+        setRecommendations([]);
+        setShowRequest(null);
         setBuilding(false);
         setWatchedId(null);
         setError(null);
@@ -112,7 +118,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     }, [api, adoptSession]);
 
     const applyTurn = useCallback(async (turn) => {
-        setAlternatives([...new Set((turn.edit?.rejected || []).flatMap((r) => r.alternatives || []))]);
+        setRecommendations(turn.recommendations || []);
+        if (turn.showPackage) setShowRequest({key: turn.showPackage, at: Date.now()});
         setMessages((prev) => [...prev, ...(turn.messages || []).map(toEntry)]);
         setSuggestedReplies(turn.suggestedReplies || []);
         const gen = turn.generation;
@@ -220,6 +227,21 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         return api.selectPackage(generationId, packageKey);
     }, [api]);
 
+    // A tap in the draft: add or remove one activity in `packageKey` with no
+    // chat turn. The answer is applied like a chat edit (new draft, one line).
+    const editDraft = useCallback(async (op, activityId, packageKey) => {
+        if (!tokenRef.current || editing) return;
+        setError(null);
+        setEditing(activityId);
+        try {
+            await applyTurn(await api.editDraft(tokenRef.current, {op, activityId, packageKey}));
+        } catch (e) {
+            setError({code: errorCode(e) || 'NETWORK'});
+        } finally {
+            setEditing(null);
+        }
+    }, [api, applyTurn, editing]);
+
     const undo = useCallback(async (packageKey) => {
         if (!generation?.parentId) return;
         setError(null);
@@ -239,13 +261,16 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         suggestedReplies,
         sending,
         generation,
-        alternatives,
+        recommendations,
+        showRequest,
+        editing,
         building,
         error,
         send,
         retry,
         select,
         undo,
+        editDraft,
         newChat: reset,
     };
 }

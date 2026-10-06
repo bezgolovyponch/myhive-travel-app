@@ -35,7 +35,7 @@ function addedNames(generation, packageKey) {
 }
 
 // "2 h", "1 h 30 min", "45 min": how long an activity takes, short enough for a row.
-function duration(minutes) {
+export function duration(minutes) {
     if (!minutes) return null;
     const hours = Math.floor(minutes / 60);
     const rest = minutes % 60;

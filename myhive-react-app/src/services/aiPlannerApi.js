@@ -60,6 +60,15 @@ const aiPlannerApi = {
     }, 'The planner did not answer');
   },
 
+  // One tap in the trip draft: {op: 'ADD'|'REMOVE', activityId, packageKey}.
+  // No model call, so no long timeout; the answer is a turn body like sendMessage's.
+  editDraft(token, edit) {
+    return request(`/ai/sessions/${encodeURIComponent(token)}/edits`, {
+      method: 'POST',
+      body: edit,
+    }, 'Failed to change the trip draft');
+  },
+
   getGeneration(id) {
     return request(`/ai/generations/${encodeURIComponent(id)}`, {}, 'Failed to load the packages');
   },

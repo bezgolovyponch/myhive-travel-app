@@ -3,6 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 import PageHead from '../components/PageHead';
 import AiThread from '../components/ai/AiThread';
 import AiPackageView, {AI_PICK_KEY} from '../components/ai/AiPackageView';
+import AiRecommendations from '../components/ai/AiRecommendations';
 import StartGroupVoteModal from '../components/vote/StartGroupVoteModal';
 import {useAiPlanner} from '../hooks/useAiPlanner';
 import {useTrip} from '../context/TripContext';
@@ -37,20 +38,12 @@ function planStart(trip, brief) {
     return nightsBetween(from, to) + 1 === brief.days ? from : null;
 }
 
-// Names the planner offered instead of something it could not do - in the
-// latest reply, or in the report of the edit on screen - minus what the draft
-// already holds: the "add this instead" row above the chat.
-function alternativesFor(offered, generation, pkg) {
-    const inDraft = new Set(pkg.days.flatMap((day) => day.items.map((item) => item.name)));
-    const reported = (generation.editReport?.rejected || []).flatMap((r) => r.alternatives || []);
-    return [...new Set([...offered, ...reported])].filter((name) => !inDraft.has(name));
-}
-
 // Stag Do AI (v3 landing, 2d/2e). Result-first: until there are packages the
 // chat is the page; once there are, the trip draft is the page and the chat is
 // docked to the bottom edge, where its top bar opens and collapses it. The
-// three trims are offered until the organizer starts changing the plan in the
-// chat; from then on there is one draft, theirs.
+// three trims are offered until the organizer picks one or starts changing the
+// plan; from then on there is one draft, theirs - the chat can still bring a
+// trim, or all three, back ("show me Premium", "what were the other options?").
 function AiPlannerPage({pollIntervalMs}) {
     const t = useT('aiPlanner');
     const locale = useLocale();
@@ -62,8 +55,8 @@ function AiPlannerPage({pollIntervalMs}) {
     const destination = catalog.destinations.find((d) => d.slug === destinationSlug);
     const [activeKey, setActiveKey] = useState(AI_PICK_KEY);
     const [dockOpen, setDockOpen] = useState(false);
-    const [chatted, setChatted] = useState(false); // the organizer has asked for a change since the packages landed
-    const [removing, setRemoving] = useState(null);
+    const [chatted, setChatted] = useState(false); // the organizer has picked a trim or asked for a change
+    const [showAll, setShowAll] = useState(false); // the chat brought every trim back
     const [handoff, setHandoff] = useState(null); // {activityIds, groupSize} once a trim is picked
     const [handingOff, setHandingOff] = useState(false);
     const [handoffError, setHandoffError] = useState(false);
@@ -92,9 +85,17 @@ function AiPlannerPage({pollIntervalMs}) {
         hadResult.current = hasResult;
     }, [hasResult]);
 
+    // "Show me Premium" switches the draft; "what were the other options?" brings the trims back.
+    const {showRequest} = planner;
     useEffect(() => {
-        if (!sending) setRemoving(null);
-    }, [sending]);
+        if (!showRequest) return;
+        if (showRequest.key === 'ALL') {
+            setShowAll(true);
+        } else {
+            setActiveKey(showRequest.key);
+            setShowAll(false);
+        }
+    }, [showRequest]);
 
     useEffect(() => {
         if (!dockOpen) return undefined;
@@ -109,16 +110,24 @@ function AiPlannerPage({pollIntervalMs}) {
         ...planner,
         send: (text, preset) => {
             setChatted(true);
+            setShowAll(false);
             setDockOpen(true);
             return planner.send(text, preset);
         },
     };
 
-    // × is a chat edit (REMOVE) so the planner's packages stay the truth.
-    const removeItem = (pkg, item) => {
-        setRemoving(item.name);
+    // Picking a trim makes it the draft: the other two leave the screen.
+    const pickTier = (key) => {
+        setActiveKey(key);
         setChatted(true);
-        planner.send(t('result.removeMessage', {name: item.name, tier: t(`tiers.${pkg.key}`)}));
+        setShowAll(false);
+    };
+
+    // × and the recommendation row edit the draft directly - no chat turn - so
+    // the planner's packages stay the truth and the next turn sees the change.
+    const removeItem = (pkg, item) => {
+        setChatted(true);
+        planner.editDraft('REMOVE', item.activityId, pkg.key);
     };
 
     // "Ask the group": the picked trim replaces the cart (so the Trip Builder
@@ -184,13 +193,21 @@ function AiPlannerPage({pollIntervalMs}) {
 
     const brief = generation?.brief || {};
     const startDate = planStart(trip, brief);
-    const custom = chatted || generation?.kind === 'EDITED';
+    const custom = (chatted || generation?.kind === 'EDITED') && !showAll;
     const activePkg = hasResult
         ? generation.packages.find((p) => p.key === activeKey) || generation.packages[0] : null;
-    const alternatives = activePkg ? alternativesFor(planner.alternatives || [], generation, activePkg) : [];
+    const inDraft = new Set(activePkg ? activePkg.days.flatMap((day) => day.items.map((item) => item.activityId)) : []);
+    const removing = activePkg && planner.editing
+        ? activePkg.days.flatMap((day) => day.items).find((item) => item.activityId === planner.editing)?.name
+        : null;
+    const busy = sending || planner.building || Boolean(planner.editing);
+    const toggleRecommendation = (rec, added) => {
+        setChatted(true);
+        setShowAll(false);
+        planner.editDraft(added ? 'REMOVE' : 'ADD', rec.activityId, activePkg.key);
+    };
     const lastReply = [...planner.messages].reverse().find((m) => m.role === 'assistant');
     const dockLine = sending || planner.building ? t('dock.working') : lastReply?.content || t('dock.pill');
-    const addActivity = (name) => dockPlanner.send(t('result.addMessage', {name}));
 
     return (
         <div className={`aip-page ${hasResult ? 'has-result' : 'is-chat'}`}>
@@ -215,12 +232,12 @@ function AiPlannerPage({pollIntervalMs}) {
                             destinationSlug={destination?.slug}
                             startDate={startDate}
                             activeKey={activeKey}
-                            onTierChange={setActiveKey}
+                            onTierChange={pickTier}
                             custom={custom}
                             onRemove={removeItem}
                             removing={removing}
                             onUndo={planner.undo}
-                            busy={sending || planner.building}
+                            busy={busy}
                             cta={sendBlock}
                         />
                     </main>
@@ -235,27 +252,14 @@ function AiPlannerPage({pollIntervalMs}) {
                                 <i className={`ph ph-caret-${dockOpen ? 'down' : 'up'}`}/>
                             </span>
                         </button>
-                        {dockOpen && alternatives.length > 0 && (
-                            <div className="aip-suggest" role="group" aria-label={t('result.suggestions')}>
-                                <div className="aip-suggest-top">
-                                    <span className="aip-item-thumb" aria-hidden="true">{alternatives[0].charAt(0)}</span>
-                                    <span className="aip-suggest-name">{alternatives[0]}</span>
-                                    <button type="button" className="aip-suggest-add" disabled={sending || planner.building}
-                                            onClick={() => addActivity(alternatives[0])}>
-                                        {t('result.add')}
-                                    </button>
-                                </div>
-                                {alternatives.length > 1 && (
-                                    <div className="aip-suggest-more">
-                                        {alternatives.slice(1).map((name) => (
-                                            <button key={name} type="button" disabled={sending || planner.building}
-                                                    onClick={() => addActivity(name)}>
-                                                + {name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                        {dockOpen && (
+                            <AiRecommendations
+                                recommendations={planner.recommendations}
+                                isAdded={(id) => inDraft.has(id)}
+                                onToggle={toggleRecommendation}
+                                pendingId={planner.editing}
+                                disabled={busy}
+                            />
                         )}
                         {!dockOpen && <div className="aip-dock-line">{dockLine}</div>}
                         <AiThread

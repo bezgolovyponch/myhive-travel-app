@@ -268,7 +268,8 @@
     margin: 4px auto 0;
 }
 
-/* What the planner offered instead: the first with its own button, the rest as chips. */
+/* What the chat recommended: the best match as a card with Add, the rest as
+   tags. Each is a toggle; an added one turns green ("Added ✓", "✓ name"). */
 .aip-suggest {
     flex: none;
     display: flex;
@@ -286,9 +287,37 @@
     gap: 10px;
 }
 
-.aip-suggest-name {
+.aip-suggest-thumb {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    overflow: hidden;
+    background: #2c2740;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #c9c4fb;
+}
+
+.aip-suggest-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.aip-suggest-body {
     flex: 1;
     min-width: 0;
+}
+
+.aip-suggest-meta {
+    font-size: 12px;
+    color: #b0acbb;
+}
+
+.aip-suggest-name {
     font-size: 14px;
     font-weight: 700;
     overflow: hidden;
@@ -310,8 +339,15 @@
     cursor: pointer;
 }
 
+.aip-suggest-add.is-added {
+    padding: 0 12px;
+    background: rgba(37, 211, 102, 0.15);
+    color: #5fdc8f;
+}
+
 .aip-suggest-more {
     display: flex;
+    scrollbar-width: none;
     gap: 6px;
     overflow-x: auto;
 }
@@ -328,6 +364,11 @@
     font-size: 12px;
     white-space: nowrap;
     cursor: pointer;
+}
+
+.aip-suggest-more button.is-added {
+    border-color: rgba(37, 211, 102, 0.45);
+    color: #5fdc8f;
 }
 
 .aip-suggest button:disabled {

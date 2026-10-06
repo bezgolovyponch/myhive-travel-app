@@ -239,9 +239,11 @@ test('once packages land the trip draft fills the page and the chat docks collap
     expect(within(screen.getByRole('tab', {name: /Premium/})).getByText('from €2,790')).toBeInTheDocument();
     expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
 
+    // Picking a trim makes it the draft: the other trims leave the screen.
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
-    expect(screen.getByRole('tab', {name: /Premium/})).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     expect(screen.queryByText('Karting')).not.toBeInTheDocument();
+    expect(within(draft).getByText('VIP Club')).toBeInTheDocument();
     expect(within(draft).getByText('from €2,790')).toBeInTheDocument();
 
     // Docked and collapsed by default: its top bar opens it on the same transcript and closes it again.
@@ -293,7 +295,7 @@ test('an applied edit updates the packages in place and marks what the AI added'
     expect(screen.getByRole('status')).toHaveTextContent('Swapped Karting for River Cruise');
 });
 
-test('× asks the planner to drop the activity, and Undo goes back to the generation before', async () => {
+test('× drops the activity from the draft without a chat turn, and Undo goes back to the generation before', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
     const edited = readyGeneration({
@@ -305,9 +307,9 @@ test('× asks the planner to drop the activity, and Undo goes back to the genera
         ],
         editReport: {applied: [{op: 'REMOVE', activity: 'Karting', replacement: null, packageKey: 'MEDIUM'}], rejected: []},
     });
-    aiPlannerApi.sendMessage.mockResolvedValue({
+    aiPlannerApi.editDraft.mockResolvedValue({
         messages: [{role: 'ASSISTANT', content: 'Dropped Karting from the Medium package.', at}],
-        suggestedReplies: [], generation: edited, edit: edited.editReport,
+        suggestedReplies: [], recommendations: [], generation: edited, edit: edited.editReport,
     });
     aiPlannerApi.getGeneration.mockResolvedValue(readyGeneration());
     aiPlannerApi.selectPackage.mockResolvedValue({packageKey: 'MEDIUM', groupSize: 10, tripItems: []});
@@ -315,7 +317,8 @@ test('× asks the planner to drop the activity, and Undo goes back to the genera
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remove Karting'}));
 
-    expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'Remove Karting from the Medium package');
+    expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1', {op: 'REMOVE', activityId: 'id-Karting', packageKey: 'MEDIUM'});
+    expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
     expect(await screen.findByRole('status')).toHaveTextContent('Removed Karting');
     expect(screen.queryByText('Karting')).not.toBeInTheDocument();
 
@@ -348,49 +351,79 @@ test('"Ask the group" picks the trim, fills the cart and opens the contact step'
     expect(screen.getByLabelText('Your WhatsApp number')).toBeInTheDocument();
 });
 
-test('what the planner offered instead sits above the open chat, one tap adds it', async () => {
-    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
-    const refused = readyGeneration({
-        id: 'gen-2', kind: 'EDITED', parentId: 'gen-1',
-        editReport: {applied: [], rejected: [{
-            op: 'ADD', activity: 'kalashnikov', packageKey: null, reason: 'UNKNOWN_ACTIVITY', detail: null,
-            // Karting is in the draft already, so it is not offered again.
-            alternatives: ['AK-47 shooting', 'Karting', 'Paintball'],
-        }]},
-    });
-    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: refused, status: 'READY'}));
-    aiPlannerApi.sendMessage.mockResolvedValue({
-        messages: [{role: 'ASSISTANT', content: 'Let me check that.', at}], suggestedReplies: [], generation: refused,
-    });
-    renderPage();
-
-    // An edited generation is the organizer's own draft from the start.
-    await userEvent.click(await screen.findByRole('button', {name: 'Open chat'}));
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
-    const offered = screen.getByRole('group', {name: 'Suggested activities'});
-    expect(within(offered).getByText('AK-47 shooting')).toBeInTheDocument();
-    expect(within(offered).getByRole('button', {name: '+ Paintball'})).toBeInTheDocument();
-    expect(within(offered).queryByText(/Karting/)).not.toBeInTheDocument();
-
-    await userEvent.click(within(offered).getByRole('button', {name: 'Add'}));
-
-    expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'Add AK-47 shooting');
+const rec = (name, over = {}) => ({
+    activityId: `id-${name}`, name, oneLine: null, durationMinutes: 90, pricePerPerson: 89, imageUrl: null, ...over,
 });
 
-test('alternatives named in a reply that changed nothing are offered above the chat too', async () => {
+test('"we want to shoot": the top match and related tags sit above the open chat, one tap adds one', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
     aiPlannerApi.sendMessage.mockResolvedValue({
-        messages: [{role: 'ASSISTANT', content: 'I could not find "ride a tank". Closest: Army Tank.', at}],
-        suggestedReplies: [], generation: null,
-        edit: {applied: [], rejected: [{op: 'ADD', activity: 'ride a tank', alternatives: ['Army Tank']}]},
+        messages: [{role: 'ASSISTANT', content: 'The top match is above. Add it, or try a mixed range.', at}],
+        suggestedReplies: [], generation: null, edit: null,
+        recommendations: [rec('AK-47 shooting'), rec('Pistol + AK combo', {pricePerPerson: 119}), rec('Paintball')],
+    });
+    const withAk = readyGeneration({
+        id: 'gen-2', kind: 'EDITED', parentId: 'gen-1',
+        packages: [
+            pkg('BASIC', 125, [item('Bar Crawl')]),
+            pkg('MEDIUM', 195, [item('Bar Crawl'), item('Karting'), item('AK-47 shooting')]),
+            pkg('PREMIUM', 310, [item('VIP Club')]),
+        ],
+        editReport: {applied: [{op: 'ADD', activity: 'AK-47 shooting', packageKey: 'MEDIUM'}], rejected: []},
+    });
+    aiPlannerApi.editDraft.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'Added AK-47 shooting to the Medium package.', at}],
+        suggestedReplies: [], generation: withAk, edit: withAk.editReport,
+        recommendations: [rec('AK-47 shooting'), rec('Pistol + AK combo', {pricePerPerson: 119}), rec('Paintball')],
     });
     renderPage();
 
-    await userEvent.type(await screen.findByRole('textbox', {name: 'Message Stag Do AI'}), 'ride a tank{Enter}');
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Message Stag Do AI'}),
+        'We want to shoot kalashnikov{Enter}');
 
-    // A message from the collapsed dock opens it on the answer.
-    expect(await screen.findByRole('button', {name: 'Collapse chat'})).toBeInTheDocument();
     const offered = await screen.findByRole('group', {name: 'Suggested activities'});
-    expect(within(offered).getByText('Army Tank')).toBeInTheDocument();
+    expect(within(offered).getByText('AK-47 shooting')).toBeInTheDocument();
+    expect(within(offered).getByText('1 h 30 min · €89 pp')).toBeInTheDocument();
+    expect(within(offered).getByRole('button', {name: 'Add Pistol + AK combo to the trip draft'}))
+        .toHaveTextContent('+ Pistol + AK combo');
+    // A wish is not an edit: the draft is unchanged until a tap.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+
+    await userEvent.click(within(offered).getByRole('button', {name: 'Add AK-47 shooting to the trip draft'}));
+
+    expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1',
+        {op: 'ADD', activityId: 'id-AK-47 shooting', packageKey: 'MEDIUM'});
+    expect(aiPlannerApi.sendMessage).toHaveBeenCalledTimes(1);
+    // In the draft now; the card turns into the way back out.
+    const draft = screen.getByRole('region', {name: 'Trip draft'});
+    expect(await within(draft).findByText('AK-47 shooting')).toBeInTheDocument();
+    const added = within(offered).getByRole('button', {name: 'Remove AK-47 shooting'});
+    expect(added).toHaveTextContent('Added ✓');
+
+    await userEvent.click(added);
+    expect(aiPlannerApi.editDraft).toHaveBeenLastCalledWith('tok-1',
+        {op: 'REMOVE', activityId: 'id-AK-47 shooting', packageKey: 'MEDIUM'});
+});
+
+test('the chat brings the trims back ("what were the other options?") and switches to one ("show me Premium")', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
+    aiPlannerApi.sendMessage
+        .mockResolvedValueOnce({messages: [{role: 'ASSISTANT', content: 'Here they are.', at}],
+            suggestedReplies: [], generation: null, showPackage: 'ALL'})
+        .mockResolvedValueOnce({messages: [{role: 'ASSISTANT', content: 'Premium it is.', at}],
+            suggestedReplies: [], generation: null, showPackage: 'PREMIUM'});
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('tab', {name: /Medium/}));
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'what were the other options?{Enter}');
+    expect(await screen.findByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'show me premium{Enter}');
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+    expect(await within(draft).findByText('VIP Club')).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 });

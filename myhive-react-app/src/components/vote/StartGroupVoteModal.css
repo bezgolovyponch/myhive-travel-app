@@ -466,3 +466,48 @@
     font-size: 0.8125rem;
     text-align: center;
 }
+
+/* Short phones (iPhone SE, a browser with its toolbars out): the whole sheet
+   still fits without scrolling. The lede and the step explanations go - the
+   headline and the step titles say the same - the chat preview loses its
+   timestamp row, the gaps tighten and fields and buttons lose 4px. */
+@media (max-width: 768px) and (max-height: 740px) {
+    .start-vote-modal .app-modal-body {
+        gap: 0.5rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    }
+
+    .start-vote-modal .app-modal-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .sgv-lede,
+    .sgv-step-text,
+    .sgv-bubble-meta {
+        display: none;
+    }
+
+    .sgv-steps li {
+        padding-bottom: 0.25rem;
+    }
+
+    .sgv-chat-body {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    /* Still a full thumb target, 4px less each. */
+    .sgv-code,
+    .sgv-input,
+    .sgv-btn {
+        height: 40px;
+    }
+
+    .sgv-field {
+        padding: 0.25rem;
+    }
+
+    .sgv-whatsapp {
+        gap: 0.5rem;
+    }
+}

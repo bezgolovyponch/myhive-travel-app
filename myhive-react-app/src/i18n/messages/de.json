@@ -1223,9 +1223,11 @@
       "draftLabel": "Trip-Entwurf",
       "browseAll": "Alle ansehen",
       "add": "Hinzufügen",
-      "addMessage": "Füge {name} hinzu",
       "suggestions": "Vorgeschlagene Aktivitäten",
-      "daySlot": "Tag {n} · {slot}"
+      "daySlot": "Tag {n} · {slot}",
+      "added": "Drin ✓",
+      "addAria": "{name} zum Entwurf hinzufügen",
+      "perPerson": "{price} p. P."
     },
     "dock": {
       "title": "JGA-KI",
