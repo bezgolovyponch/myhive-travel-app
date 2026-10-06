@@ -3,6 +3,7 @@ package com.myhive.backend.ai.dto;
 import com.myhive.backend.ai.model.Brief;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -10,12 +11,13 @@ import java.util.UUID;
  * group comes back to days later from nothing but the stored token. {@code suggestedReplies} are the
  * tap-to-send chips for the latest assistant message - the opening hooks on a fresh chat; never null.
  * {@code recommendations} are the activities the latest turn offered for the draft, best match first; never null.
+ * {@code gaps} are, per package key, the themes the package lacks next to the ready-made packages of its tier.
  */
 public record SessionStateDTO(UUID token, String destinationSlug, String locale, String status, Brief brief,
                               List<String> missingFields, boolean readyToGenerate, List<MessageDTO> messages,
                               GenerationDTO latestGeneration, GenerationDTO latestReadyGeneration,
                               FirstTurnErrorDTO firstTurnError, LimitsDTO limits, List<String> suggestedReplies,
-                              List<RecommendationDTO> recommendations) {
+                              List<RecommendationDTO> recommendations, Map<String, List<DraftGapDTO>> gaps) {
 
     /**
      * What is left of this chat's allowances, so the UI can offer "start a new chat" before a 429.

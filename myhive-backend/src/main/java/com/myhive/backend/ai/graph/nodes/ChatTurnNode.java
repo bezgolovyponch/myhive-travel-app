@@ -1,5 +1,7 @@
 package com.myhive.backend.ai.graph.nodes;
 
+import com.myhive.backend.ai.edit.EditRequest;
+import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.catalog.OpeningReplies;
@@ -40,11 +42,6 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
     /** How many chips have to name a catalog activity for a question to count as one about its variants. */
     private static final int MIN_VARIANTS = 2;
     private static final String QUESTION_MARK = "?";
-    /** Chips for the travel-times question; the last one is what the chat files as {@code FLEXIBLE}. */
-    private static final List<String> EDGE_CHIPS_EN =
-            List.of("Arrive evening, leave morning", "Arrive afternoon, leave evening", "No tickets yet");
-    private static final List<String> EDGE_CHIPS_DE =
-            List.of("Abends an, morgens ab", "Nachmittags an, abends ab", "Noch keine Tickets");
 
     private final LlmGateway llm;
     /** Null where no catalog is wired (unit tests): the chat then offers no catalog-backed follow-ups. */
@@ -122,7 +119,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             notes.add(EditMessages.noPackagesYet(state.locale()));
         } else {
             update.put(PlannerState.ACTION, PlannerState.ACTION_EDIT);
-            update.put(PlannerState.EDITS, JsonCodec.write(result.edits()));
+            update.put(PlannerState.EDITS, JsonCodec.write(intoTheDraft(result.edits(), state)));
             routesToEdit = true;
         }
         Optional<String> question = asksNothing
@@ -220,21 +217,32 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
     }
 
     /**
-     * Tap-to-send answers: for the taste question, from what the catalog can deliver; for the travel
-     * times, the usual weekend shapes plus "no tickets yet", which the chat files as FLEXIBLE; none for
-     * the others.
+     * Tap-to-send answers: for the taste question, from what the catalog can deliver; none for the others
+     * (travel times are never asked).
      */
     private static List<String> chipsFor(Brief brief, PlannerState state) {
         String first = brief.missingFields().get(0);
         if (Brief.FIELD_PREFERENCES.equals(first)) {
             return OpeningReplies.forCatalog(state.catalog(), state.locale());
         }
-        if (Brief.FIELD_ARRIVAL.equals(first) || Brief.FIELD_DEPARTURE.equals(first)) {
-            return "de".equalsIgnoreCase(state.locale()) ? EDGE_CHIPS_DE : EDGE_CHIPS_EN;
-        }
         return List.of();
     }
 
+
+    /**
+     * Once the organizer works on one trim, that trim is the only package there is: every edit lands in it,
+     * whatever package the model named or left out ("add ak" used to add to all three).
+     */
+    private static List<EditRequest> intoTheDraft(List<EditRequest> edits, PlannerState state) {
+        Optional<Tier> draft = state.workingPackage();
+        if (draft.isEmpty()) {
+            return edits;
+        }
+        return edits.stream()
+                .map(edit -> new EditRequest(edit.op(), edit.activity(), edit.replacement(), draft.get(),
+                        edit.dayNumber(), edit.slot(), edit.alternatives()))
+                .toList();
+    }
 
     /** The reply first, then Java's own notes, stamped in that order. */
     private static List<Map<String, String>> messages(List<String> texts) {
@@ -255,6 +263,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                     state.messages(), null, PackagesView.catalogNames(state.catalog()));
         }
         return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
-                state.messages(), PackagesView.render(packages.get()), PackagesView.catalogNames(state.catalog()));
+                state.messages(), PackagesView.render(packages.get(), state.workingPackage().orElse(null)),
+                PackagesView.catalogNames(state.catalog()));
     }
 }

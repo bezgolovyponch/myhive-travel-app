@@ -39,11 +39,12 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
     }
 
     /**
-     * What the chat still has to ask before a generation is worth its ~40 s planner call. Arrival and
-     * departure are required, not defaulted: the edges decide how much of day 1 and the last day is
-     * usable, and generating on the defaults first cost a second full generation the moment the
-     * organizer mentioned when they land. Budget stays optional - many groups will not name one.
-     * A group without tickets answers {@link DayEdge#FLEXIBLE}, which closes the gap like any other edge.
+     * What the chat still has to ask before a generation is worth its ~40 s planner call: days, group
+     * size and what the group is into. Travel times are never asked - a stag group rarely has tickets
+     * when it starts planning, and the question only held the build back. An edge the organizer does
+     * name is still used; unnamed ones plan as an afternoon arrival and a morning departure (a one-day trip
+     * then runs from the afternoon through the night - see {@code PlanValidator#allowedSlots}). Budget stays
+     * optional too.
      */
     @JsonIgnore
     public List<String> missingFields() {
@@ -57,12 +58,6 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
         boolean hasTaste = !categorySlugs.isEmpty() || (vibe != null && !vibe.isBlank());
         if (!hasTaste) {
             missing.add(FIELD_PREFERENCES);
-        }
-        if (arrival == null) {
-            missing.add(FIELD_ARRIVAL);
-        }
-        if (departure == null) {
-            missing.add(FIELD_DEPARTURE);
         }
         return missing;
     }

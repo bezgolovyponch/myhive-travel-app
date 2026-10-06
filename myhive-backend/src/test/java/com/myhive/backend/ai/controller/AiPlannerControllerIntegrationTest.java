@@ -304,7 +304,7 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.messages[2].content", is(expectedReply)))
                 // Everything the chat asks before a generation is worth starting; budget is never in here.
                 .andExpect(jsonPath("$.missingFields",
-                        containsInAnyOrder("days", "groupSize", "preferences", "arrival", "departure")))
+                        containsInAnyOrder("days", "groupSize", "preferences")))
                 .andExpect(jsonPath("$.readyToGenerate", is(false)))
                 .andExpect(jsonPath("$.latestGeneration").doesNotExist())
                 .andExpect(jsonPath("$.firstTurnError").doesNotExist());
@@ -554,6 +554,47 @@ class AiPlannerControllerIntegrationTest {
                         .content(DRAFT_EDIT_BODY.formatted("ADD", activities.get(REPLACEMENT_INDEX).getId(), "BASIC")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.showPackage").value(nullValue()));
+    }
+
+    /**
+     * "add ak" while the organizer works on the Basic trim: the model names no package, which used to add it
+     * to all three. The trip draft is the only package there is - the other trims stay untouched.
+     */
+    @Test
+    void chatEdit_onTheWorkingTrim_changesThatTrimAlone() throws Exception {
+        String expectedAddedId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        String parentId = latestGenerationId(token);
+        String parentBody = awaitGeneration(parentId);
+        List<String> mediumBefore = JsonPath.read(parentBody, "$.packages[1].days[*].items[*].activityId");
+        List<String> premiumBefore = JsonPath.read(parentBody, "$.packages[2].days[*].items[*].activityId");
+        llm.queueChat(chatTurn("Let me check that.", Brief.empty(), List.of(new EditRequest(EditOp.ADD,
+                        activities.get(REPLACEMENT_INDEX).getName(), null, null, null, null))))
+                .queueRefresh(new TextRefreshResult(Map.of(), new LlmUsage("fake-chat", 5, 7, 3L)));
+
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"content": "add it", "packageKey": "BASIC"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.applied[0].packageKey", is(Tier.BASIC.name())))
+                .andReturn();
+        String body = edited.getResponse().getContentAsString();
+
+        assertThat((List<String>) JsonPath.read(body, "$.generation.packages[0].days[*].items[*].activityId"))
+                .contains(expectedAddedId);
+        assertThat((List<String>) JsonPath.read(body, "$.generation.packages[1].days[*].items[*].activityId"))
+                .isEqualTo(mediumBefore);
+        assertThat((List<String>) JsonPath.read(body, "$.generation.packages[2].days[*].items[*].activityId"))
+                .isEqualTo(premiumBefore);
+        // And the model saw the Basic draft alone.
+        assertThat(llm.chatRequests.get(llm.chatRequests.size() - 1).packagesView()).startsWith("BASIC:")
+                .doesNotContain("MEDIUM:", "PREMIUM:");
     }
 
     /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */

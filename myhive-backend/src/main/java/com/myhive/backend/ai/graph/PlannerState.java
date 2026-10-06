@@ -68,6 +68,12 @@ public class PlannerState extends AgentState {
      * organizer asked for in general terms ("we want to shoot") rather than as an edit. Replaced every turn.
      */
     public static final String RECOMMENDATIONS = "recommendations";
+    /**
+     * The package the organizer is working on - the trim on screen, stamped by every message once packages
+     * exist. The chat sees only this package and every edit it makes lands in it: there is one trip draft,
+     * not three. Absent before the first packages.
+     */
+    public static final String WORKING_PACKAGE = "workingPackage";
     /** The trim the latest turn asked to show (a tier name, or ALL for every trim); blank otherwise. */
     public static final String SHOW_PACKAGE = "showPackage";
     /**
@@ -141,6 +147,10 @@ public class PlannerState extends AgentState {
 
     public List<String> recommendations() {
         return this.<List<String>>value(RECOMMENDATIONS).orElse(List.of());
+    }
+
+    public Optional<Tier> workingPackage() {
+        return this.<String>value(WORKING_PACKAGE).filter(value -> !value.isBlank()).map(Tier::valueOf);
     }
 
     public Optional<String> showPackage() {

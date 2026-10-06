@@ -167,7 +167,7 @@ public class AiSessionService {
             return view(session);
         }
         try {
-            return locks.withLock(session.getToken(), () -> turn(session, initialMessage)).view();
+            return locks.withLock(session.getToken(), () -> turn(session, initialMessage, null)).view();
         } catch (LlmCallFailedException e) {
             // Not a 502: the row, the checkpoint thread and one of the caller's twenty daily chats are
             // already spent, and the documented retry ("re-send the same text") needs the token a
@@ -184,8 +184,13 @@ public class AiSessionService {
     }
 
     public TurnOutcome message(UUID token, String content) {
+        return message(token, content, null);
+    }
+
+    /** {@code workingPackage} is the trim on screen: the only package this turn may change (null: unchanged). */
+    public TurnOutcome message(UUID token, String content, Tier workingPackage) {
         requireEnabled();
-        return locks.withLock(token, () -> turn(find(token), content));
+        return locks.withLock(token, () -> turn(find(token), content, workingPackage));
     }
 
     /** Explicit "build it now", for the cases where the chat did not trigger a generation itself. */
@@ -309,6 +314,9 @@ public class AiSessionService {
                     new EditRequest(op, activity.name(), null, packageKey, null, null))));
             update.put(PlannerState.EDIT_REPORT, "");
             update.put(PlannerState.PENDING_REPLY, "");
+            if (packageKey != null) {
+                update.put(PlannerState.WORKING_PACKAGE, packageKey.name());
+            }
             // A trim switch belongs to the chat turn that asked for it; a tap must not replay it.
             update.put(PlannerState.SHOW_PACKAGE, "");
             // The node checks the allowance before anything else; a tap is not counted against it.
@@ -340,7 +348,7 @@ public class AiSessionService {
     }
 
     /** One chat turn on a session the caller already holds the lock for. */
-    private TurnOutcome turn(AiSession session, String content) {
+    private TurnOutcome turn(AiSession session, String content, Tier workingPackage) {
         UUID token = session.getToken();
         if (session.getMessageCount() >= MAX_MESSAGES) {
             throw new AiLimitException("SESSION_TURN_LIMIT", "This chat reached its " + MAX_MESSAGES + "-message limit");
@@ -361,6 +369,9 @@ public class AiSessionService {
         update.put(PlannerState.EDIT_REPORT, "");
         // Absent means unlimited, so the allowance has to be stamped before every turn that could edit.
         update.put(PlannerState.EDITS_LEFT, MAX_EDITS_PER_SESSION - session.getEditCount());
+        if (workingPackage != null) {
+            update.put(PlannerState.WORKING_PACKAGE, workingPackage.name());
+        }
         List<ChatMessage> before = graph.snapshot(token).state().messages();
         boolean appendsUserMessage = !isRepeatOfLastUserMessage(before, text);
         if (appendsUserMessage) {

@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 
 import java.util.List;
@@ -18,11 +19,22 @@ public final class PackagesView {
 
     /** One line per package: {@code BASIC: day 1 [EVENING Beer Bike, NIGHT Club Crawl]; day 2 [MORNING Karting]}. */
     public static String render(ComposedPlan plan) {
+        return render(plan, null);
+    }
+
+    /**
+     * The organizer's trip draft alone when {@code only} is set - the chat must not see, and so cannot edit,
+     * the trims the organizer is not working on - every package otherwise.
+     */
+    public static String render(ComposedPlan plan, Tier only) {
         if (plan == null) {
             return "";
         }
         StringBuilder lines = new StringBuilder();
         for (ComposedPlan.PackageResult pkg : plan.packages()) {
+            if (only != null && pkg.key() != only) {
+                continue;
+            }
             if (!lines.isEmpty()) {
                 lines.append('\n');
             }

@@ -13,6 +13,8 @@ import com.myhive.backend.ai.llm.LlmOutputParser;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.DraftGaps;
 import com.myhive.backend.ai.plan.PlanPricer;
 import com.myhive.backend.ai.service.AiSessionService;
 import com.myhive.backend.ai.service.StaffAccess;
@@ -22,7 +24,9 @@ import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.util.FromPrice;
 import com.myhive.backend.util.Translations;
 import lombok.extern.slf4j.Slf4j;
@@ -52,11 +56,18 @@ public class AiDtoMapper {
 
     private final ActivityRepository activityRepository;
     private final StaffAccess staff;
+    /** Null in unit tests that build the mapper by hand: gaps are then named by their slugs. */
+    private final CategoryRepository categoryRepository;
 
     @Autowired
-    public AiDtoMapper(ActivityRepository activityRepository, StaffAccess staff) {
+    public AiDtoMapper(ActivityRepository activityRepository, StaffAccess staff, CategoryRepository categoryRepository) {
         this.activityRepository = activityRepository;
         this.staff = staff;
+        this.categoryRepository = categoryRepository;
+    }
+
+    public AiDtoMapper(ActivityRepository activityRepository, StaffAccess staff) {
+        this(activityRepository, staff, null);
     }
 
     /** No caller is staff: diagnostics are never exposed. */
@@ -79,7 +90,7 @@ public class AiDtoMapper {
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
                         AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()),
-                state.suggestedReplies(), recommendations(state));
+                state.suggestedReplies(), recommendations(state), gaps(state, session.getLocale()));
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
@@ -96,7 +107,7 @@ public class AiDtoMapper {
                         .orElse(null),
                 outcome.assistantMessages().stream().map(AiDtoMapper::message).toList(),
                 view.state().suggestedReplies(), recommendations(view.state()),
-                view.state().showPackage().orElse(null));
+                view.state().showPackage().orElse(null), gaps(view.state(), view.session().getLocale()));
     }
 
     /**
@@ -123,6 +134,30 @@ public class AiDtoMapper {
             }
         }
         return List.copyOf(picked.values());
+    }
+
+    /**
+     * The "what next" tags per package, named in the session's language. A category the database no longer
+     * has keeps its slug as the name rather than disappearing.
+     */
+    Map<String, List<DraftGapDTO>> gaps(PlannerState state, String locale) {
+        Map<Tier, List<String>> slugs = DraftGaps.of(state.result().orElse(null), state.catalog(), state.presets());
+        if (slugs.isEmpty()) {
+            return Map.of();
+        }
+        String lc = Translations.normalize(locale);
+        Map<String, String> names = new HashMap<>();
+        if (categoryRepository != null) {
+            for (Category category : categoryRepository.findAll()) {
+                names.put(category.getSlug(),
+                        Translations.pick(category.getTranslations(), lc, "name", category.getName()));
+            }
+        }
+        Map<String, List<DraftGapDTO>> gaps = new LinkedHashMap<>();
+        slugs.forEach((tier, list) -> gaps.put(tier.name(), list.stream()
+                .map(slug -> new DraftGapDTO(slug, names.getOrDefault(slug, slug)))
+                .toList()));
+        return gaps;
     }
 
     private static RecommendationDTO recommendation(CatalogActivity activity, int travelers) {

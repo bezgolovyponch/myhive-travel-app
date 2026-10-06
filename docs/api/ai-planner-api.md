@@ -226,6 +226,21 @@ included), `durationMinutes` null when unknown. Show the first as the top match 
 **Add**, the rest as `+ name` tags; add one with `POST /ai/sessions/{token}/edits`.
 They stay until the next chat turn, also on `GET /ai/sessions/{token}`.
 
+Once packages exist, send the trim on screen with every message:
+`{ "content": "add ak", "packageKey": "MEDIUM" }`. That trim is the organizer's trip
+draft — the only package there is: the model sees it alone and every edit the turn
+makes lands in it, whatever package the model named. The other trims stay untouched
+originals until the organizer switches to one (`showPackage`).
+
+`gaps` (both bodies, never null) maps each package key to 0–3 themes the package
+lacks next to the ready-made packages of its tier: `{ "categorySlug", "name" }`, the
+name in the session's language. Show the working trim's as "what next" tags; tapping
+one asks the chat for it, which answers with `recommendations`.
+
+Travel times are never asked: `arrival`/`departure` are no longer in `missingFields`.
+A brief is ready with days, group size and a taste; an edge the organizer names is
+still used.
+
 On the turn that starts a generation (`generation` is set) the reply never asks
 anything and `suggestedReplies` is empty: every message is refused with
 `GENERATION_IN_PROGRESS` until the packages land, so there would be nothing to tap.

@@ -45,7 +45,7 @@ public class PromptRenderer {
             """;
 
     private static final String PACKAGES_BLOCK = """
-            Current packages (the organizer can change them):
+            Current packages (the organizer can change them; a single one is their trip draft):
             %s
             Catalog activity names (use these exact names in edits): %s
             Edit rules:
@@ -56,7 +56,7 @@ public class PromptRenderer {
             - Something NOT in the catalog: still emit the edit with the organizer's own words as "activity" - never drop it silently, never substitute another activity - and put the 1-3 catalog names closest in spirit into "alternatives" (empty when the activity is in the catalog); the system tells them it is not on offer and suggests those.
             - When the organizer picks one of the alternatives from an earlier reply ("the first one", "yes, add it"), emit it with the exact catalog name against the current packages above: an ADD when the activity they wanted out is already gone, a REPLACE only when it is still listed. Scope it to the package the earlier line says that activity was dropped from (packageKey), unless they name a package or say everywhere.
             - One edit per request: "remove X and add Y" is two edits, even if Y does not exist.
-            - packageKey null means every package; set it only if the organizer names a package.
+            - When ONE package is listed above it is the organizer's trip draft - the only package there is: never mention other packages or trims, and leave packageKey null (the system applies every edit to the draft). With several listed, packageKey null means every package; set it only if the organizer names a package.
             - The system checks every edit and then says itself what changed and what could not be done, so the reply never announces or confirms an edit ("Swapping X for Y now" is wrong - it may not be possible): keep it to a short neutral line like "Let me check that." plus anything else worth saying.
             - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.
             """;

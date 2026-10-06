@@ -65,7 +65,7 @@ public class AiPlannerController {
 
     @PostMapping("/sessions/{token}/messages")
     public TurnResponseDTO message(@PathVariable UUID token, @Valid @RequestBody SendMessageRequest request) {
-        return mapper.turn(sessionService.message(token, request.content()));
+        return mapper.turn(sessionService.message(token, request.content(), request.packageKey()));
     }
 
     @PostMapping("/sessions/{token}/generations")
