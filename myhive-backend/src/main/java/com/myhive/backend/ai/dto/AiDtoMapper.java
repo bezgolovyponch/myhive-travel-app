@@ -95,7 +95,8 @@ public class AiDtoMapper {
                         .map(report -> edit(report, outcome.editedGeneration().map(AiGeneration::getId).orElse(null)))
                         .orElse(null),
                 outcome.assistantMessages().stream().map(AiDtoMapper::message).toList(),
-                view.state().suggestedReplies(), recommendations(view.state()));
+                view.state().suggestedReplies(), recommendations(view.state()),
+                view.state().showPackage().orElse(null));
     }
 
     /**

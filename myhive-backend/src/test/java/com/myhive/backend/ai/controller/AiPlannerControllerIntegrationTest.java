@@ -447,7 +447,7 @@ class AiPlannerControllerIntegrationTest {
         int chatCallsBefore = llm.chatRequests.size();
         int refreshCallsBefore = llm.refreshRequests.size();
 
-        MvcResult added = mockMvc.perform(post("/ai/sessions/" + token + "/edits")
+        MvcResult added = mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(DRAFT_EDIT_BODY.formatted("ADD", expectedAddedId, Tier.BASIC.name())))
                 .andExpect(status().isOk())
@@ -464,7 +464,7 @@ class AiPlannerControllerIntegrationTest {
         List<String> basicAfterAdd = JsonPath.read(addedBody, "$.generation.packages[0].days[*].items[*].activityId");
         assertThat(basicAfterAdd).containsExactlyInAnyOrder(expectedKeptId, expectedAddedId);
 
-        MvcResult removed = mockMvc.perform(post("/ai/sessions/" + token + "/edits")
+        MvcResult removed = mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(DRAFT_EDIT_BODY.formatted("REMOVE", expectedAddedId, Tier.BASIC.name())))
                 .andExpect(status().isOk())
@@ -486,7 +486,7 @@ class AiPlannerControllerIntegrationTest {
     void draftEdit_beforeAnyPackages_isAConflict() throws Exception {
         String token = createSession();
 
-        mockMvc.perform(post("/ai/sessions/" + token + "/edits").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
                         .content(DRAFT_EDIT_BODY.formatted("ADD", activities.get(REPLACEMENT_INDEX).getId(), "BASIC")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error", is("NO_PACKAGES_YET")));
@@ -499,10 +499,10 @@ class AiPlannerControllerIntegrationTest {
         sendMessage(token, "1 day, 4 of us, bars");
         awaitGeneration(latestGenerationId(token));
 
-        mockMvc.perform(post("/ai/sessions/" + token + "/edits").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
                         .content(DRAFT_EDIT_BODY.formatted("REPLACE", activities.get(REPLACEMENT_INDEX).getId(), "BASIC")))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(post("/ai/sessions/" + token + "/edits").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
                         .content(DRAFT_EDIT_BODY.formatted("ADD", UUID.randomUUID(), "BASIC")))
                 .andExpect(status().isBadRequest());
     }
@@ -522,7 +522,7 @@ class AiPlannerControllerIntegrationTest {
         llm.queueChat(new ChatTurnResult("The top match is above.", Brief.empty(), List.of(), List.of(),
                 LlmUsage.none(), List.of(), List.of(expectedName, "Moon landing")));
 
-        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
                         .content(MESSAGE_BODY.formatted("we want to shoot")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.edit").value(nullValue()))
@@ -534,6 +534,26 @@ class AiPlannerControllerIntegrationTest {
         // A chat the group comes back to shows the same row.
         mockMvc.perform(get("/ai/sessions/" + token))
                 .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedId)));
+    }
+
+    /** "What were the other options?" switches the screen back to every trim; the next tap does not replay it. */
+    @Test
+    void chatTurn_showPackage_isHandedBackOnce() throws Exception {
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        llm.queueChat(new ChatTurnResult("Here they are again.", Brief.empty(), List.of(), List.of(),
+                LlmUsage.none(), List.of(), List.of(), "ALL"));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("what were the other options?")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.showPackage", is("ALL")));
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("ADD", activities.get(REPLACEMENT_INDEX).getId(), "BASIC")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.showPackage").value(nullValue()));
     }
 
     /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */

@@ -309,6 +309,8 @@ public class AiSessionService {
                     new EditRequest(op, activity.name(), null, packageKey, null, null))));
             update.put(PlannerState.EDIT_REPORT, "");
             update.put(PlannerState.PENDING_REPLY, "");
+            // A trim switch belongs to the chat turn that asked for it; a tap must not replay it.
+            update.put(PlannerState.SHOW_PACKAGE, "");
             // The node checks the allowance before anything else; a tap is not counted against it.
             update.put(PlannerState.EDITS_LEFT, 1);
             graph.update(token, update);

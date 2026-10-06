@@ -162,6 +162,8 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // and a rebuild replaces the packages they would be added to. Replaced every turn either way.
         update.put(PlannerState.RECOMMENDATIONS,
                 packages.isEmpty() || readyToBuild ? List.of() : result.recommendations());
+        update.put(PlannerState.SHOW_PACKAGE,
+                packages.isEmpty() || readyToBuild || result.showPackage() == null ? "" : result.showPackage());
         update.put(PlannerState.BRIEF, mergedJson);
         update.put(PlannerState.MISSING_FIELDS, merged.missingFields());
         return update;

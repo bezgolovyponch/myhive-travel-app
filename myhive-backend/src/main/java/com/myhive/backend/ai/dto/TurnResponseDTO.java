@@ -20,8 +20,12 @@ import java.util.List;
  *
  * <p>{@code recommendations} are 0-4 activities offered for the draft, best match first: what the organizer
  * asked for in general terms, and the catalog's closest options for something it lacks; never null.
+ *
+ * <p>{@code showPackage} is the trim the organizer asked to see (a tier name), {@code ALL} for every trim
+ * again, or null: the client switches the draft to it.
  */
 public record TurnResponseDTO(MessageDTO message, Brief brief, List<String> missingFields, boolean readyToGenerate,
                               GenerationDTO generation, EditDTO edit, List<MessageDTO> messages,
-                              List<String> suggestedReplies, List<RecommendationDTO> recommendations) {
+                              List<String> suggestedReplies, List<RecommendationDTO> recommendations,
+                              String showPackage) {
 }

@@ -68,6 +68,8 @@ public class PlannerState extends AgentState {
      * organizer asked for in general terms ("we want to shoot") rather than as an edit. Replaced every turn.
      */
     public static final String RECOMMENDATIONS = "recommendations";
+    /** The trim the latest turn asked to show (a tier name, or ALL for every trim); blank otherwise. */
+    public static final String SHOW_PACKAGE = "showPackage";
     /**
      * The model's reply on a turn that routes to {@code applyEdits}, held back until the edits were checked:
      * it was written before Java knew whether they can be done, so the edit node decides whether it is
@@ -139,6 +141,10 @@ public class PlannerState extends AgentState {
 
     public List<String> recommendations() {
         return this.<List<String>>value(RECOMMENDATIONS).orElse(List.of());
+    }
+
+    public Optional<String> showPackage() {
+        return this.<String>value(SHOW_PACKAGE).filter(value -> !value.isBlank());
     }
 
     public boolean pairingAsked() {

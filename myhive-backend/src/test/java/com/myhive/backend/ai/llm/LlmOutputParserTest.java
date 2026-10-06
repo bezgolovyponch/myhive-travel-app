@@ -358,4 +358,15 @@ class LlmOutputParserTest {
     void parseChatTurn_withoutRecommendations_hasNone() {
         assertThat(parser.parseChatTurn("{\"reply\": \"Hi\", \"brief\": {}}").recommendations()).isEmpty();
     }
+
+    @Test
+    void parseChatTurn_showPackage_keepsATierOrAll_andDropsAnythingElse() {
+        assertThat(parser.parseChatTurn("{\"reply\": \"Here.\", \"brief\": {}, \"showPackage\": \"premium\"}")
+                .showPackage()).isEqualTo("PREMIUM");
+        assertThat(parser.parseChatTurn("{\"reply\": \"Here.\", \"brief\": {}, \"showPackage\": \"ALL\"}")
+                .showPackage()).isEqualTo("ALL");
+        assertThat(parser.parseChatTurn("{\"reply\": \"Here.\", \"brief\": {}, \"showPackage\": \"GOLD\"}")
+                .showPackage()).isNull();
+        assertThat(parser.parseChatTurn("{\"reply\": \"Hi\", \"brief\": {}}").showPackage()).isNull();
+    }
 }
