@@ -17,8 +17,11 @@ import java.util.List;
  * to show the whole turn; {@code message} stays for clients written before the field existed.
  *
  * <p>{@code suggestedReplies} are 0-4 tap-to-send answers for the chips under the reply; never null.
+ *
+ * <p>{@code recommendations} are 0-4 activities offered for the draft, best match first: what the organizer
+ * asked for in general terms, and the catalog's closest options for something it lacks; never null.
  */
 public record TurnResponseDTO(MessageDTO message, Brief brief, List<String> missingFields, boolean readyToGenerate,
                               GenerationDTO generation, EditDTO edit, List<MessageDTO> messages,
-                              List<String> suggestedReplies) {
+                              List<String> suggestedReplies, List<RecommendationDTO> recommendations) {
 }

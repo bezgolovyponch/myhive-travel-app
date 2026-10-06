@@ -158,6 +158,10 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             update.put(PlannerState.MESSAGES, messages(all));
         }
         update.put(PlannerState.SUGGESTED_REPLIES, suggestedReplies);
+        // Only for a draft that exists and stays: before the first build there is nothing to add them to,
+        // and a rebuild replaces the packages they would be added to. Replaced every turn either way.
+        update.put(PlannerState.RECOMMENDATIONS,
+                packages.isEmpty() || readyToBuild ? List.of() : result.recommendations());
         update.put(PlannerState.BRIEF, mergedJson);
         update.put(PlannerState.MISSING_FIELDS, merged.missingFields());
         return update;

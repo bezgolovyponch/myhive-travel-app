@@ -1,6 +1,9 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.exception.AiConflictException;
 import com.myhive.backend.ai.exception.AiDisabledException;
 import com.myhive.backend.ai.exception.AiLimitException;
@@ -270,6 +273,55 @@ public class AiSessionService {
             graph.runUntilInterrupt(session.getToken());
             touch(session);
             return new Selection(generation, key, brief.groupSize(), chosen.activityIds());
+        });
+    }
+
+    /**
+     * A tap in the trip draft: adds or removes one catalog activity in {@code packageKey} with no chat
+     * turn and no model call. The edit runs through the same node as a chat edit - it lands in the free
+     * slot the editor picks, is stored as an {@code EDITED} generation and confirmed by the same line in
+     * the chat - so the next chat turn sees the draft exactly as the organizer left it. A tap costs none
+     * of the session's edit allowance: that counts model turns, and a tap is one click that can be undone
+     * with the next.
+     */
+    public TurnOutcome editDraft(UUID token, EditOp op, UUID activityId, Tier packageKey) {
+        requireEnabled();
+        if (op != EditOp.ADD && op != EditOp.REMOVE) {
+            throw new BadRequestException("Only ADD and REMOVE can be applied from the draft");
+        }
+        return locks.withLock(token, () -> {
+            AiSession session = find(token);
+            requireNoGenerationInFlight(session, "Your packages are being built, one moment");
+            generationService.ensureParked(session);
+            PlannerGraph.PlannerStateSnapshot before = graph.snapshot(token);
+            PlannerState state = before.state();
+            if (state.result().isEmpty() || PlannerGraph.AWAIT_GENERATION.equals(before.next())) {
+                throw new AiConflictException("NO_PACKAGES_YET", "There is no draft to change yet");
+            }
+            CatalogActivity activity = state.catalog().stream()
+                    .filter(candidate -> candidate.id().equals(activityId))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Activity " + activityId + " is not on offer here"));
+            int firstMessageOfThisEdit = state.messages().size();
+            Map<String, Object> update = new HashMap<>();
+            update.put(PlannerState.RESUME_REASON, ResumeReason.EDIT.name());
+            update.put(PlannerState.EDITS, JsonCodec.write(List.of(
+                    new EditRequest(op, activity.name(), null, packageKey, null, null))));
+            update.put(PlannerState.EDIT_REPORT, "");
+            update.put(PlannerState.PENDING_REPLY, "");
+            // The node checks the allowance before anything else; a tap is not counted against it.
+            update.put(PlannerState.EDITS_LEFT, 1);
+            graph.update(token, update);
+            PlannerGraph.PlannerStateSnapshot snapshot = graph.runUntilInterrupt(token);
+            List<ChatMessage> replies = assistantMessagesFrom(snapshot.state(), firstMessageOfThisEdit);
+            Optional<EditReport> report = snapshot.state().editReport();
+            Optional<AiGeneration> edited = Optional.empty();
+            if (report.filter(EditReport::anyApplied).isPresent()) {
+                session.setStatus(AiSessionStatus.READY);
+                edited = editedGeneration(token, snapshot.state().generationId());
+            }
+            touch(session);
+            return new TurnOutcome(view(session), Optional.empty(), report, edited, replies);
         });
     }
 

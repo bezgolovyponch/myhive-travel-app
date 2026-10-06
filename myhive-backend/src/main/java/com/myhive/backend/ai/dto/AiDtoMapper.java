@@ -1,15 +1,19 @@
 package com.myhive.backend.ai.dto;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.edit.ActivityNameResolver;
 import com.myhive.backend.ai.edit.AppliedEdit;
 import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
 import com.myhive.backend.ai.llm.ChatMessage;
+import com.myhive.backend.ai.llm.LlmOutputParser;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.plan.PlanPricer;
 import com.myhive.backend.ai.service.AiSessionService;
 import com.myhive.backend.ai.service.StaffAccess;
 import com.myhive.backend.dto.VotePoolActivityDTO;
@@ -26,7 +30,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,7 +79,7 @@ public class AiDtoMapper {
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
                         AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()),
-                state.suggestedReplies());
+                state.suggestedReplies(), recommendations(state));
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
@@ -87,7 +95,41 @@ public class AiDtoMapper {
                         .map(report -> edit(report, outcome.editedGeneration().map(AiGeneration::getId).orElse(null)))
                         .orElse(null),
                 outcome.assistantMessages().stream().map(AiDtoMapper::message).toList(),
-                view.state().suggestedReplies());
+                view.state().suggestedReplies(), recommendations(view.state()));
+    }
+
+    /**
+     * What the draft's recommendation row offers: the names the latest turn recommended, then the
+     * catalog's closest options for anything it asked for that the catalog lacks. Each is resolved against
+     * the catalog snapshot and dropped when it does not resolve to exactly one activity, so nothing the
+     * model made up is ever shown. Already-added ones stay: the row shows them as added.
+     */
+    static List<RecommendationDTO> recommendations(PlannerState state) {
+        List<String> names = new ArrayList<>(state.recommendations());
+        state.editReport().ifPresent(report -> report.rejected()
+                .forEach(rejected -> names.addAll(rejected.alternatives())));
+        List<CatalogActivity> catalog = state.catalog();
+        Integer size = state.brief().groupSize();
+        int travelers = size == null || size < 1 ? 1 : size;
+        Map<UUID, RecommendationDTO> picked = new LinkedHashMap<>();
+        for (String name : names) {
+            if (picked.size() == LlmOutputParser.MAX_RECOMMENDATIONS) {
+                break;
+            }
+            if (ActivityNameResolver.resolve(name, catalog) instanceof ActivityNameResolver.Found found) {
+                CatalogActivity activity = found.activity();
+                picked.putIfAbsent(activity.id(), recommendation(activity, travelers));
+            }
+        }
+        return List.copyOf(picked.values());
+    }
+
+    private static RecommendationDTO recommendation(CatalogActivity activity, int travelers) {
+        BigDecimal perPerson = activity.price() == null ? null
+                : PlanPricer.lineTotal(activity.price(), activity.minPrice(), travelers)
+                        .divide(BigDecimal.valueOf(travelers), 0, RoundingMode.CEILING);
+        return new RecommendationDTO(activity.id(), activity.name(), activity.oneLine(),
+                activity.durationKnown() ? activity.durationMinutes() : null, perPerson, activity.imageUrl());
     }
 
     /** For a generation loaded with its session attached; {@link #sessionState} uses the private overload. */

@@ -217,6 +217,15 @@ chips that send their own text. When the organizer picks something the catalog s
 in variants (a dinner with or without a show, a boat with unlimited drinks), the
 reply asks one either/or question and the chips name those catalog variants.
 
+`recommendations` (0–4, never null) are activities offered for the draft once packages
+exist, best match first: what the organizer asked for in general terms ("we want to
+shoot kalashnikov") and the catalog's closest options for something it lacks. Each is
+a catalog row — `{ "activityId", "name", "oneLine", "durationMinutes", "pricePerPerson",
+"imageUrl" }`, `pricePerPerson` in whole euros for the brief's group (group minimum
+included), `durationMinutes` null when unknown. Show the first as the top match with
+**Add**, the rest as `+ name` tags; add one with `POST /ai/sessions/{token}/edits`.
+They stay until the next chat turn, also on `GET /ai/sessions/{token}`.
+
 On the turn that starts a generation (`generation` is set) the reply never asks
 anything and `suggestedReplies` is empty: every message is refused with
 `GENERATION_IN_PROGRESS` until the packages land, so there would be nothing to tap.
@@ -542,7 +551,19 @@ or a `REPLACE` proposing one as the replacement, comes back `UNKNOWN_ACTIVITY`
 with `detail` ending "is no longer in the catalog". Nothing is silently dropped
 from a package the batch did not name.
 
-### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
+### `POST /ai/sessions/{token}/edits` — one tap in the draft
+
+```json
+{ "op": "ADD", "activityId": "…", "packageKey": "MEDIUM" }   // op: ADD | REMOVE; packageKey null = every package
+```
+
+Adds or removes one catalog activity with no chat turn and no model call — the
+recommendation row's **Add** / **Added ✓** and a line's ×. The answer is a normal
+turn body (`edit`, `generation` = the new `EDITED` row, `messages` = the one-line
+confirmation), so the client applies it exactly like a chat edit. The copy is not
+rewritten and nothing is taken from `limits.editsLeft`. `400` for `REPLACE` or an
+activity this destination does not offer, `409 NO_PACKAGES_YET` before the first
+packages, `409` while a generation is running.
 
 Empty body. Use for a "Generate now" / "Try other options" button.
 `202` → `{ "id": "…", "status": "QUEUED" }`. Errors: `BRIEF_INCOMPLETE`,
@@ -687,7 +708,8 @@ the intended way forward from an undo; it is not an error.
   "latestReadyGeneration": null,              // newest READY generation, same body; null if none
   "firstTurnError": null,                     // or { "code": "LLM_UNAVAILABLE" | "LLM_TIMEOUT" }
   "limits": { "messagesLeft": 27, "generationsLeft": 5, "editsLeft": 20 },
-  "suggestedReplies": ["Bar crawl + club night", "Shooting range + night out"] // chips for the latest reply
+  "suggestedReplies": ["Bar crawl + club night", "Shooting range + night out"], // chips for the latest reply
+  "recommendations": []                       // activities offered for the draft (see the messages endpoint)
 }
 ```
 

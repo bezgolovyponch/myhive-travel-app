@@ -64,6 +64,11 @@ public class PlannerState extends AgentState {
     /** The tap-to-send answers offered under the latest assistant message; replaced every turn. */
     public static final String SUGGESTED_REPLIES = "suggestedReplies";
     /**
+     * Catalog names the latest chat turn recommended for the current draft, best match first: what the
+     * organizer asked for in general terms ("we want to shoot") rather than as an edit. Replaced every turn.
+     */
+    public static final String RECOMMENDATIONS = "recommendations";
+    /**
      * The model's reply on a turn that routes to {@code applyEdits}, held back until the edits were checked:
      * it was written before Java knew whether they can be done, so the edit node decides whether it is
      * said at all. Blank when nothing is pending.
@@ -130,6 +135,10 @@ public class PlannerState extends AgentState {
 
     public List<String> suggestedReplies() {
         return this.<List<String>>value(SUGGESTED_REPLIES).orElse(List.of());
+    }
+
+    public List<String> recommendations() {
+        return this.<List<String>>value(RECOMMENDATIONS).orElse(List.of());
     }
 
     public boolean pairingAsked() {

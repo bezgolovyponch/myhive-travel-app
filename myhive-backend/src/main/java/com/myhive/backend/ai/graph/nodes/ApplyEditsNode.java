@@ -10,6 +10,7 @@ import com.myhive.backend.ai.edit.PackageEditor;
 import com.myhive.backend.ai.edit.TextRefresher;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
+import com.myhive.backend.ai.graph.ResumeReason;
 import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.plan.ComposedPlan;
@@ -102,9 +103,13 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
         }
         ComposedPlan plan = current.get();
         EditOutcome outcome = applyOrReject(state, plan, edits);
-        TextRefresher.Refreshed refreshed = outcome.anyApplied()
+        // A tap in the draft is applied as it stands: the copy refresh is a model call the organizer would
+        // wait on after every click, and the draft shows names and slots, not the rewritten copy.
+        boolean tap = state.resumeReason().filter(ResumeReason.EDIT.name()::equals).isPresent();
+        TextRefresher.Refreshed refreshed = outcome.anyApplied() && !tap
                 ? refresher.refresh(outcome.plan(), outcome, locale, state.destinationName())
-                : new TextRefresher.Refreshed(plan, false, LlmUsage.none());
+                // The edited plan as it stands (the unchanged one when nothing landed), copy untouched.
+                : new TextRefresher.Refreshed(outcome.plan(), false, LlmUsage.none());
         EditReport report = EditReport.of(outcome, refreshed.refreshed());
         if (!outcome.anyApplied()) {
             return consumed(locale, report, reply);

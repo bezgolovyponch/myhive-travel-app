@@ -338,4 +338,24 @@ class LlmOutputParserTest {
 
         assertThat(result.suggestedReplies()).isEmpty();
     }
+
+    @Test
+    void parseChatTurn_keepsDistinctRecommendations_upToFour_bestMatchFirst() {
+        String raw = """
+                {"reply": "The top match is above.", "brief": {}, "missingFields": [],
+                 "recommendations": ["AK-47 Shooting", " Clay Shooting ", "", 3, "AK-47 Shooting", "Paintball",
+                   "Pistol and AK combo", "Fifth one"]}
+                """;
+
+        ChatTurnResult result = parser.parseChatTurn(raw);
+
+        assertThat(result.recommendations())
+                .containsExactly("AK-47 Shooting", "Clay Shooting", "Paintball", "Pistol and AK combo");
+        assertThat(result.edits()).isEmpty();
+    }
+
+    @Test
+    void parseChatTurn_withoutRecommendations_hasNone() {
+        assertThat(parser.parseChatTurn("{\"reply\": \"Hi\", \"brief\": {}}").recommendations()).isEmpty();
+    }
 }

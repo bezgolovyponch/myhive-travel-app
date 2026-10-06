@@ -111,6 +111,9 @@ class AiPlannerControllerIntegrationTest {
     private static final String MESSAGE_BODY = """
             {"content": "%s"}
             """;
+    private static final String DRAFT_EDIT_BODY = """
+            {"op": "%s", "activityId": "%s", "packageKey": "%s"}
+            """;
     private static final String SELECT_BODY = """
             {"packageKey": "%s"}
             """;
@@ -425,6 +428,112 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.latestReadyGeneration.id", is(expectedEditedId)))
                 .andExpect(jsonPath("$.latestReadyGeneration.kind", is("EDITED")))
                 .andExpect(jsonPath("$.limits.editsLeft", is(AiSessionService.MAX_EDITS_PER_SESSION - 1)));
+    }
+
+    /**
+     * A tap in the trip draft: the activity lands in the package and back out again with no chat turn,
+     * no model call and none of the session's edit allowance spent - and each tap is a new EDITED row the
+     * next chat turn builds on.
+     */
+    @Test
+    void draftEdit_addsAndRemovesAnActivityWithoutTheModel() throws Exception {
+        String expectedAddedId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String expectedKeptId = activities.get(BASIC_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        String expectedParentId = latestGenerationId(token);
+        awaitGeneration(expectedParentId);
+        int chatCallsBefore = llm.chatRequests.size();
+        int refreshCallsBefore = llm.refreshRequests.size();
+
+        MvcResult added = mockMvc.perform(post("/ai/sessions/" + token + "/edits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("ADD", expectedAddedId, Tier.BASIC.name())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.ADD.name())))
+                .andExpect(jsonPath("$.edit.applied[0].packageKey", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.generation.parentId", is(expectedParentId)))
+                // The chat confirms the tap with the same line a chat edit gets.
+                .andExpect(jsonPath("$.messages", hasSize(1)))
+                .andReturn();
+        String addedBody = added.getResponse().getContentAsString();
+        List<String> basicAfterAdd = JsonPath.read(addedBody, "$.generation.packages[0].days[*].items[*].activityId");
+        assertThat(basicAfterAdd).containsExactlyInAnyOrder(expectedKeptId, expectedAddedId);
+
+        MvcResult removed = mockMvc.perform(post("/ai/sessions/" + token + "/edits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("REMOVE", expectedAddedId, Tier.BASIC.name())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.REMOVE.name())))
+                .andExpect(jsonPath("$.generation.parentId", is((String) JsonPath.read(addedBody, "$.generation.id"))))
+                .andReturn();
+        List<String> basicAfterRemove = JsonPath.read(removed.getResponse().getContentAsString(),
+                "$.generation.packages[0].days[*].items[*].activityId");
+        assertThat(basicAfterRemove).containsExactly(expectedKeptId);
+
+        assertThat(llm.chatRequests).hasSize(chatCallsBefore);
+        assertThat(llm.refreshRequests).hasSize(refreshCallsBefore);
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.limits.editsLeft", is(AiSessionService.MAX_EDITS_PER_SESSION)));
+    }
+
+    @Test
+    void draftEdit_beforeAnyPackages_isAConflict() throws Exception {
+        String token = createSession();
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("ADD", activities.get(REPLACEMENT_INDEX).getId(), "BASIC")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error", is("NO_PACKAGES_YET")));
+    }
+
+    @Test
+    void draftEdit_replaceOrAnUnknownActivity_isABadRequest() throws Exception {
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("REPLACE", activities.get(REPLACEMENT_INDEX).getId(), "BASIC")))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("ADD", UUID.randomUUID(), "BASIC")))
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * "We want to shoot kalashnikov": the turn offers catalog activities to add with one tap, each resolved
+     * against the catalog with its per-person price - and a name the model made up is never shown.
+     */
+    @Test
+    void chatTurn_recommendations_comeBackAsCatalogActivitiesWithAPerPersonPrice() throws Exception {
+        String expectedName = activities.get(REPLACEMENT_INDEX).getName();
+        String expectedId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        llm.queueChat(new ChatTurnResult("The top match is above.", Brief.empty(), List.of(), List.of(),
+                LlmUsage.none(), List.of(), List.of(expectedName, "Moon landing")));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("we want to shoot")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit").value(nullValue()))
+                .andExpect(jsonPath("$.recommendations", hasSize(1)))
+                .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedId)))
+                .andExpect(jsonPath("$.recommendations[0].name", is(expectedName)))
+                .andExpect(jsonPath("$.recommendations[0].pricePerPerson").isNumber());
+
+        // A chat the group comes back to shows the same row.
+        mockMvc.perform(get("/ai/sessions/" + token))
+                .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedId)));
     }
 
     /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */

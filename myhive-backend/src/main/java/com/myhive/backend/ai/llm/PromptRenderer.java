@@ -50,6 +50,8 @@ public class PromptRenderer {
             Catalog activity names (use these exact names in edits): %s
             Edit rules:
             - If the organizer asks to add, remove or swap a specific activity, put it in "edits" and do not change the brief for it.
+            - A wish for a KIND of activity without a command ("we want to shoot kalashnikov", "something on the water", "what else is there for the groom?") is not an edit: leave "edits" empty and put 1-4 exact catalog names into "recommendations" - the single best match first, then up to three related options of a different flavour. The organizer adds them with one tap, so the reply only points at them in one short line ("The top match is above - add it, or try a mixed range.") and does not list them again.
+            - "recommendations" holds exact catalog names only, never something already in the package being edited, and is empty on every other turn.
             - Use exact catalog names when the activity exists.
             - Something NOT in the catalog: still emit the edit with the organizer's own words as "activity" - never drop it silently, never substitute another activity - and put the 1-3 catalog names closest in spirit into "alternatives" (empty when the activity is in the catalog); the system tells them it is not on offer and suggests those.
             - When the organizer picks one of the alternatives from an earlier reply ("the first one", "yes, add it"), emit it with the exact catalog name against the current packages above: an ADD when the activity they wanted out is already gone, a REPLACE only when it is still listed. Scope it to the package the earlier line says that activity was dropped from (packageKey), unless they name a package or say everywhere.
