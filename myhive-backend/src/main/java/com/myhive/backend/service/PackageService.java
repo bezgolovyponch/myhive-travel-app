@@ -120,6 +120,7 @@ public class PackageService {
         dto.setIncludes(Translations.pick(tr, lc, "includes", p.getIncludes()));
         dto.setDuration(p.getDuration());
         dto.setDiscountPct(p.getDiscountPct());
+        dto.setTier(p.getTier());
         dto.setSeoIndexable(p.isSeoIndexable());
         if (locale == null) {
             dto.setTranslations(tr);
@@ -192,6 +193,7 @@ public class PackageService {
         p.setIncludes(dto.getIncludes());
         p.setDuration(dto.getDuration());
         p.setDiscountPct(dto.getDiscountPct());
+        p.setTier(dto.getTier());
         p.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
         p.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
         // null = "unchanged" (see ActivityService.applyDtoToEntity).

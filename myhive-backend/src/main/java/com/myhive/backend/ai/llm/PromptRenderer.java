@@ -3,11 +3,15 @@ package com.myhive.backend.ai.llm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.plan.PlanAssembler;
 import com.myhive.backend.ai.plan.PlanDraft;
+import com.myhive.backend.ai.plan.PlanPricer;
 import com.myhive.backend.ai.plan.PlanValidator;
 import com.myhive.backend.ai.plan.Violation;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +59,24 @@ public class PromptRenderer {
             - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.
             """;
 
+    /**
+     * Only rendered when the destination has ready-made packages: without them the model composes freely,
+     * and rules about a list that is not there would only confuse it. In code for the same reason as the
+     * blocks above - the template engine has no conditionals.
+     */
+    private static final String PRESET_RULES = """
+
+            READY-MADE PACKAGES are listed after the catalog, each made for one tier. They are the starting point:
+            - For every tier pick the ready-made package of that tier that fits the brief best and use its activities. Do not mix two ready-made packages into one tier.
+            - Change it only where the brief or the conversation asks for it: take out what they dislike, add or swap in what they asked for by name or by kind.
+            - A tier has exactly as many activities as its ready-made package unless the organizer asked for a specific extra one. Never add one to fill a free slot or an empty day - free time is part of the trip, and a last day with nothing on it is fine.
+            - What the brief says in general ("good food", "beer", "a big night out", "adrenaline") decides WHICH ready-made package you pick. It is not a request to add activities to it.
+            - A tier's price per person stays within 15 percent of its ready-made package's price unless the organizer asked for more or less.
+            - Place its own activities across the days so every day stays inside that tier's per-day limits below: what does not fit one day moves to another day, and is never left out while another day still has room.
+            - Its activities are listed most important first. Only if all the days together cannot hold them, leave out from the end of the list.
+            - A tier with no ready-made package is composed from the catalog as usual.
+            """;
+
     private final ObjectMapper mapper = new ObjectMapper();
     private final PromptTemplate chatSystem = new PromptTemplate(new ClassPathResource("prompts/ai/chat-system.st"));
     private final PromptTemplate plannerSystem = new PromptTemplate(new ClassPathResource("prompts/ai/planner-system.st"));
@@ -85,7 +107,9 @@ public class PromptRenderer {
                 "groupSize", String.valueOf(r.brief().groupSize()),
                 "arrival", r.brief().arrivalOrDefault().slot().name(),
                 "departure", r.brief().departureOrDefault().slot().name(),
-                "dayWindows", dayWindows(r.brief())));
+                "dayWindows", dayWindows(r.brief()),
+                "maxTierSpread", String.valueOf(PlanAssembler.MAX_TIER_SPREAD),
+                "presetRules", r.presets().isEmpty() ? "" : PRESET_RULES.stripTrailing()));
     }
 
     /**
@@ -120,7 +144,41 @@ public class PromptRenderer {
                     .append(" | ").append(String.join(",", a.categorySlugs())).append(" | ").append(a.oneLine())
                     .append(" | ").append(a.includes() == null ? "-" : a.includes()).append('\n');
         }
+        appendPresets(sb, r);
         return sb.toString();
+    }
+
+    /**
+     * "BASIC | Classic Stag: Essential | 95.00 EUR pp | A3, A9, A12" - the price is what the package costs
+     * this group per person, group minimums included, so the model has the same number the assembler will
+     * arrive at. Without a group size it is the plain sum of the per-person prices.
+     */
+    private static void appendPresets(StringBuilder sb, PlanRequest r) {
+        if (r.presets().isEmpty()) {
+            return;
+        }
+        Map<UUID, String> aliases = ActivityAliases.byId(r.catalog());
+        Map<UUID, CatalogActivity> byId = new LinkedHashMap<>();
+        for (CatalogActivity activity : r.catalog()) {
+            byId.put(activity.id(), activity);
+        }
+        int travelers = r.brief().groupSize() == null ? 1 : r.brief().groupSize();
+        sb.append("\nREADY-MADE PACKAGES (tier | name | price per person | number of activities | activities, most important first):\n");
+        for (CatalogPreset preset : r.presets()) {
+            BigDecimal total = BigDecimal.ZERO;
+            List<String> codes = new ArrayList<>();
+            for (UUID id : preset.activityIds()) {
+                CatalogActivity a = byId.get(id);
+                if (a == null) {
+                    continue;
+                }
+                total = total.add(PlanPricer.lineTotal(a.price(), a.minPrice(), travelers));
+                codes.add(aliases.get(id));
+            }
+            sb.append(preset.tier()).append(" | ").append(preset.name()).append(" | ")
+                    .append(PlanPricer.perPerson(total, travelers)).append(" EUR pp | ")
+                    .append(codes.size()).append(" | ").append(String.join(", ", codes)).append('\n');
+        }
     }
 
     public String repairUser(RepairRequest r) {

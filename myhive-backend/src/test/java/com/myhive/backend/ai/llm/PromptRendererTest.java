@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.llm;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
@@ -284,5 +285,33 @@ class PromptRendererTest {
 
         assertThat(prompt).contains("Catalog activity names (the only things you may offer or name): " + expectedName)
                 .contains("suggestedReplies").doesNotContain("Edit rules:");
+    }
+
+    @Test
+    void planner_withPresets_listsThemByCodeAndGroupPrice_andSaysToStartFromThem() {
+        String expectedLine = "BASIC | Classic Stag: Essential | 70.00 EUR pp | 2 | A2, A1";
+        Brief brief = new Brief(2, 10, List.of(), "x", null, null, DayEdge.EVENING, DayEdge.AFTERNOON, null);
+        CatalogActivity crawl = new CatalogActivity(UUID.randomUUID(), "crawl", "Crawl", "line", 240, true,
+                new BigDecimal("30.00"), null, "img", List.of("nightlife"));
+        CatalogActivity boat = new CatalogActivity(UUID.randomUUID(), "boat", "Boat", "line", 90, true,
+                new BigDecimal("20.00"), new BigDecimal("400.00"), "img", List.of());
+        CatalogPreset preset = new CatalogPreset(UUID.randomUUID(), "Classic Stag: Essential", Tier.BASIC,
+                List.of(boat.id(), crawl.id()), List.of("nightlife"));
+        PlanRequest request = new PlanRequest("en", "Prague", brief, List.of(crawl, boat), List.of(preset), List.of());
+
+        String system = renderer.plannerSystem(request);
+        String user = renderer.plannerUser(request);
+
+        assertThat(system).contains("READY-MADE PACKAGES are listed after the catalog");
+        assertThat(user).contains("READY-MADE PACKAGES (tier | name | price per person | number of activities | activities").contains(expectedLine);
+    }
+
+    @Test
+    void planner_withoutPresets_saysNothingAboutThem() {
+        Brief brief = new Brief(2, 10, List.of(), "x", null, null, DayEdge.EVENING, DayEdge.AFTERNOON, null);
+        PlanRequest request = new PlanRequest("en", "Prague", brief, List.of(), List.of());
+
+        assertThat(renderer.plannerSystem(request)).doesNotContain("READY-MADE");
+        assertThat(renderer.plannerUser(request)).doesNotContain("READY-MADE");
     }
 }

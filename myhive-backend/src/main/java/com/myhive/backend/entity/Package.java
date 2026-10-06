@@ -1,10 +1,13 @@
 package com.myhive.backend.entity;
 
 import jakarta.persistence.CascadeType;
+import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.util.TranslationsConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -75,6 +78,14 @@ public class Package implements Slugged {
 
     @Column(name = "discount_pct", nullable = false, precision = 5, scale = 2)
     private BigDecimal discountPct;
+
+    /**
+     * Price level of a ready-made preset. A package that has one is what the AI planner starts that tier
+     * from; null is an ordinary package the planner ignores.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private Tier tier;
 
     /** Per-record SEO gate: only editorially ready records are indexable (sitemap + no noindex). */
     @Column(name = "seo_indexable", nullable = false, columnDefinition = "boolean default false")

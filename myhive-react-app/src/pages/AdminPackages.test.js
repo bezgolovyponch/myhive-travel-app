@@ -51,7 +51,7 @@ test('an out-of-range discount shows the range error and blocks create', async (
     const user = userEvent.setup();
     await openCreateModal(user);
 
-    await user.selectOptions(screen.getByRole('combobox'), 'd1');
+    await user.selectOptions(screen.getAllByRole('combobox')[0], 'd1');
     await user.type(screen.getByPlaceholderText('Package name'), 'Bali Weekender');
     await user.type(screen.getByPlaceholderText('0.00'), '150');
 

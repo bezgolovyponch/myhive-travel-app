@@ -2,10 +2,14 @@ package com.myhive.backend.ai.catalog;
 
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.ai.model.Brief;
+import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.Package;
+import com.myhive.backend.entity.PackageActivity;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.PackageRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -22,7 +26,8 @@ import static org.mockito.Mockito.when;
 class CatalogSnapshotterTest {
 
     private final ActivityRepository activityRepository = mock(ActivityRepository.class);
-    private final CatalogSnapshotter snapshotter = new CatalogSnapshotter(activityRepository);
+    private final PackageRepository packageRepository = mock(PackageRepository.class);
+    private final CatalogSnapshotter snapshotter = new CatalogSnapshotter(activityRepository, packageRepository);
 
     @Test
     void snapshot_localizesAndCompactsFields() {
@@ -129,5 +134,57 @@ class CatalogSnapshotterTest {
                 .hasSizeLessThanOrEqualTo(CatalogSnapshotter.INCLUDES_MAX).endsWith("…");
         assertThat(CatalogSnapshotter.includes("   ")).isNull();
         assertThat(CatalogSnapshotter.includes(null)).isNull();
+    }
+
+    private static CatalogActivity catalogRow(UUID id) {
+        return new CatalogActivity(id, "slug", "Name", "line", 60, true, new BigDecimal("10.00"), null, "img", List.of());
+    }
+
+    private static Package preset(Destination destination, String name, Tier tier, UUID... activityIds) {
+        Package pkg = TestDataFactory.pkg(destination);
+        pkg.setId(UUID.randomUUID());
+        pkg.setName(name);
+        pkg.setTier(tier);
+        List<PackageActivity> links = new ArrayList<>();
+        for (int i = 0; i < activityIds.length; i++) {
+            Activity activity = TestDataFactory.activity(destination);
+            activity.setId(activityIds[i]);
+            links.add(new PackageActivity(pkg, activity, i));
+        }
+        pkg.setPackageActivities(links);
+        return pkg;
+    }
+
+    @Test
+    void presets_keepPackageOrder_andLeaveOutWhatTheCatalogLacks() {
+        UUID expectedFirst = UUID.randomUUID();
+        UUID expectedSecond = UUID.randomUUID();
+        UUID notInCatalog = UUID.randomUUID();
+        String expectedName = "Classic Stag: Essential";
+        Destination destination = TestDataFactory.destination();
+        Package pkg = preset(destination, expectedName, Tier.BASIC, expectedFirst, notInCatalog, expectedSecond);
+        when(packageRepository.findByDestinationIdAndTierIsNotNull(any())).thenReturn(List.of(pkg));
+
+        List<CatalogPreset> presets = snapshotter.presets(UUID.randomUUID(),
+                List.of(catalogRow(expectedSecond), catalogRow(expectedFirst)));
+
+        assertThat(presets).hasSize(1);
+        assertThat(presets.get(0).name()).isEqualTo(expectedName);
+        assertThat(presets.get(0).tier()).isEqualTo(Tier.BASIC);
+        assertThat(presets.get(0).activityIds()).containsExactly(expectedFirst, expectedSecond);
+    }
+
+    @Test
+    void presets_orderByTier_andDropAPackageWithNothingLeft() {
+        UUID known = UUID.randomUUID();
+        Destination destination = TestDataFactory.destination();
+        Package premium = preset(destination, "Legend", Tier.PREMIUM, known);
+        Package basic = preset(destination, "Essential", Tier.BASIC, known);
+        Package emptied = preset(destination, "Gone", Tier.MEDIUM, UUID.randomUUID());
+        when(packageRepository.findByDestinationIdAndTierIsNotNull(any())).thenReturn(List.of(premium, emptied, basic));
+
+        List<CatalogPreset> presets = snapshotter.presets(UUID.randomUUID(), List.of(catalogRow(known)));
+
+        assertThat(presets).extracting(CatalogPreset::tier).containsExactly(Tier.BASIC, Tier.PREMIUM);
     }
 }

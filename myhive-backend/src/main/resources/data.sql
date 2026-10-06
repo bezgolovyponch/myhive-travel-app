@@ -71,109 +71,7 @@ VALUES ('f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66', 'sunset-boat-party', 'b1eebc99-9
         'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&h=600&fit=crop',
         'Full-body massage, sauna access, herbal tea, towels', CURRENT_TIMESTAMP);
 
--- Insert sample activities for Prague
-INSERT INTO activities (id, slug, destination_id, name, description, price, duration, image_url, includes,
-                        created_at)
-VALUES ('f9eebc99-9c0b-4ef8-bb6d-6bb9bd380aaa', 'prague-castle-tour', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Prague Castle Tour',
-        'Explore the largest ancient castle complex in the world.', 35.00, 180,
-        'https://images.unsplash.com/photo-1500078974918-738828bc0422?w=800&h=600&fit=crop',
-        'Skip-the-line tickets, licensed guide, audio headset', CURRENT_TIMESTAMP),
-       ('faeebc99-9c0b-4ef8-bb6d-6bb9bd380abb', 'beer-tasting-experience', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Beer Tasting Experience',
-        'Sample the finest Czech beers with a local guide.', 40.00, 120,
-        'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&h=600&fit=crop',
-        '5 beer samples, local guide, snacks', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000001', 'charles-bridge-walking-tour', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Charles Bridge Walking Tour',
-        'Stroll across the iconic 14th-century bridge with a local historian.', 20.00, 90,
-        'https://images.unsplash.com/photo-1541849546-216549ae216d?w=800&h=600&fit=crop',
-        'Professional guide, city map', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000002', 'vltava-river-cruise', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Vltava River Cruise',
-        'Scenic river cruise with dinner and live jazz music.', 55.00, 150,
-        'https://images.unsplash.com/photo-1592906209472-a36b1f3782ef?w=800&h=600&fit=crop',
-        'Buffet dinner, welcome drink, live jazz band', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000003', 'old-town-square-tour', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Old Town Square Tour',
-        'Discover the astronomical clock, Tyn Church, and hidden courtyards.', 15.00, 120,
-        'https://images.unsplash.com/photo-1458150945447-7fb764c11a92?w=800&h=600&fit=crop',
-        NULL, CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000004', 'prague-pub-crawl', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Prague Pub Crawl',
-        'Hit 5 bars and clubs in one epic night with free drinks at each stop.', 25.00, 240,
-        'https://images.unsplash.com/photo-1575037614876-c38a4c44f5b8?w=800&h=600&fit=crop',
-        '1 free drink at each bar, VIP club entry, party guide', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000005', 'kayaking-on-the-vltava', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Kayaking on the Vltava',
-        'Paddle through the heart of Prague with stunning castle views.', 38.00, 120,
-        'https://images.unsplash.com/photo-1472745942893-4b9f730c7668?w=800&h=600&fit=crop',
-        'Kayak, paddle, life jacket, waterproof bag, instructor', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000006', 'czech-cooking-class', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Czech Cooking Class',
-        'Learn to cook traditional trdelnik, svickova, and Czech dumplings.', 60.00, 180,
-        'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop',
-        'All ingredients, recipe booklet, apron, meal with wine', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000007', 'petrin-hill-hike', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Petrin Hill Hike',
-        'Hike up to the Petrin Tower for panoramic views of the city.', 10.00, 90,
-        'https://images.unsplash.com/photo-1562008675-4a1c1e5e5e08?w=800&h=600&fit=crop',
-        NULL, CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000008', 'absinth-bar-experience', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Absinth Bar Experience',
-        'Taste authentic Czech absinth in a hidden underground bar.', 30.00, 90,
-        'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800&h=600&fit=crop',
-        '3 absinth tastings, guide', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000009', 'segway-city-tour', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Segway City Tour',
-        'Glide through Prague on a Segway covering all major landmarks.', 45.00, 120,
-        'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=600&fit=crop',
-        'Segway rental, helmet, guide, training session', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000010', 'jewish-quarter-walk', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Jewish Quarter Walk',
-        'Explore the historic synagogues and the Old Jewish Cemetery.', 22.00, 120,
-        'https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=800&h=600&fit=crop',
-        'Licensed guide, synagogue entry tickets', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000011', 'rooftop-jazz-night', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Rooftop Jazz Night',
-        'Live jazz performance with cocktails on a rooftop overlooking the city.', 35.00, 150,
-        'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=800&h=600&fit=crop',
-        '2 cocktails, reserved seating', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000012', 'e-scooter-adventure', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'E-Scooter Adventure',
-        'Zip around Prague on an electric scooter with a guided route.', 28.00, 90,
-        'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800&h=600&fit=crop',
-        'E-scooter rental, helmet, guided route map', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000013', 'botanical-garden-visit', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Botanical Garden Visit',
-        'Relax in the peaceful Troja Botanical Garden with tropical greenhouses.', 8.00, 120,
-        'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&h=600&fit=crop',
-        NULL, CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000014', 'underground-bunker-tour', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Underground Bunker Tour',
-        'Descend into Cold War-era nuclear bunkers beneath the city.', 32.00, 90,
-        'https://images.unsplash.com/photo-1562159278-1253a58da141?w=800&h=600&fit=crop',
-        'Guided tour, flashlight, historical briefing', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000015', 'nightclub-vip-experience', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Nightclub VIP Experience',
-        'VIP entry and table service at Karlovy Lazne, the largest club in Central Europe.', 75.00, 300,
-        'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=800&h=600&fit=crop',
-        'VIP entry, reserved table, bottle of prosecco, queue skip', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000016', 'street-art-walking-tour', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Street Art Walking Tour',
-        'Discover hidden murals and graffiti in the Zizkov and Karlin neighborhoods.', 18.00, 120,
-        'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=800&h=600&fit=crop',
-        'Local artist guide, neighborhood map', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000017', 'hot-air-balloon-ride', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Hot Air Balloon Ride',
-        'Soar above the Bohemian countryside at sunrise.', 180.00, 180,
-        'https://images.unsplash.com/photo-1507608616759-54f48f0af0ee?w=800&h=600&fit=crop',
-        'Flight, champagne toast, flight certificate, hotel transfer', CURRENT_TIMESTAMP),
-       ('aa000000-0000-0000-0000-000000000018', 'wine-tasting-evening', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        'Wine Tasting Evening',
-        'Discover Moravian wines in a candlelit medieval cellar.', 42.00, 120,
-        'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=800&h=600&fit=crop',
-        '6 wine samples, cheese platter, sommelier guide', CURRENT_TIMESTAMP);
+-- Prague's activities, their category links and the ready-made packages live in data-prague.sql.
 
 -- Link activities to categories
 INSERT INTO activity_categories (activity_id, category_id)
@@ -181,29 +79,7 @@ VALUES ('f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66',
         '91111111-0000-0000-0000-000000000001'),                                         -- Sunset Boat Party → Nightlife
        ('f6eebc99-9c0b-4ef8-bb6d-6bb9bd380a77', '91111111-0000-0000-0000-000000000002'), -- Teide → Adventure
        ('f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a88', '91111111-0000-0000-0000-000000000002'), -- Jet Ski → Adventure
-       ('f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a99', '91111111-0000-0000-0000-000000000003'), -- Spa → Daytime
-       ('f9eebc99-9c0b-4ef8-bb6d-6bb9bd380aaa', '91111111-0000-0000-0000-000000000004'), -- Prague Castle → Culture
-       ('faeebc99-9c0b-4ef8-bb6d-6bb9bd380abb', '91111111-0000-0000-0000-000000000001'), -- Beer Tasting → Nightlife
-       ('aa000000-0000-0000-0000-000000000001', '91111111-0000-0000-0000-000000000003'), -- Charles Bridge → Daytime
-       ('aa000000-0000-0000-0000-000000000002', '91111111-0000-0000-0000-000000000001'), -- Vltava Cruise → Nightlife
-       ('aa000000-0000-0000-0000-000000000003', '91111111-0000-0000-0000-000000000003'), -- Old Town Square → Daytime
-       ('aa000000-0000-0000-0000-000000000004', '91111111-0000-0000-0000-000000000001'), -- Pub Crawl → Nightlife
-       ('aa000000-0000-0000-0000-000000000005', '91111111-0000-0000-0000-000000000002'), -- Kayaking → Adventure
-       ('aa000000-0000-0000-0000-000000000006', '91111111-0000-0000-0000-000000000003'), -- Cooking Class → Daytime
-       ('aa000000-0000-0000-0000-000000000007', '91111111-0000-0000-0000-000000000002'), -- Petrin Hike → Adventure
-       ('aa000000-0000-0000-0000-000000000008', '91111111-0000-0000-0000-000000000001'), -- Absinth Bar → Nightlife
-       ('aa000000-0000-0000-0000-000000000009', '91111111-0000-0000-0000-000000000002'), -- Segway → Adventure
-       ('aa000000-0000-0000-0000-000000000010', '91111111-0000-0000-0000-000000000003'), -- Jewish Quarter → Daytime
-       ('aa000000-0000-0000-0000-000000000011', '91111111-0000-0000-0000-000000000001'), -- Rooftop Jazz → Nightlife
-       ('aa000000-0000-0000-0000-000000000012', '91111111-0000-0000-0000-000000000002'), -- E-Scooter → Adventure
-       ('aa000000-0000-0000-0000-000000000013', '91111111-0000-0000-0000-000000000003'), -- Botanical Garden → Daytime
-       ('aa000000-0000-0000-0000-000000000014',
-        '91111111-0000-0000-0000-000000000002'),                                         -- Underground Bunker → Adventure
-       ('aa000000-0000-0000-0000-000000000015', '91111111-0000-0000-0000-000000000001'), -- Nightclub VIP → Nightlife
-       ('aa000000-0000-0000-0000-000000000016', '91111111-0000-0000-0000-000000000003'), -- Street Art → Daytime
-       ('aa000000-0000-0000-0000-000000000017', '91111111-0000-0000-0000-000000000002'), -- Balloon Ride → Adventure
-       ('aa000000-0000-0000-0000-000000000018', '91111111-0000-0000-0000-000000000001');
--- Wine Tasting → Nightlife
+       ('f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a99', '91111111-0000-0000-0000-000000000003'); -- Spa → Daytime
 
 -- Insert sample bookings for testing admin dashboard
 INSERT INTO bookings (id, user_email, stripe_session_id, total_amount, status, created_at, paid_at,
@@ -232,10 +108,6 @@ VALUES ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-0000000
         'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66', 'Sunset Boat Party', 'Tenerife', 50.00, 1),
        ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002',
         'f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a99', 'Luxury Spa Session', 'Tenerife', 90.00, 1),
-       ('20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000003',
-        'f9eebc99-9c0b-4ef8-bb6d-6bb9bd380aaa', 'Prague Castle Tour', 'Prague', 35.00, 1),
-       ('20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003',
-        'faeebc99-9c0b-4ef8-bb6d-6bb9bd380abb', 'Beer Tasting Experience', 'Prague', 40.00, 1),
        ('20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000003',
         'f6eebc99-9c0b-4ef8-bb6d-6bb9bd380a77', 'Teide National Park Tour', 'Tenerife', 45.00, 1);
 
@@ -309,28 +181,6 @@ This is exactly why we built Trivlu. The tools for solo travel planning are ever
 -- Insert sample packages
 INSERT INTO packages (id, slug, name, description, image_url, includes, duration, discount_pct, destination_id, created_at)
 VALUES
-    ('bb000000-0000-0000-0000-000000000001',
-     'prague-city-highlights',
-     'Prague City Highlights',
-     'The perfect introduction to Prague: explore the legendary castle complex, stroll across the iconic 14th-century bridge, and wander the labyrinthine Old Town Square. Three of the city''s most iconic sights, all in one day.',
-     'https://images.unsplash.com/photo-1500078974918-738828bc0422?w=800&h=600&fit=crop',
-     'Skip-the-line tickets, licensed guides, audio headsets, city map',
-     390,
-     10.00,
-     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-     CURRENT_TIMESTAMP),
-
-    ('bb000000-0000-0000-0000-000000000002',
-     'prague-pub-nights',
-     'Prague Pub Nights',
-     'Prague''s nightlife is legendary — and this package makes sure you don''t miss a drop. Kick off with a guided craft beer tasting, hit five bars on the epic pub crawl, and finish underground with a proper absinth ceremony. One night, three experiences, zero regrets.',
-     'https://images.unsplash.com/photo-1575037614876-c38a4c44f5b8?w=800&h=600&fit=crop',
-     '5 beer samples, 1 free drink per bar on pub crawl, VIP club entry, 3 absinth tastings, party guides',
-     450,
-     15.00,
-     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-     CURRENT_TIMESTAMP),
-
     ('bb000000-0000-0000-0000-000000000003',
      'tenerife-sea-and-adrenaline',
      'Tenerife Sea & Adrenaline',
@@ -356,16 +206,6 @@ VALUES
 -- Link packages to activities (package_id, activity_id, position)
 INSERT INTO package_activities (package_id, activity_id, position)
 VALUES
-    -- Prague City Highlights: Castle → Charles Bridge → Old Town Square
-    ('bb000000-0000-0000-0000-000000000001', 'f9eebc99-9c0b-4ef8-bb6d-6bb9bd380aaa', 0),
-    ('bb000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 1),
-    ('bb000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000003', 2),
-
-    -- Prague Pub Nights: Beer Tasting → Pub Crawl → Absinth Bar
-    ('bb000000-0000-0000-0000-000000000002', 'faeebc99-9c0b-4ef8-bb6d-6bb9bd380abb', 0),
-    ('bb000000-0000-0000-0000-000000000002', 'aa000000-0000-0000-0000-000000000004', 1),
-    ('bb000000-0000-0000-0000-000000000002', 'aa000000-0000-0000-0000-000000000008', 2),
-
     -- Tenerife Sea & Adrenaline: Jet Ski → Sunset Boat Party
     ('bb000000-0000-0000-0000-000000000003', 'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a88', 0),
     ('bb000000-0000-0000-0000-000000000003', 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66', 1),
@@ -378,10 +218,6 @@ VALUES
 -- Link packages to categories
 INSERT INTO package_categories (package_id, category_id)
 VALUES
-    ('bb000000-0000-0000-0000-000000000001', '91111111-0000-0000-0000-000000000004'), -- Prague Highlights → Culture
-    ('bb000000-0000-0000-0000-000000000001', '91111111-0000-0000-0000-000000000003'), -- Prague Highlights → Daytime
-    ('bb000000-0000-0000-0000-000000000002', '91111111-0000-0000-0000-000000000001'), -- Prague Nights → Nightlife
-    ('bb000000-0000-0000-0000-000000000002', '91111111-0000-0000-0000-000000000013'), -- Prague Nights → Social
     ('bb000000-0000-0000-0000-000000000003', '91111111-0000-0000-0000-000000000002'), -- Tenerife Sea → Adventure
     ('bb000000-0000-0000-0000-000000000003', '91111111-0000-0000-0000-000000000001'), -- Tenerife Sea → Nightlife
     ('bb000000-0000-0000-0000-000000000004', '91111111-0000-0000-0000-000000000002'), -- Tenerife Complete → Adventure
@@ -420,27 +256,16 @@ VALUES ('d2000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-0000000
        ('d2000000-0000-0000-0000-000000000004', 'd1000000-0000-0000-0000-000000000004', '91111111-0000-0000-0000-000000000003', 2);
 
 -- Featured activities shown on the homepage grid
-UPDATE activities SET featured = TRUE WHERE slug IN (
-    'prague-pub-crawl', 'beer-tasting-experience', 'absinth-bar-experience',
-    'nightclub-vip-experience', 'rooftop-jazz-night', 'segway-city-tour',
-    'e-scooter-adventure', 'kayaking-on-the-vltava', 'underground-bunker-tour',
-    'hot-air-balloon-ride', 'jet-ski-adventure', 'sunset-boat-party'
-);
+UPDATE activities SET featured = TRUE WHERE slug IN ('jet-ski-adventure', 'sunset-boat-party');
 
 -- Group-minimum example: sunset-boat-party requires a €600 minimum order
 UPDATE activities SET min_price = 600.00 WHERE slug = 'sunset-boat-party';
 UPDATE activities SET min_price = 200.00 WHERE slug = 'jet-ski-adventure';
-UPDATE activities SET min_price = 400.00 WHERE slug = 'vltava-river-cruise';
-UPDATE activities SET min_price = 300.00 WHERE slug = 'beer-tasting-experience';
-UPDATE activities SET min_price = 150.00 WHERE slug = 'prague-castle-tour';
 
 -- German content translations for a few records, so /de can be verified
 -- locally (the prod fill lives in prod-migration-translations-de.sql).
 -- Shape: {"<locale>": {"<field>": "<text>"}}; missing fields fall back to English.
 UPDATE destinations SET translations = '{"de":{"name":"Prag","description":"Die Stadt der hundert Türme","country":"Tschechien","city":"Prag"}}' WHERE slug = 'prague';
-UPDATE activities SET translations = '{"de":{"name":"Prager Burg Tour","description":"Erkunde die größte zusammenhängende Burganlage der Welt.","includes":"Tickets ohne Anstehen; lizenzierter Guide; Audio-Headset"}}' WHERE slug = 'prague-castle-tour';
-UPDATE activities SET translations = '{"de":{"name":"Bierverkostung","description":"Probiere die besten tschechischen Biere mit einem lokalen Guide."}}' WHERE slug = 'beer-tasting-experience';
-UPDATE activities SET translations = '{"de":{"name":"Prager Kneipentour"}}' WHERE slug = 'prague-pub-crawl';
 UPDATE categories SET translations = '{"de":{"name":"Nachtleben"}}' WHERE slug = 'nightlife';
 UPDATE categories SET translations = '{"de":{"name":"Abenteuer"}}' WHERE slug = 'adventure';
 UPDATE categories SET translations = '{"de":{"name":"Tagsüber"}}' WHERE slug = 'daytime';

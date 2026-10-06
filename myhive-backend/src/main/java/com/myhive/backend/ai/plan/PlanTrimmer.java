@@ -30,7 +30,8 @@ import java.util.stream.Stream;
  * id the catalog does not know. The model made one of these in every live generation - usually a day
  * well over its minutes - and a second call, told exactly which day and by how much, returned a day just
  * as long; the whole plan was then thrown away for the deterministic fallback, which knows the catalog
- * but not the conversation. Dropping an activity keeps everything else the model chose.
+ * but not the conversation. Dropping an activity keeps everything else the model chose - and a day over
+ * its cap first gives an activity to a day that has nothing on it yet, which keeps that one too.
  *
  * <p>No rule is restated here. {@link PlanValidator} says what is wrong: every step asks it, corrects one
  * thing on its list that can be corrected, and asks again. {@link PlanAssembler} says whether the tiers
@@ -128,7 +129,8 @@ public class PlanTrimmer {
             case UNKNOWN_ACTIVITY -> dropUnknown(spot, catalog);
             case DUPLICATE_ACTIVITY -> dropRepeated(spot, catalog);
             case SLOT_OUTSIDE_WINDOW, SLOT_TAKEN -> reslot(spot, brief, catalog);
-            case DAY_OVER_ITEMS, DAY_OVER_MINUTES -> dropFromFullDay(spot, brief, catalog);
+            case DAY_OVER_ITEMS, DAY_OVER_MINUTES -> moveFromFullDay(spot, brief, catalog)
+                    .or(() -> dropFromFullDay(spot, brief, catalog));
             default -> Optional.empty();
         };
     }
@@ -300,6 +302,73 @@ public class PlanTrimmer {
 
     private static int distance(Slot candidate, Slot wanted) {
         return wanted == null ? candidate.ordinal() : Math.abs(candidate.ordinal() - wanted.ordinal());
+    }
+
+    /**
+     * A day over its cap hands one activity to a day of the same package that has nothing on it yet, when
+     * that day can take it: a free slot inside its window, and room under the tier's caps. Nothing is lost
+     * that way, so it is tried before any drop - the model likes to put a whole package on the first day
+     * and leave the last morning empty. Only an empty day is filled: a day the model gave activities to is
+     * left the length it chose. A daytime activity goes first, the latest of them, into the earliest free
+     * slot; one from the evening or the night only moves to another evening or night, never to a morning.
+     */
+    private Optional<Fix> moveFromFullDay(Spot spot, Brief brief, Map<UUID, CatalogActivity> catalog) {
+        Tier tier = spot.pkg().key();
+        List<PlanDraft.ItemDraft> daytimeFirst = spot.day().items().stream()
+                .filter(item -> activityOf(item, catalog) != null)
+                .sorted(Comparator.comparing(PlanTrimmer::atNight)
+                        .thenComparing(Comparator.comparingInt(PlanTrimmer::slotOrder).reversed()))
+                .toList();
+        for (PlanDraft.ItemDraft item : daytimeFirst) {
+            for (PlanDraft.DayDraft target : spot.pkg().days()) {
+                if (target.dayNumber() == spot.day().dayNumber() || !target.items().isEmpty()) {
+                    continue;
+                }
+                Optional<Slot> free = freeSlot(target, brief, atNight(item));
+                if (free.isEmpty()) {
+                    continue;
+                }
+                List<PlanDraft.ItemDraft> heavier = new ArrayList<>(target.items());
+                heavier.add(new PlanDraft.ItemDraft(free.get(), null, item.activityId(), item.why()));
+                PlanDraft.DayDraft probe = new PlanDraft.DayDraft(target.dayNumber(), null, null, heavier);
+                if (heavier.size() > tier.maxItemsPerDay()
+                        || PlanValidator.dayMinutes(probe, catalog) > tier.maxMinutesPerDay()) {
+                    continue;
+                }
+                PlanDraft lighter = spot.without(item);
+                PlanDraft.PackageDraft pkg = lighter.packages().stream()
+                        .filter(p -> p.key() == tier).findFirst().orElseThrow();
+                PlanDraft.DayDraft targetNow = pkg.days().stream()
+                        .filter(d -> d.dayNumber() == target.dayNumber()).findFirst().orElseThrow();
+                PlanDraft moved = new Spot(lighter, pkg, targetNow).withItems(heavier);
+                // Stricter than a drop: a move keeps everything, so it cannot be what makes another tier
+                // distinct again or the prices rise again. With anything of that kind wrong, dropping decides.
+                if (!unmendable(moved, brief, catalog).isEmpty()) {
+                    continue;
+                }
+                return Optional.of(new Fix(moved, "moved " + nameOf(item, catalog) + " from " + spot.label()
+                        + " to day " + target.dayNumber() + " " + free.get() + " (" + spot.overrun(catalog) + ")"));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static boolean atNight(PlanDraft.ItemDraft item) {
+        return slotOrder(item) >= Slot.EVENING.ordinal();
+    }
+
+    /** The earliest slot of the day's window nothing sits in; for a night activity, the earliest from the evening on. */
+    private static Optional<Slot> freeSlot(PlanDraft.DayDraft day, Brief brief, boolean night) {
+        Set<Slot> taken = EnumSet.noneOf(Slot.class);
+        day.items().forEach(item -> {
+            if (item.slot() != null) {
+                taken.add(item.slot());
+            }
+        });
+        return PlanValidator.allowedSlots(day.dayNumber(), brief).stream()
+                .filter(slot -> !taken.contains(slot))
+                .filter(slot -> !night || slot.ordinal() >= Slot.EVENING.ordinal())
+                .min(Comparator.naturalOrder());
     }
 
     /**

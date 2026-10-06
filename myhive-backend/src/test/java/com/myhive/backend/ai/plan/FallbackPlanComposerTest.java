@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.plan;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Tier;
@@ -219,5 +220,50 @@ class FallbackPlanComposerTest {
                         .toList())
                 .as("middle days of %s", p.key())
                 .allSatisfy(d -> assertThat(d.items()).isNotEmpty()));
+    }
+
+    private static CatalogPreset preset(Tier tier, List<String> categories, CatalogActivity... activities) {
+        return new CatalogPreset(UUID.randomUUID(), tier + " preset", tier,
+                java.util.Arrays.stream(activities).map(CatalogActivity::id).toList(), categories);
+    }
+
+    @Test
+    void compose_withPresets_givesEachTierExactlyItsPackage() {
+        CatalogActivity tasting = activity("tasting", 30, null, 120, "czech-beer");
+        CatalogActivity dinner = activity("dinner", 40, null, 90, "food-and-drink");
+        CatalogActivity shooting = activity("shooting", 55, null, 90, "guns-and-bullets");
+        CatalogActivity karting = activity("karting", 54, null, 45, "extreme");
+        CatalogActivity tank = activity("tank", 180, null, 60, "extreme");
+        List<CatalogActivity> catalog = List.of(tasting, dinner, shooting, karting, tank);
+        List<UUID> expectedBasic = List.of(tasting.id(), dinner.id());
+        List<UUID> expectedMedium = List.of(shooting.id(), dinner.id(), tasting.id());
+        List<UUID> expectedPremium = List.of(shooting.id(), karting.id(), dinner.id(), tasting.id());
+        List<CatalogPreset> presets = List.of(
+                preset(Tier.BASIC, List.of(), tasting, dinner),
+                preset(Tier.MEDIUM, List.of(), shooting, dinner, tasting),
+                preset(Tier.PREMIUM, List.of(), shooting, karting, dinner, tasting));
+        Brief brief = new Brief(3, 10, List.of(), null, null, null, DayEdge.AFTERNOON, DayEdge.MORNING, null);
+
+        PlanDraft draft = composer.compose(brief, catalog, presets, "en");
+
+        assertThat(PlanValidator.activityIds(draft.packages().get(0))).containsExactlyInAnyOrderElementsOf(expectedBasic);
+        assertThat(PlanValidator.activityIds(draft.packages().get(1))).containsExactlyInAnyOrderElementsOf(expectedMedium);
+        assertThat(PlanValidator.activityIds(draft.packages().get(2))).containsExactlyInAnyOrderElementsOf(expectedPremium);
+    }
+
+    @Test
+    void compose_withSeveralPresetsForATier_takesTheOneMatchingTheBrief() {
+        String wantedCategory = "extreme";
+        CatalogActivity tasting = activity("tasting", 30, null, 120, "czech-beer");
+        CatalogActivity paintball = activity("paintball", 37, null, 120, wantedCategory);
+        List<CatalogActivity> catalog = List.of(tasting, paintball);
+        List<CatalogPreset> presets = List.of(
+                preset(Tier.BASIC, List.of("czech-beer"), tasting),
+                preset(Tier.BASIC, List.of(wantedCategory), paintball));
+        Brief brief = new Brief(2, 10, List.of(wantedCategory), null, null, null, DayEdge.AFTERNOON, DayEdge.MORNING, null);
+
+        PlanDraft draft = composer.compose(brief, catalog, presets, "en");
+
+        assertThat(PlanValidator.activityIds(draft.packages().get(0))).containsExactly(paintball.id());
     }
 }

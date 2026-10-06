@@ -21,6 +21,12 @@ public class PlanAssembler {
     private static final Pattern WHITESPACE_RUN = Pattern.compile("[^\\S\\n]+");
     private static final Pattern BLANK_LINES = Pattern.compile("\\s*\\n\\s*");
 
+    /**
+     * PREMIUM should cost at most this many times BASIC per person: tiers are three sizes of the same trip.
+     * The planner prompt asks for it; it is not a violation, since a small catalog cannot always meet it.
+     */
+    public static final int MAX_TIER_SPREAD = 4;
+
     public record AssemblyResult(ComposedPlan plan, List<Violation> violations) {
     }
 

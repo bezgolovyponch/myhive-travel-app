@@ -3,7 +3,9 @@ You compose stag-party itineraries for {destinationName} from a fixed CATALOG. R
 Produce exactly three packages with keys BASIC, MEDIUM, PREMIUM. They must feel different:
 BASIC = relaxed and affordable, MEDIUM = the crowd-pleaser, PREMIUM = go big.
 PREMIUM must cost more per person than MEDIUM, and MEDIUM more than BASIC.
+They are three sizes of the same trip: PREMIUM must cost at most {maxTierSpread} times BASIC per person.
 Each tier must contain at least one activity the other two do not.
+{presetRules}
 
 Scheduling rules (hard):
 - The trip has {days} days for {groupSize} people. Day 1 starts at the {arrival} slot; the last day ends at the {departure} slot.

@@ -1,6 +1,7 @@
 package com.myhive.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.myhive.backend.ai.model.Tier;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -48,6 +49,9 @@ public class PackageDTO {
     @DecimalMin(value = "0.00")
     @DecimalMax(value = "100.00")
     private BigDecimal discountPct;
+
+    /** BASIC / MEDIUM / PREMIUM for a preset the AI planner builds that tier from; null for an ordinary package. */
+    private Tier tier;
 
     @Valid
     private List<PackageActivityRefDTO> activities = new ArrayList<>();

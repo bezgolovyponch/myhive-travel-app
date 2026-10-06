@@ -40,7 +40,7 @@ public class FallbackNode implements NodeAction<PlannerState> {
     public Map<String, Object> apply(PlannerState state) {
         List<CatalogActivity> catalog = state.catalog();
         Map<UUID, CatalogActivity> byId = state.catalogById();
-        PlanDraft draft = composer.compose(state.brief(), catalog, state.locale());
+        PlanDraft draft = composer.compose(state.brief(), catalog, state.presets(), state.locale());
         warnOnEmptyPackages(draft);
         ComposedPlan plan = assembler.assemble(draft, state.brief(), byId, true).plan();
         Map<String, Object> update = new HashMap<>();

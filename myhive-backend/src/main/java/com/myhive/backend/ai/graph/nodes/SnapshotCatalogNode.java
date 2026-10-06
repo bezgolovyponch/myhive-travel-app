@@ -25,6 +25,7 @@ public class SnapshotCatalogNode implements NodeAction<PlannerState> {
         List<CatalogActivity> catalog = snapshotter.snapshot(state.destinationId(), state.brief(), state.locale());
         Map<String, Object> update = new HashMap<>();
         update.put(PlannerState.CATALOG, JsonCodec.write(catalog));
+        update.put(PlannerState.PRESETS, JsonCodec.write(snapshotter.presets(state.destinationId(), catalog)));
         // Stamped here, not in chatTurn: this is the brief the packages about to be built are based on,
         // and the next chat turn regenerates only when the merged brief no longer matches it.
         update.put(PlannerState.LAST_GENERATED_BRIEF, JsonCodec.write(state.brief()));
