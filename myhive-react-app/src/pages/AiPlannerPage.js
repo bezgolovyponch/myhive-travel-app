@@ -207,14 +207,29 @@ function AiPlannerPage({pollIntervalMs}) {
     useEffect(() => {
         setWorkingPackage(workingKey);
     }, [workingKey, setWorkingPackage]);
-    // What the draft lacks next to the presets of its trim: tags that ask the chat for it.
+    // "Would you like to add anything?": what the ready-made packages hold that this draft lacks and
+    // has room for - one tap adds it - and then the themes it lacks, which ask the chat for options.
     const gaps = (workingKey && planner.gaps?.[workingKey]) || [];
-    const gapTags = gaps.length > 0 && (
+    const suggested = ((workingKey && planner.suggestions?.[workingKey]) || [])
+        .filter((rec) => !inDraft.has(rec.activityId));
+    const addSuggested = (rec) => {
+        setChatted(true);
+        setShowAll(false);
+        planner.editDraft('ADD', rec.activityId, activePkg.key);
+    };
+    const nextTags = (suggested.length > 0 || gaps.length > 0) && (
         <div className="aip-gaps" role="group" aria-label={t('dock.gapsAria')}>
+            {suggested.map((rec) => (
+                <button key={rec.activityId} type="button" className="is-activity" disabled={busy}
+                        aria-label={t('result.addAria', {name: rec.name})}
+                        onClick={() => addSuggested(rec)}>
+                    + {rec.name}
+                </button>
+            ))}
             {gaps.map((gap) => (
                 <button key={gap.categorySlug} type="button" disabled={busy}
                         onClick={() => dockPlanner.send(t('dock.gapMessage', {name: gap.name}))}>
-                    + {gap.name}
+                    {gap.name} <span aria-hidden="true">›</span>
                 </button>
             ))}
         </div>
@@ -225,8 +240,7 @@ function AiPlannerPage({pollIntervalMs}) {
         setShowAll(false);
         planner.editDraft(added ? 'REMOVE' : 'ADD', rec.activityId, activePkg.key);
     };
-    const lastReply = [...planner.messages].reverse().find((m) => m.role === 'assistant');
-    const dockLine = sending || planner.building ? t('dock.working') : lastReply?.content || t('dock.pill');
+    const dockLine = busy ? t('dock.working') : t('dock.askMore');
 
     return (
         <div className={`aip-page ${hasResult ? 'has-result' : 'is-chat'}`}>
@@ -271,7 +285,7 @@ function AiPlannerPage({pollIntervalMs}) {
                                 <i className={`ph ph-caret-${dockOpen ? 'down' : 'up'}`}/>
                             </span>
                         </button>
-                        {dockOpen && !showRecommendations && gapTags}
+                        {dockOpen && !showRecommendations && nextTags}
                         {dockOpen && (
                             <AiRecommendations
                                 recommendations={planner.recommendations}
@@ -281,9 +295,10 @@ function AiPlannerPage({pollIntervalMs}) {
                                 disabled={busy}
                             />
                         )}
-                        {/* Collapsed: what the draft could use next; the last line only while
-                            the planner is working or there is nothing to suggest. */}
-                        {!dockOpen && (gapTags && !busy ? gapTags : <div className="aip-dock-line">{dockLine}</div>)}
+                        {/* Collapsed under a ready draft: the question and what could go in next.
+                            While the planner is working, what it is doing. */}
+                        {!dockOpen && <div className="aip-dock-line">{dockLine}</div>}
+                        {!dockOpen && !busy && nextTags}
                         <AiThread
                             planner={dockPlanner}
                             variant="drawer"

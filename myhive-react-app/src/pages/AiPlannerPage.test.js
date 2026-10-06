@@ -431,26 +431,43 @@ test('the chat brings the trims back ("what were the other options?") and switch
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 });
 
-test('a ready draft offers what it lacks next to the presets as tags, in place of the last line; a tag asks the chat', async () => {
+test('under a ready draft the chat asks what to add and offers what fits: an activity goes in with one tap, a theme asks the chat', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({
         latestReadyGeneration: readyGeneration(), status: 'READY',
         messages: [greeting, {role: 'ASSISTANT', content: 'On it - building your three options now.', at}],
         gaps: {MEDIUM: [{categorySlug: 'nightlife', name: 'Nightlife'}, {categorySlug: 'czech-beer', name: 'Czech Beer'}],
             PREMIUM: [{categorySlug: 'extreme', name: 'Extreme'}]},
+        // Karting is in the Medium draft already: never offered again.
+        suggestions: {
+            MEDIUM: [{activityId: 'id-Paintball', name: 'Paintball', durationMinutes: 120},
+                {activityId: 'id-Karting', name: 'Karting', durationMinutes: 45}],
+            PREMIUM: [{activityId: 'id-Tank', name: 'Army Tank', durationMinutes: 60}],
+        },
     }));
     aiPlannerApi.sendMessage.mockResolvedValue({
         messages: [{role: 'ASSISTANT', content: 'The top match is above.', at}], suggestedReplies: [],
         generation: null, recommendations: [],
     });
+    aiPlannerApi.editDraft.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'Added Paintball to the Medium package.', at}], suggestedReplies: [],
+        generation: null, recommendations: [], suggestions: {MEDIUM: []},
+    });
     renderPage();
 
     const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
+    // The question, not the stale last line of the chat.
+    expect(within(dock).getByText('Would you like to add anything?')).toBeInTheDocument();
     const tags = within(dock).getByRole('group', {name: 'What the draft could use'});
-    expect(within(tags).getByRole('button', {name: '+ Nightlife'})).toBeInTheDocument();
-    expect(within(tags).queryByText(/Extreme/)).not.toBeInTheDocument(); // another trim's gaps
+    expect(within(tags).getByRole('button', {name: 'Add Paintball to the trip draft'})).toHaveTextContent('+ Paintball');
+    expect(within(tags).queryByText(/Karting/)).not.toBeInTheDocument();
+    expect(within(tags).queryByText(/Army Tank|Extreme/)).not.toBeInTheDocument(); // another trim's
+    expect(within(tags).getByRole('button', {name: /Nightlife/})).toBeInTheDocument();
 
-    await userEvent.click(within(tags).getByRole('button', {name: '+ Czech Beer'}));
+    await userEvent.click(within(tags).getByRole('button', {name: 'Add Paintball to the trip draft'}));
+    expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1',
+        {op: 'ADD', activityId: 'id-Paintball', packageKey: 'MEDIUM'});
 
+    await userEvent.click(await within(dock).findByRole('button', {name: /Czech Beer/}));
     expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'What do you have for Czech Beer?', 'MEDIUM');
 });

@@ -237,7 +237,7 @@ function StartGroupVoteModal({
                     </span>
                 </>
             )}
-            contentClassName="start-vote-modal"
+            contentClassName={`start-vote-modal${needsDates ? ' has-dates' : ''}`}
         >
             <p className="sgv-lede">{t('start.lede')}</p>
             <ol className="sgv-steps">

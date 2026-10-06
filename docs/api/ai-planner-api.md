@@ -237,6 +237,17 @@ lacks next to the ready-made packages of its tier: `{ "categorySlug", "name" }`,
 name in the session's language. Show the working trim's as "what next" tags; tapping
 one asks the chat for it, which answers with `recommendations`.
 
+`suggestions` (both bodies, never null) maps each package key to 0–4 activities for the
+"Would you like to add anything?" row under a ready draft. They are what the ready-made
+packages hold that the package lacks - its own tier's first, then the tier above - and
+each one has been tried against the package with the editor a tap uses, so it is only
+listed when `POST /ai/sessions/{token}/edits` with `ADD` would put it in. Same shape as
+`recommendations`. A package with every slot taken has an empty list.
+
+An edit - typed or tapped - is held to the roomiest day any tier has (4 activities,
+540 minutes with the buffers), not to the package's own tier: a Basic day of two takes a
+third when the organizer adds it.
+
 Travel times are never asked: `arrival`/`departure` are no longer in `missingFields`.
 A brief is ready with days, group size and a taste; an edge the organizer names is
 still used.

@@ -417,6 +417,12 @@
     cursor: pointer;
 }
 
+/* An activity that goes in with one tap reads stronger than a theme that only asks. */
+.aip-gaps button.is-activity {
+    border-color: var(--aip-purple);
+    color: #fff;
+}
+
 .aip-gaps button:hover {
     border-color: var(--aip-purple);
 }

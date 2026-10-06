@@ -63,6 +63,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const [editing, setEditing] = useState(null);
     // Per package key, the themes it lacks next to the presets of its tier: [{categorySlug, name}].
     const [gaps, setGaps] = useState({});
+    // Per package: activities from the ready-made packages that fit it (one tap adds one).
+    const [suggestions, setSuggestions] = useState({});
     // The trim on screen: every message tells the planner it is the one draft to change.
     const workingPackageRef = useRef(null);
     const setWorkingPackage = useCallback((key) => {
@@ -78,6 +80,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setSuggestedReplies(state.suggestedReplies || []);
         setRecommendations(state.recommendations || []);
         setGaps(state.gaps || {});
+        setSuggestions(state.suggestions || {});
         const ready = state.latestReadyGeneration;
         const latest = state.latestGeneration;
         const inFlight = latest && (latest.status === 'QUEUED' || latest.status === 'RUNNING');
@@ -95,6 +98,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setGeneration(null);
         setRecommendations([]);
         setGaps({});
+        setSuggestions({});
         setShowRequest(null);
         setBuilding(false);
         setWatchedId(null);
@@ -129,6 +133,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const applyTurn = useCallback(async (turn) => {
         setRecommendations(turn.recommendations || []);
         if (turn.gaps) setGaps(turn.gaps);
+        if (turn.suggestions) setSuggestions(turn.suggestions);
         if (turn.showPackage) setShowRequest({key: turn.showPackage, at: Date.now()});
         setMessages((prev) => [...prev, ...(turn.messages || []).map(toEntry)]);
         setSuggestedReplies(turn.suggestedReplies || []);
@@ -210,6 +215,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                             if (stopped) return;
                             setSuggestedReplies(state.suggestedReplies || []);
                             setGaps(state.gaps || {});
+                            setSuggestions(state.suggestions || {});
                         })
                         .catch(() => {});
                     return;
@@ -280,6 +286,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         generation,
         recommendations,
         gaps,
+        suggestions,
         setWorkingPackage,
         showRequest,
         editing,

@@ -2,6 +2,7 @@ package com.myhive.backend.ai.dto;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.edit.DraftSuggestions;
 import com.myhive.backend.ai.edit.ActivityNameResolver;
 import com.myhive.backend.ai.edit.AppliedEdit;
 import com.myhive.backend.ai.edit.EditReport;
@@ -90,7 +91,8 @@ public class AiDtoMapper {
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
                         AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()),
-                state.suggestedReplies(), recommendations(state), gaps(state, session.getLocale()));
+                state.suggestedReplies(), recommendations(state), gaps(state, session.getLocale()),
+                suggestions(state));
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
@@ -107,7 +109,8 @@ public class AiDtoMapper {
                         .orElse(null),
                 outcome.assistantMessages().stream().map(AiDtoMapper::message).toList(),
                 view.state().suggestedReplies(), recommendations(view.state()),
-                view.state().showPackage().orElse(null), gaps(view.state(), view.session().getLocale()));
+                view.state().showPackage().orElse(null), gaps(view.state(), view.session().getLocale()),
+                suggestions(view.state()));
     }
 
     /**
@@ -134,6 +137,21 @@ public class AiDtoMapper {
             }
         }
         return List.copyOf(picked.values());
+    }
+
+    /**
+     * What each package could take next, for the "Would you like to add anything?" row under a ready
+     * draft: activities from the ready-made packages that the package lacks and that fit it, keyed by
+     * package. Empty before there are packages.
+     */
+    static Map<String, List<RecommendationDTO>> suggestions(PlannerState state) {
+        Integer size = state.brief().groupSize();
+        int travelers = size == null || size < 1 ? 1 : size;
+        Map<String, List<RecommendationDTO>> out = new LinkedHashMap<>();
+        DraftSuggestions.of(state.result().orElse(null), state.brief(), state.catalog(), state.presets())
+                .forEach((tier, activities) -> out.put(tier.name(),
+                        activities.stream().map(activity -> recommendation(activity, travelers)).toList()));
+        return out;
     }
 
     /**

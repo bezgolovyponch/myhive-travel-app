@@ -193,19 +193,40 @@ class PackageEditorTest {
         assertThat(slotsIn(outcome.plan(), Tier.BASIC, 1)).containsExactly(Slot.MORNING, Slot.AFTERNOON);
     }
 
+    /**
+     * What the organizer adds is held to the roomiest day any tier has (4 activities, 540 minutes with
+     * the buffers), not to the tier's own: a Basic day of two takes a third, a day that would run past
+     * 540 minutes sends the activity on to the next, and with no day left it is refused.
+     */
     @Test
-    void add_respectsTierItemAndMinuteCapsIncludingBuffer() {
+    void add_isHeldToTheRoomiestDay_notTheTiersOwnCap_includingBuffer() {
         String expectedAdded = riverCruise.name();
-        ComposedPlan dayOneAtItemCap = planOf(
+        ComposedPlan basicDayOfTwo = planOf(
                 pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, beerBike)), day(2)),
                 mediumPackage(), premiumPackage());
-        ComposedPlan noDayWithRoom = planOf(fullBasicPackage(), mediumPackage(), premiumPackage());
+        // 300 + 150 + one buffer is 480; a 60-minute cruise and its buffer would make 570.
+        ComposedPlan dayOneOutOfMinutes = planOf(
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, shootingRange), item(Slot.EVENING, nightClub)), day(2)),
+                mediumPackage(), premiumPackage());
+        // Day 2 ends in the evening: its three slots are taken.
+        ComposedPlan noDayWithRoom = planOf(
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, shootingRange), item(Slot.EVENING, nightClub)),
+                        day(2, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, escapeRoom),
+                                item(Slot.EVENING, beerBike))),
+                mediumPackage(), premiumPackage());
 
-        EditOutcome spilledToNextDay = editor.apply(dayOneAtItemCap, brief, catalog,
+        EditOutcome thirdOnABasicDay = editor.apply(basicDayOfTwo, brief, catalog,
+                List.of(add(expectedAdded, Tier.BASIC, null, null)));
+        EditOutcome spilledToNextDay = editor.apply(dayOneOutOfMinutes, brief, catalog,
                 List.of(add(expectedAdded, Tier.BASIC, null, null)));
         EditOutcome nothingFits = editor.apply(noDayWithRoom, brief, catalog,
                 List.of(add(expectedAdded, Tier.BASIC, null, null)));
 
+        assertThat(thirdOnABasicDay.rejected()).isEmpty();
+        assertThat(thirdOnABasicDay.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.dayNumber()).isEqualTo(1);
+            assertThat(applied.slot()).isEqualTo(Slot.EVENING);
+        });
         assertThat(spilledToNextDay.rejected()).isEmpty();
         assertThat(spilledToNextDay.applied()).singleElement().satisfies(applied -> {
             assertThat(applied.dayNumber()).isEqualTo(2);
@@ -287,8 +308,10 @@ class PackageEditorTest {
     void replace_whenTheFreedCellCannotHoldIt_fallsBackToPlacement() {
         String expectedOld = riverCruise.name();
         String expectedNew = shootingRange.name();
+        // In the cruise's own cell the range would make day 1 run 600 minutes: 90 + 300 + 150 and two buffers.
         ComposedPlan plan = planOf(
-                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise)), day(2)),
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise),
+                        item(Slot.EVENING, nightClub)), day(2)),
                 mediumPackage(), premiumPackage());
 
         EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(replace(expectedOld, expectedNew, Tier.BASIC)));
@@ -306,8 +329,10 @@ class PackageEditorTest {
     void replace_whenNothingFits_leavesThePackageUnchanged() {
         String expectedOld = riverCruise.name();
         String expectedNew = shootingRange.name();
+        // Either day would run past 540 minutes with the 300-minute range in it.
         ComposedPlan plan = planOf(
-                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise)),
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise),
+                                item(Slot.EVENING, beerBike)),
                         day(2, item(Slot.MORNING, escapeRoom), item(Slot.EVENING, nightClub))),
                 mediumPackage(), premiumPackage());
         List<String> expectedNames = namesIn(plan, Tier.BASIC);
@@ -492,7 +517,12 @@ class PackageEditorTest {
     @Test
     void partialRejection_onePackageCannotTakeIt_theOthersStillApply() {
         String expectedAdded = nightClub.name();
-        ComposedPlan plan = planOf(fullBasicPackage(), mediumPackage(), premiumPackage());
+        // Day 1 is 450 minutes long already and day 2 has its three slots taken: no room for a club night.
+        ComposedPlan plan = planOf(
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, shootingRange), item(Slot.AFTERNOON, beerBike)),
+                        day(2, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, escapeRoom),
+                                item(Slot.EVENING, riverCruise))),
+                mediumPackage(), premiumPackage());
 
         EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(add(expectedAdded, null, null, null)));
 

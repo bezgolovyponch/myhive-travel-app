@@ -31,5 +31,6 @@ import java.util.Map;
 public record TurnResponseDTO(MessageDTO message, Brief brief, List<String> missingFields, boolean readyToGenerate,
                               GenerationDTO generation, EditDTO edit, List<MessageDTO> messages,
                               List<String> suggestedReplies, List<RecommendationDTO> recommendations,
-                              String showPackage, Map<String, List<DraftGapDTO>> gaps) {
+                              String showPackage, Map<String, List<DraftGapDTO>> gaps,
+                              Map<String, List<RecommendationDTO>> suggestions) {
 }

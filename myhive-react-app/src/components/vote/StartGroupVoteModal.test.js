@@ -94,7 +94,7 @@ test('each button waits for its own contact', async () => {
   expect(screen.getByRole('button', { name: WHATSAPP })).toBeDisabled();
   expect(screen.getByRole('button', { name: START })).toBeDisabled();
 
-  await userEvent.type(screen.getByLabelText(PHONE), '7700 9001');
+  await userEvent.type(screen.getByLabelText(PHONE), '7700 900123');
   expect(screen.getByRole('button', { name: WHATSAPP })).toBeEnabled();
   expect(screen.getByRole('button', { name: START })).toBeDisabled();
 
@@ -102,12 +102,23 @@ test('each button waits for its own contact', async () => {
   expect(screen.getByRole('button', { name: START })).toBeEnabled();
 });
 
-test('a number shorter than 7 digits does not count', async () => {
+test('half a number does not count: it has to be a whole number for the country picked', async () => {
   renderModal();
+  const send = screen.getByRole('button', { name: WHATSAPP });
 
-  await userEvent.type(screen.getByLabelText(PHONE), '12345');
+  // UK mobiles are 10 digits after the trunk 0.
+  await userEvent.type(screen.getByLabelText(PHONE), '7700 900');
+  expect(send).toBeDisabled();
+  await userEvent.type(screen.getByLabelText(PHONE), '123');
+  expect(send).toBeEnabled();
 
-  expect(screen.getByRole('button', { name: WHATSAPP })).toBeDisabled();
+  // The same field under another country: Czech numbers are 9 digits, so 7 are not one.
+  await userEvent.selectOptions(screen.getByLabelText('Country code'), '+420');
+  await userEvent.clear(screen.getByLabelText(PHONE));
+  await userEvent.type(screen.getByLabelText(PHONE), '6085940');
+  expect(send).toBeDisabled();
+  await userEvent.type(screen.getByLabelText(PHONE), '12');
+  expect(send).toBeEnabled();
 });
 
 test('WhatsApp: opens the group message with the link in the same tap, creates the vote with the number, opens the dashboard', async () => {
