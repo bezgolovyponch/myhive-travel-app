@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * Prices a Trip Builder plan from the catalog, never from the browser: each line is price × travelers
  * with the activity's group minimum as the floor (as BookingService bills it), and the plan shows the
- * {@link FromPrice} of the sum.
+ * {@link FromPrice} of the sum, in total and per traveller.
  */
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,9 @@ public class PriceQuoteService {
             }
             total = total.add(lineTotal(activity, travelers));
         }
-        return new PriceQuoteResponse(FromPrice.of(total));
+        BigDecimal fromPrice = FromPrice.of(total);
+        BigDecimal perPerson = fromPrice == null ? null : fromPrice.divide(travelers, 0, RoundingMode.CEILING);
+        return new PriceQuoteResponse(fromPrice, perPerson);
     }
 
     private static BigDecimal lineTotal(Activity activity, BigDecimal travelers) {

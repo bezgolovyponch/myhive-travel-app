@@ -114,7 +114,8 @@ test('a number shorter than 7 digits does not count', async () => {
 });
 
 test('WhatsApp: opens the group message with the link in the same tap, creates the vote with the number, opens the dashboard', async () => {
-  renderModal();
+  const onClose = jest.fn();
+  renderModal({ onClose });
   await userEvent.selectOptions(screen.getByLabelText('Country code'), '+420');
   await userEvent.type(screen.getByLabelText(PHONE), '602 123 456');
 
@@ -144,6 +145,9 @@ test('WhatsApp: opens the group message with the link in the same tap, creates t
   expect(pushEvent).toHaveBeenCalledWith('contact_captured',
       expect.objectContaining({ trip_id: 'tok-1', channel: 'whatsapp' }));
   expect(pushEvent).toHaveBeenCalledWith('group_message_sent', expect.anything());
+  // Closed, so the organiser comes back from WhatsApp to the dashboard, not the modal.
+  expect(onClose).toHaveBeenCalled();
+  expect(pushEvent).not.toHaveBeenCalledWith('modal_abandoned', expect.anything());
 });
 
 test('a UK number typed with the leading 0 is sent without it', async () => {
@@ -157,7 +161,8 @@ test('a UK number typed with the leading 0 is sent without it', async () => {
 });
 
 test('email: creates the vote with the email and opens the dashboard, without opening WhatsApp', async () => {
-  renderModal();
+  const onClose = jest.fn();
+  renderModal({ onClose });
   await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
 
   await userEvent.click(screen.getByRole('button', { name: START }));
@@ -170,6 +175,7 @@ test('email: creates the vote with the email and opens the dashboard, without op
   }));
   expect(pushEvent).toHaveBeenCalledWith('contact_captured',
       expect.objectContaining({ trip_id: 'tok-1', channel: 'email' }));
+  expect(onClose).toHaveBeenCalled();
 });
 
 test('both contacts typed: both go with the vote', async () => {

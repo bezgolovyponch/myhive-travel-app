@@ -124,7 +124,8 @@
     "voteTogether": "Vote together & build a trip",
     "totalOne": "Total ({count} person)",
     "totalOther": "Total ({count} people)",
-    "continue": "Continue"
+    "continue": "Continue",
+    "backToTripBuilder": "Back to Trip Builder"
   },
   "home": {
     "hero": {
@@ -207,28 +208,24 @@
     },
     "planner": {
       "eyebrow": "Prague stag do planner",
-      "title": "Be the best man, not the travel agent.",
-      "subtitle": "Pick your dates and build the weekend day by day. A local planner calls you within the hour with the route and the price. No agency fee.",
+      "title": "Best man, not travel agent.",
+      "subtitle": "A local planner calls within the hour. No agency fee.",
       "steps": {
         "pick": {
           "time": "0:00",
-          "title": "You pick dates and head-count",
-          "sub": "No sign-up, no deposit"
+          "title": "You pick dates and head-count"
         },
         "weekends": {
           "time": "0:01",
-          "title": "Three ready weekends",
-          "sub": "Basic, Medium, Premium — swap anything"
+          "title": "Three ready weekends"
         },
         "lads": {
           "time": "0:05",
-          "title": "The lads pick one",
-          "sub": "One link in the WhatsApp group"
+          "title": "The lads pick one"
         },
         "call": {
           "time": "<1h",
-          "title": "A Prague planner calls you",
-          "sub": "Checks every venue, you just turn up"
+          "title": "A Prague planner calls you"
         }
       },
       "datesLabel": "Travel dates",
@@ -655,8 +652,6 @@
       "left": "{count} still to vote",
       "everyone": "everyone voted",
       "closed": "Voting has closed",
-      "yes": "{count} yes",
-      "no": "{count} no",
       "noVotesYet": "New · not voted yet",
       "restore": "Restore",
       "inviteTitle": "Invite link for the group",
@@ -669,7 +664,12 @@
       "add": "Add",
       "added": "Added",
       "lockTitle": "Happy with the plan?",
-      "lockText": "Lock it in now — no need to wait for the last votes."
+      "lockText": "Lock it in now — no need to wait for the last votes.",
+      "keep": "{keep}/{votes} keep",
+      "planTitle": "The plan",
+      "fromPerPerson": "from {price} / person",
+      "recsEmpty": "Nothing yet. What your friends suggest shows up here.",
+      "browseAll": "Browse all activities"
     }
   },
   "swipe": {

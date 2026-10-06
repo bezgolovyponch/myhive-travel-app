@@ -4,6 +4,8 @@ import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
 import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
 import TripSetupModal from './TripSetupModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
+import {managerKey} from '../hooks/useOrganizerVote';
+import {dashboardPath} from '../utils/groupVote';
 import {useT} from '../i18n';
 // Imported here rather than inherited from global.css, so this component paints
 // the same on the landings, which cannot load global.css. AppModal.css is for
@@ -30,11 +32,21 @@ function TripBuilderDropdown({voteHref = null}) {
     const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
     const totalPrice = computeTripTotal(state.tripItems, travelers);
 
+    // The organiser of a running vote (opened "Browse all" from the dashboard)
+    // goes back to the Trip Builder dashboard, where what they added joins the vote.
+    let organizerVote = null;
+    try {
+        const token = localStorage.getItem('myhive-trip-vote-session');
+        organizerVote = token && localStorage.getItem(managerKey(token)) ? token : null;
+    } catch (e) {
+        // storage blocked: the plain Trip Builder
+    }
+
     const handleComplete = () => {
         const destSlug = state.tripItems.find(i => i.destinationSlug)?.destinationSlug;
         dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
         if (destSlug) {
-            navigate(`/destination/${destSlug}?tab=trip-builder`);
+            navigate(organizerVote ? dashboardPath(destSlug, organizerVote) : `/destination/${destSlug}?tab=trip-builder`);
         }
     };
 
@@ -127,7 +139,7 @@ function TripBuilderDropdown({voteHref = null}) {
                         <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
                     </div>
                     <button className="trip-builder-complete-btn" onClick={handleComplete}>
-                        {t('continue')}
+                        {organizerVote ? t('backToTripBuilder') : t('continue')}
                     </button>
                 </div>
             )}

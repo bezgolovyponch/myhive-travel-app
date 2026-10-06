@@ -1,8 +1,9 @@
 import {render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {useReducer} from 'react';
 import {MemoryRouter, useLocation} from 'react-router-dom';
 import TripBuilder from './TripBuilder';
-import {TripContext} from '../context/TripContext';
+import {TripContext, reducer} from '../context/TripContext';
 
 // The organiser dashboard (v3 4b): the Trip Builder tab of a browser that holds
 // the vote's manager token.
@@ -24,7 +25,6 @@ jest.mock('../services/voteApi', () => ({
         getTally: jest.fn(),
         getActivities: jest.fn(),
         excludeActivity: jest.fn(),
-        restoreActivity: jest.fn(),
         addActivity: jest.fn(),
         closeSession: jest.fn(),
         buildPool: jest.fn(),
@@ -32,7 +32,7 @@ jest.mock('../services/voteApi', () => ({
 }));
 
 jest.mock('../services/paymentApi', () => ({paymentApi: {createBookingDepositSession: jest.fn()}}));
-jest.mock('../services/pricingApi', () => ({__esModule: true, default: {quote: jest.fn(() => Promise.resolve({fromPrice: null}))}}));
+jest.mock('../services/pricingApi', () => ({__esModule: true, default: {quote: jest.fn()}}));
 jest.mock('../utils/analytics', () => ({pushEvent: jest.fn(), navigateAfterEvents: jest.fn()}));
 jest.mock('../utils/openWhatsApp', () => ({openWhatsApp: jest.fn()}));
 jest.mock('../context/CatalogContext', () => ({
@@ -41,6 +41,7 @@ jest.mock('../context/CatalogContext', () => ({
 
 const api = require('../services/api').default;
 const voteApi = require('../services/voteApi').default;
+const pricingApi = require('../services/pricingApi').default;
 const {openWhatsApp} = require('../utils/openWhatsApp');
 
 const shooting = {id: 'act-1', name: 'AK-47 shooting', price: 89, destinationSlug: 'prague', imageUrl: 'x'};
@@ -83,13 +84,24 @@ function LocationSpy() {
     return null;
 }
 
+// The real reducer, so an activity added to the plan reaches the vote; the
+// dispatch spy records what the Trip Builder asked for.
+function StatefulTrip({initial, spy, children}) {
+    const [state, dispatchReal] = useReducer(reducer, initial);
+    const dispatch = (action) => {
+        spy(action);
+        dispatchReal(action);
+    };
+    return <TripContext.Provider value={{state, dispatch}}>{children}</TripContext.Provider>;
+}
+
 function renderDashboard({state = tripState(), route = '/destination/prague?tab=trip-builder&voteSession=tok-1'} = {}) {
     const dispatch = jest.fn();
     render(
         <MemoryRouter initialEntries={[route]}>
-            <TripContext.Provider value={{state, dispatch}}>
+            <StatefulTrip initial={state} spy={dispatch}>
                 <TripBuilder destinationId="d-1" destinationSlug="prague" destinationName="Prague"/>
-            </TripContext.Provider>
+            </StatefulTrip>
             <LocationSpy/>
         </MemoryRouter>,
     );
@@ -106,7 +118,7 @@ beforeEach(() => {
     });
     voteApi.getTally.mockResolvedValue(TALLY);
     voteApi.excludeActivity.mockResolvedValue();
-    voteApi.restoreActivity.mockResolvedValue();
+    pricingApi.quote.mockResolvedValue({fromPrice: 1161, fromPricePerPerson: 117});
     voteApi.addActivity.mockResolvedValue();
     localStorage.setItem('myhive-manager-tok-1', 'mgr-1');
 });
@@ -115,21 +127,58 @@ afterEach(() => {
     localStorage.clear();
 });
 
-test('shows who has voted, the invite link, yes/no on each activity and the group recommendations', async () => {
+test('shows who has voted, the invite link, the plan with keep counts and the group recommendations', async () => {
     renderDashboard();
 
     expect(await screen.findByText('3 of 10 voted')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Your weekend'})).toBeInTheDocument();
     expect(screen.getByText('7 still to vote')).toBeInTheDocument();
     expect(screen.getByText('Organiser')).toBeInTheDocument();
-    expect(screen.getByText('✓ 3 yes')).toBeInTheDocument();
-    expect(screen.getByText('✗ 2 no')).toBeInTheDocument();
     expect(screen.getByRole('region', {name: 'Invite link for the group'})).toHaveTextContent(
         '/vote/tok-1/activities?ref=invite');
+    const plan = screen.getByRole('region', {name: 'The plan'});
+    expect(within(plan).getByText('3/3 keep')).toBeInTheDocument();
+    expect(within(plan).getByText('1/3 keep')).toBeInTheDocument();
+    expect(await within(plan).findByText('from €117 / person')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Recommended by the group/})).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Recommended by 2 friends')).toBeInTheDocument();
     expect(screen.getByText('Happy with the plan?')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Complete Booking'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Ask the group'})).not.toBeInTheDocument();
     expect(voteApi.getTally).toHaveBeenCalledWith('tok-1', {managerToken: 'mgr-1'});
+});
+
+test('nothing but the dashboard: no trip summary, no pictures, no catalogue', async () => {
+    api.getActivities.mockResolvedValue([{id: 'act-5', name: 'Beer spa', destinationSlug: 'prague', categories: []}]);
+    renderDashboard();
+    await screen.findByText('3 of 10 voted');
+
+    expect(screen.queryByText('Travelers:')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByText('Beer spa')).not.toBeInTheDocument();
+    const browse = screen.getByRole('link', {name: /Browse all activities/});
+    expect(browse).toHaveAttribute('href', '/destination/prague?tab=activities');
+    expect(browse).toHaveAttribute('target', '_blank');
+});
+
+test('the recommendations drawer starts closed while there are none', async () => {
+    voteApi.getTally.mockResolvedValue({...TALLY, recommendations: []});
+    renderDashboard();
+    const toggle = await screen.findByRole('button', {name: /Recommended by the group/});
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    expect(screen.getByText('Nothing yet. What your friends suggest shows up here.')).toBeInTheDocument();
+});
+
+test('an activity in the plan that the vote lacks (added in the "Browse all" tab) joins the vote', async () => {
+    const beerSpa = {id: 'act-7', name: 'Beer spa', destinationSlug: 'prague'};
+    renderDashboard({state: tripState({tripItems: [shooting, steak, beerSpa]})});
+    await screen.findByText('3 of 10 voted');
+
+    expect(within(screen.getByRole('region', {name: 'The plan'})).getByText('Beer spa')).toBeInTheDocument();
+    await waitFor(() => expect(voteApi.addActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-7'));
+    expect(voteApi.addActivity).toHaveBeenCalledTimes(1);
 });
 
 test('Send to WhatsApp group opens the message with the invite link', async () => {
@@ -152,14 +201,14 @@ test('removing an activity drops it from the running vote', async () => {
     expect(voteApi.excludeActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-2');
 });
 
-test('a dropped activity is listed struck through, with its picture, and Restore brings it back', async () => {
+test('a dropped activity is listed struck through, and Restore brings it back into the plan and the vote', async () => {
     const {dispatch} = renderDashboard();
     await screen.findByText('Tank driving');
-    expect(screen.getByRole('img', {name: 'Tank driving'})).toHaveAttribute('src', 'http://img/tank.jpg');
 
     await userEvent.click(screen.getByRole('button', {name: 'Restore'}));
 
-    expect(voteApi.restoreActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-3');
+    // The server's add restores a dropped activity.
+    await waitFor(() => expect(voteApi.addActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-3'));
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
         type: 'ADD_TO_TRIP', activity: expect.objectContaining({id: 'act-3'}),
     }));
@@ -174,7 +223,8 @@ test('adding a recommendation puts it in the plan and in the vote', async () => 
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
         type: 'ADD_TO_TRIP', activity: expect.objectContaining({id: 'act-9', name: 'Pub golf'}),
     }));
-    expect(voteApi.addActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-9');
+    await waitFor(() => expect(voteApi.addActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-9'));
+    expect(voteApi.addActivity).toHaveBeenCalledTimes(1);
 });
 
 test('the email link: the manager token is kept and taken out of the address bar', async () => {

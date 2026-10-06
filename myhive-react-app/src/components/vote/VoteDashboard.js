@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {WhatsAppGroupPreview} from './StartGroupVoteModal';
 import {copyToClipboard} from '../../utils/clipboard';
 import {openWhatsApp} from '../../utils/openWhatsApp';
@@ -7,10 +7,9 @@ import {groupMessage, inviteUrl, whatsappShareUrls} from '../../utils/groupVote'
 import {useLocalePath, useT} from '../../i18n';
 import './VoteDashboard.css';
 
-// The pieces of the organiser dashboard (v3 4b) the Trip Builder places around
-// its itinerary while a vote runs: the header with who has voted, the yes/no
-// counts on each activity, the invite link for the group chat, and what the
-// group recommended.
+// The pieces of the organiser dashboard (v3 4b) the Trip Builder shows while a
+// vote runs: the header with who has voted, the invite link for the group chat,
+// the plan with "N/M keep" on each activity, and what the group recommended.
 
 export function VoteDashboardHeader({destinationName, dates, tally}) {
     const t = useT('tripBuilder');
@@ -46,24 +45,52 @@ export function VoteDashboardHeader({destinationName, dates, tally}) {
     );
 }
 
-/** "✓ 8 yes  ✗ 1 no" and the split bar under an itinerary line. */
-export function VoteCounts({row}) {
+/** "7/8 keep" and its bar: how many of the friends who voted on it kept it. */
+export function KeepBar({row}) {
     const t = useT('tripBuilder');
-    const yes = row.likeCount;
-    const no = row.skipCount;
-    if (yes + no === 0) {
-        return <div className="vd-counts vd-muted">{t('dashboard.noVotesYet')}</div>;
+    const keep = row?.likeCount ?? 0;
+    const votes = keep + (row?.skipCount ?? 0);
+    if (votes === 0) {
+        return <div className="vd-keep vd-muted">{t('dashboard.noVotesYet')}</div>;
     }
+    const share = keep / votes;
     return (
-        <div className="vd-counts">
-            <span className="vd-pills">
-                <span className="vd-pill vd-pill--yes">✓ {t('dashboard.yes', {count: yes})}</span>
-                <span className="vd-pill vd-pill--no">✗ {t('dashboard.no', {count: no})}</span>
+        <div className={`vd-keep${share < 0.5 ? ' is-low' : ''}`}>
+            <span className="vd-keep-bar" aria-hidden="true">
+                <span style={{width: `${Math.round(share * 100)}%`}}/>
             </span>
-            <span className="vd-split" aria-hidden="true">
-                <span style={{width: `${Math.round(yes / (yes + no) * 100)}%`}}/>
-            </span>
+            <span className="vd-keep-text">{t('dashboard.keep', {keep, votes})}</span>
         </div>
+    );
+}
+
+/**
+ * One line of the plan: the activity, its keep bar, and × to drop it from the
+ * vote — or, once dropped, struck through with Restore.
+ */
+export function PlanRow({name, row, dropped = false, onRemove, onRestore}) {
+    const t = useT('tripBuilder');
+    return (
+        <li className={`vd-row${dropped ? ' is-dropped' : ''}`}>
+            <div className="vd-row-body">
+                <div className="vd-row-name">{name}</div>
+                <KeepBar row={row}/>
+            </div>
+            {dropped ? (
+                onRestore && (
+                    <button type="button" className="vd-restore-btn" onClick={onRestore}>
+                        {t('dashboard.restore')}
+                    </button>
+                )
+            ) : (
+                onRemove && (
+                    <button type="button" className="vd-remove-btn" onClick={onRemove}
+                            aria-label={t('items.removeAria', {name})}>
+                        ×
+                    </button>
+                )
+            )}
+        </li>
     );
 }
 
@@ -106,39 +133,57 @@ export function VoteInvitePanel({shareToken, destinationName, members, startDate
     );
 }
 
-/** What friends recommended, most recommended first; Add puts it in the plan and the vote. */
+/**
+ * What friends recommended, most recommended first, in a drawer: closed while
+ * there is nothing in it, opened when the first recommendation arrives. Add
+ * puts one in the plan and the vote.
+ */
 export function GroupRecommendations({recommendations, isAdded, onAdd}) {
     const t = useT('tripBuilder');
-    if (!recommendations || recommendations.length === 0) {
-        return null;
-    }
+    const recs = recommendations || [];
+    const [open, setOpen] = useState(recs.length > 0);
+    const hadRecs = useRef(recs.length > 0);
+    useEffect(() => {
+        if (recs.length > 0 && !hadRecs.current) {
+            setOpen(true);
+        }
+        hadRecs.current = recs.length > 0;
+    }, [recs.length]);
+
     return (
-        <section className="vd-recs">
-            <h3 className="vd-section-title">{t('dashboard.recsTitle')}</h3>
-            <p className="vd-muted vd-recs-sub">{t('dashboard.recsSubtitle')}</p>
-            <ul className="vd-recs-list">
-                {recommendations.map(rec => {
-                    const added = isAdded(rec.activityId);
-                    return (
-                        <li key={rec.activityId} className="vd-rec">
-                            {rec.imageUrl
-                                ? <img src={rec.imageUrl} alt="" className="vd-rec-img" loading="lazy"/>
-                                : <span className="vd-rec-img" aria-hidden="true"/>}
-                            <div className="vd-rec-text">
-                                <div className="vd-rec-name">{rec.name}</div>
-                                <div className="vd-muted">
-                                    {t(rec.recommendationCount === 1 ? 'dashboard.recByOne' : 'dashboard.recByOther',
-                                        {count: rec.recommendationCount})}
+        <section className={`vd-recs${open ? ' is-open' : ''}`}>
+            <button type="button" className="vd-recs-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+                <span className="vd-recs-head">
+                    <span className="vd-section-title">{t('dashboard.recsTitle')}</span>
+                    <span className="vd-muted">{t('dashboard.recsSubtitle')}</span>
+                </span>
+                {recs.length > 0 && <span className="vd-recs-count">+{recs.length}</span>}
+                <span className="vd-recs-chevron" aria-hidden="true"/>
+            </button>
+            {open && (recs.length === 0 ? (
+                <p className="vd-muted vd-recs-empty">{t('dashboard.recsEmpty')}</p>
+            ) : (
+                <ul className="vd-recs-list">
+                    {recs.map(rec => {
+                        const added = isAdded(rec.activityId);
+                        return (
+                            <li key={rec.activityId} className="vd-rec">
+                                <div className="vd-rec-text">
+                                    <div className="vd-rec-name">{rec.name}</div>
+                                    <div className="vd-muted">
+                                        {t(rec.recommendationCount === 1 ? 'dashboard.recByOne' : 'dashboard.recByOther',
+                                            {count: rec.recommendationCount})}
+                                    </div>
                                 </div>
-                            </div>
-                            <button type="button" className={`vd-rec-btn${added ? ' is-added' : ''}`}
-                                    onClick={() => onAdd(rec)} disabled={added}>
-                                {added ? t('dashboard.added') : t('dashboard.add')}
-                            </button>
-                        </li>
-                    );
-                })}
-            </ul>
+                                <button type="button" className={`vd-rec-btn${added ? ' is-added' : ''}`}
+                                        onClick={() => onAdd(rec)} disabled={added}>
+                                    {added ? t('dashboard.added') : t('dashboard.add')}
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            ))}
         </section>
     );
 }

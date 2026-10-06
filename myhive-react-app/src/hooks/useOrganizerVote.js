@@ -116,7 +116,6 @@ export function useOrganizerVote({shareToken, managerParam, restored, cartEmpty,
         hasDashboard: Boolean(session && managerToken),
         active,
         excludeActivity: (activityId) => edit(() => voteApi.excludeActivity(shareToken, managerToken, activityId)),
-        restoreActivity: (activityId) => edit(() => voteApi.restoreActivity(shareToken, managerToken, activityId)),
         addActivity: (activityId) => edit(() => voteApi.addActivity(shareToken, managerToken, activityId)),
         closeVote: () => voteApi.closeSession(shareToken, managerToken).catch(() => {}),
     };

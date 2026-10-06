@@ -2,7 +2,7 @@
    .homepage in HomePage.css; sizes follow the mockup's 390px phone. */
 .hero-planner {
     width: 100%;
-    max-width: 30rem;
+    max-width: min(30rem, 100%);
     display: flex;
     flex-direction: column;
     text-align: left;
@@ -25,19 +25,21 @@
 }
 
 .hero-title-text {
-    font-size: clamp(2.1875rem, 4vw, 2.75rem);
+    /* One line on every screen: 7.2vw is the widest the headline fits a
+       phone's content box at (375px -> 27px), capped for desktop. */
+    font-size: min(7.2vw, 2.375rem);
+    white-space: nowrap;
     font-weight: 700;
     line-height: 1.03;
     letter-spacing: -0.025em;
     text-shadow: 0 2px 18px rgba(0, 0, 0, 0.4);
-    text-wrap: pretty;
 }
 
 .hero-planner .hero-subtitle {
     margin-top: 10px;
     max-width: none;
-    font-size: 15px;
-    line-height: 1.5;
+    font-size: min(3.7vw, 16px);
+    line-height: 1.4;
     color: #ece7f6;
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
     text-wrap: pretty;
@@ -45,8 +47,8 @@
 
 /* ---- timeline ---- */
 .hp-steps {
-    margin: 18px 0 0;
-    padding: 14px 16px;
+    margin: 14px 0 0;
+    padding: 12px 14px;
     list-style: none;
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 16px;
@@ -56,13 +58,18 @@
 
 .hp-step {
     display: grid;
-    grid-template-columns: 48px 14px minmax(0, 1fr);
+    grid-template-columns: 44px 14px minmax(0, 1fr);
     column-gap: 10px;
     align-items: start;
+    min-height: 30px;
+}
+
+.hp-step:last-child {
+    min-height: 0;
 }
 
 .hp-step-time {
-    padding-top: 1px;
+    padding-top: 2px;
     font-size: 12px;
     color: var(--purple-ll);
     font-variant-numeric: tabular-nums;
@@ -80,7 +87,7 @@
     content: '';
     width: 10px;
     height: 10px;
-    margin-top: 4px;
+    margin-top: 5px;
     border-radius: 50%;
     background: var(--purple);
 }
@@ -88,7 +95,7 @@
 .hp-step-dot::after {
     content: '';
     position: absolute;
-    top: 14px;
+    top: 15px;
     bottom: 0;
     left: 50%;
     width: 2px;
@@ -109,28 +116,16 @@
     display: none;
 }
 
-.hp-step-body {
-    padding-bottom: 10px;
-}
-
-.hp-step:last-child .hp-step-body {
-    padding-bottom: 0;
-}
-
 .hp-step-title {
     font-size: 14px;
     font-weight: 600;
+    line-height: 1.35;
     color: #fff;
-}
-
-.hp-step-sub {
-    font-size: 12px;
-    color: var(--hp-muted-l);
 }
 
 /* ---- dates, people, chat box ---- */
 .hp-form {
-    margin-top: 14px;
+    margin-top: 12px;
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -316,15 +311,48 @@
     box-shadow: 0 10px 30px -10px var(--purple);
 }
 
+/* Phones: the next-step phrases sit in one row that scrolls sideways, so the
+   form keeps one height whatever the phrases say. */
+@media (max-width: 768px) {
+    .hp-chips-list {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin: 0 -12px;
+        padding: 0 12px 2px;
+        scrollbar-width: none;
+        scroll-padding: 0 12px;
+    }
+
+    .hp-chips-list::-webkit-scrollbar {
+        display: none;
+    }
+
+    .hp-chip {
+        flex: none;
+        white-space: nowrap;
+    }
+}
+
 /* Phones: the mockup's photo treatment — the photo fills the top 560px only,
    darker behind the headline and copy, fully opaque by the form — and room
    under the buttons. */
 @media (max-width: 768px) {
     .hero.hero--planner {
         align-items: flex-start;
+        padding-top: calc(var(--header-height) + 12px);
         padding-bottom: 40px;
         background-size: auto 560px;
         background-position: 42% 0;
+    }
+
+    .hero--planner .hero-content {
+        padding: 0 16px;
+    }
+
+    /* The one-line headline must not widen the column past the screen. */
+    .hero--planner .hero-text {
+        width: 100%;
+        min-width: 0;
     }
 
     .hero--planner .hero-overlay {
