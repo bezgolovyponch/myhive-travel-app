@@ -46,7 +46,7 @@ beforeEach(() => {
 test('shows the four-step timeline and the first-screen copy', () => {
     renderHero();
     expect(screen.getByRole('heading', {level: 1}))
-        .toHaveTextContent('Prague stag do plannerBe the best man, not the travel agent.');
+        .toHaveTextContent('Prague stag do plannerBest man, not travel agent.');
     ['You pick dates and head-count', 'Three ready weekends', 'The lads pick one', 'A Prague planner calls you']
         .forEach((step) => expect(screen.getByText(step)).toBeInTheDocument());
 });

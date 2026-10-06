@@ -17,6 +17,6 @@ test('renders on the server without a window', () => {
             </MemoryRouter>
         </TripContext.Provider>
     );
-    expect(html).toContain('Be the best man, not the travel agent.');
+    expect(html).toContain('Best man, not travel agent.');
     expect(html).toContain('Select travel dates');
 });

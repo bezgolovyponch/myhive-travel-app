@@ -108,10 +108,7 @@ function HeroPlanner({explorePath}) {
                     <li key={key} className={`hp-step${i === STEP_KEYS.length - 1 ? ' hp-step--done' : ''}`}>
                         <span className="hp-step-time">{t(`planner.steps.${key}.time`)}</span>
                         <span className="hp-step-dot" aria-hidden="true"/>
-                        <div className="hp-step-body">
-                            <div className="hp-step-title">{t(`planner.steps.${key}.title`)}</div>
-                            <div className="hp-step-sub">{t(`planner.steps.${key}.sub`)}</div>
-                        </div>
+                        <span className="hp-step-title">{t(`planner.steps.${key}.title`)}</span>
                     </li>
                 ))}
             </ol>

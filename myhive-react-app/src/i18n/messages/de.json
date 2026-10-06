@@ -197,28 +197,24 @@
     },
     "planner": {
       "eyebrow": "JGA-Planer für Prag",
-      "title": "Sei der Trauzeuge, nicht das Reisebüro.",
-      "subtitle": "Wähl eure Daten und bau das Wochenende Tag für Tag. Ein Planer vor Ort ruft dich innerhalb einer Stunde mit Route und Preis an. Keine Agenturgebühr.",
+      "title": "Trauzeuge statt Reisebüro.",
+      "subtitle": "Ein Planer vor Ort ruft in 1 Std. an. Ohne Gebühr.",
       "steps": {
         "pick": {
           "time": "0:00",
-          "title": "Du wählst Daten und Personenzahl",
-          "sub": "Ohne Anmeldung, ohne Anzahlung"
+          "title": "Du wählst Daten und Gruppe"
         },
         "weekends": {
           "time": "0:01",
-          "title": "Drei fertige Wochenenden",
-          "sub": "Basic, Medium, Premium — alles tauschbar"
+          "title": "Drei fertige Wochenenden"
         },
         "lads": {
           "time": "0:05",
-          "title": "Die Jungs wählen eins",
-          "sub": "Ein Link in die WhatsApp-Gruppe"
+          "title": "Die Jungs wählen eins"
         },
         "call": {
           "time": "<1 Std.",
-          "title": "Ein Prag-Planer ruft dich an",
-          "sub": "Prüft jede Location, ihr kommt nur noch hin"
+          "title": "Ein Prag-Planer ruft dich an"
         }
       },
       "datesLabel": "Reisedaten",
