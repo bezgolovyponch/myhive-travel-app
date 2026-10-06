@@ -431,6 +431,39 @@ class AiPlannerControllerIntegrationTest {
     }
 
     /**
+     * With the real model a "we want to shoot" usually comes back as an ADD the catalog cannot answer, and
+     * the row is its alternatives. They live in the edit report, which a tap replaces: the row has to
+     * survive the tap, so the one just added shows as added and the others can still be tapped.
+     */
+    @Test
+    void draftEdit_keepsTheRowOfAlternativesItWasTappedFrom() throws Exception {
+        String expectedName = activities.get(REPLACEMENT_INDEX).getName();
+        String expectedId = activities.get(REPLACEMENT_INDEX).getId().toString();
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        llm.queueChat(chatTurn("Let me check that.", Brief.empty(), List.of(
+                new EditRequest(EditOp.ADD, "kalashnikov", null, null, null, null, List.of(expectedName)))));
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("we want to shoot kalashnikov")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedId)));
+
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("ADD", expectedId, Tier.BASIC.name())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.recommendations", hasSize(1)))
+                .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedId)));
+
+        mockMvc.perform(get("/ai/sessions/" + token).header("CF-Connecting-IP", testClientIp))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recommendations[0].name", is(expectedName)));
+    }
+
+    /**
      * A tap in the trip draft: the activity lands in the package and back out again with no chat turn,
      * no model call and none of the session's edit allowance spent - and each tap is a new EDITED row the
      * next chat turn builds on.
@@ -996,6 +1029,9 @@ class AiPlannerControllerIntegrationTest {
         }
     }
 
+    // The helpers below send the test's own client IP, like createSession: the rate limiter allows 100
+    // requests a minute per IP, and without it every test of this class drew on the one bucket of the
+    // mock request's default address - one more test was enough to turn a later 409 into a 429.
     private String createSession() throws Exception {
         return createSessionWithBody(CREATE_BODY.formatted(destination.getSlug()));
     }
@@ -1020,19 +1056,20 @@ class AiPlannerControllerIntegrationTest {
     }
 
     private void sendMessage(String token, String content) throws Exception {
-        mockMvc.perform(post("/ai/sessions/" + token + "/messages").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/ai/sessions/" + token + "/messages").header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(MESSAGE_BODY.formatted(content)))
                 .andExpect(status().isOk());
     }
 
     private String latestGenerationId(String token) throws Exception {
-        MvcResult result = mockMvc.perform(get("/ai/sessions/" + token)).andExpect(status().isOk()).andReturn();
+        MvcResult result = mockMvc.perform(get("/ai/sessions/" + token).header("CF-Connecting-IP", testClientIp)).andExpect(status().isOk()).andReturn();
         return JsonPath.read(result.getResponse().getContentAsString(), "$.latestGeneration.id");
     }
 
     private String awaitGeneration(String generationId) throws Exception {
         for (int i = 0; i < POLL_ATTEMPTS; i++) {
-            MvcResult result = mockMvc.perform(get("/ai/generations/" + generationId))
+            MvcResult result = mockMvc.perform(get("/ai/generations/" + generationId).header("CF-Connecting-IP", testClientIp))
                     .andExpect(status().isOk())
                     .andReturn();
             String body = result.getResponse().getContentAsString();

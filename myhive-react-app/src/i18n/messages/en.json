@@ -1247,7 +1247,7 @@
       "placeholder": "Change anything…",
       "expand": "Open chat",
       "gapsAria": "What the draft could use",
-      "gapMessage": "Add something from {name}"
+      "gapMessage": "What do you have for {name}?"
     }
   }
 }

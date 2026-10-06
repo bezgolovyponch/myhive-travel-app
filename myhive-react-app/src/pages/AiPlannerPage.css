@@ -312,9 +312,14 @@
     min-width: 0;
 }
 
+/* One line, as in the design: the catalog's one-liner runs to 160 characters,
+   and wrapped it took the room the chat under it needs. */
 .aip-suggest-meta {
     font-size: 12px;
     color: #b0acbb;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .aip-suggest-name {

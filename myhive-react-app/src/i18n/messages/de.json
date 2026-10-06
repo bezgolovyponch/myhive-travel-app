@@ -1237,7 +1237,7 @@
       "placeholder": "Ändere, was du willst…",
       "expand": "Chat öffnen",
       "gapsAria": "Was dem Entwurf noch fehlt",
-      "gapMessage": "Füg etwas aus {name} hinzu"
+      "gapMessage": "Was habt ihr für {name}?"
     }
   }
 }

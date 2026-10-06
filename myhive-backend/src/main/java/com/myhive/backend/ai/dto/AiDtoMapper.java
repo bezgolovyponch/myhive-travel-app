@@ -116,7 +116,7 @@ public class AiDtoMapper {
      * the catalog snapshot and dropped when it does not resolve to exactly one activity, so nothing the
      * model made up is ever shown. Already-added ones stay: the row shows them as added.
      */
-    static List<RecommendationDTO> recommendations(PlannerState state) {
+    public static List<RecommendationDTO> recommendations(PlannerState state) {
         List<String> names = new ArrayList<>(state.recommendations());
         state.editReport().ifPresent(report -> report.rejected()
                 .forEach(rejected -> names.addAll(rejected.alternatives())));

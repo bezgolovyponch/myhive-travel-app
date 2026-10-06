@@ -452,5 +452,5 @@ test('a ready draft offers what it lacks next to the presets as tags, in place o
 
     await userEvent.click(within(tags).getByRole('button', {name: '+ Czech Beer'}));
 
-    expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'Add something from Czech Beer', 'MEDIUM');
+    expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'What do you have for Czech Beer?', 'MEDIUM');
 });

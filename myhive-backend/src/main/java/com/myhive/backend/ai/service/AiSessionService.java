@@ -1,5 +1,7 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.dto.AiDtoMapper;
+import com.myhive.backend.ai.dto.RecommendationDTO;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditReport;
@@ -312,6 +314,11 @@ public class AiSessionService {
             update.put(PlannerState.RESUME_REASON, ResumeReason.EDIT.name());
             update.put(PlannerState.EDITS, JsonCodec.write(List.of(
                     new EditRequest(op, activity.name(), null, packageKey, null, null))));
+            // The row the tap came from may be the alternatives of a chat edit the catalog could not answer.
+            // Those live in the edit report this tap replaces: carry them over as the turn's
+            // recommendations, or the row - and the tags next to the one just tapped - is gone after one tap.
+            update.put(PlannerState.RECOMMENDATIONS, AiDtoMapper.recommendations(state).stream()
+                    .map(RecommendationDTO::name).toList());
             update.put(PlannerState.EDIT_REPORT, "");
             update.put(PlannerState.PENDING_REPLY, "");
             if (packageKey != null) {
