@@ -1220,7 +1220,11 @@
       "suggestions": "Vorgeschlagene Aktivitäten",
       "daySlot": "Tag {n} · {slot}",
       "added": "Drin ✓",
-      "addAria": "{name} zum Entwurf hinzufügen"
+      "addAria": "{name} zum Entwurf hinzufügen",
+      "suggestionsCount": "Empfehlungen ({count})",
+      "moreCount": "{count} weitere",
+      "hide": "Ausblenden",
+      "show": "Anzeigen"
     },
     "dock": {
       "title": "JGA-KI",

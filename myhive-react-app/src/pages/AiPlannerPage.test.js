@@ -431,8 +431,10 @@ test('"we want to shoot": the top match and related tags sit above the open chat
     expect(within(offered).getByText('AK-47 shooting')).toBeInTheDocument();
     // No price in the draft's chat: duration only (the draft shows one "from" total).
     expect(within(offered).getByText('1 h 30 min')).toBeInTheDocument();
+    // The other two are a tap away, as cards of their own.
+    await userEvent.click(within(offered).getByRole('button', {name: '2 more'}));
     expect(within(offered).getByRole('button', {name: 'Add Pistol + AK combo to the trip draft'}))
-        .toHaveTextContent('+ Pistol + AK combo');
+        .toHaveTextContent('Add');
     // A wish is not an edit: the draft is unchanged until a tap.
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 
@@ -450,6 +452,26 @@ test('"we want to shoot": the top match and related tags sit above the open chat
     await userEvent.click(added);
     expect(aiPlannerApi.editDraft).toHaveBeenLastCalledWith('tok-1',
         {op: 'REMOVE', activityId: 'id-AK-47 shooting', packageKey: 'MEDIUM'});
+});
+
+test('a new chat turn brings the recommendations back after "Hide", even with the same names', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
+    aiPlannerApi.sendMessage.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'It is above - tap Add.', at}],
+        suggestedReplies: [], generation: null, edit: null,
+        recommendations: [rec('AK-47 shooting'), rec('Paintball')],
+    });
+    renderPage();
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Message Stag Do AI'}), 'shooting{Enter}');
+    const offered = await screen.findByRole('group', {name: 'Suggested activities'});
+    await userEvent.click(within(offered).getByRole('button', {name: 'Hide'}));
+    expect(within(offered).queryByRole('button', {name: 'Add AK-47 shooting to the trip draft'})).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'shooting again{Enter}');
+
+    expect(await within(offered).findByRole('button', {name: 'Add AK-47 shooting to the trip draft'}))
+        .toBeInTheDocument();
 });
 
 test('the chat brings the trims back ("what were the other options?") and switches to one ("show me Premium")', async () => {
@@ -521,9 +543,10 @@ test('"+ Add ..." tags: a tap asks which one, an answer shows its card with Add,
 
     await userEvent.click(within(answers).getByRole('button', {name: 'AK-47 and Glock'}));
 
-    // The answer is a card with Add; the rest of its kind sits next to it. Still no chat turn.
+    // The answer is a card with Add; the rest of its kind sits behind "1 more". Still no chat turn.
     const offered = within(dock).getByRole('group', {name: 'Suggested activities'});
     expect(within(offered).getByText('AK-47 and Glock')).toBeInTheDocument();
+    await userEvent.click(within(offered).getByRole('button', {name: '1 more'}));
     expect(within(offered).getByRole('button', {name: 'Add Sniper Day to the trip draft'})).toBeInTheDocument();
     expect(within(dock).getByText('It is above - tap Add to put it in the plan.')).toBeInTheDocument();
     expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();

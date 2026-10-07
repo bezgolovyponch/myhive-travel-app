@@ -1230,7 +1230,11 @@
       "suggestions": "Suggested activities",
       "daySlot": "Day {n} · {slot}",
       "added": "Added ✓",
-      "addAria": "Add {name} to the trip draft"
+      "addAria": "Add {name} to the trip draft",
+      "suggestionsCount": "Recommendations ({count})",
+      "moreCount": "{count} more",
+      "hide": "Hide",
+      "show": "Show"
     },
     "dock": {
       "title": "Stag Do AI",
