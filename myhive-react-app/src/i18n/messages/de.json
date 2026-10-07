@@ -1194,6 +1194,7 @@
       },
       "tiersAria": "Paketvarianten",
       "day": "Tag {n}",
+      "emptyDay": "Noch nichts geplant",
       "aiAdded": "Von KI ergänzt",
       "writing": "Details werden geschrieben…",
       "removing": "Wird entfernt…",

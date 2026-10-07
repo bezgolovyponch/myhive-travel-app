@@ -37,6 +37,14 @@ function addedNames(generation, packageKey) {
         .map((op) => (op.op === 'REPLACE' ? op.replacement : op.activity)));
 }
 
+// The backend's placeholder for a day title (PlaceholderTexts.dayTitle): "Day 3" / "Tag 3". It is copy
+// that never came, not a name, and the day's own label already says it.
+const STOCK_DAY_TITLE = /^\s*(day|tag)\s*\d+\s*$/i;
+
+function isStockDayTitle(title) {
+    return STOCK_DAY_TITLE.test(title);
+}
+
 // "2 h", "1 h 30 min", "45 min": how long an activity takes, short enough for a row.
 export function duration(minutes) {
     if (!minutes) return null;
@@ -46,9 +54,10 @@ export function duration(minutes) {
 }
 
 /**
- * The trip draft: one flat list of what the group gets, with the three trims
- * above it until the organizer starts changing things in the chat. From then
- * on it is their own draft and the trims are gone.
+ * The trip draft: what the group gets, day by day - the date (or "Day N") and
+ * the planner's name for the day over its rows, an empty day kept on the page -
+ * with the three trims above it until the organizer starts changing things in
+ * the chat. From then on it is their own draft and the trims are gone.
  *
  * @param startDate  the trip's first day (a Date) when its dates match the plan, else null
  * @param custom     the organizer has started editing: no trims, just the draft
@@ -71,7 +80,7 @@ function AiPackageView({
     const added = addedNames(generation, pkg.key);
     const pending = generation.textsPending;
     const change = lastChange(generation);
-    const rows = pkg.days.flatMap((day) => day.items.map((item) => ({day, item})));
+    const total = pkg.days.reduce((n, day) => n + day.items.length, 0);
 
     return (
         <div className="aip-view">
@@ -124,46 +133,67 @@ function AiPackageView({
             <section className="aip-draft" aria-label={t('result.draftLabel')}>
                 <div className="aip-draft-head">
                     <span className="aip-draft-label">{t('result.draftLabel')}</span>
-                    <span>{plural(t, 'result.activities', rows.length)}</span>
+                    <span>{plural(t, 'result.activities', total)}</span>
                 </div>
-                {rows.map(({day, item}) => {
-                    const isAdded = added.has(item.name);
-                    const isRemoving = removing === item.name;
+                {pkg.days.map((day) => {
                     // The day only, never an hour or a part of the day: the plan is a wish list for
                     // the group, and the planner sets the times after the vote.
-                    const when = startDate ? formatDayLabel(addDays(startDate, day.dayNumber - 1))
+                    const label = startDate ? formatDayLabel(addDays(startDate, day.dayNumber - 1))
                         : t('result.day', {n: day.dayNumber});
+                    const headingId = `aip-day-${pkg.key}-${day.dayNumber}`;
+                    // The planner's name for the day, unless it is still the stock "Day N"/"Tag N" - the
+                    // placeholder stays past textsPending when a package's copy failed, the model left
+                    // the title blank, or an edit reset it - which would read "Day 1 · Day 1".
+                    const dayName = day.title && !pending && !isStockDayTitle(day.title) ? day.title : null;
                     return (
-                        <div key={`${item.activityId}-${day.dayNumber}-${item.slot}`}
-                             className={`aip-item ${isAdded ? 'is-added' : ''} ${isRemoving ? 'is-removing' : ''}`}>
-                            <span className="aip-item-thumb" aria-hidden="true">
-                                {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy"/> : item.name.charAt(0)}
-                            </span>
-                            <div className="aip-item-body">
-                                <div className="aip-item-name">
-                                    {onOpen ? (
-                                        <button type="button" className="activity-open" aria-haspopup="dialog"
-                                                onClick={() => onOpen(item)}>
-                                            {item.name}
-                                        </button>
-                                    ) : item.name}
-                                    {isAdded && <span className="aip-badge">{t('result.aiAdded')}</span>}
-                                </div>
-                                <div className="aip-item-sub">
-                                    {isRemoving ? t('result.removing')
-                                        : [duration(item.durationMinutes), when].filter(Boolean).join(' · ')}
-                                </div>
+                        <section key={day.dayNumber} className="aip-day" aria-labelledby={headingId}>
+                            <div className="aip-day-head">
+                                <h2 id={headingId} className="aip-day-title">
+                                    {label}
+                                    {dayName && <span className="aip-day-name"> · {dayName}</span>}
+                                </h2>
+                                {day.items.length > 0 && (
+                                    <span className="aip-day-count">{plural(t, 'result.activities', day.items.length)}</span>
+                                )}
                             </div>
-                            <button
-                                type="button"
-                                className="aip-remove"
-                                aria-label={t('result.removeAria', {name: item.name})}
-                                onClick={() => onRemove(pkg, item)}
-                                disabled={busy || pending}
-                            >
-                                <i className="ph ph-x" aria-hidden="true"/>
-                            </button>
-                        </div>
+                            {/* An empty day stays on the page: a two-day trip must never read as one. The
+                                line says it; a "0 activities" count next to it would say it twice. */}
+                            {day.items.length === 0 && <div className="aip-day-empty">{t('result.emptyDay')}</div>}
+                            {day.items.map((item) => {
+                                const isAdded = added.has(item.name);
+                                const isRemoving = removing === item.name;
+                                const sub = isRemoving ? t('result.removing') : duration(item.durationMinutes);
+                                return (
+                                    <div key={`${item.activityId}-${item.slot}`}
+                                         className={`aip-item ${isAdded ? 'is-added' : ''} ${isRemoving ? 'is-removing' : ''}`}>
+                                        <span className="aip-item-thumb" aria-hidden="true">
+                                            {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy"/> : item.name.charAt(0)}
+                                        </span>
+                                        <div className="aip-item-body">
+                                            <div className="aip-item-name">
+                                                {onOpen ? (
+                                                    <button type="button" className="activity-open" aria-haspopup="dialog"
+                                                            onClick={() => onOpen(item)}>
+                                                        {item.name}
+                                                    </button>
+                                                ) : item.name}
+                                                {isAdded && <span className="aip-badge">{t('result.aiAdded')}</span>}
+                                            </div>
+                                            {sub && <div className="aip-item-sub">{sub}</div>}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="aip-remove"
+                                            aria-label={t('result.removeAria', {name: item.name})}
+                                            onClick={() => onRemove(pkg, item)}
+                                            disabled={busy || pending}
+                                        >
+                                            <i className="ph ph-x" aria-hidden="true"/>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </section>
                     );
                 })}
                 <div className="aip-draft-foot">

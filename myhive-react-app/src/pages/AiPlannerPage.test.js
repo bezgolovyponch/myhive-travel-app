@@ -112,11 +112,60 @@ test('with trip dates that match the plan, days are real dates', async () => {
     aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
     renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-18'});
 
-    // The day, never an hour: both rows read the same.
-    expect((await screen.findAllByText('2 h · Fri 16 Oct')).length).toBe(2);
+    // The draft is split by day: the date and the planner's name for the day head each section, the rows
+    // under it carry the duration only - never an hour or a part of the day.
+    const day1 = await screen.findByRole('region', {name: 'Fri 16 Oct · Landing night'});
+    expect(within(day1).getByText('2 activities')).toBeInTheDocument();
+    expect(within(day1).getAllByText('2 h').length).toBe(2);
+    // An empty day stays on the page, so a two-day trip never reads as one - said once, not as a count too.
+    const day2 = screen.getByRole('region', {name: 'Sat 17 Oct · Big day'});
+    expect(within(day2).getByText('Nothing planned yet')).toBeInTheDocument();
+    expect(within(day2).queryByText(/activit/)).not.toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Sun 18 Oct · Recovery'})).toBeInTheDocument();
     expect(screen.queryByText(/20:00|Afternoon/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Day 1/)).not.toBeInTheDocument();
     expect(screen.getByText('Fri 16 – Sun 18 Oct · 10 people')).toBeInTheDocument();
+});
+
+test('a day whose title is still the stock "Day N" (copy failed or reset) shows the label once', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [{...p.days[0], title: 'Day 1'}]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByRole('region', {name: 'Day 1'})).toBeInTheDocument();
+    expect(within(draft).queryByText(/Day 1 · Day 1/)).not.toBeInTheDocument();
+});
+
+test('a row without a duration has no empty subtitle under its name', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [{...p.days[0],
+        items: [item('Bar Crawl', {durationMinutes: null}), item('Karting', {slot: 'AFTERNOON', startHint: null})]}]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByText('Bar Crawl')).toBeInTheDocument();
+    expect(within(draft).getAllByText('2 h')).toHaveLength(1);
+    expect(draft.querySelectorAll('.aip-item-sub')).toHaveLength(1);
+});
+
+test('while the copy is still being written, a day shows its date or number but not its title yet', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const skeleton = readyGeneration({textsPending: true});
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: skeleton}));
+    aiPlannerApi.getGeneration.mockResolvedValue(skeleton);
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByRole('region', {name: 'Day 1'})).toBeInTheDocument();
+    expect(within(draft).queryByText(/Landing night/)).not.toBeInTheDocument();
 });
 
 test('trip dates that do not match the plan length keep Day 1, Day 2', async () => {
@@ -124,7 +173,7 @@ test('trip dates that do not match the plan length keep Day 1, Day 2', async () 
     aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: readyGeneration()}));
     renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-22'});
 
-    expect((await screen.findAllByText('2 h · Day 1')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('region', {name: 'Day 1 · Landing night'})).toBeInTheDocument();
     expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
 });
 
@@ -231,8 +280,11 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(screen.getByRole('tab', {name: /Medium/})).toHaveAttribute('aria-selected', 'true');
     const draft = screen.getByRole('region', {name: 'Trip draft'});
     expect(within(draft).getByText('Karting')).toBeInTheDocument();
-    expect(within(draft).getAllByText('2 h · Day 1').length).toBeGreaterThan(0); // the day only, no hour
-    expect(within(draft).getByText('2 activities')).toBeInTheDocument();
+    // Split by day, the rows carrying the duration only - the day is the section's heading.
+    expect(within(draft).getByRole('region', {name: 'Day 1 · Landing night'})).toBeInTheDocument();
+    expect(within(draft).getAllByText('2 h').length).toBeGreaterThan(0);
+    // The draft's total and, under it, the one day's count: the same two here.
+    expect(within(draft).getAllByText('2 activities')).toHaveLength(2);
     // One price for the whole group at the foot of the draft, none per activity.
     expect(within(draft).getByText('from €176 / person')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /Browse all/}))
