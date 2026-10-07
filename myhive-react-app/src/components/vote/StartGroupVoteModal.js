@@ -15,19 +15,6 @@ import {
 import { useT, useLocalePath } from '../../i18n';
 import './StartGroupVoteModal.css';
 
-// The fixed example on the "The group's choice" card: the same for every
-// organiser, so it can never be mistaken for their own results.
-const EXAMPLE = {
-    voted: 9,
-    total: 10,
-    rows: [
-        { key: 'first', yes: 8, no: 1 },
-        { key: 'second', yes: 7, no: 2 },
-        { key: 'third', yes: 3, no: 6, dropped: true },
-    ],
-    recommendations: 7,
-};
-
 function datesError({ needsDates, voteStartDate, voteEndDate }, t) {
     if (!needsDates) {
         return undefined;
@@ -49,49 +36,22 @@ function WhatsAppIcon() {
     );
 }
 
+function GroupIcon() {
+    return (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="8" cy="9" r="3"/>
+            <circle cx="16" cy="9" r="3"/>
+            <path d="M2 19c0-3 3-5 6-5s6 2 6 5zM12 19c0-3 2-5 4-5 3 0 6 2 6 5z"/>
+        </svg>
+    );
+}
+
 function ReadTicks() {
     return (
         <svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <path d="M1 5.5l3 3L10 2"/>
             <path d="M6 8.5l1 0L13 2"/>
         </svg>
-    );
-}
-
-/** The "The group's choice" card: what the organiser sees once the group has voted. */
-function ExampleResultCard({ t }) {
-    return (
-        <div className="sgv-card">
-            <div className="sgv-card-head">
-                <span className="sgv-eyebrow">{t('start.card.label')}</span>
-                <span className="sgv-voters">
-                    <span className="sgv-voter-dots" aria-hidden="true">
-                        {Array.from({ length: EXAMPLE.total }, (_, i) => (
-                            <span key={i} className={i < EXAMPLE.voted ? 'is-voted' : ''}/>
-                        ))}
-                    </span>
-                    {t('start.card.voted', { voted: EXAMPLE.voted, total: EXAMPLE.total })}
-                </span>
-            </div>
-            <ul className="sgv-card-rows">
-                {EXAMPLE.rows.map(row => (
-                    <li key={row.key} className={row.dropped ? 'is-dropped' : ''}>
-                        <div className="sgv-card-row">
-                            <span className="sgv-card-name">{t(`start.card.activities.${row.key}`)}</span>
-                            <span className="sgv-pill sgv-pill--yes">✓ {t('start.card.yes', { count: row.yes })}</span>
-                            <span className="sgv-pill sgv-pill--no">✗ {t('start.card.no', { count: row.no })}</span>
-                        </div>
-                        <span className="sgv-split" aria-hidden="true">
-                            <span style={{ width: `${Math.round(row.yes / (row.yes + row.no) * 100)}%` }}/>
-                        </span>
-                    </li>
-                ))}
-            </ul>
-            <div className="sgv-card-foot">
-                <span>{t('start.card.recommendations')}</span>
-                <span className="sgv-count">+{EXAMPLE.recommendations}</span>
-            </div>
-        </div>
     );
 }
 
@@ -105,11 +65,14 @@ export function WhatsAppGroupPreview({ t, destinationName, members, message, lin
     return (
         <div className="sgv-chat">
             <div className="sgv-chat-head">
-                <span className="sgv-chat-avatar" aria-hidden="true">🍺</span>
-                <div>
-                    <div className="sgv-chat-title">{t('start.chat.title', { destination: destinationName })}</div>
-                    {members > 0 && <div className="sgv-chat-sub">{t('start.chat.members', { count: members })}</div>}
-                </div>
+                <span className="sgv-chat-avatar" aria-hidden="true"><GroupIcon/></span>
+                <span className="sgv-chat-title">
+                    <b>{t('start.chat.title', { destination: destinationName })}</b>
+                    {members > 0 && <> · {t('start.chat.members', { count: members })}</>}
+                </span>
+                <svg className="sgv-chat-menu" width="4" height="14" viewBox="0 0 4 14" fill="currentColor" aria-hidden="true">
+                    <circle cx="2" cy="2" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="2" cy="12" r="1.5"/>
+                </svg>
             </div>
             <div className="sgv-chat-body">
                 <div className="sgv-bubble">
@@ -117,8 +80,11 @@ export function WhatsAppGroupPreview({ t, destinationName, members, message, lin
                     <div className="sgv-link-preview">
                         <span className="sgv-link-logo" aria-hidden="true">t</span>
                         <div>
-                            <div className="sgv-link-title">{t('start.chat.linkTitle', { destination: destinationName })}</div>
-                            <div className="sgv-link-host">{linkUrl || t('start.chat.linkHost')}</div>
+                            <div className="sgv-link-title">
+                                {t('start.chat.linkTitle', { destination: destinationName })}
+                                {!linkUrl && <> · {t('start.chat.linkHost')}</>}
+                            </div>
+                            {linkUrl && <div className="sgv-link-host">{linkUrl}</div>}
                         </div>
                     </div>
                     <div className="sgv-bubble-meta">{time}<ReadTicks/></div>
@@ -128,8 +94,68 @@ export function WhatsAppGroupPreview({ t, destinationName, members, message, lin
     );
 }
 
-// The organiser's contact sheet (v3 4a). It shows what happens next, what the
-// result will look like and the message for the group, then takes a WhatsApp
+// What the organiser gets back, shown before they ask: a sample of three
+// activities with the group's yes and no, the last one voted out.
+const CHOICE_GROUP = 10;
+const CHOICE_ROWS = [
+    { key: 'shooting', yes: 8, no: 1 },
+    { key: 'steak', yes: 7, no: 2 },
+    { key: 'tank', yes: 3, no: 6 },
+];
+const CHOICE_VOTED = Math.max(...CHOICE_ROWS.map((row) => row.yes + row.no));
+const CHOICE_RECOMMENDED = 7;
+// The picker's last entry: a code typed by hand.
+const OTHER_CODE = 'other';
+
+function GroupChoice({ t }) {
+    return (
+        <div className="sgv-choice" aria-hidden="true">
+            <div className="sgv-choice-head">
+                <span className="sgv-choice-title">{t('start.choice.title')}</span>
+                <span className="sgv-choice-dots">
+                    {Array.from({ length: CHOICE_GROUP }, (_, i) => (
+                        <span key={i} className={i < CHOICE_VOTED ? 'is-in' : undefined}/>
+                    ))}
+                </span>
+                <span>{t('start.choice.voted', { voted: CHOICE_VOTED, total: CHOICE_GROUP })}</span>
+            </div>
+            {CHOICE_ROWS.map((row) => (
+                <div key={row.key} className={`sgv-choice-row${row.yes < row.no ? ' is-out' : ''}`}>
+                    <div className="sgv-choice-top">
+                        <span className="sgv-choice-name">{t(`start.choice.rows.${row.key}`)}</span>
+                        <span className="sgv-choice-yes">✓ {t('start.choice.yes', { count: row.yes })}</span>
+                        <span className="sgv-choice-no">✕ {t('start.choice.no', { count: row.no })}</span>
+                    </div>
+                    <span className="sgv-choice-bar">
+                        <span style={{ width: `${Math.round(row.yes / (row.yes + row.no) * 100)}%` }}/>
+                    </span>
+                </div>
+            ))}
+            <div className="sgv-choice-foot">
+                <span>{t('start.choice.recommendations')}</span>
+                <b>+{CHOICE_RECOMMENDED}</b>
+            </div>
+        </div>
+    );
+}
+
+/** The message as WhatsApp shows one the organiser has sent: no chat around it. */
+function SentMessage({ t, destinationName, message }) {
+    const time = useMemo(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), []);
+    return (
+        <div className="sgv-msg">
+            <p className="sgv-msg-text">{message}</p>
+            <div className="sgv-msg-link">
+                <span className="sgv-msg-logo" aria-hidden="true">t</span>
+                <span>{t('start.chat.linkTitle', { destination: destinationName })}</span>
+            </div>
+            <span className="sgv-msg-meta">{time}<ReadTicks/></span>
+        </div>
+    );
+}
+
+// The organiser's contact modal (v3 4a, "Contact Modal Light"). It shows what
+// the vote gives back and the message for the group, then takes a WhatsApp
 // number or an email: each button needs its own contact, and either one
 // creates the vote and opens the organiser's dashboard. The vote's link token
 // is picked here, so WhatsApp opens with the link in the same tap, before the
@@ -144,6 +170,7 @@ function StartGroupVoteModal({
     const [voteStartDate, setVoteStartDate] = useState(startDate || '');
     const [voteEndDate, setVoteEndDate] = useState(endDate || '');
     const [countryCode, setCountryCode] = useState(COUNTRY_CODES[0].code);
+    const [typedCode, setTypedCode] = useState(null); // "+351" while the code is typed by hand, else null
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [apiError, setApiError] = useState(null);
@@ -157,7 +184,7 @@ function StartGroupVoteModal({
     const needsDates = !startDate || !endDate;
     const tripStart = needsDates ? voteStartDate : startDate;
     const tripEnd = needsDates ? voteEndDate : endDate;
-    const e164 = toE164(countryCode, phone);
+    const e164 = toE164(typedCode ?? countryCode, phone);
     const emailOk = !emailFormat(email);
     const dateProblem = datesError({ needsDates, voteStartDate, voteEndDate }, t);
     const message = groupMessage(t, { destinationName, startDate: tripStart, endDate: tripEnd });
@@ -261,25 +288,10 @@ function StartGroupVoteModal({
             isOpen={isOpen}
             onClose={handleClose}
             closeOnBackdrop
-            title={t('start.headline')}
-            contentClassName="start-vote-modal"
+            title={`${t('start.headlineLead')} ${t('start.headlineResult')}`}
+            contentClassName={`start-vote-modal${needsDates ? ' has-dates' : ''}`}
         >
-            <ol className="sgv-timeline">
-                <li className="sgv-step sgv-step--today">
-                    <span className="sgv-step-label">{t('start.timeline.todayLabel')}</span>
-                    <span>{t('start.timeline.today')}</span>
-                </li>
-                <li className="sgv-step sgv-step--half">
-                    <span className="sgv-step-label">{t('start.timeline.halfLabel')}</span>
-                    <span>{t('start.timeline.half')}</span>
-                </li>
-                <li className="sgv-step sgv-step--end">
-                    <span className="sgv-step-label">{t('start.timeline.endLabel')}</span>
-                    <span>{t('start.timeline.end')}</span>
-                </li>
-            </ol>
-
-            <ExampleResultCard t={t}/>
+            <GroupChoice t={t}/>
 
             {needsDates && (
                 <div className="sgv-dates">
@@ -302,21 +314,43 @@ function StartGroupVoteModal({
             )}
 
             <div className="sgv-whatsapp">
-                <WhatsAppGroupPreview
-                    t={t}
-                    destinationName={destinationName}
-                    members={numberOfTravelers}
-                    message={message}
-                />
-                <div className="sgv-phone">
-                    <select
-                        aria-label={t('start.phone.countryLabel')}
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="sgv-input"
-                    >
-                        {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
-                    </select>
+                <SentMessage t={t} destinationName={destinationName} message={message}/>
+                <div className={`sgv-field sgv-phone${e164 ? ' is-valid-phone' : ''}`}>
+                    {typedCode == null ? (
+                        <select
+                            aria-label={t('start.phone.countryLabel')}
+                            value={countryCode}
+                            onChange={(e) => {
+                                if (e.target.value === OTHER_CODE) {
+                                    setTypedCode('+');
+                                } else {
+                                    setCountryCode(e.target.value);
+                                }
+                                setSent(false);
+                            }}
+                            className="sgv-code"
+                        >
+                            {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                            <option value={OTHER_CODE}>{t('start.phone.otherCode')}</option>
+                        </select>
+                    ) : (
+                        // Any other country: the code is typed. Emptied, the picker comes back.
+                        <input
+                            type="tel"
+                            inputMode="tel"
+                            autoFocus
+                            aria-label={t('start.phone.countryLabel')}
+                            placeholder="+00"
+                            value={typedCode}
+                            maxLength={5}
+                            onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                setTypedCode(e.target.value === '' ? null : `+${digits}`);
+                                setSent(false);
+                            }}
+                            className="sgv-code"
+                        />
+                    )}
                     <input
                         type="tel"
                         inputMode="tel"
@@ -328,7 +362,7 @@ function StartGroupVoteModal({
                             setPhone(e.target.value);
                             setSent(false);
                         }}
-                        className={`sgv-input${e164 ? ' is-valid-phone' : ''}`}
+                        className="sgv-input"
                     />
                 </div>
                 <button
@@ -344,23 +378,25 @@ function StartGroupVoteModal({
 
             <div className="sgv-or"><span>{t('start.or')}</span></div>
 
-            <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck={false}
-                aria-label={t('start.email.placeholder')}
-                placeholder={t('start.email.placeholder')}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        handleEmail();
-                    }
-                }}
-                className={`sgv-input sgv-email${emailOk ? ' is-valid-email' : ''}`}
-            />
+            <div className={`sgv-field sgv-email${emailOk ? ' is-valid-email' : ''}`}>
+                <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    aria-label={t('start.email.placeholder')}
+                    placeholder={t('start.email.placeholder')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            handleEmail();
+                        }
+                    }}
+                    className="sgv-input"
+                />
+            </div>
             <button
                 type="button"
                 className="sgv-btn sgv-btn--primary"

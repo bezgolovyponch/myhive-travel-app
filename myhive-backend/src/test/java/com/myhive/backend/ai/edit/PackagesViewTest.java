@@ -30,6 +30,16 @@ class PackagesViewTest {
     }
 
     @Test
+    void render_withAWorkingPackage_showsTheTripDraftAlone() {
+        ComposedPlan plan = new ComposedPlan(List.of(
+                pkg(Tier.BASIC, List.of(day(1, List.of(item("Beer Bike", Slot.EVENING))))),
+                pkg(Tier.MEDIUM, List.of(day(1, List.of(item("Karting", Slot.AFTERNOON))))),
+                pkg(Tier.PREMIUM, List.of(day(1, List.of(item("Shooting Range", Slot.AFTERNOON)))))), false);
+
+        assertThat(PackagesView.render(plan, Tier.MEDIUM)).isEqualTo("MEDIUM: day 1 [AFTERNOON Karting]");
+    }
+
+    @Test
     void render_withoutPackages_isEmpty() {
         assertThat(PackagesView.render(new ComposedPlan(List.of(), false))).isEmpty();
     }

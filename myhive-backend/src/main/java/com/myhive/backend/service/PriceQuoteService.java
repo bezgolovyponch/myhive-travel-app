@@ -45,8 +45,7 @@ public class PriceQuoteService {
             total = total.add(lineTotal(activity, travelers));
         }
         BigDecimal fromPrice = FromPrice.of(total);
-        BigDecimal perPerson = fromPrice == null ? null : fromPrice.divide(travelers, 0, RoundingMode.CEILING);
-        return new PriceQuoteResponse(fromPrice, perPerson);
+        return new PriceQuoteResponse(fromPrice, FromPrice.perPerson(total, travelers.intValueExact()));
     }
 
     private static BigDecimal lineTotal(Activity activity, BigDecimal travelers) {

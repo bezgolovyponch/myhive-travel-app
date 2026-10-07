@@ -217,6 +217,57 @@ chips that send their own text. When the organizer picks something the catalog s
 in variants (a dinner with or without a show, a boat with unlimited drinks), the
 reply asks one either/or question and the chips name those catalog variants.
 
+`recommendations` (0–4, never null) are activities offered for the draft once packages
+exist, best match first: what the organizer asked for in general terms ("we want to
+shoot kalashnikov") and the catalog's closest options for something it lacks. Each is
+a catalog row — `{ "activityId", "name", "oneLine", "durationMinutes", "pricePerPerson",
+"imageUrl" }`, `pricePerPerson` in whole euros for the brief's group (group minimum
+included), `durationMinutes` null when unknown. Show the first as the top match with
+**Add**, the rest as `+ name` tags; add one with `POST /ai/sessions/{token}/edits`.
+They stay until the next chat turn, also on `GET /ai/sessions/{token}`.
+
+Once packages exist, send the trim on screen with every message:
+`{ "content": "add ak", "packageKey": "MEDIUM" }`. That trim is the organizer's trip
+draft — the only package there is: the model sees it alone and every edit the turn
+makes lands in it, whatever package the model named. The other trims stay untouched
+originals until the organizer switches to one (`showPackage`).
+
+`gaps` (both bodies, never null) maps each package key to 0–6 kinds of activity the
+package could take next - the "+ Add shooting", "+ Add strippers" tags under the plan:
+`{ "categorySlug", "name", "options": [recommendation, …] }`. A kind is a catalog
+category, `name` in the session's language; `options` are 1–4 activities of that kind
+the package does not hold, in the same shape as `recommendations`. Order is the
+catalog's own (the brief's categories first, then the popularity index, which counts
+being part of a ready-made package), so the kind with the most wanted activity comes
+first; an activity filed under several categories leads only the first kind it turns up
+in. A tap is **not** a chat turn: the client asks "which one?" with `options` as the
+answers, shows the chosen one as a card, and only its Add button calls
+`POST /ai/sessions/{token}/edits`. No prices are shown for tags or answers.
+
+`suggestions` (both bodies, never null) maps each package key to 0–4 activities for the
+"Would you like to add anything?" row under a ready draft. They are what the ready-made
+packages hold that the package lacks - its own tier's first, then the tier above - and
+each one has been tried against the package with the editor a tap uses, so it is only
+listed when `POST /ai/sessions/{token}/edits` with `ADD` would put it in. Same shape as
+`recommendations`. A package with every slot taken has an empty list.
+
+Another ready-made weekend can be asked for by typing while the three options are up
+("show me the adrenaline weekend instead"): the chat is told which families of ready-made
+packages the plan was not built from, reads the request as a change of vibe and rebuilds
+all three options (a new generation to poll).
+
+An add - typed or tapped - is never refused for lack of room. It takes a free slot on
+a day that has one (at most 4 activities and 540 minutes with the buffers); when no day
+has one it goes on the lightest day anyway, sharing a slot. A swap behaves the same. The
+plan is the organizer's wish list for the group: the planner sets the times after the
+vote, so the client shows the day of each activity and no hour. Once one option is the
+organizer's own (`workingPackage` set), the chat's own lines call it "your trip plan"
+and never name its tier.
+
+Travel times are never asked: `arrival`/`departure` are no longer in `missingFields`.
+A brief is ready with days, group size and a taste; an edge the organizer names is
+still used.
+
 On the turn that starts a generation (`generation` is set) the reply never asks
 anything and `suggestedReplies` is empty: every message is refused with
 `GENERATION_IN_PROGRESS` until the packages land, so there would be nothing to tap.
@@ -542,7 +593,19 @@ or a `REPLACE` proposing one as the replacement, comes back `UNKNOWN_ACTIVITY`
 with `detail` ending "is no longer in the catalog". Nothing is silently dropped
 from a package the batch did not name.
 
-### `POST /ai/sessions/{token}/generations` — (re)generate explicitly
+### `POST /ai/sessions/{token}/edits` — one tap in the draft
+
+```json
+{ "op": "ADD", "activityId": "…", "packageKey": "MEDIUM" }   // op: ADD | REMOVE; packageKey null = every package
+```
+
+Adds or removes one catalog activity with no chat turn and no model call — the
+recommendation row's **Add** / **Added ✓** and a line's ×. The answer is a normal
+turn body (`edit`, `generation` = the new `EDITED` row, `messages` = the one-line
+confirmation), so the client applies it exactly like a chat edit. The copy is not
+rewritten and nothing is taken from `limits.editsLeft`. `400` for `REPLACE` or an
+activity this destination does not offer, `409 NO_PACKAGES_YET` before the first
+packages, `409` while a generation is running.
 
 Empty body. Use for a "Generate now" / "Try other options" button.
 `202` → `{ "id": "…", "status": "QUEUED" }`. Errors: `BRIEF_INCOMPLETE`,
@@ -687,7 +750,8 @@ the intended way forward from an undo; it is not an error.
   "latestReadyGeneration": null,              // newest READY generation, same body; null if none
   "firstTurnError": null,                     // or { "code": "LLM_UNAVAILABLE" | "LLM_TIMEOUT" }
   "limits": { "messagesLeft": 27, "generationsLeft": 5, "editsLeft": 20 },
-  "suggestedReplies": ["Bar crawl + club night", "Shooting range + night out"] // chips for the latest reply
+  "suggestedReplies": ["Bar crawl + club night", "Shooting range + night out"], // chips for the latest reply
+  "recommendations": []                       // activities offered for the draft (see the messages endpoint)
 }
 ```
 
@@ -744,6 +808,9 @@ known before `readyToGenerate` turns true; `budget` never blocks generation.
   "tagline": "Karting by day, beer by night",  // ≤ 120
   "description": "• Beer Bike - 20 l beer\n• Karting - 2 × 10 min",  // ≤ 600; one "• " line per activity, keep line breaks
   "pricePerPerson": 245.50, "totalPrice": 1964.00, "currency": "EUR",
+  "fromPrice": 1768,                           // the "from" price for the group: totalPrice less a fixed margin, whole euros
+  "fromPricePerPerson": 221,                   // one traveller's share of fromPrice, rounded up; null without a group size.
+                                               // This is the price the planner shows ("from €221 / person"), never the total.
   "totalDurationMinutes": 780,
   "nights": 2,                                 // days - 1; null on packages stored before it existed
   "activityIds": ["…", "…"],

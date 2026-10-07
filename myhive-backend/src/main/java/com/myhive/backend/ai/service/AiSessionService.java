@@ -1,6 +1,11 @@
 package com.myhive.backend.ai.service;
 
+import com.myhive.backend.ai.dto.AiDtoMapper;
+import com.myhive.backend.ai.dto.RecommendationDTO;
+import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.exception.AiConflictException;
 import com.myhive.backend.ai.exception.AiDisabledException;
 import com.myhive.backend.ai.exception.AiLimitException;
@@ -164,7 +169,7 @@ public class AiSessionService {
             return view(session);
         }
         try {
-            return locks.withLock(session.getToken(), () -> turn(session, initialMessage)).view();
+            return locks.withLock(session.getToken(), () -> turn(session, initialMessage, null)).view();
         } catch (LlmCallFailedException e) {
             // Not a 502: the row, the checkpoint thread and one of the caller's twenty daily chats are
             // already spent, and the documented retry ("re-send the same text") needs the token a
@@ -181,8 +186,13 @@ public class AiSessionService {
     }
 
     public TurnOutcome message(UUID token, String content) {
+        return message(token, content, null);
+    }
+
+    /** {@code workingPackage} is the trim on screen: the only package this turn may change (null: unchanged). */
+    public TurnOutcome message(UUID token, String content, Tier workingPackage) {
         requireEnabled();
-        return locks.withLock(token, () -> turn(find(token), content));
+        return locks.withLock(token, () -> turn(find(token), content, workingPackage));
     }
 
     /** Explicit "build it now", for the cases where the chat did not trigger a generation itself. */
@@ -274,6 +284,65 @@ public class AiSessionService {
     }
 
     /**
+     * A tap in the trip draft: adds or removes one catalog activity in {@code packageKey} with no chat
+     * turn and no model call. The edit runs through the same node as a chat edit - it lands in the free
+     * slot the editor picks, is stored as an {@code EDITED} generation and confirmed by the same line in
+     * the chat - so the next chat turn sees the draft exactly as the organizer left it. A tap costs none
+     * of the session's edit allowance: that counts model turns, and a tap is one click that can be undone
+     * with the next.
+     */
+    public TurnOutcome editDraft(UUID token, EditOp op, UUID activityId, Tier packageKey) {
+        requireEnabled();
+        if (op != EditOp.ADD && op != EditOp.REMOVE) {
+            throw new BadRequestException("Only ADD and REMOVE can be applied from the draft");
+        }
+        return locks.withLock(token, () -> {
+            AiSession session = find(token);
+            requireNoGenerationInFlight(session, "Your packages are being built, one moment");
+            generationService.ensureParked(session);
+            PlannerGraph.PlannerStateSnapshot before = graph.snapshot(token);
+            PlannerState state = before.state();
+            if (state.result().isEmpty() || PlannerGraph.AWAIT_GENERATION.equals(before.next())) {
+                throw new AiConflictException("NO_PACKAGES_YET", "There is no draft to change yet");
+            }
+            CatalogActivity activity = state.catalog().stream()
+                    .filter(candidate -> candidate.id().equals(activityId))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Activity " + activityId + " is not on offer here"));
+            int firstMessageOfThisEdit = state.messages().size();
+            Map<String, Object> update = new HashMap<>();
+            update.put(PlannerState.RESUME_REASON, ResumeReason.EDIT.name());
+            update.put(PlannerState.EDITS, JsonCodec.write(List.of(
+                    new EditRequest(op, activity.name(), null, packageKey, null, null))));
+            // The row the tap came from may be the alternatives of a chat edit the catalog could not answer.
+            // Those live in the edit report this tap replaces: carry them over as the turn's
+            // recommendations, or the row - and the tags next to the one just tapped - is gone after one tap.
+            update.put(PlannerState.RECOMMENDATIONS, AiDtoMapper.recommendations(state).stream()
+                    .map(RecommendationDTO::name).toList());
+            update.put(PlannerState.EDIT_REPORT, "");
+            update.put(PlannerState.PENDING_REPLY, "");
+            if (packageKey != null) {
+                update.put(PlannerState.WORKING_PACKAGE, packageKey.name());
+            }
+            // A trim switch belongs to the chat turn that asked for it; a tap must not replay it.
+            update.put(PlannerState.SHOW_PACKAGE, "");
+            // The node checks the allowance before anything else; a tap is not counted against it.
+            update.put(PlannerState.EDITS_LEFT, 1);
+            graph.update(token, update);
+            PlannerGraph.PlannerStateSnapshot snapshot = graph.runUntilInterrupt(token);
+            List<ChatMessage> replies = assistantMessagesFrom(snapshot.state(), firstMessageOfThisEdit);
+            Optional<EditReport> report = snapshot.state().editReport();
+            Optional<AiGeneration> edited = Optional.empty();
+            if (report.filter(EditReport::anyApplied).isPresent()) {
+                session.setStatus(AiSessionStatus.READY);
+                edited = editedGeneration(token, snapshot.state().generationId());
+            }
+            touch(session);
+            return new TurnOutcome(view(session), Optional.empty(), report, edited, replies);
+        });
+    }
+
+    /**
      * Public because the controller guards reads of a generation with it, without loading a session.
      * Staff keep the planner while it is off for the public ({@code app.ai.staff-preview}): that is how
      * colleagues test it from the admin console before launch, and how a public kill still leaves them
@@ -286,7 +355,7 @@ public class AiSessionService {
     }
 
     /** One chat turn on a session the caller already holds the lock for. */
-    private TurnOutcome turn(AiSession session, String content) {
+    private TurnOutcome turn(AiSession session, String content, Tier workingPackage) {
         UUID token = session.getToken();
         if (session.getMessageCount() >= MAX_MESSAGES) {
             throw new AiLimitException("SESSION_TURN_LIMIT", "This chat reached its " + MAX_MESSAGES + "-message limit");
@@ -307,6 +376,9 @@ public class AiSessionService {
         update.put(PlannerState.EDIT_REPORT, "");
         // Absent means unlimited, so the allowance has to be stamped before every turn that could edit.
         update.put(PlannerState.EDITS_LEFT, MAX_EDITS_PER_SESSION - session.getEditCount());
+        if (workingPackage != null) {
+            update.put(PlannerState.WORKING_PACKAGE, workingPackage.name());
+        }
         List<ChatMessage> before = graph.snapshot(token).state().messages();
         boolean appendsUserMessage = !isRepeatOfLastUserMessage(before, text);
         if (appendsUserMessage) {

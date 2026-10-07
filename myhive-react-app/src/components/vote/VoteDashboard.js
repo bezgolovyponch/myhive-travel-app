@@ -66,14 +66,21 @@ export function KeepBar({row}) {
 
 /**
  * One line of the plan: the activity, its keep bar, and × to drop it from the
- * vote — or, once dropped, struck through with Restore.
+ * vote — or, once dropped, struck through with Restore. With onOpen the name
+ * opens the activity's card.
  */
-export function PlanRow({name, row, dropped = false, onRemove, onRestore}) {
+export function PlanRow({name, row, dropped = false, onOpen, onRemove, onRestore}) {
     const t = useT('tripBuilder');
     return (
         <li className={`vd-row${dropped ? ' is-dropped' : ''}`}>
             <div className="vd-row-body">
-                <div className="vd-row-name">{name}</div>
+                <div className="vd-row-name">
+                    {onOpen ? (
+                        <button type="button" className="activity-open" aria-haspopup="dialog" onClick={onOpen}>
+                            {name}
+                        </button>
+                    ) : name}
+                </div>
                 <KeepBar row={row}/>
             </div>
             {dropped ? (
@@ -138,7 +145,7 @@ export function VoteInvitePanel({shareToken, destinationName, members, startDate
  * there is nothing in it, opened when the first recommendation arrives. Add
  * puts one in the plan and the vote.
  */
-export function GroupRecommendations({recommendations, isAdded, onAdd}) {
+export function GroupRecommendations({recommendations, isAdded, onAdd, onOpen}) {
     const t = useT('tripBuilder');
     const recs = recommendations || [];
     const [open, setOpen] = useState(recs.length > 0);
@@ -169,7 +176,14 @@ export function GroupRecommendations({recommendations, isAdded, onAdd}) {
                         return (
                             <li key={rec.activityId} className="vd-rec">
                                 <div className="vd-rec-text">
-                                    <div className="vd-rec-name">{rec.name}</div>
+                                    <div className="vd-rec-name">
+                                        {onOpen ? (
+                                            <button type="button" className="activity-open" aria-haspopup="dialog"
+                                                    onClick={() => onOpen(rec)}>
+                                                {rec.name}
+                                            </button>
+                                        ) : rec.name}
+                                    </div>
                                     <div className="vd-muted">
                                         {t(rec.recommendationCount === 1 ? 'dashboard.recByOne' : 'dashboard.recByOther',
                                             {count: rec.recommendationCount})}

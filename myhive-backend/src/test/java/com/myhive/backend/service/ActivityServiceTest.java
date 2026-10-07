@@ -100,6 +100,22 @@ class ActivityServiceTest {
     }
 
     @Test
+    void getActivitiesByDestination_comesMostPopularFirst_thenByName() {
+        Activity crawl = TestDataFactory.activity(destination);
+        crawl.setName("Pub Crawl");
+        crawl.setFeaturedWeight(100);
+        Activity zorb = TestDataFactory.activity(destination);
+        zorb.setName("Zorb Football");
+        Activity archery = TestDataFactory.activity(destination);
+        archery.setName("archery");
+        when(activityRepository.findByDestinationId(destination.getId())).thenReturn(List.of(zorb, archery, crawl));
+
+        List<ActivityDTO> result = activityService.getActivitiesByDestination(destination.getId());
+
+        assertThat(result).extracting(ActivityDTO::getName).containsExactly("Pub Crawl", "archery", "Zorb Football");
+    }
+
+    @Test
     void getActivitiesByCategorySlug_returnsList() {
         when(activityRepository.findByCategoriesSlug("adventure")).thenReturn(List.of(activity));
 

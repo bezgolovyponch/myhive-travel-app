@@ -10,6 +10,7 @@ import com.myhive.backend.ai.edit.PackageEditor;
 import com.myhive.backend.ai.edit.TextRefresher;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
+import com.myhive.backend.ai.graph.ResumeReason;
 import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.llm.LlmUsage;
 import com.myhive.backend.ai.plan.ComposedPlan;
@@ -102,12 +103,16 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
         }
         ComposedPlan plan = current.get();
         EditOutcome outcome = applyOrReject(state, plan, edits);
-        TextRefresher.Refreshed refreshed = outcome.anyApplied()
+        // A tap in the draft is applied as it stands: the copy refresh is a model call the organizer would
+        // wait on after every click, and the draft shows names and slots, not the rewritten copy.
+        boolean tap = state.resumeReason().filter(ResumeReason.EDIT.name()::equals).isPresent();
+        TextRefresher.Refreshed refreshed = outcome.anyApplied() && !tap
                 ? refresher.refresh(outcome.plan(), outcome, locale, state.destinationName())
-                : new TextRefresher.Refreshed(plan, false, LlmUsage.none());
+                // The edited plan as it stands (the unchanged one when nothing landed), copy untouched.
+                : new TextRefresher.Refreshed(outcome.plan(), false, LlmUsage.none());
         EditReport report = EditReport.of(outcome, refreshed.refreshed());
         if (!outcome.anyApplied()) {
-            return consumed(locale, report, reply);
+            return consumed(locale, report, reply, state.workingPackage().isPresent());
         }
         Optional<UUID> stored = store(parent.get(), refreshed, report);
         if (stored.isEmpty()) {
@@ -115,7 +120,7 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
             // generation that is actually stored, and the batch is reported as INTERNAL rather than lost.
             return rejectAll(locale, edits, EditRejectionReason.INTERNAL);
         }
-        Map<String, Object> update = consumed(locale, report, reply);
+        Map<String, Object> update = consumed(locale, report, reply, state.workingPackage().isPresent());
         update.put(PlannerState.RESULT, JsonCodec.write(refreshed.plan()));
         update.put(PlannerState.GENERATION_ID, stored.get().toString());
         // The edited row is now the one the plan in RESULT came from, so the next edit hangs off it.
@@ -163,7 +168,7 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
 
     /** Every op rejected for the same reason, before the editor ever saw them. */
     private static Map<String, Object> rejectAll(String locale, List<EditRequest> edits, EditRejectionReason reason) {
-        return consumed(locale, EditReport.allRejected(edits, reason), Optional.empty());
+        return consumed(locale, EditReport.allRejected(edits, reason), Optional.empty(), false);
     }
 
     /**
@@ -224,7 +229,8 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
      * with anything rejected it would contradict the rejection that follows it ("Swapping X for Y now." /
      * "X is not in the Medium package"), so Java's line replaces it.
      */
-    private static Map<String, Object> consumed(String locale, EditReport report, Optional<String> reply) {
+    private static Map<String, Object> consumed(String locale, EditReport report, Optional<String> reply,
+            boolean tripPlan) {
         log.info("planner edits applied={} rejected={} refreshed={}", report.applied().size(),
                 report.rejected().size(), report.textsRefreshed());
         Map<String, Object> update = parked(JsonCodec.write(report));
@@ -236,7 +242,8 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
             // The chips answer a question in the reply that is no longer said; offered alone they make no sense.
             update.put(PlannerState.SUGGESTED_REPLIES, List.of());
         }
-        String summary = EditMessages.summary(locale, report);
+        // One option made the organizer's own is "your trip plan": its tier is never named again.
+        String summary = EditMessages.summary(locale, report, tripPlan);
         if (!summary.isEmpty()) {
             // The templates are ours but the names they interpolate can still be the model's spelling, so
             // the finished sentence goes through the same cleaning every other stored text does.

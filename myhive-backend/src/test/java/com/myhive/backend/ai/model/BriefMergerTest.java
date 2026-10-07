@@ -55,8 +55,8 @@ class BriefMergerTest {
     }
 
     @Test
-    void isReady_requiresDaysGroupTasteSignalAndBothTravelEdges() {
-        List<String> expectedMissing = List.of("days", "groupSize", "preferences", "arrival", "departure");
+    void isReady_requiresDaysGroupAndATasteSignal() {
+        List<String> expectedMissing = List.of("days", "groupSize", "preferences");
 
         assertThat(Brief.empty().isReady()).isFalse();
         assertThat(Brief.empty().missingFields()).containsExactlyElementsOf(expectedMissing);
@@ -69,16 +69,12 @@ class BriefMergerTest {
     }
 
     @Test
-    void isReady_isFalseUntilArrivalAndDepartureAreKnown() {
-        // The edges shape day 1 and the last day; generating on the defaults first cost a second full
-        // generation as soon as the organizer said when they land, so the chat has to ask first.
+    void isReady_withoutTravelTimes() {
+        // Travel times are never asked: a stag group rarely has tickets when it starts planning.
         Brief noEdges = new Brief(2, 6, List.of("gaming"), null, null, null, null, null, null);
-        Brief arrivalOnly = new Brief(2, 6, List.of("gaming"), null, null, null, DayEdge.EVENING, null, null);
 
-        assertThat(noEdges.isReady()).isFalse();
-        assertThat(noEdges.missingFields()).containsExactly("arrival", "departure");
-        assertThat(arrivalOnly.isReady()).isFalse();
-        assertThat(arrivalOnly.missingFields()).containsExactly("departure");
+        assertThat(noEdges.isReady()).isTrue();
+        assertThat(noEdges.missingFields()).isEmpty();
     }
 
     @Test

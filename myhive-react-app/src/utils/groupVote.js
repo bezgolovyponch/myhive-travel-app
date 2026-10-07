@@ -4,23 +4,36 @@ import {formatShortRange, parseISODate} from './format';
 // message for the group chat, the WhatsApp links that carry it, and the
 // WhatsApp number in E.164.
 
-// The countries the number picker offers; the first is the default.
+// The countries the number picker offers; the first is the default. `digits`
+// is how long a mobile number is there without the country code and the trunk
+// 0 - [shortest, longest] - so half a number is never taken for a whole one.
 export const COUNTRY_CODES = [
-    {code: '+44', label: 'UK +44'},
-    {code: '+353', label: 'IE +353'},
-    {code: '+420', label: 'CZ +420'},
-    {code: '+49', label: 'DE +49'},
-    {code: '+1', label: 'US +1'},
+    {code: '+49', label: 'DE +49', digits: [10, 11]},
+    {code: '+44', label: 'UK +44', digits: [10, 10]},
+    {code: '+43', label: 'AT +43', digits: [7, 13]},
+    {code: '+41', label: 'CH +41', digits: [9, 9]},
+    {code: '+353', label: 'IE +353', digits: [9, 9]},
+    {code: '+420', label: 'CZ +420', digits: [9, 9]},
+    {code: '+1', label: 'US +1', digits: [10, 10]},
 ];
+
+// A country the picker does not list: any length E.164 allows for a subscriber number.
+const ANY_COUNTRY = [7, 12];
 
 /**
  * "+44" + "07700 900-123" -> "+447700900123". The national part may start with
- * the trunk 0 people type at home; 7 to 12 digits are a number, anything else
- * is null.
+ * the trunk 0 people type at home. It has to be a whole number for that
+ * country - "+420" + "6085940" is two digits short and is null, like anything
+ * else that is not a number.
  */
 export function toE164(countryCode, raw) {
+    // A code typed by hand has to be a code: "+" and one to four digits, no leading zero.
+    if (!/^\+[1-9]\d{0,3}$/.test(String(countryCode || ''))) {
+        return null;
+    }
     const digits = String(raw || '').replace(/\D/g, '').replace(/^0+/, '');
-    if (digits.length < 7 || digits.length > 12) {
+    const [min, max] = COUNTRY_CODES.find((c) => c.code === countryCode)?.digits || ANY_COUNTRY;
+    if (digits.length < min || digits.length > max) {
         return null;
     }
     return `${countryCode}${digits}`;

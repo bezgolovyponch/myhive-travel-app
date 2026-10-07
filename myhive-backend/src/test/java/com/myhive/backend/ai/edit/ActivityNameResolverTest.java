@@ -96,4 +96,19 @@ class ActivityNameResolverTest {
         assertThat(ActivityNameResolver.resolve("   ", catalog)).isEqualTo(new ActivityNameResolver.NotFound());
         assertThat(ActivityNameResolver.resolve(null, catalog)).isEqualTo(new ActivityNameResolver.NotFound());
     }
+
+    /** As typed in a live chat: "ak 47" has to find the AK-47, and a name reads the same with or without its "&". */
+    @Test
+    void resolve_readsPunctuationAsASpace() {
+        CatalogActivity expectedShooting = activity("AK-47 and Glock 17 Shooting");
+        CatalogActivity expectedDinner = activity("Steak & Private Show");
+
+        assertThat(ActivityNameResolver.resolve("ak 47", catalog))
+                .isEqualTo(new ActivityNameResolver.Found(expectedShooting));
+        assertThat(ActivityNameResolver.resolve("AK47 ", catalog)).isInstanceOf(ActivityNameResolver.NotFound.class);
+        assertThat(ActivityNameResolver.resolve("steak private show", catalog))
+                .isEqualTo(new ActivityNameResolver.Found(expectedDinner));
+        assertThat(ActivityNameResolver.resolve("Steak - Private Show", catalog))
+                .isEqualTo(new ActivityNameResolver.Found(expectedDinner));
+    }
 }

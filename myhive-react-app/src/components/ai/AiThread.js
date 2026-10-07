@@ -31,6 +31,9 @@ const KNOWN_ERRORS = new Set([
     'SESSION_TURN_LIMIT', 'GENERATION_LIMIT', 'SESSION_DAILY_LIMIT', 'AI_DISABLED', 'NETWORK',
 ]);
 
+// The chat cannot go on: its turns or its rebuilds are spent.
+const USED_UP = new Set(['SESSION_TURN_LIMIT', 'GENERATION_LIMIT']);
+
 const Text = ({text}) => <p className="ai-thread-text">{text}</p>;
 
 // While a turn is in flight the runtime shows an empty assistant message;
@@ -70,11 +73,15 @@ const MESSAGE_COMPONENTS = {UserMessage, AssistantMessage};
  * @param planner  the useAiPlanner() result
  * @param variant  'full' (first turn, the whole screen) | 'drawer' (the dock)
  * @param emptyState  rendered while the transcript is empty (the intro + starters)
+ * @param beforeMessages  rendered above the transcript (the docked chat's opening line)
  * @param afterMessages  rendered under the latest reply (the trim cards)
+ * @param aboveComposer  rendered right over the input (the docked chat's tags)
+ * @param buildingText  what the status line says while packages are being built or rebuilt
  */
-function AiThread({planner, variant = 'full', placeholder, emptyState = null, afterMessages = null, footer = null}) {
+function AiThread({planner, variant = 'full', placeholder, emptyState = null, beforeMessages = null,
+                      afterMessages = null, aboveComposer = null, buildingText}) {
     const t = useT('aiPlanner');
-    const {messages, sending, building, suggestedReplies, error, send, retry} = planner;
+    const {messages, sending, building, suggestedReplies, error, send, retry, newChat} = planner;
 
     const runtime = useExternalStoreRuntime({
         messages,
@@ -92,12 +99,13 @@ function AiThread({planner, variant = 'full', placeholder, emptyState = null, af
             <ThreadPrimitive.Root className={`ai-thread ai-thread-${variant}`}>
                 <ThreadPrimitive.Viewport className="ai-thread-viewport" autoScroll>
                     {messages.length === 0 && emptyState}
+                    {beforeMessages}
                     <ThreadPrimitive.Messages components={MESSAGE_COMPONENTS}/>
                     {!sending && afterMessages}
 
                     {building && !sending && (
                         <div className="ai-status" role="status" aria-live="polite">
-                            <span className="ai-status-dot" aria-hidden="true"/> {t('building')}
+                            <span className="ai-status-dot" aria-hidden="true"/> {buildingText || t('building')}
                         </div>
                     )}
                     {error && (
@@ -106,6 +114,12 @@ function AiThread({planner, variant = 'full', placeholder, emptyState = null, af
                             {error.retryText && (
                                 <button type="button" className="ai-error-retry" onClick={retry}>
                                     {t('retry')}
+                                </button>
+                            )}
+                            {/* A chat that has run out is the one place a fresh one is offered. */}
+                            {USED_UP.has(error.code) && (
+                                <button type="button" className="ai-error-retry" onClick={newChat}>
+                                    {t('newChat')}
                                 </button>
                             )}
                         </div>
@@ -126,6 +140,7 @@ function AiThread({planner, variant = 'full', placeholder, emptyState = null, af
                             )}
                         </ThreadPrimitive.Suggestions>
                     </div>
+                    {aboveComposer}
                     <ComposerPrimitive.Root className="ai-composer">
                         <ComposerPrimitive.Input
                             className="ai-composer-input"
@@ -140,7 +155,6 @@ function AiThread({planner, variant = 'full', placeholder, emptyState = null, af
                             <i className="ph ph-paper-plane-right" aria-hidden="true"/>
                         </ComposerPrimitive.Send>
                     </ComposerPrimitive.Root>
-                    {footer}
                 </div>
             </ThreadPrimitive.Root>
         </AssistantRuntimeProvider>

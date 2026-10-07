@@ -265,6 +265,7 @@
     "pageOf": "Seite {current} von {total}",
     "durationHours": "{hours} Std.",
     "viewFullPage": "Zur Detailseite ↗",
+    "loadingDetails": "Details werden geladen…",
     "noDescription": "Noch keine Beschreibung.",
     "whatsIncluded": "Was ist enthalten",
     "openPhoto": "Foto {num} von {total} öffnen",
@@ -497,27 +498,8 @@
   },
   "voteComponents": {
     "start": {
-      "headline": "Deine Gruppe stimmt ab. Du bekommst das Ergebnis.",
-      "timeline": {
-        "todayLabel": "Heute",
-        "today": "Die Gruppe bekommt den Plan",
-        "halfLabel": "In 12 Stunden",
-        "half": "Wir halten alle auf dem Laufenden",
-        "endLabel": "In 24 Stunden",
-        "end": "Der Plan steht, von allen abgestimmt"
-      },
-      "card": {
-        "label": "Die Wahl der Gruppe",
-        "voted": "{voted} von {total} haben abgestimmt",
-        "yes": "{count} Ja",
-        "no": "{count} Nein",
-        "recommendations": "Empfehlungen der Gruppe",
-        "activities": {
-          "first": "AK-47 schießen",
-          "second": "Steak und Titten",
-          "third": "Panzer fahren"
-        }
-      },
+      "headlineLead": "Deine Gruppe stimmt ab.",
+      "headlineResult": "Du bekommst das Ergebnis.",
       "chat": {
         "title": "{destination}-JGA 🍻",
         "members": "{count} Mitglieder",
@@ -526,7 +508,8 @@
       },
       "phone": {
         "countryLabel": "Ländervorwahl",
-        "placeholder": "Deine WhatsApp-Nummer"
+        "placeholder": "Deine WhatsApp-Nummer",
+        "otherCode": "Andere…"
       },
       "sendWhatsApp": "An WhatsApp-Gruppe senden",
       "sent": "Gesendet ✓",
@@ -542,6 +525,18 @@
         "datesRequired": "Reisedaten sind erforderlich",
         "endBeforeStart": "Das Enddatum muss am oder nach dem Startdatum liegen",
         "createFailed": "Das Voting konnte nicht starten. Bitte versuch es erneut."
+      },
+      "choice": {
+        "title": "Die Wahl der Gruppe",
+        "voted": "{voted} von {total} haben abgestimmt",
+        "yes": "{count} ja",
+        "no": "{count} nein",
+        "recommendations": "Empfehlungen der Gruppe",
+        "rows": {
+          "shooting": "Kalaschnikow schießen",
+          "steak": "Steak und Strip",
+          "tank": "Panzer fahren"
+        }
       }
     },
     "active": {
@@ -650,6 +645,7 @@
       "planTitle": "Der Plan",
       "fromPerPerson": "ab {price} p. P.",
       "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
+      "backToPlan": "Zurück zum Plan",
       "browseAll": "Alle Aktivitäten ansehen"
     }
   },
@@ -1212,7 +1208,19 @@
         "REPLACE": "{name} gegen {replacement} getauscht"
       },
       "priceFrom": "ab {price}",
-      "sendToPlanner": "Frag die Gruppe"
+      "priceFromPerPerson": "ab {price} p. P.",
+      "perPerson": "pro Person",
+      "sendToPlanner": "Frag die Gruppe",
+      "title": "{destination}-JGA",
+      "draftLabel": "Trip-Entwurf",
+      "backToDraft": "Zurück zum Entwurf",
+      "addToDraft": "Zum Entwurf hinzufügen",
+      "browseAll": "Alle ansehen",
+      "add": "Hinzufügen",
+      "suggestions": "Vorgeschlagene Aktivitäten",
+      "daySlot": "Tag {n} · {slot}",
+      "added": "Drin ✓",
+      "addAria": "{name} zum Entwurf hinzufügen"
     },
     "dock": {
       "title": "JGA-KI",
@@ -1220,7 +1228,27 @@
       "pill": "Bitte die JGA-KI um eine Änderung…",
       "working": "Wird bearbeitet…",
       "collapse": "Chat einklappen",
-      "placeholder": "Ändere, was du willst…"
+      "placeholder": "Ändere, was du willst…",
+      "expand": "Chat öffnen",
+      "gapsAria": "Was noch in den Plan passt",
+      "optionsReady": "Deine drei Optionen sind fertig. Wähl eine als deinen Trip-Plan.",
+      "draftSet": "Dein Trip-Plan für {count} steht. Soll noch etwas dazu?",
+      "draftSetNoCount": "Dein Trip-Plan steht. Soll noch etwas dazu?",
+      "addVerb": "",
+      "addKind": "{name} dazu",
+      "whichOne": "Welches? Tippe eins an, um es zu sehen.",
+      "cardAbove": "Es steht oben - tippe auf Hinzufügen, um es einzuplanen.",
+      "keepChatting": "Weiter chatten",
+      "kinds": {
+        "guns-and-bullets": "Schießen",
+        "stag-hot-babies-and-pranks": "Stripperinnen",
+        "nightlife": "Nachtleben",
+        "czech-beer": "Bier",
+        "food-and-drink": "Essen",
+        "extreme": "Adrenalin",
+        "wellness": "Entspannung",
+        "transfer": "Partytransfer"
+      }
     }
   }
 }

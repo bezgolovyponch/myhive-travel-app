@@ -1282,7 +1282,7 @@ describe('quiz mode: one-click vote', () => {
 
         await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
-        expect(await screen.findByRole('heading', { name: 'Your group votes. You get the result.' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /Your group votes\. You get the result\./ })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 
@@ -1320,7 +1320,7 @@ describe('quiz mode: one-click vote', () => {
         await user.click(screen.getByRole('button', { name: 'Ask the group' }));
 
         await waitFor(() => expect(localStorage.getItem('myhive-trip-vote-session')).toBeNull());
-        expect(await screen.findByRole('heading', { name: 'Your group votes. You get the result.' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /Your group votes\. You get the result\./ })).toBeInTheDocument();
         expect(voteApi.createSession).not.toHaveBeenCalled();
     });
 });

@@ -17,9 +17,6 @@ final class MissingFieldQuestion {
 
     private static final String ENGLISH = "en";
     private static final String GERMAN = "de";
-    /** Asked about together, as the model is told to: one answer covers both ends of the trip. */
-    private static final String BOTH_EDGES = Brief.FIELD_ARRIVAL + "+" + Brief.FIELD_DEPARTURE;
-
     private static final Map<String, Map<String, String>> TEXT = Map.of(
             Brief.FIELD_DAYS, Map.of(
                     ENGLISH, "How many days are you in town?",
@@ -29,20 +26,7 @@ final class MissingFieldQuestion {
                     GERMAN, "Wie viele seid ihr?"),
             Brief.FIELD_PREFERENCES, Map.of(
                     ENGLISH, "What is the group into - beer, action, a big night out?",
-                    GERMAN, "Worauf hat die Gruppe Lust - Bier, Action, eine lange Partynacht?"),
-            BOTH_EDGES, Map.of(
-                    ENGLISH, "When do you land on day 1 and leave on the last day - morning, afternoon or evening?"
-                            + " No tickets yet is fine too.",
-                    GERMAN, "Wann kommt ihr am ersten Tag an und wann reist ihr am letzten ab - morgens,"
-                            + " nachmittags oder abends? Noch keine Tickets ist auch okay."),
-            Brief.FIELD_ARRIVAL, Map.of(
-                    ENGLISH, "When do you land on day 1 - morning, afternoon or evening? No tickets yet is fine too.",
-                    GERMAN, "Wann kommt ihr am ersten Tag an - morgens, nachmittags oder abends?"
-                            + " Noch keine Tickets ist auch okay."),
-            Brief.FIELD_DEPARTURE, Map.of(
-                    ENGLISH, "When do you leave on the last day - morning, afternoon or evening? No tickets yet is fine too.",
-                    GERMAN, "Wann reist ihr am letzten Tag ab - morgens, nachmittags oder abends?"
-                            + " Noch keine Tickets ist auch okay."));
+                    GERMAN, "Worauf hat die Gruppe Lust - Bier, Action, eine lange Partynacht?"));
 
     private MissingFieldQuestion() {
     }
@@ -52,11 +36,7 @@ final class MissingFieldQuestion {
         if (missingFields.isEmpty()) {
             return Optional.empty();
         }
-        boolean bothEdges = missingFields.contains(Brief.FIELD_ARRIVAL)
-                && missingFields.contains(Brief.FIELD_DEPARTURE);
-        String first = missingFields.get(0);
-        String asked = bothEdges && first.equals(Brief.FIELD_ARRIVAL) ? BOTH_EDGES : first;
-        return Optional.ofNullable(TEXT.get(asked))
+        return Optional.ofNullable(TEXT.get(missingFields.get(0)))
                 .map(text -> text.get(GERMAN.equalsIgnoreCase(locale) ? GERMAN : ENGLISH));
     }
 }

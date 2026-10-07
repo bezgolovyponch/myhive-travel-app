@@ -36,6 +36,12 @@ public class LlmOutputParser {
     public static final int MAX_EDITS_PER_TURN = 10;
     public static final int MAX_SUGGESTED_REPLIES = 4;
     public static final int MAX_SUGGESTED_REPLY_CHARS = 60;
+    /** {@code showPackage} value that brings every trim back on screen. */
+    public static final String SHOW_ALL_PACKAGES = "ALL";
+    /** One top match and up to three related activities: what the draft's recommendation row shows. */
+    public static final int MAX_RECOMMENDATIONS = 4;
+    /** Longer than any catalog name; a longer string is not a name and is dropped. */
+    private static final int MAX_RECOMMENDATION_CHARS = 120;
 
     /** An activity name is a catalog label, not prose: past this the model is writing a sentence. */
     private static final int MAX_ACTIVITY_NAME_CHARS = 120;
@@ -80,7 +86,8 @@ public class LlmOutputParser {
             edits = new ArrayList<>(edits.subList(0, MAX_EDITS_PER_TURN));
         }
         return new ChatTurnResult(reply.asText().strip(), brief == null ? Brief.empty() : brief, missing, edits,
-                LlmUsage.none(), suggestedReplies(root.path("suggestedReplies")));
+                LlmUsage.none(), suggestedReplies(root.path("suggestedReplies")),
+                recommendations(root.path("recommendations")), showPackage(root.path("showPackage")));
     }
 
     /**
@@ -102,6 +109,41 @@ public class LlmOutputParser {
             }
         }
         return replies;
+    }
+
+    /** A tier name or ALL; anything else (null, a typo, a made-up trim) means "leave the view as it is". */
+    private static String showPackage(JsonNode node) {
+        String value = node.isTextual() ? node.asText().strip().toUpperCase(java.util.Locale.ROOT) : "";
+        if (SHOW_ALL_PACKAGES.equals(value)) {
+            return value;
+        }
+        for (Tier tier : Tier.values()) {
+            if (tier.name().equals(value)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Recommendations are garnish like the chips: whatever is not a short non-blank string is dropped, and
+     * the list is capped. Whether a name is really in the catalog is checked when it is shown, not here.
+     */
+    private static List<String> recommendations(JsonNode node) {
+        if (!node.isArray()) {
+            return List.of();
+        }
+        List<String> names = new ArrayList<>();
+        for (JsonNode element : node) {
+            String name = element.isTextual() ? element.asText().strip() : "";
+            if (!name.isEmpty() && name.length() <= MAX_RECOMMENDATION_CHARS && !names.contains(name)) {
+                names.add(name);
+            }
+            if (names.size() == MAX_RECOMMENDATIONS) {
+                break;
+            }
+        }
+        return names;
     }
 
     /**

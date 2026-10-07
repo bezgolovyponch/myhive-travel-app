@@ -17,9 +17,11 @@ import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +30,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ActivityService {
+
+    /**
+     * The order every public list of activities comes in: the popularity index (see
+     * docs/activity-popularity-index.md) first, then the name so equal scores read the same every time.
+     */
+    public static final Comparator<Activity> MOST_POPULAR_FIRST = Comparator
+            .comparingInt(Activity::getFeaturedWeight).reversed()
+            .thenComparing(Activity::getName, String.CASE_INSENSITIVE_ORDER);
+
+    /** {@link #MOST_POPULAR_FIRST} for a paged query. */
+    public static final Sort BY_POPULARITY = Sort.by(Sort.Order.desc("featuredWeight"), Sort.Order.asc("name"));
+
 
     private final ActivityRepository activityRepository;
     private final DestinationRepository destinationRepository;
@@ -46,6 +60,7 @@ public class ActivityService {
 
     public List<ActivityDTO> getAllActivities(String locale) {
         return activityRepository.findAll().stream()
+                .sorted(MOST_POPULAR_FIRST)
                 .map(a -> convertToDTO(a, locale))
                 .toList();
     }
@@ -81,6 +96,7 @@ public class ActivityService {
 
     public List<ActivityDTO> getActivitiesByDestination(UUID destinationId, String locale) {
         return activityRepository.findByDestinationId(destinationId).stream()
+                .sorted(MOST_POPULAR_FIRST)
                 .map(a -> convertToDTO(a, locale))
                 .toList();
     }
@@ -91,6 +107,7 @@ public class ActivityService {
 
     public List<ActivityDTO> getActivitiesByCategorySlug(String categorySlug, String locale) {
         return activityRepository.findByCategoriesSlug(categorySlug).stream()
+                .sorted(MOST_POPULAR_FIRST)
                 .map(a -> convertToDTO(a, locale))
                 .toList();
     }
@@ -101,6 +118,7 @@ public class ActivityService {
 
     public List<ActivityDTO> getActivitiesByDestinationAndCategorySlug(UUID destinationId, String categorySlug, String locale) {
         return activityRepository.findByDestinationIdAndCategoriesSlug(destinationId, categorySlug).stream()
+                .sorted(MOST_POPULAR_FIRST)
                 .map(a -> convertToDTO(a, locale))
                 .toList();
     }
@@ -114,6 +132,7 @@ public class ActivityService {
                 ? activityRepository.findByFeaturedTrueOrderByNameAsc()
                 : activityRepository.findByFeaturedTrueAndCategoriesSlugOrderByNameAsc(categorySlug);
         return featuredActivities.stream()
+                .sorted(MOST_POPULAR_FIRST)
                 .map(a -> convertToDTO(a, locale))
                 .toList();
     }

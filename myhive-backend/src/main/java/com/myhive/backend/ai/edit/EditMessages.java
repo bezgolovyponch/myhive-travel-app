@@ -47,27 +47,34 @@ public final class EditMessages {
     private static final String EN_UNNAMED = "that activity";
     private static final String DE_UNNAMED = "diese Aktivität";
 
-    /** Follows the UNKNOWN_ACTIVITY line: the unknown name, then the catalog names offered in its place. */
-    private static final String EN_CLOSEST = "Closest to \"%s\": %s - want one of those?";
-    private static final String DE_CLOSEST = "Am nächsten an \"%s\": %s - soll ich eins davon nehmen?";
+    /**
+     * For a name the catalog lacks when there is something close to offer. The offers themselves are the
+     * row above the chat - the top match with Add, the rest as tags - so the line only points there; it
+     * does not open with "I could not find" what the organizer can add with the next tap.
+     */
+    private static final String EN_CLOSEST = "The top match for \"%s\" is above - add it, or try one of the others.";
+    private static final String DE_CLOSEST = "Der beste Treffer für \"%s\" steht oben - füg ihn hinzu oder nimm einen der anderen.";
 
     /**
      * How a list of packages is phrased. English never declines, so only the German articles differ:
      * "aus dem Premium-Paket" / "aus den Basic- und Premium-Paketen", "ins" / "in die", "im" / "in den".
      */
     private enum PackagePhrase {
-        FROM("aus dem", "aus den", "Paketen"),
-        INTO("ins", "in die", "Pakete"),
-        IN("im", "in den", "Paketen");
+        FROM("aus dem", "aus den", "Paketen", "aus deinem Trip-Plan"),
+        INTO("ins", "in die", "Pakete", "in deinen Trip-Plan"),
+        IN("im", "in den", "Paketen", "in deinem Trip-Plan");
 
         private final String singularArticle;
         private final String pluralArticle;
         private final String pluralNoun;
+        /** The organizer's own plan in this case: there is one, so no article to pick. */
+        private final String tripPlan;
 
-        PackagePhrase(String singularArticle, String pluralArticle, String pluralNoun) {
+        PackagePhrase(String singularArticle, String pluralArticle, String pluralNoun, String tripPlan) {
             this.singularArticle = singularArticle;
             this.pluralArticle = pluralArticle;
             this.pluralNoun = pluralNoun;
+            this.tripPlan = tripPlan;
         }
     }
 
@@ -170,8 +177,16 @@ public final class EditMessages {
      * naming the package, it is what a later "yes, add it" can be scoped by.
      */
     public static String summary(String locale, EditReport report) {
-        String applied = appliedSummary(locale, report.applied());
-        String rejected = rejectionSummary(locale, report.rejected());
+        return summary(locale, report, false);
+    }
+
+    /**
+     * {@code tripPlan}: the organizer has made one option their own, so there is one plan and it is
+     * theirs - "your trip plan", never "the Medium package".
+     */
+    public static String summary(String locale, EditReport report, boolean tripPlan) {
+        String applied = appliedSummary(locale, report.applied(), tripPlan);
+        String rejected = rejectionSummary(locale, report.rejected(), tripPlan);
         if (applied.isEmpty()) {
             return rejected;
         }
@@ -186,6 +201,10 @@ public final class EditMessages {
      * and Premium packages."); empty when nothing was applied.
      */
     public static String appliedSummary(String locale, List<AppliedEdit> applied) {
+        return appliedSummary(locale, applied, false);
+    }
+
+    public static String appliedSummary(String locale, List<AppliedEdit> applied, boolean tripPlan) {
         if (applied == null || applied.isEmpty()) {
             return "";
         }
@@ -202,7 +221,7 @@ public final class EditMessages {
         for (Map.Entry<AppliedKey, Set<Tier>> entry : packagesByEdit.entrySet()) {
             Packaged template = templates.get(entry.getKey().op());
             appendSentence(summary, template.template().formatted(entry.getKey().activity(),
-                    entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase())));
+                    entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase(), tripPlan)));
         }
         return summary.toString();
     }
@@ -213,6 +232,10 @@ public final class EditMessages {
      * name something close. Empty when nothing was rejected.
      */
     public static String rejectionSummary(String locale, List<RejectedEdit> rejected) {
+        return rejectionSummary(locale, rejected, false);
+    }
+
+    public static String rejectionSummary(String locale, List<RejectedEdit> rejected, boolean tripPlan) {
         if (rejected == null || rejected.isEmpty()) {
             return "";
         }
@@ -220,6 +243,10 @@ public final class EditMessages {
         Map<EditRejectionReason, Packaged> inPackage = german ? DE_IN_PACKAGE : EN_IN_PACKAGE;
         Map<RejectionKey, RejectionGroup> groups = new LinkedHashMap<>();
         for (RejectedEdit edit : rejected) {
+            if (hasOffer(edit)) {
+                // Said once, further down, as an offer rather than a refusal.
+                continue;
+            }
             boolean packaged = edit.packageKey() != null && inPackage.containsKey(edit.reason());
             RejectionGroup group = groups.computeIfAbsent(new RejectionKey(edit.reason(), packaged),
                     key -> new RejectionGroup());
@@ -235,7 +262,7 @@ public final class EditMessages {
             if (entry.getKey().inPackage()) {
                 Packaged template = inPackage.get(entry.getKey().reason());
                 appendSentence(summary, template.template()
-                        .formatted(names, packages(entry.getValue().tiers, german, template.phrase())));
+                        .formatted(names, packages(entry.getValue().tiers, german, template.phrase(), tripPlan)));
             } else {
                 String template = plain.get(entry.getKey().reason());
                 if (template != null) {
@@ -275,15 +302,19 @@ public final class EditMessages {
     private static void appendAlternatives(StringBuilder summary, List<RejectedEdit> rejected, boolean german) {
         Set<String> offeredFor = new LinkedHashSet<>();
         for (RejectedEdit edit : rejected) {
-            if (edit.reason() != EditRejectionReason.UNKNOWN_ACTIVITY || edit.alternatives().isEmpty()) {
+            if (!hasOffer(edit)) {
                 continue;
             }
             String name = nameOf(edit, german);
             if (offeredFor.add(name)) {
-                appendSentence(summary, (german ? DE_CLOSEST : EN_CLOSEST)
-                        .formatted(name, String.join(", ", edit.alternatives())));
+                appendSentence(summary, (german ? DE_CLOSEST : EN_CLOSEST).formatted(name));
             }
         }
+    }
+
+    /** A name the catalog lacks, with catalog names close to it to offer instead. */
+    private static boolean hasOffer(RejectedEdit edit) {
+        return edit.reason() == EditRejectionReason.UNKNOWN_ACTIVITY && !edit.alternatives().isEmpty();
     }
 
     /**
@@ -291,7 +322,10 @@ public final class EditMessages {
      * phrase's preposition ("aus dem Premium-Paket", "in die Basic-, Medium- und Premium-Pakete").
      * An {@link EnumSet} iterates in tier order, so the list always reads Basic, Medium, Premium.
      */
-    private static String packages(Set<Tier> tiers, boolean german, PackagePhrase phrase) {
+    private static String packages(Set<Tier> tiers, boolean german, PackagePhrase phrase, boolean tripPlan) {
+        if (tripPlan) {
+            return german ? phrase.tripPlan : "your trip plan";
+        }
         List<String> labels = new ArrayList<>();
         for (Tier tier : tiers) {
             labels.add(label(tier));

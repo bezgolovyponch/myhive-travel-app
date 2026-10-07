@@ -3,6 +3,7 @@ package com.myhive.backend.ai.dto;
 import com.myhive.backend.ai.model.Brief;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Answer to one user turn. {@code generation} is non-null on the turn that completed the brief — there is
@@ -17,8 +18,20 @@ import java.util.List;
  * to show the whole turn; {@code message} stays for clients written before the field existed.
  *
  * <p>{@code suggestedReplies} are 0-4 tap-to-send answers for the chips under the reply; never null.
+ *
+ * <p>{@code recommendations} are 0-4 activities offered for the draft, best match first: what the organizer
+ * asked for in general terms, and the catalog's closest options for something it lacks; never null.
+ *
+ * <p>{@code showPackage} is the trim the organizer asked to see (a tier name), {@code ALL} for every trim
+ * again, or null: the client switches the draft to it.
+ *
+ * <p>{@code gaps} are, per package key, the kinds of activity the package could take next, each with the
+ * activities it offers (see {@code DraftGaps}): the "+ Add ..." tags under the plan; empty before there are
+ * packages.
  */
 public record TurnResponseDTO(MessageDTO message, Brief brief, List<String> missingFields, boolean readyToGenerate,
                               GenerationDTO generation, EditDTO edit, List<MessageDTO> messages,
-                              List<String> suggestedReplies) {
+                              List<String> suggestedReplies, List<RecommendationDTO> recommendations,
+                              String showPackage, Map<String, List<DraftGapDTO>> gaps,
+                              Map<String, List<RecommendationDTO>> suggestions) {
 }

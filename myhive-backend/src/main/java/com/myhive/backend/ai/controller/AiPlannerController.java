@@ -2,6 +2,7 @@ package com.myhive.backend.ai.controller;
 
 import com.myhive.backend.ai.dto.AiDtoMapper;
 import com.myhive.backend.ai.dto.CreateSessionRequest;
+import com.myhive.backend.ai.dto.DraftEditRequest;
 import com.myhive.backend.ai.dto.GenerationDTO;
 import com.myhive.backend.ai.dto.SelectPackageRequest;
 import com.myhive.backend.ai.dto.SelectionResponseDTO;
@@ -56,9 +57,15 @@ public class AiPlannerController {
         return mapper.sessionState(sessionService.get(token));
     }
 
+    /** One tap in the trip draft: add or remove an activity without a chat turn. */
+    @PostMapping("/sessions/{token}/edits")
+    public TurnResponseDTO editDraft(@PathVariable UUID token, @Valid @RequestBody DraftEditRequest request) {
+        return mapper.turn(sessionService.editDraft(token, request.op(), request.activityId(), request.packageKey()));
+    }
+
     @PostMapping("/sessions/{token}/messages")
     public TurnResponseDTO message(@PathVariable UUID token, @Valid @RequestBody SendMessageRequest request) {
-        return mapper.turn(sessionService.message(token, request.content()));
+        return mapper.turn(sessionService.message(token, request.content(), request.packageKey()));
     }
 
     @PostMapping("/sessions/{token}/generations")

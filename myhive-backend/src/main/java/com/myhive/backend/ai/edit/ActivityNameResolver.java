@@ -20,7 +20,11 @@ public final class ActivityNameResolver {
     /** Below this, a substring match is noise ("Be" would hit every "Beer …" row), so only an exact name counts. */
     private static final int MIN_FUZZY_LENGTH = 3;
 
-    private static final Pattern WHITESPACE_RUN = Pattern.compile("\\s+");
+    /**
+     * Anything that is neither a letter nor a digit separates words and nothing more: "ak 47" has to find
+     * "AK-47 and Glock 17 Shooting", "steak and private show" the "Steak & Private Show".
+     */
+    private static final Pattern SEPARATORS = Pattern.compile("[^\\p{L}\\p{N}]+");
 
     private ActivityNameResolver() {
     }
@@ -83,6 +87,6 @@ public final class ActivityNameResolver {
         if (text == null) {
             return "";
         }
-        return WHITESPACE_RUN.matcher(text.toLowerCase(Locale.ROOT).strip()).replaceAll(" ");
+        return SEPARATORS.matcher(text.toLowerCase(Locale.ROOT)).replaceAll(" ").strip();
     }
 }

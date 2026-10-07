@@ -5,7 +5,6 @@ import com.myhive.backend.service.ActivityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,7 +52,7 @@ public class ActivityController {
             @RequestParam(required = false) String locale) {
 
         int safeSize = Math.min(size, 50);
-        PageRequest pageRequest = PageRequest.of(page, safeSize, Sort.by("name").ascending());
+        PageRequest pageRequest = PageRequest.of(page, safeSize, ActivityService.BY_POPULARITY);
 
         if (categorySlug != null && !categorySlug.isEmpty()) {
             return ResponseEntity.ok(activityService.getActivitiesByDestinationAndCategorySlugPaged(destinationId, categorySlug, pageRequest, locale));

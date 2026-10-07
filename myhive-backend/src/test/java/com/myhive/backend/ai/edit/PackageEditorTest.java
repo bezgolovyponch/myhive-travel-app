@@ -193,35 +193,56 @@ class PackageEditorTest {
         assertThat(slotsIn(outcome.plan(), Tier.BASIC, 1)).containsExactly(Slot.MORNING, Slot.AFTERNOON);
     }
 
+    /**
+     * What the organizer adds is held to the roomiest day any tier has (4 activities, 540 minutes with
+     * the buffers), not to the tier's own: a Basic day of two takes a third, a day that would run past
+     * 540 minutes sends the activity on to the next, and with no day left it is refused.
+     */
     @Test
-    void add_respectsTierItemAndMinuteCapsIncludingBuffer() {
+    void add_prefersADayWithRoom_andIsNeverRefused() {
         String expectedAdded = riverCruise.name();
-        ComposedPlan dayOneAtItemCap = planOf(
+        ComposedPlan basicDayOfTwo = planOf(
                 pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, beerBike)), day(2)),
                 mediumPackage(), premiumPackage());
-        ComposedPlan noDayWithRoom = planOf(fullBasicPackage(), mediumPackage(), premiumPackage());
+        // 300 + 150 + one buffer is 480; a 60-minute cruise and its buffer would make 570.
+        ComposedPlan dayOneOutOfMinutes = planOf(
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, shootingRange), item(Slot.EVENING, nightClub)), day(2)),
+                mediumPackage(), premiumPackage());
+        // Day 2 ends in the evening: its three slots are taken.
+        ComposedPlan noDayWithRoom = planOf(
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, shootingRange), item(Slot.EVENING, nightClub)),
+                        day(2, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, escapeRoom),
+                                item(Slot.EVENING, beerBike))),
+                mediumPackage(), premiumPackage());
 
-        EditOutcome spilledToNextDay = editor.apply(dayOneAtItemCap, brief, catalog,
+        EditOutcome thirdOnABasicDay = editor.apply(basicDayOfTwo, brief, catalog,
+                List.of(add(expectedAdded, Tier.BASIC, null, null)));
+        EditOutcome spilledToNextDay = editor.apply(dayOneOutOfMinutes, brief, catalog,
                 List.of(add(expectedAdded, Tier.BASIC, null, null)));
         EditOutcome nothingFits = editor.apply(noDayWithRoom, brief, catalog,
                 List.of(add(expectedAdded, Tier.BASIC, null, null)));
 
+        assertThat(thirdOnABasicDay.rejected()).isEmpty();
+        assertThat(thirdOnABasicDay.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.dayNumber()).isEqualTo(1);
+            assertThat(applied.slot()).isEqualTo(Slot.EVENING);
+        });
         assertThat(spilledToNextDay.rejected()).isEmpty();
         assertThat(spilledToNextDay.applied()).singleElement().satisfies(applied -> {
             assertThat(applied.dayNumber()).isEqualTo(2);
             assertThat(applied.slot()).isEqualTo(Slot.MORNING);
         });
-        assertThat(nothingFits.anyApplied()).isFalse();
-        assertThat(nothingFits.rejected()).singleElement().satisfies(rejected -> {
-            assertThat(rejected.activityName()).isEqualTo(expectedAdded);
-            assertThat(rejected.packageKey()).isEqualTo(Tier.BASIC);
-            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NO_FREE_SLOT);
+        // No day has a free slot: it goes on the lighter day all the same, sharing a slot.
+        assertThat(nothingFits.rejected()).isEmpty();
+        assertThat(nothingFits.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.activityName()).isEqualTo(expectedAdded);
+            assertThat(applied.packageKey()).isEqualTo(Tier.BASIC);
         });
-        assertThat(namesIn(nothingFits.plan(), Tier.BASIC)).doesNotContain(expectedAdded);
+        assertThat(namesIn(nothingFits.plan(), Tier.BASIC)).contains(expectedAdded);
     }
 
     @Test
-    void add_withExplicitDayAndSlot_usesExactlyThatCell_orRejectsNoFreeSlot() {
+    void add_withExplicitDayAndSlot_usesThatCell_andStillGoesInWhenTheCellIsNotFree() {
         String expectedAdded = escapeRoom.name();
         ComposedPlan plan = basePlan();
 
@@ -237,12 +258,11 @@ class PackageEditorTest {
             assertThat(applied.slot()).isEqualTo(Slot.AFTERNOON);
             assertThat(applied.placedActivityId()).isEqualTo(escapeRoom.id());
         });
-        assertThat(takenCell.anyApplied()).isFalse();
-        assertThat(takenCell.rejected()).singleElement()
-                .extracting(RejectedEdit::reason).isEqualTo(EditRejectionReason.NO_FREE_SLOT);
-        assertThat(outsideWindow.anyApplied()).isFalse();
-        assertThat(outsideWindow.rejected()).singleElement()
-                .extracting(RejectedEdit::reason).isEqualTo(EditRejectionReason.NO_FREE_SLOT);
+        // A cell that is taken or outside the day's hours is no reason to refuse: it goes in elsewhere.
+        assertThat(takenCell.rejected()).isEmpty();
+        assertThat(namesIn(takenCell.plan(), Tier.MEDIUM)).contains(expectedAdded);
+        assertThat(outsideWindow.rejected()).isEmpty();
+        assertThat(namesIn(outsideWindow.plan(), Tier.MEDIUM)).contains(expectedAdded);
     }
 
     @Test
@@ -287,8 +307,10 @@ class PackageEditorTest {
     void replace_whenTheFreedCellCannotHoldIt_fallsBackToPlacement() {
         String expectedOld = riverCruise.name();
         String expectedNew = shootingRange.name();
+        // In the cruise's own cell the range would make day 1 run 600 minutes: 90 + 300 + 150 and two buffers.
         ComposedPlan plan = planOf(
-                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise)), day(2)),
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise),
+                        item(Slot.EVENING, nightClub)), day(2)),
                 mediumPackage(), premiumPackage());
 
         EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(replace(expectedOld, expectedNew, Tier.BASIC)));
@@ -303,25 +325,26 @@ class PackageEditorTest {
     }
 
     @Test
-    void replace_whenNothingFits_leavesThePackageUnchanged() {
+    void replace_whenNoDayHasRoom_stillSwaps() {
         String expectedOld = riverCruise.name();
         String expectedNew = shootingRange.name();
+        // Either day would run past 540 minutes with the 300-minute range in it.
         ComposedPlan plan = planOf(
-                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise)),
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, riverCruise),
+                                item(Slot.EVENING, beerBike)),
                         day(2, item(Slot.MORNING, escapeRoom), item(Slot.EVENING, nightClub))),
                 mediumPackage(), premiumPackage());
         List<String> expectedNames = namesIn(plan, Tier.BASIC);
 
         EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(replace(expectedOld, expectedNew, Tier.BASIC)));
 
-        assertThat(outcome.anyApplied()).isFalse();
-        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
-            assertThat(rejected.op()).isEqualTo(EditOp.REPLACE);
-            assertThat(rejected.packageKey()).isEqualTo(Tier.BASIC);
-            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NO_FREE_SLOT);
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.op()).isEqualTo(EditOp.REPLACE);
+            assertThat(applied.packageKey()).isEqualTo(Tier.BASIC);
         });
-        assertThat(namesIn(outcome.plan(), Tier.BASIC)).isEqualTo(expectedNames);
-        assertThat(namesIn(outcome.plan(), Tier.BASIC)).doesNotContain(expectedNew);
+        assertThat(namesIn(outcome.plan(), Tier.BASIC)).hasSameSizeAs(expectedNames)
+                .contains(expectedNew).doesNotContain(expectedOld);
     }
 
     @Test
@@ -490,18 +513,21 @@ class PackageEditorTest {
     }
 
     @Test
-    void partialRejection_onePackageCannotTakeIt_theOthersStillApply() {
+    void add_toEveryPackage_landsInAFullOneToo() {
         String expectedAdded = nightClub.name();
-        ComposedPlan plan = planOf(fullBasicPackage(), mediumPackage(), premiumPackage());
+        // Day 1 is 450 minutes long already and day 2 has its three slots taken: no room for a club night.
+        ComposedPlan plan = planOf(
+                pkg(Tier.BASIC, day(1, item(Slot.MORNING, shootingRange), item(Slot.AFTERNOON, beerBike)),
+                        day(2, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, escapeRoom),
+                                item(Slot.EVENING, riverCruise))),
+                mediumPackage(), premiumPackage());
 
         EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(add(expectedAdded, null, null, null)));
 
-        assertThat(outcome.applied()).extracting(AppliedEdit::packageKey).containsExactly(Tier.MEDIUM, Tier.PREMIUM);
-        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
-            assertThat(rejected.packageKey()).isEqualTo(Tier.BASIC);
-            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NO_FREE_SLOT);
-        });
-        assertThat(namesIn(outcome.plan(), Tier.BASIC)).doesNotContain(expectedAdded);
+        assertThat(outcome.applied()).extracting(AppliedEdit::packageKey)
+                .containsExactly(Tier.BASIC, Tier.MEDIUM, Tier.PREMIUM);
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(namesIn(outcome.plan(), Tier.BASIC)).contains(expectedAdded);
         assertThat(namesIn(outcome.plan(), Tier.MEDIUM)).contains(expectedAdded);
         assertThat(namesIn(outcome.plan(), Tier.PREMIUM)).contains(expectedAdded);
     }

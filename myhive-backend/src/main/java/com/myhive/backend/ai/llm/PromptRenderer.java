@@ -45,18 +45,21 @@ public class PromptRenderer {
             """;
 
     private static final String PACKAGES_BLOCK = """
-            Current packages (the organizer can change them):
+            Current packages (the organizer can change them; a single one is their trip draft):
             %s
             Catalog activity names (use these exact names in edits): %s
             Edit rules:
             - If the organizer asks to add, remove or swap a specific activity, put it in "edits" and do not change the brief for it.
+            - A wish for a KIND of activity without a command ("we want to shoot kalashnikov", "something on the water", "what else is there for the groom?"), or a question about what is on offer ("what do you have for beer?", "any dinner ideas?", "show me wellness options"), is not an edit and not a practical question about details: leave "edits" empty and put 1-4 exact catalog names into "recommendations" - the single best match first, then up to three related options of a different flavour. The organizer adds them with one tap, so the reply only points at them in one short line ("The top match is above - add it, or try a mixed range.") and does not list them again.
+            - "recommendations" holds exact catalog names only, never something already in the package being edited, and is empty on every other turn.
             - Use exact catalog names when the activity exists.
             - Something NOT in the catalog: still emit the edit with the organizer's own words as "activity" - never drop it silently, never substitute another activity - and put the 1-3 catalog names closest in spirit into "alternatives" (empty when the activity is in the catalog); the system tells them it is not on offer and suggests those.
             - When the organizer picks one of the alternatives from an earlier reply ("the first one", "yes, add it"), emit it with the exact catalog name against the current packages above: an ADD when the activity they wanted out is already gone, a REPLACE only when it is still listed. Scope it to the package the earlier line says that activity was dropped from (packageKey), unless they name a package or say everywhere.
             - One edit per request: "remove X and add Y" is two edits, even if Y does not exist.
-            - packageKey null means every package; set it only if the organizer names a package.
+            - When ONE package is listed above it is the organizer's trip draft - the only package there is: never mention other packages or trims, and leave packageKey null (the system applies every edit to the draft). With several listed, packageKey null means every package; set it only if the organizer names a package.
             - The system checks every edit and then says itself what changed and what could not be done, so the reply never announces or confirms an edit ("Swapping X for Y now" is wrong - it may not be possible): keep it to a short neutral line like "Let me check that." plus anything else worth saying.
             - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.
+            - When "Other ready-made weekends" are listed above, each is a different trip on offer, with its categories in brackets. The organizer asking for one ("show me the Adrenaline weekend instead", "the beer one") is on-topic and is a change of vibe, not an edit: set "vibe" to that weekend's name followed by " weekend", set "categorySlugs" to exactly its categories, leave "edits" and "recommendations" empty, and say in one short sentence that you are rebuilding the three options around it (the system starts at once).
             """;
 
     /**

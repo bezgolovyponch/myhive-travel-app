@@ -1,5 +1,8 @@
 package com.myhive.backend.ai.graph.nodes;
 
+import com.myhive.backend.ai.edit.EditOp;
+import com.myhive.backend.ai.edit.EditRequest;
+import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.catalog.OpeningReplies;
@@ -40,11 +43,6 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
     /** How many chips have to name a catalog activity for a question to count as one about its variants. */
     private static final int MIN_VARIANTS = 2;
     private static final String QUESTION_MARK = "?";
-    /** Chips for the travel-times question; the last one is what the chat files as {@code FLEXIBLE}. */
-    private static final List<String> EDGE_CHIPS_EN =
-            List.of("Arrive evening, leave morning", "Arrive afternoon, leave evening", "No tickets yet");
-    private static final List<String> EDGE_CHIPS_DE =
-            List.of("Abends an, morgens ab", "Nachmittags an, abends ab", "Noch keine Tickets");
 
     private final LlmGateway llm;
     /** Null where no catalog is wired (unit tests): the chat then offers no catalog-backed follow-ups. */
@@ -93,6 +91,26 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // Same for a reply an earlier edit turn held back: it belongs to that turn and is never said later.
         update.put(PlannerState.PENDING_REPLY, "");
         boolean routesToEdit = false;
+        // Under a draft a typed "add X" - or a bare "ak 47" - is not carried out. What it names is offered
+        // above the chat, the best match on a card with Add, and the organizer puts it in with a tap: the
+        // draft only grows by their own hand. Taking out and swapping are still done on the word.
+        List<EditRequest> edits = result.edits();
+        List<String> offered = new ArrayList<>();
+        if (!packages.isEmpty() && !readyToBuild) {
+            List<EditRequest> carriedOut = new ArrayList<>();
+            for (EditRequest edit : edits) {
+                if (edit.op() == EditOp.ADD) {
+                    if (edit.activity() != null) {
+                        offered.add(edit.activity());
+                    }
+                    offered.addAll(edit.alternatives());
+                } else {
+                    carriedOut.add(edit);
+                }
+            }
+            edits = carriedOut;
+            offered.addAll(result.recommendations());
+        }
         String reply = PlanAssembler.clean(result.reply());
         List<String> suggestedReplies = result.suggestedReplies();
         List<String> notes = new ArrayList<>();
@@ -112,7 +130,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                 // to them after the rebuild, not quietly dropped.
                 notes.add(EditMessages.rebuildingFirst(state.locale()));
             }
-        } else if (result.edits().isEmpty()) {
+        } else if (edits.isEmpty()) {
             update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
         } else if (packages.isEmpty()) {
             // Nothing to edit yet: report the ops as rejected so the client sees why, and say so in chat.
@@ -122,8 +140,20 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             notes.add(EditMessages.noPackagesYet(state.locale()));
         } else {
             update.put(PlannerState.ACTION, PlannerState.ACTION_EDIT);
-            update.put(PlannerState.EDITS, JsonCodec.write(result.edits()));
+            update.put(PlannerState.EDITS, JsonCodec.write(intoTheDraft(edits, state)));
             routesToEdit = true;
+        }
+        if (!packages.isEmpty() && !readyToBuild) {
+            // The draft exists and this turn rebuilds nothing. What the chat says about it is not left to
+            // the model: with activities offered above it, it points at them; and it never says it is
+            // building options - before an edit's own line that reply is simply dropped.
+            if (routesToEdit) {
+                reply = BuildingReply.announcesABuild(reply) ? "" : reply;
+            } else if (!offered.isEmpty()) {
+                reply = BuildingReply.recommending(state.locale());
+            } else if (BuildingReply.announcesABuild(reply)) {
+                reply = BuildingReply.nothingToBuild(state.locale());
+            }
         }
         Optional<String> question = asksNothing
                 ? MissingFieldQuestion.of(merged.missingFields(), state.locale()) : Optional.empty();
@@ -158,6 +188,12 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             update.put(PlannerState.MESSAGES, messages(all));
         }
         update.put(PlannerState.SUGGESTED_REPLIES, suggestedReplies);
+        // Only for a draft that exists and stays: before the first build there is nothing to add them to,
+        // and a rebuild replaces the packages they would be added to. Replaced every turn either way.
+        update.put(PlannerState.RECOMMENDATIONS,
+                packages.isEmpty() || readyToBuild ? List.of() : List.copyOf(offered));
+        update.put(PlannerState.SHOW_PACKAGE,
+                packages.isEmpty() || readyToBuild || result.showPackage() == null ? "" : result.showPackage());
         update.put(PlannerState.BRIEF, mergedJson);
         update.put(PlannerState.MISSING_FIELDS, merged.missingFields());
         return update;
@@ -214,21 +250,32 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
     }
 
     /**
-     * Tap-to-send answers: for the taste question, from what the catalog can deliver; for the travel
-     * times, the usual weekend shapes plus "no tickets yet", which the chat files as FLEXIBLE; none for
-     * the others.
+     * Tap-to-send answers: for the taste question, from what the catalog can deliver; none for the others
+     * (travel times are never asked).
      */
     private static List<String> chipsFor(Brief brief, PlannerState state) {
         String first = brief.missingFields().get(0);
         if (Brief.FIELD_PREFERENCES.equals(first)) {
             return OpeningReplies.forCatalog(state.catalog(), state.locale());
         }
-        if (Brief.FIELD_ARRIVAL.equals(first) || Brief.FIELD_DEPARTURE.equals(first)) {
-            return "de".equalsIgnoreCase(state.locale()) ? EDGE_CHIPS_DE : EDGE_CHIPS_EN;
-        }
         return List.of();
     }
 
+
+    /**
+     * Once the organizer works on one trim, that trim is the only package there is: every edit lands in it,
+     * whatever package the model named or left out ("add ak" used to add to all three).
+     */
+    private static List<EditRequest> intoTheDraft(List<EditRequest> edits, PlannerState state) {
+        Optional<Tier> draft = state.workingPackage();
+        if (draft.isEmpty()) {
+            return edits;
+        }
+        return edits.stream()
+                .map(edit -> new EditRequest(edit.op(), edit.activity(), edit.replacement(), draft.get(),
+                        edit.dayNumber(), edit.slot(), edit.alternatives()))
+                .toList();
+    }
 
     /** The reply first, then Java's own notes, stamped in that order. */
     private static List<Map<String, String>> messages(List<String> texts) {
@@ -248,7 +295,13 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
                     state.messages(), null, PackagesView.catalogNames(state.catalog()));
         }
+        String view = PackagesView.render(packages.get(), state.workingPackage().orElse(null));
+        // The other ready-made weekends are an offer for all three options: once one trim is the
+        // organizer's draft they are not on the table, and the chat is not told about them.
+        String themes = state.workingPackage().isPresent() ? ""
+                : PackagesView.themes(packages.get(), state.catalog(), state.presets());
         return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
-                state.messages(), PackagesView.render(packages.get()), PackagesView.catalogNames(state.catalog()));
+                state.messages(), themes.isEmpty() ? view : view + "\n" + themes,
+                PackagesView.catalogNames(state.catalog()));
     }
 }

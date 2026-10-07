@@ -1,15 +1,22 @@
 package com.myhive.backend.ai.dto;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.edit.DraftSuggestions;
+import com.myhive.backend.ai.edit.ActivityNameResolver;
 import com.myhive.backend.ai.edit.AppliedEdit;
 import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
 import com.myhive.backend.ai.llm.ChatMessage;
+import com.myhive.backend.ai.llm.LlmOutputParser;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.plan.DraftGaps;
+import com.myhive.backend.ai.plan.PlanPricer;
 import com.myhive.backend.ai.service.AiSessionService;
 import com.myhive.backend.ai.service.StaffAccess;
 import com.myhive.backend.dto.VotePoolActivityDTO;
@@ -18,7 +25,9 @@ import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
+import com.myhive.backend.entity.Category;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.util.FromPrice;
 import com.myhive.backend.util.Translations;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +35,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,11 +57,18 @@ public class AiDtoMapper {
 
     private final ActivityRepository activityRepository;
     private final StaffAccess staff;
+    /** Null in unit tests that build the mapper by hand: gaps are then named by their slugs. */
+    private final CategoryRepository categoryRepository;
 
     @Autowired
-    public AiDtoMapper(ActivityRepository activityRepository, StaffAccess staff) {
+    public AiDtoMapper(ActivityRepository activityRepository, StaffAccess staff, CategoryRepository categoryRepository) {
         this.activityRepository = activityRepository;
         this.staff = staff;
+        this.categoryRepository = categoryRepository;
+    }
+
+    public AiDtoMapper(ActivityRepository activityRepository, StaffAccess staff) {
+        this(activityRepository, staff, null);
     }
 
     /** No caller is staff: diagnostics are never exposed. */
@@ -71,7 +91,8 @@ public class AiDtoMapper {
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
                         AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()),
-                state.suggestedReplies());
+                state.suggestedReplies(), recommendations(state), gaps(state, session.getLocale()),
+                suggestions(state), state.workingPackage().map(Enum::name).orElse(null));
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
@@ -87,7 +108,112 @@ public class AiDtoMapper {
                         .map(report -> edit(report, outcome.editedGeneration().map(AiGeneration::getId).orElse(null)))
                         .orElse(null),
                 outcome.assistantMessages().stream().map(AiDtoMapper::message).toList(),
-                view.state().suggestedReplies());
+                view.state().suggestedReplies(), recommendations(view.state()),
+                view.state().showPackage().orElse(null), gaps(view.state(), view.session().getLocale()),
+                suggestions(view.state()));
+    }
+
+    /**
+     * What the draft's recommendation row offers: the names the latest turn recommended, then the
+     * catalog's closest options for anything it asked for that the catalog lacks. Each is resolved against
+     * the catalog snapshot and dropped when it does not resolve to exactly one activity, so nothing the
+     * model made up is ever shown. Already-added ones stay: the row shows them as added.
+     */
+    public static List<RecommendationDTO> recommendations(PlannerState state) {
+        List<String> names = new ArrayList<>(state.recommendations());
+        state.editReport().ifPresent(report -> report.rejected()
+                .forEach(rejected -> names.addAll(rejected.alternatives())));
+        List<CatalogActivity> catalog = state.catalog();
+        Integer size = state.brief().groupSize();
+        int travelers = size == null || size < 1 ? 1 : size;
+        Map<UUID, RecommendationDTO> picked = new LinkedHashMap<>();
+        for (String name : names) {
+            if (picked.size() == LlmOutputParser.MAX_RECOMMENDATIONS) {
+                break;
+            }
+            if (ActivityNameResolver.resolve(name, catalog) instanceof ActivityNameResolver.Found found) {
+                CatalogActivity activity = found.activity();
+                picked.putIfAbsent(activity.id(), recommendation(activity, travelers));
+            }
+        }
+        fillWithRelated(picked, catalog, travelers);
+        return List.copyOf(picked.values());
+    }
+
+    /**
+     * A top match with nothing next to it is a dead end when it is not quite what the group meant. The
+     * row is filled up with what the catalog files under the same categories as the top match, in the
+     * catalog's own order - the planner's ranking for this brief.
+     */
+    private static void fillWithRelated(Map<UUID, RecommendationDTO> picked, List<CatalogActivity> catalog,
+            int travelers) {
+        if (picked.isEmpty() || picked.size() >= LlmOutputParser.MAX_RECOMMENDATIONS) {
+            return;
+        }
+        UUID topId = picked.keySet().iterator().next();
+        List<String> themes = catalog.stream().filter(activity -> activity.id().equals(topId)).findFirst()
+                .map(CatalogActivity::categorySlugs).orElse(List.of());
+        for (CatalogActivity activity : catalog) {
+            if (picked.size() == LlmOutputParser.MAX_RECOMMENDATIONS) {
+                return;
+            }
+            boolean related = activity.categorySlugs() != null
+                    && activity.categorySlugs().stream().anyMatch(themes::contains);
+            if (related) {
+                picked.putIfAbsent(activity.id(), recommendation(activity, travelers));
+            }
+        }
+    }
+
+    /**
+     * What each package could take next, for the "Would you like to add anything?" row under a ready
+     * draft: activities from the ready-made packages that the package lacks and that fit it, keyed by
+     * package. Empty before there are packages.
+     */
+    static Map<String, List<RecommendationDTO>> suggestions(PlannerState state) {
+        Integer size = state.brief().groupSize();
+        int travelers = size == null || size < 1 ? 1 : size;
+        Map<String, List<RecommendationDTO>> out = new LinkedHashMap<>();
+        DraftSuggestions.of(state.result().orElse(null), state.brief(), state.catalog(), state.presets())
+                .forEach((tier, activities) -> out.put(tier.name(),
+                        activities.stream().map(activity -> recommendation(activity, travelers)).toList()));
+        return out;
+    }
+
+    /**
+     * The "what next" tags per package, named in the session's language. A category the database no longer
+     * has keeps its slug as the name rather than disappearing.
+     */
+    Map<String, List<DraftGapDTO>> gaps(PlannerState state, String locale) {
+        Map<Tier, List<DraftGaps.Kind>> kinds = DraftGaps.of(state.result().orElse(null), state.catalog());
+        if (kinds.isEmpty()) {
+            return Map.of();
+        }
+        String lc = Translations.normalize(locale);
+        Map<String, String> names = new HashMap<>();
+        if (categoryRepository != null) {
+            for (Category category : categoryRepository.findAll()) {
+                names.put(category.getSlug(),
+                        Translations.pick(category.getTranslations(), lc, "name", category.getName()));
+            }
+        }
+        Integer size = state.brief().groupSize();
+        int travelers = size == null || size < 1 ? 1 : size;
+        Map<String, List<DraftGapDTO>> gaps = new LinkedHashMap<>();
+        kinds.forEach((tier, list) -> gaps.put(tier.name(), list.stream()
+                .map(kind -> new DraftGapDTO(kind.categorySlug(),
+                        names.getOrDefault(kind.categorySlug(), kind.categorySlug()),
+                        kind.options().stream().map(activity -> recommendation(activity, travelers)).toList()))
+                .toList()));
+        return gaps;
+    }
+
+    private static RecommendationDTO recommendation(CatalogActivity activity, int travelers) {
+        BigDecimal perPerson = activity.price() == null ? null
+                : PlanPricer.lineTotal(activity.price(), activity.minPrice(), travelers)
+                        .divide(BigDecimal.valueOf(travelers), 0, RoundingMode.CEILING);
+        return new RecommendationDTO(activity.id(), activity.name(), activity.oneLine(),
+                activity.durationKnown() ? activity.durationMinutes() : null, perPerson, activity.imageUrl());
     }
 
     /** For a generation loaded with its session attached; {@link #sessionState} uses the private overload. */
@@ -126,14 +252,16 @@ public class AiDtoMapper {
         boolean ready = generation.getStatus() == AiGenerationStatus.READY;
         // The skeleton: packages published onto a RUNNING row while their copy is still being written.
         boolean skeleton = generation.getStatus() == AiGenerationStatus.RUNNING && generation.getResult() != null;
+        Brief brief = JsonCodec.read(generation.getBriefSnapshot(), Brief.class);
+        Integer groupSize = brief == null ? null : brief.groupSize();
         List<PackageDTO> packages = ready || skeleton
                 ? JsonCodec.read(generation.getResult(), ComposedPlan.class).packages().stream()
-                        .map(AiDtoMapper::plannedPackage)
+                        .map(result -> plannedPackage(result, groupSize))
                         .toList()
                 : null;
         return new GenerationDTO(generation.getId(), sessionToken, generation.getStatus().name(),
                 generation.isDegraded(), generation.getSelectedPackageKey(),
-                JsonCodec.read(generation.getBriefSnapshot(), Brief.class), packages, error(generation),
+                brief, packages, error(generation),
                 generation.getCreatedAt(), generation.getFinishedAt(), generation.getKind().name(),
                 generation.getParentId(), editReport(generation), skeleton, diagnostics(generation));
     }
@@ -207,9 +335,10 @@ public class AiDtoMapper {
                 !NON_RETRYABLE_ERROR_CODE.equals(generation.getErrorCode()));
     }
 
-    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result) {
+    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result, Integer groupSize) {
         return new PackageDTO(result.key().name(), result.title(), result.tagline(), result.description(),
-                result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice()), result.currency(),
+                result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice()),
+                FromPrice.perPerson(result.totalPrice(), groupSize), result.currency(),
                 result.totalDurationMinutes(),
                 result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights());
     }

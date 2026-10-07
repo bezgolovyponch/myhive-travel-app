@@ -1,7 +1,10 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogPreset;
+import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.plan.PresetThemes;
 
 import java.util.List;
 import java.util.TreeSet;
@@ -18,17 +21,46 @@ public final class PackagesView {
 
     /** One line per package: {@code BASIC: day 1 [EVENING Beer Bike, NIGHT Club Crawl]; day 2 [MORNING Karting]}. */
     public static String render(ComposedPlan plan) {
+        return render(plan, null);
+    }
+
+    /**
+     * The organizer's trip draft alone when {@code only} is set - the chat must not see, and so cannot edit,
+     * the trims the organizer is not working on - every package otherwise.
+     */
+    public static String render(ComposedPlan plan, Tier only) {
         if (plan == null) {
             return "";
         }
         StringBuilder lines = new StringBuilder();
         for (ComposedPlan.PackageResult pkg : plan.packages()) {
+            if (only != null && pkg.key() != only) {
+                continue;
+            }
             if (!lines.isEmpty()) {
                 lines.append('\n');
             }
             lines.append(pkg.key()).append(": ").append(days(pkg));
         }
         return lines.toString();
+    }
+
+    /**
+     * The other ready-made weekends, one line the chat rules refer to:
+     * {@code Other ready-made weekends: Adrenaline [extreme, guns-and-bullets]; Beer & Food [czech-beer]}.
+     * Empty when there are none, so the rule about them has nothing to act on.
+     */
+    public static String themes(ComposedPlan plan, List<CatalogActivity> catalog, List<CatalogPreset> presets) {
+        List<String> themes = PresetThemes.of(plan, catalog, presets);
+        if (themes.isEmpty()) {
+            return "";
+        }
+        StringBuilder line = new StringBuilder("Other ready-made weekends: ");
+        for (int i = 0; i < themes.size(); i++) {
+            line.append(i == 0 ? "" : "; ").append(themes.get(i)).append(' ')
+                    .append(PresetThemes.categories(themes.get(i), presets));
+        }
+        return line.toString();
     }
 
     /** The names the model may use in an edit, sorted so the list reads the same on every turn. */

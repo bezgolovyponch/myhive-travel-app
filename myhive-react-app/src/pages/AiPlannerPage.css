@@ -91,115 +91,31 @@
     border-color: var(--aip-purple-l);
 }
 
-.aip-link-btn {
-    background: none;
-    border: 0;
-    color: var(--aip-muted);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-    padding: 4px 6px;
-}
-
-.aip-link-btn:hover {
-    color: var(--aip-text);
-}
-
-/* ---- result: package canvas + retractable dock ---- */
+/* ---- result: the trip draft + the chat docked to the bottom edge ---- */
 .aip-canvas {
-    padding: 28px 16px 170px;
-    transition: opacity 0.2s;
+    /* Room for the collapsed chat: its bar, one line and the composer. */
+    padding: 20px 16px 190px;
 }
 
-/* Fade the list out under the fixed chat bar + CTA. */
-.aip-page.has-result::after {
-    content: '';
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 190px;
-    background: linear-gradient(to bottom, rgba(22, 19, 28, 0), var(--aip-bg) 45%);
-    pointer-events: none;
-    z-index: 54;
-}
-
-.aip-canvas.is-dimmed {
-    opacity: 0.45;
-}
-
-/* Stacking: header 50 < scrim 53 < fade 54 < dock 55 < AppModal 70. */
-.aip-scrim {
-    position: fixed;
-    inset: 0;
-    z-index: 53;
-}
-
-.aip-dock {
-    position: fixed;
-    left: 50%;
-    /* Clear the consent sheet (height published by WhatsAppWidget) and the iOS home bar. */
-    bottom: calc(16px + var(--consent-bar-h, 0px) + env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%);
-    z-index: 55;
-    width: min(720px, calc(100% - 32px));
-}
-
-.aip-pill {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 12px 10px 12px 16px;
-    background: rgba(31, 28, 39, 0.94);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--aip-purple);
-    border-radius: 14px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-    color: var(--aip-muted);
-    font: inherit;
-    font-size: 14px;
-    text-align: left;
-    cursor: pointer;
-}
-
-.aip-pill-mark {
-    color: var(--aip-purple-l);
-}
-
-.aip-pill-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.aip-pill-caret {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--aip-text);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+/* With the chat open the draft can still be scrolled clear of it. */
+.aip-canvas.is-chat-open {
+    padding-bottom: calc(50vh + 40px);
+    padding-bottom: calc(50dvh + 40px);
 }
 
 .aip-cta {
     display: block;
     width: 100%;
-    margin-top: 8px;
-    padding: 15px;
+    height: 54px;
+    margin-top: 12px;
     border: 0;
-    border-radius: 12px;
+    border-radius: 14px;
     background: var(--aip-purple);
     color: #fff;
     font: inherit;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 12px 30px rgba(83, 74, 183, 0.35);
 }
 
 .aip-cta:disabled {
@@ -207,101 +123,326 @@
     cursor: default;
 }
 
-.aip-dock > .ai-error {
-    margin-top: 8px;
+.aip-view > .ai-error {
+    margin-top: 12px;
 }
 
-/* The same hand-off inside the open chat, under the trim cards and indented
-   like them (past the avatar column); full width on phones. */
-.aip-drawer-send {
-    margin-left: 34px;
-}
-
-@media (max-width: 640px) {
-    .aip-drawer-send {
-        margin-left: 0;
-    }
-}
-
-.aip-drawer-send .aip-cta {
-    margin-top: 0;
-    box-shadow: none;
-}
-
-.aip-drawer-send .ai-error {
-    margin-bottom: 8px;
-}
-
-.aip-drawer {
+/* Stacking: header 50 < dock 55 < AppModal 70. */
+.aip-dock {
+    position: fixed;
+    left: 50%;
+    /* Sits on the bottom edge, above the consent sheet (height published by WhatsAppWidget). */
+    bottom: var(--consent-bar-h, 0px);
+    transform: translateX(-50%);
+    z-index: 55;
+    width: min(720px, 100%);
+    max-height: 50vh;
+    max-height: 50dvh;
     display: flex;
     flex-direction: column;
-    height: min(560px, 70vh);
-    background: rgba(31, 28, 39, 0.96);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 22px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
     overflow: hidden;
-    animation: aip-slide-up 0.2s ease-out;
+    background: #1b1922;
+    border: 1px solid #2e2b3a;
+    border-bottom: 0;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.55);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-@keyframes aip-slide-up {
-    from { transform: translateY(24px); opacity: 0; }
-    to { transform: none; opacity: 1; }
-}
-
-.aip-drawer-head {
+/* The top edge: the whole bar opens and collapses the chat. */
+.aip-dock-bar {
+    flex: none;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 12px 12px 16px;
-    border-bottom: 1px solid var(--aip-line);
-}
-
-.aip-drawer-title {
-    flex: 1;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.aip-drawer-title span {
-    display: block;
-    color: var(--aip-muted);
-    font-weight: 400;
-    font-size: 12px;
-}
-
-.aip-icon-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1px solid var(--aip-line);
+    width: 100%;
+    padding: 8px 14px;
     background: transparent;
+    border: 0;
     color: var(--aip-text);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
 }
 
-/* Phones: the dock is a full-width bottom sheet. */
-@media (max-width: 640px) {
-    .aip-dock {
-        bottom: calc(12px + var(--consent-bar-h, 0px) + env(safe-area-inset-bottom, 0px));
+.aip-dock-mark {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--aip-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.aip-dock-grip {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.aip-dock-grip::before {
+    content: '';
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: #4a4658;
+}
+
+.aip-dock-caret {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid #2e2b3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #b0acbb;
+}
+
+/* Collapsed: the last thing said, on one line, above the composer. */
+.aip-dock-line {
+    flex: none;
+    padding: 0 14px 4px;
+    font-size: 12px;
+    color: #b0acbb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aip-dock:not(.is-open) .ai-thread-viewport,
+.aip-dock:not(.is-open) .ai-suggestions {
+    display: none;
+}
+
+.aip-dock .ai-thread-drawer .ai-thread-viewport {
+    padding: 10px 14px;
+}
+
+.aip-dock .ai-thread-drawer .ai-thread-bottom {
+    padding: 6px 14px 12px;
+    border-top: 0;
+}
+
+/* In the dock the planner speaks in plain lines; only the organizer's own
+   messages are bubbles. */
+.aip-dock .ai-msg-assistant .ai-avatar {
+    display: none;
+}
+
+.aip-dock .ai-bubble {
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.aip-dock .ai-msg-assistant .ai-bubble {
+    padding: 0;
+    background: transparent;
+    color: #d8d5e3;
+}
+
+.aip-dock .ai-msg-user .ai-bubble {
+    padding: 8px 12px;
+    border-radius: 14px 14px 4px 14px;
+}
+
+/* What the chat recommended: the best match as a card with Add, the rest as
+   tags. Each is a toggle; an added one turns green ("Added ✓", "✓ name"). */
+.aip-suggest {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #201d2a;
+    border-top: 1px solid #2e2b3a;
+    border-bottom: 1px solid #2e2b3a;
+}
+
+.aip-suggest-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.aip-suggest-thumb {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    overflow: hidden;
+    background: #2c2740;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #c9c4fb;
+}
+
+.aip-suggest-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.aip-suggest-body {
+    flex: 1;
+    min-width: 0;
+}
+
+/* One line, as in the design: the catalog's one-liner runs to 160 characters,
+   and wrapped it took the room the chat under it needs. */
+.aip-suggest-meta {
+    font-size: 12px;
+    color: #b0acbb;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aip-suggest-name {
+    font-size: 14px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aip-suggest-add {
+    flex: none;
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--aip-purple);
+    color: #fff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.aip-suggest-add.is-added {
+    padding: 0 12px;
+    background: rgba(37, 211, 102, 0.15);
+    color: #5fdc8f;
+}
+
+.aip-suggest-more {
+    display: flex;
+    scrollbar-width: none;
+    gap: 6px;
+    overflow-x: auto;
+}
+
+.aip-suggest-more button {
+    flex: none;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #3a3550;
+    border-radius: 999px;
+    background: transparent;
+    color: #d8d5e3;
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.aip-suggest-more button.is-added {
+    border-color: rgba(37, 211, 102, 0.45);
+    color: #5fdc8f;
+}
+
+.aip-suggest button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* What the draft could use next (its gaps next to the presets of its trim):
+   tags that ask the chat for it, in place of a stale last line. */
+/* Up to two rows of tags; a third row is cut off rather than pushing the draft up. */
+.aip-gaps {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 74px;
+    padding: 2px 14px 6px;
+    overflow: hidden;
+}
+
+/* In the open chat the tags sit right over the input, inside its own padding. */
+.aip-dock.is-open .aip-gaps {
+    padding: 0 0 8px;
+}
+
+.aip-gaps button {
+    flex: none;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid #3a3550;
+    border-radius: 999px;
+    background: transparent;
+    color: #d8d5e3;
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* An activity that goes in with one tap reads stronger than a theme that only asks. */
+.aip-gaps button.is-activity {
+    border-color: var(--aip-purple);
+    color: #fff;
+}
+
+.aip-gaps button:hover {
+    border-color: var(--aip-purple);
+}
+
+.aip-gaps button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* The answers to a tag's "which one?": chips under the question, wrapping. */
+.aip-answers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.aip-answers .ai-chip {
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+}
+
+.aip-answers .aip-answer-quiet {
+    background: transparent;
+    border-style: dashed;
+    color: var(--aip-muted);
+}
+
+.aip-gaps button[aria-pressed="true"] {
+    border-color: var(--aip-purple);
+    color: #fff;
+}
+
+@media (max-width: 480px) {
+    .aip-gap-verb {
+        display: none;
     }
 
-    .aip-dock.is-open {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        transform: none;
+    .aip-gap-kind {
+        display: inline-block;
     }
 
-    .aip-dock.is-open .aip-drawer {
-        height: 78vh;
-        border-radius: 22px 22px 0 0;
-        border-bottom: 0;
+    .aip-gap-kind::first-letter {
+        text-transform: uppercase;
     }
-
 }

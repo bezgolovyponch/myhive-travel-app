@@ -1,6 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActivityPreviewModal from './ActivityPreviewModal';
+import api from '../services/api';
+
+jest.mock('../services/api', () => ({ __esModule: true, default: { getActivity: jest.fn() } }));
+
+beforeEach(() => jest.clearAllMocks());
 
 const activity = {
   name: 'Snorkeling Tour',
@@ -141,4 +146,47 @@ test('traps Tab focus within the dialog', async () => {
 
   await userEvent.tab({ shift: true });      // close -> wraps back to link
   expect(fullPageLink).toHaveFocus();
+});
+
+test('a row with only a name is completed by id, and links to its own page', async () => {
+  api.getActivity.mockResolvedValue({
+    name: 'Snorkeling Tour', description: 'Explore the coral reefs with a guide.', includes: 'Fins',
+    categories: [{ name: 'Water' }], slug: 'snorkeling-tour', destinationSlug: 'tenerife',
+  });
+  render(<ActivityPreviewModal activity={{ name: 'Snorkeling Tour', duration: 180 }} activityId="a1" onClose={jest.fn()} />);
+
+  expect(screen.getByText('Loading the details…')).toBeInTheDocument();
+  expect(await screen.findByText('Explore the coral reefs with a guide.')).toBeInTheDocument();
+  expect(api.getActivity).toHaveBeenCalledWith('a1');
+  expect(screen.getByText(/3h · Water/)).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /View full page/ }))
+    .toHaveAttribute('href', '/destination/tenerife/activity/snorkeling-tour');
+});
+
+test('an activity that already has its text is not loaded again', () => {
+  render(<ActivityPreviewModal activity={activity} activityId="a1" onClose={jest.fn()} />);
+  expect(api.getActivity).not.toHaveBeenCalled();
+});
+
+test('when the details cannot be loaded the name stays and the dialog still closes', async () => {
+  api.getActivity.mockRejectedValue(new Error('offline'));
+  const onClose = jest.fn();
+  render(<ActivityPreviewModal activity={{ name: 'Snorkeling Tour' }} activityId="a1" onClose={onClose}
+                               closeLabel="Back to the draft" />);
+
+  expect(await screen.findByText(/No description yet/i)).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Snorkeling Tour' })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Back to the draft' }));
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test('the action does its thing and closes the dialog', async () => {
+  const onClose = jest.fn();
+  const onClick = jest.fn();
+  render(<ActivityPreviewModal activity={activity} onClose={onClose} closeLabel="Back to the draft"
+                               action={{ label: 'Add to the draft', onClick }} />);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add to the draft' }));
+  expect(onClick).toHaveBeenCalledTimes(1);
+  expect(onClose).toHaveBeenCalledTimes(1);
 });

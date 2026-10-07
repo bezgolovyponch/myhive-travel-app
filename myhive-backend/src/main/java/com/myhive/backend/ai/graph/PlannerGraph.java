@@ -132,9 +132,13 @@ public class PlannerGraph {
                             Map.of(ROUTE_GENERATE, AWAIT_GENERATION, ROUTE_EDIT, APPLY_EDITS,
                                     ROUTE_WAIT, AWAIT_USER))
                     .addConditionalEdges(AWAIT_USER, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
-                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
+                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION,
+                                    ROUTE_EDIT, APPLY_EDITS))
                     .addConditionalEdges(AWAIT_GENERATION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
-                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, SNAPSHOT_CATALOG))
+                            // An EDIT never reaches a thread with no packages (the service refuses it), but
+                            // every route afterWait can return needs a target: it answers like a chat turn.
+                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, SNAPSHOT_CATALOG,
+                                    ROUTE_EDIT, CHAT_TURN))
                     .addEdge(SNAPSHOT_CATALOG, COMPOSE)
                     .addEdge(COMPOSE, VALIDATE)
                     .addConditionalEdges(VALIDATE, AsyncEdgeAction.edge_async(PlannerGraph::afterValidate),
@@ -146,7 +150,8 @@ public class PlannerGraph {
                     .addEdge(PERSIST_RESULT, AWAIT_SELECTION)
                     .addEdge(APPLY_EDITS, AWAIT_SELECTION)
                     .addConditionalEdges(AWAIT_SELECTION, AsyncEdgeAction.edge_async(PlannerGraph::afterWait),
-                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION))
+                            Map.of(ROUTE_SELECT, SELECT, ROUTE_CHAT, CHAT_TURN, ROUTE_GENERATE, AWAIT_GENERATION,
+                                    ROUTE_EDIT, APPLY_EDITS))
                     .addEdge(SELECT, AWAIT_SELECTION);
             this.compiled = workflow.compile(compileConfig(saver));
         } catch (GraphStateException e) {
@@ -197,6 +202,9 @@ public class PlannerGraph {
         }
         if (ResumeReason.GENERATE.name().equals(reason)) {
             return ROUTE_GENERATE;
+        }
+        if (ResumeReason.EDIT.name().equals(reason)) {
+            return ROUTE_EDIT;
         }
         return ROUTE_CHAT;
     }

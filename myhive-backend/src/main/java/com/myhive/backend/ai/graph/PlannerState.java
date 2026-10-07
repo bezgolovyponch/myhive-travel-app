@@ -64,6 +64,19 @@ public class PlannerState extends AgentState {
     /** The tap-to-send answers offered under the latest assistant message; replaced every turn. */
     public static final String SUGGESTED_REPLIES = "suggestedReplies";
     /**
+     * Catalog names the latest chat turn recommended for the current draft, best match first: what the
+     * organizer asked for in general terms ("we want to shoot") rather than as an edit. Replaced every turn.
+     */
+    public static final String RECOMMENDATIONS = "recommendations";
+    /**
+     * The package the organizer is working on - the trim on screen, stamped by every message once packages
+     * exist. The chat sees only this package and every edit it makes lands in it: there is one trip draft,
+     * not three. Absent before the first packages.
+     */
+    public static final String WORKING_PACKAGE = "workingPackage";
+    /** The trim the latest turn asked to show (a tier name, or ALL for every trim); blank otherwise. */
+    public static final String SHOW_PACKAGE = "showPackage";
+    /**
      * The model's reply on a turn that routes to {@code applyEdits}, held back until the edits were checked:
      * it was written before Java knew whether they can be done, so the edit node decides whether it is
      * said at all. Blank when nothing is pending.
@@ -130,6 +143,18 @@ public class PlannerState extends AgentState {
 
     public List<String> suggestedReplies() {
         return this.<List<String>>value(SUGGESTED_REPLIES).orElse(List.of());
+    }
+
+    public List<String> recommendations() {
+        return this.<List<String>>value(RECOMMENDATIONS).orElse(List.of());
+    }
+
+    public Optional<Tier> workingPackage() {
+        return this.<String>value(WORKING_PACKAGE).filter(value -> !value.isBlank()).map(Tier::valueOf);
+    }
+
+    public Optional<String> showPackage() {
+        return this.<String>value(SHOW_PACKAGE).filter(value -> !value.isBlank());
     }
 
     public boolean pairingAsked() {
