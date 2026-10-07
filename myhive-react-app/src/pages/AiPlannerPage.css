@@ -249,20 +249,83 @@
     border-radius: 14px 14px 4px 14px;
 }
 
-/* What the chat recommended: the best match as a card with Add, the rest as
-   tags. Each is a toggle; an added one turns green ("Added ✓", "✓ name"). */
+/* What the chat recommended: a sheet above the composer with three states - hidden (one line with
+   the count), compact (the top match as a card with Add, the rest behind "N more") and expanded
+   (every one a card, in a list that scrolls). The header is the handle: a tap toggles the list, a
+   swipe up or down on a phone steps through the states. An added one turns green ("Added ✓"). */
 .aip-suggest {
     flex: none;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 4px 14px 10px;
     background: #201d2a;
     border-top: 1px solid #2e2b3a;
     border-bottom: 1px solid #2e2b3a;
 }
 
-.aip-suggest-top {
+.aip-suggest[data-view="hidden"] {
+    padding-bottom: 4px;
+}
+
+.aip-suggest-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* The handle takes the vertical gesture; the page must not scroll under it. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.aip-suggest-toggle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    background: transparent;
+    border: 0;
+    color: #b0acbb;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.aip-suggest-grip {
+    flex: none;
+    width: 28px;
+    height: 4px;
+    border-radius: 2px;
+    background: #4a4658;
+}
+
+.aip-suggest-title {
+    flex: 1;
+    text-align: left;
+}
+
+.aip-suggest-hide {
+    flex: none;
+    padding: 6px 8px;
+    border: 0;
+    background: transparent;
+    color: #b0acbb;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.aip-suggest-toggle:hover,
+.aip-suggest-hide:hover {
+    color: var(--aip-text);
+}
+
+.aip-suggest-card {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -331,15 +394,9 @@
     color: #5fdc8f;
 }
 
+/* "3 more": the way from the top match to the whole list. */
 .aip-suggest-more {
-    display: flex;
-    scrollbar-width: none;
-    gap: 6px;
-    overflow-x: auto;
-}
-
-.aip-suggest-more button {
-    flex: none;
+    align-self: flex-start;
     height: 28px;
     padding: 0 10px;
     border: 1px solid #3a3550;
@@ -352,9 +409,31 @@
     cursor: pointer;
 }
 
-.aip-suggest-more button.is-added {
-    border-color: rgba(37, 211, 102, 0.45);
-    color: #5fdc8f;
+.aip-suggest-more:hover {
+    border-color: #5b5478;
+}
+
+/* The whole list, capped so the composer and a few lines of chat stay on screen; the scrollbar is
+   meant to be seen - it is how a desktop learns there is more. */
+.aip-suggest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: min(240px, 40vh);
+    max-height: min(240px, 40dvh);
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #4a4658 transparent;
+}
+
+.aip-suggest-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.aip-suggest-list::-webkit-scrollbar-thumb {
+    background: #4a4658;
+    border-radius: 3px;
 }
 
 .aip-suggest button:disabled {

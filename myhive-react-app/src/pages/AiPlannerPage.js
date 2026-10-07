@@ -88,6 +88,7 @@ function AiPlannerPage({pollIntervalMs}) {
     const [handoffError, setHandoffError] = useState(false);
     const [preview, setPreview] = useState(null); // the draft row or recommendation whose card is open
     const [asked, setAsked] = useState(null); // {gap, answer}: the "+ Add ..." tag being answered
+    const [offerTurn, setOfferTurn] = useState(0); // messages sent under the draft: each may bring a new offer
     const {generation, sending} = planner;
     const hasResult = Boolean(generation?.packages?.length);
 
@@ -166,6 +167,7 @@ function AiPlannerPage({pollIntervalMs}) {
             setChatted(true);
             setShowAll(false);
             setDockOpen(true);
+            setOfferTurn((turn) => turn + 1);
             return planner.send(text, preset);
         },
     };
@@ -345,6 +347,9 @@ function AiPlannerPage({pollIntervalMs}) {
     const offered = asked?.answer
         ? [asked.answer, ...kindOptions.filter((rec) => rec.activityId !== asked.answer.activityId)]
         : showRecommendations ? planner.recommendations : suggested;
+    // A new offer - a chat turn, a tag answer, another trim - opens the sheet on its top match again;
+    // an Add is none of these, so the open list stays open under the organizer's finger.
+    const offerKey = `${offerTurn}:${asked?.answer?.activityId || ''}:${workingKey || ''}`;
 
     return (
         <div className={`aip-page ${hasResult ? 'has-result' : 'is-chat'}`}>
@@ -392,6 +397,7 @@ function AiPlannerPage({pollIntervalMs}) {
                         {dockOpen && (
                             <AiRecommendations
                                 recommendations={offered}
+                                resetKey={offerKey}
                                 isAdded={(id) => inDraft.has(id)}
                                 onOpen={setPreview}
                                 onToggle={toggleRecommendation}
