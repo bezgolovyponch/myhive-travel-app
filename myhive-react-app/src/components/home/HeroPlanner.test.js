@@ -43,12 +43,16 @@ beforeEach(() => {
     window.sessionStorage.clear();
 });
 
-test('shows the four-step timeline and the first-screen copy', () => {
+test('shows the first-screen copy and the vote results card', () => {
     renderHero();
     expect(screen.getByRole('heading', {level: 1}))
-        .toHaveTextContent('Prague stag do plannerBest man, not travel agent.');
-    ['You pick dates and head-count', 'Three ready weekends', 'The lads pick one', 'A Prague planner calls you']
-        .forEach((step) => expect(screen.getByText(step)).toBeInTheDocument());
+        .toHaveTextContent('Prague stag do plannerYour Custom Stag Do with no problems');
+    expect(screen.getByText('Built together with friends')).toBeInTheDocument();
+    ['AK-47 shooting', 'Steak and strip', 'Tank driving']
+        .forEach((name) => expect(screen.getByText(name)).toBeInTheDocument());
+    expect(screen.getByText('✓ 8 yes')).toBeInTheDocument();
+    expect(screen.getByText('✕ 6 no')).toBeInTheDocument();
+    expect(screen.getByText('9 of 10')).toBeInTheDocument();
 });
 
 test('without dates the chips offer flexible starts', () => {
