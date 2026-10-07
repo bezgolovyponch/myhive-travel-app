@@ -1233,6 +1233,7 @@
       "addAria": "Add {name} to the trip draft",
       "suggestionsCount": "Recommendations ({count})",
       "moreCount": "{count} more",
+      "fewer": "Show less",
       "hide": "Hide",
       "show": "Show"
     },

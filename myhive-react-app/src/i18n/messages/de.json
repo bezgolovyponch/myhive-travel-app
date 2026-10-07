@@ -1223,6 +1223,7 @@
       "addAria": "{name} zum Entwurf hinzufügen",
       "suggestionsCount": "Empfehlungen ({count})",
       "moreCount": "{count} weitere",
+      "fewer": "Weniger anzeigen",
       "hide": "Ausblenden",
       "show": "Anzeigen"
     },
