@@ -53,14 +53,20 @@ function ActivityVoteContent() {
         voteApi.getSession(shareToken)
             .then(s => {
                 if (cancelled) return;
-                if (isOrganiser && s.destinationSlug) {
-                    navigate(dashboardPath(s.destinationSlug, shareToken), { replace: true });
+                if (isOrganiser) {
+                    // The dashboard lives on the destination page; a vote without one gets the result
+                    // page - the organiser is never left on "loading" (as VoteWaitingPage does it).
+                    navigate(s.destinationSlug
+                        ? dashboardPath(s.destinationSlug, shareToken)
+                        : `/vote/${shareToken}/result`, { replace: true });
                     return;
                 }
                 setSession(s);
             })
-            .catch(() => {
-                // The activities request below reports a missing session.
+            .catch(e => {
+                // A friend hears about a missing session from the activities request below, with its
+                // nicer "gone" message; the organiser makes no such request, so this is their only word.
+                if (!cancelled && isOrganiser) setError(e.message);
             });
         if (voted || isOrganiser) {
             setLoading(false);
@@ -160,9 +166,8 @@ function ActivityVoteContent() {
     };
 
     if (voted) return <FriendThankYou/>;
-    if (loading || isOrganiser) return (
-        <div className="vote-state">{t('activities.loading')}</div>
-    );
+    // An error first: the organiser is otherwise shown "loading" until the dashboard redirect, and a
+    // vote that is gone has no dashboard to redirect to.
     if (error === 'Vote session not found') return (
         <div className="vote-state">
             <p className="vote-state-title">{t('activities.sessionGoneTitle')}</p>
@@ -173,6 +178,9 @@ function ActivityVoteContent() {
     );
     if (error) return (
         <div className="vote-state vote-state--error">{error}</div>
+    );
+    if (loading || isOrganiser) return (
+        <div className="vote-state">{t('activities.loading')}</div>
     );
     if (session && session.status !== 'ACTIVE') return <FriendThankYou closed/>;
     if (activities.length === 0) return (

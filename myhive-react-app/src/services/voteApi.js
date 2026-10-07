@@ -45,6 +45,7 @@ const voteApi = {
 
   async getSession(shareToken) {
     const response = await fetch(withLocaleParam(`${API_BASE_URL}/vote/sessions/${encodeURIComponent(shareToken)}`));
+    if (response.status === 404) throw new Error('Vote session not found');
     if (!response.ok) throw new Error('Failed to fetch vote session');
     return response.json();
   },

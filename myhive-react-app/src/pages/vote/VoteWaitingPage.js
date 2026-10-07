@@ -35,6 +35,16 @@ function VoteWaitingContent() {
         voteApi.getSession(shareToken)
             .then(session => {
                 if (cancelled) return;
+                // The dashboard lives on the destination page; a vote without one gets the result page,
+                // never a link to /destination/undefined. The dashboard adopts the email link's manager
+                // token itself; the result page only reads it from storage, so it is kept here.
+                if (!session.destinationSlug) {
+                    if (managerParam) {
+                        localStorage.setItem(managerKey(shareToken), managerParam);
+                    }
+                    navigate(`/vote/${shareToken}/result`, { replace: true });
+                    return;
+                }
                 const path = dashboardPath(session.destinationSlug, shareToken);
                 navigate(managerParam ? `${path}&manager=${encodeURIComponent(managerParam)}` : path, { replace: true });
             })

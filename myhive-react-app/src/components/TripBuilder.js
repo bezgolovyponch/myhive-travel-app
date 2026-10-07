@@ -388,7 +388,11 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // here changes what the friends who have not voted yet see.
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
-    if (liveVote && onBallot(activityId)) {
+    // Before the first tally has arrived there is no telling whether the vote holds it, so it is
+    // dropped anyway: the server answers 404 for one it does not, harmlessly, and a removal that
+    // never reached the vote would leave friends voting on an activity the plan no longer has.
+    const mayBeOnBallot = organizerVote.tally == null || onBallot(activityId);
+    if (liveVote && mayBeOnBallot) {
       organizerVote.excludeActivity(activityId);
     }
   };

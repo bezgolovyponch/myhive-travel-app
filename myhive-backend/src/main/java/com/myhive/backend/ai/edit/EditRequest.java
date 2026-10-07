@@ -6,6 +6,7 @@ import com.myhive.backend.ai.model.Tier;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * One edit the model asked for on top of the current plan: swap, drop or add an activity,
@@ -15,14 +16,23 @@ import java.util.Set;
  * <p>{@code alternatives} are the catalog names the model deems closest to an activity that is not on
  * offer. They are only looked at when {@code activity} (or {@code replacement}) fails to resolve, and only
  * the ones that resolve themselves are offered back. Never null, usually empty.
+ *
+ * <p>{@code activityId} is set by a tap on a card, never by the model: the row is then that one, whatever
+ * other rows share its name. Null for an edit typed in the chat, which is resolved by name.
  */
 public record EditRequest(EditOp op, String activity, String replacement, Tier packageKey, Integer dayNumber,
-                          Slot slot, List<String> alternatives) {
+                          Slot slot, List<String> alternatives, UUID activityId) {
 
     public EditRequest {
         activity = activity == null ? null : activity.strip();
         replacement = replacement == null ? null : replacement.strip();
         alternatives = distinctNonBlank(alternatives);
+    }
+
+    /** An edit typed in the chat: named, with the model's alternatives for a name the catalog lacks. */
+    public EditRequest(EditOp op, String activity, String replacement, Tier packageKey, Integer dayNumber, Slot slot,
+                       List<String> alternatives) {
+        this(op, activity, replacement, packageKey, dayNumber, slot, alternatives, null);
     }
 
     /** The shape every caller used before alternatives existed: an edit that names none. */

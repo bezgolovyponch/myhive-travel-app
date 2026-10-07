@@ -57,6 +57,18 @@ describe('createCartSession', () => {
   });
 });
 
+describe('getSession', () => {
+  afterEach(() => {
+    delete global.fetch;
+  });
+
+  it('names a vote that is gone, so every page can show the same message', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) });
+
+    await expect(voteApi.getSession('tok-404')).rejects.toThrow('Vote session not found');
+  });
+});
+
 describe('getTally', () => {
   afterEach(() => {
     delete global.fetch;

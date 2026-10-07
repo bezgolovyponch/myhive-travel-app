@@ -72,6 +72,32 @@ class PackageEditorTest {
         }
     }
 
+    /**
+     * A tap on a card names the row by id: two catalog rows with one name (prod has pairs whose slugs were
+     * suffixed on collision) are ambiguous by name, never by id.
+     */
+    @Test
+    void add_carryingTheActivityId_placesThatRow_whereTheNameAloneIsAmbiguous() {
+        CatalogActivity laserTag = activity("Laser Tag", "20.00", 60, null, "indoor");
+        CatalogActivity laserTagTwo = activity("Laser Tag", "25.00", 60, null, "indoor");
+        ComposedPlan plan = basePlan();
+        EditRequest byName = add(laserTag.name(), Tier.BASIC, null, null);
+        EditRequest byId = new EditRequest(EditOp.ADD, laserTagTwo.name(), null, Tier.BASIC, null, null, List.of(),
+                laserTagTwo.id());
+
+        EditOutcome named = editor.apply(plan, brief, catalog, List.of(byName));
+        EditOutcome tapped = editor.apply(plan, brief, catalog, List.of(byId));
+
+        assertThat(named.anyApplied()).isFalse();
+        assertThat(named.rejected()).singleElement().satisfies(rejected ->
+                assertThat(rejected.reason()).isEqualTo(EditRejectionReason.AMBIGUOUS_ACTIVITY));
+        assertThat(tapped.rejected()).isEmpty();
+        assertThat(tapped.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.placedActivityId()).isEqualTo(laserTagTwo.id());
+            assertThat(applied.packageKey()).isEqualTo(Tier.BASIC);
+        });
+    }
+
     @Test
     void remove_lastItemOfAPackage_isWouldEmptyPackage() {
         String expectedRemaining = riverCruise.name();

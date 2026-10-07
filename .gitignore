@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### macOS Finder metadata ###
+.DS_Store
+
 ### Environment ###
 .env
 .env.local

@@ -39,6 +39,7 @@ function renderAt(entry) {
             <Routes>
                 <Route path="/vote/:shareToken/activities" element={<ActivityVotePage/>}/>
                 <Route path="/destination/:slug" element={<div>organiser dashboard</div>}/>
+                <Route path="/vote/:shareToken/result" element={<div>result page</div>}/>
             </Routes>
         </MemoryRouter>
     );
@@ -69,6 +70,25 @@ test('shows a friendly message when the vote session is not found', async () => 
     renderAt('/vote/tok-404/activities');
 
     expect(await screen.findByText(/this vote session no longer exists/i)).toBeInTheDocument();
+});
+
+test('an organiser whose vote no longer exists sees the message, not an endless loading', async () => {
+    localStorage.setItem('myhive-manager-tok-404', 'mgr-1');
+    voteApi.getSession.mockRejectedValue(new Error('Vote session not found'));
+
+    renderAt('/vote/tok-404/activities');
+
+    expect(await screen.findByText(/this vote session no longer exists/i)).toBeInTheDocument();
+    expect(voteApi.getActivities).not.toHaveBeenCalled();
+});
+
+test('an organiser whose vote has no destination page is sent to the result, not left loading', async () => {
+    localStorage.setItem('myhive-manager-tok-abc', 'mgr-1');
+    voteApi.getSession.mockResolvedValue({ ...SESSION, destinationSlug: undefined });
+
+    renderAt('/vote/tok-abc/activities');
+
+    expect(await screen.findByText('result page')).toBeInTheDocument();
 });
 
 test('the swipe has no invite link', async () => {

@@ -750,6 +750,33 @@ class AiSessionServiceTest {
         assertThat(graph.snapshot(session.getToken()).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
     }
 
+    /**
+     * A tap on a card names the row by id. Prod carries pairs of activities with one name (slugs suffixed on
+     * collision): by name they are ambiguous, and a tap on one of them was answered with "which one?".
+     */
+    @Test
+    void editDraft_carriesTheTappedActivityId_soASharedNameIsNotAmbiguous() {
+        AiSession session = startedSession();
+        CatalogActivity inThePlan = catalogActivity("Beer Bike", "beer-bike");
+        CatalogActivity laserTag = catalogActivity("Laser Tag", "laser-tag");
+        CatalogActivity laserTagTwo = catalogActivity("Laser Tag", "laser-tag-2");
+        ComposedPlan plan = planWith(inThePlan);
+        AiGeneration parent = storedParent(session, plan);
+        parkWithPackages(session, List.of(inThePlan, laserTag, laserTagTwo), plan, parent.getId());
+        llm.queueRefresh(refreshedTexts("With laser tag in the evening"));
+        answerEditedGenerationLookups();
+
+        AiSessionService.TurnOutcome outcome = service.editDraft(session.getToken(), EditOp.ADD, laserTagTwo.id(),
+                Tier.BASIC);
+
+        assertThat(outcome.editReport()).hasValueSatisfying(report -> {
+            assertThat(report.rejected()).isEmpty();
+            assertThat(report.applied()).singleElement().satisfies(applied ->
+                    assertThat(applied.placedActivityId()).isEqualTo(laserTagTwo.id()));
+        });
+        assertThat(outcome.editedGeneration()).isPresent();
+    }
+
     /** A batch that changed nothing creates no row, so it must not cost one of the twenty edit turns. */
     @Test
     void editTurn_withNothingApplied_doesNotCountAgainstTheLimit() {
