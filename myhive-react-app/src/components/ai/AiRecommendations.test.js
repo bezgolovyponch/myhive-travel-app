@@ -180,16 +180,39 @@ test('a swipe without a tail click (touch) does not eat the next activation of t
     }
 });
 
-test('the header captures the pointer, so a mouse drag that leaves it still counts', () => {
+/**
+ * Chrome retargets the click to the element holding pointer capture: captured on pointerdown, every tap on
+ * the header's buttons landed on the header div and Hide/Show did nothing (seen live). So the capture is
+ * taken only once the pointer has moved - a drag - and a plain click never involves it.
+ */
+test('the header captures the pointer only once it moves, never on a plain press', () => {
     const capture = jest.fn();
     HTMLElement.prototype.setPointerCapture = capture;
+    HTMLElement.prototype.hasPointerCapture = () => false;
     try {
         renderRecs();
-        fireEvent.pointerDown(screen.getByRole('button', {name: 'Recommendations (4)'}), {clientY: 300, pointerId: 7});
+        const head = screen.getByRole('button', {name: 'Recommendations (4)'});
+        fireEvent.pointerDown(head, {clientY: 300, pointerId: 7});
+        fireEvent.pointerMove(head, {clientY: 298, pointerId: 7});
+        expect(capture).not.toHaveBeenCalled();
+
+        fireEvent.pointerMove(head, {clientY: 290, pointerId: 7});
         expect(capture).toHaveBeenCalledWith(7);
     } finally {
         delete HTMLElement.prototype.setPointerCapture;
+        delete HTMLElement.prototype.hasPointerCapture;
     }
+});
+
+test('expanded: "Show less" at the foot of the list folds it back to the top match', async () => {
+    renderRecs();
+    await userEvent.click(screen.getByRole('button', {name: '3 more'}));
+
+    await userEvent.click(within(group()).getByRole('button', {name: 'Show less'}));
+
+    expect(addButton('Paintball')).not.toBeInTheDocument();
+    expect(addButton('AK-47 shooting')).toBeInTheDocument();
+    expect(within(group()).getByRole('button', {name: '3 more'})).toBeInTheDocument();
 });
 
 test('nothing to recommend renders nothing', () => {

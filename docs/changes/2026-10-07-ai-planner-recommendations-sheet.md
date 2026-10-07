@@ -36,11 +36,14 @@ All three are capped at four.
 
 The header is the handle: a tap toggles compact ↔ expanded, "Hide"/"Show" fold to the line and back,
 and a swipe up or down on it (pointer events, 24 px threshold, no library) steps through
-hidden → compact → expanded. The header captures the pointer, so a mouse drag that leaves it still
-counts; the click a browser fires right after a swipe (within 400 ms, whichever header button it lands
-on) is the swipe's tail and is ignored, while a later activation — a keyboard Enter after a touch swipe,
-which has no tail click — is not. `touch-action: none` on the header only, so the page does not scroll
-under the gesture.
+hidden → compact → expanded. The header captures the pointer **only once it has moved 6 px** (a drag),
+so a mouse drag that leaves it still counts — captured on `pointerdown`, as the first cut did, Chrome
+retargets the click to the capturing element and every tap on Hide/Show landed on the header div and did
+nothing (seen live after the first deploy, confirmed on a minimal page). The click a browser fires right
+after a swipe (within 400 ms, whichever header button it lands on) is the swipe's tail and is ignored,
+while a later activation — a keyboard Enter after a touch swipe, which has no tail click — is not.
+`touch-action: none` on the header only, so the page does not scroll under the gesture. The expanded list
+ends with "Show less", the explicit way back to the top match (the header toggle does the same).
 
 A **new offer** opens compact again, hidden or not: the chat's "the top match is above" has to point at
 something. What counts as a new offer is the page's call (`resetKey`: a message sent under the draft, a

@@ -10,6 +10,13 @@ function meta(rec) {
 /** A finger has to travel this far on the header for it to be a swipe and not a tap. */
 const SWIPE_PX = 24;
 
+/**
+ * The pointer is captured only once it has moved this far: a browser retargets the click to the element
+ * holding the capture, so captured on pointerdown every tap on the header's buttons landed on the header
+ * itself and Hide/Show did nothing (seen live). A plain click never gets this far.
+ */
+const CAPTURE_PX = 6;
+
 /** The click a browser fires after a swipe arrives within this; a real tap comes later, after its own pointerdown. */
 const SWIPE_TAIL_MS = 400;
 
@@ -53,10 +60,10 @@ function Card({rec, isAdded, onOpen, onToggle, pendingId, disabled}) {
 /**
  * What the chat recommended for the draft, as a sheet above the composer with three states: hidden
  * (one line with the count), compact (the top match as a card with Add, the rest behind "N more") and
- * expanded (every one a card, in a list that scrolls). The header is the handle: a tap toggles the list,
- * "Hide"/"Show" fold it to the line and back, and on a phone a swipe up or down on it steps through the
- * states. Every card is a toggle: a tap adds the activity to the draft, a tap on an added one ("Added ✓")
- * takes it out again, with no chat turn in between.
+ * expanded (every one a card, in a list that scrolls, "Show less" under it). The header is the handle: a
+ * tap toggles the list, "Hide"/"Show" fold it to the line and back, and on a phone a swipe up or down on
+ * it steps through the states. Every card is a toggle: a tap adds the activity to the draft, a tap on an
+ * added one ("Added ✓") takes it out again, with no chat turn in between.
  *
  * <p>A new offer opens compact again, hidden or not - the chat's "the top match is above" has to point
  * at something. What counts as a new offer is the parent's call ({@code resetKey}: a chat turn, a tag
@@ -99,8 +106,15 @@ function AiRecommendations({recommendations, resetKey = '', isAdded, onOpen, onT
     const onPointerDown = (e) => {
         swipeStart.current = e.clientY;
         swipedAt.current = 0;
-        // A mouse drag that leaves the header still ends here; touch captures by itself.
-        e.currentTarget.setPointerCapture?.(e.pointerId);
+    };
+    const onPointerMove = (e) => {
+        if (swipeStart.current == null || Math.abs(e.clientY - swipeStart.current) < CAPTURE_PX) {
+            return;
+        }
+        // A drag, then: a mouse that leaves the header before letting go still ends the swipe here.
+        if (!e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+            e.currentTarget.setPointerCapture?.(e.pointerId);
+        }
     };
     const onPointerUp = (e) => {
         if (swipeStart.current == null) {
@@ -133,8 +147,8 @@ function AiRecommendations({recommendations, resetKey = '', isAdded, onOpen, onT
 
     return (
         <div className="aip-suggest" role="group" aria-label={t('result.suggestions')} data-view={view}>
-            <div className="aip-suggest-head" onPointerDown={onPointerDown} onPointerUp={onPointerUp}
-                 onPointerCancel={onPointerCancel}>
+            <div className="aip-suggest-head" onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+                 onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
                 <button type="button" className="aip-suggest-toggle" aria-expanded={expanded} onClick={toggle}>
                     <span className="aip-suggest-grip" aria-hidden="true"/>
                     <span className="aip-suggest-title">
@@ -157,9 +171,14 @@ function AiRecommendations({recommendations, resetKey = '', isAdded, onOpen, onT
                 </>
             )}
             {expanded && (
-                <div className="aip-suggest-list">
-                    {recommendations.map(card)}
-                </div>
+                <>
+                    <div className="aip-suggest-list">
+                        {recommendations.map(card)}
+                    </div>
+                    <button type="button" className="aip-suggest-more" onClick={() => setView('compact')}>
+                        {t('result.fewer')}
+                    </button>
+                </>
             )}
         </div>
     );
