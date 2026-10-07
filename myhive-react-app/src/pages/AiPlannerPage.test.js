@@ -245,14 +245,20 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
     // With the three trims on offer the docked chat says so, in place of the brief talk before it.
     expect(within(screen.getByRole('region', {name: 'Stag Do AI'}))
-        .getAllByText('Your three options are ready. Pick one to make it your trip plan.').length).toBeGreaterThan(0);
+        .getAllByText('Your three options are ready. Switch between them, or tell me what to change.').length)
+        .toBeGreaterThan(0);
 
-    // Picking a trim makes it the draft: the other trims leave the screen.
+    // A tap on a trim shows it; the other two stay a tap away - nothing has been changed or chosen yet.
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: /Premium/})).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByText('Karting')).not.toBeInTheDocument();
     expect(within(draft).getByText('VIP Club')).toBeInTheDocument();
     expect(within(draft).getByText('from €279 / person')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', {name: /Basic/}));
+    expect(screen.getByRole('tab', {name: /Basic/})).toHaveAttribute('aria-selected', 'true');
+    expect(within(draft).getByText('from €113 / person')).toBeInTheDocument();
+    expect(aiPlannerApi.selectPackage).not.toHaveBeenCalled();
 
     // Docked and open on the result. What was said to gather the brief - down to "building your three
     // options" - is not about the draft: the chat starts with its own line.
@@ -261,8 +267,10 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(bar).toHaveAttribute('aria-expanded', 'true');
     expect(within(dock).queryByText('Building your three options…')).not.toBeInTheDocument();
     expect(within(dock).queryByText('Friday evening to Sunday')).not.toBeInTheDocument();
-    // A trim was picked above: it is the draft now, and the chat says that instead.
-    expect(within(dock).getByText('Your trip plan is set for 10. Anything to add?')).toBeInTheDocument();
+    // Only trims were tapped above, nothing changed: the three options are still on offer.
+    expect(within(dock).getAllByText('Your three options are ready. Switch between them, or tell me what to change.')
+        .length).toBeGreaterThan(0);
+    expect(within(dock).queryByText('Your trip plan is set for 10. Anything to add?')).not.toBeInTheDocument();
     // The hand-off sits under the draft, reachable whether the chat is open or not.
     expect(screen.getByRole('button', {name: 'Ask the group'})).toBeInTheDocument();
     // Its top bar collapses it and opens it again.
@@ -454,8 +462,9 @@ test('the chat brings the trims back ("what were the other options?") and switch
             suggestedReplies: [], generation: null, showPackage: 'PREMIUM'});
     renderPage();
 
+    // A tap only switches the trim on screen; the first message makes the plan the organizer's own.
     await userEvent.click(await screen.findByRole('tab', {name: /Medium/}));
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'what were the other options?{Enter}');
     expect(await screen.findByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();

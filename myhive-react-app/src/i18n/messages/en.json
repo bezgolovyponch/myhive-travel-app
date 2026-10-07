@@ -1241,7 +1241,7 @@
       "placeholder": "Change anything…",
       "expand": "Open chat",
       "gapsAria": "What the plan could take next",
-      "optionsReady": "Your three options are ready. Pick one to make it your trip plan.",
+      "optionsReady": "Your three options are ready. Switch between them, or tell me what to change.",
       "draftSet": "Your trip plan is set for {count}. Anything to add?",
       "draftSetNoCount": "Your trip plan is set. Anything to add?",
       "addVerb": "Add",
