@@ -9,6 +9,7 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.ConflictException;
 import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
@@ -197,6 +198,66 @@ class VoteSessionCartCreateTest {
         assertThatThrownBy(() -> voteSessionService.createCartSession(request))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("country code");
+    }
+
+    @Test
+    void createCartSession_usesTheManagerTokenTheBrowserPicked() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        UUID expectedManagerToken = UUID.randomUUID();
+        VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        request.setShareToken(UUID.randomUUID());
+        request.setManagerToken(expectedManagerToken);
+
+        VoteSessionResponse response = voteSessionService.createCartSession(request);
+
+        assertThat(response.getManagerToken()).isEqualTo(expectedManagerToken);
+        VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        assertThat(session.getManagerToken()).isEqualTo(expectedManagerToken);
+    }
+
+    @Test
+    void createCartSession_askedAgainWithTheSameTokens_returnsTheVoteAlreadyCreated() {
+        // The first response never reached the phone; the retry carries the same link and manager tokens.
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        request.setShareToken(UUID.randomUUID());
+        request.setManagerToken(UUID.randomUUID());
+        VoteSessionResponse first = voteSessionService.createCartSession(request);
+
+        VoteSessionResponse retry = voteSessionService.createCartSession(request);
+
+        assertThat(retry.getShareToken()).isEqualTo(first.getShareToken());
+        assertThat(retry.getManagerToken()).isEqualTo(first.getManagerToken());
+        VoteSession session = voteSessionRepository.findByShareToken(first.getShareToken()).orElseThrow();
+        assertThat(voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId())).hasSize(1);
+    }
+
+    @Test
+    void createCartSession_linkTokenInUseByAnotherManager_isAConflict() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        UUID shareToken = UUID.randomUUID();
+        VoteSessionCartCreateRequest request = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        request.setShareToken(shareToken);
+        request.setManagerToken(UUID.randomUUID());
+        voteSessionService.createCartSession(request);
+
+        VoteSessionCartCreateRequest otherManager = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        otherManager.setShareToken(shareToken);
+        otherManager.setManagerToken(UUID.randomUUID());
+        VoteSessionCartCreateRequest noManager = cartRequest(prague.getId(), List.of(barCrawl.getId()));
+        noManager.setShareToken(shareToken);
+
+        assertThatThrownBy(() -> voteSessionService.createCartSession(otherManager))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("already in use");
+        assertThatThrownBy(() -> voteSessionService.createCartSession(noManager))
+                .isInstanceOf(ConflictException.class);
     }
 
     private VoteSessionCartCreateRequest cartRequest(UUID destinationId, List<UUID> activityIds) {
