@@ -208,25 +208,16 @@
     },
     "planner": {
       "eyebrow": "Prague stag do planner",
-      "title": "Best man, not travel agent.",
-      "subtitle": "A local planner calls within the hour. No agency fee.",
-      "steps": {
-        "pick": {
-          "time": "0:00",
-          "title": "You pick dates and head-count"
-        },
-        "weekends": {
-          "time": "0:01",
-          "title": "Three ready weekends"
-        },
-        "lads": {
-          "time": "0:05",
-          "title": "The lads pick one"
-        },
-        "call": {
-          "time": "<1h",
-          "title": "A Prague planner calls you"
-        }
+      "title": "Your Custom Stag Do with no problems",
+      "subtitle": "Built together with friends",
+      "votes": {
+        "shooting": "AK-47 shooting",
+        "steak": "Steak and strip",
+        "tank": "Tank driving",
+        "yes": "{count} yes",
+        "no": "{count} no",
+        "count": "{voted} of {total}",
+        "voted": "friends voted"
       },
       "datesLabel": "Travel dates",
       "datesHint": "· can be changed",

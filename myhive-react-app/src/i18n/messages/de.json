@@ -198,25 +198,16 @@
     },
     "planner": {
       "eyebrow": "JGA-Planer für Prag",
-      "title": "Trauzeuge statt Reisebüro.",
-      "subtitle": "Ein Planer vor Ort ruft in 1 Std. an. Ohne Gebühr.",
-      "steps": {
-        "pick": {
-          "time": "0:00",
-          "title": "Du wählst Daten und Gruppe"
-        },
-        "weekends": {
-          "time": "0:01",
-          "title": "Drei fertige Wochenenden"
-        },
-        "lads": {
-          "time": "0:05",
-          "title": "Die Jungs wählen eins"
-        },
-        "call": {
-          "time": "<1 Std.",
-          "title": "Ein Prag-Planer ruft dich an"
-        }
+      "title": "Dein JGA nach Maß: einfach & stressfrei",
+      "subtitle": "Gemeinsam mit deinen Freunden geplant",
+      "votes": {
+        "shooting": "Kalaschnikow schießen",
+        "steak": "Steak und Strip",
+        "tank": "Panzer fahren",
+        "yes": "{count} ja",
+        "no": "{count} nein",
+        "count": "{voted} von {total}",
+        "voted": "haben abgestimmt"
       },
       "datesLabel": "Reisedaten",
       "datesHint": "· änderbar",

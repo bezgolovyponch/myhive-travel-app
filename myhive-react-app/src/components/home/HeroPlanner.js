@@ -21,7 +21,15 @@ const MAX_DAYS = 7;
 // Shown until the visitor sets a head-count (the cart's default is 1).
 const DEFAULT_PEOPLE = 10;
 
-const STEP_KEYS = ['pick', 'weekends', 'lads', 'call'];
+// The results card is a showcase, not live data: three sample activities and
+// how ten friends voted on them.
+const VOTE_GROUP = 10;
+const VOTE_ROWS = [
+    {key: 'shooting', yes: 8, no: 1},
+    {key: 'steak', yes: 7, no: 2},
+    {key: 'tank', yes: 3, no: 6},
+];
+const VOTED = Math.max(...VOTE_ROWS.map((row) => row.yes + row.no));
 
 const Sparkle = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -29,8 +37,8 @@ const Sparkle = () => (
     </svg>
 );
 
-// v3 landing, 2a: dates and head-count first, then the chat box with next-step
-// phrases built from them. Sending (or the Stag Do AI button) hands the brief
+// v3 landing, 3a: what the group vote ends in (the results card), then dates
+// and head-count and the chat box with next-step phrases built from them. Sending (or the Stag Do AI button) hands the brief
 // to /plan; dates and head-count live in the trip so the planner, the vote and
 // the Trip Builder all see the same ones.
 function HeroPlanner({explorePath}) {
@@ -103,15 +111,31 @@ function HeroPlanner({explorePath}) {
             </h1>
             <p className="hero-subtitle">{t('planner.subtitle')}</p>
 
-            <ol className="hp-steps">
-                {STEP_KEYS.map((key, i) => (
-                    <li key={key} className={`hp-step${i === STEP_KEYS.length - 1 ? ' hp-step--done' : ''}`}>
-                        <span className="hp-step-time">{t(`planner.steps.${key}.time`)}</span>
-                        <span className="hp-step-dot" aria-hidden="true"/>
-                        <span className="hp-step-title">{t(`planner.steps.${key}.title`)}</span>
-                    </li>
-                ))}
-            </ol>
+            <div className="hp-votes" aria-hidden="true">
+                {VOTE_ROWS.map((row) => {
+                    const pct = Math.round((row.yes / (row.yes + row.no)) * 100);
+                    return (
+                        <div key={row.key} className={`hp-vote${pct < 50 ? ' hp-vote--out' : ''}`}>
+                            <div className="hp-vote-top">
+                                <span className="hp-vote-name">{t(`planner.votes.${row.key}`)}</span>
+                                <span className="hp-vote-yes">✓ {t('planner.votes.yes', {count: row.yes})}</span>
+                                <span className="hp-vote-no">✕ {t('planner.votes.no', {count: row.no})}</span>
+                            </div>
+                            <span className="hp-vote-bar"><span style={{width: `${pct}%`}}/></span>
+                        </div>
+                    );
+                })}
+                <div className="hp-votes-foot">
+                    <span>
+                        <b>{t('planner.votes.count', {voted: VOTED, total: VOTE_GROUP})}</b> {t('planner.votes.voted')}
+                    </span>
+                    <span className="hp-votes-dots">
+                        {Array.from({length: VOTE_GROUP}, (_, i) => (
+                            <span key={i} className={i < VOTED ? 'is-in' : undefined}/>
+                        ))}
+                    </span>
+                </div>
+            </div>
 
             <form className="hp-form" onSubmit={send}>
                 <div className="hp-form-row">
