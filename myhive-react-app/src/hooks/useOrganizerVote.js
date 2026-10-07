@@ -105,9 +105,13 @@ export function useOrganizerVote({shareToken, managerParam, restored, cartEmpty,
             .catch(() => {});
     }, [session, restored, cartEmpty, shareToken, dispatch]);
 
-    // Edits: the server call, then a fresh tally. A failed call leaves the
-    // tally as the server sees it, which the next poll confirms.
-    const edit = useCallback((call) => call().then(loadTally, loadTally), [loadTally]);
+    // Edits: the server call, then a fresh tally either way (a failed call leaves
+    // the tally as the server sees it). Resolves to null, or to the failure, so a
+    // caller can tell a refusal from a request that got no answer; never rejects.
+    const edit = useCallback((call) => call().then(
+        () => loadTally().then(() => null),
+        (failure) => loadTally().then(() => failure),
+    ), [loadTally]);
 
     return {
         session,

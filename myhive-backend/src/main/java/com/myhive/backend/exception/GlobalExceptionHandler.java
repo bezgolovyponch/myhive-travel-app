@@ -7,6 +7,7 @@ import com.myhive.backend.ai.exception.AiNotFoundException;
 import com.myhive.backend.ai.exception.LlmCallFailedException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -204,6 +205,14 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex,
+                                                                      HttpServletRequest request) {
+        // Two writes racing for one unique key (a vote link token, a slug): the loser is a conflict, not a 500.
+        log.warn("Data integrity violation on {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        return error(HttpStatus.CONFLICT, "Conflict", "The request conflicts with data that already exists", request);
     }
 
     @ExceptionHandler(PaymentGatewayException.class)

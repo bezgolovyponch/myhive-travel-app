@@ -249,6 +249,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     tallyById[row.activityId] = row;
   });
   const onBallot = (activityId) => tallyById[activityId] != null && !tallyById[activityId].excluded;
+  // 4xx bar 429: the server understood the edit and said no; anything else may pass next time.
+  const isRefusal = (failure) => failure.status >= 400 && failure.status < 500 && failure.status !== 429;
 
   // Waits for the saved cart: RESTORE_FROM_STORAGE replaces tripItems wholesale,
   // so a result applied before it would be wiped — and the package items this
@@ -409,19 +411,26 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // While the vote runs, the plan is the ballot: an activity in the plan that
   // the vote lacks (added from a recommendation, or in the "Browse all" tab,
   // whose cart reaches this one through storage) or has dropped is added to it
-  // — the server restores a dropped one. Once per activity until the tally
-  // that call refreshes arrives, so a slow edit is not sent twice.
-  const ballotSyncRef = useRef(new Set());
+  // — the server restores a dropped one. Once per activity per plan: a refused
+  // add (an activity this vote cannot take) reloads the tally like any edit,
+  // and asking again on that tally would be a request loop until the tab
+  // closed. The next change to the plan asks once more; an add that got no
+  // answer (or a 5xx / 429) is asked again on the next tally.
+  const ballotAskedRef = useRef(new Set());
   const planIdsKey = groupTripItems(state.tripItems).standalone.map(item => item.id).join(',');
   useEffect(() => {
-    ballotSyncRef.current = new Set();
-  }, [organizerVote.tally]);
+    ballotAskedRef.current = new Set();
+  }, [planIdsKey, annotationToken]);
   useEffect(() => {
     if (!liveVote || !organizerVote.tally || !planIdsKey) return;
     planIdsKey.split(',').forEach(id => {
-      if (onBallot(id) || ballotSyncRef.current.has(id)) return;
-      ballotSyncRef.current.add(id);
-      organizerVote.addActivity(id);
+      if (onBallot(id) || ballotAskedRef.current.has(id)) return;
+      ballotAskedRef.current.add(id);
+      organizerVote.addActivity(id).then(failure => {
+        if (failure && !isRefusal(failure)) {
+          ballotAskedRef.current.delete(id);
+        }
+      });
     });
     // onBallot and addActivity read the tally and token this effect keys on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -640,7 +649,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
 
   // The plan carries one price, "from €X" for the whole group, priced on the
   // server; activity lines and lists carry none.
-  const planQuote = usePlanFromPrice(state.tripItems.map(item => item.id), travelers);
+  const planQuote = usePlanFromPrice(state.tripItems, travelers);
   const planFromPrice = planQuote?.fromPrice ?? null;
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);

@@ -177,9 +177,12 @@ function StartGroupVoteModal({
     const [submitting, setSubmitting] = useState(null); // 'whatsapp' | 'email' while creating
     const [sent, setSent] = useState(false);
     const launchedRef = useRef(false);
-    // One link token per opening: a retry after a failed create reuses it, so a
-    // message already sent to the group still points at the vote.
+    // One pair of tokens per opening, the link token and the manager token, so a
+    // retry after a failed create is the same vote to the server: a message already
+    // sent to the group still points at it, and a create whose response was lost
+    // comes back as the vote already created instead of a conflict.
     const shareTokenRef = useRef(null);
+    const managerTokenRef = useRef(null);
 
     const needsDates = !startDate || !endDate;
     const tripStart = needsDates ? voteStartDate : startDate;
@@ -197,6 +200,7 @@ function StartGroupVoteModal({
             setApiError(null);
             setSent(false);
             shareTokenRef.current = generateUuid();
+            managerTokenRef.current = generateUuid();
             pushEvent('email_screen_view', { vote_mode: voteMode });
         }
     }, [isOpen, voteMode]);
@@ -213,6 +217,7 @@ function StartGroupVoteModal({
 
     const createVote = async (channel) => {
         const shareToken = shareTokenRef.current;
+        const managerToken = managerTokenRef.current;
         // Both contacts when both were typed: the more ways to reach the organiser, the better.
         const contact = {
             initiatorPhone: e164 || undefined,
@@ -224,12 +229,12 @@ function StartGroupVoteModal({
         try {
             const session = voteMode === 'QUIZ'
                 ? await voteApi.createSession({
-                    destinationId, ...contact, shareToken, numberOfTravelers,
+                    destinationId, ...contact, shareToken, managerToken, numberOfTravelers,
                     startDate: tripStart, endDate: tripEnd, budget,
                     voterToken: getOrCreateVoterToken(), quizResponses, activityIds,
                 })
                 : await voteApi.createCartSession({
-                    destinationId, ...contact, shareToken, numberOfTravelers,
+                    destinationId, ...contact, shareToken, managerToken, numberOfTravelers,
                     startDate: tripStart, endDate: tripEnd, activityIds,
                 });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');

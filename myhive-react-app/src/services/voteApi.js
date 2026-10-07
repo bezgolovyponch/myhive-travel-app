@@ -24,14 +24,14 @@ const voteApi = {
   // Atomic session creation
   // shareToken: the link token the browser picked, so the group's WhatsApp
   // message can carry the link before this request returns.
-  async createSession({ destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers, startDate,
-                        endDate, budget, voterToken, quizResponses, activityIds }) {
+  async createSession({ destinationId, initiatorEmail, initiatorPhone, shareToken, managerToken, numberOfTravelers,
+                        startDate, endDate, budget, voterToken, quizResponses, activityIds }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers, startDate, endDate,
-        budget, voterToken, quizResponses, activityIds,
+        destinationId, initiatorEmail, initiatorPhone, shareToken, managerToken, numberOfTravelers, startDate,
+        endDate, budget, voterToken, quizResponses, activityIds,
         // Language of the organizer's emails (vote created / result) and their links.
         ...localeField(),
       }),
@@ -118,14 +118,14 @@ const voteApi = {
   },
 
   // Cart-seeded session creation (no quiz) — the ballot is the initiator's cart.
-  async createCartSession({ destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers,
-                            startDate, endDate, activityIds }) {
+  async createCartSession({ destinationId, initiatorEmail, initiatorPhone, shareToken, managerToken,
+                            numberOfTravelers, startDate, endDate, activityIds }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        destinationId, initiatorEmail, initiatorPhone, shareToken, numberOfTravelers, startDate, endDate,
-        activityIds,
+        destinationId, initiatorEmail, initiatorPhone, shareToken, managerToken, numberOfTravelers, startDate,
+        endDate, activityIds,
         ...localeField(),
       }),
     });
@@ -164,14 +164,14 @@ const voteApi = {
     const response = await fetch(
         managerUrl(shareToken, `/activities/${encodeURIComponent(activityId)}/exclude`, managerToken),
         { method: 'POST' });
-    if (!response.ok) throw new Error('Failed to drop the activity');
+    if (!response.ok) throw editError('Failed to drop the activity', response);
   },
 
   async restoreActivity(shareToken, managerToken, activityId) {
     const response = await fetch(
         managerUrl(shareToken, `/activities/${encodeURIComponent(activityId)}/restore`, managerToken),
         { method: 'POST' });
-    if (!response.ok) throw new Error('Failed to restore the activity');
+    if (!response.ok) throw editError('Failed to restore the activity', response);
   },
 
   async addActivity(shareToken, managerToken, activityId) {
@@ -180,9 +180,17 @@ const voteApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activityId }),
     });
-    if (!response.ok) throw new Error('Failed to add the activity');
+    if (!response.ok) throw editError('Failed to add the activity', response);
   },
 };
+
+// The status travels with the error, so the organiser dashboard can tell a refusal (the vote cannot
+// take this activity) from a request that may pass next time.
+function editError(message, response) {
+  const error = new Error(message);
+  error.status = response.status;
+  return error;
+}
 
 // managerToken arrives via a shared URL's query param — encode it so it cannot
 // inject extra query parameters into the request.
