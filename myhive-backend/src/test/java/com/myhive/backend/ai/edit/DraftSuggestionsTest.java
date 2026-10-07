@@ -74,8 +74,8 @@ class DraftSuggestionsTest {
     }
 
     @Test
-    void neverOffersWhatWouldNotGoIn() {
-        // Every slot of the weekend is taken.
+    void aFullWeekendIsStillOfferedMore() {
+        // Every slot of the weekend is taken - and an add is never refused, so there is still an offer.
         ComposedPlan plan = plan(
                 pkg(Tier.BASIC, day(1, item(Slot.AFTERNOON, cabaret)), day(2)),
                 pkg(Tier.MEDIUM, day(1, item(Slot.AFTERNOON, shooting)), day(2)),
@@ -85,7 +85,7 @@ class DraftSuggestionsTest {
         Map<Tier, List<CatalogActivity>> suggestions = DraftSuggestions.of(plan, weekend, catalog(),
                 List.of(preset(Tier.PREMIUM, tank, paintball, tasting)));
 
-        assertThat(suggestions.get(Tier.PREMIUM)).isEmpty();
+        assertThat(suggestions.get(Tier.PREMIUM)).isNotEmpty();
         assertThat(suggestions.get(Tier.BASIC)).isNotEmpty();
     }
 

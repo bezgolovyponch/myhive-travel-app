@@ -31,4 +31,12 @@ describe('toE164', () => {
         expect(toE164('+33', '612345678')).toBe('+33612345678');
         expect(toE164('+33', '61234')).toBeNull();
     });
+
+    test('a code typed by hand has to be a code', () => {
+        expect(toE164('+', '612345678')).toBeNull();
+        expect(toE164('33', '612345678')).toBeNull();
+        expect(toE164('+0', '612345678')).toBeNull();
+        expect(toE164('+12345', '612345678')).toBeNull();
+        expect(toE164('+351', '912345678')).toBe('+351912345678');
+    });
 });

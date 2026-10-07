@@ -14,11 +14,12 @@ function meta(rec) {
  *
  * @param recommendations  [{activityId, name, oneLine, durationMinutes, imageUrl}], best first
  * @param isAdded          (activityId) => whether the draft holds it
+ * @param onOpen           (rec) => void - shows the top match's card
  * @param onToggle         (rec, added) => void
  * @param pendingId        the activity whose tap is in flight
  * @param disabled         a chat turn or another tap is in flight
  */
-function AiRecommendations({recommendations, isAdded, onToggle, pendingId, disabled}) {
+function AiRecommendations({recommendations, isAdded, onOpen, onToggle, pendingId, disabled}) {
     const t = useT('aiPlanner');
     if (!recommendations?.length) return null;
     const [top, ...more] = recommendations;
@@ -30,7 +31,14 @@ function AiRecommendations({recommendations, isAdded, onToggle, pendingId, disab
                     {top.imageUrl ? <img src={top.imageUrl} alt="" loading="lazy"/> : top.name.charAt(0)}
                 </span>
                 <div className="aip-suggest-body">
-                    <div className="aip-suggest-name">{top.name}</div>
+                    <div className="aip-suggest-name">
+                        {onOpen ? (
+                            <button type="button" className="activity-open" aria-haspopup="dialog"
+                                    onClick={() => onOpen(top)}>
+                                {top.name}
+                            </button>
+                        ) : top.name}
+                    </div>
                     {meta(top) && <div className="aip-suggest-meta">{meta(top)}</div>}
                 </div>
                 <button

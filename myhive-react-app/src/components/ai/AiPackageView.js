@@ -8,13 +8,16 @@ import './AiPackageView.css';
 // No per-activity prices on purpose: one "from" price for the whole group.
 
 export const AI_PICK_KEY = 'MEDIUM';
-// "from €4,584": the package's group total — the number the cart shows once it
-// is picked — or null when there is none. Whole euros: cents read as a quote.
-// "from €X": the group total less the fixed margin, calculated on the backend.
-export function priceFrom(t, pkg) {
-    const n = Number(pkg.fromPrice);
-    if (pkg.fromPrice == null || !Number.isFinite(n) || n <= 0) return null;
-    return t('result.priceFrom', {price: formatAmount(Math.round(n))});
+// "from €146 / person": one traveller's share of the package's "from" price,
+// calculated on the backend, or null when there is none. Whole euros: cents
+// read as a quote. Packages stored before the share existed show the group's.
+export function priceFrom(t, pkg, perPersonKey = 'result.priceFromPerPerson') {
+    const shown = (value, key) => {
+        const n = Number(value);
+        if (value == null || !Number.isFinite(n) || n <= 0) return null;
+        return t(key, {price: formatAmount(Math.round(n))});
+    };
+    return shown(pkg.fromPricePerPerson, perPersonKey) || shown(pkg.fromPrice, 'result.priceFrom');
 }
 
 // useT has no plurals: count keys are {one, other} objects.
@@ -50,13 +53,14 @@ export function duration(minutes) {
  * @param startDate  the trip's first day (a Date) when its dates match the plan, else null
  * @param custom     the organizer has started editing: no trims, just the draft
  * @param removing   name of the activity whose removal is in flight, if any
+ * @param onOpen     (item) => void — shows the activity's card
  * @param onRemove   (pkg, item) => void — asks the planner to drop it (a chat edit)
  * @param onUndo     (packageKey) => void — back to the generation before the edit
  * @param busy       a chat turn is in flight: edits wait for it
  * @param cta        rendered under the draft (the "Ask the group" button)
  */
 function AiPackageView({
-    generation, destinationName, destinationSlug, startDate, activeKey, onTierChange, custom, onRemove, removing,
+    generation, destinationName, destinationSlug, startDate, activeKey, onTierChange, custom, onOpen, onRemove, removing,
     onUndo, busy, cta,
 }) {
     const t = useT('aiPlanner');
@@ -105,7 +109,13 @@ function AiPackageView({
                         >
                             <span className="aip-tier-name">{t(`tiers.${p.key}`)}</span>
                             <span className="aip-tier-tag">{t(`tierTags.${p.key}`)}</span>
-                            {priceFrom(t, p) && <span className="aip-tier-price">{priceFrom(t, p)}</span>}
+                            {priceFrom(t, p) && (
+                                // The tab is a third of a phone wide: the amount, then "per person" under it.
+                                <span className="aip-tier-price">
+                                    {priceFrom(t, p, 'result.priceFrom')}
+                                    {p.fromPricePerPerson != null && <small>{t('result.perPerson')}</small>}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -119,11 +129,10 @@ function AiPackageView({
                 {rows.map(({day, item}) => {
                     const isAdded = added.has(item.name);
                     const isRemoving = removing === item.name;
-                    const when = [
-                        startDate ? formatDayLabel(addDays(startDate, day.dayNumber - 1))
-                            : t('result.day', {n: day.dayNumber}),
-                        item.startHint || t(`slots.${item.slot}`),
-                    ].join(' · ');
+                    // The day only, never an hour or a part of the day: the plan is a wish list for
+                    // the group, and the planner sets the times after the vote.
+                    const when = startDate ? formatDayLabel(addDays(startDate, day.dayNumber - 1))
+                        : t('result.day', {n: day.dayNumber});
                     return (
                         <div key={`${item.activityId}-${day.dayNumber}-${item.slot}`}
                              className={`aip-item ${isAdded ? 'is-added' : ''} ${isRemoving ? 'is-removing' : ''}`}>
@@ -132,7 +141,12 @@ function AiPackageView({
                             </span>
                             <div className="aip-item-body">
                                 <div className="aip-item-name">
-                                    {item.name}
+                                    {onOpen ? (
+                                        <button type="button" className="activity-open" aria-haspopup="dialog"
+                                                onClick={() => onOpen(item)}>
+                                            {item.name}
+                                        </button>
+                                    ) : item.name}
                                     {isAdded && <span className="aip-badge">{t('result.aiAdded')}</span>}
                                 </div>
                                 <div className="aip-item-sub">

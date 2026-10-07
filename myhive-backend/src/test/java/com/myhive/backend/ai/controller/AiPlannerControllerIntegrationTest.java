@@ -259,6 +259,12 @@ class AiPlannerControllerIntegrationTest {
         assertThat(money(body, flooredItem + "lineTotal")).isEqualByComparingTo(GROUP_MINIMUM);
         BigDecimal expectedPremiumPerPerson = new BigDecimal("185.00");
         assertThat(money(body, "$.packages[2].pricePerPerson")).isEqualByComparingTo(expectedPremiumPerPerson);
+        // What the planner shows: one traveller's share of the group's "from" price.
+        Integer groupSize = JsonPath.read(body, "$.brief.groupSize");
+        assertThat(money(body, "$.packages[2].fromPricePerPerson")).isEqualByComparingTo(
+                com.myhive.backend.util.FromPrice.perPerson(money(body, "$.packages[2].totalPrice"), groupSize));
+        assertThat(money(body, "$.packages[2].fromPricePerPerson"))
+                .isLessThan(money(body, "$.packages[2].pricePerPerson"));
 
         mockMvc.perform(post("/ai/generations/" + generationId + "/select")
                         .contentType(MediaType.APPLICATION_JSON)

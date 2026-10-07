@@ -69,27 +69,45 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('shows the headline, how it works in 3 steps and the message for the group', () => {
+test('shows the headline, what the vote gives back and the message for the group', () => {
   renderModal();
 
-  expect(screen.getByRole('heading', { name: 'How it works Your group votes. You get the result.' }))
-      .toBeInTheDocument();
-  expect(screen.getByText(
-      'Share once to WhatsApp, everyone votes yes or no, the agreed itinerary is ready in 24 hours.',
-  )).toBeInTheDocument();
-  expect(screen.getByText('Share to group')).toBeInTheDocument();
-  expect(screen.getByText('Collect votes')).toBeInTheDocument();
-  expect(screen.getByText('Lock final plan')).toBeInTheDocument();
-  expect(screen.getByText('Prague stag 🍻')).toBeInTheDocument();
-  expect(screen.getByText(/10 members/)).toBeInTheDocument();
-  expect(screen.getByText(/Vote on the Prague stag plan · trivlu\.com/)).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Your group votes. You get the result.' })).toBeInTheDocument();
+  expect(screen.getByText("The group's choice")).toBeInTheDocument();
+  expect(screen.getByText('9 of 10 voted')).toBeInTheDocument();
+  expect(screen.getByText('AK-47 shooting')).toBeInTheDocument();
+  expect(screen.getByText('✕ 6 no')).toBeInTheDocument();
+  expect(screen.getByText("Group's recommendations")).toBeInTheDocument();
+  expect(screen.getByText('Vote on the Prague stag plan')).toBeInTheDocument();
   expect(screen.getByText(/^Lads! Prague stag, .*16.*18 Oct\. Vote yes or no on the plan\. Takes 1 minute/))
       .toBeInTheDocument();
-  expect(screen.getByText('We only contact you about this trip.')).toBeInTheDocument();
+  expect(screen.getByText('We only write to you about this trip.')).toBeInTheDocument();
+  // The old sheet's "How it works" steps are gone.
+  expect(screen.queryByText('Share to group')).not.toBeInTheDocument();
+});
+
+test('Germany is the country picked first; any other code can be typed', async () => {
+  renderModal();
+  const send = screen.getByRole('button', { name: WHATSAPP });
+  expect(screen.getByLabelText('Country code')).toHaveValue('+49');
+  expect(screen.getByRole('option', { name: 'DE +49' }).selected).toBe(true);
+
+  await userEvent.selectOptions(screen.getByLabelText('Country code'), 'Other…');
+  // The picker becomes a field for the code.
+  expect(screen.getByLabelText('Country code')).toHaveValue('+');
+  await userEvent.type(screen.getByLabelText(PHONE), '612345678');
+  expect(send).toBeDisabled(); // a bare "+" is not a code
+  await userEvent.type(screen.getByLabelText('Country code'), '33');
+  expect(send).toBeEnabled();
+
+  await userEvent.click(send);
+  await waitFor(() => expect(voteApi.createCartSession).toHaveBeenCalledWith(
+      expect.objectContaining({ initiatorPhone: '+33612345678' })));
 });
 
 test('each button waits for its own contact', async () => {
   renderModal();
+  await userEvent.selectOptions(screen.getByLabelText('Country code'), '+44');
 
   expect(screen.getByRole('button', { name: WHATSAPP })).toBeDisabled();
   expect(screen.getByRole('button', { name: START })).toBeDisabled();
@@ -105,6 +123,7 @@ test('each button waits for its own contact', async () => {
 test('half a number does not count: it has to be a whole number for the country picked', async () => {
   renderModal();
   const send = screen.getByRole('button', { name: WHATSAPP });
+  await userEvent.selectOptions(screen.getByLabelText('Country code'), '+44');
 
   // UK mobiles are 10 digits after the trunk 0.
   await userEvent.type(screen.getByLabelText(PHONE), '7700 900');
@@ -160,6 +179,7 @@ test('WhatsApp: opens the group message with the link in the same tap, creates t
 
 test('a UK number typed with the leading 0 is sent without it', async () => {
   renderModal();
+  await userEvent.selectOptions(screen.getByLabelText('Country code'), '+44');
   await userEvent.type(screen.getByLabelText(PHONE), '07700 900123');
 
   await userEvent.click(screen.getByRole('button', { name: WHATSAPP }));
@@ -188,6 +208,7 @@ test('email: creates the vote with the email and opens the dashboard, without op
 
 test('both contacts typed: both go with the vote', async () => {
   renderModal();
+  await userEvent.selectOptions(screen.getByLabelText('Country code'), '+44');
   await userEvent.type(screen.getByLabelText(PHONE), '7700900123');
   await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
 

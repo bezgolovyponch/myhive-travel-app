@@ -91,20 +91,6 @@
     border-color: var(--aip-purple-l);
 }
 
-.aip-link-btn {
-    background: none;
-    border: 0;
-    color: var(--aip-muted);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-    padding: 4px 6px;
-}
-
-.aip-link-btn:hover {
-    color: var(--aip-text);
-}
-
 /* ---- result: the trip draft + the chat docked to the bottom edge ---- */
 .aip-canvas {
     /* Room for the collapsed chat: its bar, one line and the composer. */
@@ -263,11 +249,6 @@
     border-radius: 14px 14px 4px 14px;
 }
 
-.aip-dock .aip-link-btn {
-    display: block;
-    margin: 4px auto 0;
-}
-
 /* What the chat recommended: the best match as a card with Add, the rest as
    tags. Each is a toggle; an added one turns green ("Added ✓", "✓ name"). */
 .aip-suggest {
@@ -383,24 +364,20 @@
 
 /* What the draft could use next (its gaps next to the presets of its trim):
    tags that ask the chat for it, in place of a stale last line. */
+/* Up to two rows of tags; a third row is cut off rather than pushing the draft up. */
 .aip-gaps {
     flex: none;
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
+    max-height: 74px;
     padding: 2px 14px 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    overflow: hidden;
 }
 
-.aip-gaps::-webkit-scrollbar {
-    display: none;
-}
-
+/* In the open chat the tags sit right over the input, inside its own padding. */
 .aip-dock.is-open .aip-gaps {
-    padding: 10px 14px;
-    background: #201d2a;
-    border-top: 1px solid #2e2b3a;
-    border-bottom: 1px solid #2e2b3a;
+    padding: 0 0 8px;
 }
 
 .aip-gaps button {
@@ -430,4 +407,42 @@
 .aip-gaps button:disabled {
     opacity: 0.5;
     cursor: default;
+}
+
+/* The answers to a tag's "which one?": chips under the question, wrapping. */
+.aip-answers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.aip-answers .ai-chip {
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+}
+
+.aip-answers .aip-answer-quiet {
+    background: transparent;
+    border-style: dashed;
+    color: var(--aip-muted);
+}
+
+.aip-gaps button[aria-pressed="true"] {
+    border-color: var(--aip-purple);
+    color: #fff;
+}
+
+@media (max-width: 480px) {
+    .aip-gap-verb {
+        display: none;
+    }
+
+    .aip-gap-kind {
+        display: inline-block;
+    }
+
+    .aip-gap-kind::first-letter {
+        text-transform: uppercase;
+    }
 }

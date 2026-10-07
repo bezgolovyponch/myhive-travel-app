@@ -11,7 +11,7 @@ import java.util.UUID;
  * group comes back to days later from nothing but the stored token. {@code suggestedReplies} are the
  * tap-to-send chips for the latest assistant message - the opening hooks on a fresh chat; never null.
  * {@code recommendations} are the activities the latest turn offered for the draft, best match first; never null.
- * {@code gaps} are, per package key, the themes the package lacks next to the ready-made packages of its tier.
+ * {@code gaps} are, per package key, the kinds of activity the package could take next, each with its options.
  */
 public record SessionStateDTO(UUID token, String destinationSlug, String locale, String status, Brief brief,
                               List<String> missingFields, boolean readyToGenerate, List<MessageDTO> messages,

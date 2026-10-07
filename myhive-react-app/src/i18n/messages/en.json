@@ -275,6 +275,7 @@
     "pageOf": "Page {current} of {total}",
     "durationHours": "{hours}h",
     "viewFullPage": "View full page ↗",
+    "loadingDetails": "Loading the details…",
     "noDescription": "No description yet.",
     "whatsIncluded": "What's included",
     "openPhoto": "Open photo {num} of {total}",
@@ -507,24 +508,8 @@
   },
   "voteComponents": {
     "start": {
-      "howItWorks": "How it works",
       "headlineLead": "Your group votes.",
       "headlineResult": "You get the result.",
-      "lede": "Share once to WhatsApp, everyone votes yes or no, the agreed itinerary is ready in 24 hours.",
-      "steps": {
-        "share": {
-          "title": "Share to group",
-          "text": "Send the itinerary link directly to your group chat."
-        },
-        "collect": {
-          "title": "Collect votes",
-          "text": "Friends vote Yes or No in 1 tap without registration."
-        },
-        "lock": {
-          "title": "Lock final plan",
-          "text": "Results tally automatically within 24 hours."
-        }
-      },
       "chat": {
         "title": "{destination} stag 🍻",
         "members": "{count} members",
@@ -533,7 +518,8 @@
       },
       "phone": {
         "countryLabel": "Country code",
-        "placeholder": "Your WhatsApp number"
+        "placeholder": "Your WhatsApp number",
+        "otherCode": "Other…"
       },
       "sendWhatsApp": "Send to WhatsApp group",
       "sent": "Sent ✓",
@@ -543,12 +529,24 @@
       },
       "startPlanning": "Start planning together",
       "creating": "One moment…",
-      "footer": "We only contact you about this trip.",
+      "footer": "We only write to you about this trip.",
       "tripDates": "Trip dates",
       "errors": {
         "datesRequired": "Trip dates are required",
         "endBeforeStart": "End date must be on or after the start date",
         "createFailed": "We couldn't start the vote. Please try again."
+      },
+      "choice": {
+        "title": "The group's choice",
+        "voted": "{voted} of {total} voted",
+        "yes": "{count} yes",
+        "no": "{count} no",
+        "recommendations": "Group's recommendations",
+        "rows": {
+          "shooting": "AK-47 shooting",
+          "steak": "Steak and tits",
+          "tank": "Tank driving"
+        }
       }
     },
     "active": {
@@ -657,6 +655,7 @@
       "planTitle": "The plan",
       "fromPerPerson": "from {price} / person",
       "recsEmpty": "Nothing yet. What your friends suggest shows up here.",
+      "backToPlan": "Back to the plan",
       "browseAll": "Browse all activities"
     }
   },
@@ -1219,9 +1218,13 @@
         "REPLACE": "Swapped {name} for {replacement}"
       },
       "priceFrom": "from {price}",
+      "priceFromPerPerson": "from {price} / person",
+      "perPerson": "per person",
       "sendToPlanner": "Ask the group",
       "title": "{destination} stag",
       "draftLabel": "Trip draft",
+      "backToDraft": "Back to the draft",
+      "addToDraft": "Add to the draft",
       "browseAll": "Browse all",
       "add": "Add",
       "suggestions": "Suggested activities",
@@ -1237,11 +1240,25 @@
       "collapse": "Collapse chat",
       "placeholder": "Change anything…",
       "expand": "Open chat",
-      "gapsAria": "What the draft could use",
-      "gapMessage": "What do you have for {name}?",
-      "optionsReady": "Your three options are ready. Pick one to make it your trip draft.",
-      "draftSet": "Your trip draft is set for {count}. Anything to add?",
-      "draftSetNoCount": "Your trip draft is set. Anything to add?"
+      "gapsAria": "What the plan could take next",
+      "optionsReady": "Your three options are ready. Pick one to make it your trip plan.",
+      "draftSet": "Your trip plan is set for {count}. Anything to add?",
+      "draftSetNoCount": "Your trip plan is set. Anything to add?",
+      "addVerb": "Add",
+      "addKind": "Add {name}",
+      "whichOne": "Which one? Tap it to see what it is.",
+      "cardAbove": "It is above - tap Add to put it in the plan.",
+      "keepChatting": "Continue chatting",
+      "kinds": {
+        "guns-and-bullets": "shooting",
+        "stag-hot-babies-and-pranks": "strippers",
+        "nightlife": "a night out",
+        "czech-beer": "beer",
+        "food-and-drink": "food",
+        "extreme": "adrenaline",
+        "wellness": "chill",
+        "transfer": "a party ride"
+      }
     }
   }
 }

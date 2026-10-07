@@ -61,7 +61,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const [showRequest, setShowRequest] = useState(null);
     // The activity whose draft tap is in flight, if any.
     const [editing, setEditing] = useState(null);
-    // Per package key, the themes it lacks next to the presets of its tier: [{categorySlug, name}].
+    // Per package key, the kinds of activity it could take next, each with what it offers:
+    // [{categorySlug, name, options: [recommendation]}].
     const [gaps, setGaps] = useState({});
     // Per package: activities from the ready-made packages that fit it (one tap adds one).
     const [suggestions, setSuggestions] = useState({});
@@ -212,9 +213,12 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                     setBuilding(false);
                     setWatchedId(null);
                     // The session now has chips for "what next", the draft's gaps and fresh limits.
-                    api.getSession(tokenRef.current)
+                    // Not guarded by `stopped`: clearing watchedId above ends this effect before the
+                    // answer is back. Only a chat that has moved on since must not take it.
+                    const token = tokenRef.current;
+                    api.getSession(token)
                         .then((state) => {
-                            if (stopped) return;
+                            if (tokenRef.current !== token) return;
                             setSuggestedReplies(state.suggestedReplies || []);
                             setGaps(state.gaps || {});
                             setSuggestions(state.suggestions || {});

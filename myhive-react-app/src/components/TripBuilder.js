@@ -811,6 +811,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                         key={item.id}
                         name={item.name}
                         row={tallyById[item.id]}
+                        onOpen={() => setPreviewActivity(item)}
                         onRemove={() => handleRemoveActivity(item.id)}
                     />
                 ))}
@@ -820,6 +821,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                         name={row.name}
                         row={row}
                         dropped
+                        onOpen={() => setPreviewActivity({id: row.activityId, name: row.name})}
                         onRestore={liveVote ? () => handleRestoreActivity(row) : null}
                     />
                 ))}
@@ -829,6 +831,9 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
         <GroupRecommendations
             recommendations={organizerVote.tally?.recommendations}
             isAdded={inCart}
+            onOpen={rec => setPreviewActivity({
+                id: rec.activityId, name: rec.name, imageUrl: rec.imageUrl, duration: rec.duration,
+            })}
             onAdd={rec => handleAddActivity({
                 id: rec.activityId,
                 name: rec.name,
@@ -1212,6 +1217,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
 
       <ActivityPreviewModal
           activity={previewActivity}
+          activityId={previewActivity?.id}
+          closeLabel={dashboard ? t('dashboard.backToPlan') : undefined}
           link={previewActivity ? getPreviewLink(previewActivity) : null}
           onClose={() => setPreviewActivity(null)}
       />

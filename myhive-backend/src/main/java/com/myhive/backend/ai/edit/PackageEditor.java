@@ -264,7 +264,7 @@ public class PackageEditor {
             existing.add(ViolationKey.of(violation));
         }
         for (Violation violation : validator.validatePackage(after, brief, catalogById)) {
-            if (!existing.contains(ViolationKey.of(violation)) && !withinDayLimits(violation, after, catalogById)) {
+            if (!existing.contains(ViolationKey.of(violation)) && !ORGANIZERS_CALL.contains(violation.code())) {
                 return violation;
             }
         }
@@ -272,23 +272,11 @@ public class PackageEditor {
     }
 
     /**
-     * The validator measures a day against its tier. A day it calls too full for the tier but that is
-     * inside {@link #DAY_LIMITS} is the organizer's own doing and stands.
+     * How full a day gets and which hours it uses are the organizer's to decide: an edit that overfills a
+     * day or doubles up a slot is carried out, not refused. The planner sorts the timing after the vote.
      */
-    private static boolean withinDayLimits(Violation violation, PlanDraft.PackageDraft pkg,
-            Map<UUID, CatalogActivity> catalogById) {
-        boolean dayCap = violation.code() == ViolationCode.DAY_OVER_ITEMS
-                || violation.code() == ViolationCode.DAY_OVER_MINUTES;
-        if (!dayCap || violation.dayNumber() == null) {
-            return false;
-        }
-        return pkg.days().stream()
-                .filter(day -> day.dayNumber() == violation.dayNumber())
-                .findFirst()
-                .map(day -> day.items().size() <= DAY_LIMITS.maxItemsPerDay()
-                        && PlanValidator.dayMinutes(day, catalogById) <= DAY_LIMITS.maxMinutesPerDay())
-                .orElse(false);
-    }
+    private static final Set<ViolationCode> ORGANIZERS_CALL = Set.of(ViolationCode.DAY_OVER_ITEMS,
+            ViolationCode.DAY_OVER_MINUTES, ViolationCode.SLOT_TAKEN, ViolationCode.SLOT_OUTSIDE_WINDOW);
 
     private static Outcome applyRemove(PlanDraft.PackageDraft pkg, CatalogActivity activity) {
         List<PlanDraft.DayDraft> days = new ArrayList<>();
@@ -326,8 +314,29 @@ public class PackageEditor {
             return Outcome.rejected(EditRejectionReason.ALREADY_IN_PACKAGE,
                     activity.name() + " is already in " + pkg.key());
         }
+        // An add is never turned away: with no free slot left it goes on the lightest day anyway.
         return placement(pkg, activity, dayNumber, slot, brief, catalogById)
-                .orElseGet(() -> Outcome.rejected(EditRejectionReason.NO_FREE_SLOT, noFreeSlot(pkg, activity)));
+                .orElseGet(() -> anywhere(pkg, activity, catalogById));
+    }
+
+    /**
+     * Where an activity goes when no day has a free slot for it: the day with the least on it, in the
+     * slot it would normally prefer, shared with whatever is there. The plan is the organizer's wish list
+     * for the group - how a full day is actually timed is settled by the planner after the vote.
+     */
+    private static Outcome anywhere(PlanDraft.PackageDraft pkg, CatalogActivity activity,
+            Map<UUID, CatalogActivity> catalogById) {
+        PlanDraft.DayDraft lightest = pkg.days().get(0);
+        for (PlanDraft.DayDraft day : pkg.days()) {
+            if (PlanValidator.dayMinutes(day, catalogById) < PlanValidator.dayMinutes(lightest, catalogById)) {
+                lightest = day;
+            }
+        }
+        Set<Slot> used = usedSlots(lightest);
+        List<Slot> preferred = slotPreference(activity);
+        Slot slot = preferred.stream().filter(candidate -> !used.contains(candidate)).findFirst()
+                .orElse(preferred.get(0));
+        return Outcome.ok(withDay(pkg, insert(lightest, activity, slot)), lightest.dayNumber(), slot, activity.id());
     }
 
     private static Outcome applyReplace(PlanDraft.PackageDraft pkg, CatalogActivity activity,
@@ -346,7 +355,7 @@ public class PackageEditor {
         if (placed.isEmpty()) {
             placed = placement(without, replacement, null, null, brief, catalogById);
         }
-        return placed.orElseGet(() -> Outcome.rejected(EditRejectionReason.NO_FREE_SLOT, noFreeSlot(pkg, replacement)));
+        return placed.orElseGet(() -> anywhere(without, replacement, catalogById));
     }
 
     /**
@@ -506,10 +515,6 @@ public class PackageEditor {
 
     private static PlanDraft.PackageDraft withDays(PlanDraft.PackageDraft pkg, List<PlanDraft.DayDraft> days) {
         return new PlanDraft.PackageDraft(pkg.key(), pkg.title(), pkg.tagline(), pkg.description(), days);
-    }
-
-    private static String noFreeSlot(PlanDraft.PackageDraft pkg, CatalogActivity activity) {
-        return "no free slot for " + activity.name() + " in " + pkg.key();
     }
 
     private static Map<UUID, CatalogActivity> indexById(List<CatalogActivity> catalog) {

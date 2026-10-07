@@ -59,6 +59,7 @@ public class PromptRenderer {
             - When ONE package is listed above it is the organizer's trip draft - the only package there is: never mention other packages or trims, and leave packageKey null (the system applies every edit to the draft). With several listed, packageKey null means every package; set it only if the organizer names a package.
             - The system checks every edit and then says itself what changed and what could not be done, so the reply never announces or confirms an edit ("Swapping X for Y now" is wrong - it may not be possible): keep it to a short neutral line like "Let me check that." plus anything else worth saying.
             - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.
+            - When "Other ready-made weekends" are listed above, each is a different trip on offer, with its categories in brackets. The organizer asking for one ("show me the Adrenaline weekend instead", "the beer one") is on-topic and is a change of vibe, not an edit: set "vibe" to that weekend's name followed by " weekend", set "categorySlugs" to exactly its categories, leave "edits" and "recommendations" empty, and say in one short sentence that you are rebuilding the three options around it (the system starts at once).
             """;
 
     /**

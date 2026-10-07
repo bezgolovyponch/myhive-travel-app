@@ -8,11 +8,13 @@ import {formatShortRange, parseISODate} from './format';
 // is how long a mobile number is there without the country code and the trunk
 // 0 - [shortest, longest] - so half a number is never taken for a whole one.
 export const COUNTRY_CODES = [
-    {code: '+44', label: '🇬🇧 +44', digits: [10, 10]},
-    {code: '+353', label: '🇮🇪 +353', digits: [9, 9]},
-    {code: '+420', label: '🇨🇿 +420', digits: [9, 9]},
-    {code: '+49', label: '🇩🇪 +49', digits: [10, 11]},
-    {code: '+1', label: '🇺🇸 +1', digits: [10, 10]},
+    {code: '+49', label: 'DE +49', digits: [10, 11]},
+    {code: '+44', label: 'UK +44', digits: [10, 10]},
+    {code: '+43', label: 'AT +43', digits: [7, 13]},
+    {code: '+41', label: 'CH +41', digits: [9, 9]},
+    {code: '+353', label: 'IE +353', digits: [9, 9]},
+    {code: '+420', label: 'CZ +420', digits: [9, 9]},
+    {code: '+1', label: 'US +1', digits: [10, 10]},
 ];
 
 // A country the picker does not list: any length E.164 allows for a subscriber number.
@@ -25,6 +27,10 @@ const ANY_COUNTRY = [7, 12];
  * else that is not a number.
  */
 export function toE164(countryCode, raw) {
+    // A code typed by hand has to be a code: "+" and one to four digits, no leading zero.
+    if (!/^\+[1-9]\d{0,3}$/.test(String(countryCode || ''))) {
+        return null;
+    }
     const digits = String(raw || '').replace(/\D/g, '').replace(/^0+/, '');
     const [min, max] = COUNTRY_CODES.find((c) => c.code === countryCode)?.digits || ANY_COUNTRY;
     if (digits.length < min || digits.length > max) {

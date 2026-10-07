@@ -207,4 +207,21 @@ class EditMessagesTest {
     private static AppliedEdit applied(EditOp op, String activityName, String replacementName, Tier packageKey) {
         return new AppliedEdit(op, activityName, replacementName, packageKey, 1, Slot.EVENING, null);
     }
+
+    @Test
+    void underTheOrganizersOwnPlan_noTierIsNamed() {
+        List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.ADD, "Paintball", null, Tier.MEDIUM, 1, null, null));
+        List<RejectedEdit> rejected = List.of(new RejectedEdit(EditOp.ADD, "Karting", Tier.MEDIUM,
+                EditRejectionReason.ALREADY_IN_PACKAGE, "detail"));
+
+        assertThat(EditMessages.appliedSummary("en", applied, true)).isEqualTo("Added Paintball to your trip plan.");
+        assertThat(EditMessages.appliedSummary("de", applied, true))
+                .isEqualTo("Paintball in deinen Trip-Plan aufgenommen.");
+        assertThat(EditMessages.rejectionSummary("en", rejected, true))
+                .isEqualTo("Karting is already in your trip plan.");
+        assertThat(EditMessages.rejectionSummary("de", rejected, true))
+                .isEqualTo("Karting ist schon in deinem Trip-Plan.");
+        // Without a pick the tier is still what tells the options apart.
+        assertThat(EditMessages.appliedSummary("en", applied)).isEqualTo("Added Paintball to the Medium package.");
+    }
 }

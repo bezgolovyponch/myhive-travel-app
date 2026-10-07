@@ -295,8 +295,13 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
                     state.messages(), null, PackagesView.catalogNames(state.catalog()));
         }
+        String view = PackagesView.render(packages.get(), state.workingPackage().orElse(null));
+        // The other ready-made weekends are an offer for all three options: once one trim is the
+        // organizer's draft they are not on the table, and the chat is not told about them.
+        String themes = state.workingPackage().isPresent() ? ""
+                : PackagesView.themes(packages.get(), state.catalog(), state.presets());
         return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
-                state.messages(), PackagesView.render(packages.get(), state.workingPackage().orElse(null)),
+                state.messages(), themes.isEmpty() ? view : view + "\n" + themes,
                 PackagesView.catalogNames(state.catalog()));
     }
 }

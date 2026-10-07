@@ -60,18 +60,21 @@ public final class EditMessages {
      * "aus dem Premium-Paket" / "aus den Basic- und Premium-Paketen", "ins" / "in die", "im" / "in den".
      */
     private enum PackagePhrase {
-        FROM("aus dem", "aus den", "Paketen"),
-        INTO("ins", "in die", "Pakete"),
-        IN("im", "in den", "Paketen");
+        FROM("aus dem", "aus den", "Paketen", "aus deinem Trip-Plan"),
+        INTO("ins", "in die", "Pakete", "in deinen Trip-Plan"),
+        IN("im", "in den", "Paketen", "in deinem Trip-Plan");
 
         private final String singularArticle;
         private final String pluralArticle;
         private final String pluralNoun;
+        /** The organizer's own plan in this case: there is one, so no article to pick. */
+        private final String tripPlan;
 
-        PackagePhrase(String singularArticle, String pluralArticle, String pluralNoun) {
+        PackagePhrase(String singularArticle, String pluralArticle, String pluralNoun, String tripPlan) {
             this.singularArticle = singularArticle;
             this.pluralArticle = pluralArticle;
             this.pluralNoun = pluralNoun;
+            this.tripPlan = tripPlan;
         }
     }
 
@@ -174,8 +177,16 @@ public final class EditMessages {
      * naming the package, it is what a later "yes, add it" can be scoped by.
      */
     public static String summary(String locale, EditReport report) {
-        String applied = appliedSummary(locale, report.applied());
-        String rejected = rejectionSummary(locale, report.rejected());
+        return summary(locale, report, false);
+    }
+
+    /**
+     * {@code tripPlan}: the organizer has made one option their own, so there is one plan and it is
+     * theirs - "your trip plan", never "the Medium package".
+     */
+    public static String summary(String locale, EditReport report, boolean tripPlan) {
+        String applied = appliedSummary(locale, report.applied(), tripPlan);
+        String rejected = rejectionSummary(locale, report.rejected(), tripPlan);
         if (applied.isEmpty()) {
             return rejected;
         }
@@ -190,6 +201,10 @@ public final class EditMessages {
      * and Premium packages."); empty when nothing was applied.
      */
     public static String appliedSummary(String locale, List<AppliedEdit> applied) {
+        return appliedSummary(locale, applied, false);
+    }
+
+    public static String appliedSummary(String locale, List<AppliedEdit> applied, boolean tripPlan) {
         if (applied == null || applied.isEmpty()) {
             return "";
         }
@@ -206,7 +221,7 @@ public final class EditMessages {
         for (Map.Entry<AppliedKey, Set<Tier>> entry : packagesByEdit.entrySet()) {
             Packaged template = templates.get(entry.getKey().op());
             appendSentence(summary, template.template().formatted(entry.getKey().activity(),
-                    entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase())));
+                    entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase(), tripPlan)));
         }
         return summary.toString();
     }
@@ -217,6 +232,10 @@ public final class EditMessages {
      * name something close. Empty when nothing was rejected.
      */
     public static String rejectionSummary(String locale, List<RejectedEdit> rejected) {
+        return rejectionSummary(locale, rejected, false);
+    }
+
+    public static String rejectionSummary(String locale, List<RejectedEdit> rejected, boolean tripPlan) {
         if (rejected == null || rejected.isEmpty()) {
             return "";
         }
@@ -243,7 +262,7 @@ public final class EditMessages {
             if (entry.getKey().inPackage()) {
                 Packaged template = inPackage.get(entry.getKey().reason());
                 appendSentence(summary, template.template()
-                        .formatted(names, packages(entry.getValue().tiers, german, template.phrase())));
+                        .formatted(names, packages(entry.getValue().tiers, german, template.phrase(), tripPlan)));
             } else {
                 String template = plain.get(entry.getKey().reason());
                 if (template != null) {
@@ -303,7 +322,10 @@ public final class EditMessages {
      * phrase's preposition ("aus dem Premium-Paket", "in die Basic-, Medium- und Premium-Pakete").
      * An {@link EnumSet} iterates in tier order, so the list always reads Basic, Medium, Premium.
      */
-    private static String packages(Set<Tier> tiers, boolean german, PackagePhrase phrase) {
+    private static String packages(Set<Tier> tiers, boolean german, PackagePhrase phrase, boolean tripPlan) {
+        if (tripPlan) {
+            return german ? phrase.tripPlan : "your trip plan";
+        }
         List<String> labels = new ArrayList<>();
         for (Tier tier : tiers) {
             labels.add(label(tier));

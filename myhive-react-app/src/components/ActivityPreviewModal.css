@@ -66,3 +66,53 @@
 .activity-preview-link:hover {
     text-decoration: underline;
 }
+
+/* Footer: the full page on the left, the way back to the list on the right. */
+.activity-preview-modal .app-modal-footer {
+    align-items: center;
+}
+
+.activity-preview-modal .activity-preview-link {
+    margin-right: auto;
+}
+
+.activity-preview-btn {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--brand);
+    border-radius: var(--radius);
+    background: var(--brand);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.activity-preview-btn.is-quiet {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.activity-preview-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* A row's name that opens the card: looks like the name, acts like a button. */
+.activity-open {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.activity-open:hover,
+.activity-open:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}

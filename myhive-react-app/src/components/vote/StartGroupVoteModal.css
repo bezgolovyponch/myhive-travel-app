@@ -1,198 +1,271 @@
-/* Organiser contact sheet (group vote v3, 4a): "How it works" and the headline,
-   one line of what happens, the three steps, the group's WhatsApp chat with the
-   number field and its green button right under it, then email and the main
-   button. Built to fit one phone screen without empty space: fields and buttons
-   are 44px tall and full width, spacing is tight. The WhatsApp preview is also
-   reused by the organiser dashboard. */
+/* Organiser contact modal (group vote v3, "Contact Modal Light" design): the
+   headline, what the group's vote looks like when it is in, the WhatsApp message
+   the group gets, then the number with its green button, or an email with the
+   main one. A card over a blurred page, never the whole screen, and it never
+   scrolls: see the height steps at the end. The chat preview, fields and buttons
+   further down are shared with the organiser dashboard (.sgv-scope). */
 .start-vote-modal,
 .sgv-scope {
-    --sgv-sheet: #131217;
+    --sgv-sheet: #17151d;
     --sgv-card: #1a1920;
     --sgv-line: #2a2733;
     --sgv-field: #131217;
     --sgv-field-line: #3a3842;
     --sgv-muted: #b0acbb;
-    --sgv-faint: #8f8b9a;
+    --sgv-faint: #8a8699;
     --sgv-green: #25d366;
     --sgv-violet: #7c3aed;
     --sgv-violet-text: #c4b5fd;
 }
 
-.start-vote-modal {
+/* The page behind is blurred out and dimmed, so the card reads as a modal. */
+.app-modal:has(.start-vote-modal) {
+    align-items: center;
+    background: rgba(14, 12, 18, 0.6);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.app-modal-content.start-vote-modal {
+    width: calc(100% - 16px);
+    max-width: 390px;
+    max-height: calc(100% - 16px);
+    margin: 8px;
     background: var(--sgv-sheet);
     border: 1px solid var(--sgv-line);
-    border-radius: 26px;
+    border-radius: 22px;
 }
 
 .start-vote-modal .app-modal-header {
-    padding: 1rem 1rem 0;
+    padding: 16px 16px 0;
     border-bottom: none;
     background: transparent;
     align-items: flex-start;
-    gap: var(--gap-sm);
+    gap: 8px;
 }
 
 .start-vote-modal .app-modal-header h2 {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-    font-size: 1.5rem;
+    font-size: 24px;
     font-weight: 700;
-    line-height: 1.15;
+    line-height: 1.1;
     letter-spacing: -0.01em;
-}
-
-.sgv-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.3125rem 0.625rem;
-    border-radius: var(--radius-full);
-    background: #24222b;
-    font-size: 0.625rem;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #d6d3df;
-}
-
-.sgv-chip::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #8b5cf6;
-}
-
-/* "Your group votes." on one line, "You get the result." under it in violet. */
-.sgv-headline > span {
-    display: block;
-    color: var(--sgv-violet-text);
 }
 
 .start-vote-modal .app-modal-close-btn {
     flex: none;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     padding: 0;
-    border-radius: 50%;
-    background: #24222b;
+    background: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.125rem;
+    font-size: 22px;
     line-height: 1;
     color: var(--sgv-muted);
 }
 
 .start-vote-modal .app-modal-body {
-    padding: 0.375rem 1rem calc(1.125rem + env(safe-area-inset-bottom));
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 12px;
 }
 
-/* Every block keeps its size: on a short screen the body scrolls instead of
-   squeezing the fields and buttons. */
+/* Every block keeps its size; the height steps below take blocks out instead. */
 .start-vote-modal .app-modal-body > * {
     flex-shrink: 0;
 }
 
-/* A phone-sized sheet on a wide screen too. */
-@media (min-width: 769px) {
-    .app-modal-content.start-vote-modal {
-        max-width: 390px;
-        max-height: calc(100vh - 32px);
-    }
+/* ---- "The group's choice": what the organiser gets back ---- */
+.sgv-choice {
+    padding: 10px 12px;
+    border: 1px solid #2e2b3a;
+    border-radius: 14px;
+    background: #1f1c27;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-/* On a phone the sheet keeps a small gap to the screen edges, as in the design. */
-@media (max-width: 768px) {
-    .app-modal-content.start-vote-modal {
-        width: calc(100% - 16px);
-        margin: 0 8px 8px;
-        /* The whole screen but the 8px gaps: the sheet must fit without scrolling. */
-        max-height: calc(100% - 16px);
-        border-radius: 26px;
-    }
+.sgv-choice-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--sgv-muted);
+    white-space: nowrap;
 }
 
-.sgv-lede {
-    margin: 0;
-    font-size: 0.75rem;
-    line-height: 1.45;
+.sgv-choice-title {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8b82e6;
+}
+
+.sgv-choice-dots {
+    display: flex;
+    gap: 2px;
+}
+
+.sgv-choice-dots span {
+    width: 7px;
+    height: 7px;
+    border: 1px solid #6a6578;
+    border-radius: 50%;
+}
+
+.sgv-choice-dots .is-in {
+    border-color: #7f77dd;
+    background: #7f77dd;
+}
+
+.sgv-choice-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.sgv-choice-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sgv-choice-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 700;
+    color: #f5f5f5;
+}
+
+.sgv-choice-row.is-out .sgv-choice-name {
+    color: var(--sgv-faint);
+    text-decoration: line-through;
+}
+
+.sgv-choice-yes,
+.sgv-choice-no {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.sgv-choice-yes {
+    background: rgba(37, 211, 102, 0.15);
+    color: #5fdc8f;
+}
+
+.sgv-choice-no {
+    background: rgba(224, 100, 108, 0.16);
+    color: #ff8f95;
+}
+
+/* Green for yes over red for no: the bar is the split of the votes. */
+.sgv-choice-bar {
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    background: #d9545c;
+    overflow: hidden;
+}
+
+.sgv-choice-bar span {
+    display: block;
+    height: 100%;
+    background: #25d366;
+}
+
+.sgv-choice-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 6px;
+    border-top: 1px solid #2e2b3a;
+    font-size: 12px;
     color: var(--sgv-muted);
 }
 
-/* The three steps: a numbered dot each, joined by a hairline. */
-.sgv-steps {
-    list-style: none;
-    margin: 0;
-    padding: 0.625rem 0.75rem;
-    border: 1px solid var(--sgv-line);
-    border-radius: 12px;
-    background: var(--sgv-card);
+.sgv-choice-foot b {
+    padding: 1px 9px;
+    border-radius: 999px;
+    background: rgba(139, 130, 230, 0.2);
+    color: #c9c4fb;
+    font-weight: 700;
+}
+
+/* ---- the message the group gets, as WhatsApp shows a sent one ---- */
+.sgv-msg {
+    align-self: flex-end;
+    max-width: 88%;
+    padding: 6px 8px 4px;
+    border-radius: 12px 3px 12px 12px;
+    background: #005c4b;
+    color: #f5f5f5;
     display: flex;
     flex-direction: column;
+    gap: 5px;
 }
 
-.sgv-steps li {
-    position: relative;
-    display: grid;
-    grid-template-columns: 22px minmax(0, 1fr);
-    column-gap: 0.625rem;
-    padding-bottom: 0.5rem;
-    line-height: 1.3;
+.sgv-msg-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #f5f5f5;
 }
 
-.sgv-steps li:last-child {
-    padding-bottom: 0;
+.sgv-msg-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: #03483b;
+    font-size: 12px;
+    font-weight: 700;
 }
 
-.sgv-steps li:not(:last-child)::before {
-    content: "";
-    position: absolute;
-    top: 22px;
-    bottom: 0;
-    left: 10.5px;
-    width: 1px;
-    background: #3a3842;
-}
-
-.sgv-step-num {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: #2c2a33;
+.sgv-msg-logo {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: #534ab7;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    color: #d6d3df;
+    font-size: 13px;
 }
 
-.sgv-steps li.is-current .sgv-step-num {
-    background: var(--sgv-violet);
-    color: #fff;
+.sgv-msg-meta {
+    align-self: flex-end;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    line-height: 1;
+    color: #a8d8cc;
 }
 
-.sgv-step-title {
-    font-size: 0.8125rem;
-    font-weight: 600;
-}
-
-.sgv-step-text {
-    font-size: 0.6875rem;
-    color: var(--sgv-faint);
+.sgv-msg-meta svg {
+    color: #53bdeb;
 }
 
 .sgv-dates-label {
-    margin-bottom: var(--gap-xs);
+    margin-bottom: 0.375rem;
     font-size: 0.8125rem;
     font-weight: 600;
+    color: #fff;
 }
 
 /* The group's chat, drawn the way WhatsApp draws it. */
@@ -470,201 +543,180 @@
     text-align: center;
 }
 
-/* The sheet never scrolls. It is laid out for a tall phone; on a shorter screen it gives up, in this
-   order, what the organizer can do without: the second line of each step; the intro line, with
-   tighter gaps and 40px controls; the steps become one line and the footnote goes; then the steps
-   and the chip; last the link card inside the message. The WhatsApp message, the number field and
-   both buttons are always there. Heights, not widths: a short desktop window gets the same.
-   When the trip has no dates yet the sheet also carries the date fields, so every step comes
-   earlier (.has-dates). */
 
-@media (max-height: 820px) {
-    .start-vote-modal .sgv-step-text {
-        display: none;
-    }
-
-    .start-vote-modal .sgv-steps li {
-        padding-bottom: 0.25rem;
-    }
+/* ---- the modal's own fields and buttons: one flat 48px row each, as designed ---- */
+.start-vote-modal .sgv-whatsapp {
+    gap: 12px;
 }
 
-@media (max-height: 780px) {
-    .start-vote-modal .app-modal-body {
-        gap: 0.5rem;
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    }
-
-    .start-vote-modal .app-modal-header h2 {
-        gap: 0.5rem;
-        font-size: 1.25rem;
-    }
-
-    .start-vote-modal .sgv-lede,
-    .start-vote-modal .sgv-bubble-meta {
-        display: none;
-    }
-
-    .start-vote-modal .sgv-chat-body {
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-    }
-
-    /* Still a full thumb target, 4px less each. */
-    .start-vote-modal .sgv-code,
-    .start-vote-modal .sgv-input,
-    .start-vote-modal .sgv-btn {
-        height: 40px;
-    }
-
-    .start-vote-modal .sgv-field {
-        padding: 0.25rem;
-    }
-
-    .start-vote-modal .sgv-whatsapp {
-        gap: 0.5rem;
-    }
+.start-vote-modal .sgv-field {
+    height: 48px;
+    padding: 0;
+    gap: 0;
+    border-color: #2e2b3a;
+    background: #110f15;
+    overflow: hidden;
 }
 
-@media (max-height: 640px) {
-    .start-vote-modal .sgv-steps {
-        flex-direction: row;
-        justify-content: space-between;
-        gap: 0.5rem;
-        padding: 0.5rem 0.625rem;
-    }
-
-    .start-vote-modal .sgv-steps li {
-        grid-template-columns: 18px auto;
-        column-gap: 0.375rem;
-        align-items: center;
-        padding-bottom: 0;
-    }
-
-    .start-vote-modal .sgv-steps li::before {
-        display: none;
-    }
-
-    .start-vote-modal .sgv-step-num {
-        width: 18px;
-        height: 18px;
-        font-size: 0.625rem;
-    }
-
-    .start-vote-modal .sgv-step-title {
-        font-size: 0.6875rem;
-        white-space: nowrap;
-    }
-
-    .start-vote-modal .sgv-footer {
-        display: none;
-    }
+.start-vote-modal .sgv-input {
+    height: 100%;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font-size: 16px; /* 16px so iOS Safari does not zoom the field */
 }
 
-@media (max-height: 560px) {
-    .start-vote-modal .sgv-steps,
-    .start-vote-modal .sgv-chip {
-        display: none;
-    }
+.start-vote-modal .sgv-input:focus {
+    box-shadow: none;
 }
 
-@media (max-height: 490px) {
-    .start-vote-modal .sgv-link-preview,
-    .start-vote-modal .sgv-or {
-        display: none;
-    }
+.start-vote-modal .sgv-field:focus-within {
+    border-color: var(--sgv-violet-text);
 }
 
-@media (max-height: 990px) {
-    .start-vote-modal.has-dates .sgv-step-text {
-        display: none;
-    }
-
-    .start-vote-modal.has-dates .sgv-steps li {
-        padding-bottom: 0.25rem;
-    }
+.start-vote-modal .sgv-code {
+    height: 100%;
+    max-width: 104px;
+    padding: 0 8px 0 12px;
+    border-right: 1px solid #2e2b3a;
+    font-size: 15px;
 }
 
-@media (max-height: 930px) {
-    .start-vote-modal.has-dates .app-modal-body {
-        gap: 0.5rem;
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    }
-
-    .start-vote-modal.has-dates .app-modal-header h2 {
-        gap: 0.5rem;
-        font-size: 1.25rem;
-    }
-
-    .start-vote-modal.has-dates .sgv-lede,
-    .start-vote-modal.has-dates .sgv-bubble-meta {
-        display: none;
-    }
-
-    .start-vote-modal.has-dates .sgv-chat-body {
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-    }
-
-    /* Still a full thumb target, 4px less each. */
-    .start-vote-modal.has-dates .sgv-code,
-    .start-vote-modal.has-dates .sgv-input,
-    .start-vote-modal.has-dates .sgv-btn {
-        height: 40px;
-    }
-
-    .start-vote-modal.has-dates .sgv-field {
-        padding: 0.25rem;
-    }
-
-    .start-vote-modal.has-dates .sgv-whatsapp {
-        gap: 0.5rem;
-    }
+/* A code typed by hand: just wide enough for "+" and four digits. */
+.start-vote-modal input.sgv-code {
+    width: 76px;
 }
 
-@media (max-height: 790px) {
-    .start-vote-modal.has-dates .sgv-steps {
-        flex-direction: row;
-        justify-content: space-between;
-        gap: 0.5rem;
-        padding: 0.5rem 0.625rem;
-    }
+.start-vote-modal .sgv-btn {
+    height: 48px;
+    border-radius: 12px;
+    font-size: 16px;
+}
 
-    .start-vote-modal.has-dates .sgv-steps li {
-        grid-template-columns: 18px auto;
-        column-gap: 0.375rem;
-        align-items: center;
-        padding-bottom: 0;
-    }
+.start-vote-modal .sgv-btn--whatsapp {
+    background: #1f7a46;
+    color: #f5f5f5;
+}
 
-    .start-vote-modal.has-dates .sgv-steps li::before {
-        display: none;
-    }
+.start-vote-modal .sgv-btn--whatsapp svg {
+    color: #111;
+}
 
-    .start-vote-modal.has-dates .sgv-step-num {
-        width: 18px;
-        height: 18px;
-        font-size: 0.625rem;
-    }
+.start-vote-modal .sgv-btn--primary {
+    background: #534ab7;
+}
 
-    .start-vote-modal.has-dates .sgv-step-title {
-        font-size: 0.6875rem;
-        white-space: nowrap;
-    }
+.start-vote-modal .sgv-btn:disabled {
+    opacity: 0.6;
+}
 
-    .start-vote-modal.has-dates .sgv-footer {
+.start-vote-modal .sgv-or {
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.start-vote-modal .sgv-footer {
+    font-size: 12px;
+}
+
+/* The modal never scrolls. It is laid out for a tall phone; on a shorter screen it gives blocks up,
+   least needed first: the recommendations line and the sent time, then spacing and field height, the
+   voted-out row and the footnote, the whole sample of results, and last the link preview and "or".
+   With the dates block (has-dates, about 85px taller) every step comes that much earlier. Measured:
+   the full modal is about 720px tall, 810px with dates. */
+@media (max-height: 750px) {
+    .start-vote-modal .sgv-choice-foot,
+    .start-vote-modal .sgv-msg-meta {
         display: none;
     }
 }
 
 @media (max-height: 700px) {
-    .start-vote-modal.has-dates .sgv-steps,
-    .start-vote-modal.has-dates .sgv-chip {
+    .start-vote-modal .app-modal-body {
+        gap: 8px;
+        padding-top: 8px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .start-vote-modal .sgv-whatsapp {
+        gap: 8px;
+    }
+
+    .start-vote-modal .sgv-field,
+    .start-vote-modal .sgv-btn {
+        height: 44px;
+    }
+
+    .start-vote-modal .app-modal-header h2 {
+        font-size: 21px;
+    }
+}
+
+@media (max-height: 630px) {
+    .start-vote-modal .sgv-choice-row.is-out,
+    .start-vote-modal .sgv-footer {
         display: none;
     }
 }
 
-@media (max-height: 620px) {
-    .start-vote-modal.has-dates .sgv-link-preview,
+@media (max-height: 565px) {
+    .start-vote-modal .sgv-choice {
+        display: none;
+    }
+}
+
+@media (max-height: 430px) {
+    .start-vote-modal .sgv-msg-link,
+    .start-vote-modal .sgv-or {
+        display: none;
+    }
+}
+
+@media (max-height: 835px) {
+    .start-vote-modal.has-dates .sgv-choice-foot,
+    .start-vote-modal.has-dates .sgv-msg-meta {
+        display: none;
+    }
+}
+
+@media (max-height: 785px) {
+    .start-vote-modal.has-dates .app-modal-body {
+        gap: 8px;
+        padding-top: 8px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .start-vote-modal.has-dates .sgv-whatsapp {
+        gap: 8px;
+    }
+
+    .start-vote-modal.has-dates .sgv-field,
+    .start-vote-modal.has-dates .sgv-btn {
+        height: 44px;
+    }
+
+    .start-vote-modal.has-dates .app-modal-header h2 {
+        font-size: 21px;
+    }
+}
+
+@media (max-height: 715px) {
+    .start-vote-modal.has-dates .sgv-choice-row.is-out,
+    .start-vote-modal.has-dates .sgv-footer {
+        display: none;
+    }
+}
+
+@media (max-height: 655px) {
+    .start-vote-modal.has-dates .sgv-choice {
+        display: none;
+    }
+}
+
+@media (max-height: 520px) {
+    .start-vote-modal.has-dates .sgv-msg-link,
     .start-vote-modal.has-dates .sgv-or {
         display: none;
     }

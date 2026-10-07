@@ -13,6 +13,7 @@ jest.mock('../services/api', () => ({
     default: {
         getCategoriesForDestination: jest.fn(),
         getActivities: jest.fn(),
+        getActivity: jest.fn(),
         createBookingFromTrip: jest.fn(),
     },
 }));
@@ -146,6 +147,24 @@ test('shows who has voted, the invite link, the plan with keep counts and the gr
     expect(screen.getByRole('button', {name: 'Complete Booking'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Ask the group'})).not.toBeInTheDocument();
     expect(voteApi.getTally).toHaveBeenCalledWith('tok-1', {managerToken: 'mgr-1'});
+});
+
+test('a name in the plan opens the activity card, and "Back to the plan" closes it', async () => {
+    api.getActivity.mockResolvedValue({
+        id: 'act-1', name: 'AK-47 shooting', description: 'Five guns on an indoor range.', slug: 'ak-47',
+        destinationSlug: 'prague', categories: [{name: 'Guns'}],
+    });
+    renderDashboard();
+
+    const plan = await screen.findByRole('region', {name: 'The plan'});
+    await userEvent.click(within(plan).getByRole('button', {name: 'AK-47 shooting'}));
+
+    const card = await screen.findByRole('dialog', {name: 'AK-47 shooting'});
+    expect(await within(card).findByText('Five guns on an indoor range.')).toBeInTheDocument();
+    expect(api.getActivity).toHaveBeenCalledWith('act-1');
+    await userEvent.click(within(card).getByRole('button', {name: 'Back to the plan'}));
+    expect(screen.queryByRole('dialog', {name: 'AK-47 shooting'})).not.toBeInTheDocument();
+    expect(within(plan).getByText('3/3 keep')).toBeInTheDocument();
 });
 
 test('nothing but the dashboard: no trip summary, no pictures, no catalogue', async () => {

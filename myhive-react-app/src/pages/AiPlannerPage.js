@@ -4,6 +4,7 @@ import PageHead from '../components/PageHead';
 import AiThread from '../components/ai/AiThread';
 import AiPackageView, {AI_PICK_KEY} from '../components/ai/AiPackageView';
 import AiRecommendations from '../components/ai/AiRecommendations';
+import ActivityPreviewModal from '../components/ActivityPreviewModal';
 import StartGroupVoteModal from '../components/vote/StartGroupVoteModal';
 import {useAiPlanner} from '../hooks/useAiPlanner';
 import {useTrip} from '../context/TripContext';
@@ -84,6 +85,8 @@ function AiPlannerPage({pollIntervalMs}) {
     const [handoff, setHandoff] = useState(null); // {activityIds, groupSize} once a trim is picked
     const [handingOff, setHandingOff] = useState(false);
     const [handoffError, setHandoffError] = useState(false);
+    const [preview, setPreview] = useState(null); // the draft row or recommendation whose card is open
+    const [asked, setAsked] = useState(null); // {gap, answer}: the "+ Add ..." tag being answered
     const {generation, sending} = planner;
     const hasResult = Boolean(generation?.packages?.length);
 
@@ -116,6 +119,21 @@ function AiPlannerPage({pollIntervalMs}) {
         if (!hasResult) setDraftFrom(0);
         hadResult.current = hasResult;
     }, [hasResult, planner.token, planner.messages.length]);
+
+    // A rebuild (another ready-made weekend, a longer trip) lands as a new plan: the talk that asked
+    // for it is done with, and the chat starts afresh on it like it did on the first one.
+    const builtId = generation && generation.kind !== 'EDITED' ? generation.id : null;
+    const lastBuiltId = useRef(null);
+    useEffect(() => {
+        if (!builtId) return;
+        if (lastBuiltId.current && lastBuiltId.current !== builtId) {
+            setDraftFrom(planner.messages.length);
+            writeDraftFrom(planner.token, planner.messages.length);
+        }
+        lastBuiltId.current = builtId;
+        // Only a new plan moves the cut; messages written after it stay in view.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [builtId]);
 
     // The chat asked to switch the draft to a trim or to show all three again; a chat that comes back
     // says the same way which trim was the draft.
@@ -201,16 +219,6 @@ function AiPlannerPage({pollIntervalMs}) {
         </div>
     );
 
-    const newChat = (
-        <button type="button" className="aip-link-btn"
-                onClick={() => {
-                    setChatted(false);
-                    planner.newChat();
-                }}>
-            <i className="ph ph-plus" aria-hidden="true"/> {t('newChat')}
-        </button>
-    );
-
     // "Ask the group", right under the draft it sends.
     const sendBlock = hasResult && (
         <>
@@ -242,32 +250,73 @@ function AiPlannerPage({pollIntervalMs}) {
     useEffect(() => {
         setWorkingPackage(workingKey);
     }, [workingKey, setWorkingPackage]);
-    // "Would you like to add anything?": what the ready-made packages hold that this draft lacks and
-    // has room for - one tap adds it - and then the themes it lacks, which ask the chat for options.
+    // What the plan could take next, by kind - "+ Add shooting", "+ Add strippers" - most wanted first.
+    // A tap asks which one, with the kind's activities as the answers; the answer is shown as a card
+    // with Add. None of it is a chat turn: the answers are already here.
     const gaps = (workingKey && planner.gaps?.[workingKey]) || [];
     const suggested = ((workingKey && planner.suggestions?.[workingKey]) || [])
         .filter((rec) => !inDraft.has(rec.activityId));
-    const addSuggested = (rec) => {
-        setChatted(true);
-        setShowAll(false);
-        planner.editDraft('ADD', rec.activityId, activePkg.key);
+    const kindLabel = (gap) => {
+        const label = t(`dock.kinds.${gap.categorySlug}`);
+        // A category without a wording of its own goes by its catalog name.
+        return label.includes('dock.kinds.') ? gap.name.toLowerCase() : label;
     };
-    const nextTags = (suggested.length > 0 || gaps.length > 0) && (
+    const askKind = (gap) => {
+        setDockOpen(true);
+        setAsked({gap, answer: null});
+    };
+    const answerKind = (rec) => setAsked((current) => current && {...current, answer: rec});
+    const keepChatting = () => {
+        setAsked(null);
+        document.querySelector('.aip-dock .ai-composer-input')?.focus();
+    };
+    // The question is about the plan as it was: a reply, an edit or another trim ends it.
+    const transcriptLength = planner.messages.length;
+    useEffect(() => {
+        setAsked(null);
+    }, [transcriptLength, workingKey]);
+    const tags = gaps.length > 0 && (
         <div className="aip-gaps" role="group" aria-label={t('dock.gapsAria')}>
-            {suggested.map((rec) => (
-                <button key={rec.activityId} type="button" className="is-activity" disabled={busy}
-                        aria-label={t('result.addAria', {name: rec.name})}
-                        onClick={() => addSuggested(rec)}>
-                    + {rec.name}
-                </button>
-            ))}
             {gaps.map((gap) => (
                 <button key={gap.categorySlug} type="button" disabled={busy}
-                        onClick={() => dockPlanner.send(t('dock.gapMessage', {name: gap.name}))}>
-                    {gap.name} <span aria-hidden="true">›</span>
+                        aria-pressed={asked?.gap.categorySlug === gap.categorySlug}
+                        aria-label={`+ ${t('dock.addKind', {name: kindLabel(gap)})}`}
+                        onClick={() => askKind(gap)}>
+                    {/* Narrow phones drop the verb so three tags fit a row: "+ Shooting". */}
+                    + <span className="aip-gap-verb">{t('dock.addVerb')} </span>
+                    <span className="aip-gap-kind">{kindLabel(gap)}</span>
                 </button>
             ))}
         </div>
+    );
+    // The tag's question in the chat: what was tapped, "which one?", and the answers to tap - or, once
+    // one is picked, where to find it.
+    const kindOptions = asked ? (asked.gap.options || []).filter((rec) => !inDraft.has(rec.activityId)) : [];
+    const question = asked && (
+        <>
+            <div className="ai-msg ai-msg-user">
+                <div className="ai-bubble">
+                    <p className="ai-thread-text">{t('dock.addKind', {name: kindLabel(asked.gap)})}</p>
+                </div>
+            </div>
+            <div className="ai-msg ai-msg-assistant">
+                <div className="ai-bubble">
+                    <p className="ai-thread-text">{t(asked.answer ? 'dock.cardAbove' : 'dock.whichOne')}</p>
+                </div>
+            </div>
+            {!asked.answer && (
+                <div className="aip-answers" role="group" aria-label={t('dock.whichOne')}>
+                    {kindOptions.map((rec) => (
+                        <button key={rec.activityId} type="button" className="ai-chip" onClick={() => answerKind(rec)}>
+                            {rec.name}
+                        </button>
+                    ))}
+                    <button type="button" className="ai-chip aip-answer-quiet" onClick={keepChatting}>
+                        {t('dock.keepChatting')}
+                    </button>
+                </div>
+            )}
+        </>
     );
     const showRecommendations = (planner.recommendations || []).length > 0;
     const toggleRecommendation = (rec, added) => {
@@ -291,7 +340,10 @@ function AiPlannerPage({pollIntervalMs}) {
     );
     // Above the open chat: what the chat recommended, else what the ready-made packages suggest -
     // the first as a card with Add, the rest as tags.
-    const offered = showRecommendations ? planner.recommendations : suggested;
+    // A picked answer comes first, with the rest of its kind as the tags next to it.
+    const offered = asked?.answer
+        ? [asked.answer, ...kindOptions.filter((rec) => rec.activityId !== asked.answer.activityId)]
+        : showRecommendations ? planner.recommendations : suggested;
 
     return (
         <div className={`aip-page ${hasResult ? 'has-result' : 'is-chat'}`}>
@@ -304,8 +356,7 @@ function AiPlannerPage({pollIntervalMs}) {
                 <div className="aip-loading" role="status">{t('loading')}</div>
             ) : !hasResult ? (
                 <div className="aip-chat-screen">
-                    <AiThread planner={planner} variant="full" emptyState={starters}
-                              footer={planner.messages.length > 0 ? newChat : null}/>
+                    <AiThread planner={planner} variant="full" emptyState={starters}/>
                 </div>
             ) : (
                 <>
@@ -318,6 +369,7 @@ function AiPlannerPage({pollIntervalMs}) {
                             activeKey={activeKey}
                             onTierChange={pickTier}
                             custom={custom}
+                            onOpen={setPreview}
                             onRemove={removeItem}
                             removing={removing}
                             onUndo={planner.undo}
@@ -340,6 +392,7 @@ function AiPlannerPage({pollIntervalMs}) {
                             <AiRecommendations
                                 recommendations={offered}
                                 isAdded={(id) => inDraft.has(id)}
+                                onOpen={setPreview}
                                 onToggle={toggleRecommendation}
                                 pendingId={planner.editing}
                                 disabled={busy}
@@ -348,13 +401,15 @@ function AiPlannerPage({pollIntervalMs}) {
                         {/* Collapsed under a ready draft: the question and what could go in next.
                             While the planner is working, what it is doing. */}
                         {!dockOpen && <div className="aip-dock-line">{dockLine}</div>}
-                        {!dockOpen && !busy && nextTags}
+                        {!dockOpen && !busy && tags}
                         <AiThread
                             planner={dockPlanner}
                             variant="drawer"
                             placeholder={t('dock.placeholder')}
                             beforeMessages={opening}
-                            footer={dockOpen ? newChat : null}
+                            afterMessages={question}
+                            aboveComposer={dockOpen && !busy && !(asked && !asked.answer) ? tags : null}
+                            buildingText={t('dock.working')}
                         />
                     </section>
                 </>
@@ -370,6 +425,20 @@ function AiPlannerPage({pollIntervalMs}) {
                 numberOfTravelers={handoff?.groupSize}
                 startDate={trip.tripStartDate}
                 endDate={trip.tripEndDate}
+            />
+            {/* A recommendation's card can add it; a draft row's card only goes back. */}
+            <ActivityPreviewModal
+                activity={preview && {
+                    name: preview.name, imageUrl: preview.imageUrl, duration: preview.durationMinutes,
+                }}
+                activityId={preview?.activityId}
+                onClose={() => setPreview(null)}
+                closeLabel={t('result.backToDraft')}
+                action={preview && !inDraft.has(preview.activityId) ? {
+                    label: t('result.addToDraft'),
+                    disabled: busy,
+                    onClick: () => toggleRecommendation(preview, false),
+                } : undefined}
             />
         </div>
     );

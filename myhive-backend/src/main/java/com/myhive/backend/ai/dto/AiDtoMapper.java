@@ -185,8 +185,8 @@ public class AiDtoMapper {
      * has keeps its slug as the name rather than disappearing.
      */
     Map<String, List<DraftGapDTO>> gaps(PlannerState state, String locale) {
-        Map<Tier, List<String>> slugs = DraftGaps.of(state.result().orElse(null), state.catalog(), state.presets());
-        if (slugs.isEmpty()) {
+        Map<Tier, List<DraftGaps.Kind>> kinds = DraftGaps.of(state.result().orElse(null), state.catalog());
+        if (kinds.isEmpty()) {
             return Map.of();
         }
         String lc = Translations.normalize(locale);
@@ -197,9 +197,13 @@ public class AiDtoMapper {
                         Translations.pick(category.getTranslations(), lc, "name", category.getName()));
             }
         }
+        Integer size = state.brief().groupSize();
+        int travelers = size == null || size < 1 ? 1 : size;
         Map<String, List<DraftGapDTO>> gaps = new LinkedHashMap<>();
-        slugs.forEach((tier, list) -> gaps.put(tier.name(), list.stream()
-                .map(slug -> new DraftGapDTO(slug, names.getOrDefault(slug, slug)))
+        kinds.forEach((tier, list) -> gaps.put(tier.name(), list.stream()
+                .map(kind -> new DraftGapDTO(kind.categorySlug(),
+                        names.getOrDefault(kind.categorySlug(), kind.categorySlug()),
+                        kind.options().stream().map(activity -> recommendation(activity, travelers)).toList()))
                 .toList()));
         return gaps;
     }
@@ -248,14 +252,16 @@ public class AiDtoMapper {
         boolean ready = generation.getStatus() == AiGenerationStatus.READY;
         // The skeleton: packages published onto a RUNNING row while their copy is still being written.
         boolean skeleton = generation.getStatus() == AiGenerationStatus.RUNNING && generation.getResult() != null;
+        Brief brief = JsonCodec.read(generation.getBriefSnapshot(), Brief.class);
+        Integer groupSize = brief == null ? null : brief.groupSize();
         List<PackageDTO> packages = ready || skeleton
                 ? JsonCodec.read(generation.getResult(), ComposedPlan.class).packages().stream()
-                        .map(AiDtoMapper::plannedPackage)
+                        .map(result -> plannedPackage(result, groupSize))
                         .toList()
                 : null;
         return new GenerationDTO(generation.getId(), sessionToken, generation.getStatus().name(),
                 generation.isDegraded(), generation.getSelectedPackageKey(),
-                JsonCodec.read(generation.getBriefSnapshot(), Brief.class), packages, error(generation),
+                brief, packages, error(generation),
                 generation.getCreatedAt(), generation.getFinishedAt(), generation.getKind().name(),
                 generation.getParentId(), editReport(generation), skeleton, diagnostics(generation));
     }
@@ -329,9 +335,10 @@ public class AiDtoMapper {
                 !NON_RETRYABLE_ERROR_CODE.equals(generation.getErrorCode()));
     }
 
-    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result) {
+    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result, Integer groupSize) {
         return new PackageDTO(result.key().name(), result.title(), result.tagline(), result.description(),
-                result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice()), result.currency(),
+                result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice()),
+                FromPrice.perPerson(result.totalPrice(), groupSize), result.currency(),
                 result.totalDurationMinutes(),
                 result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights());
     }

@@ -257,3 +257,10 @@
 }
 
 /* Trim cards inside the chat (2d). */
+
+.aip-tier-price small {
+    display: block;
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.8;
+}
