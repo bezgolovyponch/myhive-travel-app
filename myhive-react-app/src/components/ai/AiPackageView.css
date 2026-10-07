@@ -94,7 +94,7 @@
     color: #fff;
 }
 
-/* The draft: one card, one row per activity, the group's price at the foot. */
+/* The draft: one card, a section per day with a row per activity, the group's price at the foot. */
 .aip-draft {
     display: flex;
     flex-direction: column;
@@ -135,6 +135,57 @@
     font-size: 18px;
     font-weight: 700;
     color: var(--aip-text);
+}
+
+/* One section per day: the date (or "Day N") and the planner's name for it, the
+   count, then the rows. An empty day stays on the page - a two-day trip must
+   never read as one. */
+.aip-day {
+    display: flex;
+    flex-direction: column;
+}
+
+.aip-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 0 4px;
+    border-top: 1px solid var(--aip-line);
+}
+
+.aip-day-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--aip-text);
+}
+
+.aip-day-name {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--aip-muted);
+}
+
+.aip-day-count {
+    flex: none;
+    font-size: 12px;
+    color: var(--aip-muted);
+}
+
+.aip-day-empty {
+    padding: 6px 0 10px;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--aip-muted);
+}
+
+/* The day's rule is the one above its heading: the first row under it draws none of its own. */
+.aip-day-head + .aip-item {
+    border-top: 0;
 }
 
 .aip-item {
