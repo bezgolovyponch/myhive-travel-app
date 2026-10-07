@@ -1231,7 +1231,7 @@
       "placeholder": "Ändere, was du willst…",
       "expand": "Chat öffnen",
       "gapsAria": "Was noch in den Plan passt",
-      "optionsReady": "Deine drei Optionen sind fertig. Wähl eine als deinen Trip-Plan.",
+      "optionsReady": "Deine drei Optionen sind fertig. Schau sie dir an oder sag mir, was anders sein soll.",
       "draftSet": "Dein Trip-Plan für {count} steht. Soll noch etwas dazu?",
       "draftSetNoCount": "Dein Trip-Plan steht. Soll noch etwas dazu?",
       "addVerb": "",
