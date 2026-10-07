@@ -19,6 +19,7 @@ import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -28,6 +29,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,6 +84,75 @@ class ChatTurnNodeTest {
                 assertThat(message.get("content")).isEqualTo("The top match is above - add it, or try one of the others."));
         // Before an edit's own line the announcement is simply dropped.
         assertThat(editing.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+    }
+
+    /**
+     * A typed add is offered on a card rather than carried out - but only a catalog row can be offered. When
+     * nothing the model named resolves, the chat says it could not find it instead of pointing at an empty row.
+     */
+    @Test
+    void aTypedAdd_theCatalogCannotAnswer_saysSo_insteadOfPointingAtAnEmptyRow() {
+        String expectedMissing = "Bungee Jumping";
+        llm.queueChat(turn("Adding it now.", Brief.empty(),
+                List.of(new EditRequest(EditOp.ADD, expectedMissing, null, null, null, null))));
+        llm.queueChat(turn("Adding it now.", Brief.empty(),
+                List.of(new EditRequest(EditOp.ADD, expectedMissing, null, null, null, null, List.of(REPLACEMENT_NAME)))));
+
+        Map<String, Object> nothingOnOffer = node.apply(stateWithPackages(readyBrief()));
+        Map<String, Object> alternativeOnOffer = node.apply(stateWithPackages(readyBrief()));
+
+        assertThat(nothingOnOffer.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of());
+        assertThat(messagesOf(nothingOnOffer)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).contains(expectedMissing).doesNotContain("top match"));
+        // The alternative the model named is on offer: the row shows it, and the chat says what it could
+        // not find before pointing at the row.
+        assertThat(alternativeOnOffer.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of(REPLACEMENT_NAME));
+        assertThat(messagesOf(alternativeOnOffer)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).contains(expectedMissing)
+                        .endsWith("The top match is above - add it, or try one of the others."));
+    }
+
+    /** "beer" is two catalog rows: that is a question back, never "not in the catalog". */
+    @Test
+    void aTypedAdd_thatMatchesTwoCatalogRows_asksWhichOne_insteadOfSayingItIsMissing() {
+        Map<String, Object> state = stateMapWithPackages(readyBrief());
+        List<CatalogActivity> twoBeers = new ArrayList<>(catalog());
+        twoBeers.add(new CatalogActivity(UUID.nameUUIDFromBytes("Beer Spa".getBytes()), "beer-spa", "Beer Spa",
+                "Soak in it", 90, true, new BigDecimal("40.00"), null, null, List.of("wellness")));
+        state.put(PlannerState.CATALOG, JsonCodec.write(twoBeers));
+        llm.queueChat(turn("Adding it now.", Brief.empty(),
+                List.of(new EditRequest(EditOp.ADD, "beer", null, null, null, null))));
+
+        Map<String, Object> update = node.apply(new PlannerState(state));
+
+        assertThat(update.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of());
+        assertThat(messagesOf(update)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).contains("which one").doesNotContain("could not find"));
+    }
+
+    /** The model volunteers names on its own; one the catalog lacks is dropped, and the reply is the model's. */
+    @Test
+    void aModelRecommendation_theCatalogLacks_isDropped_andTheReplyIsKept() {
+        String expectedReply = "Saturday night is open - a club or a cruise would fit.";
+        llm.queueChat(new ChatTurnResult(expectedReply, Brief.empty(), List.of(), List.of(), LlmUsage.none(), List.of(),
+                List.of("Pub Quiz Night")));
+
+        Map<String, Object> update = node.apply(stateWithPackages(readyBrief()));
+
+        assertThat(update.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of());
+        assertThat(messagesOf(update)).singleElement()
+                .satisfies(message -> assertThat(message.get("content")).isEqualTo(expectedReply));
+    }
+
+    /** The catalog is a JSON blob in the checkpoint and the state parses it on every call: once per turn. */
+    @Test
+    void aChatTurn_parsesTheCatalogOnce() {
+        PlannerState state = Mockito.spy(stateWithPackages(readyBrief()));
+        llm.queueChat(turn("Anything else?", Brief.empty(), List.of()));
+
+        node.apply(state);
+
+        verify(state, times(1)).catalog();
     }
 
     /** A reply held back on an earlier edit turn must never surface on a turn that edits nothing. */

@@ -189,6 +189,25 @@ class LlmOutputParserTest {
         assertThat(result.edits().get(1).alternatives()).isEmpty();
     }
 
+    /**
+     * The planner prompts carry {@code activityId} codes, and the chat model has been known to borrow the
+     * field. It is a tap's field, never the model's: whatever the model puts there is ignored, and the edit
+     * is still read, by name.
+     */
+    @Test
+    void parseChatTurn_ignoresAnActivityIdTheModelWrote_andKeepsTheEdit() {
+        String expectedActivity = "Beer Bike";
+
+        ChatTurnResult result = parser.parseChatTurn(
+                "{\"reply\":\"hi\",\"brief\":{},\"missingFields\":[],\"edits\":["
+                        + "{\"op\":\"REMOVE\",\"activity\":\"" + expectedActivity + "\",\"activityId\":\"A3\"}]}");
+
+        assertThat(result.edits()).singleElement().satisfies(edit -> {
+            assertThat(edit.activity()).isEqualTo(expectedActivity);
+            assertThat(edit.activityId()).isNull();
+        });
+    }
+
     @Test
     void parseChatTurn_replaceWithoutReplacement_isDropped() {
         ChatTurnResult result = parser.parseChatTurn(

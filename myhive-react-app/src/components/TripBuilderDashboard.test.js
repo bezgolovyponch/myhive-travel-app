@@ -273,6 +273,17 @@ test('removing an activity drops it from the running vote', async () => {
     expect(voteApi.excludeActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-2');
 });
 
+test('removing an activity before the first tally has arrived still drops it from the vote', async () => {
+    voteApi.getTally.mockImplementation(() => new Promise(() => {}));
+    renderDashboard();
+    // The session is in: the dashboard is live, its first tally still on the way.
+    await waitFor(() => expect(voteApi.getTally).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('button', {name: 'Remove Steak dinner'}));
+
+    expect(voteApi.excludeActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-2');
+});
+
 test('a dropped activity is listed struck through, and Restore brings it back into the plan and the vote', async () => {
     const {dispatch} = renderDashboard();
     await screen.findByText('Tank driving');
