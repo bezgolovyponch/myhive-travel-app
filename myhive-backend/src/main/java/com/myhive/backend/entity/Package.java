@@ -106,4 +106,10 @@ public class Package implements Slugged {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    /** Whether this activity is one of the package's: what a line may be billed, or quoted, at its discount as. */
+    public boolean containsActivity(UUID activityId) {
+        return packageActivities.stream()
+                .anyMatch(pa -> pa.getActivity() != null && activityId.equals(pa.getActivity().getId()));
+    }
 }

@@ -320,9 +320,10 @@ public class AiSessionService {
             int firstMessageOfThisEdit = state.messages().size();
             Map<String, Object> update = new HashMap<>();
             update.put(PlannerState.RESUME_REASON, ResumeReason.EDIT.name());
+            // By id, not by name: the catalog carries pairs of activities with one name, and a tap says which.
             update.put(PlannerState.EDITS, JsonCodec.write(List.of(
                     new EditRequest(op, activity.name(), null, packageKey,
-                            op == EditOp.MOVE ? dayNumber : null, null))));
+                            op == EditOp.MOVE ? dayNumber : null, null, List.of(), activity.id()))));
             // The row the tap came from may be the alternatives of a chat edit the catalog could not answer.
             // Those live in the edit report this tap replaces: carry them over as the turn's
             // recommendations, or the row - and the tags next to the one just tapped - is gone after one tap.

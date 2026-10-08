@@ -26,6 +26,12 @@ public class VoteSessionCartCreateRequest {
      * the link) can open in the same tap, before this request returns. Null = the server picks one.
      */
     private UUID shareToken;
+    /**
+     * Optional manager token picked by the same browser. With both tokens the create is repeatable: a
+     * retry after a lost response gets the vote already created back instead of a conflict. Null = the
+     * server picks one.
+     */
+    private UUID managerToken;
     @NotNull @Min(1) @Max(50) private Integer numberOfTravelers;
     @NotNull private LocalDate startDate;
     @NotNull private LocalDate endDate;

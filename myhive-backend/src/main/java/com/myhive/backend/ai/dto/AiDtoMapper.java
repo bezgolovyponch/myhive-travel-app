@@ -2,6 +2,7 @@ package com.myhive.backend.ai.dto;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.edit.DraftSuggestions;
 import com.myhive.backend.ai.edit.ActivityNameResolver;
 import com.myhive.backend.ai.edit.AppliedEdit;
@@ -76,10 +77,33 @@ public class AiDtoMapper {
         this(activityRepository, () -> false);
     }
 
+    /**
+     * The checkpoint's blobs, parsed once per response: the recommendations, the gaps and the suggestions all
+     * read the catalog, the brief and the result, and {@link PlannerState} parses on every call - on the
+     * request thread of a page that polls.
+     */
+    private record Draft(Brief brief, List<CatalogActivity> catalog, List<CatalogPreset> presets,
+                         ComposedPlan result) {
+
+        static Draft of(PlannerState state) {
+            return new Draft(state.brief(), state.catalog(), state.presets(), state.result().orElse(null));
+        }
+
+        int travelers() {
+            return travelersOf(brief);
+        }
+    }
+
+    private static int travelersOf(Brief brief) {
+        Integer size = brief.groupSize();
+        return size == null || size < 1 ? 1 : size;
+    }
+
     public SessionStateDTO sessionState(AiSessionService.SessionView view) {
         AiSession session = view.session();
         PlannerState state = view.state();
-        Brief brief = state.brief();
+        Draft draft = Draft.of(state);
+        Brief brief = draft.brief();
         return new SessionStateDTO(session.getToken(), session.getDestination().getSlug(), session.getLocale(),
                 session.getStatus().name(), brief, brief.missingFields(), brief.isReady(),
                 state.messages().stream().map(AiDtoMapper::message).toList(),
@@ -91,13 +115,15 @@ public class AiDtoMapper {
                 new SessionStateDTO.LimitsDTO(AiSessionService.MAX_MESSAGES - session.getMessageCount(),
                         AiSessionService.MAX_GENERATIONS - session.getGenerationCount(),
                         AiSessionService.MAX_EDITS_PER_SESSION - session.getEditCount()),
-                state.suggestedReplies(), recommendations(state), gaps(state, session.getLocale()),
-                suggestions(state), state.workingPackage().map(Enum::name).orElse(null));
+                state.suggestedReplies(), recommendations(state, draft.catalog(), draft.travelers()),
+                gaps(draft, session.getLocale()), suggestions(draft),
+                state.workingPackage().map(Enum::name).orElse(null));
     }
 
     public TurnResponseDTO turn(AiSessionService.TurnOutcome outcome) {
         AiSessionService.SessionView view = outcome.view();
-        Brief brief = view.state().brief();
+        Draft draft = Draft.of(view.state());
+        Brief brief = draft.brief();
         // The generation the turn produced, whichever kind it is: a queued one to poll, or the edited one
         // that is already READY. They are never both there, so the order only settles a case that cannot
         // happen, and the client reads the same field either way.
@@ -108,9 +134,9 @@ public class AiDtoMapper {
                         .map(report -> edit(report, outcome.editedGeneration().map(AiGeneration::getId).orElse(null)))
                         .orElse(null),
                 outcome.assistantMessages().stream().map(AiDtoMapper::message).toList(),
-                view.state().suggestedReplies(), recommendations(view.state()),
-                view.state().showPackage().orElse(null), gaps(view.state(), view.session().getLocale()),
-                suggestions(view.state()));
+                view.state().suggestedReplies(), recommendations(view.state(), draft.catalog(), draft.travelers()),
+                view.state().showPackage().orElse(null), gaps(draft, view.session().getLocale()),
+                suggestions(draft));
     }
 
     /**
@@ -120,12 +146,15 @@ public class AiDtoMapper {
      * model made up is ever shown. Already-added ones stay: the row shows them as added.
      */
     public static List<RecommendationDTO> recommendations(PlannerState state) {
+        // The tap path, inside the session lock: the catalog and the brief are all this reads.
+        return recommendations(state, state.catalog(), travelersOf(state.brief()));
+    }
+
+    private static List<RecommendationDTO> recommendations(PlannerState state, List<CatalogActivity> catalog,
+            int travelers) {
         List<String> names = new ArrayList<>(state.recommendations());
         state.editReport().ifPresent(report -> report.rejected()
                 .forEach(rejected -> names.addAll(rejected.alternatives())));
-        List<CatalogActivity> catalog = state.catalog();
-        Integer size = state.brief().groupSize();
-        int travelers = size == null || size < 1 ? 1 : size;
         Map<UUID, RecommendationDTO> picked = new LinkedHashMap<>();
         for (String name : names) {
             if (picked.size() == LlmOutputParser.MAX_RECOMMENDATIONS) {
@@ -173,11 +202,10 @@ public class AiDtoMapper {
      * draft: activities from the ready-made packages that the package lacks and that fit it, keyed by
      * package. Empty before there are packages.
      */
-    static Map<String, List<RecommendationDTO>> suggestions(PlannerState state) {
-        Integer size = state.brief().groupSize();
-        int travelers = size == null || size < 1 ? 1 : size;
+    private static Map<String, List<RecommendationDTO>> suggestions(Draft draft) {
+        int travelers = draft.travelers();
         Map<String, List<RecommendationDTO>> out = new LinkedHashMap<>();
-        DraftSuggestions.of(state.result().orElse(null), state.brief(), state.catalog(), state.presets())
+        DraftSuggestions.of(draft.result(), draft.brief(), draft.catalog(), draft.presets())
                 .forEach((tier, activities) -> out.put(tier.name(),
                         activities.stream().map(activity -> recommendation(activity, travelers)).toList()));
         return out;
@@ -187,8 +215,8 @@ public class AiDtoMapper {
      * The "what next" tags per package, named in the session's language. A category the database no longer
      * has keeps its slug as the name rather than disappearing.
      */
-    Map<String, List<DraftGapDTO>> gaps(PlannerState state, String locale) {
-        Map<Tier, List<DraftGaps.Kind>> kinds = DraftGaps.of(state.result().orElse(null), state.catalog());
+    private Map<String, List<DraftGapDTO>> gaps(Draft draft, String locale) {
+        Map<Tier, List<DraftGaps.Kind>> kinds = DraftGaps.of(draft.result(), draft.catalog());
         if (kinds.isEmpty()) {
             return Map.of();
         }
@@ -200,8 +228,7 @@ public class AiDtoMapper {
                         Translations.pick(category.getTranslations(), lc, "name", category.getName()));
             }
         }
-        Integer size = state.brief().groupSize();
-        int travelers = size == null || size < 1 ? 1 : size;
+        int travelers = draft.travelers();
         Map<String, List<DraftGapDTO>> gaps = new LinkedHashMap<>();
         kinds.forEach((tier, list) -> gaps.put(tier.name(), list.stream()
                 .map(kind -> new DraftGapDTO(kind.categorySlug(),

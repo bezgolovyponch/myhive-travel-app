@@ -52,6 +52,24 @@ test('the organiser goes to the Trip Builder dashboard', async () => {
         .toHaveTextContent('/destination/prague?tab=trip-builder&voteSession=tok-1');
 });
 
+test('an organiser whose vote has no destination page is sent to the result, not to a broken link', async () => {
+    localStorage.setItem('myhive-manager-tok-1', 'mgr-1');
+    voteApi.getSession.mockResolvedValue({ shareToken: 'tok-1', status: 'ACTIVE' });
+
+    renderAt('/vote/tok-1/waiting');
+
+    expect(await screen.findByTestId('where')).toHaveTextContent('/vote/tok-1/result');
+});
+
+test('an older email link to a vote without a destination page keeps the manager token on its way to the result', async () => {
+    voteApi.getSession.mockResolvedValue({ shareToken: 'tok-1', status: 'ACTIVE' });
+
+    renderAt('/vote/tok-1/waiting?manager=mgr-email');
+
+    expect(await screen.findByTestId('where')).toHaveTextContent('/vote/tok-1/result');
+    expect(localStorage.getItem('myhive-manager-tok-1')).toBe('mgr-email');
+});
+
 test('an older email link with ?manager= hands the token on to the dashboard', async () => {
     renderAt('/vote/tok-1/waiting?manager=mgr-email');
 

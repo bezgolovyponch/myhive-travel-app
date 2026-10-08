@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -61,6 +62,18 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().getFieldErrors()).containsKey("email");
         assertThat(response.getBody().getFieldErrors().get("email")).isEqualTo("must not be blank");
+    }
+
+    @Test
+    void handleDataIntegrityViolation_returns409() {
+        // Two creates racing for one unique key (a vote link token, a slug): the loser is a conflict, not a 500.
+        var ex = new DataIntegrityViolationException("duplicate key value violates unique constraint");
+
+        ResponseEntity<ErrorResponse> response = handler.handleDataIntegrityViolation(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().getError()).isEqualTo("Conflict");
+        assertThat(response.getBody().getPath()).isEqualTo("/test");
     }
 
     @Test

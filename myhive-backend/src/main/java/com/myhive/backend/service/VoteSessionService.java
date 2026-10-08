@@ -70,6 +70,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -102,6 +103,10 @@ public class VoteSessionService {
 
     @Transactional
     public VoteSessionResponse createSession(VoteSessionCreateRequest request) {
+        Optional<VoteSessionResponse> alreadyCreated = alreadyCreated(request.getShareToken(), request.getManagerToken());
+        if (alreadyCreated.isPresent()) {
+            return alreadyCreated.get();
+        }
         Destination destination = destinationRepository.findById(request.getDestinationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Destination not found"));
 
@@ -119,8 +124,8 @@ public class VoteSessionService {
         Map<UUID, Activity> activitiesById =
                 loadAndValidateDestinationActivities(destination, request.getActivityIds());
 
-        VoteSession session = newSession(request.getShareToken(), destination, request.getInitiatorEmail(),
-                parsePhone(request.getInitiatorPhone()), request.getNumberOfTravelers(),
+        VoteSession session = newSession(request.getShareToken(), request.getManagerToken(), destination,
+                request.getInitiatorEmail(), parsePhone(request.getInitiatorPhone()), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(), request.getLocale());
 
         persistBallot(session, request.getActivityIds(), activitiesById);
@@ -145,6 +150,10 @@ public class VoteSessionService {
 
     @Transactional
     public VoteSessionResponse createCartSession(VoteSessionCartCreateRequest request) {
+        Optional<VoteSessionResponse> alreadyCreated = alreadyCreated(request.getShareToken(), request.getManagerToken());
+        if (alreadyCreated.isPresent()) {
+            return alreadyCreated.get();
+        }
         Destination destination = destinationRepository.findById(request.getDestinationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Destination not found"));
 
@@ -161,8 +170,8 @@ public class VoteSessionService {
         List<UUID> activityIds = new ArrayList<>(new LinkedHashSet<>(request.getActivityIds()));
         Map<UUID, Activity> activitiesById = loadAndValidateDestinationActivities(destination, activityIds);
 
-        VoteSession session = newSession(request.getShareToken(), destination, request.getInitiatorEmail(), phone,
-                request.getNumberOfTravelers(),
+        VoteSession session = newSession(request.getShareToken(), request.getManagerToken(), destination,
+                request.getInitiatorEmail(), phone, request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.CART, null, request.getLocale());
 
         persistBallot(session, activityIds, activitiesById);
@@ -172,15 +181,37 @@ public class VoteSessionService {
         return toResponse(session, 0, session.getManagerToken());
     }
 
-    private VoteSession newSession(UUID requestedShareToken, Destination destination, String initiatorEmail,
-                                   String initiatorPhone, Integer numberOfTravelers, LocalDate startDate,
-                                   LocalDate endDate, VoteMode voteMode, BigDecimal budget, String locale) {
-        if (requestedShareToken != null && voteSessionRepository.findByShareToken(requestedShareToken).isPresent()) {
+    /**
+     * The vote this browser already created with these two tokens, for a retry whose first response was
+     * lost on the way to the phone: it gets that vote back, with the same manager token, so the message
+     * already sent to the group keeps pointing at it and no second vote splits the group. A link token in
+     * use with any other manager token — or with none — is a conflict, as it always was.
+     */
+    private Optional<VoteSessionResponse> alreadyCreated(UUID shareToken, UUID managerToken) {
+        if (shareToken == null) {
+            return Optional.empty();
+        }
+        Optional<VoteSession> existing = voteSessionRepository.findByShareToken(shareToken);
+        if (existing.isEmpty()) {
+            return Optional.empty();
+        }
+        VoteSession session = existing.get();
+        if (managerToken == null || !managerToken.equals(session.getManagerToken())) {
             throw new ConflictException("This vote link is already in use");
         }
+        long participantCount = voteActivityLikeRepository.countDistinctVoterTokensBySessionId(session.getId());
+        return Optional.of(toResponse(session, participantCount, session.getManagerToken()));
+    }
+
+    private VoteSession newSession(UUID requestedShareToken, UUID requestedManagerToken, Destination destination,
+                                   String initiatorEmail, String initiatorPhone, Integer numberOfTravelers,
+                                   LocalDate startDate, LocalDate endDate, VoteMode voteMode, BigDecimal budget,
+                                   String locale) {
+        // A link token in use was answered by alreadyCreated; two creates racing for one token meet the
+        // unique index on share_token, which GlobalExceptionHandler reports as a conflict.
         VoteSession session = new VoteSession();
         session.setShareToken(requestedShareToken != null ? requestedShareToken : UUID.randomUUID());
-        session.setManagerToken(UUID.randomUUID());
+        session.setManagerToken(requestedManagerToken != null ? requestedManagerToken : UUID.randomUUID());
         session.setDestination(destination);
         String email = normalizeEmail(initiatorEmail);
         session.setInitiatorEmail(email);

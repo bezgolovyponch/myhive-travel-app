@@ -187,7 +187,7 @@ public class BookingService {
                         if (pkg == null) {
                             throw new BadRequestException("Unknown packageId: " + act.getPackageId());
                         }
-                        if (activity != null && !packageContainsActivity(pkg, activity.getId())) {
+                        if (activity != null && !pkg.containsActivity(activity.getId())) {
                             throw new BadRequestException("Activity " + activity.getId()
                                     + " does not belong to package " + pkg.getId());
                         }
@@ -245,7 +245,7 @@ public class BookingService {
                 throw new BadRequestException("This booking cannot be paid online — please contact us");
             }
             if (item.getPkg() != null) {
-                if (!packageContainsActivity(item.getPkg(), item.getActivity().getId())
+                if (!item.getPkg().containsActivity(item.getActivity().getId())
                         || !discountMatchesCatalog(item.getPackageDiscountPct(), item.getPkg().getDiscountPct())) {
                     throw new BadRequestException("This booking cannot be paid online — please contact us");
                 }
@@ -470,11 +470,6 @@ public class BookingService {
             total = total.add(groupTotal);
         }
         return total;
-    }
-
-    private static boolean packageContainsActivity(Package pkg, UUID activityId) {
-        return pkg.getPackageActivities().stream()
-                .anyMatch(pa -> pa.getActivity() != null && activityId.equals(pa.getActivity().getId()));
     }
 
     private static @NonNull BigDecimal getGroupTotal(Map.Entry<UUID, List<BookingItem>> entry) {

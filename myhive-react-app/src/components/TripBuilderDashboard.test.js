@@ -1,4 +1,4 @@
-import {render, screen, waitFor, within} from '@testing-library/react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {useReducer} from 'react';
 import {MemoryRouter, useLocation} from 'react-router-dom';
@@ -200,6 +200,59 @@ test('an activity in the plan that the vote lacks (added in the "Browse all" tab
     expect(voteApi.addActivity).toHaveBeenCalledTimes(1);
 });
 
+// Responses arrive on the event loop, not as microtasks, as a fetch's do — a tight loop then shows
+// as a count, not as a hung test.
+const later = (settle) => new Promise((resolve, reject) => setTimeout(() => settle(resolve, reject), 0));
+
+function failing(message, status) {
+    const error = new Error(message);
+    error.status = status;
+    return error;
+}
+
+test('an activity the vote refuses is asked for once, not again on every tally it triggers', async () => {
+    // A plan item the vote cannot take (deleted from the catalogue, another destination): the server
+    // answers 4xx every time, and each answer refreshes the tally.
+    const gone = {id: 'act-8', name: 'Gone tour', destinationSlug: 'prague'};
+    voteApi.addActivity.mockImplementation(() => later((resolve, reject) =>
+        reject(failing('activityId act-8 does not exist', 400))));
+    voteApi.getTally.mockImplementation(() => later((resolve) => resolve({...TALLY})));
+    renderDashboard({state: tripState({tripItems: [shooting, steak, gone]})});
+    await screen.findByText('3 of 10 voted');
+
+    await waitFor(() => expect(voteApi.addActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-8'));
+    await waitFor(() => expect(voteApi.getTally.mock.calls.length).toBeGreaterThanOrEqual(2));
+    await act(() => new Promise(resolve => setTimeout(resolve, 50)));
+
+    expect(voteApi.addActivity).toHaveBeenCalledTimes(1);
+});
+
+test('an add that got no answer from the server is asked again on the next poll, with the plan unchanged', async () => {
+    jest.useFakeTimers();
+    try {
+        const beerSpa = {id: 'act-7', name: 'Beer spa', destinationSlug: 'prague'};
+        voteApi.addActivity
+            .mockImplementationOnce(() => later((resolve, reject) => reject(failing('Failed to fetch'))))
+            .mockImplementation(() => later((resolve) => resolve()));
+        voteApi.getTally.mockImplementation(() => later((resolve) => resolve({...TALLY})));
+        renderDashboard({state: tripState({tripItems: [shooting, steak, beerSpa]})});
+        await screen.findByText('3 of 10 voted');
+        await waitFor(() => expect(voteApi.addActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-7'));
+        await waitFor(() => expect(voteApi.getTally.mock.calls.length).toBeGreaterThanOrEqual(2));
+        expect(voteApi.addActivity).toHaveBeenCalledTimes(1);
+
+        // The 30 s poll brings the next tally.
+        await act(async () => {
+            jest.advanceTimersByTime(30_000);
+        });
+
+        await waitFor(() => expect(voteApi.addActivity).toHaveBeenCalledTimes(2));
+        expect(voteApi.addActivity).toHaveBeenLastCalledWith('tok-1', 'mgr-1', 'act-7');
+    } finally {
+        jest.useRealTimers();
+    }
+});
+
 test('Send to WhatsApp group opens the message with the invite link', async () => {
     renderDashboard();
     const invite = await screen.findByRole('region', {name: 'Invite link for the group'});
@@ -217,6 +270,17 @@ test('removing an activity drops it from the running vote', async () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove Steak dinner'}));
 
     expect(dispatch).toHaveBeenCalledWith({type: 'REMOVE_FROM_TRIP', activityId: 'act-2'});
+    expect(voteApi.excludeActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-2');
+});
+
+test('removing an activity before the first tally has arrived still drops it from the vote', async () => {
+    voteApi.getTally.mockImplementation(() => new Promise(() => {}));
+    renderDashboard();
+    // The session is in: the dashboard is live, its first tally still on the way.
+    await waitFor(() => expect(voteApi.getTally).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('button', {name: 'Remove Steak dinner'}));
+
     expect(voteApi.excludeActivity).toHaveBeenCalledWith('tok-1', 'mgr-1', 'act-2');
 });
 

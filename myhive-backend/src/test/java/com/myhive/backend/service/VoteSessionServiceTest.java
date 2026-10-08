@@ -11,6 +11,7 @@ import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionActivity;
 import com.myhive.backend.exception.BadRequestException;
+import com.myhive.backend.exception.ConflictException;
 import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.exception.SessionFullException;
 import com.myhive.backend.model.VoteMode;
@@ -30,6 +31,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -410,6 +413,63 @@ class VoteSessionServiceTest {
 
         assertThat(response.getShareToken()).isNotNull();
         verify(emailService).sendVoteCreatedConfirmation(any(VoteSession.class), eq("https://trivlu.com"));
+    }
+
+    @Test
+    void createSession_askedAgainWithTheSameTokens_returnsTheVoteAlreadyCreatedAndWritesNothing() {
+        UUID shareToken = UUID.randomUUID();
+        UUID managerToken = UUID.randomUUID();
+        VoteSession existing = existingSession(shareToken, managerToken);
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(existing));
+        when(voteActivityLikeRepository.countDistinctVoterTokensBySessionId(existing.getId())).thenReturn(3L);
+        VoteSessionCreateRequest request = new VoteSessionCreateRequest();
+        request.setDestinationId(existing.getDestination().getId());
+        request.setShareToken(shareToken);
+        request.setManagerToken(managerToken);
+
+        VoteSessionResponse response = voteSessionService.createSession(request);
+
+        assertThat(response.getShareToken()).isEqualTo(shareToken);
+        assertThat(response.getManagerToken()).isEqualTo(managerToken);
+        assertThat(response.getParticipantCount()).isEqualTo(3L);
+        verify(voteSessionRepository, never()).save(any());
+        verify(voteSessionActivityRepository, never()).save(any());
+        verify(emailService, never()).sendVoteCreatedConfirmation(any(), any());
+    }
+
+    @Test
+    void createSession_linkTokenInUseByAnotherManager_isAConflict() {
+        UUID shareToken = UUID.randomUUID();
+        VoteSession existing = existingSession(shareToken, UUID.randomUUID());
+        when(voteSessionRepository.findByShareToken(shareToken)).thenReturn(Optional.of(existing));
+        VoteSessionCreateRequest request = new VoteSessionCreateRequest();
+        request.setDestinationId(existing.getDestination().getId());
+        request.setShareToken(shareToken);
+        request.setManagerToken(UUID.randomUUID());
+
+        assertThatThrownBy(() -> voteSessionService.createSession(request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("already in use");
+        verify(voteSessionRepository, never()).save(any());
+    }
+
+    private static VoteSession existingSession(UUID shareToken, UUID managerToken) {
+        Destination destination = new Destination();
+        destination.setId(UUID.randomUUID());
+        destination.setName("Prague");
+        destination.setSlug("prague");
+        VoteSession session = new VoteSession();
+        session.setId(UUID.randomUUID());
+        session.setShareToken(shareToken);
+        session.setManagerToken(managerToken);
+        session.setDestination(destination);
+        session.setStatus(VoteSessionStatus.ACTIVE);
+        session.setVoteMode(VoteMode.QUIZ);
+        session.setNumberOfTravelers(4);
+        session.setStartDate(LocalDate.of(2026, 8, 1));
+        session.setEndDate(LocalDate.of(2026, 8, 3));
+        session.setExpiresAt(LocalDateTime.of(2026, 7, 31, 12, 0));
+        return session;
     }
 
     @Test

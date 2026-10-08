@@ -1,30 +1,44 @@
 package com.myhive.backend.ai.dto;
 
+import com.myhive.backend.TestDataFactory;
+import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.edit.AppliedEdit;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRejectionReason;
 import com.myhive.backend.ai.edit.EditReport;
 import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
+import com.myhive.backend.ai.graph.PlannerState;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.ai.service.AiSessionService;
 import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
+import com.myhive.backend.entity.AiSessionStatus;
+import com.myhive.backend.entity.Destination;
 import com.myhive.backend.repository.ActivityRepository;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * The generation mapping on its own, which is where a stored blob turns into API JSON. The edit report is
@@ -162,6 +176,61 @@ class AiDtoMapperTest {
 
         assertThat(dto.textsPending()).isFalse();
         assertThat(dto.packages()).hasSize(1);
+    }
+
+    /**
+     * Every read of a session serves the recommendations, the gaps and the suggestions, and each of them used
+     * to parse the catalog, the brief and the result out of the checkpoint again - on the request thread of
+     * a page that polls. One parse per response.
+     */
+    @Test
+    void sessionState_parsesTheCheckpointOnce() {
+        Map<String, Object> data = new HashMap<>();
+        data.put(PlannerState.LOCALE, "en");
+        data.put(PlannerState.BRIEF, JsonCodec.write(brief()));
+        data.put(PlannerState.RESULT, JsonCodec.write(plan()));
+        data.put(PlannerState.CATALOG, JsonCodec.write(List.of(new CatalogActivity(UUID.randomUUID(), "club-crawl",
+                "Club Crawl", "one line", DURATION_MINUTES, true, new BigDecimal("40.00"), null, null,
+                List.of("nightlife")))));
+        data.put(PlannerState.RECOMMENDATIONS, List.of("Club Crawl"));
+        PlannerState state = Mockito.spy(new PlannerState(data));
+        AiSessionService.SessionView view = new AiSessionService.SessionView(session(), state,
+                "awaitSelection", Optional.empty(), Optional.empty(), null);
+
+        SessionStateDTO dto = mapper.sessionState(view);
+
+        assertThat(dto.recommendations()).singleElement()
+                .satisfies(recommendation -> assertThat(recommendation.name()).isEqualTo("Club Crawl"));
+        verify(state, times(1)).catalog();
+        verify(state, times(1)).brief();
+        verify(state, atMost(1)).result();
+        verify(state, atMost(1)).presets();
+    }
+
+    /** The tap path calls this one inside the session lock: it reads the catalog and the brief, nothing more. */
+    @Test
+    void recommendations_ofAState_readOnlyTheCatalogAndTheBrief() {
+        Map<String, Object> data = new HashMap<>();
+        data.put(PlannerState.BRIEF, JsonCodec.write(brief()));
+        data.put(PlannerState.RESULT, JsonCodec.write(plan()));
+        data.put(PlannerState.CATALOG, JsonCodec.write(List.of()));
+        PlannerState state = Mockito.spy(new PlannerState(data));
+
+        AiDtoMapper.recommendations(state);
+
+        verify(state, never()).result();
+        verify(state, never()).presets();
+    }
+
+    private static AiSession session() {
+        Destination prague = TestDataFactory.destination("Prague");
+        prague.setSlug("prague");
+        AiSession session = new AiSession();
+        session.setToken(UUID.randomUUID());
+        session.setDestination(prague);
+        session.setStatus(AiSessionStatus.READY);
+        session.setLocale("en");
+        return session;
     }
 
     private static AiGeneration editedGeneration(UUID parentId, String editReport) {

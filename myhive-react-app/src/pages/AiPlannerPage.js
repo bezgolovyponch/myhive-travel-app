@@ -63,9 +63,10 @@ function writeDraftFrom(token, from) {
 // Stag Do AI (v3 landing, 2d/2e). Result-first: until there are packages the
 // chat is the page; once there are, the trip draft is the page and the chat is
 // docked to the bottom edge, where its top bar opens and collapses it. The
-// three trims are offered until the organizer picks one or starts changing the
-// plan; from then on there is one draft, theirs - the chat can still bring a
-// trim, or all three, back ("show me Premium", "what were the other options?").
+// three trims are offered - tapped through, compared - until the organizer
+// starts changing the plan; from then on there is one draft, theirs - the chat
+// can still bring a trim, or all three, back ("show me Premium", "what were the
+// other options?").
 function AiPlannerPage({pollIntervalMs}) {
     const t = useT('aiPlanner');
     const tHome = useT('home');
@@ -82,7 +83,7 @@ function AiPlannerPage({pollIntervalMs}) {
     // How many messages were said before the packages landed. The docked chat starts after them: what
     // was said to gather the brief - down to "building your three options now" - is not about the draft.
     const [draftFrom, setDraftFrom] = useState(0);
-    const [chatted, setChatted] = useState(false); // the organizer has picked a trim or asked for a change
+    const [chatted, setChatted] = useState(false); // the organizer has asked for a change (a message, an edit)
     const [showAll, setShowAll] = useState(false); // the chat brought every trim back
     const [handoff, setHandoff] = useState(null); // {activityIds, groupSize} once a trim is picked
     const [handingOff, setHandingOff] = useState(false);

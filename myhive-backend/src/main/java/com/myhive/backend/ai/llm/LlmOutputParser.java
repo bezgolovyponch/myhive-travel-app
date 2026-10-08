@@ -152,6 +152,11 @@ public class LlmOutputParser {
      * reply are still useful to the user, so the element is dropped rather than failing the parse.
      */
     private EditRequest editOrNull(JsonNode node) {
+        if (node instanceof ObjectNode object) {
+            // A tap's field, never the model's: the planner prompts carry activityId codes and the chat
+            // model borrows the key, and a code is no UUID - read as one it would fail and lose the edit.
+            object.remove("activityId");
+        }
         EditRequest edit;
         try {
             edit = mapper.treeToValue(node, EditRequest.class);

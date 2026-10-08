@@ -14,7 +14,13 @@ jest.mock('../../services/voteApi', () => ({
 
 jest.mock('../../utils/analytics', () => ({ pushEvent: jest.fn() }));
 jest.mock('../../utils/openWhatsApp', () => ({ openWhatsApp: jest.fn() }));
-jest.mock('../../utils/uuid', () => ({ generateUuid: () => 'tok-1' }));
+// The modal picks two tokens per opening: the link token first, the manager token second. The voter
+// token is mocked apart, so it never takes a turn of this sequence.
+let mockUuidCalls = 0;
+jest.mock('../../utils/uuid', () => ({
+  generateUuid: () => (mockUuidCalls++ % 2 === 0 ? 'tok-1' : 'mgr-local'),
+}));
+jest.mock('../../utils/voterToken', () => ({ getOrCreateVoterToken: () => 'voter-1' }));
 
 // The modal uses the site's DateRangePicker (DayPicker); two plain inputs stand
 // in for it so tests set dates without calendar interaction (as in TripSetupModal.test).
@@ -60,6 +66,7 @@ function renderModal(props = {}) {
 }
 
 beforeEach(() => {
+  mockUuidCalls = 0;
   voteApi.createCartSession.mockResolvedValue({ shareToken: 'tok-1', managerToken: 'mgr-1' });
   voteApi.createSession.mockResolvedValue({ shareToken: 'tok-1', managerToken: 'mgr-1' });
 });
@@ -219,7 +226,9 @@ test('both contacts typed: both go with the vote', async () => {
   })));
 });
 
-test('a failed create shows an error and keeps the modal; a retry reuses the same link', async () => {
+test('a failed create shows an error and keeps the modal; a retry reuses the same link and manager tokens', async () => {
+  // Both tokens are the browser's, so a retry after a lost response is the same vote to the server,
+  // not a second one (or a 409) — the message already sent to the group keeps pointing at it.
   voteApi.createCartSession.mockRejectedValueOnce(new Error('boom'));
   renderModal();
   await userEvent.type(screen.getByLabelText(EMAIL), 'max@example.com');
@@ -232,7 +241,9 @@ test('a failed create shows an error and keeps the modal; a retry reuses the sam
   await userEvent.click(screen.getByRole('button', { name: START }));
 
   await waitFor(() => expect(mockNavigate).toHaveBeenCalled());
-  expect(voteApi.createCartSession.mock.calls.map(c => c[0].shareToken)).toEqual(['tok-1', 'tok-1']);
+  const bodies = voteApi.createCartSession.mock.calls.map(c => c[0]);
+  expect(bodies.map(b => b.shareToken)).toEqual(['tok-1', 'tok-1']);
+  expect(bodies.map(b => b.managerToken)).toEqual(['mgr-local', 'mgr-local']);
 });
 
 test('quiz mode creates a quiz vote with the quiz answers and the contact', async () => {

@@ -782,7 +782,7 @@ describe('plan price', () => {
 
         expect(await screen.findByText('from €1,161')).toBeInTheDocument();
         expect(screen.getByText('Your plan')).toBeInTheDocument();
-        expect(pricingApi.quote).toHaveBeenCalledWith({ activityIds: ['a1'], travelers: 4 });
+        expect(pricingApi.quote).toHaveBeenCalledWith({ items: [{ activityId: 'a1', packageId: null }], travelers: 4 });
         expect(screen.queryByText(/€50|× 4|person/)).not.toBeInTheDocument();
     });
 

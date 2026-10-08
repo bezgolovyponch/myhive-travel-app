@@ -169,7 +169,9 @@ public class PackageEditor {
 
     private PlanDraft applyResolved(PlanDraft working, EditRequest edit, Brief brief, WorkingCatalog catalog,
             List<AppliedEdit> applied, List<RejectedEdit> rejected) {
-        CatalogActivity activity = resolveOrReject(edit, edit.activity(), catalog.resolvable(), rejected);
+        CatalogActivity activity = edit.activityId() == null
+                ? resolveOrReject(edit, edit.activity(), catalog.resolvable(), rejected)
+                : byIdOrReject(edit, catalog, rejected);
         if (activity == null) {
             return working;
         }
@@ -458,6 +460,19 @@ public class PackageEditor {
         items.add(new PlanDraft.ItemDraft(slot, null, activity.id(), ""));
         items.sort(Comparator.comparingInt(item -> item.slot() == null ? Integer.MAX_VALUE : item.slot().ordinal()));
         return new PlanDraft.DayDraft(day.dayNumber(), day.title(), day.summary(), items);
+    }
+
+    /**
+     * A tap on a card names its row by id, so two catalog rows with one name are never ambiguous to it. Only
+     * the snapshot answers: an id it lacks is unknown, never guessed from the name.
+     */
+    private static CatalogActivity byIdOrReject(EditRequest edit, WorkingCatalog catalog, List<RejectedEdit> rejected) {
+        CatalogActivity activity = catalog.byId().get(edit.activityId());
+        if (activity == null) {
+            String cleaned = PlanAssembler.clean(edit.activity());
+            rejected.add(new RejectedEdit(edit.op(), cleaned, null, EditRejectionReason.UNKNOWN_ACTIVITY, cleaned));
+        }
+        return activity;
     }
 
     /**

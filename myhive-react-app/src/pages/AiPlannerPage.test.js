@@ -124,12 +124,53 @@ test('with trip dates that match the plan, days are real dates', async () => {
     expect(screen.getByText('Fri 16 – Sun 18 Oct · 10 people')).toBeInTheDocument();
 });
 
+test('a day whose title is still the stock "Day N" (copy failed or reset) shows the label once', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [{...p.days[0], title: 'Day 1'}]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByRole('region', {name: 'Day 1'})).toBeInTheDocument();
+    expect(within(draft).queryByText(/Day 1 · Day 1/)).not.toBeInTheDocument();
+});
+
+test('a row without a duration has no empty subtitle under its name', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [{...p.days[0],
+        items: [item('Bar Crawl', {durationMinutes: null}), item('Karting', {slot: 'AFTERNOON', startHint: null})]}]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByText('Bar Crawl')).toBeInTheDocument();
+    expect(within(draft).getAllByText('2h')).toHaveLength(1);
+    expect(draft.querySelectorAll('.aip-item-sub')).toHaveLength(1);
+});
+
+test('while the copy is still being written, a day shows its date or number but not its title yet', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const skeleton = readyGeneration({textsPending: true});
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: skeleton}));
+    aiPlannerApi.getGeneration.mockResolvedValue(skeleton);
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByRole('region', {name: 'Day 1'})).toBeInTheDocument();
+    expect(within(draft).queryByText(/Landing night/)).not.toBeInTheDocument();
+});
+
 test('trip dates that do not match the plan length keep Day 1, Day 2', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: readyGeneration()}));
     renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-22'});
 
-    expect((await screen.findAllByText('2h · Day 1')).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('region', {name: 'Day 1 · Landing night'})).toBeInTheDocument();
     expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
 });
 
@@ -236,8 +277,11 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(screen.getByRole('tab', {name: /Medium/})).toHaveAttribute('aria-selected', 'true');
     const draft = screen.getByRole('region', {name: 'Trip draft'});
     expect(within(draft).getByText('Karting')).toBeInTheDocument();
-    expect(within(draft).getAllByText('2h · Day 1').length).toBeGreaterThan(0); // the day only, no hour
-    expect(within(draft).getByText('2 activities')).toBeInTheDocument();
+    // Split by day, the rows carrying the duration only - the day is the section's heading.
+    expect(within(draft).getByRole('region', {name: 'Day 1 · Landing night'})).toBeInTheDocument();
+    expect(within(draft).getAllByText('2h').length).toBeGreaterThan(0);
+    // The draft's total and, under it, the one day's count: the same two here.
+    expect(within(draft).getAllByText('2 activities')).toHaveLength(2);
     // One price for the whole group at the foot of the draft, none per activity.
     expect(within(draft).getByText('from €176 / person')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /Browse all/}))
@@ -250,7 +294,7 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
     // With the three trims on offer the docked chat says so, in place of the brief talk before it.
     expect(within(screen.getByRole('region', {name: 'Stag Do AI'}))
-        .getAllByText(/^Your three options are ready\. Look through them/).length).toBeGreaterThan(0);
+        .getAllByText(/^Your three options are ready\. Switch between them/).length).toBeGreaterThan(0);
 
     // Looking at a trim is not choosing it: its plan shows and all three stay up.
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
@@ -259,6 +303,10 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(screen.queryByText('Karting')).not.toBeInTheDocument();
     expect(within(draft).getByText('VIP Club')).toBeInTheDocument();
     expect(within(draft).getByText('from €279 / person')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', {name: /Basic/}));
+    expect(screen.getByRole('tab', {name: /Basic/})).toHaveAttribute('aria-selected', 'true');
+    expect(within(draft).getByText('from €113 / person')).toBeInTheDocument();
+    expect(aiPlannerApi.selectPackage).not.toHaveBeenCalled();
 
     // Docked and open on the result. What was said to gather the brief - down to "building your three
     // options" - is not about the draft: the chat starts with its own line.
@@ -561,7 +609,7 @@ test('nothing is offered unasked, and the chat put away is only its bar', async 
 
     // Put away: the last line and the way back in. The tags are gone with the rest of the chat.
     expect(within(dock).getByRole('button', {name: 'Open chat'})).toHaveAttribute('aria-expanded', 'false');
-    expect(within(dock).getAllByText(/^Your three options are ready\. Look through them/).length)
+    expect(within(dock).getAllByText(/^Your three options are ready\. Switch between them/).length)
         .toBeGreaterThan(0);
     expect(within(dock).queryByRole('button', {name: '+ Add beer'})).not.toBeInTheDocument();
 });
