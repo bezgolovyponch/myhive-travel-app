@@ -76,11 +76,35 @@ class ChatTurnNodeTest {
         Map<String, Object> editing = node.apply(stateWithPackages(readyBrief()));
 
         assertThat(messagesOf(plain)).singleElement()
-                .satisfies(message -> assertThat(message.get("content")).startsWith("Your trip draft stays as it is"));
+                .satisfies(message -> assertThat(message.get("content")).startsWith("Your trip plan stays as it is"));
         assertThat(messagesOf(recommending)).singleElement().satisfies(message ->
-                assertThat(message.get("content")).isEqualTo("The top match is above - add it, or try one of the others."));
+                assertThat(message.get("content")).isEqualTo("Here is what fits - tap a name to see it, or add it."));
         // Before an edit's own line the announcement is simply dropped.
         assertThat(editing.get(PlannerState.PENDING_REPLY)).isEqualTo("");
+    }
+
+    /**
+     * A change of taste rebuilds the three options while they are only options. Once one is the organizer's
+     * own plan it does not: a rebuild would throw away what they added, removed and moved. A different
+     * trip length still does.
+     */
+    @Test
+    void aChangeOfTaste_rebuildsTheOptions_butNotTheOrganizersOwnPlan() {
+        Brief tasteChanged = new Brief(null, null, List.of("extreme"), "more adrenaline", null, null, null, null, null);
+        Brief longerTrip = new Brief(3, null, List.of(), null, null, null, null, null, null);
+        llm.queueChat(turn("On it.", tasteChanged, List.of()));
+        llm.queueChat(turn("On it.", tasteChanged, List.of()));
+        llm.queueChat(turn("On it.", longerTrip, List.of()));
+        Map<String, Object> ownPlan = stateMapWithPackages(readyBrief());
+        ownPlan.put(PlannerState.WORKING_PACKAGE, "MEDIUM");
+
+        Map<String, Object> options = node.apply(stateWithPackages(readyBrief()));
+        Map<String, Object> theirs = node.apply(new PlannerState(ownPlan));
+        Map<String, Object> theirsLonger = node.apply(new PlannerState(ownPlan));
+
+        assertThat(options.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
+        assertThat(theirs.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(theirsLonger.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
     }
 
     /** A reply held back on an earlier edit turn must never surface on a turn that edits nothing. */

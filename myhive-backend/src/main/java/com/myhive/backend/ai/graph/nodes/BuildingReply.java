@@ -19,13 +19,13 @@ final class BuildingReply {
 
     /** When the chat points at the row of activities above it instead of listing them again. */
     private static final Map<String, String> RECOMMENDING = Map.of(
-            "en", "The top match is above - add it, or try one of the others.",
-            GERMAN, "Der beste Treffer steht oben - füg ihn hinzu oder nimm einen der anderen.");
+            "en", "Here is what fits - tap a name to see it, or add it.",
+            GERMAN, "Das passt dazu - tippe einen Namen an, um es zu sehen, oder füg es hinzu.");
 
     /** When the model announced a build on a turn that builds nothing. */
     private static final Map<String, String> NOTHING_TO_BUILD = Map.of(
-            "en", "Your trip draft stays as it is. Tell me what to add, swap or take out.",
-            GERMAN, "Dein Trip-Entwurf bleibt, wie er ist. Sag mir, was dazu soll, getauscht wird oder raus kann.");
+            "en", "Your trip plan stays as it is. Tell me what to add, swap, move or take out.",
+            GERMAN, "Dein Trip-Plan bleibt, wie er ist. Sag mir, was dazu soll, getauscht, verschoben oder raus kann.");
 
     /** How a model says it is building: the words of its own instruction, in either language. */
     private static final java.util.List<String> BUILD_WORDS = java.util.List.of(

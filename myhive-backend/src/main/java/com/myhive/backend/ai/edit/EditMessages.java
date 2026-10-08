@@ -52,8 +52,10 @@ public final class EditMessages {
      * row above the chat - the top match with Add, the rest as tags - so the line only points there; it
      * does not open with "I could not find" what the organizer can add with the next tap.
      */
-    private static final String EN_CLOSEST = "The top match for \"%s\" is above - add it, or try one of the others.";
-    private static final String DE_CLOSEST = "Der beste Treffer für \"%s\" steht oben - füg ihn hinzu oder nimm einen der anderen.";
+    private static final String EN_CLOSEST = "Here is what comes closest to \"%s\" - tap a name to see it, or add it.";
+    private static final String EN_MOVED = "Moved %s to day %d.";
+    private static final String DE_MOVED = "%s auf Tag %d verschoben.";
+    private static final String DE_CLOSEST = "Das kommt \"%s\" am nächsten - tippe einen Namen an, um es zu sehen, oder füg es hinzu.";
 
     /**
      * How a list of packages is phrased. English never declines, so only the German articles differ:
@@ -219,6 +221,13 @@ public final class EditMessages {
         Map<EditOp, Packaged> templates = german ? DE_APPLIED : EN_APPLIED;
         StringBuilder summary = new StringBuilder();
         for (Map.Entry<AppliedKey, Set<Tier>> entry : packagesByEdit.entrySet()) {
+            if (entry.getKey().op() == EditOp.MOVE) {
+                // A move says where to, not which package: the day is the news.
+                int day = applied.stream().filter(edit -> AppliedKey.of(edit).equals(entry.getKey()))
+                        .findFirst().map(AppliedEdit::dayNumber).orElse(0);
+                appendSentence(summary, (german ? DE_MOVED : EN_MOVED).formatted(entry.getKey().activity(), day));
+                continue;
+            }
             Packaged template = templates.get(entry.getKey().op());
             appendSentence(summary, template.template().formatted(entry.getKey().activity(),
                     entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase(), tripPlan)));

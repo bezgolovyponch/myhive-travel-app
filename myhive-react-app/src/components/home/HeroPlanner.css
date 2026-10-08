@@ -341,9 +341,13 @@
         flex-wrap: nowrap;
         overflow-x: auto;
         margin: 0 -12px;
-        padding: 0 12px 2px;
+        /* Room after the last phrase so it can be scrolled clear of the fade. */
+        padding: 0 36px 2px 12px;
         scrollbar-width: none;
         scroll-padding: 0 12px;
+        /* The right edge fades out: there is more to the side. */
+        -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+        mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
     }
 
     .hp-chips-list::-webkit-scrollbar {
@@ -484,7 +488,10 @@
     .hp-chips-list {
         flex-wrap: nowrap;
         overflow-x: auto;
+        padding-right: 36px;
         scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+        mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
     }
 
     .hp-chips-list::-webkit-scrollbar {
@@ -616,5 +623,27 @@
     .hero-planner .hp-btn-primary,
     .hero-planner .hp-btn-secondary {
         min-height: 42px;
+    }
+}
+
+/* Tablets: the column is centred and a little wider, and sits in the middle of the
+   screen instead of at its top with a third of it empty underneath. */
+@media (min-width: 600px) and (max-width: 1023px) {
+    .hero.hero--planner {
+        align-items: center;
+        padding-bottom: 32px;
+    }
+
+    .hero--planner .hero-content {
+        justify-content: center;
+    }
+
+    .hero--planner .hero-text {
+        width: 100%;
+        max-width: 37.5rem;
+    }
+
+    .hero-planner {
+        max-width: 37.5rem;
     }
 }

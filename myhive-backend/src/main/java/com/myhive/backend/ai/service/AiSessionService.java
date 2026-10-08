@@ -292,9 +292,17 @@ public class AiSessionService {
      * with the next.
      */
     public TurnOutcome editDraft(UUID token, EditOp op, UUID activityId, Tier packageKey) {
+        return editDraft(token, op, activityId, packageKey, null);
+    }
+
+    /** {@code dayNumber} is where a {@code MOVE} (a drag in the draft) puts the activity; other ops ignore it. */
+    public TurnOutcome editDraft(UUID token, EditOp op, UUID activityId, Tier packageKey, Integer dayNumber) {
         requireEnabled();
-        if (op != EditOp.ADD && op != EditOp.REMOVE) {
-            throw new BadRequestException("Only ADD and REMOVE can be applied from the draft");
+        if (op == EditOp.REPLACE) {
+            throw new BadRequestException("Only ADD, REMOVE and MOVE can be applied from the draft");
+        }
+        if (op == EditOp.MOVE && dayNumber == null) {
+            throw new BadRequestException("A MOVE needs the dayNumber to move to");
         }
         return locks.withLock(token, () -> {
             AiSession session = find(token);
@@ -313,7 +321,8 @@ public class AiSessionService {
             Map<String, Object> update = new HashMap<>();
             update.put(PlannerState.RESUME_REASON, ResumeReason.EDIT.name());
             update.put(PlannerState.EDITS, JsonCodec.write(List.of(
-                    new EditRequest(op, activity.name(), null, packageKey, null, null))));
+                    new EditRequest(op, activity.name(), null, packageKey,
+                            op == EditOp.MOVE ? dayNumber : null, null))));
             // The row the tap came from may be the alternatives of a chat edit the catalog could not answer.
             // Those live in the edit report this tap replaces: carry them over as the turn's
             // recommendations, or the row - and the tags next to the one just tapped - is gone after one tap.

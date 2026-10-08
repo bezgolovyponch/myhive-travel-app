@@ -140,6 +140,9 @@ public class AiDtoMapper {
         return List.copyOf(picked.values());
     }
 
+    /** A lone match is filled up to this many; what the chat named itself may be more (up to the parser's cap). */
+    private static final int MIN_OFFERED = 3;
+
     /**
      * A top match with nothing next to it is a dead end when it is not quite what the group meant. The
      * row is filled up with what the catalog files under the same categories as the top match, in the
@@ -147,14 +150,14 @@ public class AiDtoMapper {
      */
     private static void fillWithRelated(Map<UUID, RecommendationDTO> picked, List<CatalogActivity> catalog,
             int travelers) {
-        if (picked.isEmpty() || picked.size() >= LlmOutputParser.MAX_RECOMMENDATIONS) {
+        if (picked.isEmpty() || picked.size() >= MIN_OFFERED) {
             return;
         }
         UUID topId = picked.keySet().iterator().next();
         List<String> themes = catalog.stream().filter(activity -> activity.id().equals(topId)).findFirst()
                 .map(CatalogActivity::categorySlugs).orElse(List.of());
         for (CatalogActivity activity : catalog) {
-            if (picked.size() == LlmOutputParser.MAX_RECOMMENDATIONS) {
+            if (picked.size() == MIN_OFFERED) {
                 return;
             }
             boolean related = activity.categorySlugs() != null

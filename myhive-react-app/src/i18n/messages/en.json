@@ -65,6 +65,7 @@
     "gotIt": "Got it"
   },
   "header": {
+    "homeAria": "Trivlu home",
     "nav": {
       "activities": "Activities",
       "about": "About",
@@ -273,7 +274,6 @@
     "previous": "Previous",
     "next": "Next",
     "pageOf": "Page {current} of {total}",
-    "durationHours": "{hours}h",
     "viewFullPage": "View full page ↗",
     "loadingDetails": "Loading the details…",
     "noDescription": "No description yet.",
@@ -662,7 +662,6 @@
   "swipe": {
     "processing": "Processing your choices...",
     "progress": "{current} / {total}",
-    "durationHours": "{hours}h",
     "likeOverlay": "LIKE ♥",
     "nopeOverlay": "NOPE ✕",
     "dislikeAria": "Dislike",
@@ -1215,9 +1214,13 @@
       "changed": {
         "REMOVE": "Removed {name}",
         "ADD": "Added {name}",
-        "REPLACE": "Swapped {name} for {replacement}"
+        "REPLACE": "Swapped {name} for {replacement}",
+        "MOVE": "Moved {name}"
       },
       "priceFrom": "from {price}",
+      "dayEmpty": "Nothing planned - drag an activity here",
+      "moveAria": "Move {name} to another day",
+      "completeBooking": "Complete booking",
       "priceFromPerPerson": "from {price} / person",
       "perPerson": "per person",
       "sendToPlanner": "Ask the group",
@@ -1241,12 +1244,13 @@
       "placeholder": "Change anything…",
       "expand": "Open chat",
       "gapsAria": "What the plan could take next",
-      "optionsReady": "Your three options are ready. Pick one to make it your trip plan.",
+      "optionsReady": "Your three options are ready. Look through them - change anything and the one on screen becomes your trip plan.",
       "draftSet": "Your trip plan is set for {count}. Anything to add?",
       "draftSetNoCount": "Your trip plan is set. Anything to add?",
       "addVerb": "Add",
       "addKind": "Add {name}",
-      "whichOne": "Which one? Tap it to see what it is.",
+      "moveHint": "To move an activity to another day, drag it by the handle on its left and drop it on that day.",
+      "whichOne": "Here is what we have. Tap a name to see it, or add it straight away.",
       "cardAbove": "It is above - tap Add to put it in the plan.",
       "keepChatting": "Continue chatting",
       "kinds": {

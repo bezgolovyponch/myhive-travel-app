@@ -258,12 +258,14 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
 
     // A tap in the draft: add or remove one activity in `packageKey` with no
     // chat turn. The answer is applied like a chat edit (new draft, one line).
-    const editDraft = useCallback(async (op, activityId, packageKey) => {
+    const editDraft = useCallback(async (op, activityId, packageKey, dayNumber) => {
         if (!tokenRef.current || editing) return;
         setError(null);
         setEditing(activityId);
         try {
-            await applyTurn(await api.editDraft(tokenRef.current, {op, activityId, packageKey}));
+            const edit = {op, activityId, packageKey};
+            if (dayNumber != null) edit.dayNumber = dayNumber;
+            await applyTurn(await api.editDraft(tokenRef.current, edit));
         } catch (e) {
             setError({code: errorCode(e) || 'NETWORK'});
         } finally {

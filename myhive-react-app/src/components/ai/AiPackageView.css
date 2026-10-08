@@ -229,15 +229,13 @@
 }
 
 .aip-toast {
-    position: sticky;
-    bottom: 170px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     width: fit-content;
     max-width: 100%;
-    margin: 16px auto 0;
+    margin: 10px auto 0;
     padding: 8px 8px 8px 14px;
     background: #2e2b3a;
     border: 1px solid var(--aip-line);
@@ -249,7 +247,7 @@
 .aip-toast button {
     background: transparent;
     border: 0;
-    color: var(--aip-purple-l);
+    color: var(--aip-purple-ic);
     font: inherit;
     font-weight: 600;
     padding: 4px 8px;
@@ -263,4 +261,73 @@
     font-size: 10px;
     font-weight: 400;
     opacity: 0.8;
+}
+
+/* A trip of several days: one block per day, each a place to drop a dragged row. */
+.aip-day-head {
+    padding: 10px 0 4px;
+    border-top: 1px solid var(--aip-line);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--aip-purple-ic);
+}
+
+.aip-day .aip-day-head + .aip-item {
+    border-top: 0;
+}
+
+.aip-day-empty {
+    padding: 8px 0 10px;
+    font-size: 12px;
+    color: var(--aip-muted);
+}
+
+.aip-day.is-over {
+    margin: 0 -8px;
+    padding: 0 8px;
+    border-radius: 10px;
+    background: rgba(83, 74, 183, 0.16);
+    box-shadow: inset 0 0 0 1px var(--aip-purple-l);
+}
+
+/* The handle a row is dragged by. touch-action none: the finger moves the row, not the page. */
+.aip-grip {
+    flex: none;
+    width: 28px;
+    height: 36px;
+    margin-left: -6px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--aip-muted);
+    font-size: 18px;
+    cursor: grab;
+    touch-action: none;
+}
+
+.aip-grip:hover,
+.aip-grip:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.aip-grip:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.aip-item.is-dragging {
+    position: relative;
+    z-index: 2;
+    border-radius: 10px;
+    background: var(--aip-card-2);
+    box-shadow: 0 10px 24px -10px #000;
+    transition: none;
+}
+
+.aip-item.is-dragging .aip-grip {
+    cursor: grabbing;
 }

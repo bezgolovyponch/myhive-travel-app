@@ -50,7 +50,7 @@ Answer ONLY with a JSON object of this exact shape (no markdown, no commentary):
  "dislikes": string|null, "budget": "LOW"|"MID"|"HIGH"|null, "arrival": "MORNING"|"AFTERNOON"|"EVENING"|"FLEXIBLE"|null,
  "departure": "MORNING"|"AFTERNOON"|"EVENING"|"FLEXIBLE"|null, "notes": string|null\},
  "missingFields": [string],
- "edits": [\{"op": "ADD"|"REMOVE"|"REPLACE", "activity": string, "replacement": string|null,
+ "edits": [\{"op": "ADD"|"REMOVE"|"REPLACE"|"MOVE", "activity": string, "replacement": string|null,
  "packageKey": "BASIC"|"MEDIUM"|"PREMIUM"|null, "dayNumber": int|null,
  "slot": "MORNING"|"AFTERNOON"|"EVENING"|"NIGHT"|null, "alternatives": [string]\}],
  "suggestedReplies": [string], "recommendations": [string],

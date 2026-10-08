@@ -211,6 +211,22 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     // string above is the real input.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picksParam, state.restored, browseActivities, dispatch]);
+  // "?book=1" (the planner's "Complete booking") opens the booking form on arrival, once the plan
+  // it carried over is in the cart.
+  const bookParam = searchParams.get('book');
+  const bookHandled = useRef(false);
+  useEffect(() => {
+    if (!bookParam || !state.restored || state.tripItems.length === 0 || bookHandled.current) {
+        return;
+    }
+    bookHandled.current = true;
+    const next = new URLSearchParams(searchParams);
+    next.delete('book');
+    setSearchParams(next, {replace: true});
+    handleConfirmTrip();
+    // handleConfirmTrip is declared further down and reads this render's state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookParam, state.restored, state.tripItems.length]);
   // Annotation token: an explicit URL param (shared link) takes priority, else
   // fall back to the vote session this browser itself started (read once on
   // mount — StartGroupVoteModal writes it, handleContactSubmit and the

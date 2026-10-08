@@ -1,5 +1,6 @@
+import {useRef, useState} from 'react';
 import {useLocalePath, useT} from '../../i18n';
-import {addDays, formatAmount, formatDayLabel, formatDayRange} from '../../utils/format';
+import {addDays, formatAmount, formatDayLabel, formatDayRange, formatDuration} from '../../utils/format';
 import './AiPackageView.css';
 
 // The result canvas: once the planner has packages they ARE the page and the
@@ -33,16 +34,8 @@ function lastChange(generation) {
 function addedNames(generation, packageKey) {
     const applied = generation.editReport?.applied || [];
     return new Set(applied
-        .filter((op) => op.packageKey === packageKey && op.op !== 'REMOVE')
+        .filter((op) => op.packageKey === packageKey && op.op !== 'REMOVE' && op.op !== 'MOVE')
         .map((op) => (op.op === 'REPLACE' ? op.replacement : op.activity)));
-}
-
-// "2 h", "1 h 30 min", "45 min": how long an activity takes, short enough for a row.
-export function duration(minutes) {
-    if (!minutes) return null;
-    const hours = Math.floor(minutes / 60);
-    const rest = minutes % 60;
-    return [hours && `${hours} h`, rest && `${rest} min`].filter(Boolean).join(' ');
 }
 
 /**
@@ -55,15 +48,17 @@ export function duration(minutes) {
  * @param removing   name of the activity whose removal is in flight, if any
  * @param onOpen     (item) => void — shows the activity's card
  * @param onRemove   (pkg, item) => void — asks the planner to drop it (a chat edit)
+ * @param onMove     (pkg, item, dayNumber) => void — the row was dragged onto another day
  * @param onUndo     (packageKey) => void — back to the generation before the edit
  * @param busy       a chat turn is in flight: edits wait for it
  * @param cta        rendered under the draft (the "Ask the group" button)
  */
 function AiPackageView({
-    generation, destinationName, destinationSlug, startDate, activeKey, onTierChange, custom, onOpen, onRemove, removing,
+    generation, destinationName, destinationSlug, startDate, activeKey, onTierChange, custom, onOpen, onRemove, onMove, removing,
     onUndo, busy, cta,
 }) {
     const t = useT('aiPlanner');
+    const tDuration = useT('activityDetail.duration');
     const lp = useLocalePath();
     const packages = generation.packages;
     const pkg = packages.find((p) => p.key === activeKey) || packages[0];
@@ -72,6 +67,53 @@ function AiPackageView({
     const pending = generation.textsPending;
     const change = lastChange(generation);
     const rows = pkg.days.flatMap((day) => day.items.map((item) => ({day, item})));
+    // A trip of several days is laid out day by day, and a row can be dragged by its handle onto
+    // another day. One day has nowhere to move to: a flat list, no handles.
+    const byDay = pkg.days.length > 1 && Boolean(onMove);
+    const dayLabel = (day) => (startDate ? formatDayLabel(addDays(startDate, day.dayNumber - 1))
+        : t('result.day', {n: day.dayNumber}));
+    // {activityId, fromDay, startY, dy, overDay} while a row is being dragged.
+    const [drag, setDrag] = useState(null);
+    const dragRef = useRef(null);
+    // By where the day blocks lie, not by what is under the pointer: under the pointer is the row
+    // being dragged, which still belongs to the day it came from.
+    const draftRef = useRef(null);
+    const dayUnder = (y) => {
+        const blocks = [...(draftRef.current?.querySelectorAll('[data-day]') || [])];
+        const hit = blocks.find((el) => {
+            const box = el.getBoundingClientRect();
+            return y >= box.top && y <= box.bottom;
+        });
+        return hit ? Number(hit.getAttribute('data-day')) : null;
+    };
+    const startDrag = (e, day, item) => {
+        if (busy || pending) return;
+        e.preventDefault();
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        dragRef.current = {activityId: item.activityId, fromDay: day.dayNumber, startY: e.clientY, dy: 0,
+            overDay: day.dayNumber};
+        setDrag(dragRef.current);
+    };
+    const moveDrag = (e) => {
+        if (!dragRef.current) return;
+        dragRef.current = {...dragRef.current, dy: e.clientY - dragRef.current.startY,
+            overDay: dayUnder(e.clientY) ?? dragRef.current.overDay};
+        setDrag(dragRef.current);
+    };
+    const endDrag = (item) => {
+        const done = dragRef.current;
+        dragRef.current = null;
+        setDrag(null);
+        if (done && done.overDay !== done.fromDay) onMove(pkg, item, done.overDay);
+    };
+    // The same move without a pointer: the arrow keys on the handle step the activity a day back or on.
+    const keyMove = (e, day, item) => {
+        const step = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+        const target = pkg.days.find((d) => d.dayNumber === day.dayNumber + step);
+        if (!step || !target || busy || pending) return;
+        e.preventDefault();
+        onMove(pkg, item, target.dayNumber);
+    };
 
     return (
         <div className="aip-view">
@@ -121,61 +163,82 @@ function AiPackageView({
                 </div>
             )}
 
-            <section className="aip-draft" aria-label={t('result.draftLabel')}>
+            <section className="aip-draft" aria-label={t('result.draftLabel')} ref={draftRef}>
                 <div className="aip-draft-head">
                     <span className="aip-draft-label">{t('result.draftLabel')}</span>
                     <span>{plural(t, 'result.activities', rows.length)}</span>
                 </div>
-                {rows.map(({day, item}) => {
-                    const isAdded = added.has(item.name);
-                    const isRemoving = removing === item.name;
-                    // The day only, never an hour or a part of the day: the plan is a wish list for
-                    // the group, and the planner sets the times after the vote.
-                    const when = startDate ? formatDayLabel(addDays(startDate, day.dayNumber - 1))
-                        : t('result.day', {n: day.dayNumber});
-                    return (
-                        <div key={`${item.activityId}-${day.dayNumber}-${item.slot}`}
-                             className={`aip-item ${isAdded ? 'is-added' : ''} ${isRemoving ? 'is-removing' : ''}`}>
-                            <span className="aip-item-thumb" aria-hidden="true">
-                                {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy"/> : item.name.charAt(0)}
-                            </span>
-                            <div className="aip-item-body">
-                                <div className="aip-item-name">
-                                    {onOpen ? (
-                                        <button type="button" className="activity-open" aria-haspopup="dialog"
-                                                onClick={() => onOpen(item)}>
-                                            {item.name}
+                {pkg.days.map((day) => (byDay || day.items.length > 0) && (
+                    <div key={day.dayNumber} data-day={byDay ? day.dayNumber : undefined}
+                         className={`aip-day${drag && drag.overDay === day.dayNumber && drag.fromDay !== day.dayNumber ? ' is-over' : ''}`}>
+                        {byDay && <div className="aip-day-head">{dayLabel(day)}</div>}
+                        {byDay && day.items.length === 0 && <div className="aip-day-empty">{t('result.dayEmpty')}</div>}
+                        {day.items.map((item) => {
+                            const isAdded = added.has(item.name);
+                            const isRemoving = removing === item.name;
+                            const dragging = drag?.activityId === item.activityId;
+                            return (
+                                <div key={`${item.activityId}-${day.dayNumber}-${item.slot}`}
+                                     className={`aip-item ${isAdded ? 'is-added' : ''} ${isRemoving ? 'is-removing' : ''}${dragging ? ' is-dragging' : ''}`}
+                                     style={dragging ? {transform: `translateY(${drag.dy}px)`} : undefined}>
+                                    {byDay && (
+                                        <button
+                                            type="button"
+                                            className="aip-grip"
+                                            aria-label={t('result.moveAria', {name: item.name})}
+                                            disabled={busy || pending}
+                                            onPointerDown={(e) => startDrag(e, day, item)}
+                                            onPointerMove={moveDrag}
+                                            onPointerUp={() => endDrag(item)}
+                                            onPointerCancel={() => { dragRef.current = null; setDrag(null); }}
+                                            onKeyDown={(e) => keyMove(e, day, item)}
+                                        >
+                                            <i className="ph ph-dots-six-vertical" aria-hidden="true"/>
                                         </button>
-                                    ) : item.name}
-                                    {isAdded && <span className="aip-badge">{t('result.aiAdded')}</span>}
+                                    )}
+                                    <span className="aip-item-thumb" aria-hidden="true">
+                                        {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy"/> : item.name.charAt(0)}
+                                    </span>
+                                    <div className="aip-item-body">
+                                        <div className="aip-item-name">
+                                            {onOpen ? (
+                                                <button type="button" className="activity-open" aria-haspopup="dialog"
+                                                        onClick={() => onOpen(item)}>
+                                                    {item.name}
+                                                </button>
+                                            ) : item.name}
+                                            {isAdded && <span className="aip-badge">{t('result.aiAdded')}</span>}
+                                        </div>
+                                        {/* The day only, never an hour: the planner sets the times after the
+                                            vote. Under a day's own heading the day is not said again. */}
+                                        <div className="aip-item-sub">
+                                            {isRemoving ? t('result.removing')
+                                                : [formatDuration(item.durationMinutes, tDuration), !byDay && dayLabel(day)]
+                                                    .filter(Boolean).join(' · ')}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="aip-remove"
+                                        aria-label={t('result.removeAria', {name: item.name})}
+                                        onClick={() => onRemove(pkg, item)}
+                                        disabled={busy || pending}
+                                    >
+                                        <i className="ph ph-x" aria-hidden="true"/>
+                                    </button>
                                 </div>
-                                <div className="aip-item-sub">
-                                    {isRemoving ? t('result.removing')
-                                        : [duration(item.durationMinutes), when].filter(Boolean).join(' · ')}
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                className="aip-remove"
-                                aria-label={t('result.removeAria', {name: item.name})}
-                                onClick={() => onRemove(pkg, item)}
-                                disabled={busy || pending}
-                            >
-                                <i className="ph ph-x" aria-hidden="true"/>
-                            </button>
-                        </div>
-                    );
-                })}
+                            );
+                        })}
+                    </div>
+                ))}
                 <div className="aip-draft-foot">
                     <span>{brief.groupSize ? t('result.people', {count: brief.groupSize}) : ''}</span>
                     {priceFrom(t, pkg) && <strong>{priceFrom(t, pkg)}</strong>}
                 </div>
             </section>
 
-            {cta}
-
-            {generation.degraded && <div className="aip-hint">{t('result.degraded')}</div>}
-
+            {/* What the last change was, with the way back - in the page's flow, between the plan and its
+                buttons, so it never lies on top of them. */}
             {change && generation.parentId && (
                 <div className="aip-toast" role="status">
                     <span>{t(`result.changed.${change.op}`, {
@@ -184,6 +247,10 @@ function AiPackageView({
                     <button type="button" onClick={() => onUndo(pkg.key)} disabled={busy}>{t('result.undo')}</button>
                 </div>
             )}
+            {cta}
+
+            {generation.degraded && <div className="aip-hint">{t('result.degraded')}</div>}
+
         </div>
     );
 }

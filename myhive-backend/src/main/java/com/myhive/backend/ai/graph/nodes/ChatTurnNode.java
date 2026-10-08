@@ -77,7 +77,13 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // No confirmation step - the owner wants the three packages the moment the facts are known.
         String mergedJson = JsonCodec.write(merged);
         boolean changedSinceLastGeneration = !mergedJson.equals(state.lastGeneratedBrief().orElse(null));
-        boolean readyToBuild = merged.isReady() && changedSinceLastGeneration;
+        // A plan the organizer has made their own is not rebuilt because the talk about it shifted the
+        // taste: a rebuild starts again from the ready-made packages and would throw away everything
+        // they added, removed and moved. Only what changes the shape of the trip - its length, the
+        // head-count the prices hang on - still rebuilds it.
+        boolean keepsTheirPlan = packages.isPresent() && state.workingPackage().isPresent()
+                && sameTripShape(merged, state.lastGeneratedBrief().orElse(null));
+        boolean readyToBuild = merged.isReady() && changedSinceLastGeneration && !keepsTheirPlan;
         // The one thing worth waiting for: a question about which variant of a catalog product the group
         // wants. Only before the first packages, and only once - after that the chat edits, it does not ask.
         boolean heldForAnAnswer = readyToBuild && packages.isEmpty() && !state.pairingAsked()
@@ -197,6 +203,16 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         update.put(PlannerState.BRIEF, mergedJson);
         update.put(PlannerState.MISSING_FIELDS, merged.missingFields());
         return update;
+    }
+
+    /** Same number of days and people as the brief the current packages were built from. */
+    private static boolean sameTripShape(Brief merged, String lastGeneratedJson) {
+        if (lastGeneratedJson == null || lastGeneratedJson.isBlank()) {
+            return false;
+        }
+        Brief built = JsonCodec.read(lastGeneratedJson, Brief.class);
+        return built != null && java.util.Objects.equals(built.days(), merged.days())
+                && java.util.Objects.equals(built.groupSize(), merged.groupSize());
     }
 
     /**

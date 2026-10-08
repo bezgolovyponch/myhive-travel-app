@@ -264,6 +264,22 @@ vote, so the client shows the day of each activity and no hour. Once one option 
 organizer's own (`workingPackage` set), the chat's own lines call it "your trip plan"
 and never name its tier.
 
+`POST /ai/sessions/{token}/edits` also takes `{"op": "MOVE", "activityId", "packageKey", "dayNumber"}`:
+a row dragged onto another day in the plan. The activity stays and goes on `dayNumber`, in the slot
+it would normally prefer; it is never refused for lack of room, and leaving its old day empty is
+allowed. A `dayNumber` the trip does not have is rejected (`WOULD_BREAK_SCHEDULE`). The chat confirms
+with "Moved X to day N." The chat can move too: "put karting on Saturday" comes back as a `MOVE` edit.
+
+A plan the organizer has made their own (`workingPackage` set) is not rebuilt when a message only
+shifts the taste (vibe, categories, dislikes, budget): a rebuild starts from the ready-made packages
+and would discard what they added, removed and moved. A different number of days or people still
+rebuilds it.
+
+`recommendations` now holds up to 6 activities: as many as the organizer asked for when they gave a
+number, otherwise three, and a lone match is filled up to three with related ones. The client lists
+them in the chat under the reply, one per line, the name opening the activity's card and an Add
+button on each; nothing is shown as a card above the chat any more.
+
 Travel times are never asked: `arrival`/`departure` are no longer in `missingFields`.
 A brief is ready with days, group size and a taste; an edge the organizer names is
 still used.

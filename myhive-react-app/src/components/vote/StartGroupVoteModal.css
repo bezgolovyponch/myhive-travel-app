@@ -577,10 +577,10 @@
 
 .start-vote-modal .sgv-code {
     height: 100%;
-    max-width: 104px;
+    max-width: 112px;
     padding: 0 8px 0 12px;
     border-right: 1px solid #2e2b3a;
-    font-size: 15px;
+    font-size: 16px; /* 16px so iOS Safari does not zoom the page on focus */
 }
 
 /* A code typed by hand: just wide enough for "+" and four digits. */

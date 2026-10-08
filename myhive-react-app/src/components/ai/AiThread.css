@@ -256,3 +256,16 @@
     opacity: 0.4;
     cursor: default;
 }
+
+/* Tap-to-send answers stack, one per line, in the first chat and under a plan alike: each can be
+   read whole instead of scrolling sideways. */
+.ai-suggestions {
+    flex-direction: column;
+    align-items: stretch;
+    overflow-x: visible;
+}
+
+.ai-chip {
+    text-align: left;
+    white-space: normal;
+}

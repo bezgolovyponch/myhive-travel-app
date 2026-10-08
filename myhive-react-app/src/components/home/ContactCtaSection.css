@@ -44,7 +44,8 @@
 
 .contact-cta-wa {
     background: var(--wa, #25D366);
-    color: #fff;
+    /* Dark on WhatsApp green: white on it is 2:1 and fails contrast. */
+    color: #0b2a17;
     border: none;
     font-size: 0.9375rem;
     font-weight: 600;

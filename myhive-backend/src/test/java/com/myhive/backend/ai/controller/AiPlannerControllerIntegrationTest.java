@@ -664,7 +664,7 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.generation").value(nullValue()))
                 .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedOfferedId)))
                 // Not the model's "Adding it now.": nothing was added.
-                .andExpect(jsonPath("$.message.content", is("The top match is above - add it, or try one of the others.")));
+                .andExpect(jsonPath("$.message.content", is("Here is what fits - tap a name to see it, or add it.")));
 
         // The tap is what adds it.
         mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)

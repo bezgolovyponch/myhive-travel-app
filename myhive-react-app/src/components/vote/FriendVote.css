@@ -10,10 +10,6 @@
     flex-direction: column;
 }
 
-body:has(.fv-screen) .trv-chat-fab {
-    display: none;
-}
-
 .fv-review-scroll {
     flex: 1;
     overflow-y: auto;
