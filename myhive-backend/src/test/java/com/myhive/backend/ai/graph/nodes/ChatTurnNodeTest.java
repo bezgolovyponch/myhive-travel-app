@@ -55,9 +55,9 @@ class ChatTurnNodeTest {
                 .contains(ACTIVITY_NAME).contains(REPLACEMENT_NAME).contains(EditOp.REPLACE.name());
         assertThat(update.get(PlannerState.BRIEF)).isEqualTo(JsonCodec.write(expectedBrief));
         assertThat(update.get(PlannerState.EDIT_REPORT)).isEqualTo("");
-        // The reply was written before anyone checked the edit, so it is held back for applyEdits to judge:
-        // said now, "On it!" would stand next to a rejection of the very same edit.
-        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("On it!");
+        // The reply was written before anyone checked the edit and the edit's own line says what happened:
+        // "On it!" is not said at all.
+        assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("");
         assertThat(update).doesNotContainKey(PlannerState.MESSAGES);
     }
 
@@ -107,7 +107,27 @@ class ChatTurnNodeTest {
 
         assertThat(options.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
         assertThat(theirs.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
-        assertThat(theirsLonger.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
+        // A longer trip would rebuild their plan: said first, with the plan and its brief left as they are.
+        assertThat(theirsLonger.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(theirsLonger).containsEntry(PlannerState.REBUILD_WARNED, true);
+        assertThat(theirsLonger.get(PlannerState.BRIEF)).isEqualTo(JsonCodec.write(readyBrief()));
+        assertThat(messagesOf(theirsLonger)).singleElement().satisfies(message ->
+                assertThat(message.get("content")).asString().contains("rebuild the plan from scratch"));
+        assertThat(theirsLonger.get(PlannerState.SUGGESTED_REPLIES)).asList().hasSize(2);
+    }
+
+    /** Asked for again on the turn after the warning, the rebuild goes ahead. */
+    @Test
+    void aLongerTrip_askedForAgainAfterTheWarning_rebuildsTheOrganizersPlan() {
+        llm.queueChat(turn("On it.", new Brief(3, null, List.of(), null, null, null, null, null, null), List.of()));
+        Map<String, Object> warned = stateMapWithPackages(readyBrief());
+        warned.put(PlannerState.WORKING_PACKAGE, "MEDIUM");
+        warned.put(PlannerState.REBUILD_WARNED, true);
+
+        Map<String, Object> rebuilt = node.apply(new PlannerState(warned));
+
+        assertThat(rebuilt.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
+        assertThat(rebuilt).containsEntry(PlannerState.REBUILD_WARNED, false);
     }
 
     /**
@@ -128,12 +148,12 @@ class ChatTurnNodeTest {
         assertThat(nothingOnOffer.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of());
         assertThat(messagesOf(nothingOnOffer)).singleElement().satisfies(message ->
                 assertThat(message.get("content")).contains(expectedMissing).doesNotContain("top match"));
-        // The alternative the model named is on offer: the row shows it, and the chat says what it could
-        // not find before pointing at the row.
+        // The alternative the model named is on offer: the chat says it is the closest thing to what was
+        // asked for, not that it could not find it.
         assertThat(alternativeOnOffer.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of(REPLACEMENT_NAME));
         assertThat(messagesOf(alternativeOnOffer)).singleElement().satisfies(message ->
                 assertThat(message.get("content")).contains(expectedMissing)
-                        .endsWith("Here is what fits - tap a name to see it, or add it."));
+                        .startsWith("Here is what comes closest to").doesNotContain("could not find"));
     }
 
     /** "beer" is two catalog rows: that is a question back, never "not in the catalog". */
@@ -408,29 +428,18 @@ class ChatTurnNodeTest {
     }
 
     /**
-     * The pairing follow-up: a question whose chips name catalog activities is worth one more turn before
-     * the first build - and only one, whatever the model asks after it.
+     * No either/or about activities before the first build: with the brief complete, a question whose
+     * chips name catalog activities does not hold the options back.
      */
     @Test
-    void aQuestionAboutCatalogVariants_holdsTheFirstBuildBack_once() {
-        String expectedQuestion = "Beer bike or karting?";
-        List<String> expectedChips = List.of(ACTIVITY_NAME, REPLACEMENT_NAME);
-        llm.queueChat(new ChatTurnResult(expectedQuestion, readyBrief(), List.of(), List.of(), LlmUsage.none(),
-                        expectedChips),
-                new ChatTurnResult("And one more - beer bike or karting?", Brief.empty(), List.of(), List.of(),
-                        LlmUsage.none(), expectedChips));
+    void aQuestionAboutCatalogVariants_doesNotHoldTheFirstBuildBack() {
+        llm.queueChat(new ChatTurnResult("Beer bike or karting?", readyBrief(), List.of(), List.of(),
+                LlmUsage.none(), List.of(ACTIVITY_NAME, REPLACEMENT_NAME)));
         Map<String, Object> state = baseState(Brief.empty());
         state.put(PlannerState.CATALOG, JsonCodec.write(catalog()));
 
-        Map<String, Object> held = node.apply(new PlannerState(state));
-        state.put(PlannerState.BRIEF, held.get(PlannerState.BRIEF));
-        state.put(PlannerState.PAIRING_ASKED, held.get(PlannerState.PAIRING_ASKED));
         Map<String, Object> built = node.apply(new PlannerState(state));
 
-        assertThat(held.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
-        assertThat(held).containsEntry(PlannerState.PAIRING_ASKED, true);
-        assertThat(messagesOf(held).get(0).get("content")).isEqualTo(expectedQuestion);
-        assertThat(held.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(expectedChips);
         assertThat(built.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
         assertThat(built.get(PlannerState.SUGGESTED_REPLIES)).isEqualTo(List.of());
     }
@@ -487,31 +496,31 @@ class ChatTurnNodeTest {
                 .satisfies(message -> assertThat(message.get("content")).isEqualTo(expectedReply));
     }
 
-    /** A note is not taste while the chat is still asking for it: the answer is on its way. */
+    /**
+     * The taste is asked once. Days and people were known before this message, so the question has been
+     * put: an answer with no taste in it still builds, open to anything, and a second question is not asked.
+     */
     @Test
-    void aNote_isNotTaste_whileTheModelIsStillAsking() {
+    void onceTheTasteWasAsked_anAnswerWithoutTaste_buildsOpenToAnything() {
         String expectedNote = "his brother's stag";
-        String expectedQuestion = "Nice one. What is the group into?";
-        llm.queueChat(turn(expectedQuestion, notes(expectedNote), List.of()));
+        llm.queueChat(turn("Nice one. What is the group into?", notes(expectedNote), List.of()));
 
         Map<String, Object> update = node.apply(new PlannerState(baseState(everythingButTaste())));
 
         Brief brief = JsonCodec.read((String) update.get(PlannerState.BRIEF), Brief.class);
-        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
-        assertThat(brief.vibe()).isNull();
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
+        assertThat(brief.vibe()).isEqualTo(Brief.OPEN_TO_ANYTHING);
         assertThat(brief.notes()).isEqualTo(expectedNote);
-        assertThat(update.get(PlannerState.MISSING_FIELDS)).isEqualTo(List.of(Brief.FIELD_PREFERENCES));
-        assertThat(messagesOf(update)).singleElement()
-                .satisfies(message -> assertThat(message.get("content")).isEqualTo(expectedQuestion));
+        assertThat(update.get(PlannerState.MISSING_FIELDS)).isEqualTo(List.of());
     }
 
-    /** "Just build it", with nothing about taste anywhere: the promise is replaced by the question behind it. */
+    /** Days and people arrive in this message, nothing about taste: that is when the one question is put. */
     @Test
-    void aBuildAnnouncedWhileTheBriefHasAGap_isReplacedWithTheQuestionForIt_andItsChips() {
+    void aBuildAnnouncedBeforeTheTasteWasAsked_isReplacedWithTheQuestionForIt_andItsChips() {
         String expectedQuestion = "What is the group into - beer, action, a big night out?";
         List<String> expectedChips = List.of("Bar crawl + club night", "Karting by day, club by night");
-        llm.queueChat(turn("Building three options right now.", Brief.empty(), List.of()));
-        Map<String, Object> state = baseState(everythingButTaste());
+        llm.queueChat(turn("Building three options right now.", everythingButTaste(), List.of()));
+        Map<String, Object> state = baseState(Brief.empty());
         state.put(PlannerState.CATALOG, JsonCodec.write(catalog()));
 
         Map<String, Object> update = node.apply(new PlannerState(state));

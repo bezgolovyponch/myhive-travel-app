@@ -544,10 +544,11 @@ class PlannerGraphTest {
         // an edit is not a generation: the planner model is never asked for a new draft
         assertThat(llm.planRequests).hasSize(1);
         assertThat(namesIn(snap.state().result().orElseThrow(), Tier.BASIC)).containsExactly(expectedActivity);
+        // The edit is one model call: the copy is not rewritten for it, whatever the model would say.
         assertThat(packageOf(snap.state().result().orElseThrow(), Tier.BASIC).description())
-                .isEqualTo(expectedDescription);
+                .isNotEqualTo(expectedDescription);
         assertThat(snap.state().editReport()).hasValueSatisfying(report -> {
-            assertThat(report.textsRefreshed()).isTrue();
+            assertThat(report.textsRefreshed()).isFalse();
             assertThat(report.rejected()).isEmpty();
         });
         assertThat(snap.state().edits()).isEmpty();

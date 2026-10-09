@@ -413,12 +413,11 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.edit.applied[0].slot", is(Slot.AFTERNOON.name())))
                 .andExpect(jsonPath("$.edit.rejected", hasSize(0)))
                 .andExpect(jsonPath("$.edit.tierRulesRelaxed", is(true)))
-                .andExpect(jsonPath("$.edit.textsRefreshed", is(true)))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
                 .andExpect(jsonPath("$.generation.status", is(AiGenerationStatus.READY.name())))
                 .andExpect(jsonPath("$.generation.kind", is("EDITED")))
                 .andExpect(jsonPath("$.generation.parentId", is(expectedParentId)))
                 .andExpect(jsonPath("$.generation.packages[0].key", is(Tier.BASIC.name())))
-                .andExpect(jsonPath("$.generation.packages[0].description", is(expectedDescription)))
                 .andReturn();
 
         String body = edited.getResponse().getContentAsString();
@@ -639,19 +638,21 @@ class AiPlannerControllerIntegrationTest {
     }
 
     /**
-     * A typed "add it" - or a bare activity name - under a draft is not carried out: the activity comes
-     * back on offer, to be added with a tap on its Add button, and the draft stays as it was.
+     * A typed "add it" that names one catalog activity is carried out on the word: the draft has it and
+     * the chat says so. Asked for and only offered, it read as a chat that does not work.
      */
     @Test
-    void chatAdd_underADraft_isOfferedWithAnAddButton_notAdded() throws Exception {
-        String expectedOfferedId = activities.get(REPLACEMENT_INDEX).getId().toString();
+    void chatAdd_underADraft_namingOneActivity_isAdded() throws Exception {
+        String expectedAdded = activities.get(REPLACEMENT_INDEX).getName();
         String token = createSession();
         queueReadyTurn("Building it!");
         sendMessage(token, "1 day, 4 of us, bars");
-        String parentId = latestGenerationId(token);
-        awaitGeneration(parentId);
+        awaitGeneration(latestGenerationId(token));
         llm.queueChat(chatTurn("Adding it now.", Brief.empty(), List.of(new EditRequest(EditOp.ADD,
-                activities.get(REPLACEMENT_INDEX).getName(), null, null, null, null))));
+                        expectedAdded, null, null, null, null))))
+                .queueRefresh(new TextRefreshResult(
+                        Map.of(Tier.BASIC, new PackageTexts("With the extra", Map.of(), Map.of())),
+                        new LlmUsage("fake-chat", 5, 7, 3L)));
 
         mockMvc.perform(post("/ai/sessions/" + token + "/messages")
                         .header("CF-Connecting-IP", testClientIp)
@@ -660,18 +661,11 @@ class AiPlannerControllerIntegrationTest {
                                 {"content": "add it", "packageKey": "BASIC"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.edit").value(nullValue()))
-                .andExpect(jsonPath("$.generation").value(nullValue()))
-                .andExpect(jsonPath("$.recommendations[0].activityId", is(expectedOfferedId)))
-                // Not the model's "Adding it now.": nothing was added.
-                .andExpect(jsonPath("$.message.content", is("Here is what fits - tap a name to see it, or add it.")));
-
-        // The tap is what adds it.
-        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(DRAFT_EDIT_BODY.formatted("ADD", expectedOfferedId, Tier.BASIC.name())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.edit.applied", hasSize(1)));
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.ADD.name())))
+                .andExpect(jsonPath("$.edit.applied[0].activity", is(expectedAdded)))
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andExpect(jsonPath("$.recommendations", hasSize(0)));
     }
 
     /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */

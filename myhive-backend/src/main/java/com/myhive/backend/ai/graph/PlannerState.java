@@ -84,6 +84,11 @@ public class PlannerState extends AgentState {
     public static final String PENDING_REPLY = "pendingReply";
     /** Set when the first build was held back for a pairing question, so that it is held back only once. */
     public static final String PAIRING_ASKED = "pairingAsked";
+    /**
+     * Set on the turn that warned a change of days or head-count rebuilds the organizer's plan and drops
+     * what they changed; the rebuild goes ahead only when the very next turn asks for it again.
+     */
+    public static final String REBUILD_WARNED = "rebuildWarned";
 
     /** Nothing to do but wait for the next user message. */
     public static final String ACTION_NONE = "NONE";
@@ -155,6 +160,10 @@ public class PlannerState extends AgentState {
 
     public Optional<String> showPackage() {
         return this.<String>value(SHOW_PACKAGE).filter(value -> !value.isBlank());
+    }
+
+    public boolean rebuildWarned() {
+        return this.<Boolean>value(REBUILD_WARNED).orElse(false);
     }
 
     public boolean pairingAsked() {

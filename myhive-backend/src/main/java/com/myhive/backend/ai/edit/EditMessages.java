@@ -116,6 +116,7 @@ public final class EditMessages {
         EN.put(EditRejectionReason.NO_PACKAGES_YET, "I cannot change %s yet - let us build the packages first.");
         EN.put(EditRejectionReason.EDIT_LIMIT, "You have used up the changes for this session, so %s stays as it is.");
         EN.put(EditRejectionReason.INTERNAL, "Something went wrong while changing %s - give it another try.");
+        EN.put(EditRejectionReason.ALREADY_ON_DAY, "%s is on that day already.");
 
         DE.put(EditRejectionReason.UNKNOWN_ACTIVITY, "\"%s\" habe ich im Katalog nicht gefunden.");
         DE.put(EditRejectionReason.AMBIGUOUS_ACTIVITY, "\"%s\" passt auf mehrere Katalogeinträge - welcher davon?");
@@ -127,6 +128,7 @@ public final class EditMessages {
         DE.put(EditRejectionReason.NO_PACKAGES_YET, "%s kann ich noch nicht ändern - lass uns zuerst die Pakete bauen.");
         DE.put(EditRejectionReason.EDIT_LIMIT, "Für diese Session sind die Änderungen aufgebraucht, %s bleibt so.");
         DE.put(EditRejectionReason.INTERNAL, "Beim Ändern von %s ist etwas schiefgelaufen - probier es noch mal.");
+        DE.put(EditRejectionReason.ALREADY_ON_DAY, "%s liegt schon auf diesem Tag.");
 
         EN_IN_PACKAGE.put(EditRejectionReason.NOT_IN_PACKAGE,
                 new Packaged("%1$s is not in %2$s, so there was nothing to change.", PackagePhrase.IN));
@@ -319,6 +321,11 @@ public final class EditMessages {
                 appendSentence(summary, (german ? DE_CLOSEST : EN_CLOSEST).formatted(name));
             }
         }
+    }
+
+    /** The line over a list offered for a name the catalog has no row for. */
+    public static String closest(String locale, String name) {
+        return (german(locale) ? DE_CLOSEST : EN_CLOSEST).formatted(name);
     }
 
     /** A name the catalog lacks, with catalog names close to it to offer instead. */

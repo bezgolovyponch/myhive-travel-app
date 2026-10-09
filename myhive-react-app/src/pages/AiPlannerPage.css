@@ -351,34 +351,54 @@
     font-weight: 600;
 }
 
-/* The kinds of activity to add, as tap-to-send lines in the chat: one under the other. */
+/* The line that leads from "Ask the group" to booking without a vote. */
+.aip-cta-note {
+    margin: 16px 0 0;
+    text-align: center;
+    font-size: 13px;
+    color: var(--aip-muted);
+}
+
+.aip-cta-note + .aip-cta--quiet {
+    margin-top: 8px;
+}
+
+/* The themes the plan could take next: a question and two rows of three, right over the input. */
+.aip-themes {
+    margin-bottom: 8px;
+}
+
+.aip-themes-ask {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: #d8d5e3;
+}
+
 .aip-gaps {
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
 }
 
 .aip-gaps button {
-    min-height: 38px;
-    padding: 0 14px;
+    min-height: 36px;
+    padding: 0 8px;
     border: 1px solid #3a3550;
-    border-radius: 12px;
+    border-radius: 999px;
     background: transparent;
     color: #d8d5e3;
     font: inherit;
     font-size: 13px;
-    text-align: left;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
 }
 
 .aip-gaps button:hover {
     border-color: var(--aip-purple);
-}
-
-.aip-gaps button:disabled {
-    opacity: 0.5;
-    cursor: default;
+    color: #fff;
 }
 
 /* "Continue chatting", under a tag's list. */
@@ -390,9 +410,4 @@
     font: inherit;
     font-size: 13px;
     cursor: pointer;
-}
-
-.aip-gaps button[aria-pressed="true"] {
-    border-color: var(--aip-purple);
-    color: #fff;
 }

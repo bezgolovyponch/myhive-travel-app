@@ -89,6 +89,17 @@ public class TextRefresher {
         return new Refreshed(withoutStaleNames(rebuilt, removedNames, locale), true, result.usage());
     }
 
+    /**
+     * The edited plan with no model call: the copy stays as it was, minus the titles that name an activity
+     * the batch took out. The plan itself when nothing was applied or nothing went stale.
+     */
+    public Refreshed withoutRewrite(ComposedPlan plan, EditOutcome outcome, String locale) {
+        if (!outcome.anyApplied()) {
+            return notRefreshed(plan);
+        }
+        return new Refreshed(withoutStaleNames(plan, removedNames(outcome), locale), false, LlmUsage.none());
+    }
+
     /** Per package, the catalog names the batch took out of it: removed ones and the swapped-out side of a swap. */
     private static Map<Tier, Set<String>> removedNames(EditOutcome outcome) {
         Map<Tier, Set<String>> removed = new EnumMap<>(Tier.class);

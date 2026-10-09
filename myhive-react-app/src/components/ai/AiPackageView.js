@@ -24,12 +24,6 @@ export function priceFrom(t, pkg, perPersonKey = 'result.priceFromPerPerson') {
 // useT has no plurals: count keys are {one, other} objects.
 export const plural = (t, key, count) => t(`${key}.${count === 1 ? 'one' : 'other'}`, {count});
 
-// What the newest edit did, for the toast: the first applied op is enough.
-function lastChange(generation) {
-    if (generation.kind !== 'EDITED') return null;
-    return generation.editReport?.applied?.[0] || null;
-}
-
 // Names the latest edit put into this package, for the "AI added" badge.
 function addedNames(generation, packageKey) {
     const applied = generation.editReport?.applied || [];
@@ -58,13 +52,12 @@ function isStockDayTitle(title) {
  * @param onOpen     (item) => void — shows the activity's card
  * @param onRemove   (pkg, item) => void — asks the planner to drop it (a chat edit)
  * @param onMove     (pkg, item, dayNumber) => void — the row was dragged onto another day
- * @param onUndo     (packageKey) => void — back to the generation before the edit
  * @param busy       a chat turn is in flight: edits wait for it
  * @param cta        rendered under the draft (the "Ask the group" button)
  */
 function AiPackageView({
     generation, destinationName, destinationSlug, startDate, activeKey, onTierChange, custom, onOpen, onRemove, onMove, removing,
-    onUndo, busy, cta,
+    busy, cta,
 }) {
     const t = useT('aiPlanner');
     const tDuration = useT('activityDetail.duration');
@@ -74,7 +67,6 @@ function AiPackageView({
     const brief = generation.brief || {};
     const added = addedNames(generation, pkg.key);
     const pending = generation.textsPending;
-    const change = lastChange(generation);
     const total = pkg.days.reduce((n, day) => n + day.items.length, 0);
     // On a trip of several days a row can be dragged by its handle onto another day. One day has
     // nowhere to move to: no handles.
@@ -264,16 +256,7 @@ function AiPackageView({
                 </div>
             </section>
 
-            {/* What the last change was, with the way back - in the page's flow, between the plan and its
-                buttons, so it never lies on top of them. */}
-            {change && generation.parentId && (
-                <div className="aip-toast" role="status">
-                    <span>{t(`result.changed.${change.op}`, {
-                        name: change.activity, replacement: change.replacement,
-                    })}</span>
-                    <button type="button" onClick={() => onUndo(pkg.key)} disabled={busy}>{t('result.undo')}</button>
-                </div>
-            )}
+            {/* What the last change was is said in the chat, with the way back; nothing floats here. */}
             {cta}
 
             {generation.degraded && <div className="aip-hint">{t('result.degraded')}</div>}

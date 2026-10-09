@@ -381,7 +381,8 @@ test('an applied edit updates the packages in place and marks what the AI added'
     expect(screen.getByText('Swapping it now.')).toBeInTheDocument();
     const row = screen.getByText('River Cruise').closest('.aip-item');
     expect(within(row).getByText('AI added')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Swapped Karting for River Cruise');
+    // The change is said in the chat only: nothing floats over the page.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
 test('× drops the activity from the draft without a chat turn, and Undo goes back to the generation before', async () => {
@@ -408,14 +409,18 @@ test('× drops the activity from the draft without a chat turn, and Undo goes ba
 
     expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1', {op: 'REMOVE', activityId: 'id-Karting', packageKey: 'MEDIUM'});
     expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
-    expect(await screen.findByRole('status')).toHaveTextContent('Removed Karting');
-    expect(screen.queryByText('Karting')).not.toBeInTheDocument();
+    // The chat says what went, and the way back is offered there - not in a notice on the page.
+    const dock = screen.getByRole('region', {name: 'Stag Do AI'});
+    expect(await within(dock).findByText('Dropped Karting from the Medium package.')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('region', {name: 'Trip draft'})).queryByText('Karting')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Undo'}));
+    await userEvent.click(within(dock).getByRole('button', {name: 'Undo last change'}));
 
     expect(aiPlannerApi.getGeneration).toHaveBeenCalledWith('gen-1');
     expect(aiPlannerApi.selectPackage).toHaveBeenCalledWith('gen-1', 'MEDIUM');
-    expect(await screen.findByText('Karting')).toBeInTheDocument();
+    expect(await within(screen.getByRole('region', {name: 'Trip draft'})).findByText('Karting')).toBeInTheDocument();
+    expect(within(dock).getByText('Undone - your plan is back as it was.')).toBeInTheDocument();
 });
 
 test('"Ask the group" picks the trim, fills the cart and opens the contact step', async () => {
@@ -491,15 +496,10 @@ test('"we want to shoot": what fits is listed in the chat, one under the other, 
     expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1',
         {op: 'ADD', activityId: 'id-AK-47 shooting', packageKey: 'MEDIUM'});
     expect(aiPlannerApi.sendMessage).toHaveBeenCalledTimes(1);
-    // In the draft now; the card turns into the way back out.
+    // In the draft now; the list has done its job and is gone.
     const draft = screen.getByRole('region', {name: 'Trip draft'});
     expect(await within(draft).findByText('AK-47 shooting')).toBeInTheDocument();
-    const added = within(offered).getByRole('button', {name: 'Remove AK-47 shooting'});
-    expect(added).toHaveTextContent('Added ✓');
-
-    await userEvent.click(added);
-    expect(aiPlannerApi.editDraft).toHaveBeenLastCalledWith('tok-1',
-        {op: 'REMOVE', activityId: 'id-AK-47 shooting', packageKey: 'MEDIUM'});
+    await waitFor(() => expect(screen.queryByRole('list', {name: 'Suggested activities'})).not.toBeInTheDocument());
 });
 
 test('the chat brings the trims back ("what were the other options?") and switches to one ("show me Premium")', async () => {
@@ -558,9 +558,7 @@ test('"+ Add ..." tags: a tap lists that kind in the chat, each with its own Add
     // The stale last line of the brief talk is gone; a fresh chat is not offered on the page.
     expect(within(dock).queryByText('On it - building your three options now.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /New chat/})).not.toBeInTheDocument();
-    // The kinds are not offered unasked: they come up when the organizer asks the chat.
-    expect(within(dock).queryByRole('group', {name: 'What the plan could take next'})).not.toBeInTheDocument();
-    await userEvent.type(within(dock).getByRole('textbox', {name: 'Message Stag Do AI'}), 'what can we add?{Enter}');
+    // The kinds are there under the options from the start, with no question asked.
     // The tags of the trim on screen, worded by kind; a category with no wording goes by its name.
     const tags = await within(dock).findByRole('group', {name: 'What the plan could take next'});
     expect(within(tags).getByRole('button', {name: '+ Add shooting'})).toBeInTheDocument();
@@ -570,16 +568,21 @@ test('"+ Add ..." tags: a tap lists that kind in the chat, each with its own Add
     await userEvent.click(within(tags).getByRole('button', {name: '+ Add shooting'}));
 
     // The chat lists the kind's activities one under the other, plus the way back to typing.
-    expect(await within(dock).findByText('Here is what we have. Tap a name to see it, or add it straight away.'))
-        .toBeInTheDocument();
+    expect(await within(dock).findByText('Add shooting')).toBeInTheDocument();
+    expect(within(dock).getByText('Which one would you prefer? Tap a name to see it, or add it.')).toBeInTheDocument();
+    // A list is the answer to a theme: the themes step aside while it is up.
+    expect(within(dock).queryByRole('group', {name: 'What the plan could take next'})).not.toBeInTheDocument();
     const offered = within(dock).getByRole('list', {name: 'Suggested activities'});
     expect(within(offered).getByRole('button', {name: 'Sniper Day'})).toHaveAttribute('aria-haspopup', 'dialog');
-    // Karting is in the plan already: it is listed as added, a tap away from taking it out.
-    expect(within(offered).getByRole('button', {name: 'Remove Karting'})).toHaveTextContent('Added ✓');
+    // Karting is in the plan already: it is not offered again.
+    expect(within(offered).queryByText('Karting')).not.toBeInTheDocument();
+    // The page's own lines are kept with the chat, so a reload shows the same conversation.
+    expect(JSON.parse(window.localStorage.getItem('myhive-ai-said')).lines.map((line) => line.content))
+        .toEqual(['Add shooting', 'Which one would you prefer? Tap a name to see it, or add it.']);
     expect(within(dock).getByRole('button', {name: 'Continue chatting'})).toBeInTheDocument();
     expect(within(dock).queryByText(/€/)).not.toBeInTheDocument();
-    // The tag and its list cost no chat turn: only the question that brought the tags up did.
-    expect(aiPlannerApi.sendMessage).toHaveBeenCalledTimes(1);
+    // The tag and its list cost no chat turn.
+    expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
     expect(aiPlannerApi.editDraft).not.toHaveBeenCalled();
 
     await userEvent.click(within(offered).getByRole('button', {name: 'Add AK-47 and Glock to the trip draft'}));
@@ -588,9 +591,12 @@ test('"+ Add ..." tags: a tap lists that kind in the chat, each with its own Add
         {op: 'ADD', activityId: 'id-AK', packageKey: 'MEDIUM'});
     expect(await within(dock).findByText('Added AK-47 and Glock to the Medium package.')).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: /Premium/})).not.toBeInTheDocument();
+    // The list has done its job: the kinds are back under the chat for the next pick.
+    expect(await within(dock).findByRole('button', {name: '+ Add spa'})).toBeInTheDocument();
+    expect(within(dock).queryByRole('button', {name: 'Continue chatting'})).not.toBeInTheDocument();
 });
 
-test('nothing is offered unasked, and the chat put away is only its bar', async () => {
+test('no activity is offered unasked, only the kinds, and the chat put away is only its bar', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({
         latestReadyGeneration: readyGeneration(), status: 'READY',
@@ -604,17 +610,17 @@ test('nothing is offered unasked, and the chat put away is only its bar', async 
     await within(dock).findByRole('button', {name: 'Collapse chat'});
     expect(within(dock).queryByRole('group', {name: 'Suggested activities'})).not.toBeInTheDocument();
     expect(within(dock).queryByText('Paintball')).not.toBeInTheDocument();
+    expect(within(dock).getByRole('button', {name: '+ Add beer'})).toBeInTheDocument();
 
     await userEvent.click(within(dock).getByRole('button', {name: 'Collapse chat'}));
 
-    // Put away: the last line and the way back in. The tags are gone with the rest of the chat.
+    // Put away: the last line and the way back in. (The thread itself is hidden by the stylesheet.)
     expect(within(dock).getByRole('button', {name: 'Open chat'})).toHaveAttribute('aria-expanded', 'false');
     expect(within(dock).getAllByText(/^Your three options are ready\. Switch between them/).length)
         .toBeGreaterThan(0);
-    expect(within(dock).queryByRole('button', {name: '+ Add beer'})).not.toBeInTheDocument();
 });
 
-test('a tap on a trim brings up what it could take, and the chat has one way to put it away', async () => {
+test('each trim shows what it could take, and the chat has one way to put it away', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     const beer = [{categorySlug: 'czech-beer', name: 'Czech beer', options: [{activityId: 'id-Spa', name: 'Beer Spa'}]}];
     aiPlannerApi.getSession.mockResolvedValue(session({
@@ -626,7 +632,7 @@ test('a tap on a trim brings up what it could take, and the chat has one way to 
     await within(dock).findByRole('button', {name: 'Collapse chat'});
     // The arrow is the one control: no second "Collapse chat" written next to it.
     expect(within(dock).queryByText('Collapse chat')).not.toBeInTheDocument();
-    expect(within(dock).queryByRole('button', {name: '+ Add beer'})).not.toBeInTheDocument();
+    expect(within(dock).getByRole('button', {name: '+ Add beer'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
 

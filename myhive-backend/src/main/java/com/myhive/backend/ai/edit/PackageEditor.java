@@ -321,9 +321,25 @@ public class PackageEditor {
             return Outcome.rejected(EditRejectionReason.ALREADY_IN_PACKAGE,
                     activity.name() + " is already in " + pkg.key());
         }
-        // An add is never turned away: with no free slot left it goes on the lightest day anyway.
+        // An add is never turned away: with no free slot left it goes on the lightest day anyway - or,
+        // when the organizer named the day, on that day, however full it is.
         return placement(pkg, activity, dayNumber, slot, brief, catalogById)
+                .or(() -> onDay(pkg, activity, dayNumber))
                 .orElseGet(() -> anywhere(pkg, activity, catalogById));
+    }
+
+    /** The named day, in the slot the activity prefers (shared when taken); empty when no such day. */
+    private static Optional<Outcome> onDay(PlanDraft.PackageDraft pkg, CatalogActivity activity, Integer dayNumber) {
+        if (dayNumber == null) {
+            return Optional.empty();
+        }
+        return pkg.days().stream().filter(day -> day.dayNumber() == dayNumber).findFirst().map(day -> {
+            Set<Slot> used = usedSlots(day);
+            List<Slot> preferred = slotPreference(activity);
+            Slot slot = preferred.stream().filter(candidate -> !used.contains(candidate)).findFirst()
+                    .orElse(preferred.get(0));
+            return Outcome.ok(withDay(pkg, insert(day, activity, slot)), dayNumber, slot, activity.id());
+        });
     }
 
     /**
@@ -355,6 +371,9 @@ public class PackageEditor {
         if (freed.isEmpty()) {
             return Outcome.rejected(EditRejectionReason.NOT_IN_PACKAGE, activity.name() + " is not in " + pkg.key());
         }
+        if (dayNumber != null && freed.get().dayNumber() == dayNumber) {
+            return Outcome.rejected(EditRejectionReason.ALREADY_ON_DAY, activity.name() + " is on day " + dayNumber);
+        }
         PlanDraft.PackageDraft without = freed.get().pkg();
         Optional<PlanDraft.DayDraft> target = without.days().stream()
                 .filter(day -> dayNumber != null && day.dayNumber() == dayNumber).findFirst();
@@ -362,11 +381,7 @@ public class PackageEditor {
             return Outcome.rejected(EditRejectionReason.WOULD_BREAK_SCHEDULE,
                     "day " + dayNumber + " is not part of " + pkg.key());
         }
-        Set<Slot> used = usedSlots(target.get());
-        List<Slot> preferred = slotPreference(activity);
-        Slot slot = preferred.stream().filter(candidate -> !used.contains(candidate)).findFirst()
-                .orElse(preferred.get(0));
-        return Outcome.ok(withDay(without, insert(target.get(), activity, slot)), dayNumber, slot, activity.id());
+        return onDay(without, activity, dayNumber).orElseThrow();
     }
 
     private static Outcome applyReplace(PlanDraft.PackageDraft pkg, CatalogActivity activity,

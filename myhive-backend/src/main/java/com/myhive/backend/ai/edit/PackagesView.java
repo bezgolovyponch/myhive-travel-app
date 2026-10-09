@@ -29,6 +29,11 @@ public final class PackagesView {
      * the trims the organizer is not working on - every package otherwise.
      */
     public static String render(ComposedPlan plan, Tier only) {
+        return render(plan, only, null);
+    }
+
+    /** With the head-count, each line also carries the "from" price per person the organizer sees. */
+    public static String render(ComposedPlan plan, Tier only, Integer travelers) {
         if (plan == null) {
             return "";
         }
@@ -41,6 +46,10 @@ public final class PackagesView {
                 lines.append('\n');
             }
             lines.append(pkg.key()).append(": ").append(days(pkg));
+            java.math.BigDecimal perPerson = com.myhive.backend.util.FromPrice.perPerson(pkg.totalPrice(), travelers);
+            if (perPerson != null) {
+                lines.append(" - from EUR ").append(perPerson.toPlainString()).append(" per person");
+            }
         }
         return lines.toString();
     }

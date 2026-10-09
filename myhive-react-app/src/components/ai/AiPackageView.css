@@ -279,32 +279,6 @@
     color: var(--aip-muted);
 }
 
-.aip-toast {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: fit-content;
-    max-width: 100%;
-    margin: 10px auto 0;
-    padding: 8px 8px 8px 14px;
-    background: #2e2b3a;
-    border: 1px solid var(--aip-line);
-    border-radius: 999px;
-    font-size: 13px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.aip-toast button {
-    background: transparent;
-    border: 0;
-    color: var(--aip-purple-ic);
-    font: inherit;
-    font-weight: 600;
-    padding: 4px 8px;
-    cursor: pointer;
-}
-
 /* Trim cards inside the chat (2d). */
 
 .aip-tier-price small {

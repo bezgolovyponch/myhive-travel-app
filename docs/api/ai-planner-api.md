@@ -213,13 +213,29 @@ indicator for edit turns, not just the ordinary "thinking" state.
 
 `suggestedReplies` (0–4 strings, ≤ 60 chars, never null) are tap-to-send answers to
 the question in the reply, written as the organizer would type them — render them as
-chips that send their own text. When the organizer picks something the catalog sells
-in variants (a dinner with or without a show, a boat with unlimited drinks), the
-reply asks one either/or question and the chips name those catalog variants.
+chips that send their own text. What the weekend should be built around is asked
+**once**: whatever the organizer answers, no second question about taste, a theme or
+which of two activities follows, and the packages are built (see below).
 
-`recommendations` (0–4, never null) are activities offered for the draft once packages
+`recommendations` (0–6, never null) are activities offered for the draft once packages
 exist, best match first: what the organizer asked for in general terms ("we want to
-shoot kalashnikov") and the catalog's closest options for something it lacks. Each is
+shoot kalashnikov", "add shooting" when several rows fit) and the catalog's closest
+options for something it lacks. A typed add that names **one** catalog activity ("add
+go cart") is not offered but carried out: it comes back in `edit.applied` with the
+edited `generation`, like a remove or a swap. A loosely typed name still finds
+its row ("river bot experience" is the River Boat Cruise): every telling word has to be a
+word of the catalog name, a typo apart at most, and exactly one row may fit.
+
+An edit is one model call: the copy is not rewritten for it (`edit.textsRefreshed` is
+`false`); only a day or package title that names an activity the edit took out falls back
+to its stock name. A move to the day the activity is on already is rejected with
+`ALREADY_ON_DAY`.
+
+A change of days or head-count would rebuild the organizer's own plan and drop what they
+changed. The first time it is asked, nothing is rebuilt: the reply says what it costs,
+`brief` keeps the old days and head-count, and `suggestedReplies` carries the two answers
+("Yes, rebuild: 3 days, 10 people", "No, keep my plan"). Asked for again on the next turn,
+the generation starts. Each is
 a catalog row — `{ "activityId", "name", "oneLine", "durationMinutes", "pricePerPerson",
 "imageUrl" }`, `pricePerPerson` in whole euros for the brief's group (group minimum
 included), `durationMinutes` null when unknown. Show the first as the top match with
@@ -288,12 +304,10 @@ On the turn that starts a generation (`generation` is set) the reply never asks
 anything and `suggestedReplies` is empty: every message is refused with
 `GENERATION_IN_PROGRESS` until the packages land, so there would be nothing to tap.
 If the model asks anyway, its reply is replaced with a stock "building your three
-options" line. The one exception to "the brief is complete, build now" is the
-pairing question above: when the reply asks something and at least two of its chips
-name catalog activities, the **first** build is held back for that one answer -
-`readyToGenerate` is `true`, `generation` is `null`, the chips are there to tap -
-and the next message starts it whatever it says. Once per chat, and only before the
-first packages.
+options" line. Taste is asked once: when days and group size were known before a
+message (set by the pickers, or collected the turn before), that message starts the
+build whatever it says - with no taste in it the brief's `vibe` becomes
+`"open to anything"`.
 
 The reverse holds too: while `missingFields` is not empty, a turn never ends without
 a question. If the model's reply asks nothing, the backend asks for the first missing

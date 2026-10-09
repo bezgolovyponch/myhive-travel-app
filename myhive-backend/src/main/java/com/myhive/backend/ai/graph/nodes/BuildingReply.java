@@ -51,6 +51,22 @@ final class BuildingReply {
         return RECOMMENDING.get(GERMAN.equalsIgnoreCase(locale) ? GERMAN : "en");
     }
 
+    /**
+     * Said instead of rebuilding at once: what the change costs, and that the plan stays until they say so.
+     */
+    static String rebuildWarning(String locale, Integer days, Integer groupSize) {
+        return GERMAN.equalsIgnoreCase(locale)
+                ? "Für %d Tage und %d Leute baue ich den Plan neu - was du geändert hast, geht dabei verloren. Dein Plan bleibt erst mal, wie er ist. Soll ich neu bauen?".formatted(days, groupSize)
+                : "For %d days and %d people I rebuild the plan from scratch - what you changed in it is lost. Your plan stays as it is for now. Shall I rebuild?".formatted(days, groupSize);
+    }
+
+    /** The two answers to the warning, as the organizer would type them. */
+    static java.util.List<String> rebuildChoices(String locale, Integer days, Integer groupSize) {
+        return GERMAN.equalsIgnoreCase(locale)
+                ? java.util.List.of("Ja, neu bauen: %d Tage, %d Leute".formatted(days, groupSize), "Nein, Plan behalten")
+                : java.util.List.of("Yes, rebuild: %d days, %d people".formatted(days, groupSize), "No, keep my plan");
+    }
+
     static String nothingToBuild(String locale) {
         return NOTHING_TO_BUILD.get(GERMAN.equalsIgnoreCase(locale) ? GERMAN : "en");
     }

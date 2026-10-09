@@ -103,13 +103,10 @@ public class ApplyEditsNode implements NodeAction<PlannerState> {
         }
         ComposedPlan plan = current.get();
         EditOutcome outcome = applyOrReject(state, plan, edits);
-        // A tap in the draft is applied as it stands: the copy refresh is a model call the organizer would
-        // wait on after every click, and the draft shows names and slots, not the rewritten copy.
-        boolean tap = state.resumeReason().filter(ResumeReason.EDIT.name()::equals).isPresent();
-        TextRefresher.Refreshed refreshed = outcome.anyApplied() && !tap
-                ? refresher.refresh(outcome.plan(), outcome, locale, state.destinationName())
-                // The edited plan as it stands (the unchanged one when nothing landed), copy untouched.
-                : new TextRefresher.Refreshed(outcome.plan(), false, LlmUsage.none());
+        // An edit is applied as it stands, typed or tapped: rewriting the copy is a second model call the
+        // organizer waited six seconds on after every change, for texts the draft does not show. Only the
+        // names that are now wrong are taken out - a day titled after an activity that just left it.
+        TextRefresher.Refreshed refreshed = refresher.withoutRewrite(outcome.plan(), outcome, locale);
         EditReport report = EditReport.of(outcome, refreshed.refreshed());
         if (!outcome.anyApplied()) {
             return consumed(locale, report, reply, state.workingPackage().isPresent());

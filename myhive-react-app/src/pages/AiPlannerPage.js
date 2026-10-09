@@ -60,6 +60,27 @@ function writeDraftFrom(token, from) {
     }
 }
 
+// What the page itself said in a chat (a tapped theme, the question back, an undo), kept with the
+// chat's token so a reload shows the same conversation.
+const SAID_KEY = 'myhive-ai-said';
+
+function readSaid(token) {
+    try {
+        const stored = JSON.parse(window.localStorage.getItem(SAID_KEY) || 'null');
+        return stored && stored.token === token && Array.isArray(stored.lines) ? stored.lines : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function writeSaid(token, lines) {
+    try {
+        if (token) window.localStorage.setItem(SAID_KEY, JSON.stringify({token, lines}));
+    } catch (e) {
+        // Private mode: the lines are kept for this visit only.
+    }
+}
+
 // Stag Do AI (v3 landing, 2d/2e). Result-first: until there are packages the
 // chat is the page; once there are, the trip draft is the page and the chat is
 // docked to the bottom edge, where its top bar opens and collapses it. The
@@ -89,15 +110,11 @@ function AiPlannerPage({pollIntervalMs}) {
     const [handingOff, setHandingOff] = useState(false);
     const [handoffError, setHandoffError] = useState(false);
     const [preview, setPreview] = useState(null); // the draft row or recommendation whose card is open
-    const [asked, setAsked] = useState(null); // the "+ Add ..." tag whose activities are listed in the chat
-    const [kindsAsked, setKindsAsked] = useState(false); // the organizer asked the chat what could go in
-    const [trimPicked, setTrimPicked] = useState(false); // the organizer tapped a trim: what it could take is shown
-    // What the planner holds right now, for code that runs after a turn it awaited.
-    const live = useRef({});
-    live.current = {
-        generationId: planner.generation?.id, offers: (planner.recommendations || []).length,
-        failed: Boolean(planner.error),
-    };
+    const [asked, setAsked] = useState(null); // the theme tag whose activities are listed in the chat
+    // What the page itself says in the chat - a tapped theme, the question back, an undo - each placed
+    // after the planner message count it was said at: [{id, role, content, after}].
+    const [said, setSaid] = useState([]);
+    const [offersClosed, setOffersClosed] = useState(false); // the list a typed wish got has done its job
     const {generation, sending} = planner;
     const hasResult = Boolean(generation?.packages?.length);
 
@@ -148,6 +165,8 @@ function AiPlannerPage({pollIntervalMs}) {
             const from = stored == null ? planner.messages.length : Math.min(stored, planner.messages.length);
             setDraftFrom(from);
             if (stored == null) writeDraftFrom(planner.token, from);
+            // A chat that comes back brings the page's own lines with it.
+            setSaid(readSaid(planner.token).filter((line) => line.after >= from));
         }
         if (!hasResult) setDraftFrom(0);
         hadResult.current = hasResult;
@@ -162,7 +181,8 @@ function AiPlannerPage({pollIntervalMs}) {
         if (lastBuiltId.current && lastBuiltId.current !== builtId) {
             setDraftFrom(planner.messages.length);
             writeDraftFrom(planner.token, planner.messages.length);
-            setTrimPicked(false);
+            setSaid([]);
+            writeSaid(planner.token, []);
         }
         lastBuiltId.current = builtId;
         // Only a new plan moves the cut; messages written after it stay in view.
@@ -194,35 +214,35 @@ function AiPlannerPage({pollIntervalMs}) {
 
     // What the docked chat talks to: the same planner, but a message sent from
     // here makes the plan the organizer's own draft and opens the chat on it.
+    const say = (...lines) => setSaid((prev) => {
+        const next = [...prev, ...lines.map(([role, content], i) => ({
+            id: `said-${prev.length + i}`, role, content, after: planner.messages.length,
+        }))];
+        writeSaid(planner.token, next);
+        return next;
+    });
+    // The planner's messages since the plan landed, with the page's own lines where they were said.
+    const transcript = [];
+    for (let i = draftFrom; i <= planner.messages.length; i++) {
+        transcript.push(...said.filter((line) => line.after === i || (i === draftFrom && line.after < i)));
+        if (i < planner.messages.length) transcript.push(planner.messages[i]);
+    }
     const dockPlanner = {
         ...planner,
-        messages: planner.messages.slice(draftFrom),
+        messages: transcript,
         send: async (text, preset) => {
             setChatted(true);
             setShowAll(false);
             setDockOpen(true);
             setAsked(null);
-            setKindsAsked(false);
-            setTrimPicked(false);
-            const planBefore = live.current.generationId;
+            setOffersClosed(false);
             await planner.send(text, preset);
-            // Nothing was changed and nothing specific was offered: show what kinds there are. Read
-            // after the turn's own updates have been rendered.
-            setTimeout(() => {
-                const now = live.current;
-                setKindsAsked(now.generationId === planBefore && now.offers === 0 && !now.failed);
-            }, 0);
         },
     };
 
     // Looking at a trim is not choosing it: all three stay up until the organizer changes something
     // (adds, removes, moves or writes), and only then is the one on screen their own plan.
-    // Tapping one does bring up what it could take next: the tags, in the chat.
-    const pickTier = (key) => {
-        setActiveKey(key);
-        setTrimPicked(true);
-        setDockOpen(true);
-    };
+    const pickTier = (key) => setActiveKey(key);
 
     // × and the recommendation row edit the draft directly - no chat turn - so
     // the planner's packages stay the truth and the next turn sees the change.
@@ -306,6 +326,7 @@ function AiPlannerPage({pollIntervalMs}) {
                 {t('result.sendToPlanner')}
             </button>
             {/* Once the plan is the organizer's own: price it and go to the booking page, no vote. */}
+            {planIsTheirs && <p className="aip-cta-note">{t('result.bookWithoutVote')}</p>}
             {planIsTheirs && (
                 <button
                     type="button"
@@ -339,49 +360,80 @@ function AiPlannerPage({pollIntervalMs}) {
     // A tap asks which one, with the kind's activities as the answers; the answer is shown as a card
     // with Add. None of it is a chat turn: the answers are already here.
     const gaps = (workingKey && planner.gaps?.[workingKey]) || [];
+    const notInPlan = (offer) => !inDraft.has(offer.activityId);
     const kindLabel = (gap) => {
         const label = t(`dock.kinds.${gap.categorySlug}`);
         // A category without a wording of its own goes by its catalog name.
         return label.includes('dock.kinds.') ? gap.name.toLowerCase() : label;
     };
+    // A tapped theme is said in the chat like a typed line, with the question back; its activities
+    // are listed under that, and the themes step aside until one is added or the list is closed.
     const askKind = (gap) => {
         setDockOpen(true);
+        const asking = ['user', t('dock.addKind', {name: kindLabel(gap)})];
+        if (!(gap.options || []).some(notInPlan)) {
+            // Nothing of that kind is left to add: said, and the themes stay.
+            say(asking, ['assistant', t('dock.allIn')]);
+            return;
+        }
         setAsked(gap);
+        say(asking, ['assistant', t('dock.whichOne')]);
     };
     const keepChatting = () => {
         setAsked(null);
+        setOffersClosed(true);
         document.querySelector('.aip-dock .ai-composer-input')?.focus();
+    };
+    const undoLast = async () => {
+        await planner.undo(activePkg.key);
+        say(['assistant', t('dock.undone')]);
     };
     // The list is about the trim on screen: another trim ends it.
     useEffect(() => {
         setAsked(null);
     }, [workingKey]);
-    // A tag's list opens at its top - what was asked, then the first option - not scrolled to its end.
-    const askedTop = useRef(null);
-    const askedSlug = asked?.categorySlug;
+    // Activities on offer in the chat right now: a tapped theme's, or what a typed wish got back.
+    // What is in the plan already is not offered again.
+    const typedOffers = offersClosed ? [] : planner.recommendations || [];
+    const listing = (asked ? asked.options || [] : typedOffers).filter(notInPlan);
+    // A list opens with what led to it in view - what was asked and the line back - not scrolled to
+    // its own end: the chat is read from there down.
+    const listKey = listing.map((offer) => offer.activityId).join();
     useEffect(() => {
-        if (!askedSlug) return undefined;
-        const timer = setTimeout(() => askedTop.current?.scrollIntoView?.({block: 'start'}), 60);
+        if (!listKey) return undefined;
+        const timer = setTimeout(() => {
+            const lines = document.querySelectorAll('.aip-dock .ai-thread-viewport .ai-msg:not(.aip-opening)');
+            const from = lines[lines.length - 2] || lines[lines.length - 1];
+            from?.scrollIntoView?.({block: 'start'});
+        }, 80);
         return () => clearTimeout(timer);
-    }, [askedSlug]);
-    // The kinds are not offered before a trim is chosen. They come up once the organizer taps a trim,
-    // and when a message to the chat gets nothing specific back - "what else is there?" - as the way on.
-    const tags = gaps.length > 0 && (kindsAsked || trimPicked) && (
-        <div className="aip-gaps" role="group" aria-label={t('dock.gapsAria')}>
-            {gaps.map((gap) => (
-                <button key={gap.categorySlug} type="button" disabled={busy}
-                        aria-pressed={asked?.categorySlug === gap.categorySlug}
-                        aria-label={`+ ${t('dock.addKind', {name: kindLabel(gap)})}`}
-                        onClick={() => askKind(gap)}>
-                    + {t('dock.addKind', {name: kindLabel(gap)})}
-                </button>
-            ))}
+    }, [listKey]);
+    // The themes the plan could take next, in two rows right over the input - never together with a
+    // list of activities: a list is the answer to a theme, and the themes come back once it is done.
+    const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+    const tags = gaps.length > 0 && listing.length === 0 && !busy && (
+        <div className="aip-themes">
+            <p className="aip-themes-ask">{t('dock.whatToAdd')}</p>
+            <div className="aip-gaps" role="group" aria-label={t('dock.gapsAria')}>
+                {gaps.map((gap) => (
+                    <button key={gap.categorySlug} type="button"
+                            aria-label={`+ ${t('dock.addKind', {name: kindLabel(gap)})}`}
+                            onClick={() => askKind(gap)}>
+                        + {capital(kindLabel(gap))}
+                    </button>
+                ))}
+            </div>
         </div>
     );
-    const toggleRecommendation = (rec, added) => {
+    const toggleRecommendation = async (rec, added) => {
         setChatted(true);
         setShowAll(false);
-        planner.editDraft(added ? 'REMOVE' : 'ADD', rec.activityId, activePkg.key);
+        await planner.editDraft(added ? 'REMOVE' : 'ADD', rec.activityId, activePkg.key);
+        // Added: the list has done its job. The chat says what went in and the themes are back.
+        if (!added) {
+            setAsked(null);
+            setOffersClosed(true);
+        }
     };
     // The chat's own first line on the draft, in place of the brief talk that came before it. Collapsed,
     // the bar shows the same line (or the latest reply once the organizer has written) over the tags.
@@ -411,29 +463,20 @@ function AiPlannerPage({pollIntervalMs}) {
             disabled={busy}
         />
     );
-    const offersInChat = asked ? (
+    // The list sits under the line that announced it, with the way back to typing; the way back from
+    // the last change is offered there too, not on the page.
+    const offersInChat = listing.length > 0 ? (
         <>
-            <div className="ai-msg ai-msg-user" ref={askedTop}>
-                <div className="ai-bubble">
-                    <p className="ai-thread-text">{t('dock.addKind', {name: kindLabel(asked)})}</p>
-                </div>
-            </div>
-            <div className="ai-msg ai-msg-assistant">
-                <div className="ai-bubble">
-                    <p className="ai-thread-text">{t('dock.whichOne')}</p>
-                </div>
-            </div>
-            {offerList(asked.options || [])}
+            {offerList(listing)}
             <button type="button" className="ai-chip aip-answer-quiet" onClick={keepChatting}>
                 {t('dock.keepChatting')}
             </button>
         </>
-    ) : (
-        <>
-            {offerList(planner.recommendations || [])}
-            {!busy && tags}
-        </>
-    );
+    ) : generation?.kind === 'EDITED' && generation.parentId && !busy ? (
+        <button type="button" className="ai-chip aip-answer-quiet" onClick={undoLast}>
+            {t('dock.undo')}
+        </button>
+    ) : null;
 
     return (
         <div className={`aip-page ${hasResult ? 'has-result' : 'is-chat'}`}>
@@ -463,7 +506,6 @@ function AiPlannerPage({pollIntervalMs}) {
                             onRemove={removeItem}
                             onMove={moveItem}
                             removing={removing}
-                            onUndo={planner.undo}
                             busy={busy}
                             cta={sendBlock}
                         />
@@ -492,6 +534,7 @@ function AiPlannerPage({pollIntervalMs}) {
                             placeholder={t('dock.placeholder')}
                             beforeMessages={opening}
                             afterMessages={offersInChat}
+                            aboveComposer={tags}
                             buildingText={t('dock.working')}
                         />
                     </section>

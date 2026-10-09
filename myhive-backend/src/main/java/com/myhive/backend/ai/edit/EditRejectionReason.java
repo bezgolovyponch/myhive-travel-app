@@ -6,5 +6,7 @@ package com.myhive.backend.ai.edit;
  */
 public enum EditRejectionReason {
     UNKNOWN_ACTIVITY, AMBIGUOUS_ACTIVITY, NOT_IN_PACKAGE, ALREADY_IN_PACKAGE, WOULD_EMPTY_PACKAGE, NO_FREE_SLOT,
-    WOULD_BREAK_SCHEDULE, NO_PACKAGES_YET, EDIT_LIMIT, INTERNAL
+    WOULD_BREAK_SCHEDULE, NO_PACKAGES_YET, EDIT_LIMIT, INTERNAL,
+    /** A move to the day the activity is on already: nothing to do, and the chat says so. */
+    ALREADY_ON_DAY
 }

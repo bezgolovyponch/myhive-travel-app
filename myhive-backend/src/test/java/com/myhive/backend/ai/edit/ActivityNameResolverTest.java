@@ -111,4 +111,34 @@ class ActivityNameResolverTest {
         assertThat(ActivityNameResolver.resolve("Steak - Private Show", catalog))
                 .isEqualTo(new ActivityNameResolver.Found(expectedDinner));
     }
+
+    /** As typed in a live chat: "river bot experience" got a list of beer activities instead of the boat. */
+    @Test
+    void resolve_readsATypoAsTheWordItIs_andIgnoresFillerWords() {
+        CatalogActivity expectedBoat = activity("River Boat Cruise");
+        CatalogActivity expectedPaintball = activity("Paintball");
+
+        assertThat(ActivityNameResolver.resolve("river bot experience", catalog))
+                .isEqualTo(new ActivityNameResolver.Found(expectedBoat));
+        assertThat(ActivityNameResolver.resolve("the rivr boat please", catalog))
+                .isEqualTo(new ActivityNameResolver.Found(expectedBoat));
+        assertThat(ActivityNameResolver.resolve("paintbal", catalog))
+                .isEqualTo(new ActivityNameResolver.Found(expectedPaintball));
+    }
+
+    /** A typo is not a licence to guess: two rows that fit are asked about, and a different word is no match. */
+    @Test
+    void resolve_doesNotGuessBetweenTwoRows_norAcrossADifferentWord() {
+        activity("Beer Tasting");
+
+        // "ber" is one letter off "beer" in three rows.
+        assertThat(ActivityNameResolver.resolve("ber", catalog)).isInstanceOf(ActivityNameResolver.Ambiguous.class);
+        // "car" is one letter off "bar", but not the same word: the first letter differs.
+        activity("Bar Crawl");
+        assertThat(ActivityNameResolver.resolve("car crawl", catalog)).isInstanceOf(ActivityNameResolver.NotFound.class);
+        // Only a filler word in common is nothing in common.
+        activity("Tank Experience");
+        assertThat(ActivityNameResolver.resolve("helicopter experience", catalog))
+                .isInstanceOf(ActivityNameResolver.NotFound.class);
+    }
 }
