@@ -5,6 +5,7 @@ import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
+import com.myhive.backend.ai.catalog.CatalogSearch;
 import com.myhive.backend.ai.catalog.OpeningReplies;
 import com.myhive.backend.ai.edit.ActivityNameResolver;
 import com.myhive.backend.ai.edit.EditMessages;
@@ -122,22 +123,55 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // are offered when they resolve and dropped quietly when they do not: nobody asked for them.
         List<String> offered = new ArrayList<>();
         List<RejectedEdit> unanswered = new ArrayList<>();
+        boolean splitWish = false;
         if (!packages.isEmpty() && !readyToBuild) {
+            String asked = lastUserMessage(state);
+            // An add is carried out when it was ordered ("add the boat") or picks from the list the chat
+            // just showed ("the AK one"). A bare "river cruise" asks what there is: it gets the list.
+            boolean ordered = CatalogSearch.asksToAdd(asked);
+            List<String> shownBefore = state.recommendations();
             List<EditRequest> carriedOut = new ArrayList<>();
             for (EditRequest edit : edits) {
                 boolean namesOne = edit.activity() != null && ActivityNameResolver
                         .resolve(edit.activity(), catalog) instanceof ActivityNameResolver.Found;
-                if (edit.op() == EditOp.ADD && !namesOne) {
+                boolean picksFromTheList = namesOne && shownBefore.stream()
+                        .anyMatch(shown -> sameActivity(shown, edit.activity(), catalog));
+                if (edit.op() != EditOp.ADD || (namesOne && (ordered || picksFromTheList))) {
+                    carriedOut.add(edit);
+                } else if (namesOne) {
+                    offer(edit.activity(), catalog, offered);
+                } else {
                     if (edit.activity() != null) {
                         unanswered.add(unanswered(edit.activity(), catalog));
                     }
                     edit.alternatives().forEach(alternative -> offer(alternative, catalog, offered));
-                } else {
-                    carriedOut.add(edit);
                 }
             }
-            edits = carriedOut;
             result.recommendations().forEach(name -> offer(name, catalog, offered));
+            // What is listed is not the model's guess from the names: the organizer's words are read against
+            // the catalog itself, and nothing is filled up with activities that merely share a category.
+            CatalogSearch.Result found = CatalogSearch.find(asked, offered, catalog,
+                    inThePlan(packages.get(), state.workingPackage().orElse(null)));
+            boolean adds = carriedOut.stream().anyMatch(edit -> edit.op() == EditOp.ADD);
+            if (found.split() && adds) {
+                // "Add a river cruise with a private show": no activity is both, so adding the one the
+                // model settled on would be half of what was asked. Both kinds are shown instead.
+                carriedOut.removeIf(edit -> edit.op() == EditOp.ADD);
+            }
+            edits = carriedOut;
+            // A question that names a kind ("what boats do you have?") gets its list even when the model
+            // answered it with a question back ("Sure - which kind?").
+            boolean asksForAKind = result.showPackage() == null && !warnsFirst && !asksNothing
+                    && CatalogSearch.asksForAKind(asked);
+            if (carriedOut.isEmpty() && (!offered.isEmpty() || !unanswered.isEmpty() || asksForAKind)
+                    && !found.names().isEmpty()) {
+                offered.clear();
+                offered.addAll(found.names());
+                splitWish = found.split();
+            } else if (!carriedOut.isEmpty()) {
+                // The turn changes the plan: its line is the answer, with no list next to it.
+                offered.clear();
+            }
         }
         String reply = PlanAssembler.clean(result.reply());
         List<String> suggestedReplies = result.suggestedReplies();
@@ -183,10 +217,17 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                 // The edit's own line ("Added X to your trip plan.") is the answer; the model's "Let me
                 // check that." before it is one line too many in a chat that shows the last three.
                 reply = "";
+            } else if (splitWish) {
+                reply = BuildingReply.splitWish(state.locale());
+            } else if (!offered.isEmpty() && unanswered.isEmpty()) {
+                reply = BuildingReply.recommending(state.locale());
             } else if (!offered.isEmpty() && !unanswered.isEmpty()) {
                 // Asked for by a word the catalog has no row for, with rows that are that kind of thing
                 // ("strippers"): not "I could not find it" over a list of exactly it.
-                reply = EditMessages.closest(state.locale(), unanswered.get(0).activityName());
+                // A word that fits several rows is a question back, with those rows under it.
+                reply = unanswered.get(0).reason() == EditRejectionReason.AMBIGUOUS_ACTIVITY
+                        ? EditMessages.rejectionSummary(state.locale(), unanswered)
+                        : EditMessages.closest(state.locale(), unanswered.get(0).activityName());
             } else if (!offered.isEmpty() || !unanswered.isEmpty()) {
                 reply = unanswered.isEmpty() ? BuildingReply.recommending(state.locale())
                         : EditMessages.rejectionSummary(state.locale(), unanswered);
@@ -286,6 +327,33 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
      * Tap-to-send answers: for the taste question, from what the catalog can deliver; none for the others
      * (travel times are never asked).
      */
+    private static String lastUserMessage(PlannerState state) {
+        List<ChatMessage> said = state.messages();
+        for (int i = said.size() - 1; i >= 0; i--) {
+            if (ChatMessage.USER.equals(said.get(i).role())) {
+                return said.get(i).content();
+            }
+        }
+        return "";
+    }
+
+    /** The activities of the organizer's draft - of every package while no trim is theirs yet. */
+    private static java.util.Set<java.util.UUID> inThePlan(ComposedPlan plan, Tier working) {
+        java.util.Set<java.util.UUID> ids = new java.util.HashSet<>();
+        if (working == null) {
+            return ids;
+        }
+        plan.packages().stream().filter(pkg -> pkg.key() == working)
+                .forEach(pkg -> pkg.days().forEach(day -> day.items().forEach(item -> ids.add(item.activityId()))));
+        return ids;
+    }
+
+    private static boolean sameActivity(String shown, String named, List<CatalogActivity> catalog) {
+        return ActivityNameResolver.resolve(shown, catalog) instanceof ActivityNameResolver.Found a
+                && ActivityNameResolver.resolve(named, catalog) instanceof ActivityNameResolver.Found b
+                && a.activity().id().equals(b.activity().id());
+    }
+
     /** Puts a name on the cards when it is one catalog row; true when it is. */
     private static boolean offer(String name, List<CatalogActivity> catalog, List<String> offered) {
         if (ActivityNameResolver.resolve(name, catalog) instanceof ActivityNameResolver.Found) {

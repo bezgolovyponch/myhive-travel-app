@@ -47,6 +47,13 @@ final class BuildingReply {
         return BUILD_WORDS.stream().anyMatch(lower::contains);
     }
 
+    /** Several kinds were asked for in one ("a boat with a show") and no activity is all of them. */
+    static String splitWish(String locale) {
+        return GERMAN.equalsIgnoreCase(locale)
+                ? "Beides in einem gibt es hier nicht - das kommt dem am nächsten. Nimm von jedem eins, dann habt ihr beides."
+                : "Nothing here is both in one - these come closest. Add one of each to get both.";
+    }
+
     static String recommending(String locale) {
         return RECOMMENDING.get(GERMAN.equalsIgnoreCase(locale) ? GERMAN : "en");
     }

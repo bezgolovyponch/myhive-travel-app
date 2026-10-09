@@ -1,4 +1,4 @@
-import {formatDuration} from '../../utils/format';
+import {formatAmount, formatDuration} from '../../utils/format';
 import {useT} from '../../i18n';
 
 /**
@@ -7,7 +7,7 @@ import {useT} from '../../i18n';
  * again once it is in. Used for what the chat recommends for a typed wish and
  * for the answers to a "+ Add ..." tag.
  *
- * @param offers     [{activityId, name, oneLine, durationMinutes, imageUrl}], best first
+ * @param offers     [{activityId, name, oneLine, durationMinutes, fromPricePerPerson, imageUrl}], best first
  * @param isAdded    (activityId) => whether the plan holds it
  * @param onOpen     (offer) => void - shows the activity's card
  * @param onToggle   (offer, added) => void
@@ -22,6 +22,13 @@ function AiOffers({offers, isAdded, onOpen, onToggle, pendingId, disabled}) {
         <ul className="aip-offers" aria-label={t('result.suggestions')}>
             {offers.map((offer) => {
                 const added = isAdded(offer.activityId);
+                // Duration, then what it adds to the plan's own "from ... / person".
+                const price = Number(offer.fromPricePerPerson ?? offer.pricePerPerson);
+                const meta = [
+                    formatDuration(offer.durationMinutes, tDuration),
+                    Number.isFinite(price) && price > 0
+                        ? t('result.priceFromPerPerson', {price: formatAmount(Math.round(price))}) : null,
+                ].filter(Boolean).join(' · ');
                 return (
                     <li key={offer.activityId} className="aip-offer">
                         <span className="aip-offer-thumb" aria-hidden="true">
@@ -32,9 +39,7 @@ function AiOffers({offers, isAdded, onOpen, onToggle, pendingId, disabled}) {
                                     onClick={() => onOpen(offer)}>
                                 {offer.name}
                             </button>
-                            {formatDuration(offer.durationMinutes, tDuration) && (
-                                <div className="aip-offer-meta">{formatDuration(offer.durationMinutes, tDuration)}</div>
-                            )}
+                            {meta && <div className="aip-offer-meta">{meta}</div>}
                         </div>
                         <button
                             type="button"

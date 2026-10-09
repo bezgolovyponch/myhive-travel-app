@@ -75,7 +75,7 @@ class ChatTurnNodeTest {
         llm.queueChat(turn(staleLine, Brief.empty(), List.of(replaceEdit())));
 
         Map<String, Object> plain = node.apply(stateWithPackages(readyBrief()));
-        Map<String, Object> recommending = node.apply(stateWithPackages(readyBrief()));
+        Map<String, Object> recommending = node.apply(asked("anything fun for the groom?"));
         Map<String, Object> editing = node.apply(stateWithPackages(readyBrief()));
 
         assertThat(messagesOf(plain)).singleElement()
@@ -142,8 +142,8 @@ class ChatTurnNodeTest {
         llm.queueChat(turn("Adding it now.", Brief.empty(),
                 List.of(new EditRequest(EditOp.ADD, expectedMissing, null, null, null, null, List.of(REPLACEMENT_NAME)))));
 
-        Map<String, Object> nothingOnOffer = node.apply(stateWithPackages(readyBrief()));
-        Map<String, Object> alternativeOnOffer = node.apply(stateWithPackages(readyBrief()));
+        Map<String, Object> nothingOnOffer = node.apply(asked("add bungee jumping"));
+        Map<String, Object> alternativeOnOffer = node.apply(asked("add bungee jumping"));
 
         assertThat(nothingOnOffer.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of());
         assertThat(messagesOf(nothingOnOffer)).singleElement().satisfies(message ->
@@ -167,9 +167,12 @@ class ChatTurnNodeTest {
         llm.queueChat(turn("Adding it now.", Brief.empty(),
                 List.of(new EditRequest(EditOp.ADD, "beer", null, null, null, null))));
 
+        state.put(PlannerState.MESSAGES, new ArrayList<>(List.of(Map.of("role", "USER", "content", "add beer", "at", "t"))));
+
         Map<String, Object> update = node.apply(new PlannerState(state));
 
-        assertThat(update.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of());
+        // The question back, with the rows it is about listed under it.
+        assertThat(update.get(PlannerState.RECOMMENDATIONS)).isEqualTo(List.of(ACTIVITY_NAME, "Beer Spa"));
         assertThat(messagesOf(update)).singleElement().satisfies(message ->
                 assertThat(message.get("content")).contains("which one").doesNotContain("could not find"));
     }
@@ -329,6 +332,13 @@ class ChatTurnNodeTest {
     /** A thread that already generated: the packages are in RESULT and the brief is the one they came from. */
     private static PlannerState stateWithPackages(Brief brief) {
         return new PlannerState(stateMapWithPackages(brief));
+    }
+
+    /** A ready draft with this as the organizer's latest message. */
+    private static PlannerState asked(String text) {
+        Map<String, Object> state = stateMapWithPackages(readyBrief());
+        state.put(PlannerState.MESSAGES, new ArrayList<>(List.of(Map.of("role", "USER", "content", text, "at", "t"))));
+        return new PlannerState(state);
     }
 
     private static Map<String, Object> stateMapWithPackages(Brief brief) {

@@ -480,10 +480,9 @@ test('"we want to shoot": what fits is listed in the chat, one under the other, 
 
     const offered = await screen.findByRole('list', {name: 'Suggested activities'});
     expect(within(offered).getAllByRole('listitem')).toHaveLength(3);
-    // The name is a link to the activity's card; no price, duration only.
+    // The name is a link to the activity's card; under it the duration and the price per person.
     expect(within(offered).getByRole('button', {name: 'AK-47 shooting'})).toHaveAttribute('aria-haspopup', 'dialog');
-    expect(within(offered).getAllByText('1h 30m').length).toBeGreaterThan(0);
-    expect(within(offered).queryByText(/€/)).not.toBeInTheDocument();
+    expect(within(offered).getAllByText('1h 30m · from €89 / person').length).toBeGreaterThan(0);
     expect(within(offered).getByRole('button', {name: 'Add Pistol + AK combo to the trip draft'}))
         .toHaveTextContent('Add');
     // Once the organizer has written, the tags are gone.
@@ -580,7 +579,6 @@ test('"+ Add ..." tags: a tap lists that kind in the chat, each with its own Add
     expect(JSON.parse(window.localStorage.getItem('myhive-ai-said')).lines.map((line) => line.content))
         .toEqual(['Add shooting', 'Which one would you prefer? Tap a name to see it, or add it.']);
     expect(within(dock).getByRole('button', {name: 'Continue chatting'})).toBeInTheDocument();
-    expect(within(dock).queryByText(/€/)).not.toBeInTheDocument();
     // The tag and its list cost no chat turn.
     expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
     expect(aiPlannerApi.editDraft).not.toHaveBeenCalled();

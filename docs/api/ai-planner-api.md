@@ -226,6 +226,15 @@ edited `generation`, like a remove or a swap. A loosely typed name still finds
 its row ("river bot experience" is the River Boat Cruise): every telling word has to be a
 word of the catalog name, a typo apart at most, and exactly one row may fit.
 
+What is listed is not the model's guess from the catalog's names. The organizer's message is
+read against each activity's name, one-liner and categories (`CatalogSearch`): a wish names
+one or more kinds ("boat", "strippers", "dinner"); activities that are every kind asked for
+come first and alone; when none is - there is no boat with a show - the best of each kind are
+listed side by side and the reply says so. Nothing is filled up with activities that merely
+share a category, and what the draft already holds is left out. An add is carried out only
+when it was ordered ("add …", "put … in") or picks from the list the turn before showed; a
+bare "river cruise" gets the list.
+
 An edit is one model call: the copy is not rewritten for it (`edit.textsRefreshed` is
 `false`); only a day or package title that names an activity the edit took out falls back
 to its stock name. A move to the day the activity is on already is rejected with
@@ -237,7 +246,8 @@ changed. The first time it is asked, nothing is rebuilt: the reply says what it 
 ("Yes, rebuild: 3 days, 10 people", "No, keep my plan"). Asked for again on the next turn,
 the generation starts. Each is
 a catalog row — `{ "activityId", "name", "oneLine", "durationMinutes", "pricePerPerson",
-"imageUrl" }`, `pricePerPerson` in whole euros for the brief's group (group minimum
+"fromPricePerPerson", "imageUrl" }`; `fromPricePerPerson` is what adding it puts on the
+package's own "from … / person" and is the figure to show; `pricePerPerson` in whole euros for the brief's group (group minimum
 included), `durationMinutes` null when unknown. Show the first as the top match with
 **Add**, the rest as `+ name` tags; add one with `POST /ai/sessions/{token}/edits`.
 They stay until the next chat turn, also on `GET /ai/sessions/{token}`.
