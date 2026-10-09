@@ -106,7 +106,7 @@ function AiPlannerPage({pollIntervalMs}) {
     const [draftFrom, setDraftFrom] = useState(0);
     const [chatted, setChatted] = useState(false); // the organizer has asked for a change (a message, an edit)
     const [showAll, setShowAll] = useState(false); // the chat brought every trim back
-    const [handoff, setHandoff] = useState(null); // {activityIds, groupSize} once a trim is picked
+    const [handoff, setHandoff] = useState(null); // {activityIds, groupSize, activityDays} once a trim is picked
     const [handingOff, setHandingOff] = useState(false);
     const [handoffError, setHandoffError] = useState(false);
     const [preview, setPreview] = useState(null); // the draft row or recommendation whose card is open
@@ -273,7 +273,14 @@ function AiPlannerPage({pollIntervalMs}) {
         try {
             const picked = await pickIntoCart();
             setDockOpen(false);
-            setHandoff({activityIds: picked.tripItems.map((a) => a.activityId), groupSize: picked.groupSize});
+            // The day each activity is planned for goes with the vote, so the group sees the plan by day.
+            const activityDays = {};
+            (activePkg?.days || []).forEach((day) => day.items.forEach((item) => {
+                activityDays[item.activityId] = day.dayNumber;
+            }));
+            setHandoff({
+                activityIds: picked.tripItems.map((a) => a.activityId), groupSize: picked.groupSize, activityDays,
+            });
         } catch (e) {
             setHandoffError(true);
         } finally {
@@ -548,6 +555,7 @@ function AiPlannerPage({pollIntervalMs}) {
                 destinationName={destination?.name}
                 destinationSlug={destination?.slug}
                 activityIds={handoff?.activityIds || []}
+                activityDays={handoff?.activityDays}
                 numberOfTravelers={handoff?.groupSize}
                 startDate={trip.tripStartDate}
                 endDate={trip.tripEndDate}

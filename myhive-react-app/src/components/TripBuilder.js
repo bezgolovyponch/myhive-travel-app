@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
@@ -25,6 +25,7 @@ import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} fro
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
 import {useLocalePath, useT} from '../i18n';
+import {groupByDay} from '../utils/voteDays';
 import './TripBuilder.css';
 
 const VISIBLE_CATEGORY_COUNT = 12;
@@ -835,15 +836,25 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                         onRemove={() => dispatch({type: 'REMOVE_PACKAGE_FROM_TRIP', packageId: group.packageId})}
                     />
                 ))}
-                {standalone.map(item => (
-                    <PlanRow
-                        key={item.id}
-                        name={item.name}
-                        row={tallyById[item.id]}
-                        onOpen={() => setPreviewActivity(item)}
-                        onRemove={() => handleRemoveActivity(item.id)}
-                    />
-                ))}
+                {/* Day by day when the plan came with days (from the planner); one list otherwise. */}
+                {(groupByDay(standalone, item => tallyById[item.id]?.dayNumber ?? null, state.tripStartDate,
+                    n => t('dashboard.day', {n})) || [{dayNumber: null, label: null, rows: standalone, plain: true}])
+                    .map(group => (
+                        <Fragment key={group.dayNumber ?? 'none'}>
+                          {!group.plain && (
+                              <li className="vd-day">{group.label ?? t('dashboard.noDay')}</li>
+                          )}
+                          {group.rows.map(item => (
+                              <PlanRow
+                                  key={item.id}
+                                  name={item.name}
+                                  row={tallyById[item.id]}
+                                  onOpen={() => setPreviewActivity(item)}
+                                  onRemove={() => handleRemoveActivity(item.id)}
+                              />
+                          ))}
+                        </Fragment>
+                    ))}
                 {droppedRows.map(row => (
                     <PlanRow
                         key={row.activityId}

@@ -56,6 +56,10 @@ public class VoteSessionActivity {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
+    /** The day of the trip it is planned for (1 = the first day); null when the vote has no day plan. */
+    @Column(name = "day_number")
+    private Integer dayNumber;
+
     /** Set while the organiser has dropped this activity from the running vote; null = on the ballot. */
     @Column(name = "excluded_at")
     private LocalDateTime excludedAt;

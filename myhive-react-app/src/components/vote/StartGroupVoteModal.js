@@ -158,7 +158,7 @@ function SentMessage({ message }) {
 // is picked here, so WhatsApp opens with the link in the same tap, before the
 // server answers. Dates are asked for only when the trip never captured them.
 function StartGroupVoteModal({
-    isOpen, onClose, destinationId, destinationName, destinationSlug, activityIds, numberOfTravelers,
+    isOpen, onClose, destinationId, destinationName, destinationSlug, activityIds, activityDays, numberOfTravelers,
     startDate, endDate, voteMode = 'CART', quizResponses = null, budget = null, onLaunched,
 }) {
     const t = useT('voteComponents');
@@ -232,7 +232,7 @@ function StartGroupVoteModal({
                 })
                 : await voteApi.createCartSession({
                     destinationId, ...contact, shareToken, managerToken, numberOfTravelers,
-                    startDate: tripStart, endDate: tripEnd, activityIds,
+                    startDate: tripStart, endDate: tripEnd, activityIds, activityDays,
                 });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
             if (session.managerToken) {

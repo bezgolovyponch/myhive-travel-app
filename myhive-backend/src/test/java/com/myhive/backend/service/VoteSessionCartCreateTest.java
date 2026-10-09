@@ -73,6 +73,30 @@ class VoteSessionCartCreateTest {
         assertThat(ballot.get(1).getActivityName()).isEqualTo(expectedSecondName);
     }
 
+    /** The planner's day plan travels with the vote: each row keeps its day, and friends are served it. */
+    @Test
+    void createCartSession_keepsTheDayOfEachActivity_andServesItToVoters() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity barCrawl = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Bar Crawl", new BigDecimal("45.00")));
+        Activity karting = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Karting", new BigDecimal("60.00")));
+        Activity brunch = activityRepository.saveAndFlush(
+                TestDataFactory.activity(prague, "Brunch", new BigDecimal("20.00")));
+        VoteSessionCartCreateRequest request =
+                cartRequest(prague.getId(), List.of(barCrawl.getId(), karting.getId(), brunch.getId()));
+        // Brunch is left without a day.
+        request.setActivityDays(java.util.Map.of(barCrawl.getId(), 1, karting.getId(), 2));
+
+        VoteSessionResponse response = voteSessionService.createCartSession(request);
+
+        VoteSession session = voteSessionRepository.findByShareToken(response.getShareToken()).orElseThrow();
+        assertThat(voteSessionActivityRepository.findBySessionIdOrderBySortOrder(session.getId()))
+                .extracting(VoteSessionActivity::getDayNumber).containsExactly(1, 2, null);
+        assertThat(voteSessionService.getActivities(response.getShareToken(), "en"))
+                .extracting(com.myhive.backend.dto.VoteActivityResponse::getDayNumber).containsExactly(1, 2, null);
+    }
+
     @Test
     void createCartSession_allowsActivityWithoutCategories() {
         // Unlike the quiz flow there is no quiz-category eligibility check.

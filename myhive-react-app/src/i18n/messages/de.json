@@ -621,6 +621,8 @@
     "dashboard": {
       "eyebrow": "{destination}-JGA · {dates}",
       "eyebrowNoDates": "{destination}-JGA",
+      "day": "Tag {n}",
+      "noDay": "Später hinzugefügt",
       "organiser": "Organisator",
       "title": "Euer Wochenende",
       "voted": "{voted} von {total} haben abgestimmt",
@@ -643,6 +645,8 @@
       "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten.",
       "keep": "{keep}/{votes} dafür",
       "planTitle": "Der Plan",
+      "day": "Tag {n}",
+      "noDay": "Später hinzugefügt",
       "fromPerPerson": "ab {price} p. P.",
       "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
       "backToPlan": "Zurück zum Plan",

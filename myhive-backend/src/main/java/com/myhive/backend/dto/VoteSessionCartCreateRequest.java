@@ -40,6 +40,12 @@ public class VoteSessionCartCreateRequest {
     @Size(max = 50, message = "activityIds may not exceed 50")
     private List<UUID> activityIds;
 
+    /**
+     * Optional: the day of the trip each activity is planned for (1 = the first day), as the planner's
+     * trip draft has them. Activities left out, and votes sent without it, have no day.
+     */
+    private java.util.Map<UUID, @Min(1) @Max(31) Integer> activityDays;
+
     /** Locale the initiator is browsing in ("de"); drives the language of the vote emails. Null = English. */
     @Size(max = 8) private String locale;
 }
