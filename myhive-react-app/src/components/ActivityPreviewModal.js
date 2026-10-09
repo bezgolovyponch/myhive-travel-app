@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AppModal from './AppModal';
 import api from '../services/api';
+import { formatDuration } from '../utils/format';
 import { useLocalePath, useT } from '../i18n';
 import './ActivityPreviewModal.css';
 
@@ -16,6 +17,7 @@ import './ActivityPreviewModal.css';
  */
 function ActivityPreviewModal({ activity: given, activityId, link, onClose, closeLabel, action }) {
     const t = useT('cards');
+    const tDuration = useT('activityDetail.duration');
     const lp = useLocalePath();
     const [loaded, setLoaded] = useState(null);
     const needsLoad = Boolean(given && activityId && given.description === undefined);
@@ -57,12 +59,9 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
 
     // No per-person price: the plan shows one "from" price for the group.
     const meta = [];
-    if (activity.duration != null) {
-        // Whole hours read "3h"; anything else keeps its minutes ("1 h 30 min"), never rounded up.
-        const hours = Math.floor(activity.duration / 60);
-        const minutes = activity.duration % 60;
-        meta.push(minutes === 0 ? t('durationHours', {hours})
-            : [hours && `${hours} h`, `${minutes} min`].filter(Boolean).join(' '));
+    const durationText = formatDuration(activity.duration, tDuration);
+    if (durationText) {
+        meta.push(durationText);
     }
     if (activity.categories && activity.categories.length > 0) {
         meta.push(activity.categories.join(' · '));
@@ -116,6 +115,17 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
                 </>
             )}
         >
+            {/* What you get is the first thing under the title, before the picture and the story. */}
+            {includedItems.length > 0 && (
+                <div className="activity-preview-includes">
+                    <h3 className="activity-preview-includes-title">{t('whatsIncluded')}</h3>
+                    <ul className="activity-preview-includes-list">
+                        {includedItems.map((item) => (
+                            <li key={item}>{item}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             {activity.imageUrl && (
                 <img src={activity.imageUrl} alt={activity.name} className="activity-preview-image" />
             )}
@@ -127,16 +137,6 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
                     ? activity.description
                     : <span className="activity-preview-no-desc">{loading ? t('loadingDetails') : t('noDescription')}</span>}
             </div>
-            {includedItems.length > 0 && (
-                <div className="activity-preview-includes">
-                    <h3 className="activity-preview-includes-title">{t('whatsIncluded')}</h3>
-                    <ul className="activity-preview-includes-list">
-                        {includedItems.map((item) => (
-                            <li key={item}>{item}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
         </AppModal>
     );
 }

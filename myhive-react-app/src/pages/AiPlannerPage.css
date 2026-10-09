@@ -93,8 +93,8 @@
 
 /* ---- result: the trip draft + the chat docked to the bottom edge ---- */
 .aip-canvas {
-    /* Room for the collapsed chat: its bar, one line and the composer. */
-    padding: 20px 16px 190px;
+    /* Room for the collapsed chat, which is only its bar. */
+    padding: 20px 16px 96px;
 }
 
 /* With the chat open the draft can still be scrolled clear of it. */
@@ -153,14 +153,34 @@
 .aip-dock-bar {
     flex: none;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
     width: 100%;
-    padding: 8px 14px;
+    padding: 6px 14px 8px;
     background: transparent;
     border: 0;
     color: var(--aip-text);
+    font: inherit;
     cursor: pointer;
+}
+
+/* The handle: a wide, flat arrow - up while the chat is put away, down while it is open. */
+.aip-dock-arrow {
+    flex: none;
+    color: var(--aip-purple-ll, #8B82E6);
+}
+
+.aip-dock-bar:hover .aip-dock-arrow {
+    color: #fff;
+}
+
+.aip-dock-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
 }
 
 .aip-dock-mark {
@@ -175,46 +195,20 @@
     font-size: 14px;
 }
 
-.aip-dock-grip {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-}
-
-.aip-dock-grip::before {
-    content: '';
-    width: 40px;
-    height: 4px;
-    border-radius: 2px;
-    background: #4a4658;
-}
-
-.aip-dock-caret {
-    flex: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1px solid #2e2b3a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #b0acbb;
-}
-
-/* Collapsed: the last thing said, on one line, above the composer. */
+/* One line: the chat's name while it is open, the last thing said while it is not. */
 .aip-dock-line {
-    flex: none;
-    padding: 0 14px 4px;
-    font-size: 12px;
-    color: #b0acbb;
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: #d8d5e3;
+    text-align: left;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.aip-dock:not(.is-open) .ai-thread-viewport,
-.aip-dock:not(.is-open) .ai-suggestions {
+/* Put away, the bar is the whole chat: no input, no tags, nothing over the page's own button. */
+.aip-dock:not(.is-open) .ai-thread {
     display: none;
 }
 
@@ -249,135 +243,83 @@
     border-radius: 14px 14px 4px 14px;
 }
 
-/* What the chat recommended: a sheet above the composer with three states - hidden (one line with
-   the count), compact (the top match as a card with Add, the rest behind "N more") and expanded
-   (every one a card, in a list that scrolls). The header is the handle: a tap toggles the list, a
-   swipe up or down on a phone steps through the states. An added one turns green ("Added ✓"). */
-.aip-suggest {
-    flex: none;
+/* Offers in the chat: one under the other, the name a link to the card, each with its own Add.
+   An added one turns green ("Added ✓") and a second tap takes it out again. */
+.aip-offers {
+    align-self: stretch;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 4px 14px 10px;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aip-offer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid #2e2b3a;
+    border-radius: 12px;
     background: #201d2a;
-    border-top: 1px solid #2e2b3a;
-    border-bottom: 1px solid #2e2b3a;
 }
 
-.aip-suggest[data-view="hidden"] {
-    padding-bottom: 4px;
-}
-
-.aip-suggest-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    /* The handle takes the vertical gesture; the page must not scroll under it. */
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-.aip-suggest-toggle {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 0;
-    background: transparent;
-    border: 0;
-    color: #b0acbb;
-    font: inherit;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor: pointer;
-}
-
-.aip-suggest-grip {
-    flex: none;
-    width: 28px;
-    height: 4px;
-    border-radius: 2px;
-    background: #4a4658;
-}
-
-.aip-suggest-title {
-    flex: 1;
-    text-align: left;
-}
-
-.aip-suggest-hide {
-    flex: none;
-    padding: 6px 8px;
-    border: 0;
-    background: transparent;
-    color: #b0acbb;
-    font: inherit;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-.aip-suggest-toggle:hover,
-.aip-suggest-hide:hover {
-    color: var(--aip-text);
-}
-
-.aip-suggest-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.aip-suggest-thumb {
+.aip-offer-thumb {
     flex: none;
     width: 40px;
     height: 40px;
-    border-radius: 11px;
+    border-radius: 9px;
     overflow: hidden;
-    background: #2c2740;
+    background: var(--aip-card-2);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    color: #c9c4fb;
 }
 
-.aip-suggest-thumb img {
+.aip-offer-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.aip-suggest-body {
+.aip-offer-body {
     flex: 1;
     min-width: 0;
 }
 
-/* One line, as in the design: the catalog's one-liner runs to 160 characters,
-   and wrapped it took the room the chat under it needs. */
-.aip-suggest-meta {
-    font-size: 12px;
-    color: #b0acbb;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.aip-suggest-name {
+.aip-offer-name {
+    display: block;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #fff;
+    font: inherit;
     font-size: 14px;
     font-weight: 700;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.35);
+    text-underline-offset: 3px;
+    cursor: pointer;
 }
 
-.aip-suggest-add {
+.aip-offer-name:hover {
+    text-decoration-color: #fff;
+}
+
+.aip-offer-meta {
+    font-size: 12px;
+    color: #b0acbb;
+}
+
+.aip-offer-add {
     flex: none;
+    min-width: 64px;
     height: 36px;
-    padding: 0 16px;
+    padding: 0 14px;
     border: 0;
     border-radius: 10px;
     background: var(--aip-purple);
@@ -388,140 +330,84 @@
     cursor: pointer;
 }
 
-.aip-suggest-add.is-added {
-    padding: 0 12px;
-    background: rgba(37, 211, 102, 0.15);
-    color: #5fdc8f;
+.aip-offer-add.is-added {
+    background: rgba(51, 201, 165, 0.14);
+    color: #5fe0bf;
 }
 
-/* "3 more": the way from the top match to the whole list. */
-.aip-suggest-more {
-    align-self: flex-start;
-    height: 28px;
-    padding: 0 10px;
-    border: 1px solid #3a3550;
-    border-radius: 999px;
-    background: transparent;
-    color: #d8d5e3;
-    font: inherit;
-    font-size: 12px;
-    white-space: nowrap;
-    cursor: pointer;
-}
-
-.aip-suggest-more:hover {
-    border-color: #5b5478;
-}
-
-/* The whole list, capped so the composer and a few lines of chat stay on screen; the scrollbar is
-   meant to be seen - it is how a desktop learns there is more. */
-.aip-suggest-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: min(240px, 40vh);
-    max-height: min(240px, 40dvh);
-    overflow-y: auto;
-    padding-right: 4px;
-    scrollbar-width: thin;
-    scrollbar-color: #4a4658 transparent;
-}
-
-.aip-suggest-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.aip-suggest-list::-webkit-scrollbar-thumb {
-    background: #4a4658;
-    border-radius: 3px;
-}
-
-.aip-suggest button:disabled {
+.aip-offer-add:disabled {
     opacity: 0.5;
     cursor: default;
 }
 
-/* What the draft could use next (its gaps next to the presets of its trim):
-   tags that ask the chat for it, in place of a stale last line. */
-/* Up to two rows of tags; a third row is cut off rather than pushing the draft up. */
-.aip-gaps {
-    flex: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    max-height: 74px;
-    padding: 2px 14px 6px;
-    overflow: hidden;
+/* The second, quieter way on from the plan: booking it without a vote. */
+.aip-cta--quiet {
+    height: 46px;
+    margin-top: 8px;
+    border: 1px solid var(--aip-line);
+    background: transparent;
+    color: var(--aip-purple-ic);
+    font-size: 14px;
+    font-weight: 600;
 }
 
-/* In the open chat the tags sit right over the input, inside its own padding. */
-.aip-dock.is-open .aip-gaps {
-    padding: 0 0 8px;
+/* The line that leads from "Ask the group" to booking without a vote. */
+.aip-cta-note {
+    margin: 16px 0 0;
+    text-align: center;
+    font-size: 13px;
+    color: var(--aip-muted);
+}
+
+.aip-cta-note + .aip-cta--quiet {
+    margin-top: 8px;
+}
+
+/* The themes the plan could take next: a question and two rows of three, right over the input. */
+.aip-themes {
+    margin-bottom: 8px;
+}
+
+.aip-themes-ask {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: #d8d5e3;
+}
+
+.aip-gaps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
 }
 
 .aip-gaps button {
-    flex: none;
-    height: 30px;
-    padding: 0 12px;
+    min-height: 36px;
+    padding: 0 8px;
     border: 1px solid #3a3550;
     border-radius: 999px;
     background: transparent;
     color: #d8d5e3;
     font: inherit;
-    font-size: 12px;
+    font-size: 13px;
+    text-align: center;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
-}
-
-/* An activity that goes in with one tap reads stronger than a theme that only asks. */
-.aip-gaps button.is-activity {
-    border-color: var(--aip-purple);
-    color: #fff;
 }
 
 .aip-gaps button:hover {
     border-color: var(--aip-purple);
-}
-
-.aip-gaps button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-/* The answers to a tag's "which one?": chips under the question, wrapping. */
-.aip-answers {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.aip-answers .ai-chip {
-    cursor: pointer;
-    font: inherit;
-    font-size: 13px;
-}
-
-.aip-answers .aip-answer-quiet {
-    background: transparent;
-    border-style: dashed;
-    color: var(--aip-muted);
-}
-
-.aip-gaps button[aria-pressed="true"] {
-    border-color: var(--aip-purple);
     color: #fff;
 }
 
-@media (max-width: 480px) {
-    .aip-gap-verb {
-        display: none;
-    }
-
-    .aip-gap-kind {
-        display: inline-block;
-    }
-
-    .aip-gap-kind::first-letter {
-        text-transform: uppercase;
-    }
+/* "Continue chatting", under a tag's list. */
+.aip-answer-quiet {
+    align-self: flex-start;
+    background: transparent;
+    border-style: dashed;
+    color: var(--aip-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
 }

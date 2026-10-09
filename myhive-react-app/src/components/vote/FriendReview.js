@@ -1,5 +1,6 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {capitalizeFirst} from '../../utils/format';
+import {groupByDay} from '../../utils/voteDays';
 import {useT} from '../../i18n';
 import './FriendVote.css';
 
@@ -10,6 +11,7 @@ const ALL = 'all';
 // one "Send to group" that sends both. Nothing here is shown again afterwards.
 function FriendReview({
     eyebrow, activities, votes, onVote, catalog, categories, recommended, onToggleRecommend, onSend, sending, error,
+    startDate,
 }) {
     const t = useT('vote');
     const [filter, setFilter] = useState(ALL);
@@ -37,7 +39,14 @@ function FriendReview({
                 <p className="fv-summary">{summary}</p>
 
                 <ul className="fv-rows">
-                    {activities.map(a => {
+                    {/* Day by day when the organiser's plan has days; one list otherwise. */}
+                    {(groupByDay(activities, a => a.dayNumber ?? null, startDate, n => t('review.day', {n}))
+                        || [{dayNumber: null, label: null, rows: activities, plain: true}]).map(group => (
+                        <Fragment key={group.dayNumber ?? 'none'}>
+                            {!group.plain && (
+                                <li className="fv-day">{group.label ?? t('review.noDay')}</li>
+                            )}
+                            {group.rows.map(a => {
                         const keep = votes[a.id] === true;
                         return (
                             <li key={a.id} className={`fv-row ${keep ? 'is-keep' : 'is-drop'}`}>
@@ -54,7 +63,9 @@ function FriendReview({
                                 </div>
                             </li>
                         );
-                    })}
+                            })}
+                        </Fragment>
+                    ))}
                     {recommendedActivities.map(a => (
                         <li key={a.id} className="fv-row is-recommended">
                             <div>

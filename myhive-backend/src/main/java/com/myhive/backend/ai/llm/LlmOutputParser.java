@@ -39,7 +39,7 @@ public class LlmOutputParser {
     /** {@code showPackage} value that brings every trim back on screen. */
     public static final String SHOW_ALL_PACKAGES = "ALL";
     /** One top match and up to three related activities: what the draft's recommendation row shows. */
-    public static final int MAX_RECOMMENDATIONS = 4;
+    public static final int MAX_RECOMMENDATIONS = 6;
     /** Longer than any catalog name; a longer string is not a name and is dropped. */
     private static final int MAX_RECOMMENDATION_CHARS = 120;
 

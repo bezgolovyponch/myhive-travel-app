@@ -128,7 +128,7 @@ public class VoteSessionService {
                 request.getInitiatorEmail(), parsePhone(request.getInitiatorPhone()), request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.QUIZ, request.getBudget(), request.getLocale());
 
-        persistBallot(session, request.getActivityIds(), activitiesById);
+        persistBallot(session, request.getActivityIds(), activitiesById, null);
 
         for (QuizResponseDTO response : quizResponses) {
             QuizQuestion question = quizQuestionRepository.findById(response.getQuestionId()).orElseThrow();
@@ -174,7 +174,7 @@ public class VoteSessionService {
                 request.getInitiatorEmail(), phone, request.getNumberOfTravelers(),
                 request.getStartDate(), request.getEndDate(), VoteMode.CART, null, request.getLocale());
 
-        persistBallot(session, activityIds, activitiesById);
+        persistBallot(session, activityIds, activitiesById, request.getActivityDays());
         sendVoteCreatedConfirmationQuietly(session);
 
         // A brand-new session has no voters yet.
@@ -334,7 +334,7 @@ public class VoteSessionService {
     }
 
     private void persistBallot(VoteSession session, List<UUID> activityIds,
-                               Map<UUID, Activity> activitiesById) {
+                               Map<UUID, Activity> activitiesById, Map<UUID, Integer> activityDays) {
         int sortOrder = 0;
         for (UUID activityId : activityIds) {
             Activity activity = activitiesById.get(activityId);
@@ -344,6 +344,7 @@ public class VoteSessionService {
             row.setActivityName(activity.getName());
             row.setPrice(activity.getPrice());
             row.setSortOrder(sortOrder++);
+            row.setDayNumber(activityDays == null ? null : activityDays.get(activityId));
             voteSessionActivityRepository.save(row);
         }
     }
@@ -390,7 +391,7 @@ public class VoteSessionService {
             // Activities the organiser dropped are no longer voted on.
             return curated.stream()
                     .filter(row -> row.getExcludedAt() == null)
-                    .map(row -> toActivityResponse(row.getActivity(), destinationSlug, lc))
+                    .map(row -> toActivityResponse(row.getActivity(), destinationSlug, lc, row.getDayNumber()))
                     .toList();
         }
 
@@ -402,7 +403,7 @@ public class VoteSessionService {
         List<Activity> activities = activityRepository.findByDestinationIdAndCategoriesIdIn(
                 session.getDestination().getId(), categoryIds);
         return activities.stream()
-                .map(activity -> toActivityResponse(activity, destinationSlug, lc))
+                .map(activity -> toActivityResponse(activity, destinationSlug, lc, null))
                 .toList();
     }
 
@@ -648,7 +649,8 @@ public class VoteSessionService {
                             row.getPrice(),
                             VoteRanking.likeCountOf(counts, row),
                             c == null ? 0 : c.getSkipCount(),
-                            row.getExcludedAt() != null);
+                            row.getExcludedAt() != null,
+                            row.getDayNumber());
                 })
                 .toList();
 
@@ -970,7 +972,8 @@ public class VoteSessionService {
         return line;
     }
 
-    private VoteActivityResponse toActivityResponse(Activity activity, String destinationSlug, String lc) {
+    private VoteActivityResponse toActivityResponse(Activity activity, String destinationSlug, String lc,
+                                                    Integer dayNumber) {
         return new VoteActivityResponse(
                 activity.getId(),
                 Translations.pick(activity.getTranslations(), lc, "name", activity.getName()),
@@ -980,6 +983,7 @@ public class VoteSessionService {
                 activity.getDuration(),
                 activity.getImageUrl(),
                 activity.getSlug(),
-                destinationSlug);
+                destinationSlug,
+                dayNumber);
     }
 }

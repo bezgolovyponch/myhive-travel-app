@@ -1,5 +1,6 @@
+import {useRef, useState} from 'react';
 import {useLocalePath, useT} from '../../i18n';
-import {addDays, formatAmount, formatDayLabel, formatDayRange} from '../../utils/format';
+import {addDays, formatAmount, formatDayLabel, formatDayRange, formatDuration} from '../../utils/format';
 import './AiPackageView.css';
 
 // The result canvas: once the planner has packages they ARE the page and the
@@ -23,17 +24,11 @@ export function priceFrom(t, pkg, perPersonKey = 'result.priceFromPerPerson') {
 // useT has no plurals: count keys are {one, other} objects.
 export const plural = (t, key, count) => t(`${key}.${count === 1 ? 'one' : 'other'}`, {count});
 
-// What the newest edit did, for the toast: the first applied op is enough.
-function lastChange(generation) {
-    if (generation.kind !== 'EDITED') return null;
-    return generation.editReport?.applied?.[0] || null;
-}
-
 // Names the latest edit put into this package, for the "AI added" badge.
 function addedNames(generation, packageKey) {
     const applied = generation.editReport?.applied || [];
     return new Set(applied
-        .filter((op) => op.packageKey === packageKey && op.op !== 'REMOVE')
+        .filter((op) => op.packageKey === packageKey && op.op !== 'REMOVE' && op.op !== 'MOVE')
         .map((op) => (op.op === 'REPLACE' ? op.replacement : op.activity)));
 }
 
@@ -43,14 +38,6 @@ const STOCK_DAY_TITLE = /^\s*(day|tag)\s*\d+\s*$/i;
 
 function isStockDayTitle(title) {
     return STOCK_DAY_TITLE.test(title);
-}
-
-// "2 h", "1 h 30 min", "45 min": how long an activity takes, short enough for a row.
-export function duration(minutes) {
-    if (!minutes) return null;
-    const hours = Math.floor(minutes / 60);
-    const rest = minutes % 60;
-    return [hours && `${hours} h`, rest && `${rest} min`].filter(Boolean).join(' ');
 }
 
 /**
@@ -64,23 +51,68 @@ export function duration(minutes) {
  * @param removing   name of the activity whose removal is in flight, if any
  * @param onOpen     (item) => void — shows the activity's card
  * @param onRemove   (pkg, item) => void — asks the planner to drop it (a chat edit)
- * @param onUndo     (packageKey) => void — back to the generation before the edit
+ * @param onMove     (pkg, item, dayNumber) => void — the row was dragged onto another day
  * @param busy       a chat turn is in flight: edits wait for it
  * @param cta        rendered under the draft (the "Ask the group" button)
  */
 function AiPackageView({
-    generation, destinationName, destinationSlug, startDate, activeKey, onTierChange, custom, onOpen, onRemove, removing,
-    onUndo, busy, cta,
+    generation, destinationName, destinationSlug, startDate, activeKey, onTierChange, custom, onOpen, onRemove, onMove, removing,
+    busy, cta,
 }) {
     const t = useT('aiPlanner');
+    const tDuration = useT('activityDetail.duration');
     const lp = useLocalePath();
     const packages = generation.packages;
     const pkg = packages.find((p) => p.key === activeKey) || packages[0];
     const brief = generation.brief || {};
     const added = addedNames(generation, pkg.key);
     const pending = generation.textsPending;
-    const change = lastChange(generation);
     const total = pkg.days.reduce((n, day) => n + day.items.length, 0);
+    // On a trip of several days a row can be dragged by its handle onto another day. One day has
+    // nowhere to move to: no handles.
+    const movable = pkg.days.length > 1 && Boolean(onMove);
+    // {activityId, fromDay, startY, dy, overDay} while a row is being dragged.
+    const [drag, setDrag] = useState(null);
+    const dragRef = useRef(null);
+    // By where the day sections lie, not by what is under the pointer: under the pointer is the row
+    // being dragged, which still belongs to the day it came from.
+    const draftRef = useRef(null);
+    const dayUnder = (y) => {
+        const sections = [...(draftRef.current?.querySelectorAll('[data-day]') || [])];
+        const hit = sections.find((el) => {
+            const box = el.getBoundingClientRect();
+            return y >= box.top && y <= box.bottom;
+        });
+        return hit ? Number(hit.getAttribute('data-day')) : null;
+    };
+    const startDrag = (e, day, item) => {
+        if (busy || pending) return;
+        e.preventDefault();
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        dragRef.current = {activityId: item.activityId, fromDay: day.dayNumber, startY: e.clientY, dy: 0,
+            overDay: day.dayNumber};
+        setDrag(dragRef.current);
+    };
+    const moveDrag = (e) => {
+        if (!dragRef.current) return;
+        dragRef.current = {...dragRef.current, dy: e.clientY - dragRef.current.startY,
+            overDay: dayUnder(e.clientY) ?? dragRef.current.overDay};
+        setDrag(dragRef.current);
+    };
+    const endDrag = (item) => {
+        const done = dragRef.current;
+        dragRef.current = null;
+        setDrag(null);
+        if (done && done.overDay !== done.fromDay) onMove(pkg, item, done.overDay);
+    };
+    // The same move without a pointer: the arrow keys on the handle step the activity a day back or on.
+    const keyMove = (e, day, item) => {
+        const step = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+        const target = pkg.days.find((d) => d.dayNumber === day.dayNumber + step);
+        if (!step || !target || busy || pending) return;
+        e.preventDefault();
+        onMove(pkg, item, target.dayNumber);
+    };
 
     return (
         <div className="aip-view">
@@ -130,7 +162,7 @@ function AiPackageView({
                 </div>
             )}
 
-            <section className="aip-draft" aria-label={t('result.draftLabel')}>
+            <section className="aip-draft" aria-label={t('result.draftLabel')} ref={draftRef}>
                 <div className="aip-draft-head">
                     <span className="aip-draft-label">{t('result.draftLabel')}</span>
                     <span>{plural(t, 'result.activities', total)}</span>
@@ -146,7 +178,9 @@ function AiPackageView({
                     // the title blank, or an edit reset it - which would read "Day 1 · Day 1".
                     const dayName = day.title && !pending && !isStockDayTitle(day.title) ? day.title : null;
                     return (
-                        <section key={day.dayNumber} className="aip-day" aria-labelledby={headingId}>
+                        <section key={day.dayNumber} aria-labelledby={headingId}
+                                 data-day={movable ? day.dayNumber : undefined}
+                                 className={`aip-day${drag && drag.overDay === day.dayNumber && drag.fromDay !== day.dayNumber ? ' is-over' : ''}`}>
                             <div className="aip-day-head">
                                 <h2 id={headingId} className="aip-day-title">
                                     {label}
@@ -158,14 +192,34 @@ function AiPackageView({
                             </div>
                             {/* An empty day stays on the page: a two-day trip must never read as one. The
                                 line says it; a "0 activities" count next to it would say it twice. */}
-                            {day.items.length === 0 && <div className="aip-day-empty">{t('result.emptyDay')}</div>}
+                            {day.items.length === 0 && (
+                                <div className="aip-day-empty">{t(movable ? 'result.dayEmpty' : 'result.emptyDay')}</div>
+                            )}
                             {day.items.map((item) => {
                                 const isAdded = added.has(item.name);
                                 const isRemoving = removing === item.name;
-                                const sub = isRemoving ? t('result.removing') : duration(item.durationMinutes);
+                                const sub = isRemoving ? t('result.removing')
+                                    : formatDuration(item.durationMinutes, tDuration);
+                                const dragging = drag?.activityId === item.activityId;
                                 return (
                                     <div key={`${item.activityId}-${item.slot}`}
-                                         className={`aip-item ${isAdded ? 'is-added' : ''} ${isRemoving ? 'is-removing' : ''}`}>
+                                         className={`aip-item ${isAdded ? 'is-added' : ''} ${isRemoving ? 'is-removing' : ''}${dragging ? ' is-dragging' : ''}`}
+                                         style={dragging ? {transform: `translateY(${drag.dy}px)`} : undefined}>
+                                        {movable && (
+                                            <button
+                                                type="button"
+                                                className="aip-grip"
+                                                aria-label={t('result.moveAria', {name: item.name})}
+                                                disabled={busy || pending}
+                                                onPointerDown={(e) => startDrag(e, day, item)}
+                                                onPointerMove={moveDrag}
+                                                onPointerUp={() => endDrag(item)}
+                                                onPointerCancel={() => { dragRef.current = null; setDrag(null); }}
+                                                onKeyDown={(e) => keyMove(e, day, item)}
+                                            >
+                                                <i className="ph ph-dots-six-vertical" aria-hidden="true"/>
+                                            </button>
+                                        )}
                                         <span className="aip-item-thumb" aria-hidden="true">
                                             {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy"/> : item.name.charAt(0)}
                                         </span>
@@ -202,18 +256,11 @@ function AiPackageView({
                 </div>
             </section>
 
+            {/* What the last change was is said in the chat, with the way back; nothing floats here. */}
             {cta}
 
             {generation.degraded && <div className="aip-hint">{t('result.degraded')}</div>}
 
-            {change && generation.parentId && (
-                <div className="aip-toast" role="status">
-                    <span>{t(`result.changed.${change.op}`, {
-                        name: change.activity, replacement: change.replacement,
-                    })}</span>
-                    <button type="button" onClick={() => onUndo(pkg.key)} disabled={busy}>{t('result.undo')}</button>
-                </div>
-            )}
         </div>
     );
 }

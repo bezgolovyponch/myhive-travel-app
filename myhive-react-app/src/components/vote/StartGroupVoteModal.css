@@ -27,10 +27,11 @@
 }
 
 .app-modal-content.start-vote-modal {
-    width: calc(100% - 16px);
+    /* A 16px gutter to the screen edge on every side, the usual minimum for a dialog on a phone. */
+    width: calc(100% - 32px);
     max-width: 390px;
-    max-height: calc(100% - 16px);
-    margin: 8px;
+    max-height: calc(100% - 32px);
+    margin: 16px;
     background: var(--sgv-sheet);
     border: 1px solid var(--sgv-line);
     border-radius: 22px;
@@ -53,8 +54,10 @@
 
 .start-vote-modal .app-modal-close-btn {
     flex: none;
-    width: 28px;
-    height: 28px;
+    /* A 44px target (the smallest a finger hits reliably); pulled out so the X sits where it did. */
+    width: 44px;
+    height: 44px;
+    margin: -8px -8px -8px 0;
     padding: 0;
     background: none;
     display: flex;
@@ -156,7 +159,7 @@
     flex: none;
     padding: 1px 7px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -208,43 +211,20 @@
 .sgv-msg {
     align-self: flex-end;
     max-width: 88%;
-    padding: 6px 8px 4px;
+    padding: 6px 9px 5px;
     border-radius: 12px 3px 12px 12px;
     background: #005c4b;
     color: #f5f5f5;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 3px;
 }
 
 .sgv-msg-text {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.35;
     color: #f5f5f5;
-}
-
-.sgv-msg-link {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 8px;
-    background: #03483b;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.sgv-msg-logo {
-    flex: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: #534ab7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
 }
 
 .sgv-msg-meta {
@@ -252,7 +232,7 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1;
     color: #a8d8cc;
 }
@@ -577,10 +557,10 @@
 
 .start-vote-modal .sgv-code {
     height: 100%;
-    max-width: 104px;
+    max-width: 112px;
     padding: 0 8px 0 12px;
     border-right: 1px solid #2e2b3a;
-    font-size: 15px;
+    font-size: 16px; /* 16px so iOS Safari does not zoom the page on focus */
 }
 
 /* A code typed by hand: just wide enough for "+" and four digits. */
@@ -621,19 +601,26 @@
     font-size: 12px;
 }
 
+/* On a narrow phone the header row has no room for the dots: the count next to them says the same. */
+@media (max-width: 400px) {
+    .start-vote-modal .sgv-choice-dots {
+        display: none;
+    }
+}
+
 /* The modal never scrolls. It is laid out for a tall phone; on a shorter screen it gives blocks up,
    least needed first: the recommendations line and the sent time, then spacing and field height, the
-   voted-out row and the footnote, the whole sample of results, and last the link preview and "or".
+   voted-out row and the footnote, the whole sample of results, and last "or".
    With the dates block (has-dates, about 85px taller) every step comes that much earlier. Measured:
-   the full modal is about 720px tall, 810px with dates. */
-@media (max-height: 750px) {
+   the full modal is about 655px tall, 775px with dates, plus the 16px gutter above and below. */
+@media (max-height: 715px) {
     .start-vote-modal .sgv-choice-foot,
     .start-vote-modal .sgv-msg-meta {
         display: none;
     }
 }
 
-@media (max-height: 700px) {
+@media (max-height: 670px) {
     .start-vote-modal .app-modal-body {
         gap: 8px;
         padding-top: 8px;
@@ -654,34 +641,33 @@
     }
 }
 
-@media (max-height: 630px) {
+@media (max-height: 600px) {
     .start-vote-modal .sgv-choice-row.is-out,
     .start-vote-modal .sgv-footer {
         display: none;
     }
 }
 
-@media (max-height: 565px) {
+@media (max-height: 540px) {
     .start-vote-modal .sgv-choice {
         display: none;
     }
 }
 
 @media (max-height: 430px) {
-    .start-vote-modal .sgv-msg-link,
     .start-vote-modal .sgv-or {
         display: none;
     }
 }
 
-@media (max-height: 835px) {
+@media (max-height: 800px) {
     .start-vote-modal.has-dates .sgv-choice-foot,
     .start-vote-modal.has-dates .sgv-msg-meta {
         display: none;
     }
 }
 
-@media (max-height: 785px) {
+@media (max-height: 755px) {
     .start-vote-modal.has-dates .app-modal-body {
         gap: 8px;
         padding-top: 8px;
@@ -702,21 +688,20 @@
     }
 }
 
-@media (max-height: 715px) {
+@media (max-height: 685px) {
     .start-vote-modal.has-dates .sgv-choice-row.is-out,
     .start-vote-modal.has-dates .sgv-footer {
         display: none;
     }
 }
 
-@media (max-height: 655px) {
+@media (max-height: 625px) {
     .start-vote-modal.has-dates .sgv-choice {
         display: none;
     }
 }
 
 @media (max-height: 520px) {
-    .start-vote-modal.has-dates .sgv-msg-link,
     .start-vote-modal.has-dates .sgv-or {
         display: none;
     }

@@ -3,6 +3,7 @@ import {useState} from 'react';
 import {useCatalog} from '../context/CatalogContext';
 import {useTrip} from '../context/TripContext';
 import LanguageSwitcher from './LanguageSwitcher';
+import {WhatsAppButton} from './WhatsAppWidget';
 import TripBuilderDropdown from './TripBuilderDropdown';
 import TripSetupModal from './TripSetupModal';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
@@ -65,7 +66,7 @@ function Header() {
     // this in-flow bar.
     <header className="header header--transparent">
       <div className="header-content">
-        <Link to="/" className="logo">
+        <Link to="/" className="logo" aria-label={t('homeAria')}>
           <img src="/logo-trivlu.svg?v=4" alt="Trivlu" className="logo-img"/>
         </Link>
         <nav className={`nav-links ${mobileNavOpen ? 'nav-open' : ''}`}>
@@ -102,6 +103,7 @@ function Header() {
       {/* Pinned action cluster: burger + cart stay fixed at the top-right of the
           viewport on every page, even as the header bar above scrolls away. */}
       <div className="header-actions">
+        <WhatsAppButton/>
         <LanguageSwitcher/>
         <div className="trip-builder-wrapper">
           <button

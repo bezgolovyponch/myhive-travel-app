@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import './SwipeCard.css';
 import ActivityPreviewModal from './ActivityPreviewModal';
+import { formatDuration } from '../utils/format';
 import { useT } from '../i18n';
 
 const SWIPE_THRESHOLD = 80;
@@ -10,6 +11,7 @@ const SWIPE_THRESHOLD = 80;
 // `fullscreen` covers the site header too (the friend's Tinder-style vote).
 function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subtitle, getCardLink, fullscreen = false }) {
     const t = useT('swipe');
+    const tDuration = useT('activityDetail.duration');
     const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
     const [infoCard, setInfoCard] = useState(null);
     const pageClass = `swipe-card-page${fullscreen ? ' swipe-card-page--fullscreen' : ''}`;
@@ -136,9 +138,9 @@ function SwipeCard({ cards, currentIndex, onSwipe, onUndo, canUndo, title, subti
                                      draggable={false} decoding="async" />
                                 <div className="swipe-card-info">
                                     <div className="swipe-card-name">{renderName(card.name)}</div>
-                                    {card.duration > 0 && (
+                                    {formatDuration(card.duration, tDuration) && (
                                         <div className="swipe-card-meta">
-                                            {t('durationHours', { hours: Math.max(1, Math.round(card.duration / 60)) })}
+                                            {formatDuration(card.duration, tDuration)}
                                         </div>
                                     )}
                                 </div>

@@ -65,6 +65,7 @@
     "gotIt": "Got it"
   },
   "header": {
+    "homeAria": "Trivlu home",
     "nav": {
       "activities": "Activities",
       "about": "About",
@@ -273,7 +274,6 @@
     "previous": "Previous",
     "next": "Next",
     "pageOf": "Page {current} of {total}",
-    "durationHours": "{hours}h",
     "viewFullPage": "View full page ↗",
     "loadingDetails": "Loading the details…",
     "noDescription": "No description yet.",
@@ -631,6 +631,8 @@
     "dashboard": {
       "eyebrow": "{destination} stag · {dates}",
       "eyebrowNoDates": "{destination} stag",
+      "day": "Day {n}",
+      "noDay": "Added later",
       "organiser": "Organiser",
       "title": "Your weekend",
       "voted": "{voted} of {total} voted",
@@ -653,6 +655,8 @@
       "lockText": "Lock it in now — no need to wait for the last votes.",
       "keep": "{keep}/{votes} keep",
       "planTitle": "The plan",
+      "day": "Day {n}",
+      "noDay": "Added later",
       "fromPerPerson": "from {price} / person",
       "recsEmpty": "Nothing yet. What your friends suggest shows up here.",
       "backToPlan": "Back to the plan",
@@ -662,7 +666,6 @@
   "swipe": {
     "processing": "Processing your choices...",
     "progress": "{current} / {total}",
-    "durationHours": "{hours}h",
     "likeOverlay": "LIKE ♥",
     "nopeOverlay": "NOPE ✕",
     "dislikeAria": "Dislike",
@@ -1216,9 +1219,14 @@
       "changed": {
         "REMOVE": "Removed {name}",
         "ADD": "Added {name}",
-        "REPLACE": "Swapped {name} for {replacement}"
+        "REPLACE": "Swapped {name} for {replacement}",
+        "MOVE": "Moved {name}"
       },
       "priceFrom": "from {price}",
+      "dayEmpty": "Nothing planned - drag an activity here",
+      "moveAria": "Move {name} to another day",
+      "completeBooking": "Complete booking",
+      "bookWithoutVote": "Don't want to ask your friends? Book it right away!",
       "priceFromPerPerson": "from {price} / person",
       "perPerson": "per person",
       "sendToPlanner": "Ask the group",
@@ -1231,12 +1239,7 @@
       "suggestions": "Suggested activities",
       "daySlot": "Day {n} · {slot}",
       "added": "Added ✓",
-      "addAria": "Add {name} to the trip draft",
-      "suggestionsCount": "Recommendations ({count})",
-      "moreCount": "{count} more",
-      "fewer": "Show less",
-      "hide": "Hide",
-      "show": "Show"
+      "addAria": "Add {name} to the trip draft"
     },
     "dock": {
       "title": "Stag Do AI",
@@ -1252,7 +1255,12 @@
       "draftSetNoCount": "Your trip plan is set. Anything to add?",
       "addVerb": "Add",
       "addKind": "Add {name}",
-      "whichOne": "Which one? Tap it to see what it is.",
+      "moveHint": "To move an activity to another day, drag it by the handle on its left and drop it on that day.",
+      "whatToAdd": "What would you like to add?",
+      "whichOne": "Which one would you prefer? Tap a name to see it, or add it.",
+      "allIn": "All of those are in your plan already.",
+      "undo": "Undo last change",
+      "undone": "Undone - your plan is back as it was.",
       "cardAbove": "It is above - tap Add to put it in the plan.",
       "keepChatting": "Continue chatting",
       "kinds": {

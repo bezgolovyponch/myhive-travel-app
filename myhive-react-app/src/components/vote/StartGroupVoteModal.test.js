@@ -85,7 +85,8 @@ test('shows the headline, what the vote gives back and the message for the group
   expect(screen.getByText('AK-47 shooting')).toBeInTheDocument();
   expect(screen.getByText('✕ 6 no')).toBeInTheDocument();
   expect(screen.getByText("Group's recommendations")).toBeInTheDocument();
-  expect(screen.getByText('Vote on the Prague stag plan')).toBeInTheDocument();
+  // The message is plain text, as WhatsApp shows one: no link card in it.
+  expect(screen.queryByText('Vote on the Prague stag plan')).not.toBeInTheDocument();
   expect(screen.getByText(/^Lads! Prague stag, .*16.*18 Oct\. Vote yes or no on the plan\. Takes 1 minute/))
       .toBeInTheDocument();
   expect(screen.getByText('We only write to you about this trip.')).toBeInTheDocument();

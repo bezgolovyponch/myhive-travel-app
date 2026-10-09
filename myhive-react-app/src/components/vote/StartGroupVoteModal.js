@@ -140,15 +140,12 @@ function GroupChoice({ t }) {
 }
 
 /** The message as WhatsApp shows one the organiser has sent: no chat around it. */
-function SentMessage({ t, destinationName, message }) {
+// Text and the sent time only, as a plain WhatsApp message: no link card.
+function SentMessage({ message }) {
     const time = useMemo(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), []);
     return (
         <div className="sgv-msg">
             <p className="sgv-msg-text">{message}</p>
-            <div className="sgv-msg-link">
-                <span className="sgv-msg-logo" aria-hidden="true">t</span>
-                <span>{t('start.chat.linkTitle', { destination: destinationName })}</span>
-            </div>
             <span className="sgv-msg-meta">{time}<ReadTicks/></span>
         </div>
     );
@@ -161,7 +158,7 @@ function SentMessage({ t, destinationName, message }) {
 // is picked here, so WhatsApp opens with the link in the same tap, before the
 // server answers. Dates are asked for only when the trip never captured them.
 function StartGroupVoteModal({
-    isOpen, onClose, destinationId, destinationName, destinationSlug, activityIds, numberOfTravelers,
+    isOpen, onClose, destinationId, destinationName, destinationSlug, activityIds, activityDays, numberOfTravelers,
     startDate, endDate, voteMode = 'CART', quizResponses = null, budget = null, onLaunched,
 }) {
     const t = useT('voteComponents');
@@ -235,7 +232,7 @@ function StartGroupVoteModal({
                 })
                 : await voteApi.createCartSession({
                     destinationId, ...contact, shareToken, managerToken, numberOfTravelers,
-                    startDate: tripStart, endDate: tripEnd, activityIds,
+                    startDate: tripStart, endDate: tripEnd, activityIds, activityDays,
                 });
             localStorage.setItem(`myhive-initiator-${session.shareToken}`, 'true');
             if (session.managerToken) {
@@ -319,7 +316,7 @@ function StartGroupVoteModal({
             )}
 
             <div className="sgv-whatsapp">
-                <SentMessage t={t} destinationName={destinationName} message={message}/>
+                <SentMessage message={message}/>
                 <div className={`sgv-field sgv-phone${e164 ? ' is-valid-phone' : ''}`}>
                     {typedCode == null ? (
                         <select

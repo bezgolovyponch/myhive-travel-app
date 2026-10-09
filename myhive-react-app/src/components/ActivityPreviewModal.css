@@ -24,7 +24,7 @@
 }
 
 .activity-preview-includes {
-    margin-top: var(--gap);
+    margin-bottom: var(--gap);
 }
 
 .activity-preview-includes-title {

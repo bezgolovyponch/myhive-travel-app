@@ -89,7 +89,7 @@
     left: auto;
     transform: none;
     margin-left: auto;
-    margin-right: calc(5rem + var(--gap-sm) + 2.5rem + var(--gap));
+    margin-right: calc(2.5rem + var(--gap-sm) + 5rem + var(--gap-sm) + 2.5rem + var(--gap));
     gap: 1.375rem;
 }
 
@@ -163,7 +163,8 @@
    border, and centering. The floating dark backing keeps the white icon legible
    over any page background. */
 .cart-btn,
-.hamburger-btn {
+.hamburger-btn,
+.wa-header-btn {
     position: relative;
     background: rgba(20, 18, 26, 0.55);
     backdrop-filter: blur(8px);
@@ -183,7 +184,8 @@
 }
 
 .cart-btn:hover,
-.hamburger-btn:hover {
+.hamburger-btn:hover,
+.wa-header-btn:hover {
     background: rgba(20, 18, 26, 0.75);
     border-color: var(--white);
 }
@@ -195,6 +197,22 @@
    later in the cascade to win (the mobile media block re-enables it). */
 .hamburger-btn {
     display: none;
+}
+
+/* WhatsApp's own green on the glyph, so the button is recognised at a glance. */
+.wa-header-btn {
+    flex: none;
+    color: #25d366;
+}
+
+.wa-header-btn:hover {
+    color: #25d366;
+}
+
+.wa-header-btn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
 }
 
 .cart-btn svg {

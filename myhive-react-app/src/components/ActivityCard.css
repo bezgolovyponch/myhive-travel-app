@@ -26,7 +26,7 @@
     color: var(--primary);
     padding: var(--gap-xs) var(--gap-sm);
     border-radius: var(--radius-full);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     align-self: flex-start;
     /* Optical alignment: the pill's box already sits flush with the card
@@ -55,11 +55,12 @@
 
 .more-info-btn {
     background: transparent;
-    color: var(--purple-l);
+    /* The light violet: the mid one (--purple-l) is under 4.5:1 on the card. */
+    color: var(--purple-ic, #CECBF6);
     border: 1px solid var(--purple-l);
     padding: var(--gap-sm) var(--gap);
     border-radius: var(--radius);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 150ms;
@@ -87,7 +88,7 @@
     padding: var(--gap-sm) var(--gap);
     border-radius: var(--radius);
     border: none;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 150ms;
@@ -121,10 +122,19 @@
         font-size: 0.875rem;
     }
 
+    /* Two cards share a phone's width: side by side the two buttons would each
+       wrap to two lines, so they stack, each on one line. */
+    .activity-actions {
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
     .more-info-btn,
     .add-to-trip-btn {
-        font-size: 0.6875rem;
-        padding: 0.375rem 0.5rem;
+        width: 100%;
+        font-size: 0.8125rem;
+        padding: 0.4375rem 0.5rem;
+        white-space: nowrap;
     }
 }
 

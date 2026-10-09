@@ -57,12 +57,12 @@ class EditMessagesTest {
         String english = EditMessages.rejectionSummary("en", rejected);
         String german = EditMessages.rejectionSummary("de", rejected);
 
-        // One line that points at the row above the chat: no "I could not find", no list of names.
-        assertThat(english).isEqualTo("The top match for \"" + expectedActivityName
-                + "\" is above - add it, or try one of the others.");
+        // One line that points at the list under it: no "I could not find", no names repeated.
+        assertThat(english).isEqualTo("Here is what comes closest to \"" + expectedActivityName
+                + "\" - tap a name to see it, or add it.");
         assertThat(english).doesNotContain("could not find").doesNotContain("Nightclub VIP Experience");
-        assertThat(german).isEqualTo("Der beste Treffer für \"" + expectedActivityName
-                + "\" steht oben - füg ihn hinzu oder nimm einen der anderen.");
+        assertThat(german).isEqualTo("Das kommt \"" + expectedActivityName
+                + "\" am nächsten - tippe einen Namen an, um es zu sehen, oder füg es hinzu.");
     }
 
     @Test
@@ -83,7 +83,7 @@ class EditMessagesTest {
 
         String summary = EditMessages.rejectionSummary("en", List.of(unknown, unknown));
 
-        assertThat(summary).containsOnlyOnce("The top match for");
+        assertThat(summary).containsOnlyOnce("Here is what comes closest to");
     }
 
     @Test
@@ -223,5 +223,13 @@ class EditMessagesTest {
                 .isEqualTo("Karting ist schon in deinem Trip-Plan.");
         // Without a pick the tier is still what tells the options apart.
         assertThat(EditMessages.appliedSummary("en", applied)).isEqualTo("Added Paintball to the Medium package.");
+    }
+
+    @Test
+    void aMove_saysTheDayItWentTo() {
+        List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.MOVE, "Karting", null, Tier.MEDIUM, 2, null, null));
+
+        assertThat(EditMessages.appliedSummary("en", applied, true)).isEqualTo("Moved Karting to day 2.");
+        assertThat(EditMessages.appliedSummary("de", applied, true)).isEqualTo("Karting auf Tag 2 verschoben.");
     }
 }

@@ -23,6 +23,12 @@ function renderHeader(initialPath = '/') {
   );
 }
 
+test('WhatsApp sits in the header next to the language picker, and the logo says where it goes', () => {
+  renderHeader();
+  expect(screen.getByRole('link', {name: /chat with us on whatsapp/i})).toHaveClass('wa-header-btn');
+  expect(screen.getByRole('link', {name: 'Trivlu home'})).toHaveAttribute('href', '/');
+});
+
 test('nav has no Destinations link', () => {
   renderHeader();
   expect(screen.queryByRole('link', {name: 'Destinations'})).toBeNull();

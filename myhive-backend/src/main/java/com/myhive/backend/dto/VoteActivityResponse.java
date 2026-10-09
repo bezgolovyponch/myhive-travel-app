@@ -18,4 +18,6 @@ public class VoteActivityResponse {
     private String imageUrl;
     private String slug;
     private String destinationSlug;
+    /** The day of the trip it is planned for (1 = the first day); null when the vote has no day plan. */
+    private Integer dayNumber;
 }

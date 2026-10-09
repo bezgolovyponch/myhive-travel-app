@@ -120,13 +120,15 @@ const voteApi = {
 
   // Cart-seeded session creation (no quiz) — the ballot is the initiator's cart.
   async createCartSession({ destinationId, initiatorEmail, initiatorPhone, shareToken, managerToken,
-                            numberOfTravelers, startDate, endDate, activityIds }) {
+                            numberOfTravelers, startDate, endDate, activityIds, activityDays }) {
     const response = await fetch(`${API_BASE_URL}/vote/sessions/cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         destinationId, initiatorEmail, initiatorPhone, shareToken, managerToken, numberOfTravelers, startDate,
         endDate, activityIds,
+        // {activityId: dayNumber} when the plan came from the planner; left out otherwise.
+        ...(activityDays && Object.keys(activityDays).length > 0 ? {activityDays} : {}),
         ...localeField(),
       }),
     });

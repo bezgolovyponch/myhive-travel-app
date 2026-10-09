@@ -1,4 +1,4 @@
-import {render, screen, within} from '@testing-library/react';
+import {render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {HelmetProvider} from 'react-helmet-async';
@@ -62,7 +62,7 @@ function renderPage(trip = {}) {
     return render(
         <HelmetProvider>
             <CatalogContext.Provider value={{state: catalogState, dispatch: jest.fn()}}>
-                <TripContext.Provider value={{state: {tripItems: [], ...trip}, dispatch: tripDispatch}}>
+                <TripContext.Provider value={{state: {tripItems: [], restored: true, ...trip}, dispatch: tripDispatch}}>
                     <MemoryRouter initialEntries={['/plan']}>
                         <Routes>
                             <Route path="/plan" element={<AiPlannerPage pollIntervalMs={5}/>}/>
@@ -112,16 +112,13 @@ test('with trip dates that match the plan, days are real dates', async () => {
     aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
     renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-18'});
 
-    // The draft is split by day: the date and the planner's name for the day head each section, the rows
-    // under it carry the duration only - never an hour or a part of the day.
-    const day1 = await screen.findByRole('region', {name: 'Fri 16 Oct · Landing night'});
-    expect(within(day1).getByText('2 activities')).toBeInTheDocument();
-    expect(within(day1).getAllByText('2 h').length).toBe(2);
-    // An empty day stays on the page, so a two-day trip never reads as one - said once, not as a count too.
-    const day2 = screen.getByRole('region', {name: 'Sat 17 Oct · Big day'});
-    expect(within(day2).getByText('Nothing planned yet')).toBeInTheDocument();
-    expect(within(day2).queryByText(/activit/)).not.toBeInTheDocument();
-    expect(screen.getByRole('region', {name: 'Sun 18 Oct · Recovery'})).toBeInTheDocument();
+    // Several days: one block per day under its date, and a row says only how long it takes -
+    // never an hour.
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+    expect(within(draft).getByText('Fri 16 Oct')).toBeInTheDocument();
+    expect(within(draft).getByText('Sun 18 Oct')).toBeInTheDocument();
+    expect(within(draft).getAllByText('2h').length).toBe(2);
+    expect(within(draft).getAllByText('Nothing planned - drag an activity here').length).toBe(2);
     expect(screen.queryByText(/20:00|Afternoon/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Day 1/)).not.toBeInTheDocument();
     expect(screen.getByText('Fri 16 – Sun 18 Oct · 10 people')).toBeInTheDocument();
@@ -151,7 +148,7 @@ test('a row without a duration has no empty subtitle under its name', async () =
     const draft = await screen.findByRole('region', {name: 'Trip draft'});
 
     expect(within(draft).getByText('Bar Crawl')).toBeInTheDocument();
-    expect(within(draft).getAllByText('2 h')).toHaveLength(1);
+    expect(within(draft).getAllByText('2h')).toHaveLength(1);
     expect(draft.querySelectorAll('.aip-item-sub')).toHaveLength(1);
 });
 
@@ -282,7 +279,7 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(within(draft).getByText('Karting')).toBeInTheDocument();
     // Split by day, the rows carrying the duration only - the day is the section's heading.
     expect(within(draft).getByRole('region', {name: 'Day 1 · Landing night'})).toBeInTheDocument();
-    expect(within(draft).getAllByText('2 h').length).toBeGreaterThan(0);
+    expect(within(draft).getAllByText('2h').length).toBeGreaterThan(0);
     // The draft's total and, under it, the one day's count: the same two here.
     expect(within(draft).getAllByText('2 activities')).toHaveLength(2);
     // One price for the whole group at the foot of the draft, none per activity.
@@ -297,12 +294,11 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(screen.getByText('3 days · 10 people')).toBeInTheDocument();
     // With the three trims on offer the docked chat says so, in place of the brief talk before it.
     expect(within(screen.getByRole('region', {name: 'Stag Do AI'}))
-        .getAllByText('Your three options are ready. Switch between them, or tell me what to change.').length)
-        .toBeGreaterThan(0);
+        .getAllByText(/^Your three options are ready\. Switch between them/).length).toBeGreaterThan(0);
 
-    // A tap on a trim shows it; the other two stay a tap away - nothing has been changed or chosen yet.
+    // Looking at a trim is not choosing it: its plan shows and all three stay up.
     await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
-    expect(screen.getByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: /Premium/})).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByText('Karting')).not.toBeInTheDocument();
     expect(within(draft).getByText('VIP Club')).toBeInTheDocument();
@@ -319,12 +315,10 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(bar).toHaveAttribute('aria-expanded', 'true');
     expect(within(dock).queryByText('Building your three options…')).not.toBeInTheDocument();
     expect(within(dock).queryByText('Friday evening to Sunday')).not.toBeInTheDocument();
-    // Only trims were tapped above, nothing changed: the three options are still on offer.
-    expect(within(dock).getAllByText('Your three options are ready. Switch between them, or tell me what to change.')
-        .length).toBeGreaterThan(0);
-    expect(within(dock).queryByText('Your trip plan is set for 10. Anything to add?')).not.toBeInTheDocument();
-    // The hand-off sits under the draft, reachable whether the chat is open or not.
+    // The hand-off sits under the draft. Booking without a vote is offered once the plan is the
+    // organizer's own, not while they are still looking at the three options.
     expect(screen.getByRole('button', {name: 'Ask the group'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Complete booking'})).not.toBeInTheDocument();
     // Its top bar collapses it and opens it again.
     await userEvent.click(bar);
     expect(within(dock).getByRole('button', {name: 'Open chat'})).toHaveAttribute('aria-expanded', 'false');
@@ -387,7 +381,8 @@ test('an applied edit updates the packages in place and marks what the AI added'
     expect(screen.getByText('Swapping it now.')).toBeInTheDocument();
     const row = screen.getByText('River Cruise').closest('.aip-item');
     expect(within(row).getByText('AI added')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Swapped Karting for River Cruise');
+    // The change is said in the chat only: nothing floats over the page.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
 test('× drops the activity from the draft without a chat turn, and Undo goes back to the generation before', async () => {
@@ -414,14 +409,18 @@ test('× drops the activity from the draft without a chat turn, and Undo goes ba
 
     expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1', {op: 'REMOVE', activityId: 'id-Karting', packageKey: 'MEDIUM'});
     expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
-    expect(await screen.findByRole('status')).toHaveTextContent('Removed Karting');
-    expect(screen.queryByText('Karting')).not.toBeInTheDocument();
+    // The chat says what went, and the way back is offered there - not in a notice on the page.
+    const dock = screen.getByRole('region', {name: 'Stag Do AI'});
+    expect(await within(dock).findByText('Dropped Karting from the Medium package.')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('region', {name: 'Trip draft'})).queryByText('Karting')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Undo'}));
+    await userEvent.click(within(dock).getByRole('button', {name: 'Undo last change'}));
 
     expect(aiPlannerApi.getGeneration).toHaveBeenCalledWith('gen-1');
     expect(aiPlannerApi.selectPackage).toHaveBeenCalledWith('gen-1', 'MEDIUM');
-    expect(await screen.findByText('Karting')).toBeInTheDocument();
+    expect(await within(screen.getByRole('region', {name: 'Trip draft'})).findByText('Karting')).toBeInTheDocument();
+    expect(within(dock).getByText('Undone - your plan is back as it was.')).toBeInTheDocument();
 });
 
 test('"Ask the group" picks the trim, fills the cart and opens the contact step', async () => {
@@ -450,7 +449,7 @@ const rec = (name, over = {}) => ({
     activityId: `id-${name}`, name, oneLine: null, durationMinutes: 90, pricePerPerson: 89, imageUrl: null, ...over,
 });
 
-test('"we want to shoot": the top match and related tags sit above the open chat, one tap adds one', async () => {
+test('"we want to shoot": what fits is listed in the chat, one under the other, each with its own Add', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
     aiPlannerApi.sendMessage.mockResolvedValue({
@@ -479,14 +478,15 @@ test('"we want to shoot": the top match and related tags sit above the open chat
     // The trim on screen goes with the message: it is the one draft the turn may change.
     expect(aiPlannerApi.sendMessage).toHaveBeenCalledWith('tok-1', 'We want to shoot kalashnikov', 'MEDIUM');
 
-    const offered = await screen.findByRole('group', {name: 'Suggested activities'});
-    expect(within(offered).getByText('AK-47 shooting')).toBeInTheDocument();
-    // No price in the draft's chat: duration only (the draft shows one "from" total).
-    expect(within(offered).getByText('1 h 30 min')).toBeInTheDocument();
-    // The other two are a tap away, as cards of their own.
-    await userEvent.click(within(offered).getByRole('button', {name: '2 more'}));
+    const offered = await screen.findByRole('list', {name: 'Suggested activities'});
+    expect(within(offered).getAllByRole('listitem')).toHaveLength(3);
+    // The name is a link to the activity's card; under it the duration and the price per person.
+    expect(within(offered).getByRole('button', {name: 'AK-47 shooting'})).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(within(offered).getAllByText('1h 30m · from €89 / person').length).toBeGreaterThan(0);
     expect(within(offered).getByRole('button', {name: 'Add Pistol + AK combo to the trip draft'}))
         .toHaveTextContent('Add');
+    // Once the organizer has written, the tags are gone.
+    expect(screen.queryByRole('group', {name: 'What the plan could take next'})).not.toBeInTheDocument();
     // A wish is not an edit: the draft is unchanged until a tap.
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 
@@ -495,35 +495,10 @@ test('"we want to shoot": the top match and related tags sit above the open chat
     expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1',
         {op: 'ADD', activityId: 'id-AK-47 shooting', packageKey: 'MEDIUM'});
     expect(aiPlannerApi.sendMessage).toHaveBeenCalledTimes(1);
-    // In the draft now; the card turns into the way back out.
+    // In the draft now; the list has done its job and is gone.
     const draft = screen.getByRole('region', {name: 'Trip draft'});
     expect(await within(draft).findByText('AK-47 shooting')).toBeInTheDocument();
-    const added = within(offered).getByRole('button', {name: 'Remove AK-47 shooting'});
-    expect(added).toHaveTextContent('Added ✓');
-
-    await userEvent.click(added);
-    expect(aiPlannerApi.editDraft).toHaveBeenLastCalledWith('tok-1',
-        {op: 'REMOVE', activityId: 'id-AK-47 shooting', packageKey: 'MEDIUM'});
-});
-
-test('a new chat turn brings the recommendations back after "Hide", even with the same names', async () => {
-    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
-    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
-    aiPlannerApi.sendMessage.mockResolvedValue({
-        messages: [{role: 'ASSISTANT', content: 'It is above - tap Add.', at}],
-        suggestedReplies: [], generation: null, edit: null,
-        recommendations: [rec('AK-47 shooting'), rec('Paintball')],
-    });
-    renderPage();
-    await userEvent.type(await screen.findByRole('textbox', {name: 'Message Stag Do AI'}), 'shooting{Enter}');
-    const offered = await screen.findByRole('group', {name: 'Suggested activities'});
-    await userEvent.click(within(offered).getByRole('button', {name: 'Hide'}));
-    expect(within(offered).queryByRole('button', {name: 'Add AK-47 shooting to the trip draft'})).not.toBeInTheDocument();
-
-    await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'shooting again{Enter}');
-
-    expect(await within(offered).findByRole('button', {name: 'Add AK-47 shooting to the trip draft'}))
-        .toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('list', {name: 'Suggested activities'})).not.toBeInTheDocument());
 });
 
 test('the chat brings the trims back ("what were the other options?") and switches to one ("show me Premium")', async () => {
@@ -536,9 +511,9 @@ test('the chat brings the trims back ("what were the other options?") and switch
             suggestedReplies: [], generation: null, showPackage: 'PREMIUM'});
     renderPage();
 
-    // A tap only switches the trim on screen; the first message makes the plan the organizer's own.
+    // Looking at a trim keeps all three up; writing to the chat makes the one on screen the plan.
     await userEvent.click(await screen.findByRole('tab', {name: /Medium/}));
-    expect(screen.getByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'what were the other options?{Enter}');
     expect(await screen.findByRole('tablist', {name: 'Package trims'})).toBeInTheDocument();
@@ -549,13 +524,13 @@ test('the chat brings the trims back ("what were the other options?") and switch
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
 });
 
-test('"+ Add ..." tags: a tap asks which one, an answer shows its card with Add, and nothing is a chat turn until Add', async () => {
+test('"+ Add ..." tags: a tap lists that kind in the chat, each with its own Add, and nothing is a chat turn until Add', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     const shooting = {
         categorySlug: 'guns-and-bullets', name: 'Guns & Bullets', options: [
             {activityId: 'id-AK', name: 'AK-47 and Glock', durationMinutes: 90, oneLine: 'Two guns'},
             {activityId: 'id-Sniper', name: 'Sniper Day', durationMinutes: 120},
-            // Karting is in the Medium plan already: never an answer.
+            // Karting is in the Medium plan already.
             {activityId: 'id-Karting', name: 'Karting', durationMinutes: 45},
         ],
     };
@@ -567,6 +542,10 @@ test('"+ Add ..." tags: a tap asks which one, an answer shows its card with Add,
             PREMIUM: [{categorySlug: 'extreme', name: 'Extreme', options: []}],
         },
     }));
+    aiPlannerApi.sendMessage.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'Plenty - pick a kind.', at}], suggestedReplies: [],
+        generation: null, recommendations: [],
+    });
     aiPlannerApi.editDraft.mockResolvedValue({
         messages: [{role: 'ASSISTANT', content: 'Added AK-47 and Glock to the Medium package.', at}],
         suggestedReplies: [], generation: null, recommendations: [],
@@ -578,33 +557,31 @@ test('"+ Add ..." tags: a tap asks which one, an answer shows its card with Add,
     // The stale last line of the brief talk is gone; a fresh chat is not offered on the page.
     expect(within(dock).queryByText('On it - building your three options now.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /New chat/})).not.toBeInTheDocument();
+    // The kinds are there under the options from the start, with no question asked.
     // The tags of the trim on screen, worded by kind; a category with no wording goes by its name.
-    const tags = within(dock).getByRole('group', {name: 'What the plan could take next'});
+    const tags = await within(dock).findByRole('group', {name: 'What the plan could take next'});
     expect(within(tags).getByRole('button', {name: '+ Add shooting'})).toBeInTheDocument();
     expect(within(tags).getByRole('button', {name: '+ Add spa'})).toBeInTheDocument();
     expect(within(tags).queryByText(/adrenaline/)).not.toBeInTheDocument(); // another trim's
 
     await userEvent.click(within(tags).getByRole('button', {name: '+ Add shooting'}));
 
-    // The chat asks which one; the answers are the kind's activities, plus the way back to typing.
-    const answers = await within(dock).findByRole('group', {name: 'Which one? Tap it to see what it is.'});
-    expect(within(answers).getByRole('button', {name: 'Sniper Day'})).toBeInTheDocument();
-    expect(within(answers).queryByRole('button', {name: 'Karting'})).not.toBeInTheDocument();
-    expect(within(answers).getByRole('button', {name: 'Continue chatting'})).toBeInTheDocument();
-    expect(within(dock).queryByText(/€/)).not.toBeInTheDocument();
-
-    await userEvent.click(within(answers).getByRole('button', {name: 'AK-47 and Glock'}));
-
-    // The answer is a card with Add; the rest of its kind sits behind "1 more". Still no chat turn.
-    const offered = within(dock).getByRole('group', {name: 'Suggested activities'});
-    expect(within(offered).getByText('AK-47 and Glock')).toBeInTheDocument();
-    await userEvent.click(within(offered).getByRole('button', {name: '1 more'}));
-    expect(within(offered).getByRole('button', {name: 'Add Sniper Day to the trip draft'})).toBeInTheDocument();
-    expect(within(dock).getByText('It is above - tap Add to put it in the plan.')).toBeInTheDocument();
+    // The chat lists the kind's activities one under the other, plus the way back to typing.
+    expect(await within(dock).findByText('Add shooting')).toBeInTheDocument();
+    expect(within(dock).getByText('Which one would you prefer? Tap a name to see it, or add it.')).toBeInTheDocument();
+    // A list is the answer to a theme: the themes step aside while it is up.
+    expect(within(dock).queryByRole('group', {name: 'What the plan could take next'})).not.toBeInTheDocument();
+    const offered = within(dock).getByRole('list', {name: 'Suggested activities'});
+    expect(within(offered).getByRole('button', {name: 'Sniper Day'})).toHaveAttribute('aria-haspopup', 'dialog');
+    // Karting is in the plan already: it is not offered again.
+    expect(within(offered).queryByText('Karting')).not.toBeInTheDocument();
+    // The page's own lines are kept with the chat, so a reload shows the same conversation.
+    expect(JSON.parse(window.localStorage.getItem('myhive-ai-said')).lines.map((line) => line.content))
+        .toEqual(['Add shooting', 'Which one would you prefer? Tap a name to see it, or add it.']);
+    expect(within(dock).getByRole('button', {name: 'Continue chatting'})).toBeInTheDocument();
+    // The tag and its list cost no chat turn.
     expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
     expect(aiPlannerApi.editDraft).not.toHaveBeenCalled();
-    // Three options were up: adding puts it into the one on screen, which becomes the trip draft.
-    expect(screen.getByRole('tab', {name: /Premium/})).toBeInTheDocument();
 
     await userEvent.click(within(offered).getByRole('button', {name: 'Add AK-47 and Glock to the trip draft'}));
 
@@ -612,6 +589,54 @@ test('"+ Add ..." tags: a tap asks which one, an answer shows its card with Add,
         {op: 'ADD', activityId: 'id-AK', packageKey: 'MEDIUM'});
     expect(await within(dock).findByText('Added AK-47 and Glock to the Medium package.')).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: /Premium/})).not.toBeInTheDocument();
+    // The list has done its job: the kinds are back under the chat for the next pick.
+    expect(await within(dock).findByRole('button', {name: '+ Add spa'})).toBeInTheDocument();
+    expect(within(dock).queryByRole('button', {name: 'Continue chatting'})).not.toBeInTheDocument();
+});
+
+test('no activity is offered unasked, only the kinds, and the chat put away is only its bar', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session({
+        latestReadyGeneration: readyGeneration(), status: 'READY',
+        gaps: {MEDIUM: [{categorySlug: 'czech-beer', name: 'Czech beer', options: [{activityId: 'id-Spa', name: 'Beer Spa'}]}]},
+        // What the ready-made packages would suggest is not shown as a card on its own.
+        suggestions: {MEDIUM: [{activityId: 'id-Paintball', name: 'Paintball', durationMinutes: 120}]},
+    }));
+    renderPage();
+
+    const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
+    await within(dock).findByRole('button', {name: 'Collapse chat'});
+    expect(within(dock).queryByRole('group', {name: 'Suggested activities'})).not.toBeInTheDocument();
+    expect(within(dock).queryByText('Paintball')).not.toBeInTheDocument();
+    expect(within(dock).getByRole('button', {name: '+ Add beer'})).toBeInTheDocument();
+
+    await userEvent.click(within(dock).getByRole('button', {name: 'Collapse chat'}));
+
+    // Put away: the last line and the way back in. (The thread itself is hidden by the stylesheet.)
+    expect(within(dock).getByRole('button', {name: 'Open chat'})).toHaveAttribute('aria-expanded', 'false');
+    expect(within(dock).getAllByText(/^Your three options are ready\. Switch between them/).length)
+        .toBeGreaterThan(0);
+});
+
+test('each trim shows what it could take, and the chat has one way to put it away', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const beer = [{categorySlug: 'czech-beer', name: 'Czech beer', options: [{activityId: 'id-Spa', name: 'Beer Spa'}]}];
+    aiPlannerApi.getSession.mockResolvedValue(session({
+        latestReadyGeneration: readyGeneration(), status: 'READY', gaps: {MEDIUM: beer, PREMIUM: beer},
+    }));
+    renderPage();
+
+    const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
+    await within(dock).findByRole('button', {name: 'Collapse chat'});
+    // The arrow is the one control: no second "Collapse chat" written next to it.
+    expect(within(dock).queryByText('Collapse chat')).not.toBeInTheDocument();
+    expect(within(dock).getByRole('button', {name: '+ Add beer'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
+
+    expect(await within(dock).findByRole('button', {name: '+ Add beer'})).toBeInTheDocument();
+    // Looking is still not choosing: all three stay.
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
 });
 
 test('"Continue chatting" drops the question and hands the input back', async () => {
@@ -620,14 +645,83 @@ test('"Continue chatting" drops the question and hands the input back', async ()
         latestReadyGeneration: readyGeneration(), status: 'READY',
         gaps: {MEDIUM: [{categorySlug: 'czech-beer', name: 'Czech beer', options: [{activityId: 'id-Spa', name: 'Beer Spa'}]}]},
     }));
+    aiPlannerApi.sendMessage.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'Plenty - pick a kind.', at}], suggestedReplies: [],
+        generation: null, recommendations: [],
+    });
     renderPage();
 
     const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
     await within(dock).findByRole('button', {name: 'Collapse chat'});
-    await userEvent.click(within(dock).getByRole('button', {name: '+ Add beer'}));
+    await userEvent.type(within(dock).getByRole('textbox', {name: 'Message Stag Do AI'}), 'what else is there?{Enter}');
+    await userEvent.click(await within(dock).findByRole('button', {name: '+ Add beer'}));
     await userEvent.click(await within(dock).findByRole('button', {name: 'Continue chatting'}));
 
     expect(within(dock).queryByRole('button', {name: 'Beer Spa'})).not.toBeInTheDocument();
     expect(within(dock).getByRole('button', {name: '+ Add beer'})).toBeInTheDocument();
     expect(within(dock).getByRole('textbox', {name: 'Message Stag Do AI'})).toHaveFocus();
+});
+
+test('dates and a head-count picked beforehand go into a new chat as its first message', async () => {
+    aiPlannerApi.createSession.mockResolvedValue(session({
+        messages: [{role: 'USER', content: 'Plan 2 nights in Prague for 8 of us, Fri 16 – Sun 18 Oct.', at},
+            {role: 'ASSISTANT', content: 'What is the group into?', at}],
+    }));
+    renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-18', tripTravelers: 8});
+
+    expect(await screen.findByText('What is the group into?')).toBeInTheDocument();
+    expect(aiPlannerApi.createSession).toHaveBeenCalledWith('prague', 'en', {
+        initialMessage: 'Plan 2 nights in Prague for 8 of us, Fri 16 – Sun 18 Oct.', days: 3, groupSize: 8,
+    });
+});
+
+test('with dates but a chat already under way nothing is sent on arrival', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session());
+    renderPage({tripStartDate: '2026-10-16', tripEndDate: '2026-10-18', tripTravelers: 8});
+
+    expect(await screen.findByText('Hey! Who is coming?')).toBeInTheDocument();
+    expect(aiPlannerApi.createSession).not.toHaveBeenCalled();
+    expect(aiPlannerApi.sendMessage).not.toHaveBeenCalled();
+});
+
+test('a row dragged onto another day moves the activity there; the arrow keys on its handle do the same', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [
+        {dayNumber: 1, title: 'Landing night', summary: null, items: p.days[0].items},
+        {dayNumber: 2, title: 'Big day', summary: null, items: []},
+    ]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    aiPlannerApi.editDraft.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'Moved Karting to day 2.', at}], suggestedReplies: [],
+        generation: null, recommendations: [],
+    });
+    renderPage();
+
+    const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
+    // The chat says how, where there is another day to move to.
+    expect(await within(dock).findByText(/drag it by the handle on its left/)).toBeInTheDocument();
+    const handle = screen.getByRole('button', {name: 'Move Karting to another day'});
+    handle.focus();
+    await userEvent.keyboard('{ArrowDown}');
+
+    expect(aiPlannerApi.editDraft).toHaveBeenCalledWith('tok-1',
+        {op: 'MOVE', activityId: 'id-Karting', packageKey: 'MEDIUM', dayNumber: 2});
+    expect(await within(dock).findByText('Moved Karting to day 2.')).toBeInTheDocument();
+});
+
+test('"Complete booking" comes with the organizer\'s own plan and takes it to the booking page', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const edited = readyGeneration({id: 'gen-2', kind: 'EDITED', parentId: 'gen-1'});
+    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: edited, status: 'READY'}));
+    aiPlannerApi.selectPackage.mockResolvedValue({
+        groupSize: 10, tripItems: [{activityId: 'id-Karting', name: 'Karting', price: 45}],
+    });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Complete booking'}));
+
+    expect(aiPlannerApi.selectPackage).toHaveBeenCalledWith('gen-2', 'MEDIUM');
+    await waitFor(() => expect(tripDispatch).toHaveBeenCalledWith(expect.objectContaining({type: 'SET_TRIP_ITEMS'})));
 });

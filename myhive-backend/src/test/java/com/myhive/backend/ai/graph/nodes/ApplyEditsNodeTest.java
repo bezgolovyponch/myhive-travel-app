@@ -100,7 +100,7 @@ class ApplyEditsNodeTest {
 
         assertThat(sink.calls).isEqualTo(1);
         assertThat(sink.lastParent).isEqualTo(parentGenerationId);
-        assertThat(sink.lastUsage).isEqualTo(EXPECTED_REFRESH_USAGE);
+        assertThat(sink.lastUsage).isEqualTo(LlmUsage.none());
         assertThat(sink.lastReport.applied()).singleElement().satisfies(applied -> {
             assertThat(applied.op()).isEqualTo(EditOp.REPLACE);
             assertThat(applied.activityName()).isEqualTo(beerBike.name());
@@ -112,10 +112,11 @@ class ApplyEditsNodeTest {
         assertThat(update.get(PlannerState.RESULT_GENERATION_ID)).isEqualTo(sink.editedGenerationId.toString());
         ComposedPlan edited = JsonCodec.read((String) update.get(PlannerState.RESULT), ComposedPlan.class);
         assertThat(namesIn(edited)).contains(karting.name()).doesNotContain(beerBike.name());
-        assertThat(edited.packages().get(0).description()).isEqualTo(expectedDescription);
-        assertThat(whyOf(edited, karting.id())).isEqualTo(expectedWhy);
+        // Applied as it stands: no second model call rewrites the copy, so the organizer does not wait on it.
+        assertThat(edited.packages().get(0).description()).isNotEqualTo(expectedDescription);
+        assertThat(whyOf(edited, karting.id())).isNotEqualTo(expectedWhy);
         EditReport report = reportOf(update);
-        assertThat(report.textsRefreshed()).isTrue();
+        assertThat(report.textsRefreshed()).isFalse();
         assertThat(report.tierRulesRelaxed()).isTrue();
         assertThat(report.rejected()).isEmpty();
         assertThat(update.get(PlannerState.EDITS)).isEqualTo(EXPECTED_CLEARED_EDITS);

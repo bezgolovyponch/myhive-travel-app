@@ -230,12 +230,13 @@ public class PackageEditor {
             case REMOVE -> applyRemove(current.get(), activity);
             case ADD -> applyAdd(current.get(), activity, edit.dayNumber(), edit.slot(), brief, catalogById);
             case REPLACE -> applyReplace(current.get(), activity, replacement, brief, catalogById);
+            case MOVE -> applyMove(current.get(), activity, edit.dayNumber());
         };
         if (outcome.reason() != null) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), target, outcome.reason(), outcome.detail()));
             return working;
         }
-        Violation introduced = violationIntroducedBy(current.get(), outcome.pkg(), brief, catalogById);
+        Violation introduced = violationIntroducedBy(edit.op(), current.get(), outcome.pkg(), brief, catalogById);
         if (introduced != null) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), target, EditRejectionReason.WOULD_BREAK_SCHEDULE,
                     introduced.code() + ": " + introduced.detail()));
@@ -253,7 +254,8 @@ public class PackageEditor {
      * violation present afterwards made every such package permanently un-editable — with a
      * {@code WOULD_BREAK_SCHEDULE} blaming the organizer's edit for a rule the plan already broke.
      */
-    private Violation violationIntroducedBy(PlanDraft.PackageDraft before, PlanDraft.PackageDraft after, Brief brief,
+    private Violation violationIntroducedBy(EditOp op, PlanDraft.PackageDraft before, PlanDraft.PackageDraft after,
+            Brief brief,
             Map<UUID, CatalogActivity> catalogById) {
         Set<ViolationKey> existing = new HashSet<>();
         for (Violation violation : validator.validatePackage(before, brief, catalogById)) {
@@ -266,7 +268,10 @@ public class PackageEditor {
             existing.add(ViolationKey.of(violation));
         }
         for (Violation violation : validator.validatePackage(after, brief, catalogById)) {
-            if (!existing.contains(ViolationKey.of(violation)) && !ORGANIZERS_CALL.contains(violation.code())) {
+            // Dragging a day's only activity elsewhere leaves that day free on purpose.
+            boolean freedByAMove = op == EditOp.MOVE && violation.code() == ViolationCode.EMPTY_DAY;
+            if (!existing.contains(ViolationKey.of(violation)) && !ORGANIZERS_CALL.contains(violation.code())
+                    && !freedByAMove) {
                 return violation;
             }
         }
@@ -316,9 +321,25 @@ public class PackageEditor {
             return Outcome.rejected(EditRejectionReason.ALREADY_IN_PACKAGE,
                     activity.name() + " is already in " + pkg.key());
         }
-        // An add is never turned away: with no free slot left it goes on the lightest day anyway.
+        // An add is never turned away: with no free slot left it goes on the lightest day anyway - or,
+        // when the organizer named the day, on that day, however full it is.
         return placement(pkg, activity, dayNumber, slot, brief, catalogById)
+                .or(() -> onDay(pkg, activity, dayNumber))
                 .orElseGet(() -> anywhere(pkg, activity, catalogById));
+    }
+
+    /** The named day, in the slot the activity prefers (shared when taken); empty when no such day. */
+    private static Optional<Outcome> onDay(PlanDraft.PackageDraft pkg, CatalogActivity activity, Integer dayNumber) {
+        if (dayNumber == null) {
+            return Optional.empty();
+        }
+        return pkg.days().stream().filter(day -> day.dayNumber() == dayNumber).findFirst().map(day -> {
+            Set<Slot> used = usedSlots(day);
+            List<Slot> preferred = slotPreference(activity);
+            Slot slot = preferred.stream().filter(candidate -> !used.contains(candidate)).findFirst()
+                    .orElse(preferred.get(0));
+            return Outcome.ok(withDay(pkg, insert(day, activity, slot)), dayNumber, slot, activity.id());
+        });
     }
 
     /**
@@ -339,6 +360,28 @@ public class PackageEditor {
         Slot slot = preferred.stream().filter(candidate -> !used.contains(candidate)).findFirst()
                 .orElse(preferred.get(0));
         return Outcome.ok(withDay(pkg, insert(lightest, activity, slot)), lightest.dayNumber(), slot, activity.id());
+    }
+
+    /**
+     * The activity leaves its day and goes on {@code dayNumber}, in the slot it would normally prefer
+     * (shared when that one is taken). Never refused for lack of room; a day the trip does not have is.
+     */
+    private static Outcome applyMove(PlanDraft.PackageDraft pkg, CatalogActivity activity, Integer dayNumber) {
+        Optional<Outcome> freed = removeFirstOccurrence(pkg, activity.id());
+        if (freed.isEmpty()) {
+            return Outcome.rejected(EditRejectionReason.NOT_IN_PACKAGE, activity.name() + " is not in " + pkg.key());
+        }
+        if (dayNumber != null && freed.get().dayNumber() == dayNumber) {
+            return Outcome.rejected(EditRejectionReason.ALREADY_ON_DAY, activity.name() + " is on day " + dayNumber);
+        }
+        PlanDraft.PackageDraft without = freed.get().pkg();
+        Optional<PlanDraft.DayDraft> target = without.days().stream()
+                .filter(day -> dayNumber != null && day.dayNumber() == dayNumber).findFirst();
+        if (target.isEmpty()) {
+            return Outcome.rejected(EditRejectionReason.WOULD_BREAK_SCHEDULE,
+                    "day " + dayNumber + " is not part of " + pkg.key());
+        }
+        return onDay(without, activity, dayNumber).orElseThrow();
     }
 
     private static Outcome applyReplace(PlanDraft.PackageDraft pkg, CatalogActivity activity,

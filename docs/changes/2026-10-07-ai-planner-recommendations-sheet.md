@@ -1,3 +1,6 @@
+> Superseded on 2026-10-08: the sheet above the composer was removed. Offered activities are now listed
+> in the chat itself, one per line, each with its own Add (`AiOffers`). See `docs/api/ai-planner-api.md`.
+
 # 2026-10-07 — AI planner: the recommendations above the composer are a sheet with three states
 
 ## Why

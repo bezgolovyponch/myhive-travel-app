@@ -213,15 +213,41 @@ indicator for edit turns, not just the ordinary "thinking" state.
 
 `suggestedReplies` (0–4 strings, ≤ 60 chars, never null) are tap-to-send answers to
 the question in the reply, written as the organizer would type them — render them as
-chips that send their own text. When the organizer picks something the catalog sells
-in variants (a dinner with or without a show, a boat with unlimited drinks), the
-reply asks one either/or question and the chips name those catalog variants.
+chips that send their own text. What the weekend should be built around is asked
+**once**: whatever the organizer answers, no second question about taste, a theme or
+which of two activities follows, and the packages are built (see below).
 
-`recommendations` (0–4, never null) are activities offered for the draft once packages
+`recommendations` (0–6, never null) are activities offered for the draft once packages
 exist, best match first: what the organizer asked for in general terms ("we want to
-shoot kalashnikov") and the catalog's closest options for something it lacks. Each is
+shoot kalashnikov", "add shooting" when several rows fit) and the catalog's closest
+options for something it lacks. A typed add that names **one** catalog activity ("add
+go cart") is not offered but carried out: it comes back in `edit.applied` with the
+edited `generation`, like a remove or a swap. A loosely typed name still finds
+its row ("river bot experience" is the River Boat Cruise): every telling word has to be a
+word of the catalog name, a typo apart at most, and exactly one row may fit.
+
+What is listed is not the model's guess from the catalog's names. The organizer's message is
+read against each activity's name, one-liner and categories (`CatalogSearch`): a wish names
+one or more kinds ("boat", "strippers", "dinner"); activities that are every kind asked for
+come first and alone; when none is - there is no boat with a show - the best of each kind are
+listed side by side and the reply says so. Nothing is filled up with activities that merely
+share a category, and what the draft already holds is left out. An add is carried out only
+when it was ordered ("add …", "put … in") or picks from the list the turn before showed; a
+bare "river cruise" gets the list.
+
+An edit is one model call: the copy is not rewritten for it (`edit.textsRefreshed` is
+`false`); only a day or package title that names an activity the edit took out falls back
+to its stock name. A move to the day the activity is on already is rejected with
+`ALREADY_ON_DAY`.
+
+A change of days or head-count would rebuild the organizer's own plan and drop what they
+changed. The first time it is asked, nothing is rebuilt: the reply says what it costs,
+`brief` keeps the old days and head-count, and `suggestedReplies` carries the two answers
+("Yes, rebuild: 3 days, 10 people", "No, keep my plan"). Asked for again on the next turn,
+the generation starts. Each is
 a catalog row — `{ "activityId", "name", "oneLine", "durationMinutes", "pricePerPerson",
-"imageUrl" }`, `pricePerPerson` in whole euros for the brief's group (group minimum
+"fromPricePerPerson", "imageUrl" }`; `fromPricePerPerson` is what adding it puts on the
+package's own "from … / person" and is the figure to show; `pricePerPerson` in whole euros for the brief's group (group minimum
 included), `durationMinutes` null when unknown. Show the first as the top match with
 **Add**, the rest as `+ name` tags; add one with `POST /ai/sessions/{token}/edits`.
 They stay until the next chat turn, also on `GET /ai/sessions/{token}`.
@@ -264,6 +290,22 @@ vote, so the client shows the day of each activity and no hour. Once one option 
 organizer's own (`workingPackage` set), the chat's own lines call it "your trip plan"
 and never name its tier.
 
+`POST /ai/sessions/{token}/edits` also takes `{"op": "MOVE", "activityId", "packageKey", "dayNumber"}`:
+a row dragged onto another day in the plan. The activity stays and goes on `dayNumber`, in the slot
+it would normally prefer; it is never refused for lack of room, and leaving its old day empty is
+allowed. A `dayNumber` the trip does not have is rejected (`WOULD_BREAK_SCHEDULE`). The chat confirms
+with "Moved X to day N." The chat can move too: "put karting on Saturday" comes back as a `MOVE` edit.
+
+A plan the organizer has made their own (`workingPackage` set) is not rebuilt when a message only
+shifts the taste (vibe, categories, dislikes, budget): a rebuild starts from the ready-made packages
+and would discard what they added, removed and moved. A different number of days or people still
+rebuilds it.
+
+`recommendations` now holds up to 6 activities: as many as the organizer asked for when they gave a
+number, otherwise three, and a lone match is filled up to three with related ones. The client lists
+them in the chat under the reply, one per line, the name opening the activity's card and an Add
+button on each; nothing is shown as a card above the chat any more.
+
 Travel times are never asked: `arrival`/`departure` are no longer in `missingFields`.
 A brief is ready with days, group size and a taste; an edge the organizer names is
 still used.
@@ -272,12 +314,10 @@ On the turn that starts a generation (`generation` is set) the reply never asks
 anything and `suggestedReplies` is empty: every message is refused with
 `GENERATION_IN_PROGRESS` until the packages land, so there would be nothing to tap.
 If the model asks anyway, its reply is replaced with a stock "building your three
-options" line. The one exception to "the brief is complete, build now" is the
-pairing question above: when the reply asks something and at least two of its chips
-name catalog activities, the **first** build is held back for that one answer -
-`readyToGenerate` is `true`, `generation` is `null`, the chips are there to tap -
-and the next message starts it whatever it says. Once per chat, and only before the
-first packages.
+options" line. Taste is asked once: when days and group size were known before a
+message (set by the pickers, or collected the turn before), that message starts the
+build whatever it says - with no taste in it the brief's `vibe` becomes
+`"open to anything"`.
 
 The reverse holds too: while `missingFields` is not empty, a turn never ends without
 a question. If the model's reply asks nothing, the backend asks for the first missing

@@ -19,13 +19,13 @@ final class BuildingReply {
 
     /** When the chat points at the row of activities above it instead of listing them again. */
     private static final Map<String, String> RECOMMENDING = Map.of(
-            "en", "The top match is above - add it, or try one of the others.",
-            GERMAN, "Der beste Treffer steht oben - füg ihn hinzu oder nimm einen der anderen.");
+            "en", "Here is what fits - tap a name to see it, or add it.",
+            GERMAN, "Das passt dazu - tippe einen Namen an, um es zu sehen, oder füg es hinzu.");
 
     /** When the model announced a build on a turn that builds nothing. */
     private static final Map<String, String> NOTHING_TO_BUILD = Map.of(
-            "en", "Your trip draft stays as it is. Tell me what to add, swap or take out.",
-            GERMAN, "Dein Trip-Entwurf bleibt, wie er ist. Sag mir, was dazu soll, getauscht wird oder raus kann.");
+            "en", "Your trip plan stays as it is. Tell me what to add, swap, move or take out.",
+            GERMAN, "Dein Trip-Plan bleibt, wie er ist. Sag mir, was dazu soll, getauscht, verschoben oder raus kann.");
 
     /** How a model says it is building: the words of its own instruction, in either language. */
     private static final java.util.List<String> BUILD_WORDS = java.util.List.of(
@@ -47,8 +47,31 @@ final class BuildingReply {
         return BUILD_WORDS.stream().anyMatch(lower::contains);
     }
 
+    /** Several kinds were asked for in one ("a boat with a show") and no activity is all of them. */
+    static String splitWish(String locale) {
+        return GERMAN.equalsIgnoreCase(locale)
+                ? "Beides in einem gibt es hier nicht - das kommt dem am nächsten. Nimm von jedem eins, dann habt ihr beides."
+                : "Nothing here is both in one - these come closest. Add one of each to get both.";
+    }
+
     static String recommending(String locale) {
         return RECOMMENDING.get(GERMAN.equalsIgnoreCase(locale) ? GERMAN : "en");
+    }
+
+    /**
+     * Said instead of rebuilding at once: what the change costs, and that the plan stays until they say so.
+     */
+    static String rebuildWarning(String locale, Integer days, Integer groupSize) {
+        return GERMAN.equalsIgnoreCase(locale)
+                ? "Für %d Tage und %d Leute baue ich den Plan neu - was du geändert hast, geht dabei verloren. Dein Plan bleibt erst mal, wie er ist. Soll ich neu bauen?".formatted(days, groupSize)
+                : "For %d days and %d people I rebuild the plan from scratch - what you changed in it is lost. Your plan stays as it is for now. Shall I rebuild?".formatted(days, groupSize);
+    }
+
+    /** The two answers to the warning, as the organizer would type them. */
+    static java.util.List<String> rebuildChoices(String locale, Integer days, Integer groupSize) {
+        return GERMAN.equalsIgnoreCase(locale)
+                ? java.util.List.of("Ja, neu bauen: %d Tage, %d Leute".formatted(days, groupSize), "Nein, Plan behalten")
+                : java.util.List.of("Yes, rebuild: %d days, %d people".formatted(days, groupSize), "No, keep my plan");
     }
 
     static String nothingToBuild(String locale) {

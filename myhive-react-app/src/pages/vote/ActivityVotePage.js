@@ -7,6 +7,7 @@ import FriendReview from '../../components/vote/FriendReview';
 import FriendThankYou from '../../components/vote/FriendThankYou';
 import { getOrCreateVoterToken, votedKey } from '../../utils/voterToken';
 import { dashboardPath, tripDates } from '../../utils/groupVote';
+import { dayLabel } from '../../utils/voteDays';
 import { managerKey } from '../../hooks/useOrganizerVote';
 import { pushEvent } from '../../utils/analytics';
 import { useT } from '../../i18n';
@@ -198,6 +199,7 @@ function ActivityVoteContent() {
             <FriendReview
                 eyebrow={eyebrow}
                 activities={activities}
+                startDate={session?.startDate}
                 votes={votes}
                 onVote={(id, liked) => setVotes(v => ({ ...v, [id]: liked }))}
                 catalog={catalog}
@@ -224,7 +226,10 @@ function ActivityVoteContent() {
             onUndo={handleUndo}
             canUndo={currentIndex > 0}
             title={t('activities.title')}
-            subtitle={t('activities.subtitle')}
+            // The card's day, when the organiser's plan has days: "Fri 16 Oct" over the usual line.
+            subtitle={activities[currentIndex]?.dayNumber != null
+                ? `${dayLabel(activities[currentIndex].dayNumber, session?.startDate, n => t('review.day', {n}))} · ${t('activities.subtitle')}`
+                : t('activities.subtitle')}
             getCardLink={getCardLink}
             fullscreen
         />

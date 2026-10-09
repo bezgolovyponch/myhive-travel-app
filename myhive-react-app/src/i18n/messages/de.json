@@ -55,6 +55,7 @@
     "gotIt": "Alles klar"
   },
   "header": {
+    "homeAria": "Trivlu Startseite",
     "nav": {
       "activities": "Aktivitäten",
       "about": "Über uns",
@@ -263,7 +264,6 @@
     "previous": "Zurück",
     "next": "Weiter",
     "pageOf": "Seite {current} von {total}",
-    "durationHours": "{hours} Std.",
     "viewFullPage": "Zur Detailseite ↗",
     "loadingDetails": "Details werden geladen…",
     "noDescription": "Noch keine Beschreibung.",
@@ -621,6 +621,8 @@
     "dashboard": {
       "eyebrow": "{destination}-JGA · {dates}",
       "eyebrowNoDates": "{destination}-JGA",
+      "day": "Tag {n}",
+      "noDay": "Später hinzugefügt",
       "organiser": "Organisator",
       "title": "Euer Wochenende",
       "voted": "{voted} von {total} haben abgestimmt",
@@ -643,6 +645,8 @@
       "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten.",
       "keep": "{keep}/{votes} dafür",
       "planTitle": "Der Plan",
+      "day": "Tag {n}",
+      "noDay": "Später hinzugefügt",
       "fromPerPerson": "ab {price} p. P.",
       "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
       "backToPlan": "Zurück zum Plan",
@@ -652,7 +656,6 @@
   "swipe": {
     "processing": "Deine Auswahl wird verarbeitet...",
     "progress": "{current} / {total}",
-    "durationHours": "{hours} Std.",
     "likeOverlay": "LIKE ♥",
     "nopeOverlay": "NOPE ✕",
     "dislikeAria": "Gefällt mir nicht",
@@ -1206,9 +1209,14 @@
       "changed": {
         "REMOVE": "{name} entfernt",
         "ADD": "{name} hinzugefügt",
-        "REPLACE": "{name} gegen {replacement} getauscht"
+        "REPLACE": "{name} gegen {replacement} getauscht",
+        "MOVE": "{name} verschoben"
       },
       "priceFrom": "ab {price}",
+      "dayEmpty": "Noch nichts geplant - zieh eine Aktivität hierher",
+      "moveAria": "{name} auf einen anderen Tag verschieben",
+      "completeBooking": "Buchung abschließen",
+      "bookWithoutVote": "Keine Lust auf Abstimmung? Buch direkt!",
       "priceFromPerPerson": "ab {price} p. P.",
       "perPerson": "pro Person",
       "sendToPlanner": "Frag die Gruppe",
@@ -1221,12 +1229,7 @@
       "suggestions": "Vorgeschlagene Aktivitäten",
       "daySlot": "Tag {n} · {slot}",
       "added": "Drin ✓",
-      "addAria": "{name} zum Entwurf hinzufügen",
-      "suggestionsCount": "Empfehlungen ({count})",
-      "moreCount": "{count} weitere",
-      "fewer": "Weniger anzeigen",
-      "hide": "Ausblenden",
-      "show": "Anzeigen"
+      "addAria": "{name} zum Entwurf hinzufügen"
     },
     "dock": {
       "title": "JGA-KI",
@@ -1242,7 +1245,12 @@
       "draftSetNoCount": "Dein Trip-Plan steht. Soll noch etwas dazu?",
       "addVerb": "",
       "addKind": "{name} dazu",
-      "whichOne": "Welches? Tippe eins an, um es zu sehen.",
+      "moveHint": "Um eine Aktivität auf einen anderen Tag zu legen, zieh sie am Griff links und lass sie auf dem Tag los.",
+      "whatToAdd": "Was soll noch dazu?",
+      "whichOne": "Welches darf es sein? Tippe einen Namen an, um es zu sehen, oder füg es hinzu.",
+      "allIn": "Davon ist schon alles in deinem Plan.",
+      "undo": "Letzte Änderung rückgängig machen",
+      "undone": "Rückgängig gemacht - dein Plan ist wieder wie vorher.",
       "cardAbove": "Es steht oben - tippe auf Hinzufügen, um es einzuplanen.",
       "keepChatting": "Weiter chatten",
       "kinds": {

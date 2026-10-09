@@ -20,6 +20,8 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
     public static final String FIELD_PREFERENCES = "preferences";
     public static final String FIELD_ARRIVAL = "arrival";
     public static final String FIELD_DEPARTURE = "departure";
+    /** The vibe of a group that was asked what it is into and named nothing. */
+    public static final String OPEN_TO_ANYTHING = "open to anything";
 
     public Brief {
         categorySlugs = categorySlugs == null ? List.of() : List.copyOf(categorySlugs);
@@ -31,6 +33,14 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
 
     public Brief withCategorySlugs(List<String> slugs) {
         return new Brief(days, groupSize, slugs, vibe, dislikes, budget, arrival, departure, notes);
+    }
+
+    public Brief withVibe(String newVibe) {
+        return new Brief(days, groupSize, categorySlugs, newVibe, dislikes, budget, arrival, departure, notes);
+    }
+
+    public Brief withShape(Integer newDays, Integer newGroupSize) {
+        return new Brief(newDays, newGroupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes);
     }
 
     @JsonIgnore

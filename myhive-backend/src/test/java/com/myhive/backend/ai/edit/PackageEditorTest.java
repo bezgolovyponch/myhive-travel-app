@@ -742,6 +742,72 @@ class PackageEditorTest {
         assertThat(outcome.applied()).isNotEmpty();
     }
 
+    @Test
+    void move_putsTheActivityOnTheOtherDay_evenWhenThatLeavesItsOwnDayFree() {
+        String expectedMoved = riverCruise.name();
+        // Medium: day 1 Beer Spa + Beer Bike, day 2 River Cruise alone.
+        ComposedPlan plan = basePlan();
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog,
+                List.of(new EditRequest(EditOp.MOVE, expectedMoved, null, Tier.MEDIUM, 1, null)));
+
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.op()).isEqualTo(EditOp.MOVE);
+            assertThat(applied.dayNumber()).isEqualTo(1);
+        });
+        ComposedPlan.PackageResult medium = outcome.plan().packages().stream()
+                .filter(pkg -> pkg.key() == Tier.MEDIUM).findFirst().orElseThrow();
+        assertThat(medium.days().get(0).items()).extracting(ComposedPlan.ItemResult::name).contains(expectedMoved);
+        assertThat(medium.days().get(1).items()).isEmpty();
+        // Nothing was added or lost on the way.
+        assertThat(namesIn(outcome.plan(), Tier.MEDIUM)).hasSameSizeAs(namesIn(plan, Tier.MEDIUM));
+    }
+
+    /** "Move the cruise to day 2" when it is on day 2: nothing is moved and the chat does not say it was. */
+    @Test
+    void move_toTheDayItIsOnAlready_changesNothing_andSaysSo() {
+        ComposedPlan plan = basePlan();
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog,
+                List.of(new EditRequest(EditOp.MOVE, riverCruise.name(), null, Tier.MEDIUM, 2, null)));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected ->
+                assertThat(rejected.reason()).isEqualTo(EditRejectionReason.ALREADY_ON_DAY));
+    }
+
+    /** "Add shooting to day 1": the day they named, also when it already holds as much as a day may. */
+    @Test
+    void add_withADayNamed_goesOnThatDay_howeverFullItIs() {
+        // Medium: day 1 Beer Spa + Beer Bike, day 2 River Cruise alone.
+        ComposedPlan plan = basePlan();
+        EditOutcome third = editor.apply(plan, brief, catalog,
+                List.of(new EditRequest(EditOp.ADD, shootingRange.name(), null, Tier.MEDIUM, 1, null)));
+
+        EditOutcome fourth = editor.apply(third.plan(), brief, catalog,
+                List.of(new EditRequest(EditOp.ADD, nightClub.name(), null, Tier.MEDIUM, 1, null)));
+
+        assertThat(third.applied()).singleElement().satisfies(a -> assertThat(a.dayNumber()).isEqualTo(1));
+        assertThat(fourth.applied()).singleElement().satisfies(a -> assertThat(a.dayNumber()).isEqualTo(1));
+    }
+
+    @Test
+    void move_toADayTheTripDoesNotHave_isRefused_andSoIsMovingWhatIsNotThere() {
+        ComposedPlan plan = basePlan();
+
+        EditOutcome noSuchDay = editor.apply(plan, brief, catalog,
+                List.of(new EditRequest(EditOp.MOVE, riverCruise.name(), null, Tier.MEDIUM, 9, null)));
+        EditOutcome notInThePackage = editor.apply(plan, brief, catalog,
+                List.of(new EditRequest(EditOp.MOVE, shootingRange.name(), null, Tier.MEDIUM, 1, null)));
+
+        assertThat(noSuchDay.anyApplied()).isFalse();
+        assertThat(noSuchDay.rejected()).singleElement()
+                .extracting(RejectedEdit::reason).isEqualTo(EditRejectionReason.WOULD_BREAK_SCHEDULE);
+        assertThat(notInThePackage.anyApplied()).isFalse();
+        assertThat(namesIn(noSuchDay.plan(), Tier.MEDIUM)).isEqualTo(namesIn(plan, Tier.MEDIUM));
+    }
+
     private static EditRequest add(String activity, Tier packageKey, Integer dayNumber, Slot slot) {
         return new EditRequest(EditOp.ADD, activity, null, packageKey, dayNumber, slot);
     }

@@ -61,7 +61,8 @@ const aiPlannerApi = {
     }, 'The planner did not answer');
   },
 
-  // One tap in the trip draft: {op: 'ADD'|'REMOVE', activityId, packageKey}.
+  // One tap or drag in the trip draft: {op: 'ADD'|'REMOVE'|'MOVE', activityId, packageKey, dayNumber}
+  // (dayNumber only for a MOVE: the day the activity was dropped on).
   // No model call, so no long timeout; the answer is a turn body like sendMessage's.
   editDraft(token, edit) {
     return request(`/ai/sessions/${encodeURIComponent(token)}/edits`, {

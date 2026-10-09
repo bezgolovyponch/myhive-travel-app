@@ -740,7 +740,7 @@ class AiSessionServiceTest {
         assertThat(outcome.startedGeneration()).isEmpty();
         assertThat(outcome.editReport()).hasValueSatisfying(report -> {
             assertThat(report.rejected()).isEmpty();
-            assertThat(report.textsRefreshed()).isTrue();
+            assertThat(report.textsRefreshed()).isFalse();
             assertThat(report.applied()).singleElement().satisfies(applied ->
                     assertThat(applied.replacementName()).isEqualTo(expectedReplacement.name()));
         });

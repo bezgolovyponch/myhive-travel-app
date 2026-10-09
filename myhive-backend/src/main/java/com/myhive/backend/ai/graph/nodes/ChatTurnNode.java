@@ -5,6 +5,7 @@ import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
+import com.myhive.backend.ai.catalog.CatalogSearch;
 import com.myhive.backend.ai.catalog.OpeningReplies;
 import com.myhive.backend.ai.edit.ActivityNameResolver;
 import com.myhive.backend.ai.edit.EditMessages;
@@ -41,8 +42,6 @@ import java.util.Optional;
 @Slf4j
 public class ChatTurnNode implements NodeAction<PlannerState> {
 
-    /** How many chips have to name a catalog activity for a question to count as one about its variants. */
-    private static final int MIN_VARIANTS = 2;
     private static final String QUESTION_MARK = "?";
 
     private final LlmGateway llm;
@@ -72,19 +71,38 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         Brief collected = BriefMerger.merge(state.brief(), result.briefUpdate());
         // Notes are taste only once the model has stopped asking for it: "my brother's stag" is a note,
         // and while the chat still asks what the group is into, the answer is on its way.
-        Brief merged = asksNothing ? collected.withNotesAsTaste() : collected;
-        if (!merged.equals(collected)) {
+        Brief read = asksNothing ? collected.withNotesAsTaste() : collected;
+        if (!read.equals(collected)) {
             log.info("planner chat read the notes as taste");
         }
+        // What the weekend is built around is asked once. Days and people were known before this message,
+        // so that question has been put (by the greeting over the pickers, or by the turn before): whatever
+        // came back, nothing more is asked and the options are built - open to anything when no taste came.
+        Brief before = state.brief();
+        boolean tasteWasAsked = before.days() != null && before.groupSize() != null;
+        boolean onlyTasteMissing = read.missingFields().equals(List.of(Brief.FIELD_PREFERENCES));
+        Brief merged = tasteWasAsked && onlyTasteMissing ? read.withVibe(Brief.OPEN_TO_ANYTHING) : read;
         // Java decides when to generate: the brief is complete and differs from what the last generation used.
         // No confirmation step - the owner wants the three packages the moment the facts are known.
         String mergedJson = JsonCodec.write(merged);
         boolean changedSinceLastGeneration = !mergedJson.equals(state.lastGeneratedBrief().orElse(null));
-        boolean readyToBuild = merged.isReady() && changedSinceLastGeneration;
-        // The one thing worth waiting for: a question about which variant of a catalog product the group
-        // wants. Only before the first packages, and only once - after that the chat edits, it does not ask.
-        boolean heldForAnAnswer = readyToBuild && packages.isEmpty() && !state.pairingAsked()
-                && asksAboutCatalogVariants(result, catalog);
+        // A plan the organizer has made their own is not rebuilt because the talk about it shifted the
+        // taste: a rebuild starts again from the ready-made packages and would throw away everything
+        // they added, removed and moved. Only what changes the shape of the trip - its length, the
+        // head-count the prices hang on - still rebuilds it.
+        boolean keepsTheirPlan = packages.isPresent() && state.workingPackage().isPresent()
+                && sameTripShape(merged, state.lastGeneratedBrief().orElse(null));
+        boolean wouldRebuild = merged.isReady() && changedSinceLastGeneration && !keepsTheirPlan;
+        // A change of days or head-count rebuilds from the ready-made packages and drops what the organizer
+        // added, took out and moved. That is not done on one sentence: the first time it is said what it
+        // costs and the trip stays as it is; asked for again on the next turn, it goes ahead.
+        boolean warnsFirst = wouldRebuild && packages.isPresent() && state.workingPackage().isPresent()
+                && !state.rebuildWarned();
+        if (warnsFirst) {
+            merged = merged.withShape(before.days(), before.groupSize());
+            mergedJson = JsonCodec.write(merged);
+        }
+        boolean readyToBuild = wouldRebuild && !warnsFirst;
         Map<String, Object> update = new HashMap<>();
         // A report belongs to the turn that produced it. Cleared here, at the start of every turn, so that
         // last turn's rejections cannot be served again with this turn's answer; the branches below and
@@ -93,10 +111,11 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         update.put(PlannerState.EDIT_REPORT, "");
         // Same for a reply an earlier edit turn held back: it belongs to that turn and is never said later.
         update.put(PlannerState.PENDING_REPLY, "");
+        update.put(PlannerState.REBUILD_WARNED, warnsFirst);
         boolean routesToEdit = false;
-        // Under a draft a typed "add X" - or a bare "ak 47" - is not carried out. What it names is offered
-        // above the chat, the best match on a card with Add, and the organizer puts it in with a tap: the
-        // draft only grows by their own hand. Taking out and swapping are still done on the word.
+        // Under a draft a typed "add X" that names one catalog activity is carried out on the word, like
+        // taking out and swapping are: asked for and not done reads as a chat that does not work. A name
+        // that fits several rows, or none, is not guessed at: what comes closest is listed with Add.
         List<EditRequest> edits = result.edits();
         // What goes on the cards: only a catalog row can. What the organizer asked for and the catalog
         // lacks is said instead - "the top match is above" over an empty row would send them looking -
@@ -104,28 +123,67 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // are offered when they resolve and dropped quietly when they do not: nobody asked for them.
         List<String> offered = new ArrayList<>();
         List<RejectedEdit> unanswered = new ArrayList<>();
+        boolean splitWish = false;
         if (!packages.isEmpty() && !readyToBuild) {
+            String asked = lastUserMessage(state);
+            // An add is carried out when it was ordered ("add the boat") or picks from the list the chat
+            // just showed ("the AK one"). A bare "river cruise" asks what there is: it gets the list.
+            boolean ordered = CatalogSearch.asksToAdd(asked);
+            List<String> shownBefore = state.recommendations();
             List<EditRequest> carriedOut = new ArrayList<>();
             for (EditRequest edit : edits) {
-                if (edit.op() == EditOp.ADD) {
-                    if (edit.activity() != null && !offer(edit.activity(), catalog, offered)) {
+                boolean namesOne = edit.activity() != null && ActivityNameResolver
+                        .resolve(edit.activity(), catalog) instanceof ActivityNameResolver.Found;
+                boolean picksFromTheList = namesOne && shownBefore.stream()
+                        .anyMatch(shown -> sameActivity(shown, edit.activity(), catalog));
+                if (edit.op() != EditOp.ADD || (namesOne && (ordered || picksFromTheList))) {
+                    carriedOut.add(edit);
+                } else if (namesOne) {
+                    offer(edit.activity(), catalog, offered);
+                } else {
+                    if (edit.activity() != null) {
                         unanswered.add(unanswered(edit.activity(), catalog));
                     }
                     edit.alternatives().forEach(alternative -> offer(alternative, catalog, offered));
-                } else {
-                    carriedOut.add(edit);
                 }
             }
-            edits = carriedOut;
             result.recommendations().forEach(name -> offer(name, catalog, offered));
+            // What is listed is not the model's guess from the names: the organizer's words are read against
+            // the catalog itself, and nothing is filled up with activities that merely share a category.
+            CatalogSearch.Result found = CatalogSearch.find(asked, offered, catalog,
+                    inThePlan(packages.get(), state.workingPackage().orElse(null)));
+            boolean adds = carriedOut.stream().anyMatch(edit -> edit.op() == EditOp.ADD);
+            if (found.split() && adds) {
+                // "Add a river cruise with a private show": no activity is both, so adding the one the
+                // model settled on would be half of what was asked. Both kinds are shown instead.
+                carriedOut.removeIf(edit -> edit.op() == EditOp.ADD);
+            }
+            edits = carriedOut;
+            // A question that names a kind ("what boats do you have?") gets its list even when the model
+            // answered it with a question back ("Sure - which kind?").
+            boolean asksForAKind = result.showPackage() == null && !warnsFirst && !asksNothing
+                    && CatalogSearch.asksForAKind(asked);
+            if (carriedOut.isEmpty() && (!offered.isEmpty() || !unanswered.isEmpty() || asksForAKind)
+                    && !found.names().isEmpty()) {
+                offered.clear();
+                offered.addAll(found.names());
+                splitWish = found.split();
+            } else if (!carriedOut.isEmpty()) {
+                // The turn changes the plan: its line is the answer, with no list next to it.
+                offered.clear();
+            }
         }
         String reply = PlanAssembler.clean(result.reply());
         List<String> suggestedReplies = result.suggestedReplies();
+        if (warnsFirst) {
+            reply = BuildingReply.rebuildWarning(state.locale(), read.days(), read.groupSize());
+            suggestedReplies = BuildingReply.rebuildChoices(state.locale(), read.days(), read.groupSize());
+            edits = List.of();
+            offered.clear();
+            unanswered.clear();
+        }
         List<String> notes = new ArrayList<>();
-        if (heldForAnAnswer) {
-            update.put(PlannerState.ACTION, PlannerState.ACTION_NONE);
-            update.put(PlannerState.PAIRING_ASKED, true);
-        } else if (readyToBuild) {
+        if (readyToBuild) {
             // A regeneration rebuilds every package from the brief, so an edit of the old ones is moot.
             update.put(PlannerState.ACTION, PlannerState.ACTION_GENERATE);
             // The build starts now and every message is refused until it lands, so a question in this
@@ -156,12 +214,23 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             // the model: with activities offered above it, it points at them; and it never says it is
             // building options - before an edit's own line that reply is simply dropped.
             if (routesToEdit) {
-                reply = BuildingReply.announcesABuild(reply) ? "" : reply;
+                // The edit's own line ("Added X to your trip plan.") is the answer; the model's "Let me
+                // check that." before it is one line too many in a chat that shows the last three.
+                reply = "";
+            } else if (splitWish) {
+                reply = BuildingReply.splitWish(state.locale());
+            } else if (!offered.isEmpty() && unanswered.isEmpty()) {
+                reply = BuildingReply.recommending(state.locale());
+            } else if (!offered.isEmpty() && !unanswered.isEmpty()) {
+                // Asked for by a word the catalog has no row for, with rows that are that kind of thing
+                // ("strippers"): not "I could not find it" over a list of exactly it.
+                // A word that fits several rows is a question back, with those rows under it.
+                reply = unanswered.get(0).reason() == EditRejectionReason.AMBIGUOUS_ACTIVITY
+                        ? EditMessages.rejectionSummary(state.locale(), unanswered)
+                        : EditMessages.closest(state.locale(), unanswered.get(0).activityName());
             } else if (!offered.isEmpty() || !unanswered.isEmpty()) {
-                // What could not be answered first, then the row - "I could not find X. The top match is above".
-                String missing = unanswered.isEmpty() ? "" : EditMessages.rejectionSummary(state.locale(), unanswered);
-                String row = offered.isEmpty() ? "" : BuildingReply.recommending(state.locale());
-                reply = missing.isEmpty() || row.isEmpty() ? missing + row : missing + " " + row;
+                reply = unanswered.isEmpty() ? BuildingReply.recommending(state.locale())
+                        : EditMessages.rejectionSummary(state.locale(), unanswered);
             } else if (BuildingReply.announcesABuild(reply)) {
                 reply = BuildingReply.nothingToBuild(state.locale());
             }
@@ -210,6 +279,16 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         return update;
     }
 
+    /** Same number of days and people as the brief the current packages were built from. */
+    private static boolean sameTripShape(Brief merged, String lastGeneratedJson) {
+        if (lastGeneratedJson == null || lastGeneratedJson.isBlank()) {
+            return false;
+        }
+        Brief built = JsonCodec.read(lastGeneratedJson, Brief.class);
+        return built != null && java.util.Objects.equals(built.days(), merged.days())
+                && java.util.Objects.equals(built.groupSize(), merged.groupSize());
+    }
+
     /**
      * Seeding a fresh thread only has to park it at awaitUser; there is nothing to reply to yet. The catalog
      * is snapshotted here so the chat can pair what the organizer asks for with what is actually on offer
@@ -245,25 +324,36 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
     }
 
     /**
-     * A question whose answers are things the catalog sells: that is the pairing follow-up ("dinner - just
-     * steak, or with a show?"). Judged by the chips rather than by the model's word for it - at least two
-     * of them have to name a catalog activity - so a question about dates or group size, with chips like
-     * "Arrive evening", never holds a build back.
-     */
-    private static boolean asksAboutCatalogVariants(ChatTurnResult result, List<CatalogActivity> catalog) {
-        if (result.reply() == null || !result.reply().contains(QUESTION_MARK) || catalog.isEmpty()) {
-            return false;
-        }
-        long named = result.suggestedReplies().stream()
-                .filter(chip -> ActivityNameResolver.resolve(chip, catalog) instanceof ActivityNameResolver.Found)
-                .count();
-        return named >= MIN_VARIANTS;
-    }
-
-    /**
      * Tap-to-send answers: for the taste question, from what the catalog can deliver; none for the others
      * (travel times are never asked).
      */
+    private static String lastUserMessage(PlannerState state) {
+        List<ChatMessage> said = state.messages();
+        for (int i = said.size() - 1; i >= 0; i--) {
+            if (ChatMessage.USER.equals(said.get(i).role())) {
+                return said.get(i).content();
+            }
+        }
+        return "";
+    }
+
+    /** The activities of the organizer's draft - of every package while no trim is theirs yet. */
+    private static java.util.Set<java.util.UUID> inThePlan(ComposedPlan plan, Tier working) {
+        java.util.Set<java.util.UUID> ids = new java.util.HashSet<>();
+        if (working == null) {
+            return ids;
+        }
+        plan.packages().stream().filter(pkg -> pkg.key() == working)
+                .forEach(pkg -> pkg.days().forEach(day -> day.items().forEach(item -> ids.add(item.activityId()))));
+        return ids;
+    }
+
+    private static boolean sameActivity(String shown, String named, List<CatalogActivity> catalog) {
+        return ActivityNameResolver.resolve(shown, catalog) instanceof ActivityNameResolver.Found a
+                && ActivityNameResolver.resolve(named, catalog) instanceof ActivityNameResolver.Found b
+                && a.activity().id().equals(b.activity().id());
+    }
+
     /** Puts a name on the cards when it is one catalog row; true when it is. */
     private static boolean offer(String name, List<CatalogActivity> catalog, List<String> offered) {
         if (ActivityNameResolver.resolve(name, catalog) instanceof ActivityNameResolver.Found) {
@@ -326,7 +416,8 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
             return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
                     state.messages(), null, PackagesView.catalogNames(catalog));
         }
-        String view = PackagesView.render(packages.get(), state.workingPackage().orElse(null));
+        String view = PackagesView.render(packages.get(), state.workingPackage().orElse(null),
+                state.brief().groupSize());
         // The other ready-made weekends are an offer for all three options: once one trim is the
         // organizer's draft they are not on the table, and the chat is not told about them.
         String themes = state.workingPackage().isPresent() ? ""

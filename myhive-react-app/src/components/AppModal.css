@@ -28,10 +28,6 @@
     flex-direction: column;
 }
 
-/* The floating WhatsApp FAB must never cover modal action buttons */
-body:has(.app-modal) .trv-chat-fab {
-    display: none;
-}
 .app-modal-header {
     padding: 0.75rem var(--gap-lg);
     border-bottom: 1px solid var(--border);

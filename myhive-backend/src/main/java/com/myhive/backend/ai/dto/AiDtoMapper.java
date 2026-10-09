@@ -165,33 +165,7 @@ public class AiDtoMapper {
                 picked.putIfAbsent(activity.id(), recommendation(activity, travelers));
             }
         }
-        fillWithRelated(picked, catalog, travelers);
         return List.copyOf(picked.values());
-    }
-
-    /**
-     * A top match with nothing next to it is a dead end when it is not quite what the group meant. The
-     * row is filled up with what the catalog files under the same categories as the top match, in the
-     * catalog's own order - the planner's ranking for this brief.
-     */
-    private static void fillWithRelated(Map<UUID, RecommendationDTO> picked, List<CatalogActivity> catalog,
-            int travelers) {
-        if (picked.isEmpty() || picked.size() >= LlmOutputParser.MAX_RECOMMENDATIONS) {
-            return;
-        }
-        UUID topId = picked.keySet().iterator().next();
-        List<String> themes = catalog.stream().filter(activity -> activity.id().equals(topId)).findFirst()
-                .map(CatalogActivity::categorySlugs).orElse(List.of());
-        for (CatalogActivity activity : catalog) {
-            if (picked.size() == LlmOutputParser.MAX_RECOMMENDATIONS) {
-                return;
-            }
-            boolean related = activity.categorySlugs() != null
-                    && activity.categorySlugs().stream().anyMatch(themes::contains);
-            if (related) {
-                picked.putIfAbsent(activity.id(), recommendation(activity, travelers));
-            }
-        }
     }
 
     /**
@@ -236,11 +210,13 @@ public class AiDtoMapper {
     }
 
     private static RecommendationDTO recommendation(CatalogActivity activity, int travelers) {
-        BigDecimal perPerson = activity.price() == null ? null
-                : PlanPricer.lineTotal(activity.price(), activity.minPrice(), travelers)
-                        .divide(BigDecimal.valueOf(travelers), 0, RoundingMode.CEILING);
+        BigDecimal line = activity.price() == null ? null
+                : PlanPricer.lineTotal(activity.price(), activity.minPrice(), travelers);
+        BigDecimal perPerson = line == null ? null
+                : line.divide(BigDecimal.valueOf(travelers), 0, RoundingMode.CEILING);
         return new RecommendationDTO(activity.id(), activity.name(), activity.oneLine(),
-                activity.durationKnown() ? activity.durationMinutes() : null, perPerson, activity.imageUrl());
+                activity.durationKnown() ? activity.durationMinutes() : null, perPerson,
+                FromPrice.perPerson(line, travelers), activity.imageUrl());
     }
 
     /** For a generation loaded with its session attached; {@link #sessionState} uses the private overload. */
