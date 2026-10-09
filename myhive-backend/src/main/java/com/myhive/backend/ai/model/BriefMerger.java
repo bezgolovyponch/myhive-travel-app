@@ -19,7 +19,9 @@ public final class BriefMerger {
                 pick(update.budget(), current.budget()),
                 pick(update.arrival(), current.arrival()),
                 pick(update.departure(), current.departure()),
-                trim(pick(update.notes(), current.notes())));
+                trim(pick(update.notes(), current.notes())),
+                // Like the categories: a turn that names no wish keeps the ones already made.
+                update.wishes().isEmpty() ? current.wishes() : update.wishes());
     }
 
     private static <T> T pick(T update, T current) {

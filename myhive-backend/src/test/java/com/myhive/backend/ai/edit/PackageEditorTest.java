@@ -764,6 +764,40 @@ class PackageEditorTest {
         assertThat(namesIn(outcome.plan(), Tier.MEDIUM)).hasSameSizeAs(namesIn(plan, Tier.MEDIUM));
     }
 
+    /**
+     * "Shooting on day 2", asked before the build: every package has the shooting, and has it on day 2 -
+     * moved there where the planner put it on day 1 (Premium), added where it left it out (Basic, Medium).
+     */
+    @Test
+    void aWishWithADay_isMadeTrueInEveryPackage() {
+        Brief wishing = new Brief(2, TRAVELERS, List.of(), "shooting on day 2", null, null, null, null, null,
+                List.of(new com.myhive.backend.ai.model.Wish(List.of(shootingRange.name()), 2)));
+
+        ComposedPlan wished = com.myhive.backend.ai.plan.WishApplier.apply(editor, basePlan(), wishing, catalog);
+
+        for (ComposedPlan.PackageResult pkg : wished.packages()) {
+            assertThat(pkg.days().get(1).items()).extracting(ComposedPlan.ItemResult::name)
+                    .as("day 2 of %s", pkg.key()).contains(shootingRange.name());
+            assertThat(pkg.days().get(0).items()).extracting(ComposedPlan.ItemResult::name)
+                    .doesNotContain(shootingRange.name());
+        }
+    }
+
+    /** "River cruise or shooting": one of them is enough, and what a package already has is left where it is. */
+    @Test
+    void aChoiceOfTwo_isMetByEitherOne_andNothingIsAddedToAPackageThatHasOne() {
+        Brief wishing = new Brief(2, TRAVELERS, List.of(), "cruise or shooting", null, null, null, null, null,
+                List.of(new com.myhive.backend.ai.model.Wish(List.of(riverCruise.name(), shootingRange.name()), null)));
+        ComposedPlan plan = basePlan();
+
+        ComposedPlan wished = com.myhive.backend.ai.plan.WishApplier.apply(editor, plan, wishing, catalog);
+
+        // Basic and Medium hold the cruise, Premium the shooting: nothing to do anywhere.
+        for (Tier tier : Tier.values()) {
+            assertThat(namesIn(wished, tier)).isEqualTo(namesIn(plan, tier));
+        }
+    }
+
     /** "Move the cruise to day 2" when it is on day 2: nothing is moved and the chat does not say it was. */
     @Test
     void move_toTheDayItIsOnAlready_changesNothing_andSaysSo() {

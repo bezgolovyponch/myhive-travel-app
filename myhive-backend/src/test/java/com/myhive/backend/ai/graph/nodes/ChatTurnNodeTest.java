@@ -514,14 +514,58 @@ class ChatTurnNodeTest {
     void onceTheTasteWasAsked_anAnswerWithoutTaste_buildsOpenToAnything() {
         String expectedNote = "his brother's stag";
         llm.queueChat(turn("Nice one. What is the group into?", notes(expectedNote), List.of()));
+        Map<String, Object> state = baseState(everythingButTaste());
+        state.put(PlannerState.MESSAGES, new ArrayList<>(List.of(
+                Map.of("role", "USER", "content", "Plan 2 nights for 6 of us", "at", "t"),
+                Map.of("role", "ASSISTANT", "content", "What should the weekend be built around?", "at", "t"),
+                Map.of("role", "USER", "content", "it is his brother's stag", "at", "t"))));
 
-        Map<String, Object> update = node.apply(new PlannerState(baseState(everythingButTaste())));
+        Map<String, Object> update = node.apply(new PlannerState(state));
 
         Brief brief = JsonCodec.read((String) update.get(PlannerState.BRIEF), Brief.class);
         assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_GENERATE);
         assertThat(brief.vibe()).isEqualTo(Brief.OPEN_TO_ANYTHING);
         assertThat(brief.notes()).isEqualTo(expectedNote);
         assertThat(update.get(PlannerState.MISSING_FIELDS)).isEqualTo(List.of());
+    }
+
+    /**
+     * The first message is not the answer to the taste question, also with days and people preset by the
+     * pickers: it is the line the page sends for the organizer, and building on it skipped the question.
+     */
+    @Test
+    void theFirstMessage_withDaysAndPeoplePreset_stillGetsTheTasteQuestion() {
+        llm.queueChat(turn("What should the weekend be built around?", Brief.empty(), List.of()));
+
+        Map<String, Object> update = node.apply(new PlannerState(baseState(everythingButTaste())));
+
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(update.get(PlannerState.MISSING_FIELDS)).isEqualTo(List.of(Brief.FIELD_PREFERENCES));
+    }
+
+    /**
+     * "Beer bike and karting" are two wishes even when the model files them as one: several names in a wish
+     * mean "one of these", which only a message that offers a choice ("or") may mean.
+     */
+    @Test
+    void namesJoinedByAnd_areSeparateWishes_andOnlyAChoiceStaysOne() {
+        Brief both = new Brief(null, null, List.of(), null, null, null, null, null, null,
+                List.of(new com.myhive.backend.ai.model.Wish(List.of(ACTIVITY_NAME, REPLACEMENT_NAME), 2)));
+        llm.queueChat(turn("Building three options right now.", both, List.of()));
+        llm.queueChat(turn("Building three options right now.", both, List.of()));
+        Map<String, Object> and = baseState(everythingButTaste());
+        and.put(PlannerState.MESSAGES, new ArrayList<>(List.of(
+                Map.of("role", "USER", "content", "beer bike and karting on day 2", "at", "t"))));
+        Map<String, Object> or = baseState(everythingButTaste());
+        or.put(PlannerState.MESSAGES, new ArrayList<>(List.of(
+                Map.of("role", "USER", "content", "beer bike or karting on day 2", "at", "t"))));
+
+        Brief separate = JsonCodec.read((String) node.apply(new PlannerState(and)).get(PlannerState.BRIEF), Brief.class);
+        Brief choice = JsonCodec.read((String) node.apply(new PlannerState(or)).get(PlannerState.BRIEF), Brief.class);
+
+        assertThat(separate.wishes()).extracting(w -> w.activities().size()).containsExactly(1, 1);
+        assertThat(separate.wishes()).allSatisfy(w -> assertThat(w.dayNumber()).isEqualTo(2));
+        assertThat(choice.wishes()).singleElement().satisfies(w -> assertThat(w.activities()).hasSize(2));
     }
 
     /** Days and people arrive in this message, nothing about taste: that is when the one question is put. */
