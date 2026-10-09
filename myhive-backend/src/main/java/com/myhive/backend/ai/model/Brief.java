@@ -6,7 +6,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record Brief(Integer days, Integer groupSize, List<String> categorySlugs, String vibe,
-                    String dislikes, BudgetHint budget, DayEdge arrival, DayEdge departure, String notes) {
+                    String dislikes, BudgetHint budget, DayEdge arrival, DayEdge departure, String notes,
+                    List<Wish> wishes) {
+
+    /** A brief with nothing asked for by name. */
+    public Brief(Integer days, Integer groupSize, List<String> categorySlugs, String vibe,
+                 String dislikes, BudgetHint budget, DayEdge arrival, DayEdge departure, String notes) {
+        this(days, groupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes, List.of());
+    }
 
     public static final int MIN_DAYS = 1;
     public static final int MAX_DAYS = 7;
@@ -25,6 +32,8 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
 
     public Brief {
         categorySlugs = categorySlugs == null ? List.of() : List.copyOf(categorySlugs);
+        wishes = wishes == null ? List.of()
+                : wishes.stream().filter(wish -> wish != null && !wish.activities().isEmpty()).toList();
     }
 
     public static Brief empty() {
@@ -32,15 +41,20 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
     }
 
     public Brief withCategorySlugs(List<String> slugs) {
-        return new Brief(days, groupSize, slugs, vibe, dislikes, budget, arrival, departure, notes);
+        return new Brief(days, groupSize, slugs, vibe, dislikes, budget, arrival, departure, notes, wishes);
     }
 
     public Brief withVibe(String newVibe) {
-        return new Brief(days, groupSize, categorySlugs, newVibe, dislikes, budget, arrival, departure, notes);
+        return new Brief(days, groupSize, categorySlugs, newVibe, dislikes, budget, arrival, departure, notes, wishes);
+    }
+
+    public Brief withWishes(List<Wish> newWishes) {
+        return new Brief(days, groupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes, newWishes);
     }
 
     public Brief withShape(Integer newDays, Integer newGroupSize) {
-        return new Brief(newDays, newGroupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes);
+        return new Brief(newDays, newGroupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes,
+                wishes);
     }
 
     @JsonIgnore
@@ -65,7 +79,8 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
         if (groupSize == null) {
             missing.add(FIELD_GROUP_SIZE);
         }
-        boolean hasTaste = !categorySlugs.isEmpty() || (vibe != null && !vibe.isBlank());
+        // An activity asked for by name is a taste too: "tank on Saturday" is an answer.
+        boolean hasTaste = !categorySlugs.isEmpty() || (vibe != null && !vibe.isBlank()) || !wishes.isEmpty();
         if (!hasTaste) {
             missing.add(FIELD_PREFERENCES);
         }
@@ -83,7 +98,7 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
         if (!onlyTasteMissing || notes == null || notes.isBlank()) {
             return this;
         }
-        return new Brief(days, groupSize, categorySlugs, notes, dislikes, budget, arrival, departure, null);
+        return new Brief(days, groupSize, categorySlugs, notes, dislikes, budget, arrival, departure, null, wishes);
     }
 
     @JsonIgnore

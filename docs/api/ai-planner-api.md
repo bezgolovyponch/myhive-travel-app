@@ -834,6 +834,17 @@ on `GET /ai/sessions/{token}`.
   "arrival": "EVENING", "departure": "MORNING", "notes": null }
 ```
 
+`wishes`: what the organizer asked the trip to have by name before the first build -
+`[{ "activities": ["AK-47 and Glock 17 Shooting"], "dayNumber": 2 }]`. `activities` are exact
+catalog names; more than one is a choice ("tank or shooting": one of them is enough).
+`dayNumber` is the day they named (1 = the first day), null for any day. Every package of a
+build is held to them: the activity is moved to that day, or added on it when the package
+lacks it. Empty when nothing was asked for by name; counts as taste for `missingFields`.
+
+With days and group size preset by the pickers, the first message (the line the page sends
+for the organizer) is not taken as the answer to the taste question: the chat asks it once
+and builds on the reply.
+
 `budget`: `LOW` | `MID` | `HIGH` | null. `arrival`/`departure`: `MORNING` |
 `AFTERNOON` | `EVENING`. Fields are null until the agent learns them. `missingFields`
 can contain `days`, `groupSize`, `preferences`, `arrival`, `departure` — all five must be

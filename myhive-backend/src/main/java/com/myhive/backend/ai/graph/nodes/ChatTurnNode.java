@@ -3,6 +3,7 @@ package com.myhive.backend.ai.graph.nodes;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRequest;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.ai.model.Wish;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.catalog.CatalogSearch;
@@ -68,18 +69,27 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         List<CatalogActivity> catalog = state.catalog();
         ChatTurnResult result = llm.chatTurn(request(state, packages, catalog));
         boolean asksNothing = result.reply() == null || !result.reply().contains(QUESTION_MARK);
-        Brief collected = BriefMerger.merge(state.brief(), result.briefUpdate());
+        Brief collected = separateWishes(BriefMerger.merge(state.brief(), result.briefUpdate()),
+                lastUserMessage(state));
         // Notes are taste only once the model has stopped asking for it: "my brother's stag" is a note,
         // and while the chat still asks what the group is into, the answer is on its way.
-        Brief read = asksNothing ? collected.withNotesAsTaste() : collected;
-        if (!read.equals(collected)) {
+        // Wishes are taste in the organizer's own words too: the planner reads the vibe, so a model that
+        // filed "tank on Saturday" under the wishes alone must not leave it with nothing to go by.
+        Brief worded = !collected.wishes().isEmpty() && (collected.vibe() == null || collected.vibe().isBlank())
+                && packages.isEmpty() ? collected.withVibe(firstChars(lastUserMessage(state), Brief.MAX_TEXT)) : collected;
+        Brief read = asksNothing ? worded.withNotesAsTaste() : worded;
+        if (!read.equals(worded)) {
             log.info("planner chat read the notes as taste");
         }
         // What the weekend is built around is asked once. Days and people were known before this message,
         // so that question has been put (by the greeting over the pickers, or by the turn before): whatever
         // came back, nothing more is asked and the options are built - open to anything when no taste came.
+        // The organizer's first message does not count as the answer: with the pickers' days and people
+        // preset it is the line the page sends for them ("Plan 2 nights for 10 of us, Fri 16 - Sun 18"),
+        // and building on it skipped the question altogether.
         Brief before = state.brief();
-        boolean tasteWasAsked = before.days() != null && before.groupSize() != null;
+        long saidByThem = state.messages().stream().filter(said -> ChatMessage.USER.equals(said.role())).count();
+        boolean tasteWasAsked = before.days() != null && before.groupSize() != null && saidByThem > 1;
         boolean onlyTasteMissing = read.missingFields().equals(List.of(Brief.FIELD_PREFERENCES));
         Brief merged = tasteWasAsked && onlyTasteMissing ? read.withVibe(Brief.OPEN_TO_ANYTHING) : read;
         // Java decides when to generate: the brief is complete and differs from what the last generation used.
@@ -327,6 +337,30 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
      * Tap-to-send answers: for the taste question, from what the catalog can deliver; none for the others
      * (travel times are never asked).
      */
+    private static final java.util.regex.Pattern A_CHOICE =
+            java.util.regex.Pattern.compile("\\b(or|oder|either)\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Several names in one wish mean "one of these". The model files "beer spa and paintball" that way too,
+     * which would be met by the paintball alone: unless the organizer's message offers a choice, each name
+     * is a wish of its own.
+     */
+    private static Brief separateWishes(Brief brief, String asked) {
+        boolean choice = A_CHOICE.matcher(asked).find();
+        if (choice || brief.wishes().stream().noneMatch(wish -> wish.activities().size() > 1)) {
+            return brief;
+        }
+        List<Wish> separate = new ArrayList<>();
+        for (Wish wish : brief.wishes()) {
+            wish.activities().forEach(name -> separate.add(new Wish(List.of(name), wish.dayNumber())));
+        }
+        return brief.withWishes(separate);
+    }
+
+    private static String firstChars(String text, int max) {
+        return text.length() > max ? text.substring(0, max) : text;
+    }
+
     private static String lastUserMessage(PlannerState state) {
         List<ChatMessage> said = state.messages();
         for (int i = said.size() - 1; i >= 0; i--) {

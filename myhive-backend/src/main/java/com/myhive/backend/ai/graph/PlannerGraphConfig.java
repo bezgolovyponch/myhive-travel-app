@@ -43,8 +43,9 @@ public class PlannerGraphConfig {
     }
 
     @Bean
-    public PublishSkeletonNode publishSkeletonNode(ObjectProvider<PersistResultNode.GenerationResultSink> sinks) {
-        return new PublishSkeletonNode(sinks);
+    public PublishSkeletonNode publishSkeletonNode(ObjectProvider<PersistResultNode.GenerationResultSink> sinks,
+            PackageEditor editor) {
+        return new PublishSkeletonNode(sinks, editor);
     }
 
     @Bean
