@@ -91,6 +91,7 @@ function AiPlannerPage({pollIntervalMs}) {
     const [preview, setPreview] = useState(null); // the draft row or recommendation whose card is open
     const [asked, setAsked] = useState(null); // the "+ Add ..." tag whose activities are listed in the chat
     const [kindsAsked, setKindsAsked] = useState(false); // the organizer asked the chat what could go in
+    const [trimPicked, setTrimPicked] = useState(false); // the organizer tapped a trim: what it could take is shown
     // What the planner holds right now, for code that runs after a turn it awaited.
     const live = useRef({});
     live.current = {
@@ -161,6 +162,7 @@ function AiPlannerPage({pollIntervalMs}) {
         if (lastBuiltId.current && lastBuiltId.current !== builtId) {
             setDraftFrom(planner.messages.length);
             writeDraftFrom(planner.token, planner.messages.length);
+            setTrimPicked(false);
         }
         lastBuiltId.current = builtId;
         // Only a new plan moves the cut; messages written after it stay in view.
@@ -201,6 +203,7 @@ function AiPlannerPage({pollIntervalMs}) {
             setDockOpen(true);
             setAsked(null);
             setKindsAsked(false);
+            setTrimPicked(false);
             const planBefore = live.current.generationId;
             await planner.send(text, preset);
             // Nothing was changed and nothing specific was offered: show what kinds there are. Read
@@ -214,7 +217,12 @@ function AiPlannerPage({pollIntervalMs}) {
 
     // Looking at a trim is not choosing it: all three stay up until the organizer changes something
     // (adds, removes, moves or writes), and only then is the one on screen their own plan.
-    const pickTier = (key) => setActiveKey(key);
+    // Tapping one does bring up what it could take next: the tags, in the chat.
+    const pickTier = (key) => {
+        setActiveKey(key);
+        setTrimPicked(true);
+        setDockOpen(true);
+    };
 
     // × and the recommendation row edit the draft directly - no chat turn - so
     // the planner's packages stay the truth and the next turn sees the change.
@@ -356,9 +364,9 @@ function AiPlannerPage({pollIntervalMs}) {
         const timer = setTimeout(() => askedTop.current?.scrollIntoView?.({block: 'start'}), 60);
         return () => clearTimeout(timer);
     }, [askedSlug]);
-    // The kinds are not offered unasked. They come up when the organizer writes to the chat and it has
-    // nothing specific to show for it - "what else is there?", "what can we add?" - as the way on.
-    const tags = gaps.length > 0 && kindsAsked && (
+    // The kinds are not offered before a trim is chosen. They come up once the organizer taps a trim,
+    // and when a message to the chat gets nothing specific back - "what else is there?" - as the way on.
+    const tags = gaps.length > 0 && (kindsAsked || trimPicked) && (
         <div className="aip-gaps" role="group" aria-label={t('dock.gapsAria')}>
             {gaps.map((gap) => (
                 <button key={gap.categorySlug} type="button" disabled={busy}
@@ -476,7 +484,6 @@ function AiPlannerPage({pollIntervalMs}) {
                                 <span className="aip-dock-mark" aria-hidden="true"><i className="ph ph-sparkle"/></span>
                                 {/* Collapsed, the bar is all there is of the chat: its last line. */}
                                 <span className="aip-dock-line">{dockOpen ? t('dock.title') : dockLine}</span>
-                                <span className="aip-dock-hint">{dockOpen ? t('dock.collapse') : t('dock.expand')}</span>
                             </span>
                         </button>
                         <AiThread

@@ -207,13 +207,6 @@
     text-overflow: ellipsis;
 }
 
-.aip-dock-hint {
-    flex: none;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--aip-purple-ll, #8B82E6);
-}
-
 /* Put away, the bar is the whole chat: no input, no tags, nothing over the page's own button. */
 .aip-dock:not(.is-open) .ai-thread {
     display: none;
@@ -377,12 +370,6 @@
     font-size: 13px;
     text-align: left;
     cursor: pointer;
-}
-
-/* An activity that goes in with one tap reads stronger than a theme that only asks. */
-.aip-gaps button.is-activity {
-    border-color: var(--aip-purple);
-    color: #fff;
 }
 
 .aip-gaps button:hover {

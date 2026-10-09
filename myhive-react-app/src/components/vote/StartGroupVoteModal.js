@@ -140,15 +140,12 @@ function GroupChoice({ t }) {
 }
 
 /** The message as WhatsApp shows one the organiser has sent: no chat around it. */
-function SentMessage({ t, destinationName, message }) {
+// Text and the sent time only, as a plain WhatsApp message: no link card.
+function SentMessage({ message }) {
     const time = useMemo(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), []);
     return (
         <div className="sgv-msg">
             <p className="sgv-msg-text">{message}</p>
-            <div className="sgv-msg-link">
-                <span className="sgv-msg-logo" aria-hidden="true">t</span>
-                <span>{t('start.chat.linkTitle', { destination: destinationName })}</span>
-            </div>
             <span className="sgv-msg-meta">{time}<ReadTicks/></span>
         </div>
     );
@@ -319,7 +316,7 @@ function StartGroupVoteModal({
             )}
 
             <div className="sgv-whatsapp">
-                <SentMessage t={t} destinationName={destinationName} message={message}/>
+                <SentMessage message={message}/>
                 <div className={`sgv-field sgv-phone${e164 ? ' is-valid-phone' : ''}`}>
                     {typedCode == null ? (
                         <select

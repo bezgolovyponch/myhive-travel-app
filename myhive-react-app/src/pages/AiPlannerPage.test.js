@@ -614,6 +614,27 @@ test('nothing is offered unasked, and the chat put away is only its bar', async 
     expect(within(dock).queryByRole('button', {name: '+ Add beer'})).not.toBeInTheDocument();
 });
 
+test('a tap on a trim brings up what it could take, and the chat has one way to put it away', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const beer = [{categorySlug: 'czech-beer', name: 'Czech beer', options: [{activityId: 'id-Spa', name: 'Beer Spa'}]}];
+    aiPlannerApi.getSession.mockResolvedValue(session({
+        latestReadyGeneration: readyGeneration(), status: 'READY', gaps: {MEDIUM: beer, PREMIUM: beer},
+    }));
+    renderPage();
+
+    const dock = await screen.findByRole('region', {name: 'Stag Do AI'});
+    await within(dock).findByRole('button', {name: 'Collapse chat'});
+    // The arrow is the one control: no second "Collapse chat" written next to it.
+    expect(within(dock).queryByText('Collapse chat')).not.toBeInTheDocument();
+    expect(within(dock).queryByRole('button', {name: '+ Add beer'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: /Premium/}));
+
+    expect(await within(dock).findByRole('button', {name: '+ Add beer'})).toBeInTheDocument();
+    // Looking is still not choosing: all three stay.
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+});
+
 test('"Continue chatting" drops the question and hands the input back', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({
