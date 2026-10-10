@@ -152,7 +152,7 @@ public class PlanTextWriter {
         }
         return new ComposedPlan.ItemResult(item.slot(), item.startHint(), item.activityId(), item.slug(), item.name(),
                 item.imageUrl(), item.durationMinutes(), item.price(), item.minPrice(), item.lineTotal(),
-                item.groupMinApplied(), why, item.includes());
+                item.groupMinApplied(), why, item.includes(), item.extras());
     }
 
     /** The package with its texts and days replaced; prices, ids and duration are copied through untouched. */

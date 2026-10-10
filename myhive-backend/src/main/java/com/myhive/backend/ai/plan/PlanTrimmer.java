@@ -295,7 +295,8 @@ public class PlanTrimmer {
                     + spot.label() + " (no free slot)"));
         }
         List<PlanDraft.ItemDraft> items = new ArrayList<>(spot.day().items());
-        items.set(items.indexOf(item), new PlanDraft.ItemDraft(free.get(), null, item.activityId(), item.why()));
+        items.set(items.indexOf(item),
+                new PlanDraft.ItemDraft(free.get(), null, item.activityId(), item.why(), item.extraCodes()));
         return Optional.of(new Fix(spot.withItems(items), "moved " + nameOf(item, catalog) + " to "
                 + free.get() + " on " + spot.label()));
     }
@@ -329,7 +330,8 @@ public class PlanTrimmer {
                     continue;
                 }
                 List<PlanDraft.ItemDraft> heavier = new ArrayList<>(target.items());
-                heavier.add(new PlanDraft.ItemDraft(free.get(), null, item.activityId(), item.why()));
+                heavier.add(new PlanDraft.ItemDraft(free.get(), null, item.activityId(), item.why(),
+                        item.extraCodes()));
                 PlanDraft.DayDraft probe = new PlanDraft.DayDraft(target.dayNumber(), null, null, heavier);
                 if (heavier.size() > tier.maxItemsPerDay()
                         || PlanValidator.dayMinutes(probe, catalog) > tier.maxMinutesPerDay()) {

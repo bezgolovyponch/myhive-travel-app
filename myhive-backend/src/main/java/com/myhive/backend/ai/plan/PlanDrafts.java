@@ -36,7 +36,9 @@ public final class PlanDrafts {
     private static PlanDraft.DayDraft toDayDraft(ComposedPlan.DayResult day) {
         List<PlanDraft.ItemDraft> items = new ArrayList<>();
         for (ComposedPlan.ItemResult item : day.items()) {
-            items.add(new PlanDraft.ItemDraft(item.slot(), item.startHint(), item.activityId(), item.why()));
+            List<String> extraCodes = item.extras().stream().map(ComposedPlan.ItemExtra::code).toList();
+            items.add(new PlanDraft.ItemDraft(item.slot(), item.startHint(), item.activityId(), item.why(),
+                    extraCodes));
         }
         return new PlanDraft.DayDraft(day.dayNumber(), day.title(), day.summary(), items);
     }

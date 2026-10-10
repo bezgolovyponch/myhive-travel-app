@@ -40,6 +40,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -134,9 +135,11 @@ public class AiSessionService {
     /**
      * A picked package, resolved to what the Trip Builder needs to fill a cart. {@code key} is the
      * authoritative pick: the generation row is stored by the graph's own sink transaction, so the
-     * entity handed back here still carries its pre-selection snapshot.
+     * entity handed back here still carries its pre-selection snapshot. {@code selectedExtras} maps every
+     * activity of the package to the extra codes it carries there (empty when none).
      */
-    public record Selection(AiGeneration generation, Tier key, int groupSize, List<UUID> activityIds) {
+    public record Selection(AiGeneration generation, Tier key, int groupSize, List<UUID> activityIds,
+                            Map<UUID, List<String>> selectedExtras) {
     }
 
     public SessionView create(String destinationSlug, String locale, String initialMessage, String clientIp) {
@@ -279,8 +282,20 @@ public class AiSessionService {
                     PlannerState.LAST_GENERATED_BRIEF, briefJson));
             graph.runUntilInterrupt(session.getToken());
             touch(session);
-            return new Selection(generation, key, brief.groupSize(), chosen.activityIds());
+            return new Selection(generation, key, brief.groupSize(), chosen.activityIds(), selectedExtras(chosen));
         });
+    }
+
+    /** Activity id to the codes of its chosen extras; a package holds an activity once, the first occurrence wins. */
+    private static Map<UUID, List<String>> selectedExtras(ComposedPlan.PackageResult chosen) {
+        Map<UUID, List<String>> selected = new LinkedHashMap<>();
+        for (ComposedPlan.DayResult day : chosen.days()) {
+            for (ComposedPlan.ItemResult item : day.items()) {
+                selected.putIfAbsent(item.activityId(),
+                        item.extras().stream().map(ComposedPlan.ItemExtra::code).toList());
+            }
+        }
+        return selected;
     }
 
     /**

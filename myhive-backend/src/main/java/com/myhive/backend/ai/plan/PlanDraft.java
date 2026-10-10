@@ -25,6 +25,18 @@ public record PlanDraft(List<PackageDraft> packages) {
         }
     }
 
-    public record ItemDraft(Slot slot, String startHint, UUID activityId, String why) {
+    /**
+     * {@code extraCodes} are the activity's extras the organizer asked for in the chat; the planner model
+     * never writes them (they enter through chat edits only), and they are never null.
+     */
+    public record ItemDraft(Slot slot, String startHint, UUID activityId, String why, List<String> extraCodes) {
+
+        public ItemDraft {
+            extraCodes = extraCodes == null ? List.of() : List.copyOf(extraCodes);
+        }
+
+        public ItemDraft(Slot slot, String startHint, UUID activityId, String why) {
+            this(slot, startHint, activityId, why, List.of());
+        }
     }
 }

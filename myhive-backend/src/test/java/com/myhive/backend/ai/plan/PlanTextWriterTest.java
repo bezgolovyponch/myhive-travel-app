@@ -8,6 +8,7 @@ import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -123,6 +124,19 @@ class PlanTextWriterTest {
         assertThat(written.written()).isFalse();
         assertThat(written.usage()).isEqualTo(expectedUsage);
         assertThat(written.plan().packages().get(0).title()).isEqualTo("Warm-up");
+    }
+
+    @Test
+    void withWhy_keepsTheChosenExtras() {
+        List<ComposedPlan.ItemExtra> expectedExtras = List.of(new ComposedPlan.ItemExtra("private-show",
+                "Private show", new BigDecimal("250.00"), ExtraPricing.PER_GROUP, new BigDecimal("250.00")));
+        ComposedPlan.ItemResult item = new ComposedPlan.ItemResult(Slot.EVENING, null, activityId, "cruise",
+                "River Boat Cruise", null, 90, new BigDecimal("40.00"), null, new BigDecimal("410.00"), false, null,
+                null, expectedExtras);
+
+        ComposedPlan.ItemResult rewritten = PlanTextWriter.withWhy(item, "Because the deck is yours");
+
+        assertThat(rewritten.extras()).isEqualTo(expectedExtras);
     }
 
     private ComposedPlan.PackageResult pkg(Tier tier, String title, String dayTitle) {

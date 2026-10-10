@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
@@ -136,8 +137,9 @@ public class PackageEditor {
 
     /**
      * A catalog row rebuilt from a plan item. Everything pricing and scheduling need is stored on the
-     * item — id, name, duration, price, group minimum — which is why the re-assembly comes out with the
-     * same line totals it went in with. The description and the category slugs are not, and that is
+     * item — id, name, duration, price, group minimum and the chosen extras with their prices — which is why
+     * the re-assembly comes out with the same line totals it went in with. Only the chosen extras survive,
+     * so nothing else can be added to such an entry. The description and the category slugs are not, and that is
      * exactly why such an entry is never allowed to be placed somewhere new: its slot preference would
      * be a guess. Null when the item is too thin to price or schedule at all.
      */
@@ -146,7 +148,10 @@ public class PackageEditor {
             return null;
         }
         return new CatalogActivity(item.activityId(), item.slug(), item.name(), "", item.durationMinutes(), true,
-                item.price(), item.minPrice(), item.imageUrl(), List.of(), item.includes());
+                item.price(), item.minPrice(), item.imageUrl(), List.of(), item.includes(),
+                item.extras().stream()
+                        .map(extra -> new CatalogExtra(extra.code(), extra.name(), extra.price(), extra.pricing()))
+                        .toList());
     }
 
     private PlanDraft applyEdit(PlanDraft working, EditRequest edit, Brief brief, WorkingCatalog catalog,

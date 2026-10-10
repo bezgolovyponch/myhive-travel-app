@@ -16,12 +16,17 @@ import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.AttemptDiagnostic;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.service.AiSessionService;
+import com.myhive.backend.dto.ActivityExtraDTO;
+import com.myhive.backend.dto.VotePoolActivityDTO;
+import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationKind;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.repository.ActivityRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -125,6 +130,68 @@ class AiDtoMapperTest {
             assertThat(rejected.reason()).isEqualTo(EditRejectionReason.UNKNOWN_ACTIVITY.name());
             assertThat(rejected.alternatives()).isEqualTo(expectedAlternatives);
         });
+    }
+
+    @Test
+    void generation_servesTheChosenExtrasOfEveryItem() {
+        String expectedName = "Private show";
+        BigDecimal expectedTotal = new BigDecimal("250.00");
+        ComposedPlan.ItemResult item = new ComposedPlan.ItemResult(Slot.EVENING, null, UUID.randomUUID(), "cruise",
+                "River Boat Cruise", null, DURATION_MINUTES, new BigDecimal("40.00"), null, new BigDecimal("410.00"),
+                false, "why", null, List.of(new ComposedPlan.ItemExtra("private-show", expectedName,
+                        new BigDecimal("250.00"), ExtraPricing.PER_GROUP, expectedTotal)));
+        AiGeneration generation = editedGeneration(null, null);
+        generation.setResult(JsonCodec.write(new ComposedPlan(List.of(new ComposedPlan.PackageResult(Tier.BASIC,
+                "Night out", "tag", "desc", new BigDecimal("102.50"), new BigDecimal("410.00"), ComposedPlan.CURRENCY,
+                DURATION_MINUTES, List.of(item.activityId()),
+                List.of(new ComposedPlan.DayResult(1, "Day one", "summary", List.of(item))))), false)));
+
+        GenerationDTO dto = mapper.generation(generation);
+
+        assertThat(dto.packages().get(0).days().get(0).items().get(0).extras()).containsExactly(
+                new PackageDTO.ItemExtraDTO("private-show", expectedName, new BigDecimal("250.00"),
+                        ExtraPricing.PER_GROUP.name(), expectedTotal));
+    }
+
+    @Test
+    void tripItems_carryTheActivitysExtras_andThePackagesChoice() {
+        List<String> expectedSelected = List.of("private-show");
+        ActivityRepository activityRepository = mock(ActivityRepository.class);
+        Destination destination = TestDataFactory.destination();
+        Activity cruise = TestDataFactory.activity(destination);
+        cruise.setExtras(List.of(
+                new ActivityExtra("private-show", "Private show", "On deck", new BigDecimal("250.00"),
+                        ExtraPricing.PER_GROUP, null),
+                new ActivityExtra("open-bar", "Open bar", null, new BigDecimal("25.00"), ExtraPricing.PER_PERSON,
+                        null)));
+        Activity karting = TestDataFactory.activity(destination);
+        karting.setId(UUID.randomUUID());
+        Mockito.when(activityRepository.findAllById(List.of(cruise.getId(), karting.getId())))
+                .thenReturn(List.of(cruise, karting));
+
+        List<VotePoolActivityDTO> items = new AiDtoMapper(activityRepository).tripItems(
+                List.of(cruise.getId(), karting.getId()), Map.of(cruise.getId(), expectedSelected), "en");
+
+        assertThat(items.get(0).getExtras()).extracting(ActivityExtraDTO::getCode)
+                .containsExactly("private-show", "open-bar");
+        assertThat(items.get(0).getSelectedExtras()).isEqualTo(expectedSelected);
+        assertThat(items.get(1).getExtras()).isEmpty();
+        assertThat(items.get(1).getSelectedExtras()).isEmpty();
+    }
+
+    /** An extra the activity stopped offering after the plan was made must not reach the cart. */
+    @Test
+    void tripItems_dropAChosenExtraTheActivityNoLongerOffers() {
+        ActivityRepository activityRepository = mock(ActivityRepository.class);
+        Activity cruise = TestDataFactory.activity(TestDataFactory.destination());
+        cruise.setExtras(List.of(new ActivityExtra("open-bar", "Open bar", null, new BigDecimal("25.00"),
+                ExtraPricing.PER_PERSON, null)));
+        Mockito.when(activityRepository.findAllById(List.of(cruise.getId()))).thenReturn(List.of(cruise));
+
+        List<VotePoolActivityDTO> items = new AiDtoMapper(activityRepository).tripItems(List.of(cruise.getId()),
+                Map.of(cruise.getId(), List.of("private-show", "open-bar")), "en");
+
+        assertThat(items.get(0).getSelectedExtras()).containsExactly("open-bar");
     }
 
     @Test

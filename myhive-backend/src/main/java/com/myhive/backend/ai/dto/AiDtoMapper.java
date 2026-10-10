@@ -29,6 +29,7 @@ import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.FromPrice;
 import com.myhive.backend.util.Translations;
 import lombok.extern.slf4j.Slf4j;
@@ -227,10 +228,12 @@ public class AiDtoMapper {
     /**
      * Resolves the picked activities into Trip Builder rows, in the order the package lists them.
      * Transactional because {@code destination} and {@code categories} are lazy, and localized in
-     * place the same way the quiz pool is, so both surfaces name an activity identically.
+     * place the same way the quiz pool is, so both surfaces name an activity identically. Each row carries the
+     * extras its activity offers, and the codes the {@code selectedExtras} map holds for it as its own choice.
      */
     @Transactional(readOnly = true)
-    public List<VotePoolActivityDTO> tripItems(List<UUID> activityIds, String locale) {
+    public List<VotePoolActivityDTO> tripItems(List<UUID> activityIds, Map<UUID, List<String>> selectedExtras,
+            String locale) {
         String lc = Translations.normalize(locale);
         Map<UUID, Activity> byId = new HashMap<>();
         for (Activity activity : activityRepository.findAllById(activityIds)) {
@@ -241,7 +244,7 @@ public class AiDtoMapper {
                 // An activity retired between composing the plan and picking it simply drops out; the
                 // rest of the itinerary is still worth handing to the cart.
                 .filter(Objects::nonNull)
-                .map(activity -> tripItem(activity, lc))
+                .map(activity -> tripItem(activity, selectedExtras.getOrDefault(activity.getId(), List.of()), lc))
                 .toList();
     }
 
@@ -355,10 +358,19 @@ public class AiDtoMapper {
         return new PackageDTO.ItemDTO(result.slot() == null ? null : result.slot().name(), result.startHint(),
                 result.activityId(), result.slug(), result.name(), result.imageUrl(), result.durationMinutes(),
                 result.price(), result.minPrice(), result.lineTotal(), result.groupMinApplied(), result.why(),
-                result.includes());
+                result.includes(), result.extras().stream().map(AiDtoMapper::plannedExtra).toList());
     }
 
-    private static VotePoolActivityDTO tripItem(Activity activity, String lc) {
+    private static PackageDTO.ItemExtraDTO plannedExtra(ComposedPlan.ItemExtra extra) {
+        return new PackageDTO.ItemExtraDTO(extra.code(), extra.name(), extra.price(), name(extra.pricing()),
+                extra.total());
+    }
+
+    /**
+     * {@code chosen} are the extra codes the picked package holds for this activity; only those the activity
+     * still offers reach the cart, since a retired one could no longer be booked.
+     */
+    private static VotePoolActivityDTO tripItem(Activity activity, List<String> chosen, String lc) {
         List<String> categories = activity.getCategories().stream()
                 .map(category -> Translations.pick(category.getTranslations(), lc, "name", category.getName()))
                 .sorted()
@@ -370,7 +382,10 @@ public class AiDtoMapper {
                 activity.getPrice(), activity.getMinPrice(), activity.getImageUrl(),
                 activity.getSlug(), destinationSlug, categories,
                 Translations.pick(translations, lc, "description", activity.getDescription()),
-                activity.getDuration(), List.of(), null);
+                activity.getDuration(), ActivityExtras.toDtos(activity.getExtras(), lc),
+                chosen.stream()
+                        .filter(code -> ActivityExtras.byCode(activity.getExtras(), code).isPresent())
+                        .toList());
     }
 
     private static MessageDTO lastAssistantMessage(PlannerState state) {

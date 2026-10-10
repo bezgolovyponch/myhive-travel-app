@@ -756,6 +756,12 @@ not count against the session's five generations.
   "tripItems": [ "...VotePoolActivityDTO × N (same shape the quiz pool returns)..." ] }
 ```
 
+Each `tripItems[]` row also carries `extras` (every add-on the activity offers,
+`ActivityExtraDTO`, localised; `[]` when none) and `selectedExtras` (the codes of
+the ones the picked package chose for it, `[]` when none; a code the activity no
+longer offers is left out). Put `selectedExtras` on the cart item as its chosen
+extras.
+
 Map `activityId → id` exactly as `CuratePage`/`TripBuilder` do for the quiz pool, then
 replace the cart (the same way `SET_TRIP_ITEMS_FROM_VOTE` does) and set travelers to
 `groupSize`. Selecting again with another key is allowed and overwrites the choice.
@@ -875,15 +881,23 @@ known before `readyToGenerate` turns true; `budget` never blocks generation.
           "price": 35.00, "minPrice": 280.00, "lineTotal": 280.00,
           "groupMinApplied": true,
           "why": "Gets everyone loose without a hangover before karting.",
-          "includes": "Bike and driver, 20 litres of beer" }  // catalog text, may be null
+          "includes": "Bike and driver, 20 litres of beer",  // catalog text, may be null
+          "extras": [                          // add-ons chosen for this item in the chat; [] when none
+            { "code": "beer-refill", "name": "Extra 10 litres", "price": 60.00,
+              "pricing": "PER_GROUP",          // PER_GROUP | PER_PERSON
+              "total": 60.00 }                 // what it costs the group (price × groupSize for PER_PERSON)
+          ] }
       ] }
   ]
 }
 ```
 
-`lineTotal` already applies the group minimum (`max(price × groupSize, minPrice)`),
-identical to the Trip Builder formula; show `groupMinApplied` the way the Trip
-Builder shows "(group min)".
+`lineTotal` is `max(price × groupSize, minPrice) + Σ extras[].total`, identical to
+the Trip Builder formula: the group minimum covers the activity alone, extras are
+never floored, and `groupMinApplied` speaks of the activity alone too. Show it the
+way the Trip Builder shows "(group min)". `totalPrice` (and so `pricePerPerson`,
+`fromPrice`) includes every chosen extra. Extras only ever enter a package through
+the chat (see "Editing packages"); a freshly generated package has none.
 
 ## Non-goals of this contract
 

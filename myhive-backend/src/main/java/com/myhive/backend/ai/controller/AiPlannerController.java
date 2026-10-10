@@ -87,7 +87,8 @@ public class AiPlannerController {
         // selection.key(), not the entity: the graph's own transaction stored the pick, so the row
         // handed back here still carries its pre-selection snapshot.
         return new SelectionResponseDTO(selection.key().name(), selection.groupSize(),
-                mapper.tripItems(selection.activityIds(), selection.generation().getSession().getLocale()));
+                mapper.tripItems(selection.activityIds(), selection.selectedExtras(),
+                        selection.generation().getSession().getLocale()));
     }
 
     /**

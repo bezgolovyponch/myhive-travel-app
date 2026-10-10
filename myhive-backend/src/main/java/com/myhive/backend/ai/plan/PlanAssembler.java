@@ -71,11 +71,14 @@ public class PlanAssembler {
                 if (a == null) {
                     continue; // validator already rejected unknown ids; assembly is defensive
                 }
-                BigDecimal line = PlanPricer.lineTotal(a.price(), a.minPrice(), travelers);
-                boolean floored = line.compareTo(a.price().multiply(BigDecimal.valueOf(travelers))) > 0;
+                BigDecimal base = PlanPricer.lineTotal(a.price(), a.minPrice(), travelers);
+                // Judged on the base alone: an extra is never floored and never makes a line "a group minimum".
+                boolean floored = base.compareTo(a.price().multiply(BigDecimal.valueOf(travelers))) > 0;
+                List<ComposedPlan.ItemExtra> extras = PlanPricer.itemExtras(a.extras(), item.extraCodes(), travelers);
+                BigDecimal line = base.add(sumOfTotals(extras));
                 items.add(new ComposedPlan.ItemResult(item.slot(), clean(item.startHint()), a.id(), a.slug(), a.name(),
                         a.imageUrl(), a.durationMinutes(), a.price(), a.minPrice(), line, floored, clean(item.why()),
-                        a.includes()));
+                        a.includes(), extras));
                 ids.add(a.id());
                 total = total.add(line);
                 minutes += a.durationMinutes();
@@ -84,6 +87,11 @@ public class PlanAssembler {
         }
         return new ComposedPlan.PackageResult(p.key(), clean(p.title()), clean(p.tagline()), clean(p.description()),
                 PlanPricer.perPerson(total, travelers), total, ComposedPlan.CURRENCY, minutes, ids, days, nights);
+    }
+
+    /** Each extra's {@code total} is already priced for the group, so it is the authoritative per-line number. */
+    private static BigDecimal sumOfTotals(List<ComposedPlan.ItemExtra> extras) {
+        return extras.stream().map(ComposedPlan.ItemExtra::total).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**

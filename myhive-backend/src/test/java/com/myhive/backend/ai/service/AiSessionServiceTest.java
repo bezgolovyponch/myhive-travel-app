@@ -37,6 +37,7 @@ import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.AiSessionStatus;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.AiGenerationRepository;
@@ -670,6 +671,38 @@ class AiSessionServiceTest {
         assertThat(generation.getSelectedPackageKey()).isEqualTo(expectedKey.name());
         assertThat(graph.snapshot(session.getToken()).next()).isEqualTo(PlannerGraph.AWAIT_SELECTION);
         assertThat(llm.chatRequests).isEmpty();
+    }
+
+    @Test
+    void select_returnsTheExtrasEachActivityCarriesInThePickedPackage() {
+        AiSession session = startedSession();
+        UUID cruise = UUID.randomUUID();
+        UUID karting = UUID.randomUUID();
+        List<String> expectedCruiseExtras = List.of("private-show", "open-bar");
+        ComposedPlan.DayResult day = new ComposedPlan.DayResult(1, "Day 1", "sum", List.of(
+                pickedItem(cruise, Slot.AFTERNOON, List.of(
+                        pickedExtra("private-show", ExtraPricing.PER_GROUP),
+                        pickedExtra("open-bar", ExtraPricing.PER_PERSON))),
+                pickedItem(karting, Slot.EVENING, List.of())));
+        ComposedPlan plan = new ComposedPlan(List.of(new ComposedPlan.PackageResult(Tier.BASIC, "Night out", "tag",
+                "desc", new BigDecimal("80.00"), new BigDecimal("480.00"), ComposedPlan.CURRENCY, 180,
+                List.of(cruise, karting), List.of(day))), false);
+        AiGeneration generation = readyGeneration(session, Tier.BASIC, cruise);
+        generation.setResult(JsonCodec.write(plan));
+
+        AiSessionService.Selection selection = service.select(generation.getId(), Tier.BASIC);
+
+        assertThat(selection.selectedExtras()).containsExactlyInAnyOrderEntriesOf(
+                Map.of(cruise, expectedCruiseExtras, karting, List.of()));
+    }
+
+    private static ComposedPlan.ItemResult pickedItem(UUID activityId, Slot slot, List<ComposedPlan.ItemExtra> extras) {
+        return new ComposedPlan.ItemResult(slot, null, activityId, "slug", "Name", null, 90, new BigDecimal("40.00"),
+                null, new BigDecimal("160.00"), false, "why", null, extras);
+    }
+
+    private static ComposedPlan.ItemExtra pickedExtra(String code, ExtraPricing pricing) {
+        return new ComposedPlan.ItemExtra(code, code, new BigDecimal("10.00"), pricing, new BigDecimal("10.00"));
     }
 
     /**
