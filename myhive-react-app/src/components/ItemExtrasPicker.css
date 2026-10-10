@@ -1,0 +1,71 @@
+/* Optional extras checklist (detail page panel, Trip Builder rows). */
+.item-extras-picker {
+    border: none;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+
+.item-extras-picker-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--gap-sm);
+}
+
+.item-extras-picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+}
+
+.item-extras-picker-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: var(--gap-sm);
+    cursor: pointer;
+}
+
+.item-extras-picker-check {
+    margin-top: 0.1875rem;
+    accent-color: var(--purple);
+}
+
+.item-extras-picker-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.item-extras-picker-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* One line: the full text is on the detail page's description, not here. */
+.item-extras-picker-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-extras-picker-price {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.item-extras-picker--compact .item-extras-picker-list {
+    gap: var(--gap-xs);
+}
+
+.item-extras-picker--compact .item-extras-picker-name {
+    font-size: 0.8125rem;
+}

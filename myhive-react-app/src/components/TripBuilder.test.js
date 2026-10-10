@@ -1,8 +1,9 @@
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {useCallback, useReducer} from 'react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, useLocation} from 'react-router-dom';
 import TripBuilder from './TripBuilder';
-import {TripContext} from '../context/TripContext';
+import {reducer, TripContext} from '../context/TripContext';
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -1902,5 +1903,73 @@ describe('landing handoff via ?picks=', () => {
         expect(dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: 'ADD_TO_TRIP' })
         );
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Optional extras on a standalone row: picked inline, never by leaving the page.
+// The real reducer runs behind the dispatch spy, so the row re-renders from
+// the cart the way it does in the app.
+// ---------------------------------------------------------------------------
+
+describe('extras on an itinerary row', () => {
+    const extras = [
+        { code: 'show', name: 'Private show', description: 'Just your group', price: 250, pricing: 'PER_GROUP' },
+        { code: 'photo', name: 'Photos', description: 'A photographer', price: 15, pricing: 'PER_PERSON' },
+    ];
+
+    function CartHarness({ initialItems, onDispatch }) {
+        const [state, dispatch] = useReducer(reducer, buildTripState({ tripItems: initialItems }));
+        const spyingDispatch = useCallback((action) => {
+            onDispatch(action);
+            dispatch(action);
+        }, [onDispatch]);
+        return (
+            <MemoryRouter initialEntries={['/']}>
+                <TripContext.Provider value={{ state, dispatch: spyingDispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+    }
+
+    test('ticking an extra in the row shows its chip; the chip’s × takes it off again', async () => {
+        const user = userEvent.setup();
+        const onDispatch = jest.fn();
+        render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={onDispatch} />);
+
+        const toggle = screen.getByRole('button', { name: 'Add extras' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await user.click(toggle);
+        const picker = screen.getByRole('group', { name: 'Optional extras' });
+        expect(within(picker).getByRole('checkbox', { name: /Private show/ })).not.toBeChecked();
+
+        await user.click(within(picker).getByRole('checkbox', { name: /Private show/ }));
+
+        expect(onDispatch).toHaveBeenCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] });
+        expect(screen.getByText('Private show · +€250')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Remove Private show' }));
+
+        expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: [] });
+        expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+    });
+
+    test('Done folds the checklist away', async () => {
+        const user = userEvent.setup();
+        render(<CartHarness initialItems={[{ ...activity1, extras }]} onDispatch={jest.fn()} />);
+
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        await user.click(screen.getByRole('button', { name: 'Done' }));
+
+        expect(screen.queryByRole('group', { name: 'Optional extras' })).not.toBeInTheDocument();
+    });
+
+    test('a row whose activity has no extras offers none', async () => {
+        render(<CartHarness initialItems={[activity1]} onDispatch={jest.fn()} />);
+
+        // Let the plan price settle, so no update lands after the test.
+        await waitFor(() => expect(pricingApi.quote).toHaveBeenCalled());
+        expect(screen.queryByRole('button', { name: 'Add extras' })).not.toBeInTheDocument();
     });
 });

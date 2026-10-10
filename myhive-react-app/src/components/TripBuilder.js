@@ -24,6 +24,7 @@ import ActiveVoteModal from './vote/ActiveVoteModal';
 import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} from './vote/VoteDashboard';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
+import ItemExtrasRow from './ItemExtrasRow';
 import {useLocalePath, useT} from '../i18n';
 import {groupByDay} from '../utils/voteDays';
 import './TripBuilder.css';
@@ -960,6 +961,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                        loading="lazy"/>
                   <div className="itinerary-item-content">
                     <div className="itinerary-item-title">{item.name}</div>
+                    <ItemExtrasRow
+                      item={item}
+                      onChange={codes => dispatch({type: 'SET_ITEM_EXTRAS', id: item.id, selectedExtras: codes})}
+                    />
                     {voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
                           <span className="itinerary-item-votes-count">♥ {voteAnnotation.counts[item.id]}</span>

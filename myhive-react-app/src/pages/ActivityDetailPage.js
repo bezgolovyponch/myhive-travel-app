@@ -9,6 +9,8 @@ import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatAmount, formatDuration, f
 import {parseDescriptionBlocks} from '../utils/descriptionBlocks';
 import ActivityGallery from '../components/ActivityGallery';
 import ActivityCard from '../components/ActivityCard';
+import ItemExtrasPicker from '../components/ItemExtrasPicker';
+import {extrasTotal} from '../utils/tripPricing';
 import {useT} from '../i18n';
 import './ActivityDetailPage.css';
 
@@ -20,11 +22,14 @@ function ActivityDetailPage({activity: injectedActivity}) {
     const t = useT('activityDetail');
     const tDuration = useT('activityDetail.duration');
     const tMeta = useT('meta');
+    const tExtras = useT('extras');
     const {destinationSlug, slug} = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useTrip();
     const {data: activity, loading, error} = useFetchBySlug(api.getActivityBySlug, slug, injectedActivity);
     const [moreActivities, setMoreActivities] = useState([]);
+    // Extras ticked before the activity is in the trip; nothing starts ticked.
+    const [pendingExtras, setPendingExtras] = useState([]);
 
     const destinationId = activity?.destinationId;
     const activityId = activity?.id;
@@ -75,7 +80,8 @@ function ActivityDetailPage({activity: injectedActivity}) {
         ? activity.categories[0].name
         : null;
     const category = primaryCategory ? capitalizeFirst(primaryCategory) : t('categoryFallback');
-    const isAdded = state.tripItems.some(item => item.id === activity.id);
+    const cartItem = state.tripItems.find(item => item.id === activity.id);
+    const isAdded = Boolean(cartItem);
     const durationText = formatDuration(activity.duration, tDuration);
     const destSlug = destinationSlug || activity.destinationSlug;
 
@@ -99,8 +105,21 @@ function ActivityDetailPage({activity: injectedActivity}) {
     const cancellationPolicy = activity.cancellationPolicy
         || t('facts.cancellationDefault');
 
+    const extras = activity.extras || [];
+    // Once the activity is in the trip, the checklist shows and edits the trip's own selection.
+    const selectedExtras = cartItem ? (cartItem.selectedExtras || []) : pendingExtras;
+    const selectedExtrasTotal = extrasTotal({...activity, selectedExtras}, 1);
+
+    const handleExtrasChange = (codes) => {
+        if (cartItem) {
+            dispatch({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras: codes});
+        } else {
+            setPendingExtras(codes);
+        }
+    };
+
     const handleAddToTrip = () => {
-        dispatch({type: 'ADD_TO_TRIP', activity});
+        dispatch({type: 'ADD_TO_TRIP', activity: {...activity, selectedExtras}});
     };
 
     const addButton = (
@@ -219,6 +238,17 @@ function ActivityDetailPage({activity: injectedActivity}) {
                                 ? t('groupMinimum', {amount: formatAmount(Number(activity.minPrice))})
                                 : t('groupPriceFrom')}
                         </span>
+                        {/* One person's worth: the page has no group size. */}
+                        {selectedExtrasTotal > 0 && (
+                            <span className="activity-detail-extras-summary">
+                                {tExtras('selectedSummary', {amount: formatAmount(selectedExtrasTotal)})}
+                            </span>
+                        )}
+                        {extras.length > 0 && (
+                            <section className="activity-detail-extras">
+                                <ItemExtrasPicker extras={extras} selected={selectedExtras} onChange={handleExtrasChange}/>
+                            </section>
+                        )}
                         {addButton}
                         {durationText && (
                             <ul className="activity-detail-panel-meta">

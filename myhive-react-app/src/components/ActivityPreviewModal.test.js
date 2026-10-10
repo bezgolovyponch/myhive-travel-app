@@ -51,6 +51,30 @@ test('shows the What\'s included list parsed from the includes string', () => {
   expect(screen.getByText('Guide')).toBeInTheDocument();
 });
 
+test('lists the optional extras with their prices, nothing to tick', () => {
+  render(
+    <ActivityPreviewModal
+      activity={{ ...activity, extras: [
+        { code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP' },
+        { code: 'photo', name: 'Photos', price: 15, pricing: 'PER_PERSON' },
+      ] }}
+      link={null}
+      onClose={jest.fn()}
+    />
+  );
+
+  expect(screen.getByRole('heading', { name: 'Optional extras' })).toBeInTheDocument();
+  expect(screen.getByText('Private show')).toBeInTheDocument();
+  expect(screen.getByText('+€250 per group')).toBeInTheDocument();
+  expect(screen.getByText('+€15 per person')).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});
+
+test('hides the extras list when the activity has none', () => {
+  render(<ActivityPreviewModal activity={activity} link={null} onClose={jest.fn()} />);
+  expect(screen.queryByText('Optional extras')).not.toBeInTheDocument();
+});
+
 test('hides the What\'s included section when includes is empty', () => {
   render(
     <ActivityPreviewModal activity={{ ...activity, includes: '' }} link={null} onClose={jest.fn()} />

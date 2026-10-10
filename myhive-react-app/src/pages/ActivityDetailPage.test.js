@@ -110,6 +110,35 @@ test('adding to trip marks both add buttons as added', async () => {
   addedButtons.forEach(button => expect(button).toBeDisabled());
 });
 
+test('ticked extras are summed in the panel and go into the trip with the activity', async () => {
+  localStorage.clear();
+  const expectedCodes = ['show'];
+  api.getActivityBySlug.mockResolvedValue({...activity, extras: [
+    {code: 'show', name: 'Private show', description: 'Just your group', price: 250, pricing: 'PER_GROUP'},
+    {code: 'photo', name: 'Photos', description: 'A photographer', price: 15, pricing: 'PER_PERSON'},
+  ]});
+  await renderLoadedPage();
+
+  const section = screen.getByRole('group', {name: 'Optional extras'});
+  expect(within(section).getByRole('checkbox', {name: /Private show/})).not.toBeChecked();
+  expect(screen.queryByText(/^\+ .* extras$/)).not.toBeInTheDocument();
+  await userEvent.click(within(section).getByRole('checkbox', {name: /Private show/}));
+  expect(screen.getByText('+ €250 extras')).toBeInTheDocument();
+
+  const [panelButton] = screen.getAllByRole('button', {name: /Add to trip/i});
+  await userEvent.click(panelButton);
+
+  await waitFor(() => {
+    const [saved] = JSON.parse(localStorage.getItem('myhive-trip-items'));
+    expect(saved.selectedExtras).toEqual(expectedCodes);
+  });
+});
+
+test('an activity without extras has no extras section', async () => {
+  await renderLoadedPage();
+  expect(screen.queryByRole('group', {name: 'Optional extras'})).not.toBeInTheDocument();
+});
+
 test('renders the WhatsApp help link', async () => {
   await renderLoadedPage();
   const link = screen.getByRole('link', {name: /Chat with our team/i});

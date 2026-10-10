@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AppModal from './AppModal';
 import api from '../services/api';
-import { formatDuration } from '../utils/format';
+import { extraPriceLabel, formatDuration } from '../utils/format';
 import { useLocalePath, useT } from '../i18n';
 import './ActivityPreviewModal.css';
 
@@ -18,6 +18,7 @@ import './ActivityPreviewModal.css';
 function ActivityPreviewModal({ activity: given, activityId, link, onClose, closeLabel, action }) {
     const t = useT('cards');
     const tDuration = useT('activityDetail.duration');
+    const tExtras = useT('extras');
     const lp = useLocalePath();
     const [loaded, setLoaded] = useState(null);
     const needsLoad = Boolean(given && activityId && given.description === undefined);
@@ -73,6 +74,7 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
         .split(/[;\n]+/)
         .map((item) => item.trim())
         .filter(Boolean);
+    const extras = activity.extras || [];
 
     return (
         <AppModal
@@ -122,6 +124,20 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
                     <ul className="activity-preview-includes-list">
                         {includedItems.map((item) => (
                             <li key={item}>{item}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {/* What can be added, priced; the choice is made on the detail page or in the Trip Builder. */}
+            {extras.length > 0 && (
+                <div className="activity-preview-extras">
+                    <h3 className="activity-preview-includes-title">{tExtras('title')}</h3>
+                    <ul className="activity-preview-extras-list">
+                        {extras.map((extra) => (
+                            <li key={extra.code}>
+                                <span>{extra.name}</span>
+                                <span className="activity-preview-extras-price">{extraPriceLabel(extra, tExtras)}</span>
+                            </li>
                         ))}
                     </ul>
                 </div>
