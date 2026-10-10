@@ -51,7 +51,8 @@ function renderWith(state, dispatch = jest.fn()) {
 }
 
 const pool = [
-  { activityId: 'act1', name: 'Tank Driving', price: 150, minPrice: 300, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: ['Extreme'] },
+  { activityId: 'act1', name: 'Tank Driving', price: 150, minPrice: 300, imageUrl: null, slug: 'tank', destinationSlug: 'bali', categories: ['Extreme'],
+    extras: [{ code: 'video', name: 'Onboard video', price: 30, pricing: 'PER_GROUP' }] },
   { activityId: 'act2', name: 'Spa Day', price: 80, imageUrl: null, slug: 'spa', destinationSlug: 'bali', categories: ['Chillout'] },
 ];
 
@@ -77,6 +78,7 @@ test('last swipe seeds the trip, stores the quiz-flow context, and lands in the 
   expect(addCalls[0][0].silent).toBe(true);
   expect(addCalls[0][0].activity).toMatchObject({
     id: 'act1', name: 'Tank Driving', minPrice: 300, categories: [{ name: 'Extreme' }],
+    extras: [{ code: 'video', name: 'Onboard video', price: 30, pricing: 'PER_GROUP' }],
   });
 
   expect(JSON.parse(sessionStorage.getItem('myhive-quiz-flow'))).toEqual({ setup, responses: [] });
@@ -115,7 +117,7 @@ test('undo drops the pick — only the re-swiped selection reaches the trip', as
   expect(await screen.findByText('destination page')).toBeInTheDocument();
   const addCalls = dispatch.mock.calls.filter(c => c[0].type === 'ADD_TO_TRIP');
   expect(addCalls).toHaveLength(1);
-  expect(addCalls[0][0].activity).toMatchObject({ id: 'act2', name: 'Spa Day' });
+  expect(addCalls[0][0].activity).toMatchObject({ id: 'act2', name: 'Spa Day', extras: [] });
 });
 
 test('back from the trip builder does not return to the spent deck (replace navigation)', async () => {

@@ -327,7 +327,8 @@ test('on a device with an empty cart, the ballot becomes the plan', async () => 
 
     const {dispatch} = renderDashboard({state: tripState({tripItems: [], tripTravelers: 1, tripStartDate: '', tripEndDate: ''})});
 
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith({type: 'SET_TRIP_ITEMS', tripItems: [shooting, steak]}));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith({type: 'SET_TRIP_ITEMS',
+        tripItems: [{...shooting, extras: []}, {...steak, extras: []}]}));
     expect(dispatch).toHaveBeenCalledWith({type: 'UPDATE_TRIP_TRAVELERS', travelers: 10});
     expect(dispatch).toHaveBeenCalledWith({type: 'UPDATE_TRIP_DATES', startDate: '2026-10-16', endDate: '2026-10-18'});
 });

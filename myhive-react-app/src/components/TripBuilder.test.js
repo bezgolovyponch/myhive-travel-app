@@ -1940,9 +1940,12 @@ describe('extras on an itinerary row', () => {
 
         const toggle = screen.getByRole('button', { name: 'Add extras' });
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        // Folded away the checklist is not in the document, so nothing to point at.
+        expect(toggle).not.toHaveAttribute('aria-controls');
         await user.click(toggle);
         const picker = screen.getByRole('group', { name: 'Optional extras' });
         expect(toggle).toHaveAttribute('aria-controls', picker.id);
+        expect(document.getElementById(picker.id)).toBe(picker);
         expect(within(picker).getByRole('checkbox', { name: /Private show/ })).not.toBeChecked();
 
         await user.click(within(picker).getByRole('checkbox', { name: /Private show/ }));
@@ -1954,6 +1957,19 @@ describe('extras on an itinerary row', () => {
 
         expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: [] });
         expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+    });
+
+    test('the open checklist spans the whole row, not the title column beside the thumbnail', async () => {
+        const user = userEvent.setup();
+        render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={jest.fn()} />);
+
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+
+        const picker = screen.getByRole('group', { name: 'Optional extras' });
+        const row = picker.closest('.itinerary-item');
+        expect(row).not.toBeNull();
+        expect(picker.closest('.itinerary-item-content')).toBeNull();
+        expect(row.querySelector('.itinerary-item-content')).toHaveTextContent(activity1.name);
     });
 
     test('a per-person chip shows what it adds for the whole group', async () => {

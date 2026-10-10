@@ -94,7 +94,9 @@ export function useOrganizerVote({shareToken, managerParam, restored, cartEmpty,
         seededRef.current = shareToken;
         voteApi.getActivities(shareToken)
             .then(activities => {
-                dispatch({type: 'SET_TRIP_ITEMS', tripItems: activities});
+                // Every cart item carries its activity's extras, so the Trip Builder can offer them.
+                const tripItems = activities.map(a => ({...a, extras: a.extras || []}));
+                dispatch({type: 'SET_TRIP_ITEMS', tripItems});
                 if (session.numberOfTravelers > 0) {
                     dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: session.numberOfTravelers});
                 }

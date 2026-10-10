@@ -4,7 +4,7 @@ import './ItemExtrasPicker.css';
 
 /**
  * An activity's optional extras as a checklist: one row per extra with its
- * name, a one-line description and its price per group or per person.
+ * name, its description (wrapped in full) and its price per group or per person.
  * Nothing comes ticked; only `selected` (codes) is. `onChange` gets the new
  * codes in the activity's own order. `compact` is the slimmer variant for an
  * itinerary row, where the row already names the activity. `id` lets a toggle

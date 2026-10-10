@@ -1,20 +1,19 @@
-import {useId, useState} from 'react';
 import {useT} from '../i18n';
 import {formatAmount} from '../utils/format';
 import {extraAmount, extrasOf} from '../utils/tripPricing';
 import ItemExtrasPicker from './ItemExtrasPicker';
 
 /**
- * The extras of one Trip Builder row: a chip per ticked extra with what it
- * adds to the line for this many travellers (× unticks it), and a toggle that
- * opens the checklist inline, so the organizer never leaves the itinerary to
- * pick one. Nothing for an activity without extras. `onChange` gets the row's
- * new codes.
+ * The extras of one Trip Builder row, under its title: a chip per ticked extra
+ * with what it adds to the line for this many travellers (× unticks it), and a
+ * toggle for the checklist. The checklist itself is {@link ItemExtrasPanel},
+ * which the row renders full width below its title line (beside the thumbnail
+ * there is no room for it on a phone), so the toggle is controlled: `open`,
+ * `onToggle`, and `pickerId` for `aria-controls` while the checklist is shown.
+ * Nothing for an activity without extras. `onChange` gets the row's new codes.
  */
-function ItemExtrasRow({item, travelers, onChange}) {
+function ItemExtrasRow({item, travelers, onChange, open, onToggle, pickerId}) {
     const t = useT('extras');
-    const pickerId = useId();
-    const [open, setOpen] = useState(false);
     const extras = item.extras || [];
     if (extras.length === 0) {
         return null;
@@ -48,12 +47,28 @@ function ItemExtrasRow({item, travelers, onChange}) {
                 type="button"
                 className="itinerary-item-extras-toggle"
                 aria-expanded={open}
-                aria-controls={pickerId}
-                onClick={() => setOpen(wasOpen => !wasOpen)}
+                aria-controls={open ? pickerId : undefined}
+                onClick={onToggle}
             >
                 {open ? t('done') : t('add')}
             </button>
-            {open && <ItemExtrasPicker id={pickerId} compact extras={extras} selected={selected} onChange={onChange}/>}
+        </div>
+    );
+}
+
+/**
+ * The checklist {@link ItemExtrasRow} toggles, as a block spanning the whole
+ * itinerary row. Nothing for an activity without extras.
+ */
+export function ItemExtrasPanel({item, onChange, pickerId}) {
+    const extras = item.extras || [];
+    if (extras.length === 0) {
+        return null;
+    }
+    return (
+        <div className="itinerary-item-extras-panel">
+            <ItemExtrasPicker id={pickerId} compact extras={extras} selected={item.selectedExtras || []}
+                              onChange={onChange}/>
         </div>
     );
 }

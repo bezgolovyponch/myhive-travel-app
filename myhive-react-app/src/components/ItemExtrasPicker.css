@@ -14,6 +14,7 @@
 }
 
 .item-extras-picker-list {
+    container-type: inline-size;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -24,7 +25,7 @@
 
 .item-extras-picker-row {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: start;
     gap: var(--gap-sm);
     cursor: pointer;
@@ -45,21 +46,31 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--text);
+    overflow-wrap: anywhere;
 }
 
-/* One line: the full text is on the detail page's description, not here. */
+/* Wraps in full: it is often the fine print ("18+ only; tips not included."). */
 .item-extras-picker-desc {
     font-size: 0.75rem;
     color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
 }
 
 .item-extras-picker-price {
     font-size: 0.8125rem;
     color: var(--text-muted);
     white-space: nowrap;
+}
+
+/* Narrow: the price gets its own line under the name, so the two never collide. */
+@container (max-width: 20rem) {
+    .item-extras-picker-row {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .item-extras-picker-price {
+        grid-column: 2;
+    }
 }
 
 .item-extras-picker--compact .item-extras-picker-list {

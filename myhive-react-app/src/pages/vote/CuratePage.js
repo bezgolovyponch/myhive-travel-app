@@ -99,6 +99,7 @@ function CurateContent() {
           destinationSlug: a.destinationSlug,
           imageUrl: a.imageUrl,
           categories: (a.categories || []).map(name => ({ name })),
+          extras: a.extras || [],
         },
       });
     });

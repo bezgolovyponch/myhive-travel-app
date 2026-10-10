@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useId, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
@@ -24,7 +24,7 @@ import ActiveVoteModal from './vote/ActiveVoteModal';
 import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} from './vote/VoteDashboard';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
-import ItemExtrasRow from './ItemExtrasRow';
+import ItemExtrasRow, {ItemExtrasPanel} from './ItemExtrasRow';
 import {useLocalePath, useT} from '../i18n';
 import {groupByDay} from '../utils/voteDays';
 import './TripBuilder.css';
@@ -83,6 +83,9 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const lp = useLocalePath();
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
+  // Rows whose extras checklist is open; each opens and folds on its own.
+  const [openExtras, setOpenExtras] = useState(() => new Set());
+  const extrasIdBase = useId();
   const [categories, setCategories] = useState([]);
   const [browseActivities, setBrowseActivities] = useState([]);
   const [showAllCategories, setShowAllCategories] = useState(false);
@@ -405,6 +408,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
 
   // While the vote runs the plan is the ballot: dropping or adding an activity
   // here changes what the friends who have not voted yet see.
+  const setItemExtras = (id, codes) => dispatch({type: 'SET_ITEM_EXTRAS', id, selectedExtras: codes});
+
+  const toggleExtras = (id) => setOpenExtras(previous => {
+    const next = new Set(previous);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    return next;
+  });
+
+  const extrasPickerId = (id) => `${extrasIdBase}-extras-${id}`;
+
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
     // Before the first tally has arrived there is no telling whether the vote holds it, so it is
@@ -964,7 +981,10 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     <ItemExtrasRow
                       item={item}
                       travelers={state.tripTravelers || 1}
-                      onChange={codes => dispatch({type: 'SET_ITEM_EXTRAS', id: item.id, selectedExtras: codes})}
+                      onChange={codes => setItemExtras(item.id, codes)}
+                      open={openExtras.has(item.id)}
+                      onToggle={() => toggleExtras(item.id)}
+                      pickerId={extrasPickerId(item.id)}
                     />
                     {voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
@@ -988,6 +1008,13 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   >
                     ×
                   </button>
+                  {openExtras.has(item.id) && (
+                    <ItemExtrasPanel
+                      item={item}
+                      onChange={codes => setItemExtras(item.id, codes)}
+                      pickerId={extrasPickerId(item.id)}
+                    />
+                  )}
                 </div>
               ))}
             </>

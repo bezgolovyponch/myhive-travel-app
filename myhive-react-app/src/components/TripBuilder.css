@@ -145,6 +145,7 @@
 
 .itinerary-item {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--gap);
     padding: var(--gap);
@@ -164,6 +165,7 @@
 
 .itinerary-item-content {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: var(--gap-xs);
@@ -175,8 +177,8 @@
     color: var(--text);
 }
 
-/* Optional extras under a row's title: chips for the ticked ones, a text
-   toggle, and the checklist inline when open. */
+/* Optional extras under a row's title: chips for the ticked ones and a text
+   toggle. The checklist opens as its own line of the row (below). */
 .itinerary-item-extras {
     display: flex;
     flex-direction: column;
@@ -228,8 +230,19 @@
     text-decoration: underline;
 }
 
-.itinerary-item-extras .item-extras-picker {
-    align-self: stretch;
+/* The open checklist: a full-width line of the row under the thumbnail and
+   title, so a phone gives it the whole card instead of the title column. */
+.itinerary-item-extras-panel {
+    flex-basis: 100%;
+    min-width: 0;
+}
+
+/* Wider screens: indent it under the title, where it sat before. */
+@media (min-width: 576px) {
+    .itinerary-item-extras-panel {
+        padding-left: calc(3.75rem + var(--gap));
+        padding-right: calc(1.5rem + var(--gap));
+    }
 }
 
 .itinerary-plan-price {
