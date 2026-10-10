@@ -389,6 +389,24 @@ Three ops, each naming a catalog activity by its display name and optionally a
 - **REPLACE** — swap one activity for another in place (same cell where possible).
   Same untargeted behaviour as `REMOVE`: every package holding the original.
 
+Two more ops choose an activity's optional **extras** (the add-ons listed in the
+activity's `extras`, e.g. a private show on a boat cruise). Each names the carrier
+activity in `activity` and the extra in `extra`; neither moves anything, so the
+schedule is never re-checked for them:
+- **ADD_EXTRA** — choose the extra on that activity. Left untargeted, it is
+  attempted against every package that holds the activity.
+- **REMOVE_EXTRA** — drop a chosen extra. Same untargeted behaviour.
+
+The extra is resolved against the extras **that activity** offers (exact name
+first, then a unique partial match); one it does not offer comes back
+`UNKNOWN_EXTRA` with the offered ones in `detail`, and the chat says what the
+activity does offer. "A river cruise with a private show" while the cruise is not
+in the package yet is two ops in one batch: an `ADD` of the cruise, then an
+`ADD_EXTRA` on it. A chosen extra shows on the item (`items[].extras`) and is in its
+`lineTotal` and the package totals (see the `Package` type); moving the activity
+keeps it, swapping the activity out drops it. A tap (`POST .../edits`) cannot
+choose extras: `ADD_EXTRA`/`REMOVE_EXTRA` there is a `400`.
+
 An `ADD` may additionally be scoped to a `dayNumber` and/or a `slot` ("put the
 karting on Saturday morning"). A scoped op is not a hint: only that day, and only
 that slot, is tried — if the cell is taken or the slot is outside that day's
@@ -414,13 +432,15 @@ applied or not:
 {
   "generationId": null,
   "applied": [
-    { "op": "ADD" | "REMOVE" | "REPLACE", "activity": "Beer Bike",
-      "replacement": null, "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING" }
+    { "op": "ADD" | "REMOVE" | "REPLACE" | "MOVE" | "ADD_EXTRA" | "REMOVE_EXTRA", "activity": "Beer Bike",
+      "replacement": null, "packageKey": "MEDIUM", "dayNumber": 2, "slot": "EVENING",
+      "extra": null }                          // the extra's catalog name on ADD_EXTRA/REMOVE_EXTRA
   ],
   "rejected": [
-    { "op": "ADD" | "REMOVE" | "REPLACE", "activity": "Karting",
+    { "op": "ADD" | "REMOVE" | "REPLACE" | "MOVE" | "ADD_EXTRA" | "REMOVE_EXTRA", "activity": "Karting",
       "packageKey": "PREMIUM", "reason": "NO_FREE_SLOT",
-      "detail": "no free slot for Karting in PREMIUM" }
+      "detail": "no free slot for Karting in PREMIUM",
+      "extra": null }                          // the extra named by ADD_EXTRA/REMOVE_EXTRA
   ],
   "tierRulesRelaxed": true,
   "textsRefreshed": true
@@ -432,7 +452,13 @@ applied or not:
 - `applied[].activity`/`.replacement`: always the **catalog name**, never the
   model's spelling. `replacement` is non-null only for `REPLACE`.
 - `applied[].dayNumber`/`.slot`: the cell the item landed in (`REMOVE`: the cell it
-  was removed from). `slot` is `MORNING`\|`AFTERNOON`\|`EVENING`\|`NIGHT`.
+  was removed from; `ADD_EXTRA`/`REMOVE_EXTRA`: the activity's own cell). `slot` is
+  `MORNING`\|`AFTERNOON`\|`EVENING`\|`NIGHT`.
+- `applied[].extra`: the **catalog name** of the extra an `ADD_EXTRA`/`REMOVE_EXTRA`
+  chose or dropped; null for every other op.
+- `rejected[].extra`: the extra an `ADD_EXTRA`/`REMOVE_EXTRA` named — the
+  organizer's own words on `UNKNOWN_EXTRA`, the catalog name otherwise; null for
+  every other op.
 - `rejected[].activity`: the catalog name once resolved, otherwise the model's raw
   spelling — see the rejection-reasons table for the one case where this is the
   *replacement's* spelling on a `REPLACE`.
@@ -595,17 +621,21 @@ and only then does Java see that the budget is gone. What is skipped is the
 works the same way. `limits.editsLeft` is `0` from here on (re-`GET` the session
 to see it).
 
-**Rejection reasons** (`edit.rejected[].reason`, ten values):
+**Rejection reasons** (`edit.rejected[].reason`, fourteen values):
 
 | Reason | Meaning | Suggested UI treatment |
 |---|---|---|
 | `UNKNOWN_ACTIVITY` | The name could not be matched to anything in the destination's catalog. | Show the chat sentence; when `alternatives` is non-empty, offer each as a quick reply that sends `add <name>`. No other retry button — ask the group to rephrase or pick from the list. |
 | `AMBIGUOUS_ACTIVITY` | The name matches more than one catalog entry. | `detail` holds the candidate names, comma-separated — offer them as quick replies. |
-| `NOT_IN_PACKAGE` | `REMOVE`/`REPLACE` named an activity that is not actually in the targeted package (or in any package, when untargeted) — **and** an op of any kind, `ADD` included, scoped to a `packageKey` the plan does not have. | Informational — nothing to retry, the plan already matches what was asked for. |
+| `NOT_IN_PACKAGE` | `REMOVE`/`REPLACE`/`MOVE`/`ADD_EXTRA`/`REMOVE_EXTRA` named an activity that is not actually in the targeted package (or in any package, when untargeted) — **and** an op of any kind, `ADD` included, scoped to a `packageKey` the plan does not have. | Informational — nothing to retry, the plan already matches what was asked for. |
 | `ALREADY_IN_PACKAGE` | `ADD`/`REPLACE` named an activity already present in the target. On a `REPLACE` this is about the **replacement**: `activity` is still the original, and `detail` names the replacement that is already there. | Informational, same treatment as above. |
 | `WOULD_EMPTY_PACKAGE` | A `REMOVE` would leave that package with zero activities. | Suggest a `REPLACE` instead of a bare drop. |
 | `NO_FREE_SLOT` | Nowhere left to put it: every day in that package is at its tier's item/minute cap, **or** the op named a `dayNumber`/`slot` whose cell is taken or lies outside that day's arrival/departure window. | Suggest dropping something first, naming another day/slot, or trying a roomier tier. |
 | `WOULD_BREAK_SCHEDULE` | The activity placed fine, but re-validating the touched package showed a scheduling rule the op **introduced** (an emptied middle day, a duplicate, a day over its caps). Rules the package already broke — a degraded or fallback plan often has some — are ignored, so this never fires for a problem the edit did not cause. | Show only the chat sentence to the group; `detail` (validator code + message) is for support/logs. |
+| `ALREADY_ON_DAY` | A `MOVE` to the day the activity is on already. | Informational. |
+| `UNKNOWN_EXTRA` | `ADD_EXTRA`/`REMOVE_EXTRA` named an extra the activity does not offer. `extra` is the organizer's words; `detail` lists the extras the activity does offer, comma-separated (empty when it offers none). `packageKey` is null: the extra is checked once, before any package. | Show the chat sentence; the offered extras can be quick replies. |
+| `ALREADY_HAS_EXTRA` | `ADD_EXTRA` of an extra already chosen on that activity in that package. | Informational. |
+| `EXTRA_NOT_SELECTED` | `REMOVE_EXTRA` of an extra that was never chosen on that activity in that package. | Informational. |
 | `NO_PACKAGES_YET` | An edit was requested while the chat has no packages in its state — which is normally "before the first generation finished", not "no generation row exists". | Prompt to finish the brief (or hit "Generate now") first. |
 | `EDIT_LIMIT` | This chat's 20 edit-turn budget is spent. | Same treatment as `SESSION_TURN_LIMIT`/`GENERATION_LIMIT` — offer "start a new chat". |
 | `INTERNAL` | Something on our side, never the group's fault. Two shapes: **per op**, when the editor itself failed on that one edit and the rest of the batch went through; and **the whole batch** (`applied[]` empty, `generationId` null), when storing the result failed, when the parent generation is missing or not `READY`, or when a plan item is missing from the catalog snapshot *and* too incomplete to reconstruct. A whole-batch rejection normally carries one entry per requested op — but in the rare case where the requested ops themselves could not be read back, it is a **single** entry with `op: null` and `activity: null`. | Generic "try again". On a whole-batch `INTERNAL` the packages on screen are unchanged and still correct. Do not assume `rejected[]` lines up one-to-one with what the group asked for. |

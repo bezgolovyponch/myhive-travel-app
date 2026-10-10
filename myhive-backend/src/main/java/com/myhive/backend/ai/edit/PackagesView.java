@@ -1,11 +1,16 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PresetThemes;
+import com.myhive.backend.entity.ExtraPricing;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
@@ -15,6 +20,9 @@ import java.util.TreeSet;
  * invite it to invent them — so {@link ActivityNameResolver} can map its answer back onto the catalog.
  */
 public final class PackagesView {
+
+    /** What {@link #extrasCatalog} says when nothing on offer has an extra. */
+    public static final String NO_EXTRAS = "none";
 
     private PackagesView() {
     }
@@ -46,7 +54,7 @@ public final class PackagesView {
                 lines.append('\n');
             }
             lines.append(pkg.key()).append(": ").append(days(pkg));
-            java.math.BigDecimal perPerson = com.myhive.backend.util.FromPrice.perPerson(pkg.totalPrice(), travelers);
+            BigDecimal perPerson =com.myhive.backend.util.FromPrice.perPerson(pkg.totalPrice(), travelers);
             if (perPerson != null) {
                 lines.append(" - from EUR ").append(perPerson.toPlainString()).append(" per person");
             }
@@ -104,7 +112,40 @@ public final class PackagesView {
                 items.append(", ");
             }
             items.append(item.slot()).append(' ').append(item.name());
+            if (!item.extras().isEmpty()) {
+                items.append(" (+ ")
+                        .append(String.join(", ", item.extras().stream().map(ComposedPlan.ItemExtra::name).toList()))
+                        .append(')');
+            }
         }
         return items.toString();
+    }
+
+    /**
+     * Every activity's optional extras with their prices, one line for the chat rules:
+     * {@code River Boat Cruise -> Private show (EUR 250 per group), Open bar (EUR 25 per person); Tiki Boat -> ...}.
+     * {@code none} when no activity of the catalog offers any, so the rules about extras have nothing to act on.
+     */
+    public static String extrasCatalog(List<CatalogActivity> catalog) {
+        List<String> lines = new ArrayList<>();
+        if (catalog != null) {
+            for (CatalogActivity activity : catalog) {
+                if (!activity.extras().isEmpty()) {
+                    lines.add(activity.name() + " -> " + String.join(", ",
+                            activity.extras().stream().map(PackagesView::priced).toList()));
+                }
+            }
+        }
+        return lines.isEmpty() ? NO_EXTRAS : String.join("; ", lines);
+    }
+
+    /** "Private show (EUR 250 per group)": whole euros without decimals, anything else with two. */
+    private static String priced(CatalogExtra extra) {
+        BigDecimal price = extra.price() == null ? BigDecimal.ZERO : extra.price();
+        String amount = price.stripTrailingZeros().scale() <= 0
+                ? price.setScale(0, RoundingMode.UNNECESSARY).toPlainString()
+                : price.setScale(2, RoundingMode.HALF_UP).toPlainString();
+        String per = extra.pricing() == ExtraPricing.PER_PERSON ? "per person" : "per group";
+        return extra.name() + " (EUR " + amount + " " + per + ")";
     }
 }

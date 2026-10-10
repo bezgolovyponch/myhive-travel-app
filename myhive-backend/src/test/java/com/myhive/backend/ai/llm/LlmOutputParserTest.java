@@ -113,6 +113,37 @@ class LlmOutputParserTest {
     }
 
     @Test
+    void parseChatTurn_withExtraEdits_keepsTheExtra_andDropsThoseThatNameNone() throws IOException {
+        String expectedActivity = "River Boat Cruise";
+        String expectedExtra = "Private show";
+
+        ChatTurnResult result = parser.parseChatTurn(fixture("chat-turn-with-extra-edits.json"));
+
+        assertThat(result.reply()).isEqualTo("Let me check that.");
+        assertThat(result.edits()).hasSize(2);
+        EditRequest addExtra = result.edits().get(0);
+        assertThat(addExtra.op()).isEqualTo(EditOp.ADD_EXTRA);
+        assertThat(addExtra.activity()).isEqualTo(expectedActivity);
+        assertThat(addExtra.extra()).isEqualTo(expectedExtra);
+        assertThat(addExtra.packageKey()).isNull();
+        EditRequest removeExtra = result.edits().get(1);
+        assertThat(removeExtra.op()).isEqualTo(EditOp.REMOVE_EXTRA);
+        assertThat(removeExtra.extra()).isEqualTo("Photographer");
+        assertThat(removeExtra.packageKey()).isEqualTo(Tier.BASIC);
+    }
+
+    @Test
+    void parseChatTurn_capsALongExtraName() {
+        String raw = "{\"reply\": \"ok\", \"brief\": {}, \"missingFields\": [], \"edits\": [{\"op\": \"ADD_EXTRA\", "
+                + "\"activity\": \"River Boat Cruise\", \"extra\": \"" + "x".repeat(500) + "\"}]}";
+
+        ChatTurnResult result = parser.parseChatTurn(raw);
+
+        assertThat(result.edits()).singleElement()
+                .satisfies(edit -> assertThat(edit.extra().length()).isLessThan(500));
+    }
+
+    @Test
     void parseChatTurn_withoutEditsField_hasEmptyEdits() throws IOException {
         ChatTurnResult result = parser.parseChatTurn(fixture("chat-turn-valid.json"));
 

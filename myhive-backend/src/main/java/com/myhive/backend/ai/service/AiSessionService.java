@@ -313,7 +313,8 @@ public class AiSessionService {
     /** {@code dayNumber} is where a {@code MOVE} (a drag in the draft) puts the activity; other ops ignore it. */
     public TurnOutcome editDraft(UUID token, EditOp op, UUID activityId, Tier packageKey, Integer dayNumber) {
         requireEnabled();
-        if (op == EditOp.REPLACE) {
+        // A tap names an activity, never an extra, and a swap needs a second activity: neither fits a tap.
+        if (op == EditOp.REPLACE || op.isExtraOp()) {
             throw new BadRequestException("Only ADD, REMOVE and MOVE can be applied from the draft");
         }
         if (op == EditOp.MOVE && dayNumber == null) {

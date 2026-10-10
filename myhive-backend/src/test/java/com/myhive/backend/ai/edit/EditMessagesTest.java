@@ -226,6 +226,89 @@ class EditMessagesTest {
     }
 
     @Test
+    void anAddedExtra_namesTheExtraTheActivityAndThePackage() {
+        List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
+                1, Slot.EVENING, null, "Private show"));
+
+        assertThat(EditMessages.appliedSummary("en", applied))
+                .isEqualTo("Added Private show to River Boat Cruise in the Basic package.");
+        assertThat(EditMessages.appliedSummary("de", applied))
+                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (Basic-Paket).");
+        assertThat(EditMessages.appliedSummary("en", applied, true))
+                .isEqualTo("Added Private show to River Boat Cruise in your trip plan.");
+        assertThat(EditMessages.appliedSummary("de", applied, true))
+                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (dein Trip-Plan).");
+    }
+
+    @Test
+    void anExtraAddedInSeveralPackages_isOneSentence_andTwoExtrasAreTwo() {
+        List<AppliedEdit> applied = List.of(
+                new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC, 1, null, null, "Private show"),
+                new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.PREMIUM, 1, null, null,
+                        "Private show"),
+                new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC, 1, null, null, "Open bar"));
+
+        assertThat(EditMessages.appliedSummary("en", applied)).isEqualTo(
+                "Added Private show to River Boat Cruise in the Basic and Premium packages. "
+                        + "Added Open bar to River Boat Cruise in the Basic package.");
+        assertThat(EditMessages.appliedSummary("de", applied)).isEqualTo(
+                "Private show zu River Boat Cruise hinzugefügt (Basic- und Premium-Pakete). "
+                        + "Open bar zu River Boat Cruise hinzugefügt (Basic-Paket).");
+    }
+
+    @Test
+    void aRemovedExtra_namesTheExtraTheActivityAndThePackage() {
+        List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.REMOVE_EXTRA, "River Boat Cruise", null,
+                Tier.BASIC, 1, Slot.EVENING, null, "Private show"));
+
+        assertThat(EditMessages.appliedSummary("en", applied))
+                .isEqualTo("Removed Private show from River Boat Cruise in the Basic package.");
+        assertThat(EditMessages.appliedSummary("de", applied))
+                .isEqualTo("Private show bei River Boat Cruise entfernt (Basic-Paket).");
+    }
+
+    @Test
+    void extraRejections_nameTheActivityAndTheExtra_inBothLanguages() {
+        RejectedEdit unknown = new RejectedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null,
+                EditRejectionReason.UNKNOWN_EXTRA, "Private show, Open bar", List.of(), "stripper");
+        RejectedEdit already = new RejectedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", Tier.BASIC,
+                EditRejectionReason.ALREADY_HAS_EXTRA, "detail", List.of(), "Private show");
+        RejectedEdit notSelected = new RejectedEdit(EditOp.REMOVE_EXTRA, "River Boat Cruise", Tier.BASIC,
+                EditRejectionReason.EXTRA_NOT_SELECTED, "detail", List.of(), "Private show");
+
+        assertThat(EditMessages.rejectionSummary("en", List.of(unknown)))
+                .isEqualTo("River Boat Cruise has no 'stripper' — it offers: Private show, Open bar.");
+        assertThat(EditMessages.rejectionSummary("en", List.of(already)))
+                .isEqualTo("River Boat Cruise already has Private show.");
+        assertThat(EditMessages.rejectionSummary("en", List.of(notSelected)))
+                .isEqualTo("River Boat Cruise has no Private show to remove.");
+        assertThat(EditMessages.rejectionSummary("de", List.of(unknown)))
+                .isEqualTo("River Boat Cruise hat kein 'stripper' – angeboten wird: Private show, Open bar.");
+        assertThat(EditMessages.rejectionSummary("de", List.of(already)))
+                .isEqualTo("River Boat Cruise hat Private show schon.");
+        assertThat(EditMessages.rejectionSummary("de", List.of(notSelected)))
+                .isEqualTo("River Boat Cruise hat kein Private show, das entfernt werden könnte.");
+    }
+
+    /** The same extra refused in two packages is one sentence, and an activity without extras says so. */
+    @Test
+    void extraRejections_areSaidOnce_andAnActivityWithoutExtrasSaysItOffersNone() {
+        RejectedEdit alreadyInBasic = new RejectedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", Tier.BASIC,
+                EditRejectionReason.ALREADY_HAS_EXTRA, "detail", List.of(), "Private show");
+        RejectedEdit alreadyInPremium = new RejectedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", Tier.PREMIUM,
+                EditRejectionReason.ALREADY_HAS_EXTRA, "detail", List.of(), "Private show");
+        RejectedEdit nothingOffered = new RejectedEdit(EditOp.ADD_EXTRA, "Karting", null,
+                EditRejectionReason.UNKNOWN_EXTRA, "", List.of(), "photographer");
+
+        assertThat(EditMessages.rejectionSummary("en", List.of(alreadyInBasic, alreadyInPremium)))
+                .isEqualTo("River Boat Cruise already has Private show.");
+        assertThat(EditMessages.rejectionSummary("en", List.of(nothingOffered)))
+                .isEqualTo("Karting has no 'photographer' — it offers no extras.");
+        assertThat(EditMessages.rejectionSummary("de", List.of(nothingOffered)))
+                .isEqualTo("Karting hat kein 'photographer' – dafür gibt es keine Extras.");
+    }
+
+    @Test
     void aMove_saysTheDayItWentTo() {
         List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.MOVE, "Karting", null, Tier.MEDIUM, 2, null, null));
 

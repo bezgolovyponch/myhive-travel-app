@@ -320,12 +320,12 @@ public class AiDtoMapper {
 
     private static EditDTO.AppliedEditDTO appliedEdit(AppliedEdit applied) {
         return new EditDTO.AppliedEditDTO(name(applied.op()), applied.activityName(), applied.replacementName(),
-                name(applied.packageKey()), applied.dayNumber(), name(applied.slot()));
+                name(applied.packageKey()), applied.dayNumber(), name(applied.slot()), applied.extraName());
     }
 
     private static EditDTO.RejectedEditDTO rejectedEdit(RejectedEdit rejected) {
         return new EditDTO.RejectedEditDTO(name(rejected.op()), rejected.activityName(), name(rejected.packageKey()),
-                name(rejected.reason()), rejected.detail(), rejected.alternatives());
+                name(rejected.reason()), rejected.detail(), rejected.alternatives(), rejected.extraName());
     }
 
     /** Most of these are optional somewhere in a report (an untargeted package, a removed item's slot). */

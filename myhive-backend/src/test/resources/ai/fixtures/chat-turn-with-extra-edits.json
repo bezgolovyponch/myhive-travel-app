@@ -1,0 +1,11 @@
+{"reply": "Let me check that.",
+ "brief": {"days": null, "groupSize": null, "categorySlugs": [], "vibe": null, "dislikes": null, "budget": null,
+           "arrival": null, "departure": null, "notes": null},
+ "missingFields": [],
+ "edits": [
+   {"op": "ADD_EXTRA", "activity": "River Boat Cruise", "replacement": null, "extra": "Private show",
+    "packageKey": null, "dayNumber": null, "slot": null},
+   {"op": "ADD_EXTRA", "activity": "River Boat Cruise", "extra": null},
+   {"op": "REMOVE_EXTRA", "activity": "Karting", "extra": "  "},
+   {"op": "REMOVE_EXTRA", "activity": "Karting", "extra": "Photographer", "packageKey": "BASIC"}
+ ]}

@@ -1,6 +1,8 @@
 package com.myhive.backend.ai.graph.nodes;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.catalog.CatalogSnapshotter;
 import com.myhive.backend.ai.edit.EditMessages;
 import com.myhive.backend.ai.edit.EditOp;
@@ -18,6 +20,7 @@ import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -39,6 +42,8 @@ class ChatTurnNodeTest {
 
     private static final String ACTIVITY_NAME = "Beer Bike";
     private static final String REPLACEMENT_NAME = "Karting";
+    private static final String CRUISE_NAME = "River Boat Cruise";
+    private static final TypeReference<List<EditRequest>> EDIT_LIST = new TypeReference<>() {};
 
     private final FakeLlmGateway llm = new FakeLlmGateway();
     private final ChatTurnNode node = new ChatTurnNode(llm);
@@ -315,6 +320,108 @@ class ChatTurnNodeTest {
         ChatTurnRequest withPackages = llm.chatRequests.get(1);
         assertThat(withPackages.packagesView()).contains(Tier.BASIC + ": day 1 [EVENING " + ACTIVITY_NAME + "]");
         assertThat(withPackages.catalogNames()).containsExactly(ACTIVITY_NAME, REPLACEMENT_NAME);
+    }
+
+    /**
+     * "A river cruise with a private show" names two kinds and no activity is both, so an ADD alone would be
+     * half of the wish. When the cruise offers that show as an extra, the wish is the cruise plus its extra:
+     * both edits are carried out.
+     */
+    @Test
+    void aSplitWish_whoseSecondHalfIsAnExtraOfTheFirst_keepsTheAddAndTheExtra() {
+        int expectedEdits = 2;
+        llm.queueChat(turn("Let me check that.", Brief.empty(), List.of(
+                new EditRequest(EditOp.ADD, CRUISE_NAME, null, null, null, null),
+                addExtra(CRUISE_NAME, "Private show"))));
+
+        Map<String, Object> update = node.apply(askedWithShows("add a river cruise with a private show"));
+
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_EDIT);
+        List<EditRequest> edits = JsonCodec.read((String) update.get(PlannerState.EDITS),
+                EDIT_LIST);
+        assertThat(edits).hasSize(expectedEdits);
+        assertThat(edits).extracting(EditRequest::op).containsExactly(EditOp.ADD, EditOp.ADD_EXTRA);
+        assertThat(edits.get(1).extra()).isEqualTo("Private show");
+    }
+
+    /**
+     * Without an extra the cruise offers, the old rule holds: nothing is half done - the extra on a cruise
+     * that is not added goes with it - and both kinds are shown side by side.
+     */
+    @Test
+    void aSplitWish_withoutAnExtraToCarryIt_isStillShownSideBySide() {
+        List<String> expectedOffered = List.of(CRUISE_NAME, "Gentlemen Club");
+        llm.queueChat(new ChatTurnResult("Let me check that.", Brief.empty(), List.of(), List.of(
+                new EditRequest(EditOp.ADD, CRUISE_NAME, null, null, null, null),
+                addExtra(CRUISE_NAME, "Fireworks")), LlmUsage.none(), List.of(), List.of(CRUISE_NAME)));
+
+        Map<String, Object> update = node.apply(askedWithShows("add a river cruise with a private show"));
+
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_NONE);
+        assertThat(update).doesNotContainKey(PlannerState.EDITS);
+        assertThat(update.get(PlannerState.RECOMMENDATIONS)).isEqualTo(expectedOffered);
+    }
+
+    /** An extra on an activity of the plan is a change of it, not an add: no "add" word is needed. */
+    @Test
+    void anExtraAlone_isCarriedOut_withoutAnAddWord() {
+        llm.queueChat(turn("Let me check that.", Brief.empty(), List.of(addExtra(CRUISE_NAME, "Private show"))));
+
+        Map<String, Object> update = node.apply(askedWithShows("the cruise with a private show please"));
+
+        assertThat(update.get(PlannerState.ACTION)).isEqualTo(PlannerState.ACTION_EDIT);
+        assertThat(update.get(PlannerState.EDITS)).asString().contains(EditOp.ADD_EXTRA.name()).contains("Private show");
+    }
+
+    @Test
+    void request_withPackages_carriesTheExtrasCatalog() {
+        llm.queueChat(turn("Anything else?", Brief.empty(), List.of()));
+
+        node.apply(askedWithShows("anything else?"));
+
+        assertThat(llm.chatRequests.get(0).extrasCatalog())
+                .isEqualTo(CRUISE_NAME + " -> Private show (EUR 250 per group)");
+    }
+
+    /** The organizer's own draft takes every edit, an extra included, and keeps what the extra names. */
+    @Test
+    void intoTheDraft_keepsTheExtra() {
+        llm.queueChat(turn("Let me check that.", Brief.empty(), List.of(addExtra(CRUISE_NAME, "Private show"))));
+        Map<String, Object> state = showsStateMap("the cruise with a private show please");
+        state.put(PlannerState.WORKING_PACKAGE, Tier.BASIC.name());
+
+        Map<String, Object> update = node.apply(new PlannerState(state));
+
+        List<EditRequest> edits = JsonCodec.read((String) update.get(PlannerState.EDITS),
+                EDIT_LIST);
+        assertThat(edits).singleElement().satisfies(edit -> {
+            assertThat(edit.packageKey()).isEqualTo(Tier.BASIC);
+            assertThat(edit.extra()).isEqualTo("Private show");
+        });
+    }
+
+    private static EditRequest addExtra(String activity, String extra) {
+        return new EditRequest(EditOp.ADD_EXTRA, activity, null, null, null, null, List.of(), null, extra);
+    }
+
+    /** A ready draft over a catalog with a cruise offering a private show and a separate show venue. */
+    private static PlannerState askedWithShows(String text) {
+        return new PlannerState(showsStateMap(text));
+    }
+
+    private static Map<String, Object> showsStateMap(String text) {
+        List<CatalogActivity> shows = new ArrayList<>(catalog());
+        shows.add(new CatalogActivity(UUID.nameUUIDFromBytes(CRUISE_NAME.getBytes()), "river-boat-cruise",
+                CRUISE_NAME, "Two hours on the Vltava", 120, true, new BigDecimal("30.00"), null, null,
+                List.of("sightseeing"), null, List.of(new CatalogExtra("private-show", "Private show",
+                        new BigDecimal("250.00"), ExtraPricing.PER_GROUP))));
+        shows.add(new CatalogActivity(UUID.nameUUIDFromBytes("Gentlemen Club".getBytes()), "gentlemen-club",
+                "Gentlemen Club", "A private show for the groom", 90, true, new BigDecimal("60.00"), null, null,
+                List.of("adult")));
+        Map<String, Object> state = stateMapWithPackages(readyBrief());
+        state.put(PlannerState.CATALOG, JsonCodec.write(shows));
+        state.put(PlannerState.MESSAGES, new ArrayList<>(List.of(Map.of("role", "USER", "content", text, "at", "t"))));
+        return state;
     }
 
     private static ChatTurnResult turn(String reply, Brief update, List<EditRequest> edits) {

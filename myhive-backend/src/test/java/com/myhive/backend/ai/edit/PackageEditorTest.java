@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
@@ -10,6 +11,7 @@ import com.myhive.backend.ai.plan.PlanAssembler;
 import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.PlanValidator;
 import com.myhive.backend.ai.plan.ViolationCode;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -840,6 +842,180 @@ class PackageEditorTest {
                 .extracting(RejectedEdit::reason).isEqualTo(EditRejectionReason.WOULD_BREAK_SCHEDULE);
         assertThat(notInThePackage.anyApplied()).isFalse();
         assertThat(namesIn(noSuchDay.plan(), Tier.MEDIUM)).isEqualTo(namesIn(plan, Tier.MEDIUM));
+    }
+
+    @Test
+    void addExtra_onThePackageHoldingTheActivity_choosesIt_andRaisesTheTotalByItsPrice() {
+        String expectedExtra = "Private show";
+        CatalogActivity boat = boatWithExtras();
+        ComposedPlan plan = planOf(basicWith(item(Slot.AFTERNOON, boat)), mediumPackage(), premiumPackage());
+        BigDecimal expectedTotal = packageOf(plan, Tier.BASIC).totalPrice().add(new BigDecimal("250.00"));
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog,
+                List.of(addExtra(boat.name(), "private show", Tier.BASIC)));
+
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.op()).isEqualTo(EditOp.ADD_EXTRA);
+            assertThat(applied.activityName()).isEqualTo(boat.name());
+            assertThat(applied.extraName()).isEqualTo(expectedExtra);
+            assertThat(applied.packageKey()).isEqualTo(Tier.BASIC);
+            assertThat(applied.dayNumber()).isEqualTo(1);
+            assertThat(applied.slot()).isEqualTo(Slot.AFTERNOON);
+        });
+        assertThat(extraCodesOf(outcome.plan(), Tier.BASIC, boat)).containsExactly("private-show");
+        assertThat(packageOf(outcome.plan(), Tier.BASIC).totalPrice()).isEqualByComparingTo(expectedTotal);
+        assertThat(EditReport.of(outcome, false).tierRulesRelaxed()).isTrue();
+    }
+
+    @Test
+    void addExtra_withoutAPackage_landsInEveryPackageHoldingTheActivity() {
+        CatalogActivity boat = boatWithExtras();
+        ComposedPlan plan = planOf(basicWith(item(Slot.AFTERNOON, boat)),
+                pkg(Tier.MEDIUM, day(1, item(Slot.MORNING, beerSpa), item(Slot.AFTERNOON, boat)),
+                        day(2, item(Slot.MORNING, riverCruise))),
+                premiumPackage());
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(addExtra(boat.name(), "Open bar", null)));
+
+        assertThat(outcome.applied()).extracting(AppliedEdit::packageKey).containsExactly(Tier.BASIC, Tier.MEDIUM);
+        assertThat(extraCodesOf(outcome.plan(), Tier.MEDIUM, boat)).containsExactly("open-bar");
+        assertThat(namesIn(outcome.plan(), Tier.PREMIUM)).isEqualTo(namesIn(plan, Tier.PREMIUM));
+    }
+
+    @Test
+    void addExtra_onAnActivityNoPackageHolds_isNotInPackage() {
+        CatalogActivity boat = boatWithExtras();
+
+        EditOutcome outcome = editor.apply(basePlan(), brief, catalog,
+                List.of(addExtra(boat.name(), "Private show", null)));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.op()).isEqualTo(EditOp.ADD_EXTRA);
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NOT_IN_PACKAGE);
+        });
+    }
+
+    @Test
+    void addExtra_theActivityDoesNotOffer_isUnknownExtra_namingWhatItDoesOffer() {
+        String expectedAsked = "stripper";
+        CatalogActivity boat = boatWithExtras();
+        ComposedPlan plan = planOf(basicWith(item(Slot.AFTERNOON, boat)), mediumPackage(), premiumPackage());
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(addExtra(boat.name(), expectedAsked, null)));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.UNKNOWN_EXTRA);
+            assertThat(rejected.activityName()).isEqualTo(boat.name());
+            assertThat(rejected.extraName()).isEqualTo(expectedAsked);
+            assertThat(rejected.detail()).isEqualTo("Private show, Open bar");
+        });
+        assertThat(outcome.plan()).isEqualTo(plan);
+    }
+
+    @Test
+    void addExtra_alreadyChosen_isAlreadyHasExtra() {
+        CatalogActivity boat = boatWithExtras();
+        ComposedPlan plan = planOf(basicWith(item(Slot.AFTERNOON, boat, "private-show")), mediumPackage(),
+                premiumPackage());
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog,
+                List.of(addExtra(boat.name(), "Private show", Tier.BASIC)));
+
+        assertThat(outcome.anyApplied()).isFalse();
+        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
+            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.ALREADY_HAS_EXTRA);
+            assertThat(rejected.extraName()).isEqualTo("Private show");
+            assertThat(rejected.packageKey()).isEqualTo(Tier.BASIC);
+        });
+    }
+
+    @Test
+    void removeExtra_dropsIt_andLowersTheTotal_orIsExtraNotSelected_whenItWasNotChosen() {
+        String expectedExtra = "Private show";
+        CatalogActivity boat = boatWithExtras();
+        ComposedPlan plan = planOf(basicWith(item(Slot.AFTERNOON, boat, "private-show", "open-bar")), mediumPackage(),
+                premiumPackage());
+        BigDecimal expectedTotal = packageOf(plan, Tier.BASIC).totalPrice().subtract(new BigDecimal("250.00"));
+
+        EditOutcome removed = editor.apply(plan, brief, catalog,
+                List.of(removeExtra(boat.name(), expectedExtra, Tier.BASIC)));
+        EditOutcome removedTwice = editor.apply(removed.plan(), brief, catalog,
+                List.of(removeExtra(boat.name(), expectedExtra, Tier.BASIC)));
+
+        assertThat(removed.applied()).singleElement().satisfies(applied -> {
+            assertThat(applied.op()).isEqualTo(EditOp.REMOVE_EXTRA);
+            assertThat(applied.extraName()).isEqualTo(expectedExtra);
+        });
+        assertThat(extraCodesOf(removed.plan(), Tier.BASIC, boat)).containsExactly("open-bar");
+        assertThat(packageOf(removed.plan(), Tier.BASIC).totalPrice()).isEqualByComparingTo(expectedTotal);
+        assertThat(EditReport.of(removed, false).tierRulesRelaxed()).isTrue();
+        assertThat(removedTwice.anyApplied()).isFalse();
+        assertThat(removedTwice.rejected()).singleElement().satisfies(rejected ->
+                assertThat(rejected.reason()).isEqualTo(EditRejectionReason.EXTRA_NOT_SELECTED));
+    }
+
+    /** "A river cruise with a private show" is an ADD and an ADD_EXTRA: the second finds what the first placed. */
+    @Test
+    void addThenAddExtra_inOneBatch_placesTheActivityWithItsExtra() {
+        CatalogActivity boat = boatWithExtras();
+
+        EditOutcome outcome = editor.apply(basePlan(), brief, catalog, List.of(add(boat.name(), Tier.BASIC, null, null),
+                addExtra(boat.name(), "Private show", null)));
+
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).extracting(AppliedEdit::op).containsExactly(EditOp.ADD, EditOp.ADD_EXTRA);
+        assertThat(extraCodesOf(outcome.plan(), Tier.BASIC, boat)).containsExactly("private-show");
+    }
+
+    /** The extras belong to the activity, not to its cell: moving it or swapping its neighbours keeps them. */
+    @Test
+    void move_keepsTheChosenExtras() {
+        CatalogActivity boat = boatWithExtras();
+        ComposedPlan plan = planOf(basicWith(item(Slot.AFTERNOON, boat, "private-show")), mediumPackage(),
+                premiumPackage());
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog,
+                List.of(new EditRequest(EditOp.MOVE, boat.name(), null, Tier.BASIC, 2, null)));
+
+        assertThat(outcome.applied()).singleElement()
+                .satisfies(applied -> assertThat(applied.dayNumber()).isEqualTo(2));
+        assertThat(extraCodesOf(outcome.plan(), Tier.BASIC, boat)).containsExactly("private-show");
+        assertThat(packageOf(outcome.plan(), Tier.BASIC).totalPrice())
+                .isEqualByComparingTo(packageOf(plan, Tier.BASIC).totalPrice());
+    }
+
+    private CatalogActivity boatWithExtras() {
+        CatalogActivity boat = new CatalogActivity(UUID.randomUUID(), "river-boat-cruise", "River Boat Cruise",
+                "one line", 60, true, new BigDecimal("30.00"), null, "img", List.of("sightseeing"), null, List.of(
+                        new CatalogExtra("private-show", "Private show", new BigDecimal("250.00"),
+                                ExtraPricing.PER_GROUP),
+                        new CatalogExtra("open-bar", "Open bar", new BigDecimal("25.00"), ExtraPricing.PER_PERSON)));
+        catalog.add(boat);
+        return boat;
+    }
+
+    private PlanDraft.PackageDraft basicWith(PlanDraft.ItemDraft dayOne) {
+        return pkg(Tier.BASIC, day(1, dayOne), day(2, item(Slot.AFTERNOON, escapeRoom)));
+    }
+
+    private static PlanDraft.ItemDraft item(Slot slot, CatalogActivity activity, String... extraCodes) {
+        return new PlanDraft.ItemDraft(slot, "10:00", activity.id(), "why", List.of(extraCodes));
+    }
+
+    private static EditRequest addExtra(String activity, String extra, Tier packageKey) {
+        return new EditRequest(EditOp.ADD_EXTRA, activity, null, packageKey, null, null, List.of(), null, extra);
+    }
+
+    private static EditRequest removeExtra(String activity, String extra, Tier packageKey) {
+        return new EditRequest(EditOp.REMOVE_EXTRA, activity, null, packageKey, null, null, List.of(), null, extra);
+    }
+
+    private static List<String> extraCodesOf(ComposedPlan plan, Tier tier, CatalogActivity activity) {
+        return itemsIn(plan, tier).stream().filter(item -> item.activityId().equals(activity.id())).findFirst()
+                .orElseThrow().extras().stream().map(ComposedPlan.ItemExtra::code).toList();
     }
 
     private static EditRequest add(String activity, Tier packageKey, Integer dayNumber, Slot slot) {

@@ -16,10 +16,12 @@ public record EditDTO(UUID generationId, List<AppliedEditDTO> applied, List<Reje
     /**
      * One edit that landed, per package. {@code activity}/{@code replacement} are catalog names, never the
      * model's spelling, and {@code replacement} is null for anything but {@code REPLACE}. {@code dayNumber}
-     * and {@code slot} are the cell the new item landed in, or the removed item's cell for {@code REMOVE}.
+     * and {@code slot} are the cell the new item landed in, or the removed item's cell for {@code REMOVE}
+     * (the activity's own cell for {@code ADD_EXTRA}/{@code REMOVE_EXTRA}). {@code extra} is the catalog name of
+     * the extra those two chose or dropped, null for every other op.
      */
     public record AppliedEditDTO(String op, String activity, String replacement, String packageKey, int dayNumber,
-                                 String slot) {
+                                 String slot, String extra) {
     }
 
     /**
@@ -27,8 +29,10 @@ public record EditDTO(UUID generationId, List<AppliedEditDTO> applied, List<Reje
      * edit was aimed at a package; {@code detail} is a short technical hint, not customer-facing copy — the
      * chat reply already carries the sentence the group reads. {@code alternatives} are catalog names offered
      * instead of an activity the catalog lacks (exact spelling, ready for "add X"); empty on every other reason.
+     * {@code extra} is the extra an {@code ADD_EXTRA}/{@code REMOVE_EXTRA} named - the organizer's words on
+     * {@code UNKNOWN_EXTRA}, whose {@code detail} then lists what the activity does offer - null otherwise.
      */
     public record RejectedEditDTO(String op, String activity, String packageKey, String reason, String detail,
-                                  List<String> alternatives) {
+                                  List<String> alternatives, String extra) {
     }
 }

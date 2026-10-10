@@ -170,8 +170,12 @@ public class LlmOutputParser {
         if (edit.op() == EditOp.REPLACE && (edit.replacement() == null || edit.replacement().isBlank())) {
             return null;
         }
+        // The record already turned a blank extra into null: an extra op that names none has nothing to do.
+        if (edit.op().isExtraOp() && edit.extra() == null) {
+            return null;
+        }
         return new EditRequest(edit.op(), capped(edit.activity()), capped(edit.replacement()), edit.packageKey(),
-                edit.dayNumber(), edit.slot(), cappedAlternatives(edit.alternatives()));
+                edit.dayNumber(), edit.slot(), cappedAlternatives(edit.alternatives()), null, capped(edit.extra()));
     }
 
     /** The first few alternatives, each capped like any other name the model writes. */
