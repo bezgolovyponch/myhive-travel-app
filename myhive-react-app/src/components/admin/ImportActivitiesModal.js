@@ -18,6 +18,7 @@ function fieldLabel(key) {
         includes: 'Includes',
         category_slugs: 'Categories',
         featured_weight: 'Featured weight',
+        extras: 'Extras',
     }[key] || key;
 }
 

@@ -1,10 +1,12 @@
 package com.myhive.backend.service.activity;
 
 import com.myhive.backend.dto.ActivityImportPreviewDTO;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.service.RemoteImageFetcher;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.SlugUtils;
 
 import java.math.BigDecimal;
@@ -80,6 +82,7 @@ final class ActivityCsvRowValidator {
             List<String> categorySlugs = parseCategories(raw, ctx);
             Integer featuredWeight = parseFeaturedWeight(raw, ctx.errors);
             BigDecimal minPrice = parseMinPrice(raw, ctx.errors);
+            List<ActivityExtra> extras = parseExtras(raw, ctx.errors);
             String slug = raw.get("slug");
             if (isNew) {
                 validateNewRowDestination(raw, ctx);
@@ -95,6 +98,7 @@ final class ActivityCsvRowValidator {
                         categorySlugs, includes,
                         featuredWeight,
                         minPrice,
+                        extras,
                         slug,
                         raw.get("destination_slug"),
                         raw.get("image_url")
@@ -285,6 +289,24 @@ final class ActivityCsvRowValidator {
             return BigDecimal.ZERO;
         }
         return parseMoney(raw, "min_price", rawValue, errors);
+    }
+
+    /** Optional column: null = absent -> untouched; empty list = blank cell -> clear; else the parsed, normalised extras. */
+    private List<ActivityExtra> parseExtras(RawRow raw, List<ActivityImportPreviewDTO.RowError> errors) {
+        if (!raw.hasColumn("extras")) {
+            return null;
+        }
+        String rawValue = raw.get("extras");
+        if (rawValue.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return ActivityExtras.parseJson(rawValue);
+        } catch (IllegalArgumentException e) {
+            errors.add(new ActivityImportPreviewDTO.RowError(raw.csvRowNumber(), ImportErrorCode.INVALID_EXTRAS,
+                    "extras: " + e.getMessage(), "extras"));
+            return null;
+        }
     }
 
     private BigDecimal parseMoney(RawRow raw, String column, String rawValue,

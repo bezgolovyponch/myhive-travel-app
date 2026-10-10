@@ -3,6 +3,7 @@ package com.myhive.backend.service.activity;
 import com.myhive.backend.dto.ActivityImportPreviewDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
+import com.myhive.backend.util.ActivityExtras;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -116,6 +117,14 @@ final class ActivityCsvDiffer {
             BigDecimal csvMin = normalizeMinPrice(v.minPrice());
             if (dbMin.compareTo(csvMin) != 0) {
                 changes.put("min_price", new ActivityImportPreviewDTO.FieldChange(dbMin, csvMin));
+            }
+        }
+        // Optional column: compared in canonical JSON form, so an exported cell round-trips without a diff.
+        if (v.extras() != null) {
+            String dbJson = ActivityExtras.canonicalJson(db.getExtras());
+            String csvJson = ActivityExtras.canonicalJson(v.extras());
+            if (!dbJson.equals(csvJson)) {
+                changes.put("extras", new ActivityImportPreviewDTO.FieldChange(dbJson, csvJson));
             }
         }
         if (!Objects.equals(nullToEmpty(db.getIncludes()), v.includes())) {

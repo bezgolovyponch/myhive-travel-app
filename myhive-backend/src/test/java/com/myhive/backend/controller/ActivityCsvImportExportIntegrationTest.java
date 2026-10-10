@@ -2,8 +2,10 @@ package com.myhive.backend.controller;
 
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
@@ -25,7 +27,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -33,6 +38,7 @@ import static com.myhive.backend.util.JwtTestHelper.adminJwt;
 import static com.myhive.backend.util.JwtTestHelper.managerJwt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -303,6 +309,44 @@ class ActivityCsvImportExportIntegrationTest {
                 .andExpect(jsonPath("$.rowsToCreate").value(0))
                 .andExpect(jsonPath("$.rowsToUpdate").value(0))
                 .andExpect(jsonPath("$.rowsUnchanged").value(1));
+    }
+
+    @Test
+    void importExtras_exportedFileRoundTrip_hasNoExtrasDiff() throws Exception {
+        activity.setExtras(List.of(
+                new ActivityExtra("private-show", "Private show", "15 minutes", new BigDecimal("250.00"),
+                        ExtraPricing.PER_GROUP, Map.of("de", Map.of("name", "Private Show"))),
+                new ActivityExtra("photographer", "Photographer", null, new BigDecimal("15.00"),
+                        ExtraPricing.PER_PERSON, null)));
+        activityRepository.saveAndFlush(activity);
+        MvcResult exportResult = mockMvc.perform(get("/admin/activities/export").with(adminJwt()))
+                .andExpect(status().isOk()).andReturn();
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", exportResult.getResponse().getContentAsByteArray());
+
+        mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errors", hasSize(0)))
+                .andExpect(jsonPath("$.rowsToUpdate").value(0))
+                .andExpect(jsonPath("$.rowsUnchanged").value(1));
+    }
+
+    @Test
+    void importExtras_malformedJson_returnsPreviewWithRowError() throws Exception {
+        String csv = CSV_HEADER.replace("\n", ",extras\n")
+                + activity.getId() + ",surf,bali,\"Surf lesson\",\"Old desc\",\"50.00\",90,beach,,\"Board\","
+                + "\"[{\"\"name\"\": “Show”}]\"\n";
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "activities.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/admin/activities/import/preview")
+                        .file(file).with(adminJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value(nullValue()))
+                .andExpect(jsonPath("$.errors[0].code").value("INVALID_EXTRAS"))
+                .andExpect(jsonPath("$.errors[0].field").value("extras"))
+                .andExpect(jsonPath("$.errors[0].csvRowNumber").value(2));
     }
 
     @Test

@@ -97,12 +97,16 @@ public class ActivityImportWriter {
         activity.setIncludes(row.includes().isEmpty() ? null : row.includes());
         activity.setCategories(resolveCategories(row));
         // Optional columns: null means "column absent from CSV — do not touch" (a fresh entity
-        // keeps its defaults); a blank cell arrives as 0 and means "no minimum" / default weight.
+        // keeps its defaults); a blank cell arrives as 0 and means "no minimum" / default weight,
+        // or as an empty list and means "no extras".
         if (row.featuredWeight() != null) {
             activity.setFeaturedWeight(row.featuredWeight());
         }
         if (row.minPrice() != null) {
             activity.setMinPrice(row.minPrice().signum() == 0 ? null : row.minPrice());
+        }
+        if (row.extras() != null) {
+            activity.setExtras(row.extras().isEmpty() ? null : row.extras());
         }
     }
 

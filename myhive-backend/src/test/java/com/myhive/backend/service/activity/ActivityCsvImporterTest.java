@@ -5,14 +5,17 @@ import com.myhive.backend.dto.ActivityImportApplyRequest;
 import com.myhive.backend.dto.ActivityImportPreviewDTO;
 import com.myhive.backend.dto.ActivityImportResultDTO;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.exception.CsvImportException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.service.ImageUploadService;
 import com.myhive.backend.service.RemoteImageFetcher;
+import com.myhive.backend.util.ActivityExtras;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -789,5 +794,124 @@ class ActivityCsvImporterTest {
         // The unchanging row's findById was never called and its save was never invoked
         verify(activityRepository, never()).findById(unchangingId);
         verify(activityRepository, times(1)).save(any());
+    }
+
+    private static final String TWO_EXTRAS_JSON = "[{\"name\":\"Private show\",\"price\":250,\"pricing\":\"PER_GROUP\"},"
+            + "{\"name\":\"Photographer\",\"price\":15,\"pricing\":\"PER_PERSON\"}]";
+
+    private String headerWithExtras() {
+        return "id,slug,destination_slug,name,description,price,duration,category_slugs,image_url,includes,extras\n";
+    }
+
+    /** The existing activity's row, unchanged except for the given (raw, unquoted) extras cell. */
+    private String rowWithExtras(Activity existing, Destination dest, String extrasCell) {
+        String quotedExtras = "\"" + extrasCell.replace("\"", "\"\"") + "\"";
+        return row(existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                existing.getName(), existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes())
+                .replace("\n", "," + quotedExtras + "\n");
+    }
+
+    private Activity existingWithExtras(Destination dest) {
+        Activity existing = TestDataFactory.activity(dest);
+        existing.setExtras(List.of(new ActivityExtra("show", "Show", null, new BigDecimal("100.00"),
+                ExtraPricing.PER_GROUP, null)));
+        when(activityRepository.findAllById(List.of(existing.getId()))).thenReturn(List.of(existing));
+        return existing;
+    }
+
+    @Test
+    void extras_absentColumnLeavesExtrasUntouched() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = existingWithExtras(dest);
+        List<ActivityExtra> expectedExtras = existing.getExtras();
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        String csv = header() + row(
+                existing.getId().toString(), existing.getSlug(), dest.getSlug(),
+                "Renamed", existing.getDescription(),
+                existing.getPrice().toPlainString(),
+                existing.getDuration().toString(),
+                "", existing.getImageUrl(), existing.getIncludes());
+
+        ActivityImportPreviewDTO preview = importer.preview(csv.getBytes());
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.changes().getFirst().fieldChanges()).doesNotContainKey("extras");
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getExtras()).isEqualTo(expectedExtras);
+    }
+
+    @Test
+    void extras_blankCellClearsExtras() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = existingWithExtras(dest);
+        String expectedOldJson = ActivityExtras.canonicalJson(existing.getExtras());
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityImportPreviewDTO preview = importer.preview((headerWithExtras() + rowWithExtras(existing, dest, ""))
+                .getBytes(StandardCharsets.UTF_8));
+
+        assertThat(preview.errors()).isEmpty();
+        ActivityImportPreviewDTO.FieldChange change = preview.changes().getFirst().fieldChanges().get("extras");
+        assertThat(change.oldValue()).isEqualTo(expectedOldJson);
+        assertThat(change.newValue()).isEqualTo("");
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getExtras()).isNull();
+    }
+
+    @Test
+    void extras_validJsonShowsCanonicalDiffAndApplySetsThem() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = existingWithExtras(dest);
+        String expectedNewJson = ActivityExtras.canonicalJson(ActivityExtras.parseJson(TWO_EXTRAS_JSON));
+        when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(activityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityImportPreviewDTO preview = importer.preview(
+                (headerWithExtras() + rowWithExtras(existing, dest, TWO_EXTRAS_JSON)).getBytes(StandardCharsets.UTF_8));
+
+        assertThat(preview.errors()).isEmpty();
+        assertThat(preview.changes().getFirst().fieldChanges().get("extras").newValue()).isEqualTo(expectedNewJson);
+        importer.apply(new ActivityImportApplyRequest(preview.token()));
+        assertThat(existing.getExtras())
+                .extracting(ActivityExtra::code)
+                .containsExactly("private-show", "photographer");
+    }
+
+    @Test
+    void extras_malformedJsonIsARowError() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        int expectedRow = 2;
+
+        ActivityImportPreviewDTO preview = importer.preview(
+                (headerWithExtras() + rowWithExtras(existing, dest, "[{\"name\": “Show”}]"))
+                        .getBytes(StandardCharsets.UTF_8));
+
+        assertThat(preview.token()).isNull();
+        ActivityImportPreviewDTO.RowError error = preview.errors().getFirst();
+        assertThat(error.code()).isEqualTo(ImportErrorCode.INVALID_EXTRAS);
+        assertThat(error.field()).isEqualTo("extras");
+        assertThat(error.csvRowNumber()).isEqualTo(expectedRow);
+    }
+
+    @Test
+    void extras_moreThanTenIsARowError() {
+        Destination dest = TestDataFactory.destination();
+        Activity existing = TestDataFactory.activity(dest);
+        String eleven = IntStream.range(0, 11)
+                .mapToObj(i -> "{\"name\":\"Extra " + i + "\",\"price\":1,\"pricing\":\"PER_GROUP\"}")
+                .collect(Collectors.joining(",", "[", "]"));
+
+        ActivityImportPreviewDTO preview = importer.preview(
+                (headerWithExtras() + rowWithExtras(existing, dest, eleven)).getBytes(StandardCharsets.UTF_8));
+
+        assertThat(preview.errors())
+                .extracting(ActivityImportPreviewDTO.RowError::code)
+                .containsExactly(ImportErrorCode.INVALID_EXTRAS);
     }
 }
