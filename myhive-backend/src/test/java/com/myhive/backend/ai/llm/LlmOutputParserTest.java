@@ -133,14 +133,15 @@ class LlmOutputParserTest {
     }
 
     @Test
-    void parseChatTurn_capsALongExtraName() {
+    void parseChatTurn_capsALongExtraName_likeAnActivityName() {
+        int expectedCap = 120;
         String raw = "{\"reply\": \"ok\", \"brief\": {}, \"missingFields\": [], \"edits\": [{\"op\": \"ADD_EXTRA\", "
                 + "\"activity\": \"River Boat Cruise\", \"extra\": \"" + "x".repeat(500) + "\"}]}";
 
         ChatTurnResult result = parser.parseChatTurn(raw);
 
         assertThat(result.edits()).singleElement()
-                .satisfies(edit -> assertThat(edit.extra().length()).isLessThan(500));
+                .satisfies(edit -> assertThat(edit.extra()).isEqualTo("x".repeat(expectedCap)));
     }
 
     @Test

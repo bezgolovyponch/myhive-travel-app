@@ -379,8 +379,10 @@ takes its ops with it: nothing was applied, no `EDITED` row exists, and the next
 message starts from the packages that were already on screen. Re-send the text to
 try again — the batch is never applied late.
 
-Three ops, each naming a catalog activity by its display name and optionally a
-`packageKey` (`BASIC`\|`MEDIUM`\|`PREMIUM`) to scope it to one package:
+Six ops: the four below that place, drop, swap or move activities (`MOVE` is
+described with the edits endpoint), and the two extra ops after them. Each names a
+catalog activity by its display name and optionally a `packageKey`
+(`BASIC`\|`MEDIUM`\|`PREMIUM`) to scope it to one package:
 - **ADD** — put an activity into a package. Left untargeted, it is attempted
   against **every** package in the plan (one applied/rejected entry per tier), not
   just one.
@@ -401,8 +403,12 @@ The extra is resolved against the extras **that activity** offers (exact name
 first, then a unique partial match); one it does not offer comes back
 `UNKNOWN_EXTRA` with the offered ones in `detail`, and the chat says what the
 activity does offer. "A river cruise with a private show" while the cruise is not
-in the package yet is two ops in one batch: an `ADD` of the cruise, then an
-`ADD_EXTRA` on it. A chosen extra shows on the item (`items[].extras`) and is in its
+in the package yet is two ops in one batch: an `ADD` of the cruise and an
+`ADD_EXTRA` on it, in either order — within a batch the extra ops always run after
+every other op, so `edit.applied[]` lists them last. An extra goes on the
+activity's **first** occurrence in a package (a package normally holds an activity
+once), and picking a package hands the cart that occurrence's extras too.
+A chosen extra shows on the item (`items[].extras`) and is in its
 `lineTotal` and the package totals (see the `Package` type); moving the activity
 keeps it, swapping the activity out drops it. A tap (`POST .../edits`) cannot
 choose extras: `ADD_EXTRA`/`REMOVE_EXTRA` there is a `400`.

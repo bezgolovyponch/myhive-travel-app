@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.graph.nodes;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.edit.EditMessages;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRejectionReason;
@@ -25,6 +26,7 @@ import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PlanAssembler;
 import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.PlanValidator;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.ObjectProvider;
@@ -430,6 +432,29 @@ class ApplyEditsNodeTest {
         assertThat(update.get(PlannerState.PENDING_REPLY)).isEqualTo("");
         assertThat(messagesOf(update)).singleElement().satisfies(message ->
                 assertThat(message.get("content")).isEqualTo(EditMessages.internalFailure(LOCALE)));
+    }
+
+    /** Choosing an extra places nothing: there is no copy to rewrite, and no model call is made for it. */
+    @Test
+    void anExtrasOnlyBatch_makesNoModelCall_andReportsTheTextsAsNotRefreshed() {
+        String expectedExtra = "Private show";
+        Map<String, Object> initData = stateMap(List.of(new EditRequest(EditOp.ADD_EXTRA, riverCruise.name(), null,
+                null, null, null, List.of(), null, expectedExtra)));
+        List<CatalogActivity> withExtras = new ArrayList<>(catalog);
+        withExtras.set(catalog.indexOf(riverCruise), new CatalogActivity(riverCruise.id(), riverCruise.slug(),
+                riverCruise.name(), riverCruise.oneLine(), riverCruise.durationMinutes(), true, riverCruise.price(),
+                null, "img", riverCruise.categorySlugs(), null, List.of(new CatalogExtra("private-show",
+                        expectedExtra, new BigDecimal("250.00"), ExtraPricing.PER_GROUP))));
+        initData.put(PlannerState.CATALOG, JsonCodec.write(withExtras));
+
+        Map<String, Object> update = node.apply(new PlannerState(initData));
+
+        EditReport report = reportOf(update);
+        assertThat(report.applied()).singleElement()
+                .satisfies(applied -> assertThat(applied.extraName()).isEqualTo(expectedExtra));
+        assertThat(report.textsRefreshed()).isFalse();
+        assertThat(llm.refreshRequests).isEmpty();
+        assertThat(sink.lastUsage).isEqualTo(LlmUsage.none());
     }
 
     private void queueRefresh(String description) {

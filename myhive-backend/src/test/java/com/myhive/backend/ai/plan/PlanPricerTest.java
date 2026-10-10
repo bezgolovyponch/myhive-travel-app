@@ -50,12 +50,4 @@ class PlanPricerTest {
         assertThat(PlanPricer.itemExtras(List.of(PRIVATE_SHOW), List.of(), 4)).isEmpty();
         assertThat(PlanPricer.itemExtras(List.of(), List.of("private-show"), 4)).isEmpty();
     }
-
-    @Test
-    void extrasTotal_addsEveryExtraForTheGroup() {
-        BigDecimal expectedTotal = new BigDecimal("350.00");
-
-        assertThat(PlanPricer.extrasTotal(List.of(PRIVATE_SHOW, OPEN_BAR), 4)).isEqualByComparingTo(expectedTotal);
-        assertThat(PlanPricer.extrasTotal(null, 4)).isEqualByComparingTo("0.00");
-    }
 }

@@ -58,7 +58,7 @@ public class PackageEditor {
     }
 
     public EditOutcome apply(ComposedPlan plan, Brief brief, List<CatalogActivity> catalog, List<EditRequest> edits) {
-        List<EditRequest> batch = edits == null ? List.of() : edits;
+        List<EditRequest> batch = placementsFirst(edits);
         Map<UUID, CatalogActivity> catalogById = indexById(catalog);
         List<UUID> unusable = new ArrayList<>();
         Set<UUID> restored = restoreMissingPlanActivities(plan, catalogById, unusable);
@@ -89,6 +89,21 @@ public class PackageEditor {
         }
         ComposedPlan edited = assembler.assemble(draft, brief, catalogById, plan.degraded()).plan();
         return new EditOutcome(edited, applied, rejected);
+    }
+
+    /**
+     * The batch with every extra op moved after the ops that place, drop or move activities, each group in the
+     * order it was asked for. An extra can only be chosen on an activity a package holds, and the model writes
+     * "a river cruise with a private show" in either order: run as written, an extra asked first was refused
+     * and the cruise then landed without it.
+     */
+    private static List<EditRequest> placementsFirst(List<EditRequest> edits) {
+        if (edits == null) {
+            return List.of();
+        }
+        List<EditRequest> ordered = new ArrayList<>(edits);
+        ordered.sort(Comparator.comparing((EditRequest edit) -> edit.op() != null && edit.op().isExtraOp()));
+        return ordered;
     }
 
     /** Every op refused for the same editor-side reason, before any of them was looked at. */
@@ -203,7 +218,7 @@ public class PackageEditor {
         List<Tier> targets = targets(working, edit, activity);
         if (targets.isEmpty() && edit.op() != EditOp.ADD) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), null, EditRejectionReason.NOT_IN_PACKAGE,
-                    activity.name() + " is not in any package"));
+                    activity.name() + " is not in any package", List.of(), extra == null ? null : extra.name()));
             return working;
         }
         PlanDraft draft = working;

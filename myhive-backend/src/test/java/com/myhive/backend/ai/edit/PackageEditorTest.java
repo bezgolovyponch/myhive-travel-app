@@ -894,7 +894,41 @@ class PackageEditorTest {
         assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
             assertThat(rejected.op()).isEqualTo(EditOp.ADD_EXTRA);
             assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NOT_IN_PACKAGE);
+            assertThat(rejected.packageKey()).isNull();
+            assertThat(rejected.extraName()).isEqualTo("Private show");
         });
+    }
+
+    /** The model writes "a cruise with a show" in either order: the extra still waits for the cruise. */
+    @Test
+    void addExtraBeforeItsAdd_inOneBatch_stillLandsOnTheAddedActivity() {
+        CatalogActivity boat = boatWithExtras();
+
+        EditOutcome outcome = editor.apply(basePlan(), brief, catalog, List.of(
+                addExtra(boat.name(), "Private show", null), add(boat.name(), Tier.BASIC, null, null),
+                remove(riverCruise.name(), Tier.MEDIUM)));
+
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).extracting(AppliedEdit::op)
+                .containsExactly(EditOp.ADD, EditOp.REMOVE, EditOp.ADD_EXTRA);
+        assertThat(extraCodesOf(outcome.plan(), Tier.BASIC, boat)).containsExactly("private-show");
+    }
+
+    /** A package holds an activity once; should it hold it twice, the extra goes on the first occurrence only. */
+    @Test
+    void addExtra_onAnActivityHeldTwice_choosesItOnTheFirstOccurrenceOnly() {
+        CatalogActivity boat = boatWithExtras();
+        ComposedPlan plan = planOf(
+                pkg(Tier.BASIC, day(1, item(Slot.AFTERNOON, boat)), day(2, item(Slot.AFTERNOON, boat))),
+                mediumPackage(), premiumPackage());
+
+        EditOutcome outcome = editor.apply(plan, brief, catalog,
+                List.of(addExtra(boat.name(), "Private show", Tier.BASIC)));
+
+        assertThat(outcome.applied()).singleElement()
+                .satisfies(applied -> assertThat(applied.dayNumber()).isEqualTo(1));
+        assertThat(itemsIn(outcome.plan(), Tier.BASIC)).extracting(item -> item.extras().size())
+                .containsExactly(1, 0);
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PresetThemes;
 import com.myhive.backend.entity.ExtraPricing;
+import com.myhive.backend.util.FromPrice;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -54,7 +55,7 @@ public final class PackagesView {
                 lines.append('\n');
             }
             lines.append(pkg.key()).append(": ").append(days(pkg));
-            BigDecimal perPerson =com.myhive.backend.util.FromPrice.perPerson(pkg.totalPrice(), travelers);
+            BigDecimal perPerson = FromPrice.perPerson(pkg.totalPrice(), travelers);
             if (perPerson != null) {
                 lines.append(" - from EUR ").append(perPerson.toPlainString()).append(" per person");
             }

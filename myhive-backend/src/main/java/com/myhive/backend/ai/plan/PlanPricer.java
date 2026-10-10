@@ -1,8 +1,6 @@
 package com.myhive.backend.ai.plan;
 
 import com.myhive.backend.ai.catalog.CatalogExtra;
-import com.myhive.backend.entity.PricedExtra;
-import com.myhive.backend.util.MoneyMath;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -29,11 +27,6 @@ public final class PlanPricer {
 
     public static BigDecimal perPerson(BigDecimal total, int travelers) {
         return total.divide(BigDecimal.valueOf(travelers), 2, RoundingMode.HALF_UP);
-    }
-
-    /** What the extras cost the group, by the formula every booking path shares. */
-    public static BigDecimal extrasTotal(List<? extends PricedExtra> extras, int travelers) {
-        return MoneyMath.extrasTotal(extras, travelers);
     }
 
     /**

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogPreset;
-import com.myhive.backend.ai.edit.PackagesView;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PlanAssembler;
@@ -314,12 +313,7 @@ public class PromptRenderer {
         if (r.packagesView() == null || r.packagesView().isBlank()) {
             return r.catalogNames().isEmpty() ? "" : OFFER_BLOCK.formatted(String.join(", ", r.catalogNames()));
         }
-        return PACKAGES_BLOCK.formatted(r.packagesView(), String.join(", ", r.catalogNames()), extrasLine(r));
-    }
-
-    /** A request built without the extras line (older callers, tests) reads as a catalog offering none. */
-    private static String extrasLine(ChatTurnRequest r) {
-        return r.extrasCatalog().isBlank() ? PackagesView.NO_EXTRAS : r.extrasCatalog();
+        return PACKAGES_BLOCK.formatted(r.packagesView(), String.join(", ", r.catalogNames()), r.extrasCatalog());
     }
 
     /** Package texts are nullable on a ComposedPlan; a dash tells the model "nothing there yet", "null" does not. */

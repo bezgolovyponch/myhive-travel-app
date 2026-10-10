@@ -689,10 +689,8 @@ class AiPlannerControllerIntegrationTest {
         String parentBody = awaitGeneration(latestGenerationId(token));
         BigDecimal totalBefore = new BigDecimal(JsonPath.read(parentBody, "$.packages[0].totalPrice").toString());
         llm.queueChat(chatTurn("Let me check that.", Brief.empty(), List.of(new EditRequest(EditOp.ADD_EXTRA,
-                        carrier.getName(), null, null, null, null, List.of(), null, expectedExtra))))
-                .queueRefresh(new TextRefreshResult(
-                        Map.of(Tier.BASIC, new PackageTexts("With the show", Map.of(), Map.of())),
-                        new LlmUsage("fake-chat", 5, 7, 3L)));
+                carrier.getName(), null, null, null, null, List.of(), null, expectedExtra))));
+        int refreshCallsBefore = llm.refreshRequests.size();
 
         MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
                         .header("CF-Connecting-IP", testClientIp)
@@ -703,9 +701,11 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.edit.applied[0].activity", is(carrier.getName())))
                 .andExpect(jsonPath("$.edit.applied[0].extra", is(expectedExtra)))
                 .andExpect(jsonPath("$.edit.applied[0].packageKey", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
                 .andExpect(jsonPath("$.generation.kind", is("EDITED")))
                 .andReturn();
 
+        assertThat(llm.refreshRequests).hasSize(refreshCallsBefore);
         String body = edited.getResponse().getContentAsString();
         List<String> extraNames = JsonPath.read(body, "$.generation.packages[0].days[*].items[*].extras[*].name");
         assertThat(extraNames).containsExactly(expectedExtra);
