@@ -6,6 +6,7 @@ import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ActivityInUseException;
 import com.myhive.backend.exception.ActivityInUseInSessionException;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.model.VoteSessionStatus;
 import com.myhive.backend.repository.ActivityRepository;
@@ -13,6 +14,7 @@ import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -219,6 +221,14 @@ public class ActivityService {
         if (dto.getTranslations() != null) {
             activity.setTranslations(dto.getTranslations());
         }
+        // null = "unchanged" (forms that predate extras), [] = clear, like translations.
+        if (dto.getExtras() != null) {
+            try {
+                activity.setExtras(ActivityExtras.fromDtos(dto.getExtras()));
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException(e.getMessage());
+            }
+        }
     }
 
     private ActivityDTO convertToDTO(Activity activity) {
@@ -244,6 +254,7 @@ public class ActivityService {
         dto.setFeaturedWeight(activity.getFeaturedWeight());
         dto.setFeatured(activity.isFeatured());
         dto.setSeoIndexable(activity.isSeoIndexable());
+        dto.setExtras(ActivityExtras.toDtos(activity.getExtras(), lc));
         if (locale == null) {
             dto.setTranslations(activity.getTranslations());
         }

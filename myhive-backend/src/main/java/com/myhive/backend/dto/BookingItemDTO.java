@@ -4,7 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.myhive.backend.entity.BookingItemExtra;
+
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -20,4 +23,5 @@ public class BookingItemDTO {
     private UUID packageId;
     private String packageName;
     private BigDecimal packageDiscountPct;
+    private List<BookingItemExtra> extras;
 }

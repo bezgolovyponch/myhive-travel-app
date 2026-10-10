@@ -1,8 +1,11 @@
 package com.myhive.backend.util;
 
+import com.myhive.backend.entity.BookingItemExtra;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -62,5 +65,15 @@ class MoneyMathTest {
         BigDecimal result = MoneyMath.applyDiscountPct(new BigDecimal("99.99"), new BigDecimal("100"));
 
         assertThat(result).isEqualTo(expected);
+    }
+
+    @Test
+    void extrasTotal_multipliesOnlyPerPersonExtras() {
+        BookingItemExtra perGroup = new BookingItemExtra("show", "Show", new BigDecimal("250"), ExtraPricing.PER_GROUP);
+        BookingItemExtra perPerson = new BookingItemExtra("photo", "Photo", new BigDecimal("15"), ExtraPricing.PER_PERSON);
+        BigDecimal expected = new BigDecimal("310.00"); // 250 + 15 x 4
+
+        assertThat(MoneyMath.extrasTotal(List.of(perGroup, perPerson), 4)).isEqualTo(expected);
+        assertThat(MoneyMath.extrasTotal(null, 4)).isEqualTo(new BigDecimal("0.00"));
     }
 }

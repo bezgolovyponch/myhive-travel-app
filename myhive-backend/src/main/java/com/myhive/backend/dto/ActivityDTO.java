@@ -63,4 +63,7 @@ public class ActivityDTO {
     /** Raw per-locale overrides — present on the admin (no-locale) view only; localized reads fold them into the fields above. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, Map<String, String>> translations;
+
+    /** Optional add-ons. On admin write: null = unchanged, [] = clear. Reads always return a list. */
+    private List<ActivityExtraDTO> extras;
 }

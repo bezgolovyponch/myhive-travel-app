@@ -23,4 +23,6 @@ public class VotePoolActivityDTO {
     private List<String> categories;
     private String description;
     private Integer duration;
+    private List<ActivityExtraDTO> extras;
+    private List<String> selectedExtras;
 }

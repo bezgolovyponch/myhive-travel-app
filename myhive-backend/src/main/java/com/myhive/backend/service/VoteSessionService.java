@@ -581,7 +581,8 @@ public class VoteSessionService {
                     activity.getSlug(), destinationSlug, activity.getImageUrl(),
                     activity.getDuration(),
                     Translations.pick(tr, lc, "description", activity.getDescription()),
-                    Translations.pick(tr, lc, "includes", activity.getIncludes()));
+                    Translations.pick(tr, lc, "includes", activity.getIncludes()),
+                    List.of());
         }).toList();
 
         BigDecimal travelers = BigDecimal.valueOf(session.getNumberOfTravelers());

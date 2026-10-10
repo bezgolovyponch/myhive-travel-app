@@ -1,5 +1,6 @@
 package com.myhive.backend.entity;
 
+import com.myhive.backend.util.ActivityExtrasConverter;
 import com.myhive.backend.util.TranslationsConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -24,6 +25,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -92,6 +94,11 @@ public class Activity implements Slugged {
     @Convert(converter = TranslationsConverter.class)
     @Column(columnDefinition = "TEXT")
     private Map<String, Map<String, String>> translations;
+
+    /** Optional add-ons a customer can select for this activity; null or empty = none. JSON list, see ActivityExtras. */
+    @Convert(converter = ActivityExtrasConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private List<ActivityExtra> extras;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

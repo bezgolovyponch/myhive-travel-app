@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -28,4 +29,5 @@ public class ResultActivityDTO {
     private Integer duration;
     private String description;
     private String includes;
+    private List<ActivityExtraDTO> extras;
 }

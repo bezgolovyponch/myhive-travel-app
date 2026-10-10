@@ -1,0 +1,2 @@
+ALTER TABLE activities    ADD COLUMN IF NOT EXISTS extras TEXT;
+ALTER TABLE booking_items ADD COLUMN IF NOT EXISTS extras TEXT;

@@ -2,9 +2,13 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.ActivityDTO;
+import com.myhive.backend.dto.ActivityExtraDTO;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
@@ -21,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -464,5 +469,77 @@ class ActivityServiceTest {
         ActivityDTO result = activityService.createActivity(dto);
 
         assertThat(result.getMinPrice()).isEqualByComparingTo(expectedMinPrice);
+    }
+
+    private ActivityExtraDTO extraDto(String code, String name) {
+        return new ActivityExtraDTO(code, name, null, new BigDecimal("250"), ExtraPricing.PER_GROUP, null);
+    }
+
+    @Test
+    void createActivity_withExtras_readsBackWithCodes() {
+        String expectedCode = "private-show";
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setExtras(List.of(extraDto(null, "Private show")));
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityDTO result = activityService.createActivity(dto);
+
+        assertThat(result.getExtras()).hasSize(1);
+        assertThat(result.getExtras().getFirst().getCode()).isEqualTo(expectedCode);
+        assertThat(result.getExtras().getFirst().getPrice()).isEqualTo(new BigDecimal("250.00"));
+    }
+
+    @Test
+    void updateActivity_nullExtras_leavesExtrasUnchanged() {
+        activity.setExtras(List.of(new ActivityExtra("show", "Show", null, new BigDecimal("250.00"),
+                ExtraPricing.PER_GROUP, null)));
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setName(activity.getName());
+        dto.setExtras(null);
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityDTO result = activityService.updateActivity(activity.getId(), dto);
+
+        assertThat(result.getExtras()).extracting(ActivityExtraDTO::getCode).containsExactly("show");
+    }
+
+    @Test
+    void updateActivity_emptyExtras_clearsExtras() {
+        activity.setExtras(List.of(new ActivityExtra("show", "Show", null, new BigDecimal("250.00"),
+                ExtraPricing.PER_GROUP, null)));
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setName(activity.getName());
+        dto.setExtras(List.of());
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityDTO result = activityService.updateActivity(activity.getId(), dto);
+
+        assertThat(result.getExtras()).isEmpty();
+    }
+
+    @Test
+    void createActivity_duplicateExtraCodes_throwsBadRequest() {
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setExtras(List.of(extraDto("show", "Show"), extraDto("show", "Other")));
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+
+        assertThatThrownBy(() -> activityService.createActivity(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("show");
+    }
+
+    @Test
+    void getActivityById_withLocale_localisesExtraName() {
+        String expectedName = "Private Show";
+        activity.setExtras(List.of(new ActivityExtra("show", "Private show", null, new BigDecimal("250.00"),
+                ExtraPricing.PER_GROUP, Map.of("de", Map.of("name", expectedName)))));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+
+        ActivityDTO result = activityService.getActivityById(activity.getId(), "de");
+
+        assertThat(result.getExtras().getFirst().getName()).isEqualTo(expectedName);
     }
 }

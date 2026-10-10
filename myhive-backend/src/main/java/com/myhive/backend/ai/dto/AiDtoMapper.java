@@ -370,7 +370,7 @@ public class AiDtoMapper {
                 activity.getPrice(), activity.getMinPrice(), activity.getImageUrl(),
                 activity.getSlug(), destinationSlug, categories,
                 Translations.pick(translations, lc, "description", activity.getDescription()),
-                activity.getDuration());
+                activity.getDuration(), List.of(), null);
     }
 
     private static MessageDTO lastAssistantMessage(PlannerState state) {

@@ -3,7 +3,10 @@ package com.myhive.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import com.myhive.backend.util.BookingItemExtrasConverter;
+
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -52,4 +55,9 @@ public class BookingItem {
 
     @Column(name = "package_discount_pct", precision = 5, scale = 2)
     private BigDecimal packageDiscountPct;
+
+    /** Snapshot of the extras selected at booking time (same pattern as price/minPrice). */
+    @Convert(converter = BookingItemExtrasConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private List<BookingItemExtra> extras;
 }
