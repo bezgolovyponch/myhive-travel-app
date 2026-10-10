@@ -49,6 +49,9 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 - `GET /destinations`, `GET /destinations/{id}`, `GET /destinations/slug/{slug}`
 - `GET /activities`, `GET /activities/{id}`, `GET /activities/slug/{slug}`, `GET /activities/paged` (filters:
   `?categorySlug=<slug>`, `?featured=true` — homepage grid, admin-managed via the `featured` flag)
+  Activities carry optional **extras** (add-ons such as a private show or an extra bottle) with per-group or
+  per-person pricing, selectable on the detail page, in the Trip Builder and through the AI planner chat, and
+  editable in bulk via the optional `extras` column of the admin CSV import/export (Flyway `V14`).
 - `GET /categories`, `GET /categories/{id}`, `GET /categories/slug/{slug}`
 - `GET /packages`, `GET /packages/{id}`, `GET /packages/slug/{slug}`
 - `GET /blog`, `GET /blog/{id}`, `GET /blog/slug/{slug}`
