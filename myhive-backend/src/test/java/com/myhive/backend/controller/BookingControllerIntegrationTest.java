@@ -2,7 +2,9 @@ package com.myhive.backend.controller;
 
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -132,5 +135,41 @@ class BookingControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.customerName", is("Test User")))
                 .andExpect(jsonPath("$.status", is("PENDING")));
+    }
+
+    @Test
+    void createBookingFromTrip_withExtras_pricesAndReturnsTheSnapshot() throws Exception {
+        // 50 €/pp × 2 = 100 + the 250 per-group show; the client's price 1 for the extra is ignored.
+        String expectedCode = "private-show";
+        Activity activity = activityRepository.findById(activityId).orElseThrow();
+        activity.setExtras(List.of(new ActivityExtra(expectedCode, "Private show", null,
+                new BigDecimal("250.00"), ExtraPricing.PER_GROUP, null)));
+        activityRepository.saveAndFlush(activity);
+        String json = """
+                {
+                  "tripName": "Summer Trip",
+                  "userEmail": "user@test.com",
+                  "customerName": "Test User",
+                  "numberOfTravelers": 2,
+                  "destinations": [{
+                    "destinationName": "Bali",
+                    "activities": [{
+                      "activityId": "%s",
+                      "activityName": "Surfing",
+                      "extras": [{"code": "%s", "price": 1}]
+                    }]
+                  }]
+                }
+                """.formatted(activityId, expectedCode);
+
+        mockMvc.perform(post("/bookings/trip")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.totalAmount").value(350.00))
+                .andExpect(jsonPath("$.items[0].extras", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].extras[0].code", is(expectedCode)))
+                .andExpect(jsonPath("$.items[0].extras[0].price").value(250.00))
+                .andExpect(jsonPath("$.items[0].extras[0].pricing", is("PER_GROUP")));
     }
 }

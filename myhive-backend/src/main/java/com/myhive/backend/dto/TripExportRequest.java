@@ -1,6 +1,7 @@
 package com.myhive.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.myhive.backend.entity.ExtraPricing;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -119,5 +120,27 @@ public class TripExportRequest {
         @DecimalMin(value = "0.00", message = "Discount must be between 0 and 100")
         @DecimalMax(value = "100.00", message = "Discount must be between 0 and 100")
         private BigDecimal packageDiscountPct;
+        /** Selected add-ons, named by code; the server prices them from the catalog (SEC-1). */
+        @Valid
+        @Size(max = 10, message = "An activity can carry at most 10 extras")
+        private List<ExtraExport> extras;
+    }
+
+    /**
+     * An extra on a line. Only {@code code} is read on the way in; name, price and pricing are filled
+     * when a persisted booking is turned back into a request (emails) and are display-only.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ExtraExport {
+        @NotBlank(message = "Extra code is required")
+        @Size(max = 40, message = "Extra code must not exceed 40 characters")
+        private String code;
+        @Size(max = 80, message = "Extra name must not exceed 80 characters")
+        private String name;
+        @PositiveOrZero(message = "Extra price must not be negative")
+        private BigDecimal price;
+        private ExtraPricing pricing;
     }
 }

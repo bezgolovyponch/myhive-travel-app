@@ -6,10 +6,13 @@ import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
+import com.myhive.backend.entity.BookingItemExtra;
 import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.PaymentGatewayException;
 import com.myhive.backend.exception.ResourceNotFoundException;
@@ -962,5 +965,163 @@ class BookingServiceTest {
 
         assertThatCode(() -> bookingService.verifyChargeablePricing(booking))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void calculateTotalAddsExtrasOnTopOfTheFlooredBaseAndOutsideThePackageDiscount() {
+        // 40 €/pp × 2 = 80 floored to the 120 minimum; extras 250 per group + 15 pp × 2 = 280 on top.
+        BigDecimal expectedTotal = new BigDecimal("400.00");
+        BigDecimal expectedShowPrice = new BigDecimal("250.00");
+        activity.setPrice(new BigDecimal("40.00"));
+        activity.setMinPrice(new BigDecimal("120.00"));
+        activity.setExtras(List.of(privateShow(), photographer()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking booking = bookingService.createBookingEntity(
+                extrasRequest(activity.getId(), null, extraRef("private-show"), extraRef("photographer")), true);
+
+        assertThat(booking.getTotalAmount()).isEqualTo(expectedTotal);
+        BookingItem item = booking.getBookingItems().getFirst();
+        assertThat(item.getExtras()).hasSize(2);
+        assertThat(item.getExtras().getFirst().price()).isEqualTo(expectedShowPrice);
+    }
+
+    @Test
+    void packageDiscountNeverTouchesExtras() {
+        // 100 €/pp × 2 = 200, minus the 10 % package discount = 180; the 50 per-group extra stays 50.
+        BigDecimal expectedTotal = new BigDecimal("230.00");
+        activity.setPrice(new BigDecimal("100.00"));
+        activity.setExtras(List.of(new ActivityExtra("private-show", "Private show", null,
+                new BigDecimal("50.00"), ExtraPricing.PER_GROUP, null)));
+        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        pkg.setDiscountPct(new BigDecimal("10.00"));
+        com.myhive.backend.entity.PackageActivity membership = new com.myhive.backend.entity.PackageActivity();
+        membership.setActivity(activity);
+        pkg.setPackageActivities(List.of(membership));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(packageRepository.findById(pkg.getId())).thenReturn(Optional.of(pkg));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking booking = bookingService.createBookingEntity(
+                extrasRequest(activity.getId(), pkg.getId(), extraRef("private-show")), true);
+
+        assertThat(booking.getTotalAmount()).isEqualByComparingTo(expectedTotal);
+    }
+
+    @Test
+    void unknownExtraCodeIsA400UnderTrustedPricingAndDroppedOtherwise() {
+        activity.setExtras(List.of(privateShow()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+
+        assertThatThrownBy(() -> bookingService.createBookingEntity(
+                extrasRequest(activity.getId(), null, extraRef("nope")), true))
+                .isInstanceOf(BadRequestException.class);
+
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        Booking lenient = bookingService.createBookingEntity(
+                extrasRequest(activity.getId(), null, extraRef("nope")), false);
+        assertThat(lenient.getBookingItems().getFirst().getExtras()).isEmpty();
+    }
+
+    @Test
+    void clientSuppliedExtraPriceIsIgnored() {
+        // SEC-1: the request claims the show costs 1 € per person; the catalog says 250 per group.
+        BigDecimal expectedPrice = new BigDecimal("250.00");
+        ExtraPricing expectedPricing = ExtraPricing.PER_GROUP;
+        activity.setExtras(List.of(privateShow()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        TripExportRequest.ExtraExport forged = new TripExportRequest.ExtraExport(
+                "private-show", "Private show", BigDecimal.ONE, ExtraPricing.PER_PERSON);
+
+        Booking booking = bookingService.createBookingEntity(extrasRequest(activity.getId(), null, forged), true);
+
+        BookingItemExtra snapshot = booking.getBookingItems().getFirst().getExtras().getFirst();
+        assertThat(snapshot.price()).isEqualTo(expectedPrice);
+        assertThat(snapshot.pricing()).isEqualTo(expectedPricing);
+    }
+
+    @Test
+    void toExportRequestCarriesTheSnapshotExtrasAndVerifyChargeablePricingAcceptsIt() {
+        String expectedCode = "private-show";
+        activity.setExtras(List.of(privateShow()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        Booking saved = bookingService.createBookingEntity(
+                extrasRequest(activity.getId(), null, extraRef(expectedCode)), false);
+
+        TripExportRequest exported = bookingService.toExportRequest(saved);
+
+        TripExportRequest.ExtraExport exportedExtra =
+                exported.getDestinations().getFirst().getActivities().getFirst().getExtras().getFirst();
+        assertThat(exportedExtra.getCode()).isEqualTo(expectedCode);
+        assertThat(exportedExtra.getPrice()).isEqualByComparingTo("250.00");
+        assertThatCode(() -> bookingService.verifyChargeablePricing(saved)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void verifyChargeablePricing_rejectsStoredTotalThatLeftOutTheExtras() {
+        Booking booking = new Booking();
+        BookingItem item = new BookingItem();
+        item.setActivity(activity);
+        item.setPrice(new BigDecimal("50.00"));
+        item.setQuantity(2);
+        item.setExtras(List.of(BookingItemExtra.of(privateShow())));
+        booking.setBookingItems(List.of(item));
+        booking.setTotalAmount(new BigDecimal("100.00"));
+
+        assertThatThrownBy(() -> bookingService.verifyChargeablePricing(booking))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void bookingItemDtoCarriesTheExtrasSnapshot() {
+        String expectedCode = "private-show";
+        activity.setExtras(List.of(privateShow()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BookingDTO dto = bookingService.createBookingFromExport(
+                extrasRequest(activity.getId(), null, extraRef(expectedCode)));
+
+        assertThat(dto.getItems().getFirst().getExtras())
+                .extracting(BookingItemExtra::code)
+                .containsExactly(expectedCode);
+    }
+
+    private static ActivityExtra privateShow() {
+        return new ActivityExtra("private-show", "Private show", null, new BigDecimal("250.00"),
+                ExtraPricing.PER_GROUP, null);
+    }
+
+    private static ActivityExtra photographer() {
+        return new ActivityExtra("photographer", "Photographer", null, new BigDecimal("15.00"),
+                ExtraPricing.PER_PERSON, null);
+    }
+
+    private static TripExportRequest.ExtraExport extraRef(String code) {
+        TripExportRequest.ExtraExport ref = new TripExportRequest.ExtraExport();
+        ref.setCode(code);
+        return ref;
+    }
+
+    /** A two-traveler Trip Builder request with one catalog activity carrying the given extras. */
+    private TripExportRequest extrasRequest(UUID activityId, UUID packageId,
+                                            TripExportRequest.ExtraExport... extras) {
+        TripExportRequest.ActivityExport line = new TripExportRequest.ActivityExport();
+        line.setActivityId(activityId);
+        line.setActivityName(activity.getName());
+        line.setPackageId(packageId);
+        line.setExtras(List.of(extras));
+        TripExportRequest.DestinationExport dest = new TripExportRequest.DestinationExport();
+        dest.setDestinationName(destination.getName());
+        dest.setActivities(List.of(line));
+        TripExportRequest request = new TripExportRequest();
+        request.setUserEmail("a@b.com");
+        request.setCustomerName("A");
+        request.setNumberOfTravelers(2);
+        request.setDestinations(List.of(dest));
+        return request;
     }
 }
