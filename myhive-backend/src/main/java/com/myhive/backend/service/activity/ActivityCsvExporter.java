@@ -3,6 +3,7 @@ package com.myhive.backend.service.activity;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.CsvCells;
 import com.opencsv.CSVWriter;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +24,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ActivityCsvExporter {
 
+    /** {@code extras} is last so the positions of the older columns (and old sheets) stay as they were. */
     static final String[] HEADER = {
             "id", "slug", "destination_slug", "name", "description",
             "price", "min_price", "duration", "category_slugs", "image_url", "includes",
-            "featured_weight"
+            "featured_weight", "extras"
     };
 
     private static final String BOM = "\uFEFF";
@@ -74,7 +76,8 @@ public class ActivityCsvExporter {
                 joinCategorySlugs(a),
                 CsvCells.nullSafe(a.getImageUrl()),
                 CsvCells.sanitize(CsvCells.nullSafe(a.getIncludes())),
-                String.valueOf(a.getFeaturedWeight())
+                String.valueOf(a.getFeaturedWeight()),
+                CsvCells.sanitize(ActivityExtras.canonicalJson(a.getExtras()))
         };
     }
 

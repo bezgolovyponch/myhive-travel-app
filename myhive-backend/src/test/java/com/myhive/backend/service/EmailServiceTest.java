@@ -6,6 +6,7 @@ import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.entity.TripLead;
 import com.myhive.backend.entity.TripLeadActivity;
 import com.myhive.backend.entity.VoteSession;
@@ -221,6 +222,61 @@ class EmailServiceTest {
         List<EmailService.ActivityLineView> lines = views.getFirst().standaloneActivities;
         assertThat(lines.getFirst().groupMinApplies).isTrue();  // 2 × €50 = €100 < €300
         assertThat(lines.get(1).groupMinApplies).isFalse();     // no minimum set
+    }
+
+    @Test
+    void buildDestinationViews_pricesEachExtraForTheGroup() {
+        String expectedFirstName = "Private show";
+        BigDecimal expectedShowAmount = new BigDecimal("250.00");
+        BigDecimal expectedPhotographerAmount = new BigDecimal("60.00"); // 15 × 4 travelers
+        TripExportRequest.ActivityExport karting = new TripExportRequest.ActivityExport();
+        karting.setActivityName("Karting");
+        karting.setPrice(40.0);
+        karting.setExtras(List.of(
+                new TripExportRequest.ExtraExport("private-show", expectedFirstName, new BigDecimal("250.00"),
+                        ExtraPricing.PER_GROUP),
+                new TripExportRequest.ExtraExport("photographer", "Photographer", new BigDecimal("15.00"),
+                        ExtraPricing.PER_PERSON),
+                new TripExportRequest.ExtraExport("unpriced", "Unpriced", null, null)));
+        TripExportRequest.DestinationExport dest = new TripExportRequest.DestinationExport();
+        dest.setDestinationName("Prague");
+        dest.setActivities(List.of(karting));
+        TripExportRequest req = new TripExportRequest();
+        req.setNumberOfTravelers(4);
+        req.setDestinations(List.of(dest));
+
+        List<EmailService.DestinationView> views = emailService.buildDestinationViews(req);
+
+        List<EmailService.ExtraLineView> extras = views.getFirst().standaloneActivities.getFirst().extras;
+        assertThat(extras).hasSize(2);
+        assertThat(extras.getFirst().name).isEqualTo(expectedFirstName);
+        assertThat(extras.getFirst().amount).isEqualTo(expectedShowAmount);
+        assertThat(extras.getFirst().perPerson).isFalse();
+        assertThat(extras.get(1).amount).isEqualTo(expectedPhotographerAmount);
+        assertThat(extras.get(1).perPerson).isTrue();
+    }
+
+    @Test
+    void buildDestinationViews_labelsANamelessExtraByItsCodeAndSkipsOneWithNoLabel() {
+        String expectedLabel = "photographer";
+        TripExportRequest.ActivityExport karting = new TripExportRequest.ActivityExport();
+        karting.setActivityName("Karting");
+        karting.setPrice(40.0);
+        karting.setExtras(List.of(
+                new TripExportRequest.ExtraExport(expectedLabel, " ", new BigDecimal("15.00"), ExtraPricing.PER_PERSON),
+                new TripExportRequest.ExtraExport(null, null, new BigDecimal("50.00"), ExtraPricing.PER_GROUP)));
+        TripExportRequest.DestinationExport dest = new TripExportRequest.DestinationExport();
+        dest.setDestinationName("Prague");
+        dest.setActivities(List.of(karting));
+        TripExportRequest req = new TripExportRequest();
+        req.setNumberOfTravelers(2);
+        req.setDestinations(List.of(dest));
+
+        List<EmailService.DestinationView> views = emailService.buildDestinationViews(req);
+
+        assertThat(views.getFirst().standaloneActivities.getFirst().extras)
+                .extracting(extra -> extra.name)
+                .containsExactly(expectedLabel);
     }
 
     @Test

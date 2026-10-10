@@ -5,13 +5,16 @@ import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.dto.PriceQuoteRequest;
 import com.myhive.backend.dto.PriceQuoteResponse;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.entity.PackageActivity;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.util.FromPrice;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -112,6 +115,73 @@ class PriceQuoteServiceTest {
         assertThatThrownBy(() -> priceQuoteService.quote(request)).isInstanceOf(BadRequestException.class);
     }
 
+    @Test
+    void quote_addsTheSelectedExtrasOnTopOfTheLine() {
+        // 40 × 2 = 80, plus the 250 per-group show = 330
+        BigDecimal expectedTotal = new BigDecimal("330");
+        Activity karting = savedActivityWithExtras(new BigDecimal("40.00"), extra("private-show", "250.00"));
+
+        PriceQuoteRequest request = new PriceQuoteRequest();
+        request.setItems(List.of(item(karting, null, "private-show")));
+        request.setTravelers(2);
+
+        PriceQuoteResponse quote = priceQuoteService.quote(request);
+        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal));
+    }
+
+    @Test
+    void quote_sameActivityWithDifferentExtras_isTwoLines() {
+        // 40 × 2 + 250 (with the show) and 40 × 2 again without it = 80 + 250 + 80 = 410
+        BigDecimal expectedTotal = new BigDecimal("410");
+        Activity karting = savedActivityWithExtras(new BigDecimal("40.00"), extra("private-show", "250.00"));
+
+        PriceQuoteRequest request = new PriceQuoteRequest();
+        request.setItems(List.of(item(karting, null, "private-show"), item(karting, null)));
+        request.setTravelers(2);
+
+        PriceQuoteResponse quote = priceQuoteService.quote(request);
+        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal));
+    }
+
+    @Test
+    void quote_unknownExtraCode_isIgnored() {
+        BigDecimal expectedTotal = new BigDecimal("80");
+        Activity karting = savedActivityWithExtras(new BigDecimal("40.00"), extra("private-show", "250.00"));
+
+        PriceQuoteRequest request = new PriceQuoteRequest();
+        request.setItems(List.of(item(karting, null, "nope")));
+        request.setTravelers(2);
+
+        PriceQuoteResponse quote = priceQuoteService.quote(request);
+        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal));
+    }
+
+    @Test
+    void quote_extraOnAPackageLine_isNotDiscounted() {
+        // Package 50 %: 100 × 2 = 200 → 100; the 50 per-group extra stays 50 → 150
+        BigDecimal expectedTotal = new BigDecimal("150");
+        Activity karting = savedActivityWithExtras(new BigDecimal("100.00"), extra("private-show", "50.00"));
+        Package halfOff = savedPackage(karting.getDestination(), new BigDecimal("50.00"), karting);
+
+        PriceQuoteRequest request = new PriceQuoteRequest();
+        request.setItems(List.of(item(karting, halfOff, "private-show")));
+        request.setTravelers(2);
+
+        PriceQuoteResponse quote = priceQuoteService.quote(request);
+        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal));
+    }
+
+    private Activity savedActivityWithExtras(BigDecimal price, ActivityExtra... extras) {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity activity = TestDataFactory.activity(prague, "Karting", price);
+        activity.setExtras(List.of(extras));
+        return activityRepository.saveAndFlush(activity);
+    }
+
+    private static ActivityExtra extra(String code, String perGroupPrice) {
+        return new ActivityExtra(code, code, null, new BigDecimal(perGroupPrice), ExtraPricing.PER_GROUP, null);
+    }
+
     private Package savedPackage(Destination destination, BigDecimal discountPct, Activity... activities) {
         Package pkg = TestDataFactory.pkg(destination);
         pkg.setId(null); // generated on insert; the factory's preset id would be merged as a phantom row
@@ -122,10 +192,11 @@ class PriceQuoteServiceTest {
         return packageRepository.saveAndFlush(pkg);
     }
 
-    private static PriceQuoteRequest.Item item(Activity activity, Package pkg) {
+    private static PriceQuoteRequest.Item item(Activity activity, Package pkg, String... extraCodes) {
         PriceQuoteRequest.Item item = new PriceQuoteRequest.Item();
         item.setActivityId(activity.getId());
         item.setPackageId(pkg == null ? null : pkg.getId());
+        item.setExtraCodes(List.of(extraCodes));
         return item;
     }
 }

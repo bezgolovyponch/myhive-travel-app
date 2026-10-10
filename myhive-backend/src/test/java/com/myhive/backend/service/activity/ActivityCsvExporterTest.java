@@ -2,9 +2,14 @@ package com.myhive.backend.service.activity;
 
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.repository.ActivityRepository;
+import com.myhive.backend.util.ActivityExtras;
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,6 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -48,7 +55,32 @@ class ActivityCsvExporterTest {
         assertThat(csv).startsWith("\uFEFF");
         String firstLine = csv.substring(1).split("\r?\n", 2)[0];
         assertThat(firstLine).isEqualTo(
-                "id,slug,destination_slug,name,description,price,min_price,duration,category_slugs,image_url,includes,featured_weight");
+                "id,slug,destination_slug,name,description,price,min_price,duration,category_slugs,image_url,includes,"
+                        + "featured_weight,extras");
+    }
+
+    @Test
+    void export_writesCanonicalExtrasJsonAsTheLastCell() {
+        Activity activity = TestDataFactory.activity(destination);
+        activity.setExtras(List.of(new ActivityExtra("private-show", "Private show", null, new BigDecimal("250.00"),
+                ExtraPricing.PER_GROUP, null)));
+        String expectedCell = ActivityExtras.canonicalJson(activity.getExtras());
+        Activity withoutExtras = TestDataFactory.activity(destination);
+        when(activityRepository.findAll()).thenReturn(List.of(activity, withoutExtras));
+
+        List<String[]> rows = parse(exporter.exportAll());
+
+        assertThat(rows.get(0)[rows.get(0).length - 1]).isEqualTo("extras");
+        assertThat(rows.get(1)[rows.get(1).length - 1]).isEqualTo(expectedCell);
+        assertThat(rows.get(2)[rows.get(2).length - 1]).isEmpty();
+    }
+
+    private static List<String[]> parse(String csv) {
+        try (CSVReader reader = new CSVReader(new StringReader(csv.substring(1)))) {
+            return reader.readAll();
+        } catch (IOException | CsvException e) {
+            throw new IllegalStateException("exported CSV does not parse", e);
+        }
     }
 
     @Test
@@ -75,9 +107,9 @@ class ActivityCsvExporterTest {
         String csv = exporter.exportAll();
 
         assertThat(csv).contains("featured_weight");
-        String dataLine = csv.split("\r?\n")[1];
-        String[] columns = dataLine.split(",", -1);
-        assertThat(columns[columns.length - 1]).isEqualTo(String.valueOf(expectedWeight));
+        String[] columns = parse(csv).get(1);
+        int featuredWeightColumn = List.of(ActivityCsvExporter.HEADER).indexOf("featured_weight");
+        assertThat(columns[featuredWeightColumn]).isEqualTo(String.valueOf(expectedWeight));
     }
 
     @Test

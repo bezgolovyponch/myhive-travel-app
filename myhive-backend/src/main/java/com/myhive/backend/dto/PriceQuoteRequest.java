@@ -30,5 +30,7 @@ public class PriceQuoteRequest {
         @NotNull private UUID activityId;
         /** The package this line was added as part of; null for a standalone activity. */
         private UUID packageId;
+        /** Codes of the add-ons selected on this line; null or empty = none. Unknown codes are ignored. */
+        @Size(max = 10) private List<@Size(max = 40) String> extraCodes;
     }
 }

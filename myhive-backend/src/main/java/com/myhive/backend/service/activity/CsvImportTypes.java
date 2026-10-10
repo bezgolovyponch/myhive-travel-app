@@ -1,5 +1,7 @@
 package com.myhive.backend.service.activity;
 
+import com.myhive.backend.entity.ActivityExtra;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,9 @@ record ValidatedRow(
         // Optional mutable field: null means "column absent from CSV; do not update".
         // BigDecimal.ZERO means "blank cell -> clear the minimum". Otherwise the new value.
         BigDecimal minPrice,
+        // Optional mutable field: null means "column absent from CSV; do not update".
+        // An empty list means "blank cell -> clear the extras". Otherwise the parsed, normalised extras.
+        List<ActivityExtra> extras,
         // Read-only for updates (warning if changed); inputs for creates.
         String csvSlug,
         String csvDestinationSlug,

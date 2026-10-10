@@ -111,4 +111,18 @@ class ActivityExtrasTest {
         assertEquals("Private show", raw.getName());
         assertNotNull(raw.getTranslations());
     }
+
+    @Test
+    void selectKeepsTheNamedExtrasInCatalogOrderAndIgnoresUnknownCodes() {
+        ActivityExtra show = new ActivityExtra("show", "Show", null, BigDecimal.TEN, ExtraPricing.PER_GROUP, null);
+        ActivityExtra photos = new ActivityExtra("photos", "Photos", null, BigDecimal.ONE, ExtraPricing.PER_PERSON, null);
+        ActivityExtra drinks = new ActivityExtra("drinks", "Drinks", null, BigDecimal.ONE, ExtraPricing.PER_PERSON, null);
+        List<ActivityExtra> expected = List.of(show, drinks);
+
+        List<ActivityExtra> selected = ActivityExtras.select(List.of(show, photos, drinks), List.of("drinks", "nope", "show"));
+
+        assertEquals(expected, selected);
+        assertTrue(ActivityExtras.select(null, List.of("show")).isEmpty());
+        assertTrue(ActivityExtras.select(List.of(show), null).isEmpty());
+    }
 }

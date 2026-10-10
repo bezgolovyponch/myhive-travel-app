@@ -4,8 +4,10 @@ import com.myhive.backend.dto.QuizResponseDTO;
 import com.myhive.backend.dto.VotePoolRequest;
 import com.myhive.backend.dto.VotePoolResponse;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.entity.QuizAnswer;
 import com.myhive.backend.entity.QuizAnswerWeight;
 import com.myhive.backend.entity.QuizQuestion;
@@ -24,6 +26,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -142,6 +145,29 @@ class VotePoolServiceTest {
                     assertThat(dto.getDescription()).isEqualTo(expectedDescription);
                     assertThat(dto.getDuration()).isEqualTo(expectedDuration);
                     assertThat(dto.getMinPrice()).isEqualByComparingTo(expectedMinPrice);
+                });
+    }
+
+    @Test
+    void buildPool_listsTheActivityExtrasLocalisedAndNoSelection() {
+        Destination destination = saveDestination("Prague");
+        Category nightlife = saveCategory("Nightlife", "nightlife", true);
+        attachCategoryToDestination(destination, nightlife);
+        String expectedGermanName = "Private Show";
+        Activity activity = saveActivity(destination, "Club Crawl", new BigDecimal("100"), 5, Set.of(nightlife));
+        activity.setExtras(List.of(new ActivityExtra("private-show", "Private show", null, new BigDecimal("250.00"),
+                ExtraPricing.PER_GROUP, Map.of("de", Map.of("name", expectedGermanName)))));
+        activityRepository.saveAndFlush(activity);
+
+        VotePoolResponse response = votePoolService.buildPool(
+                new VotePoolRequest(destination.getId(), List.of()), "de");
+
+        assertThat(response.getPool()).singleElement()
+                .satisfies(dto -> {
+                    assertThat(dto.getExtras()).hasSize(1);
+                    assertThat(dto.getExtras().getFirst().getName()).isEqualTo(expectedGermanName);
+                    assertThat(dto.getExtras().getFirst().getTranslations()).isNull();
+                    assertThat(dto.getSelectedExtras()).isNull();
                 });
     }
 

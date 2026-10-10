@@ -22,6 +22,7 @@ public enum ImportErrorCode {
     PRICE_REQUIRED,
     INVALID_INTEGER,
     UNKNOWN_CATEGORY,
+    INVALID_EXTRAS,
     // Row-level errors specific to rows with a blank id (creates)
     DESTINATION_REQUIRED,
     UNKNOWN_DESTINATION,

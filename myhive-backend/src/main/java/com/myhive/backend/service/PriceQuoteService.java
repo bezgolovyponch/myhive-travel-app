@@ -8,6 +8,7 @@ import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.FromPrice;
 import com.myhive.backend.util.MoneyMath;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,9 @@ import java.util.stream.Collectors;
 /**
  * Prices a Trip Builder plan from the catalog, never from the browser, the way BookingService bills it:
  * each line is price × travelers with the activity's group minimum as the floor, the lines of one package
- * are then discounted together by the package's catalog percentage, and the plan shows the
- * {@link FromPrice} of the sum, in total and per traveller.
+ * are then discounted together by the package's catalog percentage, the selected extras of every line are
+ * added at list price (never floored, never discounted), and the plan shows the {@link FromPrice} of the
+ * sum, in total and per traveller.
  */
 @Service
 @RequiredArgsConstructor
@@ -39,8 +41,23 @@ public class PriceQuoteService {
     private final ActivityRepository activityRepository;
     private final PackageRepository packageRepository;
 
-    /** One line of the plan; the same activity twice in one package (or twice standalone) is one line. */
-    private record Line(UUID activityId, UUID packageId) {
+    /**
+     * One line of the plan; the same activity twice in one package (or twice standalone) with the same extras
+     * is one line. {@code extraCodes} is sorted and deduplicated so the order the browser sends them in does
+     * not split a line.
+     */
+    private record Line(UUID activityId, UUID packageId, List<String> extraCodes) {
+
+        static Line of(UUID activityId, UUID packageId, List<String> codes) {
+            List<String> normalized = codes == null ? List.of() : codes.stream()
+                    .filter(Objects::nonNull)
+                    .map(String::strip)
+                    .filter(code -> !code.isEmpty())
+                    .distinct()
+                    .sorted()
+                    .toList();
+            return new Line(activityId, packageId, normalized);
+        }
     }
 
     public PriceQuoteResponse quote(PriceQuoteRequest request) {
@@ -49,8 +66,9 @@ public class PriceQuoteService {
         Map<UUID, Package> packagesById = packagesOf(lines);
         int travelers = request.getTravelers();
         // Floor each line first, then discount the package's sum (floor-before-discount), keyed by
-        // package id with null for the standalone lines.
-        Map<UUID, BigDecimal> totalsByPackage = new LinkedHashMap<>();
+        // package id with null for the standalone lines. Extras are summed apart: no discount touches them.
+        Map<UUID, BigDecimal> basesByPackage = new LinkedHashMap<>();
+        BigDecimal extras = BigDecimal.ZERO;
         for (Line line : lines) {
             Activity activity = activitiesById.get(line.activityId());
             if (line.packageId() != null && !packagesById.get(line.packageId()).containsActivity(activity.getId())) {
@@ -58,11 +76,13 @@ public class PriceQuoteService {
                 throw new BadRequestException("Activity " + activity.getId()
                         + " does not belong to package " + line.packageId());
             }
-            BigDecimal lineTotal = PlanPricer.lineTotal(activity.getPrice(), activity.getMinPrice(), travelers);
-            totalsByPackage.merge(line.packageId(), lineTotal, BigDecimal::add);
+            BigDecimal base = PlanPricer.lineTotal(activity.getPrice(), activity.getMinPrice(), travelers);
+            basesByPackage.merge(line.packageId(), base, BigDecimal::add);
+            extras = extras.add(MoneyMath.extrasTotal(
+                    ActivityExtras.select(activity.getExtras(), line.extraCodes()), travelers));
         }
-        BigDecimal total = BigDecimal.ZERO;
-        for (Map.Entry<UUID, BigDecimal> group : totalsByPackage.entrySet()) {
+        BigDecimal total = extras;
+        for (Map.Entry<UUID, BigDecimal> group : basesByPackage.entrySet()) {
             total = total.add(group.getKey() == null
                     ? group.getValue()
                     : MoneyMath.applyDiscountPct(group.getValue(), packagesById.get(group.getKey()).getDiscountPct()));
@@ -73,9 +93,10 @@ public class PriceQuoteService {
     private static Set<Line> linesOf(PriceQuoteRequest request) {
         Set<Line> lines = new LinkedHashSet<>();
         if (request.getItems() != null) {
-            request.getItems().forEach(item -> lines.add(new Line(item.getActivityId(), item.getPackageId())));
+            request.getItems().forEach(item ->
+                    lines.add(Line.of(item.getActivityId(), item.getPackageId(), item.getExtraCodes())));
         } else if (request.getActivityIds() != null) {
-            request.getActivityIds().forEach(activityId -> lines.add(new Line(activityId, null)));
+            request.getActivityIds().forEach(activityId -> lines.add(Line.of(activityId, null, null)));
         }
         if (lines.isEmpty()) {
             throw new BadRequestException("Nothing to price: items must not be empty");

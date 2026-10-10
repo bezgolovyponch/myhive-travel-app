@@ -6,8 +6,10 @@ import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Booking;
 import com.myhive.backend.entity.BookingItem;
+import com.myhive.backend.entity.BookingItemExtra;
 import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.exception.BadRequestException;
@@ -20,6 +22,7 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BookingPaymentShareRepository;
 import com.myhive.backend.repository.BookingRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.EmailMasker;
 import com.myhive.backend.util.MoneyMath;
 import com.myhive.backend.util.Translations;
@@ -37,6 +40,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -159,6 +163,7 @@ public class BookingService {
                     item.setActivity(activity);
                     item.setPrice(activity.getPrice());           // trusted server-side price (SEC-1)
                     item.setMinPrice(activity.getMinPrice()); // trusted server-side floor (SEC-1)
+                    item.setExtras(resolveExtras(activity, act.getExtras(), enforceTrustedPricing));
                 } else if (enforceTrustedPricing) {
                     // C1: a charged booking must price every line from the catalog, never the request body.
                     throw new BadRequestException(
@@ -229,6 +234,32 @@ public class BookingService {
                 saved.getId(), EmailMasker.mask(saved.getUserEmail()),
                 saved.getBookingItems().size(), saved.getTotalAmount());
         return saved;
+    }
+
+    /**
+     * The extras a line carries, priced from the catalog (SEC-1): the request names them by code only. Under
+     * trusted pricing a code the activity no longer offers is a 400 (stale cart); the lenient lead flow drops it.
+     */
+    private static List<BookingItemExtra> resolveExtras(Activity activity,
+            List<TripExportRequest.ExtraExport> requested, boolean enforceTrustedPricing) {
+        if (requested == null || requested.isEmpty()) {
+            return List.of();
+        }
+        Map<String, BookingItemExtra> resolved = new LinkedHashMap<>();
+        for (TripExportRequest.ExtraExport wanted : requested) {
+            // Stripped like PriceQuoteService.Line does, so a code the quote priced is never a 400 here.
+            String code = wanted.getCode() == null ? null : wanted.getCode().strip();
+            Optional<ActivityExtra> extra = ActivityExtras.byCode(activity.getExtras(), code);
+            if (extra.isEmpty()) {
+                if (enforceTrustedPricing) {
+                    throw new BadRequestException(
+                            "Unknown extra '" + code + "' for activity " + activity.getId());
+                }
+                continue;
+            }
+            resolved.put(extra.get().code(), BookingItemExtra.of(extra.get()));
+        }
+        return List.copyOf(resolved.values());
     }
 
     /**
@@ -313,6 +344,7 @@ public class BookingService {
             activity.setActivityName(item.getActivityName());
             activity.setPrice(item.getPrice() != null ? item.getPrice().doubleValue() : null);
             activity.setMinPrice(item.getMinPrice());
+            activity.setExtras(toExtraExports(item.getExtras()));
             if (item.getPkg() != null) {
                 activity.setPackageId(item.getPkg().getId());
                 activity.setPackageName(item.getPackageName());
@@ -324,9 +356,36 @@ public class BookingService {
         return request;
     }
 
+    /**
+     * The emails render the request, so its extras are replaced by what was booked: the catalog snapshot, never
+     * the client's names or prices, and without the codes the lenient flow dropped. createBookingEntity makes
+     * exactly one item per request activity, in request order, which is how they are matched here.
+     */
+    private static void itemiseBookedExtras(TripExportRequest request, Booking saved) {
+        List<BookingItem> items = saved.getBookingItems();
+        int index = 0;
+        for (TripExportRequest.DestinationExport dest : request.getDestinations()) {
+            for (TripExportRequest.ActivityExport activity : dest.getActivities()) {
+                List<BookingItemExtra> booked = index < items.size() ? items.get(index).getExtras() : null;
+                activity.setExtras(toExtraExports(booked));
+                index++;
+            }
+        }
+    }
+
+    private static List<TripExportRequest.ExtraExport> toExtraExports(List<BookingItemExtra> extras) {
+        if (extras == null) {
+            return List.of();
+        }
+        return extras.stream()
+                .map(e -> new TripExportRequest.ExtraExport(e.code(), e.name(), e.price(), e.pricing()))
+                .toList();
+    }
+
     @Transactional
     public BookingDTO createBookingFromExport(TripExportRequest request) {
         Booking saved = createBookingEntity(request);
+        itemiseBookedExtras(request, saved);
 
         try {
             emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request, saved.getTripId());
@@ -455,6 +514,7 @@ public class BookingService {
         dto.setPackageId(item.getPkg() != null ? item.getPkg().getId() : null);
         dto.setPackageName(item.getPackageName());
         dto.setPackageDiscountPct(item.getPackageDiscountPct());
+        dto.setExtras(item.getExtras() == null ? List.of() : item.getExtras());
         return dto;
     }
 
@@ -473,25 +533,38 @@ public class BookingService {
     }
 
     private static @NonNull BigDecimal getGroupTotal(Map.Entry<UUID, List<BookingItem>> entry) {
-        BigDecimal groupTotal = BigDecimal.ZERO;
+        BigDecimal bases = BigDecimal.ZERO;
+        BigDecimal extras = BigDecimal.ZERO;
         for (BookingItem it : entry.getValue()) {
-            groupTotal = groupTotal.add(lineTotal(it));
+            bases = bases.add(lineBase(it));
+            extras = extras.add(lineExtras(it));
         }
         if (entry.getKey() != null) {
-            groupTotal = MoneyMath.applyDiscountPct(groupTotal,
-                    entry.getValue().getFirst().getPackageDiscountPct());
+            bases = MoneyMath.applyDiscountPct(bases, entry.getValue().getFirst().getPackageDiscountPct());
         }
-        return groupTotal;
+        // Extras are add-ons at list price: never floored by the group minimum, never discounted by a package.
+        return bases.add(extras);
     }
 
-    /** Group-minimum floor: a line never bills below the activity's minPrice snapshot. */
-    private static BigDecimal lineTotal(BookingItem it) {
-        BigDecimal qty = BigDecimal.valueOf(it.getQuantity() == null ? 1 : it.getQuantity());
+    /**
+     * Group-minimum floor: a line never bills below the activity's minPrice snapshot.
+     * Mirrors PlanPricer.lineTotal and tripPricing.js.
+     */
+    private static BigDecimal lineBase(BookingItem it) {
+        BigDecimal qty = BigDecimal.valueOf(quantity(it));
         BigDecimal line = it.getPrice().multiply(qty);
         BigDecimal minPrice = it.getMinPrice();
         if (minPrice != null && line.compareTo(minPrice) < 0) {
             return minPrice;
         }
         return line;
+    }
+
+    private static BigDecimal lineExtras(BookingItem it) {
+        return MoneyMath.extrasTotal(it.getExtras(), quantity(it));
+    }
+
+    private static int quantity(BookingItem it) {
+        return it.getQuantity() == null ? 1 : it.getQuantity();
     }
 }

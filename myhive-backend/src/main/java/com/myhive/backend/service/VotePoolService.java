@@ -10,6 +10,7 @@ import com.myhive.backend.entity.Destination;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.DestinationRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -79,6 +80,6 @@ public class VotePoolService {
                 activity.getPrice(), activity.getMinPrice(), activity.getImageUrl(),
                 activity.getSlug(), destinationSlug, categories,
                 Translations.pick(tr, lc, "description", activity.getDescription()), activity.getDuration(),
-                List.of(), null);
+                ActivityExtras.toDtos(activity.getExtras(), lc), null);
     }
 }

@@ -47,6 +47,7 @@ import com.myhive.backend.repository.VoteSessionActivityRepository;
 import com.myhive.backend.repository.VoteSessionQuizResponseRepository;
 import com.myhive.backend.repository.VoteSessionRepository;
 import com.myhive.backend.repository.VoteSessionResultActivityRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.PhoneNumbers;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
@@ -582,7 +583,7 @@ public class VoteSessionService {
                     activity.getDuration(),
                     Translations.pick(tr, lc, "description", activity.getDescription()),
                     Translations.pick(tr, lc, "includes", activity.getIncludes()),
-                    List.of());
+                    ActivityExtras.toDtos(activity.getExtras(), lc));
         }).toList();
 
         BigDecimal travelers = BigDecimal.valueOf(session.getNumberOfTravelers());
