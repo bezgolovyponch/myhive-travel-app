@@ -204,6 +204,34 @@ test('a draft Java corrected is reported as kept, with what was corrected, and t
     expect(screen.queryByText(/rule violation\(s\)/)).not.toBeInTheDocument();
 });
 
+test('an item\'s extras are listed with their amount, and the edit report names the extra it added', async () => {
+    const user = userEvent.setup();
+    const generation = readyGeneration({kind: 'EDITED'});
+    generation.packages[0].days[0].items[0].extras = [
+        {code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP', total: 250},
+    ];
+    mockApi.aiSendMessage.mockResolvedValue({
+        message: {role: 'ASSISTANT', content: 'Added a private show to the pub crawl.'},
+        messages: [{role: 'ASSISTANT', content: 'Added a private show to the pub crawl.'}],
+        edit: {
+            generationId: null,
+            applied: [{op: 'ADD_EXTRA', activity: 'Prague Pub Crawl', extra: 'Private show', replacement: null,
+                packageKey: 'BASIC', dayNumber: 1, slot: 'EVENING'}],
+            rejected: [],
+            tierRulesRelaxed: false,
+            textsRefreshed: true,
+        },
+        generation,
+    });
+    render(<AdminAiPlanner/>);
+
+    await user.type(screen.getByLabelText('Message'), 'add the private show to the pub crawl');
+    await user.click(screen.getByRole('button', {name: 'Send'}));
+
+    expect(await screen.findByText('+ Private show · 250.00 EUR')).toBeInTheDocument();
+    expect(screen.getByText(/ADD_EXTRA Prague Pub Crawl \+ Private show · BASIC/)).toBeInTheDocument();
+});
+
 test('the server\'s suggested replies are chips that send themselves', async () => {
     const user = userEvent.setup();
     const expectedReply = 'Steak dinner with a show';

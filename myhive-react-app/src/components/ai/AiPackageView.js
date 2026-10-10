@@ -234,6 +234,13 @@ function AiPackageView({
                                                 {isAdded && <span className="aip-badge">{t('result.aiAdded')}</span>}
                                             </div>
                                             {sub && <div className="aip-item-sub">{sub}</div>}
+                                            {item.extras?.length > 0 && (
+                                                <div className="aip-item-extras">
+                                                    {item.extras.map(extra => (
+                                                        <span key={extra.code} className="aip-item-extra">+ {extra.name}</span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <button
                                             type="button"

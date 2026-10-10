@@ -152,6 +152,21 @@ test('a row without a duration has no empty subtitle under its name', async () =
     expect(draft.querySelectorAll('.aip-item-sub')).toHaveLength(1);
 });
 
+test('an item with extras names them as chips under it', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [{...p.days[0], items: [item('Bar Crawl', {
+        extras: [{code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP', total: 250}],
+    }), item('Karting', {slot: 'AFTERNOON', startHint: null})]}]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByText('+ Private show')).toBeInTheDocument();
+    expect(within(draft).getAllByText(/^\+ /)).toHaveLength(1);
+});
+
 test('while the copy is still being written, a day shows its date or number but not its title yet', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     const skeleton = readyGeneration({textsPending: true});

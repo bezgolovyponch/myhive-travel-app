@@ -577,6 +577,9 @@ function PackageCard({pkg, generation, onSelect}) {
                                 <span className="text-muted" style={{minWidth: 86}}>{item.slot}{item.startHint ? ` ${item.startHint}` : ''}</span>
                                 <span>{item.name} ({item.durationMinutes} min)</span>
                                 <span className="ms-auto">{money(item.lineTotal, pkg.currency)}{item.groupMinApplied ? ' *min' : ''}</span>
+                                {(item.extras || []).map(extra => (
+                                    <div key={extra.code} className="w-100 text-muted">+ {extra.name} · {money(extra.total, pkg.currency)}</div>
+                                ))}
                                 {item.includes && <div className="w-100 text-muted">Includes: {item.includes}</div>}
                                 {item.why && <div className="w-100 text-muted">{item.why}</div>}
                             </div>
@@ -603,7 +606,7 @@ function EditReport({edit}) {
             </div>
             {edit.applied.map((a, index) => (
                 <div key={`a${index}`}>
-                    ✔ {a.op} {a.activity}{a.replacement ? ` → ${a.replacement}` : ''} · {a.packageKey} · day {a.dayNumber}{a.slot ? ` ${a.slot}` : ''}
+                    ✔ {a.op} {a.activity}{a.extra ? ` + ${a.extra}` : ''}{a.replacement ? ` → ${a.replacement}` : ''} · {a.packageKey} · day {a.dayNumber}{a.slot ? ` ${a.slot}` : ''}
                 </div>
             ))}
             {edit.rejected.map((r, index) => (

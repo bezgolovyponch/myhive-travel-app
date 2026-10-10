@@ -426,7 +426,15 @@ function AdminBookingDetail() {
                             {booking.items.map((item, idx) => (
                                 <tr key={item.id || idx}>
                                     <td className="small text-muted">{idx + 1}</td>
-                                    <td className="small fw-semibold">{item.activityName || '—'}</td>
+                                    <td className="small">
+                                        <div className="fw-semibold">{item.activityName || '—'}</div>
+                                        {(item.extras || []).map(extra => (
+                                            <div key={extra.code} className="text-muted">
+                                                + {extra.name} · {formatAmount(extra.price)}{' '}
+                                                {extra.pricing === 'PER_PERSON' ? 'per person' : 'per group'}
+                                            </div>
+                                        ))}
+                                    </td>
                                     <td className="small">{item.destinationName || '—'}</td>
                                     <td className="small">{formatAmount(item.price)}</td>
                                     <td className="small">{item.quantity || 1}</td>

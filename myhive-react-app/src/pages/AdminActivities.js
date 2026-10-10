@@ -8,6 +8,7 @@ import AdminTable from '../components/AdminTable';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImageUploadField from '../components/ImageUploadField';
 import ImportActivitiesModal from '../components/admin/ImportActivitiesModal';
+import ExtrasEditor from '../components/admin/ExtrasEditor';
 import SaveErrorAlert from '../components/admin/SaveErrorAlert';
 
 const EMPTY_FORM = {
@@ -24,6 +25,7 @@ const EMPTY_FORM = {
     imageUrl: '',
     includes: '',
     destinationId: '',
+    extras: [],
 };
 
 const COLUMNS = [
@@ -33,6 +35,7 @@ const COLUMNS = [
     {key: 'categories', label: 'Categories'},
     {key: 'price', label: 'Price'},
     {key: 'minPrice', label: 'Min price'},
+    {key: 'extras', label: 'Extras'},
     {key: 'duration', label: 'Duration'},
     {key: 'featuredWeight', label: 'Weight'},
     {key: 'featured', label: 'Featured'},
@@ -80,6 +83,9 @@ function AdminActivities() {
             }
             const slug = slugFormat(form.slug);
             if (slug) errors.slug = slug;
+            if (form.extras.some(extra => required(extra.name) || required(extra.price))) {
+                errors.extras = 'Each extra needs a name and a price.';
+            }
             return errors;
         },
         mapItemToForm: (a) => ({
@@ -96,6 +102,7 @@ function AdminActivities() {
             imageUrl: a.imageUrl || '',
             includes: a.includes || '',
             destinationId: a.destinationId || '',
+            extras: a.extras || [],
         }),
         buildPayload: (form) => ({
             ...form,
@@ -104,6 +111,8 @@ function AdminActivities() {
             duration: form.duration !== '' ? Number(form.duration) : null,
             featuredWeight: form.featuredWeight !== '' && form.featuredWeight !== null
                 ? Number(form.featuredWeight) : 0,
+            // Always a list: [] clears the activity's extras, it is never "leave unchanged".
+            extras: form.extras.map(extra => ({...extra, price: Number(extra.price)})),
         }),
     });
 
@@ -210,6 +219,7 @@ function AdminActivities() {
                                 </td>
                                 <td className="small fw-semibold">{formatAmount(activity.price)}</td>
                                 <td className="small">{Number(activity.minPrice) > 0 ? formatAmount(activity.minPrice) : '—'}</td>
+                                <td className="small">{activity.extras?.length || '—'}</td>
                                 <td className="small">
                                     {activity.duration ? `${activity.duration} min` : '—'}
                                 </td>
@@ -372,6 +382,13 @@ function AdminActivities() {
                                     />
                                 ))}
                             </div>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="small fw-semibold text-white">Optional extras</Form.Label>
+                            <ExtrasEditor value={form.extras} onChange={extras => updateField('extras', extras)}/>
+                            {fieldErrors.extras && (
+                                <div className="invalid-feedback d-block">{fieldErrors.extras}</div>
+                            )}
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Includes</Form.Label>

@@ -56,6 +56,24 @@ test('shows Deposit and Balance type labels in payment history', async () => {
     expect(screen.getByText('https://pay/plink_1')).toBeInTheDocument();
 });
 
+test('lists the extras booked under each item, with their price and unit', async () => {
+    mockApi.getBookingById.mockResolvedValue({
+        id: 'b1', status: 'PENDING', userEmail: 'x@y.z', totalAmount: 410, amountPaid: 0, paymentLinks: [],
+        items: [{
+            id: 'i1', activityName: 'Karting', destinationName: 'Prague', price: 40, quantity: 4,
+            extras: [
+                {code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP'},
+                {code: 'photo', name: 'Photos', price: 15, pricing: 'PER_PERSON'},
+            ],
+        }],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('+ Private show · €250 per group')).toBeInTheDocument();
+    expect(screen.getByText('+ Photos · €15 per person')).toBeInTheDocument();
+});
+
 test('shows balance and creates a payment link with cents', async () => {
     const user = userEvent.setup();
     // First call (initial load): no payment links.

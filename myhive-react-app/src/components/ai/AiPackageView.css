@@ -244,6 +244,21 @@
     white-space: nowrap;
 }
 
+.aip-item-extras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.aip-item-extra {
+    padding: 1px 6px;
+    border: 1px solid var(--aip-line);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--aip-muted);
+}
+
 .aip-badge {
     padding: 1px 6px;
     background: rgba(37, 211, 102, 0.15);
