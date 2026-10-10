@@ -48,6 +48,7 @@
             <p class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></p>
             <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
                 €<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span> applies</p>
+            <p th:each="extra : ${line.extras}">+ <span th:text="${extra.name}">Extra</span>: €<span th:text="${#numbers.formatDecimal(extra.amount, 1, 2)}">0.00</span> <span th:text="${extra.perPerson} ? 'per person' : 'per group'">per group</span></p>
         </div>
         <p class="discount"><strong>Package discount (−<span th:text="${packageGroup.discountPct}">0</span>%):</strong>
             −€<span th:text="${#numbers.formatDecimal(packageGroup.subtotal - packageGroup.discounted, 1, 2)}">0.00</span>
@@ -63,6 +64,7 @@
             <p class="price">€<span th:text="${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)}">0.00</span></p>
             <p th:if="${line.groupMinApplies}"><strong>Group minimum:</strong>
                 €<span th:text="${#numbers.formatDecimal(line.activity.minPrice, 1, 2)}">0.00</span> applies</p>
+            <p th:each="extra : ${line.extras}">+ <span th:text="${extra.name}">Extra</span>: €<span th:text="${#numbers.formatDecimal(extra.amount, 1, 2)}">0.00</span> <span th:text="${extra.perPerson} ? 'per person' : 'per group'">per group</span></p>
         </div>
     </div>
 </div>

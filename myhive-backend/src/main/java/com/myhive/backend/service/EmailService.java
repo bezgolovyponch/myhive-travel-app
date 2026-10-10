@@ -5,6 +5,7 @@ import com.myhive.backend.dto.ContactRequest;
 import com.myhive.backend.dto.TripExportRequest;
 import com.myhive.backend.dto.VotePoolActivityDTO;
 import com.myhive.backend.entity.Booking;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.entity.TripLead;
 import com.myhive.backend.entity.TripLeadActivity;
 import com.myhive.backend.entity.VoteSession;
@@ -105,15 +106,23 @@ public class EmailService {
         public List<ActivityLineView> activities = new ArrayList<>();
     }
 
-    /** One itinerary line: the exported activity plus whether its group minimum binds. */
+    /** One itinerary line: the exported activity, whether its group minimum binds, and its extras. */
     public static class ActivityLineView {
         public TripExportRequest.ActivityExport activity;
         public boolean groupMinApplies;
+        public List<ExtraLineView> extras = new ArrayList<>();
 
         ActivityLineView(TripExportRequest.ActivityExport activity, boolean groupMinApplies) {
             this.activity = activity;
             this.groupMinApplies = groupMinApplies;
         }
+    }
+
+    /** One extra on an itinerary line, priced for the whole group. */
+    public static class ExtraLineView {
+        public String name;
+        public BigDecimal amount;
+        public boolean perPerson;
     }
 
     /** One ranked line of the halfway email's standings table. */
@@ -632,6 +641,7 @@ public class EmailService {
                 Map<UUID, PackageGroup> groupMap = new LinkedHashMap<>();
                 for (TripExportRequest.ActivityExport activity : dest.getActivities()) {
                     ActivityLineView line = new ActivityLineView(activity, groupMinApplies(activity, travelers));
+                    line.extras.addAll(extraLines(activity.getExtras(), travelers));
                     UUID packageId = activity.getPackageId();
                     if (packageId == null) {
                         view.standaloneActivities.add(line);
@@ -661,6 +671,25 @@ public class EmailService {
             views.add(view);
         }
         return views;
+    }
+
+    /** The line's extras priced for the group; an entry without a price or pricing mode is not shown. */
+    private static List<ExtraLineView> extraLines(List<TripExportRequest.ExtraExport> extras, int travelers) {
+        List<ExtraLineView> lines = new ArrayList<>();
+        if (extras == null) {
+            return lines;
+        }
+        for (TripExportRequest.ExtraExport extra : extras) {
+            if (extra.getPrice() == null || extra.getPricing() == null) {
+                continue;
+            }
+            ExtraLineView line = new ExtraLineView();
+            line.name = extra.getName();
+            line.amount = extra.getPricing().amount(extra.getPrice(), travelers);
+            line.perPerson = extra.getPricing() == ExtraPricing.PER_PERSON;
+            lines.add(line);
+        }
+        return lines;
     }
 
     /** True when price × travelers < minPrice — the booked total for this line is the group minimum. */

@@ -164,6 +164,9 @@
                         <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)})}">€0.00</span></p>
                         <p th:if="${line.groupMinApplies}"><strong th:text="#{email.itinerary.activity.groupMin}">Group minimum:</strong>
                             <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.minPrice, 1, 2)})}">€0.00</span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
+                        <p th:each="extra : ${line.extras}" class="extra">+ <span th:text="${extra.name}">Extra</span>:
+                            <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(extra.amount, 1, 2)})}">€0.00</span>
+                            <span th:text="${extra.perPerson} ? #{email.itinerary.activity.extra.perPerson} : #{email.itinerary.activity.extra.perGroup}">per group</span></p>
                     </div>
                     <p><strong th:text="#{email.itinerary.package.subtotal}">Subtotal:</strong> <span th:text="#{email.common.amount(${#numbers.formatDecimal(packageGroup.subtotal, 1, 2)})}">€0.00</span></p>
                     <p class="discount"><strong th:text="#{email.itinerary.package.discount(${packageGroup.discountPct})}">Package discount (−0%):</strong>
@@ -183,6 +186,9 @@
                         <p><strong th:text="#{email.itinerary.activity.price}">Price:</strong> <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.price ?: 0, 1, 2)})}">€0.00</span></p>
                         <p th:if="${line.groupMinApplies}"><strong th:text="#{email.itinerary.activity.groupMin}">Group minimum:</strong>
                             <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(line.activity.minPrice, 1, 2)})}">€0.00</span> <span th:text="#{email.itinerary.activity.groupMinApplies}">applies</span></p>
+                        <p th:each="extra : ${line.extras}" class="extra">+ <span th:text="${extra.name}">Extra</span>:
+                            <span class="price" th:text="#{email.common.amount(${#numbers.formatDecimal(extra.amount, 1, 2)})}">€0.00</span>
+                            <span th:text="${extra.perPerson} ? #{email.itinerary.activity.extra.perPerson} : #{email.itinerary.activity.extra.perGroup}">per group</span></p>
                     </div>
                 </div>
             </div>
