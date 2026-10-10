@@ -12,6 +12,7 @@ import com.myhive.backend.ai.edit.ActivityNameResolver;
 import com.myhive.backend.ai.edit.EditMessages;
 import com.myhive.backend.ai.edit.EditRejectionReason;
 import com.myhive.backend.ai.edit.EditReport;
+import com.myhive.backend.ai.edit.ExtraNameResolver;
 import com.myhive.backend.ai.edit.PackagesView;
 import com.myhive.backend.ai.edit.RejectedEdit;
 import com.myhive.backend.ai.graph.JsonCodec;
@@ -164,9 +165,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                     inThePlan(packages.get(), state.workingPackage().orElse(null)));
             boolean adds = carriedOut.stream().anyMatch(edit -> edit.op() == EditOp.ADD);
             if (found.split() && adds) {
-                // "Add a river cruise with a private show": no activity is both, so adding the one the
-                // model settled on would be half of what was asked. Both kinds are shown instead.
-                carriedOut.removeIf(edit -> edit.op() == EditOp.ADD);
+                keepOnlyCarriedWishes(carriedOut, catalog);
             }
             edits = carriedOut;
             // A question that names a kind ("what boats do you have?") gets its list even when the model
@@ -388,6 +387,32 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                 && a.activity().id().equals(b.activity().id());
     }
 
+    /**
+     * "Add a river cruise with a private show" names two kinds and no activity is both, so adding the one the
+     * model settled on would be half of what was asked: both kinds are shown instead. Unless the second half
+     * is an extra the first offers - then the wish is one carrier plus its extra, and both edits stand. An
+     * ADD that carries no such extra goes, and an extra asked of the activity it would have added goes with it.
+     */
+    private static void keepOnlyCarriedWishes(List<EditRequest> carriedOut, List<CatalogActivity> catalog) {
+        List<String> carriers = carriedOut.stream()
+                .filter(edit -> edit.op() == EditOp.ADD_EXTRA && offersTheExtra(edit, catalog))
+                .map(EditRequest::activity)
+                .toList();
+        List<String> dropped = carriedOut.stream()
+                .filter(edit -> edit.op() == EditOp.ADD
+                        && carriers.stream().noneMatch(carrier -> sameActivity(carrier, edit.activity(), catalog)))
+                .map(EditRequest::activity)
+                .toList();
+        carriedOut.removeIf(edit -> dropped.stream().anyMatch(name -> sameActivity(name, edit.activity(), catalog))
+                && (edit.op() == EditOp.ADD || edit.op() == EditOp.ADD_EXTRA));
+    }
+
+    /** The extra edit's activity is one catalog row, and it offers an extra by the name the edit gives. */
+    private static boolean offersTheExtra(EditRequest edit, List<CatalogActivity> catalog) {
+        return ActivityNameResolver.resolve(edit.activity(), catalog) instanceof ActivityNameResolver.Found found
+                && ExtraNameResolver.resolve(edit.extra(), found.activity().extras()).isPresent();
+    }
+
     /** Puts a name on the cards when it is one catalog row; true when it is. */
     private static boolean offer(String name, List<CatalogActivity> catalog, List<String> offered) {
         if (ActivityNameResolver.resolve(name, catalog) instanceof ActivityNameResolver.Found) {
@@ -427,7 +452,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         }
         return edits.stream()
                 .map(edit -> new EditRequest(edit.op(), edit.activity(), edit.replacement(), draft.get(),
-                        edit.dayNumber(), edit.slot(), edit.alternatives()))
+                        edit.dayNumber(), edit.slot(), edit.alternatives(), edit.activityId(), edit.extra()))
                 .toList();
     }
 
@@ -458,6 +483,6 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
                 : PackagesView.themes(packages.get(), catalog, state.presets());
         return new ChatTurnRequest(state.locale(), state.destinationName(), state.categorySlugs(), state.brief(),
                 state.messages(), themes.isEmpty() ? view : view + "\n" + themes,
-                PackagesView.catalogNames(catalog));
+                PackagesView.catalogNames(catalog), PackagesView.extrasCatalog(catalog));
     }
 }

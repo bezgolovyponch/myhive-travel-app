@@ -157,7 +157,8 @@ public final class ActivityNameResolver {
         return new Ambiguous(names);
     }
 
-    private static String normalise(String text) {
+    /** Lower case, words separated by one space; shared with {@link ExtraNameResolver}. */
+    static String normalise(String text) {
         if (text == null) {
             return "";
         }

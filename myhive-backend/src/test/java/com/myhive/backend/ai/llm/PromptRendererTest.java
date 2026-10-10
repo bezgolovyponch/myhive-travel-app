@@ -66,12 +66,33 @@ class PromptRendererTest {
     }
 
     @Test
+    void chatSystem_withPackages_listsTheExtrasPerActivity_andTheExtraRules() {
+        String expectedExtras = "River Boat Cruise -> Private show (EUR 250 per group)";
+        ChatTurnRequest r = new ChatTurnRequest("en", "Prague", List.of("nightlife"), Brief.empty(), List.of(),
+                "BASIC: day 1 [EVENING River Boat Cruise]", List.of("River Boat Cruise"), expectedExtras);
+
+        String prompt = renderer.chatSystem(r);
+
+        assertThat(prompt).contains("Optional extras per activity (activity -> extra (price)): " + expectedExtras)
+                .contains("An extra is an add-on to an activity listed in \"Optional extras\" above, never an "
+                        + "activity of its own.")
+                .contains("{\"op\": \"ADD_EXTRA\", \"activity\": the carrier's exact catalog name, \"extra\": the "
+                        + "extra's exact name}")
+                .contains("{\"op\": \"REMOVE_EXTRA\", ...}")
+                .contains("is TWO edits: an ADD of the cruise and an ADD_EXTRA on it.")
+                .contains("An extra the activity does not offer: still emit the ADD_EXTRA with the organizer's words "
+                        + "as \"extra\"");
+        assertThat(prompt).contains("\"ADD_EXTRA\"|\"REMOVE_EXTRA\"").contains("\"extra\": string|null");
+    }
+
+    @Test
     void chatSystem_withoutPackages_hasNoPackagesBlock() {
         ChatTurnRequest r = new ChatTurnRequest("en", "Prague", List.of("nightlife"), Brief.empty(), List.of());
 
         String prompt = renderer.chatSystem(r);
 
         assertThat(prompt).doesNotContain("Current packages").doesNotContain("Edit rules:");
+        assertThat(prompt).doesNotContain("Optional extras").doesNotContain("An extra is an add-on");
         assertThat(prompt).contains("\"edits\"");
     }
 

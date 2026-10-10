@@ -1,10 +1,12 @@
 package com.myhive.backend.ai.plan;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -56,6 +58,27 @@ class PlanDraftsTest {
         ComposedPlan secondPass = assembler.assemble(roundTripped, brief, catalog, false).plan();
 
         assertThat(secondPass).isEqualTo(firstPass);
+    }
+
+    @Test
+    void fromComposed_keepsTheChosenExtrasOfEveryItem() {
+        List<String> expectedCodes = List.of("private-show");
+        UUID cruise = UUID.randomUUID();
+        catalog.put(cruise, new CatalogActivity(cruise, "cruise", "River Boat Cruise", "line", 90, true,
+                new BigDecimal("40.00"), null, "img", List.of(), null,
+                List.of(new CatalogExtra("private-show", "Private show", new BigDecimal("250.00"),
+                        ExtraPricing.PER_GROUP))));
+        PlanDraft draft = new PlanDraft(List.of(new PlanDraft.PackageDraft(Tier.BASIC, "t", "tag", "desc", List.of(
+                new PlanDraft.DayDraft(1, "Day 1", "sum",
+                        List.of(new PlanDraft.ItemDraft(Slot.EVENING, null, cruise, "why", expectedCodes))),
+                new PlanDraft.DayDraft(2, "Day 2", "sum", List.of())))));
+        ComposedPlan composed = assembler.assemble(draft, brief, catalog, false).plan();
+
+        PlanDraft roundTripped = PlanDrafts.fromComposed(composed);
+
+        assertThat(roundTripped.packages().get(0).days().get(0).items().get(0).extraCodes())
+                .isEqualTo(expectedCodes);
+        assertThat(assembler.assemble(roundTripped, brief, catalog, false).plan()).isEqualTo(composed);
     }
 
     @Test

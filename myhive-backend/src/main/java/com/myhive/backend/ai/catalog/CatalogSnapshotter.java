@@ -2,10 +2,12 @@ package com.myhive.backend.ai.catalog;
 
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -102,7 +104,15 @@ public class CatalogSnapshotter {
                 a.getMinPrice(),
                 a.getImageUrl(),
                 a.getCategories().stream().map(Category::getSlug).sorted().toList(),
-                includes(Translations.pick(tr, lc, "includes", a.getIncludes())));
+                includes(Translations.pick(tr, lc, "includes", a.getIncludes())),
+                extras(a.getExtras(), lc));
+    }
+
+    /** Named in the snapshot's language through the same localisation the public activity read uses. */
+    private static List<CatalogExtra> extras(List<ActivityExtra> extras, String lc) {
+        return ActivityExtras.toDtos(extras, lc).stream()
+                .map(extra -> new CatalogExtra(extra.getCode(), extra.getName(), extra.getPrice(), extra.getPricing()))
+                .toList();
     }
 
     /** Flattened and cut like {@link #oneLine}; an activity that lists nothing has none rather than "". */

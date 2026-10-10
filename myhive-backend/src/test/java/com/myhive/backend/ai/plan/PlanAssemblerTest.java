@@ -1,10 +1,12 @@
 package com.myhive.backend.ai.plan;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.DayEdge;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -140,6 +142,64 @@ class PlanAssemblerTest {
 
         assertThat(pkg.nights()).isEqualTo(2);
         assertThat(pkg.days().get(0).items().get(0).includes()).isEqualTo(expectedIncludes);
+    }
+
+    private UUID cruiseWithPrivateShow(String price, String minPrice) {
+        UUID id = UUID.randomUUID();
+        catalog.put(id, new CatalogActivity(id, "cruise", "River Boat Cruise", "line", 90, true, new BigDecimal(price),
+                minPrice == null ? null : new BigDecimal(minPrice), "img", List.of(), null,
+                List.of(new CatalogExtra("private-show", "Private show", new BigDecimal("250.00"),
+                        ExtraPricing.PER_GROUP))));
+        return id;
+    }
+
+    private static PlanDraft draftWithExtra(UUID activityId, List<String> extraCodes) {
+        PlanDraft.PackageDraft basic = new PlanDraft.PackageDraft(Tier.BASIC, "t", "tag", "desc",
+                List.of(new PlanDraft.DayDraft(1, "Day 1", "sum",
+                        List.of(new PlanDraft.ItemDraft(Slot.EVENING, null, activityId, "why", extraCodes)))));
+        return new PlanDraft(List.of(basic));
+    }
+
+    @Test
+    void assemble_addsTheChosenExtrasToTheLine_andTheGroupMinimumIsJudgedOnTheBaseOnly() {
+        BigDecimal expectedBase = new BigDecimal("160.00");
+        BigDecimal expectedLine = new BigDecimal("410.00");
+        UUID cruise = cruiseWithPrivateShow("40.00", "100.00");
+
+        ComposedPlan.PackageResult pkg = assembler.assemble(draftWithExtra(cruise, List.of("private-show")), brief,
+                catalog, false).plan().packages().get(0);
+
+        ComposedPlan.ItemResult item = pkg.days().get(0).items().get(0);
+        assertThat(item.lineTotal()).isEqualByComparingTo(expectedBase.add(new BigDecimal("250.00")));
+        assertThat(item.lineTotal()).isEqualByComparingTo(expectedLine);
+        assertThat(item.groupMinApplied()).isFalse();
+        assertThat(item.extras()).containsExactly(new ComposedPlan.ItemExtra("private-show", "Private show",
+                new BigDecimal("250.00"), ExtraPricing.PER_GROUP, new BigDecimal("250.00")));
+        assertThat(pkg.totalPrice()).isEqualByComparingTo(expectedLine);
+        assertThat(pkg.pricePerPerson()).isEqualByComparingTo("102.50");
+    }
+
+    @Test
+    void assemble_floorsTheBaseBeforeAddingTheExtras() {
+        BigDecimal expectedFloor = new BigDecimal("300.00");
+        UUID cruise = cruiseWithPrivateShow("40.00", expectedFloor.toPlainString());
+
+        ComposedPlan.ItemResult item = assembler.assemble(draftWithExtra(cruise, List.of("private-show")), brief,
+                catalog, false).plan().packages().get(0).days().get(0).items().get(0);
+
+        assertThat(item.lineTotal()).isEqualByComparingTo(expectedFloor.add(new BigDecimal("250.00")));
+        assertThat(item.groupMinApplied()).isTrue();
+    }
+
+    @Test
+    void assemble_withoutChosenExtras_pricesTheBaseAlone() {
+        UUID cruise = cruiseWithPrivateShow("40.00", null);
+
+        ComposedPlan.ItemResult item = assembler.assemble(draftWithExtra(cruise, List.of()), brief, catalog, false)
+                .plan().packages().get(0).days().get(0).items().get(0);
+
+        assertThat(item.lineTotal()).isEqualByComparingTo("160.00");
+        assertThat(item.extras()).isEmpty();
     }
 
     @Test

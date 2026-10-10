@@ -26,11 +26,13 @@ import com.myhive.backend.ai.service.AiSessionService;
 import com.myhive.backend.ai.service.PlanGenerationService;
 import com.myhive.backend.config.TestSecurityConfig;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.AiGeneration;
 import com.myhive.backend.entity.AiGenerationStatus;
 import com.myhive.backend.entity.AiSession;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.AiGenerationRepository;
 import com.myhive.backend.repository.AiSessionRepository;
@@ -541,6 +543,10 @@ class AiPlannerControllerIntegrationTest {
         mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
                         .content(DRAFT_EDIT_BODY.formatted("REPLACE", activities.get(REPLACEMENT_INDEX).getId(), "BASIC")))
                 .andExpect(status().isBadRequest());
+        // A tap names no extra: choosing one is a chat edit.
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
+                        .content(DRAFT_EDIT_BODY.formatted("ADD_EXTRA", activities.get(BASIC_INDEX).getId(), "BASIC")))
+                .andExpect(status().isBadRequest());
         mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp).contentType(MediaType.APPLICATION_JSON)
                         .content(DRAFT_EDIT_BODY.formatted("ADD", UUID.randomUUID(), "BASIC")))
                 .andExpect(status().isBadRequest());
@@ -666,6 +672,45 @@ class AiPlannerControllerIntegrationTest {
                 .andExpect(jsonPath("$.edit.applied[0].activity", is(expectedAdded)))
                 .andExpect(jsonPath("$.generation.kind", is("EDITED")))
                 .andExpect(jsonPath("$.recommendations", hasSize(0)));
+    }
+
+    /** "Add a private show to the cruise": the extra lands on the item, priced, and the package total follows. */
+    @Test
+    void chatAddExtra_onAnActivityOfThePackages_choosesItAndRaisesTheTotal() throws Exception {
+        String expectedExtra = "Private show";
+        BigDecimal expectedExtraPrice = new BigDecimal("250.00");
+        Activity carrier = activities.get(BASIC_INDEX);
+        carrier.setExtras(List.of(new ActivityExtra("private-show", expectedExtra, null, expectedExtraPrice,
+                ExtraPricing.PER_GROUP, null)));
+        activities.set(BASIC_INDEX, activityRepository.save(carrier));
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        String parentBody = awaitGeneration(latestGenerationId(token));
+        BigDecimal totalBefore = new BigDecimal(JsonPath.read(parentBody, "$.packages[0].totalPrice").toString());
+        llm.queueChat(chatTurn("Let me check that.", Brief.empty(), List.of(new EditRequest(EditOp.ADD_EXTRA,
+                carrier.getName(), null, null, null, null, List.of(), null, expectedExtra))));
+        int refreshCallsBefore = llm.refreshRequests.size();
+
+        MvcResult edited = mockMvc.perform(post("/ai/sessions/" + token + "/messages")
+                        .header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MESSAGE_BODY.formatted("add a private show to the first one")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.ADD_EXTRA.name())))
+                .andExpect(jsonPath("$.edit.applied[0].activity", is(carrier.getName())))
+                .andExpect(jsonPath("$.edit.applied[0].extra", is(expectedExtra)))
+                .andExpect(jsonPath("$.edit.applied[0].packageKey", is(Tier.BASIC.name())))
+                .andExpect(jsonPath("$.edit.textsRefreshed", is(false)))
+                .andExpect(jsonPath("$.generation.kind", is("EDITED")))
+                .andReturn();
+
+        assertThat(llm.refreshRequests).hasSize(refreshCallsBefore);
+        String body = edited.getResponse().getContentAsString();
+        List<String> extraNames = JsonPath.read(body, "$.generation.packages[0].days[*].items[*].extras[*].name");
+        assertThat(extraNames).containsExactly(expectedExtra);
+        BigDecimal totalAfter = new BigDecimal(JsonPath.read(body, "$.generation.packages[0].totalPrice").toString());
+        assertThat(totalAfter).isEqualByComparingTo(totalBefore.add(expectedExtraPrice));
     }
 
     /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */

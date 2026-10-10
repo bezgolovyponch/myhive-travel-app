@@ -19,14 +19,24 @@ import java.util.UUID;
  *
  * <p>{@code activityId} is set by a tap on a card, never by the model: the row is then that one, whatever
  * other rows share its name. Null for an edit typed in the chat, which is resolved by name.
+ *
+ * <p>{@code extra} is the extra an {@code ADD_EXTRA}/{@code REMOVE_EXTRA} names, in the model's spelling; it is
+ * resolved against the activity's own extras. Null for every other op.
  */
 public record EditRequest(EditOp op, String activity, String replacement, Tier packageKey, Integer dayNumber,
-                          Slot slot, List<String> alternatives, UUID activityId) {
+                          Slot slot, List<String> alternatives, UUID activityId, String extra) {
 
     public EditRequest {
         activity = activity == null ? null : activity.strip();
         replacement = replacement == null ? null : replacement.strip();
         alternatives = distinctNonBlank(alternatives);
+        extra = extra == null || extra.isBlank() ? null : extra.strip();
+    }
+
+    /** Any op but the two extra ones: an edit that names no extra. */
+    public EditRequest(EditOp op, String activity, String replacement, Tier packageKey, Integer dayNumber, Slot slot,
+                       List<String> alternatives, UUID activityId) {
+        this(op, activity, replacement, packageKey, dayNumber, slot, alternatives, activityId, null);
     }
 
     /** An edit typed in the chat: named, with the model's alternatives for a name the catalog lacks. */

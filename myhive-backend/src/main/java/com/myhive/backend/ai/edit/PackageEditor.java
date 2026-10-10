@@ -1,6 +1,7 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
@@ -28,7 +29,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Applies add/remove/replace edits to an already composed plan, deterministically and without the model:
+ * Applies add/remove/replace/move edits, and the choice of an activity's extras, to an already composed plan,
+ * deterministically and without the model:
  * the plan goes back to its {@link PlanDraft} form, every edit is applied to one package at a time, the
  * touched package is re-checked with {@link PlanValidator} (scheduling rules only) and the whole thing is
  * re-priced by {@link PlanAssembler}, so prices, line totals and totals are never hand-edited.
@@ -56,7 +58,7 @@ public class PackageEditor {
     }
 
     public EditOutcome apply(ComposedPlan plan, Brief brief, List<CatalogActivity> catalog, List<EditRequest> edits) {
-        List<EditRequest> batch = edits == null ? List.of() : edits;
+        List<EditRequest> batch = placementsFirst(edits);
         Map<UUID, CatalogActivity> catalogById = indexById(catalog);
         List<UUID> unusable = new ArrayList<>();
         Set<UUID> restored = restoreMissingPlanActivities(plan, catalogById, unusable);
@@ -87,6 +89,21 @@ public class PackageEditor {
         }
         ComposedPlan edited = assembler.assemble(draft, brief, catalogById, plan.degraded()).plan();
         return new EditOutcome(edited, applied, rejected);
+    }
+
+    /**
+     * The batch with every extra op moved after the ops that place, drop or move activities, each group in the
+     * order it was asked for. An extra can only be chosen on an activity a package holds, and the model writes
+     * "a river cruise with a private show" in either order: run as written, an extra asked first was refused
+     * and the cruise then landed without it.
+     */
+    private static List<EditRequest> placementsFirst(List<EditRequest> edits) {
+        if (edits == null) {
+            return List.of();
+        }
+        List<EditRequest> ordered = new ArrayList<>(edits);
+        ordered.sort(Comparator.comparing((EditRequest edit) -> edit.op() != null && edit.op().isExtraOp()));
+        return ordered;
     }
 
     /** Every op refused for the same editor-side reason, before any of them was looked at. */
@@ -136,8 +153,9 @@ public class PackageEditor {
 
     /**
      * A catalog row rebuilt from a plan item. Everything pricing and scheduling need is stored on the
-     * item — id, name, duration, price, group minimum — which is why the re-assembly comes out with the
-     * same line totals it went in with. The description and the category slugs are not, and that is
+     * item — id, name, duration, price, group minimum and the chosen extras with their prices — which is why
+     * the re-assembly comes out with the same line totals it went in with. Only the chosen extras survive,
+     * so nothing else can be added to such an entry. The description and the category slugs are not, and that is
      * exactly why such an entry is never allowed to be placed somewhere new: its slot preference would
      * be a guess. Null when the item is too thin to price or schedule at all.
      */
@@ -146,7 +164,10 @@ public class PackageEditor {
             return null;
         }
         return new CatalogActivity(item.activityId(), item.slug(), item.name(), "", item.durationMinutes(), true,
-                item.price(), item.minPrice(), item.imageUrl(), List.of(), item.includes());
+                item.price(), item.minPrice(), item.imageUrl(), List.of(), item.includes(),
+                item.extras().stream()
+                        .map(extra -> new CatalogExtra(extra.code(), extra.name(), extra.price(), extra.pricing()))
+                        .toList());
     }
 
     private PlanDraft applyEdit(PlanDraft working, EditRequest edit, Brief brief, WorkingCatalog catalog,
@@ -175,6 +196,14 @@ public class PackageEditor {
         if (activity == null) {
             return working;
         }
+        // An extra is one of the activity's own, so it is resolved once, before any package is looked at.
+        CatalogExtra extra = null;
+        if (edit.op().isExtraOp()) {
+            extra = resolveExtraOrReject(edit, activity, rejected);
+            if (extra == null) {
+                return working;
+            }
+        }
         // An ADD places its activity; REMOVE and REPLACE only name one the plan already holds.
         if (edit.op() == EditOp.ADD && rejectUnplaceable(edit, activity, catalog, rejected)) {
             return working;
@@ -189,15 +218,35 @@ public class PackageEditor {
         List<Tier> targets = targets(working, edit, activity);
         if (targets.isEmpty() && edit.op() != EditOp.ADD) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), null, EditRejectionReason.NOT_IN_PACKAGE,
-                    activity.name() + " is not in any package"));
+                    activity.name() + " is not in any package", List.of(), extra == null ? null : extra.name()));
             return working;
         }
         PlanDraft draft = working;
         for (Tier target : targets) {
-            draft = applyToPackage(draft, edit, activity, replacement, target, brief, catalog.byId(), applied,
-                    rejected);
+            draft = applyToPackage(draft, edit, new Subjects(activity, replacement, extra), target, brief,
+                    catalog.byId(), applied, rejected);
         }
         return draft;
+    }
+
+    /**
+     * The extra the edit names, among those the activity offers; null (and rejected as {@code UNKNOWN_EXTRA}
+     * with the offered ones as its detail) when it offers none by that name. The rejection keeps the
+     * organizer's own words for the extra, cleaned like every model string that is stored or served.
+     */
+    private static CatalogExtra resolveExtraOrReject(EditRequest edit, CatalogActivity activity,
+            List<RejectedEdit> rejected) {
+        Optional<CatalogExtra> extra = ExtraNameResolver.resolve(edit.extra(), activity.extras());
+        if (extra.isEmpty()) {
+            rejected.add(new RejectedEdit(edit.op(), activity.name(), null, EditRejectionReason.UNKNOWN_EXTRA,
+                    offeredExtras(activity), List.of(), PlanAssembler.clean(edit.extra())));
+        }
+        return extra.orElse(null);
+    }
+
+    /** "Private show, Open bar": what the activity offers, in catalog order; empty when it offers nothing. */
+    private static String offeredExtras(CatalogActivity activity) {
+        return String.join(", ", activity.extras().stream().map(CatalogExtra::name).toList());
     }
 
     /**
@@ -217,34 +266,93 @@ public class PackageEditor {
         return true;
     }
 
-    private PlanDraft applyToPackage(PlanDraft working, EditRequest edit, CatalogActivity activity,
-            CatalogActivity replacement, Tier target, Brief brief, Map<UUID, CatalogActivity> catalogById,
-            List<AppliedEdit> applied, List<RejectedEdit> rejected) {
+    private PlanDraft applyToPackage(PlanDraft working, EditRequest edit, Subjects subjects, Tier target,
+            Brief brief, Map<UUID, CatalogActivity> catalogById, List<AppliedEdit> applied,
+            List<RejectedEdit> rejected) {
+        CatalogActivity activity = subjects.activity();
         Optional<PlanDraft.PackageDraft> current = PlanDrafts.packageOf(working, target);
         if (current.isEmpty()) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), target, EditRejectionReason.NOT_IN_PACKAGE,
-                    "package " + target + " is not in the plan"));
+                    "package " + target + " is not in the plan", List.of(), subjects.extraName()));
             return working;
         }
         Outcome outcome = switch (edit.op()) {
             case REMOVE -> applyRemove(current.get(), activity);
             case ADD -> applyAdd(current.get(), activity, edit.dayNumber(), edit.slot(), brief, catalogById);
-            case REPLACE -> applyReplace(current.get(), activity, replacement, brief, catalogById);
+            case REPLACE -> applyReplace(current.get(), activity, subjects.replacement(), brief, catalogById);
             case MOVE -> applyMove(current.get(), activity, edit.dayNumber());
+            case ADD_EXTRA -> applyExtraChange(current.get(), activity, subjects.extra(), true);
+            case REMOVE_EXTRA -> applyExtraChange(current.get(), activity, subjects.extra(), false);
         };
         if (outcome.reason() != null) {
-            rejected.add(new RejectedEdit(edit.op(), activity.name(), target, outcome.reason(), outcome.detail()));
+            rejected.add(new RejectedEdit(edit.op(), activity.name(), target, outcome.reason(), outcome.detail(),
+                    List.of(), subjects.extraName()));
             return working;
         }
-        Violation introduced = violationIntroducedBy(edit.op(), current.get(), outcome.pkg(), brief, catalogById);
+        // An extra changes no cell of the schedule, so there is no rule it could break.
+        Violation introduced = edit.op().isExtraOp() ? null
+                : violationIntroducedBy(edit.op(), current.get(), outcome.pkg(), brief, catalogById);
         if (introduced != null) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), target, EditRejectionReason.WOULD_BREAK_SCHEDULE,
                     introduced.code() + ": " + introduced.detail()));
             return working;
         }
-        applied.add(new AppliedEdit(edit.op(), activity.name(), replacement == null ? null : replacement.name(), target,
-                outcome.dayNumber(), outcome.slot(), outcome.placedActivityId()));
+        applied.add(new AppliedEdit(edit.op(), activity.name(), subjects.replacementName(), target,
+                outcome.dayNumber(), outcome.slot(), outcome.placedActivityId(), subjects.extraName()));
         return PlanDrafts.replacePackage(working, outcome.pkg());
+    }
+
+    /**
+     * Chooses ({@code add}) or drops one extra on the activity's item in the package. The item keeps its cell
+     * and nothing is placed, so the outcome names the activity's own day and slot and no placed activity -
+     * the text refresh then has no "why" to rewrite. Refused when the package does not hold the activity,
+     * when the extra is chosen already ({@code add}) or was never chosen (remove).
+     */
+    private static Outcome applyExtraChange(PlanDraft.PackageDraft pkg, CatalogActivity activity, CatalogExtra extra,
+            boolean add) {
+        List<PlanDraft.DayDraft> days = new ArrayList<>();
+        Integer dayNumber = null;
+        Slot slot = null;
+        boolean alreadyThatWay = false;
+        for (PlanDraft.DayDraft day : pkg.days()) {
+            List<PlanDraft.ItemDraft> items = new ArrayList<>();
+            for (PlanDraft.ItemDraft item : day.items()) {
+                if (dayNumber != null || !activity.id().equals(item.activityId())) {
+                    items.add(item);
+                    continue;
+                }
+                dayNumber = day.dayNumber();
+                slot = item.slot();
+                alreadyThatWay = item.extraCodes().contains(extra.code()) == add;
+                items.add(alreadyThatWay ? item : withExtraCodes(item, changed(item.extraCodes(), extra.code(), add)));
+            }
+            days.add(new PlanDraft.DayDraft(day.dayNumber(), day.title(), day.summary(), items));
+        }
+        if (dayNumber == null) {
+            return Outcome.rejected(EditRejectionReason.NOT_IN_PACKAGE, activity.name() + " is not in " + pkg.key());
+        }
+        if (alreadyThatWay) {
+            return add
+                    ? Outcome.rejected(EditRejectionReason.ALREADY_HAS_EXTRA,
+                            extra.name() + " is already chosen on " + activity.name() + " in " + pkg.key())
+                    : Outcome.rejected(EditRejectionReason.EXTRA_NOT_SELECTED,
+                            extra.name() + " is not chosen on " + activity.name() + " in " + pkg.key());
+        }
+        return Outcome.ok(withDays(pkg, days), dayNumber, slot, null);
+    }
+
+    private static List<String> changed(List<String> codes, String code, boolean add) {
+        List<String> result = new ArrayList<>(codes);
+        if (add) {
+            result.add(code);
+        } else {
+            result.remove(code);
+        }
+        return result;
+    }
+
+    private static PlanDraft.ItemDraft withExtraCodes(PlanDraft.ItemDraft item, List<String> extraCodes) {
+        return new PlanDraft.ItemDraft(item.slot(), item.startHint(), item.activityId(), item.why(), extraCodes);
     }
 
     /**
@@ -330,6 +438,12 @@ public class PackageEditor {
 
     /** The named day, in the slot the activity prefers (shared when taken); empty when no such day. */
     private static Optional<Outcome> onDay(PlanDraft.PackageDraft pkg, CatalogActivity activity, Integer dayNumber) {
+        return onDay(pkg, activity, dayNumber, List.of());
+    }
+
+    /** As above, the item carrying {@code extraCodes}: a moved activity takes its chosen extras along. */
+    private static Optional<Outcome> onDay(PlanDraft.PackageDraft pkg, CatalogActivity activity, Integer dayNumber,
+            List<String> extraCodes) {
         if (dayNumber == null) {
             return Optional.empty();
         }
@@ -338,7 +452,7 @@ public class PackageEditor {
             List<Slot> preferred = slotPreference(activity);
             Slot slot = preferred.stream().filter(candidate -> !used.contains(candidate)).findFirst()
                     .orElse(preferred.get(0));
-            return Outcome.ok(withDay(pkg, insert(day, activity, slot)), dayNumber, slot, activity.id());
+            return Outcome.ok(withDay(pkg, insert(day, activity, slot, extraCodes)), dayNumber, slot, activity.id());
         });
     }
 
@@ -367,6 +481,7 @@ public class PackageEditor {
      * (shared when that one is taken). Never refused for lack of room; a day the trip does not have is.
      */
     private static Outcome applyMove(PlanDraft.PackageDraft pkg, CatalogActivity activity, Integer dayNumber) {
+        List<String> extraCodes = extraCodesOf(pkg, activity.id());
         Optional<Outcome> freed = removeFirstOccurrence(pkg, activity.id());
         if (freed.isEmpty()) {
             return Outcome.rejected(EditRejectionReason.NOT_IN_PACKAGE, activity.name() + " is not in " + pkg.key());
@@ -381,7 +496,19 @@ public class PackageEditor {
             return Outcome.rejected(EditRejectionReason.WOULD_BREAK_SCHEDULE,
                     "day " + dayNumber + " is not part of " + pkg.key());
         }
-        return onDay(without, activity, dayNumber).orElseThrow();
+        return onDay(without, activity, dayNumber, extraCodes).orElseThrow();
+    }
+
+    /** The extras chosen on the activity's first item in the package; empty when it has none or is not there. */
+    private static List<String> extraCodesOf(PlanDraft.PackageDraft pkg, UUID activityId) {
+        for (PlanDraft.DayDraft day : pkg.days()) {
+            for (PlanDraft.ItemDraft item : day.items()) {
+                if (activityId.equals(item.activityId())) {
+                    return item.extraCodes();
+                }
+            }
+        }
+        return List.of();
     }
 
     private static Outcome applyReplace(PlanDraft.PackageDraft pkg, CatalogActivity activity,
@@ -469,10 +596,15 @@ public class PackageEditor {
         return DAYTIME_FIRST;
     }
 
-    /** A new item carries no start hint and no reason; the text refresh fills the reason in afterwards. */
+    /** A new item carries no start hint, no reason and no extras; the text refresh fills the reason in afterwards. */
     private static PlanDraft.DayDraft insert(PlanDraft.DayDraft day, CatalogActivity activity, Slot slot) {
+        return insert(day, activity, slot, List.of());
+    }
+
+    private static PlanDraft.DayDraft insert(PlanDraft.DayDraft day, CatalogActivity activity, Slot slot,
+            List<String> extraCodes) {
         List<PlanDraft.ItemDraft> items = new ArrayList<>(day.items());
-        items.add(new PlanDraft.ItemDraft(slot, null, activity.id(), ""));
+        items.add(new PlanDraft.ItemDraft(slot, null, activity.id(), "", extraCodes));
         items.sort(Comparator.comparingInt(item -> item.slot() == null ? Integer.MAX_VALUE : item.slot().ordinal()));
         return new PlanDraft.DayDraft(day.dayNumber(), day.title(), day.summary(), items);
     }
@@ -619,6 +751,22 @@ public class PackageEditor {
 
         boolean isRestored(CatalogActivity activity) {
             return restored.contains(activity.id());
+        }
+    }
+
+    /**
+     * What one edit is about, resolved against the catalog once for every package it is aimed at: the
+     * activity, the replacement of a {@code REPLACE} and the extra of an {@code ADD_EXTRA}/{@code REMOVE_EXTRA}
+     * (null where the op has none).
+     */
+    private record Subjects(CatalogActivity activity, CatalogActivity replacement, CatalogExtra extra) {
+
+        String replacementName() {
+            return replacement == null ? null : replacement.name();
+        }
+
+        String extraName() {
+            return extra == null ? null : extra.name();
         }
     }
 

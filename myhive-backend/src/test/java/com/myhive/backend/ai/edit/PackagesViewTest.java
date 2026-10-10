@@ -1,9 +1,11 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.catalog.CatalogActivity;
+import com.myhive.backend.ai.catalog.CatalogExtra;
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -51,6 +53,43 @@ class PackagesViewTest {
                 catalogActivity("Karting"));
 
         assertThat(PackagesView.catalogNames(catalog)).containsExactlyElementsOf(expectedNames);
+    }
+
+    @Test
+    void render_namesTheChosenExtrasOfAnItem() {
+        ComposedPlan.ItemResult cruise = new ComposedPlan.ItemResult(Slot.EVENING, "19:00", UUID.randomUUID(), "slug",
+                "River Boat Cruise", null, 90, new BigDecimal("40.00"), null, new BigDecimal("435.00"), false, "why",
+                null, List.of(
+                        new ComposedPlan.ItemExtra("private-show", "Private show", new BigDecimal("250.00"),
+                                ExtraPricing.PER_GROUP, new BigDecimal("250.00")),
+                        new ComposedPlan.ItemExtra("open-bar", "Open bar", new BigDecimal("25.00"),
+                                ExtraPricing.PER_PERSON, new BigDecimal("100.00"))));
+        ComposedPlan plan = new ComposedPlan(List.of(pkg(Tier.BASIC,
+                List.of(day(1, List.of(item("Karting", Slot.AFTERNOON), cruise))))), false);
+
+        assertThat(PackagesView.render(plan)).isEqualTo(
+                "BASIC: day 1 [AFTERNOON Karting, EVENING River Boat Cruise (+ Private show, Open bar)]");
+    }
+
+    @Test
+    void extrasCatalog_listsTheExtrasPerActivity_orNone() {
+        String expectedLine = "River Boat Cruise -> Private show (EUR 250 per group), Open bar (EUR 25 per person); "
+                + "Tiki Boat -> Photographer (EUR 12.50 per person)";
+        CatalogActivity cruise = withExtras("River Boat Cruise",
+                new CatalogExtra("private-show", "Private show", new BigDecimal("250.00"), ExtraPricing.PER_GROUP),
+                new CatalogExtra("open-bar", "Open bar", new BigDecimal("25.00"), ExtraPricing.PER_PERSON));
+        CatalogActivity tiki = withExtras("Tiki Boat",
+                new CatalogExtra("photographer", "Photographer", new BigDecimal("12.50"), ExtraPricing.PER_PERSON));
+
+        assertThat(PackagesView.extrasCatalog(List.of(cruise, catalogActivity("Karting"), tiki)))
+                .isEqualTo(expectedLine);
+        assertThat(PackagesView.extrasCatalog(List.of(catalogActivity("Karting")))).isEqualTo("none");
+        assertThat(PackagesView.extrasCatalog(null)).isEqualTo("none");
+    }
+
+    private static CatalogActivity withExtras(String name, CatalogExtra... extras) {
+        return new CatalogActivity(UUID.randomUUID(), "slug", name, "one line", 90, true, new BigDecimal("40.00"),
+                null, null, List.of("boat"), null, List.of(extras));
     }
 
     private static ComposedPlan.PackageResult pkg(Tier key, List<ComposedPlan.DayResult> days) {

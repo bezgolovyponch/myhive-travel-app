@@ -4,8 +4,10 @@ import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.entity.PackageActivity;
 import com.myhive.backend.repository.ActivityRepository;
@@ -93,6 +95,39 @@ class CatalogSnapshotterTest {
 
         assertThat(row.price()).isEqualByComparingTo(expectedPrice);
         assertThat(row.minPrice()).isEqualByComparingTo(expectedMinPrice);
+    }
+
+    @Test
+    void snapshot_copiesTheExtras_withLocalisedNames() {
+        String expectedCode = "private-show";
+        String expectedGermanName = "Private Show an Bord";
+        BigDecimal expectedPrice = new BigDecimal("250.00");
+        Destination destination = TestDataFactory.destination();
+        Activity activity = TestDataFactory.activity(destination, "River Boat Cruise", new BigDecimal("40.00"));
+        activity.setExtras(List.of(
+                new ActivityExtra(expectedCode, "Private show", "On deck", expectedPrice, ExtraPricing.PER_GROUP,
+                        Map.of("de", Map.of("name", expectedGermanName))),
+                new ActivityExtra("open-bar", "Open bar", null, new BigDecimal("25.00"), ExtraPricing.PER_PERSON,
+                        null)));
+        when(activityRepository.findByDestinationId(any())).thenReturn(List.of(activity));
+
+        CatalogActivity row = snapshotter.snapshot(UUID.randomUUID(), Brief.empty(), "de").get(0);
+
+        assertThat(row.extras()).containsExactly(
+                new CatalogExtra(expectedCode, expectedGermanName, expectedPrice, ExtraPricing.PER_GROUP),
+                new CatalogExtra("open-bar", "Open bar", new BigDecimal("25.00"), ExtraPricing.PER_PERSON));
+    }
+
+    @Test
+    void snapshot_ofAnActivityWithoutExtras_hasAnEmptyList() {
+        Destination destination = TestDataFactory.destination();
+        Activity activity = TestDataFactory.activity(destination, "Karting", new BigDecimal("45.00"));
+        activity.setExtras(null);
+        when(activityRepository.findByDestinationId(any())).thenReturn(List.of(activity));
+
+        CatalogActivity row = snapshotter.snapshot(UUID.randomUUID(), Brief.empty(), "en").get(0);
+
+        assertThat(row.extras()).isEmpty();
     }
 
     @Test

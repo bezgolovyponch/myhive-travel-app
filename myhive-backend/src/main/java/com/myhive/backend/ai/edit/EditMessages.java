@@ -64,7 +64,9 @@ public final class EditMessages {
     private enum PackagePhrase {
         FROM("aus dem", "aus den", "Paketen", "aus deinem Trip-Plan"),
         INTO("ins", "in die", "Pakete", "in deinen Trip-Plan"),
-        IN("im", "in den", "Paketen", "in deinem Trip-Plan");
+        IN("im", "in den", "Paketen", "in deinem Trip-Plan"),
+        /** No preposition and no article, for a bracket after the sentence: "(Basic-Paket)". */
+        NAMED("", "", "Pakete", "dein Trip-Plan");
 
         private final String singularArticle;
         private final String pluralArticle;
@@ -82,7 +84,7 @@ public final class EditMessages {
 
     /**
      * A template that names packages, with the German case its preposition wants. Applied templates take
-     * (activity, replacement, packages) by position; in-package rejection templates take (names, packages).
+     * (activity, replacement, packages, extra) by position; in-package rejection templates take (names, packages).
      */
     private record Packaged(String template, PackagePhrase phrase) {
     }
@@ -98,13 +100,36 @@ public final class EditMessages {
     private static final Map<EditRejectionReason, Packaged> EN_IN_PACKAGE = new EnumMap<>(EditRejectionReason.class);
     private static final Map<EditRejectionReason, Packaged> DE_IN_PACKAGE = new EnumMap<>(EditRejectionReason.class);
 
+    /**
+     * Rejections of an extra: about one activity and one extra each, so one sentence per pair (activity,
+     * extra, then the offered extras), said once however many packages refused it. The package is beside
+     * the point - an extra belongs to the activity.
+     */
+    private static final Map<EditRejectionReason, String> EN_EXTRA = new EnumMap<>(EditRejectionReason.class);
+    private static final Map<EditRejectionReason, String> DE_EXTRA = new EnumMap<>(EditRejectionReason.class);
+    private static final String EN_NO_EXTRAS_OFFERED = "%1$s has no '%2$s' — it offers no extras.";
+    private static final String DE_NO_EXTRAS_OFFERED = "%1$s hat kein '%2$s' – dafür gibt es keine Extras.";
+    private static final String EN_UNNAMED_EXTRA = "that extra";
+    private static final String DE_UNNAMED_EXTRA = "dieses Extra";
+
     static {
         EN_APPLIED.put(EditOp.REMOVE, new Packaged("Dropped %1$s from %3$s.", PackagePhrase.FROM));
         EN_APPLIED.put(EditOp.ADD, new Packaged("Added %1$s to %3$s.", PackagePhrase.INTO));
         EN_APPLIED.put(EditOp.REPLACE, new Packaged("Swapped %1$s for %2$s in %3$s.", PackagePhrase.IN));
+        EN_APPLIED.put(EditOp.ADD_EXTRA, new Packaged("Added %4$s to %1$s in %3$s.", PackagePhrase.IN));
+        EN_APPLIED.put(EditOp.REMOVE_EXTRA, new Packaged("Removed %4$s from %1$s in %3$s.", PackagePhrase.IN));
         DE_APPLIED.put(EditOp.REMOVE, new Packaged("%1$s %3$s rausgenommen.", PackagePhrase.FROM));
         DE_APPLIED.put(EditOp.ADD, new Packaged("%1$s %3$s aufgenommen.", PackagePhrase.INTO));
         DE_APPLIED.put(EditOp.REPLACE, new Packaged("%1$s %3$s gegen %2$s getauscht.", PackagePhrase.IN));
+        DE_APPLIED.put(EditOp.ADD_EXTRA, new Packaged("%4$s zu %1$s hinzugefügt (%3$s).", PackagePhrase.NAMED));
+        DE_APPLIED.put(EditOp.REMOVE_EXTRA, new Packaged("%4$s bei %1$s entfernt (%3$s).", PackagePhrase.NAMED));
+
+        EN_EXTRA.put(EditRejectionReason.UNKNOWN_EXTRA, "%1$s has no '%2$s' — it offers: %3$s.");
+        EN_EXTRA.put(EditRejectionReason.ALREADY_HAS_EXTRA, "%1$s already has %2$s.");
+        EN_EXTRA.put(EditRejectionReason.EXTRA_NOT_SELECTED, "%1$s has no %2$s to remove.");
+        DE_EXTRA.put(EditRejectionReason.UNKNOWN_EXTRA, "%1$s hat kein '%2$s' – angeboten wird: %3$s.");
+        DE_EXTRA.put(EditRejectionReason.ALREADY_HAS_EXTRA, "%1$s hat %2$s schon.");
+        DE_EXTRA.put(EditRejectionReason.EXTRA_NOT_SELECTED, "%1$s hat kein %2$s, das entfernt werden könnte.");
 
         EN.put(EditRejectionReason.UNKNOWN_ACTIVITY, "I could not find \"%s\" in the catalog.");
         EN.put(EditRejectionReason.AMBIGUOUS_ACTIVITY, "\"%s\" matches more than one catalog entry - which one?");
@@ -232,7 +257,8 @@ public final class EditMessages {
             }
             Packaged template = templates.get(entry.getKey().op());
             appendSentence(summary, template.template().formatted(entry.getKey().activity(),
-                    entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase(), tripPlan)));
+                    entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase(), tripPlan),
+                    entry.getKey().extra()));
         }
         return summary.toString();
     }
@@ -253,9 +279,14 @@ public final class EditMessages {
         boolean german = german(locale);
         Map<EditRejectionReason, Packaged> inPackage = german ? DE_IN_PACKAGE : EN_IN_PACKAGE;
         Map<RejectionKey, RejectionGroup> groups = new LinkedHashMap<>();
+        Set<String> extraSentences = new LinkedHashSet<>();
         for (RejectedEdit edit : rejected) {
             if (hasOffer(edit)) {
                 // Said once, further down, as an offer rather than a refusal.
+                continue;
+            }
+            if (EN_EXTRA.containsKey(edit.reason())) {
+                extraSentences.add(extraRejection(edit, german));
                 continue;
             }
             boolean packaged = edit.packageKey() != null && inPackage.containsKey(edit.reason());
@@ -281,15 +312,28 @@ public final class EditMessages {
                 }
             }
         }
+        extraSentences.forEach(sentence -> appendSentence(summary, sentence));
         appendAlternatives(summary, rejected, german);
         return summary.toString();
     }
 
+    /** "River Boat Cruise already has Private show."; an unknown extra names what the activity does offer. */
+    private static String extraRejection(RejectedEdit edit, boolean german) {
+        String extra = edit.extraName() == null || edit.extraName().isBlank()
+                ? (german ? DE_UNNAMED_EXTRA : EN_UNNAMED_EXTRA) : edit.extraName();
+        boolean offersNothing = edit.reason() == EditRejectionReason.UNKNOWN_EXTRA
+                && (edit.detail() == null || edit.detail().isBlank());
+        String template = offersNothing
+                ? (german ? DE_NO_EXTRAS_OFFERED : EN_NO_EXTRAS_OFFERED)
+                : (german ? DE_EXTRA : EN_EXTRA).get(edit.reason());
+        return template.formatted(nameOf(edit, german), extra, edit.detail());
+    }
+
     /** Applied edits are grouped by what was done, so one ADD across three packages is one sentence. */
-    private record AppliedKey(EditOp op, String activity, String replacement) {
+    private record AppliedKey(EditOp op, String activity, String replacement, String extra) {
 
         static AppliedKey of(AppliedEdit edit) {
-            return new AppliedKey(edit.op(), edit.activityName(), edit.replacementName());
+            return new AppliedKey(edit.op(), edit.activityName(), edit.replacementName(), edit.extraName());
         }
     }
 
@@ -347,10 +391,11 @@ public final class EditMessages {
             labels.add(label(tier));
         }
         if (labels.isEmpty()) {
-            return german ? phrase.singularArticle + " Paket" : "the package";
+            return german ? articled(phrase.singularArticle, "Paket") : "the package";
         }
         if (labels.size() == 1) {
-            return german ? phrase.singularArticle + " " + labels.get(0) + "-Paket" : "the " + labels.get(0) + " package";
+            return german ? articled(phrase.singularArticle, labels.get(0) + "-Paket")
+                    : "the " + labels.get(0) + " package";
         }
         List<String> parts = new ArrayList<>();
         for (String label : labels) {
@@ -358,7 +403,12 @@ public final class EditMessages {
         }
         String last = parts.remove(parts.size() - 1);
         String joined = String.join(", ", parts) + (german ? " und " : " and ") + last;
-        return german ? phrase.pluralArticle + " " + joined + phrase.pluralNoun : "the " + joined + " packages";
+        return german ? articled(phrase.pluralArticle, joined + phrase.pluralNoun) : "the " + joined + " packages";
+    }
+
+    /** {@link PackagePhrase#NAMED} has no article: the package name then stands alone. */
+    private static String articled(String article, String rest) {
+        return article.isEmpty() ? rest : article + " " + rest;
     }
 
     private static String label(Tier tier) {

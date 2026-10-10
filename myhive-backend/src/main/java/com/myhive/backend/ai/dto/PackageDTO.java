@@ -11,7 +11,8 @@ import java.util.UUID;
  * group total less the fixed margin in {@link com.myhive.backend.util.FromPrice}, in whole euros;
  * {@code fromPricePerPerson} is one traveller's share of it, the number the planner shows.
  * {@code nights} is days - 1, null for packages stored before it existed; an item's {@code includes} is
- * the catalog's "what is included" text, null when it has none.
+ * the catalog's "what is included" text, null when it has none. An item's {@code extras} are the add-ons the
+ * organizer chose for it (never null), and its {@code lineTotal} already includes them.
  */
 public record PackageDTO(String key, String title, String tagline, String description, BigDecimal pricePerPerson,
                          BigDecimal totalPrice, BigDecimal fromPrice, BigDecimal fromPricePerPerson, String currency, int totalDurationMinutes,
@@ -22,6 +23,13 @@ public record PackageDTO(String key, String title, String tagline, String descri
 
     public record ItemDTO(String slot, String startHint, UUID activityId, String slug, String name, String imageUrl,
                           int durationMinutes, BigDecimal price, BigDecimal minPrice, BigDecimal lineTotal,
-                          boolean groupMinApplied, String why, String includes) {
+                          boolean groupMinApplied, String why, String includes, List<ItemExtraDTO> extras) {
+    }
+
+    /**
+     * One chosen extra: {@code price} is the catalog price, {@code pricing} {@code PER_GROUP} or
+     * {@code PER_PERSON}, and {@code total} what it costs the whole group.
+     */
+    public record ItemExtraDTO(String code, String name, BigDecimal price, String pricing, BigDecimal total) {
     }
 }
