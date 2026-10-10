@@ -35,6 +35,8 @@ const otherActivities = [
 ];
 
 beforeEach(() => {
+  // TripProvider restores the cart from storage: a cart left by an earlier test would tick its extras here.
+  localStorage.clear();
   jest.spyOn(api, 'getActivityBySlug').mockResolvedValue(activity);
   jest.spyOn(api, 'getActivities').mockResolvedValue(otherActivities);
 });
@@ -110,20 +112,20 @@ test('adding to trip marks both add buttons as added', async () => {
   addedButtons.forEach(button => expect(button).toBeDisabled());
 });
 
-test('ticked extras are summed in the panel and go into the trip with the activity', async () => {
-  localStorage.clear();
+const privateShow = {code: 'show', name: 'Private show', description: 'Just your group', price: 250, pricing: 'PER_GROUP'};
+const photos = {code: 'photos', name: 'Photos', description: 'A photographer', price: 15, pricing: 'PER_PERSON'};
+
+test('ticked extras are summed per unit in the panel and go into the trip with the activity', async () => {
   const expectedCodes = ['show'];
-  api.getActivityBySlug.mockResolvedValue({...activity, extras: [
-    {code: 'show', name: 'Private show', description: 'Just your group', price: 250, pricing: 'PER_GROUP'},
-    {code: 'photo', name: 'Photos', description: 'A photographer', price: 15, pricing: 'PER_PERSON'},
-  ]});
+  const expectedSummary = '+€250 per group';
+  api.getActivityBySlug.mockResolvedValue({...activity, extras: [privateShow, photos]});
   await renderLoadedPage();
 
   const section = screen.getByRole('group', {name: 'Optional extras'});
   expect(within(section).getByRole('checkbox', {name: /Private show/})).not.toBeChecked();
-  expect(screen.queryByText(/^\+ .* extras$/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
   await userEvent.click(within(section).getByRole('checkbox', {name: /Private show/}));
-  expect(screen.getByText('+ €250 extras')).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent(expectedSummary);
 
   const [panelButton] = screen.getAllByRole('button', {name: /Add to trip/i});
   await userEvent.click(panelButton);
@@ -132,6 +134,33 @@ test('ticked extras are summed in the panel and go into the trip with the activi
     const [saved] = JSON.parse(localStorage.getItem('myhive-trip-items'));
     expect(saved.selectedExtras).toEqual(expectedCodes);
   });
+});
+
+test('a per-person extra is summed apart from the per-group ones, never as one amount', async () => {
+  const expectedSummary = '+€250 per group · +€15 per person';
+  api.getActivityBySlug.mockResolvedValue({...activity, extras: [privateShow, photos]});
+  await renderLoadedPage();
+
+  await userEvent.click(screen.getByRole('checkbox', {name: /Private show/}));
+  await userEvent.click(screen.getByRole('checkbox', {name: /Photos/}));
+
+  expect(screen.getByRole('status')).toHaveTextContent(expectedSummary);
+});
+
+test('extras ticked on one activity do not come pre-ticked on the next one opened from the page', async () => {
+  const expectedName = 'Go-Karting';
+  const karting = {...otherActivities[1], destinationId: 'd1', destinationName: 'Prague', extras: [photos]};
+  api.getActivityBySlug.mockImplementation(slug => Promise.resolve(
+    slug === 'karting' ? karting : {...activity, extras: [photos]}));
+  await renderLoadedPage();
+  await userEvent.click(screen.getByRole('checkbox', {name: /Photos/}));
+
+  // The "More activities" card navigates in place: same page component, another activity.
+  await userEvent.click(await screen.findByRole('button', {name: `View ${expectedName}`}));
+
+  expect(await screen.findByRole('heading', {level: 1, name: expectedName})).toBeInTheDocument();
+  expect(screen.getByRole('checkbox', {name: /Photos/})).not.toBeChecked();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
 test('an activity without extras has no extras section', async () => {

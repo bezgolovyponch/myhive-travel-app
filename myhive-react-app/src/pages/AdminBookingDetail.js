@@ -7,6 +7,12 @@ import {Alert, Badge, Button, Card, Col, Form, Row, Spinner, Table} from 'react-
 import {formatAmount, formatDate, formatDateTime, STATUS_VARIANTS} from '../utils/format';
 import {copyToClipboard} from '../utils/clipboard';
 
+// What an item's booked extras add: per person times the item's quantity, per group once.
+function bookedExtrasAmount(item) {
+    return (item.extras || []).reduce((sum, extra) => sum
+        + (Number(extra.price) || 0) * (extra.pricing === 'PER_PERSON' ? (item.quantity || 1) : 1), 0);
+}
+
 // Statuses an admin may set by hand; payment statuses (DEPOSIT_PAID, PAID, …) are
 // owned by the Stripe webhook and the backend rejects them.
 const OPERATIONAL_STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED'];
@@ -439,7 +445,7 @@ function AdminBookingDetail() {
                                     <td className="small">{formatAmount(item.price)}</td>
                                     <td className="small">{item.quantity || 1}</td>
                                     <td className="small fw-semibold">
-                                        {formatAmount((item.price || 0) * (item.quantity || 1))}
+                                        {formatAmount((item.price || 0) * (item.quantity || 1) + bookedExtrasAmount(item))}
                                     </td>
                                 </tr>
                             ))}

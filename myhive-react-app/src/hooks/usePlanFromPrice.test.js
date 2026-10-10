@@ -45,10 +45,24 @@ test('sends the ticked extras and asks again when the selection changes', async 
         travelers: 10,
     }));
 
+    const expectedSortedCodes = ['photo', 'show'];
     rerender({items: [{...item, selectedExtras: ['show', 'photo']}]});
 
     await waitFor(() => expect(pricingApi.quote).toHaveBeenLastCalledWith({
-        items: [{activityId: 'act-1', packageId: null, extraCodes: ['photo', 'show']}],
+        items: [{activityId: 'act-1', packageId: null, extraCodes: expectedSortedCodes}],
+        travelers: 10,
+    }));
+});
+
+test('a ticked code the activity no longer offers is not sent, as the booking would drop it', async () => {
+    pricingApi.quote.mockResolvedValue({fromPrice: 700, fromPricePerPerson: 70});
+    const expectedCodes = ['show'];
+    const item = {id: 'act-1', name: 'Karting', extras: [{code: 'show'}], selectedExtras: ['show', 'removed-by-admin']};
+
+    renderHook(() => usePlanFromPrice([item], 10));
+
+    await waitFor(() => expect(pricingApi.quote).toHaveBeenCalledWith({
+        items: [{activityId: 'act-1', packageId: null, extraCodes: expectedCodes}],
         travelers: 10,
     }));
 });

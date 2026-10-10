@@ -963,6 +963,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     <div className="itinerary-item-title">{item.name}</div>
                     <ItemExtrasRow
                       item={item}
+                      travelers={state.tripTravelers || 1}
                       onChange={codes => dispatch({type: 'SET_ITEM_EXTRAS', id: item.id, selectedExtras: codes})}
                     />
                     {voteAnnotation && voteAnnotation.counts[item.id] != null && (

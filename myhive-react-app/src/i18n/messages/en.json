@@ -296,8 +296,7 @@
     "add": "Add extras",
     "done": "Done",
     "removeAria": "Remove {name}",
-    "selectedSummary": "+ {amount} extras",
-    "none": "No extras selected"
+    "selectedSummary": "+ {amount} extras"
   },
   "about": {
     "hero": {

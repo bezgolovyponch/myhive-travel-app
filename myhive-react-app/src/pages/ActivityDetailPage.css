@@ -241,8 +241,7 @@
 }
 
 .activity-detail-extras-summary {
-    display: block;
-    margin-top: 0.25rem;
+    margin: var(--gap-sm) 0 0;
     font-size: 0.8125rem;
     font-weight: 500;
     color: var(--text);

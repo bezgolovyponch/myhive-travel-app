@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import pricingApi from '../services/pricingApi';
+import {extrasOf} from '../utils/tripPricing';
 
 const DEBOUNCE_MS = 300;
 
@@ -19,8 +20,9 @@ export function usePlanFromPrice(tripItems, travelers) {
         tripItems.map(item => ({
             activityId: item.id,
             packageId: item.packageId || null,
-            // Sorted, so ticking in another order is the same request.
-            extraCodes: [...(item.selectedExtras || [])].sort(),
+            // The codes the booking would send (a code the activity no longer offers is dropped),
+            // sorted so ticking in another order is the same request.
+            extraCodes: extrasOf(item).map(extra => extra.code).sort(),
         })));
 
     useEffect(() => {

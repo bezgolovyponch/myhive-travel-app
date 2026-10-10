@@ -7,9 +7,10 @@ import './ItemExtrasPicker.css';
  * name, a one-line description and its price per group or per person.
  * Nothing comes ticked; only `selected` (codes) is. `onChange` gets the new
  * codes in the activity's own order. `compact` is the slimmer variant for an
- * itinerary row, where the row already names the activity.
+ * itinerary row, where the row already names the activity. `id` lets a toggle
+ * point at the checklist it reveals.
  */
-function ItemExtrasPicker({extras, selected, onChange, compact = false}) {
+function ItemExtrasPicker({id, extras, selected, onChange, compact = false}) {
     const t = useT('extras');
 
     const toggle = (code) => {
@@ -23,7 +24,7 @@ function ItemExtrasPicker({extras, selected, onChange, compact = false}) {
     };
 
     return (
-        <fieldset className={`item-extras-picker${compact ? ' item-extras-picker--compact' : ''}`}>
+        <fieldset id={id} className={`item-extras-picker${compact ? ' item-extras-picker--compact' : ''}`}>
             <legend className={compact ? 'visually-hidden' : 'item-extras-picker-title'}>{t('title')}</legend>
             <ul className="item-extras-picker-list">
                 {extras.map(extra => (

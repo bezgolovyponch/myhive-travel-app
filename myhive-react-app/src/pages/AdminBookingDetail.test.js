@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from '@testing-library/react';
+import {render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, Routes, Route} from 'react-router-dom';
 import AdminBookingDetail from './AdminBookingDetail';
@@ -56,9 +56,11 @@ test('shows Deposit and Balance type labels in payment history', async () => {
     expect(screen.getByText('https://pay/plink_1')).toBeInTheDocument();
 });
 
-test('lists the extras booked under each item, with their price and unit', async () => {
+test('lists the extras booked under each item, with their price and unit, and counts them in the subtotal', async () => {
+    // 40 × 4 + 250 for the group + 15 × 4 per person.
+    const expectedSubtotal = '€470';
     mockApi.getBookingById.mockResolvedValue({
-        id: 'b1', status: 'PENDING', userEmail: 'x@y.z', totalAmount: 410, amountPaid: 0, paymentLinks: [],
+        id: 'b1', status: 'PENDING', userEmail: 'x@y.z', totalAmount: 470, amountPaid: 0, paymentLinks: [],
         items: [{
             id: 'i1', activityName: 'Karting', destinationName: 'Prague', price: 40, quantity: 4,
             extras: [
@@ -72,6 +74,7 @@ test('lists the extras booked under each item, with their price and unit', async
 
     expect(await screen.findByText('+ Private show · €250 per group')).toBeInTheDocument();
     expect(screen.getByText('+ Photos · €15 per person')).toBeInTheDocument();
+    expect(within(screen.getByRole('row', {name: /Karting/})).getByText(expectedSubtotal)).toBeInTheDocument();
 });
 
 test('shows balance and creates a payment link with cents', async () => {

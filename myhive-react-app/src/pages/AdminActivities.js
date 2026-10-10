@@ -85,6 +85,8 @@ function AdminActivities() {
             if (slug) errors.slug = slug;
             if (form.extras.some(extra => required(extra.name) || required(extra.price))) {
                 errors.extras = 'Each extra needs a name and a price.';
+            } else if (form.extras.some(extra => Number(extra.price) < 0)) {
+                errors.extras = 'Price must be 0 or more.';
             }
             return errors;
         },

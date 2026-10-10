@@ -1,4 +1,4 @@
-import {render, screen, waitFor, within} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AdminActivities from './AdminActivities';
 
@@ -70,6 +70,18 @@ test('a new extra is saved with a numeric price', async () => {
     await waitFor(() => expect(mockApi.updateActivity).toHaveBeenCalledWith('a1', expect.objectContaining({
         extras: [karting.extras[0], expectedExtra],
     })));
+});
+
+test('an extra with a negative price is not saved', async () => {
+    const user = userEvent.setup();
+    const expectedMessage = 'Price must be 0 or more.';
+    const dialog = await openEdit(user);
+
+    fireEvent.change(within(dialog).getByLabelText('Extra 1 price'), {target: {value: '-5'}});
+    await user.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    expect(await within(dialog).findByText(expectedMessage)).toBeInTheDocument();
+    expect(mockApi.updateActivity).not.toHaveBeenCalled();
 });
 
 test('an extra without a name or a price is not saved', async () => {

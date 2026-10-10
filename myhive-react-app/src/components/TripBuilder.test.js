@@ -1942,6 +1942,7 @@ describe('extras on an itinerary row', () => {
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
         await user.click(toggle);
         const picker = screen.getByRole('group', { name: 'Optional extras' });
+        expect(toggle).toHaveAttribute('aria-controls', picker.id);
         expect(within(picker).getByRole('checkbox', { name: /Private show/ })).not.toBeChecked();
 
         await user.click(within(picker).getByRole('checkbox', { name: /Private show/ }));
@@ -1953,6 +1954,31 @@ describe('extras on an itinerary row', () => {
 
         expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: [] });
         expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+    });
+
+    test('a per-person chip shows what it adds for the whole group', async () => {
+        const user = userEvent.setup();
+        // buildTripState: 2 travellers, so €15 per person adds €30 to the line.
+        const expectedChip = 'Photos · +€30';
+        render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={jest.fn()} />);
+
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        await user.click(screen.getByRole('checkbox', { name: /Photos/ }));
+
+        expect(screen.getByText(expectedChip)).toBeInTheDocument();
+    });
+
+    test('removing a chip also drops a code the activity no longer offers', async () => {
+        const user = userEvent.setup();
+        const onDispatch = jest.fn();
+        const expectedCodes = ['photo'];
+        render(<CartHarness
+            initialItems={[{ ...activity1, extras, selectedExtras: ['show', 'photo', 'removed-by-admin'] }]}
+            onDispatch={onDispatch} />);
+
+        await user.click(screen.getByRole('button', { name: 'Remove Private show' }));
+
+        expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: expectedCodes });
     });
 
     test('Done folds the checklist away', async () => {
