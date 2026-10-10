@@ -145,6 +145,15 @@ public final class ActivityExtras {
         return MAPPER.writeValueAsString(rows);
     }
 
+    /** The extras whose code is in {@code codes}, in catalog order; unknown codes are ignored. Never null. */
+    public static List<ActivityExtra> select(List<ActivityExtra> extras, List<String> codes) {
+        if (extras == null || codes == null || codes.isEmpty()) {
+            return List.of();
+        }
+        Set<String> wanted = new HashSet<>(codes);
+        return extras.stream().filter(extra -> wanted.contains(extra.code())).toList();
+    }
+
     public static Optional<ActivityExtra> byCode(List<ActivityExtra> extras, String code) {
         if (extras == null || code == null) {
             return Optional.empty();
