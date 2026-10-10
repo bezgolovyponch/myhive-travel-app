@@ -275,7 +275,18 @@
     "close": "Schließen",
     "previousPhoto": "Vorheriges Foto",
     "nextPhoto": "Nächstes Foto",
-    "goToPhoto": "Zu Foto {num}"
+    "goToPhoto": "Zu Foto {num}",
+    "extrasChip": "Optionale Extras · {names}",
+    "extrasMore": "+{count} weitere"
+  },
+  "extras": {
+    "title": "Optionale Extras",
+    "perGroup": "pro Gruppe",
+    "perPerson": "pro Person",
+    "add": "Extras hinzufügen",
+    "done": "Fertig",
+    "removeAria": "{name} entfernen",
+    "selectedSummary": "+ {amount} Extras"
   },
   "about": {
     "hero": {

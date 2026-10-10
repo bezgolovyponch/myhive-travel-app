@@ -1,8 +1,9 @@
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {useCallback, useReducer} from 'react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, useLocation} from 'react-router-dom';
 import TripBuilder from './TripBuilder';
-import {TripContext} from '../context/TripContext';
+import {reducer, TripContext} from '../context/TripContext';
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -627,6 +628,29 @@ test('A19: createBookingFromTrip includes ref: null when getRef returns null', a
     expect(bookingData.ref).toBeNull();
 });
 
+test('the booking carries the ticked extras of each activity, without their descriptions', async () => {
+    const user = userEvent.setup();
+    const expectedExtra = { code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP' };
+    const item = {
+        ...activity1,
+        extras: [
+            { ...expectedExtra, description: 'Just your group' },
+            { code: 'photo', name: 'Photos', description: 'A photographer', price: 15, pricing: 'PER_PERSON' },
+        ],
+        selectedExtras: ['show'],
+    };
+    renderTripBuilder(buildTripState({ tripItems: [item] }));
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    expect(bookingData.destinations[0].activities[0].extras).toEqual([expectedExtra]);
+});
+
 // ---------------------------------------------------------------------------
 // A19 — multi-activity trip: value uses computeTripTotal
 // ---------------------------------------------------------------------------
@@ -782,7 +806,7 @@ describe('plan price', () => {
 
         expect(await screen.findByText('from €1,161')).toBeInTheDocument();
         expect(screen.getByText('Your plan')).toBeInTheDocument();
-        expect(pricingApi.quote).toHaveBeenCalledWith({ items: [{ activityId: 'a1', packageId: null }], travelers: 4 });
+        expect(pricingApi.quote).toHaveBeenCalledWith({ items: [{ activityId: 'a1', packageId: null, extraCodes: [] }], travelers: 4 });
         expect(screen.queryByText(/€50|× 4|person/)).not.toBeInTheDocument();
     });
 
@@ -1624,7 +1648,8 @@ describe('vote button after a completed QUIZ vote', () => {
 describe('QUIZ vote result replaces the cart', () => {
     const winner = { activityId: 'a-win', name: 'Bar Crawl', price: 45, minPrice: 180,
         slug: 'bar-crawl', destinationSlug: 'prague', imageUrl: 'bar.jpg',
-        duration: '3h', description: 'Pubs.', includes: 'Guide' };
+        duration: '3h', description: 'Pubs.', includes: 'Guide',
+        extras: [{ code: 'vip', name: 'VIP entry', description: 'Skip the queue', price: 60, pricing: 'PER_GROUP' }] };
     const quizResult = {
         voteMode: 'QUIZ', participantCount: 2, numberOfTravelers: 2,
         result: [winner], suggestions: [],
@@ -1667,6 +1692,7 @@ describe('QUIZ vote result replaces the cart', () => {
                     id: 'a-win', name: 'Bar Crawl', price: 45, minPrice: 180,
                     slug: 'bar-crawl', destinationSlug: 'prague', imageUrl: 'bar.jpg',
                     duration: '3h', description: 'Pubs.', includes: 'Guide',
+                    extras: [{ code: 'vip', name: 'VIP entry', description: 'Skip the queue', price: 60, pricing: 'PER_GROUP' }],
                 }],
             });
         });
@@ -1877,5 +1903,99 @@ describe('landing handoff via ?picks=', () => {
         expect(dispatch).not.toHaveBeenCalledWith(
             expect.objectContaining({ type: 'ADD_TO_TRIP' })
         );
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Optional extras on a standalone row: picked inline, never by leaving the page.
+// The real reducer runs behind the dispatch spy, so the row re-renders from
+// the cart the way it does in the app.
+// ---------------------------------------------------------------------------
+
+describe('extras on an itinerary row', () => {
+    const extras = [
+        { code: 'show', name: 'Private show', description: 'Just your group', price: 250, pricing: 'PER_GROUP' },
+        { code: 'photo', name: 'Photos', description: 'A photographer', price: 15, pricing: 'PER_PERSON' },
+    ];
+
+    function CartHarness({ initialItems, onDispatch }) {
+        const [state, dispatch] = useReducer(reducer, buildTripState({ tripItems: initialItems }));
+        const spyingDispatch = useCallback((action) => {
+            onDispatch(action);
+            dispatch(action);
+        }, [onDispatch]);
+        return (
+            <MemoryRouter initialEntries={['/']}>
+                <TripContext.Provider value={{ state, dispatch: spyingDispatch }}>
+                    <TripBuilder destinationId="dest-1" destinationSlug="prague" />
+                </TripContext.Provider>
+            </MemoryRouter>
+        );
+    }
+
+    test('ticking an extra in the row shows its chip; the chip’s × takes it off again', async () => {
+        const user = userEvent.setup();
+        const onDispatch = jest.fn();
+        render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={onDispatch} />);
+
+        const toggle = screen.getByRole('button', { name: 'Add extras' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await user.click(toggle);
+        const picker = screen.getByRole('group', { name: 'Optional extras' });
+        expect(toggle).toHaveAttribute('aria-controls', picker.id);
+        expect(within(picker).getByRole('checkbox', { name: /Private show/ })).not.toBeChecked();
+
+        await user.click(within(picker).getByRole('checkbox', { name: /Private show/ }));
+
+        expect(onDispatch).toHaveBeenCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] });
+        expect(screen.getByText('Private show · +€250')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Remove Private show' }));
+
+        expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: [] });
+        expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+    });
+
+    test('a per-person chip shows what it adds for the whole group', async () => {
+        const user = userEvent.setup();
+        // buildTripState: 2 travellers, so €15 per person adds €30 to the line.
+        const expectedChip = 'Photos · +€30';
+        render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={jest.fn()} />);
+
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        await user.click(screen.getByRole('checkbox', { name: /Photos/ }));
+
+        expect(screen.getByText(expectedChip)).toBeInTheDocument();
+    });
+
+    test('removing a chip also drops a code the activity no longer offers', async () => {
+        const user = userEvent.setup();
+        const onDispatch = jest.fn();
+        const expectedCodes = ['photo'];
+        render(<CartHarness
+            initialItems={[{ ...activity1, extras, selectedExtras: ['show', 'photo', 'removed-by-admin'] }]}
+            onDispatch={onDispatch} />);
+
+        await user.click(screen.getByRole('button', { name: 'Remove Private show' }));
+
+        expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: expectedCodes });
+    });
+
+    test('Done folds the checklist away', async () => {
+        const user = userEvent.setup();
+        render(<CartHarness initialItems={[{ ...activity1, extras }]} onDispatch={jest.fn()} />);
+
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        await user.click(screen.getByRole('button', { name: 'Done' }));
+
+        expect(screen.queryByRole('group', { name: 'Optional extras' })).not.toBeInTheDocument();
+    });
+
+    test('a row whose activity has no extras offers none', async () => {
+        render(<CartHarness initialItems={[activity1]} onDispatch={jest.fn()} />);
+
+        // Let the plan price settle, so no update lands after the test.
+        await waitFor(() => expect(pricingApi.quote).toHaveBeenCalled());
+        expect(screen.queryByRole('button', { name: 'Add extras' })).not.toBeInTheDocument();
     });
 });

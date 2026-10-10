@@ -5,10 +5,14 @@ import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL, WHATSAPP_URL} from '../services/config';
-import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, formatAmount, formatDuration, formatPrice, hasGroupMin} from '../utils/format';
+import {
+    capitalizeFirst, DEFAULT_ACTIVITY_IMAGE, extraPriceLabel, formatAmount, formatDuration, formatPrice, hasGroupMin,
+} from '../utils/format';
 import {parseDescriptionBlocks} from '../utils/descriptionBlocks';
 import ActivityGallery from '../components/ActivityGallery';
 import ActivityCard from '../components/ActivityCard';
+import ItemExtrasPicker from '../components/ItemExtrasPicker';
+import {extrasOf} from '../utils/tripPricing';
 import {useT} from '../i18n';
 import './ActivityDetailPage.css';
 
@@ -20,11 +24,16 @@ function ActivityDetailPage({activity: injectedActivity}) {
     const t = useT('activityDetail');
     const tDuration = useT('activityDetail.duration');
     const tMeta = useT('meta');
+    const tExtras = useT('extras');
     const {destinationSlug, slug} = useParams();
     const navigate = useNavigate();
     const {state, dispatch} = useTrip();
     const {data: activity, loading, error} = useFetchBySlug(api.getActivityBySlug, slug, injectedActivity);
     const [moreActivities, setMoreActivities] = useState([]);
+    // Extras ticked before the activity is in the trip, tied to that activity: the page stays
+    // mounted when "More activities" opens a sibling, and codes like "photos" repeat across
+    // activities, so unscoped ticks would arrive pre-selected on the next one.
+    const [pending, setPending] = useState({activityId: null, codes: []});
 
     const destinationId = activity?.destinationId;
     const activityId = activity?.id;
@@ -75,7 +84,8 @@ function ActivityDetailPage({activity: injectedActivity}) {
         ? activity.categories[0].name
         : null;
     const category = primaryCategory ? capitalizeFirst(primaryCategory) : t('categoryFallback');
-    const isAdded = state.tripItems.some(item => item.id === activity.id);
+    const cartItem = state.tripItems.find(item => item.id === activity.id);
+    const isAdded = Boolean(cartItem);
     const durationText = formatDuration(activity.duration, tDuration);
     const destSlug = destinationSlug || activity.destinationSlug;
 
@@ -99,8 +109,32 @@ function ActivityDetailPage({activity: injectedActivity}) {
     const cancellationPolicy = activity.cancellationPolicy
         || t('facts.cancellationDefault');
 
+    const extras = activity.extras || [];
+    // Once the activity is in the trip, the checklist shows and edits the trip's own selection.
+    const pendingCodes = pending.activityId === activity.id ? pending.codes : [];
+    const selectedExtras = cartItem ? (cartItem.selectedExtras || []) : pendingCodes;
+    // The page has no group size, so the ticked extras are summed per unit, never as one line amount.
+    const tickedExtras = extrasOf({...activity, selectedExtras});
+    const extrasSummary = ['PER_GROUP', 'PER_PERSON']
+        .map(pricing => ({
+            pricing,
+            price: tickedExtras.filter(extra => extra.pricing === pricing)
+                .reduce((sum, extra) => sum + (Number(extra.price) || 0), 0),
+        }))
+        .filter(unit => unit.price > 0)
+        .map(unit => extraPriceLabel(unit, tExtras))
+        .join(' · ');
+
+    const handleExtrasChange = (codes) => {
+        if (cartItem) {
+            dispatch({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras: codes});
+        } else {
+            setPending({activityId: activity.id, codes});
+        }
+    };
+
     const handleAddToTrip = () => {
-        dispatch({type: 'ADD_TO_TRIP', activity});
+        dispatch({type: 'ADD_TO_TRIP', activity: {...activity, selectedExtras}});
     };
 
     const addButton = (
@@ -219,6 +253,14 @@ function ActivityDetailPage({activity: injectedActivity}) {
                                 ? t('groupMinimum', {amount: formatAmount(Number(activity.minPrice))})
                                 : t('groupPriceFrom')}
                         </span>
+                        {extras.length > 0 && (
+                            <section className="activity-detail-extras">
+                                <ItemExtrasPicker extras={extras} selected={selectedExtras} onChange={handleExtrasChange}/>
+                                {extrasSummary && (
+                                    <p className="activity-detail-extras-summary" role="status">{extrasSummary}</p>
+                                )}
+                            </section>
+                        )}
                         {addButton}
                         {durationText && (
                             <ul className="activity-detail-panel-meta">

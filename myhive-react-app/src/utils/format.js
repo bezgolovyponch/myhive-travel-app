@@ -79,6 +79,15 @@ export function groupMinNote(activity) {
     return `Group minimum ${formatAmount(Number(activity.minPrice))}`;
 }
 
+/**
+ * An optional extra's price with its unit: "+€250 per group", "+€15 per person".
+ * `t` is a translator scoped to the `extras` messages.
+ */
+export function extraPriceLabel(extra, t) {
+    const unit = extra.pricing === 'PER_PERSON' ? t('perPerson') : t('perGroup');
+    return `+${formatAmount(extra.price)} ${unit}`;
+}
+
 export function capitalizeFirst(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);

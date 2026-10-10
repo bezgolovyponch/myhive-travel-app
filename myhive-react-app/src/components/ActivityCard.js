@@ -46,6 +46,7 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
     const primaryCategory = activity.categories && activity.categories.length > 0
         ? activity.categories[0].name
         : null;
+    const extraNames = (activity.extras || []).map(extra => extra.name);
 
     // ActivityPreviewModal joins categories as strings; card data carries
     // category objects, so normalize to names for the preview.
@@ -88,6 +89,13 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                         {title}
                     </a>
                 </h3>
+                {/* Names only: the card deliberately shows no price, extras included. */}
+                {extraNames.length > 0 && (
+                    <span className="activity-extras-chip">
+                        {t('extrasChip', {names: extraNames.slice(0, 2).join(', ')})}
+                        {extraNames.length > 2 && ` ${t('extrasMore', {count: extraNames.length - 2})}`}
+                    </span>
+                )}
                 <div className="activity-footer">
                     <div className="activity-actions">
                         <button

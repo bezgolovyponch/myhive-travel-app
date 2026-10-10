@@ -62,6 +62,27 @@ describe('TripBuilderDropdown with items in the cart', () => {
     });
 });
 
+describe('TripBuilderDropdown with extras ticked', () => {
+    const extras = [
+        {code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP'},
+        {code: 'photo', name: 'Photos', price: 15, pricing: 'PER_PERSON'},
+    ];
+
+    it('sums the ticked extras under the price, a per-person one for every traveller', () => {
+        // 250 for the group + 15 × 4.
+        const expectedSummary = '+ €310 extras';
+        renderDropdown({tripItems: [{...activity, extras, selectedExtras: ['show', 'photo']}], tripTravelers: 4});
+
+        expect(screen.getByText(expectedSummary)).toBeInTheDocument();
+    });
+
+    it('says nothing about extras when none is ticked', () => {
+        renderDropdown({tripItems: [{...activity, extras, selectedExtras: []}]});
+
+        expect(screen.queryByText(/extras/)).not.toBeInTheDocument();
+    });
+});
+
 describe('TripBuilderDropdown for the organiser of a running vote', () => {
     afterEach(() => localStorage.clear());
 

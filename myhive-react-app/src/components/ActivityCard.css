@@ -42,6 +42,18 @@
     color: var(--text);
 }
 
+/* Names the optional extras; dashed so it reads as "can add", not as a category. */
+.activity-extras-chip {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-full);
+    padding: var(--gap-xs) var(--gap-sm);
+    align-self: flex-start;
+    /* Same optical alignment as .activity-category above. */
+    margin-left: calc(var(--gap-sm) * -1);
+}
+
 .activity-actions {
     display: flex;
     gap: var(--gap-sm);

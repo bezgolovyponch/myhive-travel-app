@@ -1,7 +1,7 @@
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
-import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
-import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
+import {DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice} from '../utils/format';
+import {computeTripTotal, extrasTotal, groupTripItems} from '../utils/tripPricing';
 import TripSetupModal from './TripSetupModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import {managerKey} from '../hooks/useOrganizerVote';
@@ -24,6 +24,7 @@ function TripBuilderDropdown({voteHref = null}) {
     const navigate = useNavigate();
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
     const t = useT('tripDropdown');
+    const tExtras = useT('extras');
 
     if (!state.tripBuilderModalOpen) return null;
 
@@ -31,6 +32,13 @@ function TripBuilderDropdown({voteHref = null}) {
 
     const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
     const totalPrice = computeTripTotal(state.tripItems, travelers);
+
+    const extrasSummary = (item) => {
+        const amount = extrasTotal(item, travelers);
+        return amount > 0 && (
+            <span className="trip-modal-item-extras">{tExtras('selectedSummary', {amount: formatAmount(amount)})}</span>
+        );
+    };
 
     // The organiser of a running vote (opened "Browse all" from the dashboard)
     // goes back to the Trip Builder dashboard, where what they added joins the vote.
@@ -84,6 +92,7 @@ function TripBuilderDropdown({voteHref = null}) {
                                             <div className="trip-modal-item-info">
                                                 <span className="trip-modal-item-name">{item.name}</span>
                                                 <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
+                                                {extrasSummary(item)}
                                             </div>
                                         </div>
                                     ))}
@@ -96,6 +105,7 @@ function TripBuilderDropdown({voteHref = null}) {
                                     <div className="trip-modal-item-info">
                                         <span className="trip-modal-item-name">{item.name || item.title}</span>
                                         <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
+                                        {extrasSummary(item)}
                                     </div>
                                     <button
                                         type="button"

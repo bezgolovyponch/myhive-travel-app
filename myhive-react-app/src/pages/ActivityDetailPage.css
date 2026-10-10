@@ -240,6 +240,19 @@
     display: block;
 }
 
+.activity-detail-extras-summary {
+    margin: var(--gap-sm) 0 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.activity-detail-extras {
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--border);
+}
+
 .activity-detail-add-btn {
     background: var(--purple);
     color: #fff;
@@ -380,6 +393,30 @@
 
     .activity-detail-add-col {
         display: none;
+    }
+
+    /* The sticky add bar replaces the panel on mobile; only the extras
+       checklist stays, in the page flow above the bar. */
+    .activity-detail-add-col:has(.activity-detail-extras) {
+        display: block;
+        position: static;
+    }
+
+    .activity-detail-add-col .activity-detail-add-panel {
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background: none;
+    }
+
+    .activity-detail-add-panel > :not(.activity-detail-extras) {
+        display: none;
+    }
+
+    .activity-detail-extras {
+        margin-top: 0;
+        border-top: none;
+        padding-top: 1.5rem;
     }
 
     .activity-detail-more {

@@ -152,6 +152,21 @@ test('a row without a duration has no empty subtitle under its name', async () =
     expect(draft.querySelectorAll('.aip-item-sub')).toHaveLength(1);
 });
 
+test('an item with extras names them as chips under it', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const gen = readyGeneration();
+    gen.packages = gen.packages.map((p) => ({...p, days: [{...p.days[0], items: [item('Bar Crawl', {
+        extras: [{code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP', total: 250}],
+    }), item('Karting', {slot: 'AFTERNOON', startHint: null})]}]}));
+    aiPlannerApi.getSession.mockResolvedValue(session({status: 'READY', latestReadyGeneration: gen}));
+    renderPage();
+
+    const draft = await screen.findByRole('region', {name: 'Trip draft'});
+
+    expect(within(draft).getByText('+ Private show')).toBeInTheDocument();
+    expect(within(draft).getAllByText(/^\+ /)).toHaveLength(1);
+});
+
 test('while the copy is still being written, a day shows its date or number but not its title yet', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     const skeleton = readyGeneration({textsPending: true});
@@ -437,7 +452,7 @@ test('"Ask the group" picks the trim, fills the cart and opens the contact step'
     expect(aiPlannerApi.selectPackage).toHaveBeenCalledWith('gen-1', 'MEDIUM');
     expect(tripDispatch).toHaveBeenCalledWith({
         type: 'SET_TRIP_ITEMS',
-        tripItems: [{activityId: 'id-Karting', id: 'id-Karting', name: 'Karting', price: 45}],
+        tripItems: [{activityId: 'id-Karting', id: 'id-Karting', name: 'Karting', price: 45, extras: [], selectedExtras: []}],
     });
     expect(tripDispatch).toHaveBeenCalledWith({type: 'UPDATE_TRIP_TRAVELERS', travelers: 10});
     // The existing vote modal is the contact step: it creates the session and opens the dashboard.
@@ -715,13 +730,21 @@ test('"Complete booking" comes with the organizer\'s own plan and takes it to th
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     const edited = readyGeneration({id: 'gen-2', kind: 'EDITED', parentId: 'gen-1'});
     aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: edited, status: 'READY'}));
+    const expectedExtras = [{code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP'}];
+    const expectedCodes = ['show'];
     aiPlannerApi.selectPackage.mockResolvedValue({
-        groupSize: 10, tripItems: [{activityId: 'id-Karting', name: 'Karting', price: 45}],
+        groupSize: 10,
+        tripItems: [{activityId: 'id-Karting', name: 'Karting', price: 45, extras: expectedExtras, selectedExtras: expectedCodes}],
     });
     renderPage();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Complete booking'}));
 
     expect(aiPlannerApi.selectPackage).toHaveBeenCalledWith('gen-2', 'MEDIUM');
-    await waitFor(() => expect(tripDispatch).toHaveBeenCalledWith(expect.objectContaining({type: 'SET_TRIP_ITEMS'})));
+    // The extras the planner put in the package arrive in the cart ticked, so the booking prices them.
+    await waitFor(() => expect(tripDispatch).toHaveBeenCalledWith({
+        type: 'SET_TRIP_ITEMS',
+        tripItems: [{activityId: 'id-Karting', id: 'id-Karting', name: 'Karting', price: 45,
+            extras: expectedExtras, selectedExtras: expectedCodes}],
+    }));
 });

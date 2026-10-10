@@ -4,7 +4,7 @@ import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice} from '../utils/format';
-import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
+import {computeTripTotal, extrasOf, groupTripItems} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
@@ -24,6 +24,7 @@ import ActiveVoteModal from './vote/ActiveVoteModal';
 import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} from './vote/VoteDashboard';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
+import ItemExtrasRow from './ItemExtrasRow';
 import {useLocalePath, useT} from '../i18n';
 import {groupByDay} from '../utils/voteDays';
 import './TripBuilder.css';
@@ -57,6 +58,7 @@ function voteWinnersAsTripItems(result) {
     duration: row.duration,
     description: row.description,
     includes: row.includes,
+    extras: row.extras || [],
   }));
 }
 
@@ -584,6 +586,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           packageId: item.packageId || null,
           packageName: item.packageName || null,
           packageDiscountPct: item.packageDiscountPct || null,
+          extras: extrasOf(item).map(e => ({code: e.code, name: e.name, price: e.price, pricing: e.pricing})),
         }))
       }],
       notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`,
@@ -958,6 +961,11 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                        loading="lazy"/>
                   <div className="itinerary-item-content">
                     <div className="itinerary-item-title">{item.name}</div>
+                    <ItemExtrasRow
+                      item={item}
+                      travelers={state.tripTravelers || 1}
+                      onChange={codes => dispatch({type: 'SET_ITEM_EXTRAS', id: item.id, selectedExtras: codes})}
+                    />
                     {voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
                           <span className="itinerary-item-votes-count">♥ {voteAnnotation.counts[item.id]}</span>

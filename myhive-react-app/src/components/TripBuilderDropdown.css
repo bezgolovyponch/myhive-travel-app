@@ -152,6 +152,11 @@
     font-weight: 700;
 }
 
+.trip-modal-item-extras {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+}
+
 .trip-modal-item-remove {
     background: none;
     border: none;
