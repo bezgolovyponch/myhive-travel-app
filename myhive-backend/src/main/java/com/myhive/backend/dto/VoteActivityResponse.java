@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -20,4 +21,9 @@ public class VoteActivityResponse {
     private String destinationSlug;
     /** The day of the trip it is planned for (1 = the first day); null when the vote has no day plan. */
     private Integer dayNumber;
+    /**
+     * The activity's optional add-ons, localised. Live presentation data like {@link ResultActivityDTO#getExtras()}:
+     * the vote is on the activities, the extras are chosen later in the Trip Builder and priced from the catalog.
+     */
+    private List<ActivityExtraDTO> extras;
 }

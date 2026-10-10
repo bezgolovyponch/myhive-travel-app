@@ -1,7 +1,10 @@
 package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.entity.ExtraPricing;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -84,7 +87,8 @@ public final class EditMessages {
 
     /**
      * A template that names packages, with the German case its preposition wants. Applied templates take
-     * (activity, replacement, packages, extra) by position; in-package rejection templates take (names, packages).
+     * (activity, replacement, packages, extra, extra amount) by position - the amount with its leading space,
+     * empty when there is none; in-package rejection templates take (names, packages).
      */
     private record Packaged(String template, PackagePhrase phrase) {
     }
@@ -116,12 +120,12 @@ public final class EditMessages {
         EN_APPLIED.put(EditOp.REMOVE, new Packaged("Dropped %1$s from %3$s.", PackagePhrase.FROM));
         EN_APPLIED.put(EditOp.ADD, new Packaged("Added %1$s to %3$s.", PackagePhrase.INTO));
         EN_APPLIED.put(EditOp.REPLACE, new Packaged("Swapped %1$s for %2$s in %3$s.", PackagePhrase.IN));
-        EN_APPLIED.put(EditOp.ADD_EXTRA, new Packaged("Added %4$s to %1$s in %3$s.", PackagePhrase.IN));
+        EN_APPLIED.put(EditOp.ADD_EXTRA, new Packaged("Added %4$s to %1$s%5$s in %3$s.", PackagePhrase.IN));
         EN_APPLIED.put(EditOp.REMOVE_EXTRA, new Packaged("Removed %4$s from %1$s in %3$s.", PackagePhrase.IN));
         DE_APPLIED.put(EditOp.REMOVE, new Packaged("%1$s %3$s rausgenommen.", PackagePhrase.FROM));
         DE_APPLIED.put(EditOp.ADD, new Packaged("%1$s %3$s aufgenommen.", PackagePhrase.INTO));
         DE_APPLIED.put(EditOp.REPLACE, new Packaged("%1$s %3$s gegen %2$s getauscht.", PackagePhrase.IN));
-        DE_APPLIED.put(EditOp.ADD_EXTRA, new Packaged("%4$s zu %1$s hinzugefügt (%3$s).", PackagePhrase.NAMED));
+        DE_APPLIED.put(EditOp.ADD_EXTRA, new Packaged("%4$s zu %1$s hinzugefügt%5$s (%3$s).", PackagePhrase.NAMED));
         DE_APPLIED.put(EditOp.REMOVE_EXTRA, new Packaged("%4$s bei %1$s entfernt (%3$s).", PackagePhrase.NAMED));
 
         EN_EXTRA.put(EditRejectionReason.UNKNOWN_EXTRA, "%1$s has no '%2$s' — it offers: %3$s.");
@@ -258,9 +262,34 @@ public final class EditMessages {
             Packaged template = templates.get(entry.getKey().op());
             appendSentence(summary, template.template().formatted(entry.getKey().activity(),
                     entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase(), tripPlan),
-                    entry.getKey().extra()));
+                    entry.getKey().extra(), extraAmount(entry.getKey(), german)));
         }
         return summary.toString();
+    }
+
+    /**
+     * " (+ €250 for the group)" / " (+ 15 € pro Person)": what an added extra costs, so the confirmation
+     * says what the organizer just agreed to pay. Empty for any other op and for an extra without a price.
+     */
+    private static String extraAmount(AppliedKey key, boolean german) {
+        if (key.op() != EditOp.ADD_EXTRA || key.extraPrice() == null || key.extraPricing() == null) {
+            return "";
+        }
+        String amount = euros(key.extraPrice(), german);
+        boolean perPerson = key.extraPricing() == ExtraPricing.PER_PERSON;
+        if (german) {
+            return " (+ " + amount + " € " + (perPerson ? "pro Person" : "für die Gruppe") + ")";
+        }
+        return " (+ €" + amount + " " + (perPerson ? "per person" : "for the group") + ")";
+    }
+
+    /** Whole euros without decimals ("250"), otherwise two ("12.50", in German "12,50"). */
+    private static String euros(BigDecimal price, boolean german) {
+        BigDecimal stripped = price.stripTrailingZeros();
+        String amount = stripped.scale() <= 0
+                ? stripped.setScale(0, RoundingMode.UNNECESSARY).toPlainString()
+                : price.setScale(2, RoundingMode.HALF_UP).toPlainString();
+        return german ? amount.replace('.', ',') : amount;
     }
 
     /**
@@ -330,10 +359,12 @@ public final class EditMessages {
     }
 
     /** Applied edits are grouped by what was done, so one ADD across three packages is one sentence. */
-    private record AppliedKey(EditOp op, String activity, String replacement, String extra) {
+    private record AppliedKey(EditOp op, String activity, String replacement, String extra, BigDecimal extraPrice,
+                              ExtraPricing extraPricing) {
 
         static AppliedKey of(AppliedEdit edit) {
-            return new AppliedKey(edit.op(), edit.activityName(), edit.replacementName(), edit.extraName());
+            return new AppliedKey(edit.op(), edit.activityName(), edit.replacementName(), edit.extraName(),
+                    edit.extraPrice(), edit.extraPricing());
         }
     }
 

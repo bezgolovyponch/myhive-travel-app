@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.config.TestSecurityConfig;
+import com.myhive.backend.dto.ActivityExtraDTO;
 import com.myhive.backend.dto.VoteActivityResponse;
 import com.myhive.backend.dto.VoteBatchRequest;
 import com.myhive.backend.dto.VoteSessionActivityAddRequest;
@@ -10,7 +11,9 @@ import com.myhive.backend.dto.VoteSessionContactRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.dto.VoteTallyResponse;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.entity.VoteSessionResultActivity;
 import com.myhive.backend.exception.BadRequestException;
@@ -32,10 +35,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * Group vote v3: one ballot per friend with recommendations, the organiser dropping, restoring and
@@ -128,6 +133,35 @@ class VoteSessionGroupVoteTest {
 
         assertThat(voteSessionService.getActivities(session.getShareToken()))
                 .extracting(VoteActivityResponse::getName).containsExactly("AK-47 shooting", "Steak dinner", "Tank driving");
+    }
+
+    @Test
+    void getActivities_listsTheActivitysExtras_localisedUnderTheGivenLocale() {
+        String expectedName = "Private show";
+        String expectedGermanName = "Private Show";
+        String expectedGermanDescription = "Nur ab 18; Trinkgeld nicht inbegriffen.";
+        shooting.setExtras(List.of(new ActivityExtra("show", expectedName, "18+ only; tips not included.",
+                new BigDecimal("250.00"), ExtraPricing.PER_GROUP,
+                Map.of("de", Map.of("name", expectedGermanName, "description", expectedGermanDescription)))));
+        activityRepository.saveAndFlush(shooting);
+        VoteSessionResponse session = createVote(shooting, steak);
+
+        List<VoteActivityResponse> english = voteSessionService.getActivities(session.getShareToken());
+        List<VoteActivityResponse> german = voteSessionService.getActivities(session.getShareToken(), "de");
+
+        VoteActivityResponse englishShooting = english.stream()
+                .filter(a -> a.getId().equals(shooting.getId())).findFirst().orElseThrow();
+        assertThat(englishShooting.getExtras()).extracting(ActivityExtraDTO::getCode, ActivityExtraDTO::getName)
+                .containsExactly(tuple("show", expectedName));
+        assertThat(englishShooting.getExtras().getFirst().getPrice()).isEqualByComparingTo("250");
+        assertThat(englishShooting.getExtras().getFirst().getPricing()).isEqualTo(ExtraPricing.PER_GROUP);
+        VoteActivityResponse germanShooting = german.stream()
+                .filter(a -> a.getId().equals(shooting.getId())).findFirst().orElseThrow();
+        assertThat(germanShooting.getExtras()).extracting(ActivityExtraDTO::getName, ActivityExtraDTO::getDescription)
+                .containsExactly(tuple(expectedGermanName, expectedGermanDescription));
+        VoteActivityResponse steakRow = english.stream()
+                .filter(a -> a.getId().equals(steak.getId())).findFirst().orElseThrow();
+        assertThat(steakRow.getExtras()).isEmpty();
     }
 
     @Test

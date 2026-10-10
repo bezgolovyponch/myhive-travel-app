@@ -532,14 +532,17 @@ class ActivityServiceTest {
     }
 
     @Test
-    void getActivityById_withLocale_localisesExtraName() {
+    void getActivityById_withLocale_localisesExtraNameAndDescription() {
         String expectedName = "Private Show";
-        activity.setExtras(List.of(new ActivityExtra("show", "Private show", null, new BigDecimal("250.00"),
-                ExtraPricing.PER_GROUP, Map.of("de", Map.of("name", expectedName)))));
+        String expectedDescription = "Nur ab 18; Trinkgeld nicht inbegriffen.";
+        activity.setExtras(List.of(new ActivityExtra("show", "Private show", "18+ only; tips not included.",
+                new BigDecimal("250.00"), ExtraPricing.PER_GROUP,
+                Map.of("de", Map.of("name", expectedName, "description", expectedDescription)))));
         when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
 
         ActivityDTO result = activityService.getActivityById(activity.getId(), "de");
 
         assertThat(result.getExtras().getFirst().getName()).isEqualTo(expectedName);
+        assertThat(result.getExtras().getFirst().getDescription()).isEqualTo(expectedDescription);
     }
 }

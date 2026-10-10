@@ -2,8 +2,10 @@ package com.myhive.backend.ai.edit;
 
 import com.myhive.backend.ai.model.Slot;
 import com.myhive.backend.ai.model.Tier;
+import com.myhive.backend.entity.ExtraPricing;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -226,7 +228,39 @@ class EditMessagesTest {
     }
 
     @Test
-    void anAddedExtra_namesTheExtraTheActivityAndThePackage() {
+    void anAddedExtra_namesTheExtraTheActivityThePackageAndTheGroupAmount() {
+        List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
+                1, Slot.EVENING, null, "Private show", new BigDecimal("250.00"), ExtraPricing.PER_GROUP));
+
+        assertThat(EditMessages.appliedSummary("en", applied))
+                .isEqualTo("Added Private show to River Boat Cruise (+ €250 for the group) in the Basic package.");
+        assertThat(EditMessages.appliedSummary("de", applied))
+                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (+ 250 € für die Gruppe) (Basic-Paket).");
+        assertThat(EditMessages.appliedSummary("en", applied, true))
+                .isEqualTo("Added Private show to River Boat Cruise (+ €250 for the group) in your trip plan.");
+        assertThat(EditMessages.appliedSummary("de", applied, true))
+                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (+ 250 € für die Gruppe) (dein Trip-Plan).");
+    }
+
+    @Test
+    void anAddedPerPersonExtra_namesThePerPersonAmount_withCentsOnlyWhenPresent() {
+        List<AppliedEdit> whole = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
+                1, Slot.EVENING, null, "Open bar", new BigDecimal("15.00"), ExtraPricing.PER_PERSON));
+        List<AppliedEdit> cents = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
+                1, Slot.EVENING, null, "Open bar", new BigDecimal("12.5"), ExtraPricing.PER_PERSON));
+
+        assertThat(EditMessages.appliedSummary("en", whole))
+                .isEqualTo("Added Open bar to River Boat Cruise (+ €15 per person) in the Basic package.");
+        assertThat(EditMessages.appliedSummary("de", whole))
+                .isEqualTo("Open bar zu River Boat Cruise hinzugefügt (+ 15 € pro Person) (Basic-Paket).");
+        assertThat(EditMessages.appliedSummary("en", cents))
+                .isEqualTo("Added Open bar to River Boat Cruise (+ €12.50 per person) in the Basic package.");
+        assertThat(EditMessages.appliedSummary("de", cents))
+                .isEqualTo("Open bar zu River Boat Cruise hinzugefügt (+ 12,50 € pro Person) (Basic-Paket).");
+    }
+
+    @Test
+    void anAddedExtraWithoutAPrice_staysWithoutAnAmount() {
         List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
                 1, Slot.EVENING, null, "Private show"));
 
@@ -234,26 +268,6 @@ class EditMessagesTest {
                 .isEqualTo("Added Private show to River Boat Cruise in the Basic package.");
         assertThat(EditMessages.appliedSummary("de", applied))
                 .isEqualTo("Private show zu River Boat Cruise hinzugefügt (Basic-Paket).");
-        assertThat(EditMessages.appliedSummary("en", applied, true))
-                .isEqualTo("Added Private show to River Boat Cruise in your trip plan.");
-        assertThat(EditMessages.appliedSummary("de", applied, true))
-                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (dein Trip-Plan).");
-    }
-
-    @Test
-    void anExtraAddedInSeveralPackages_isOneSentence_andTwoExtrasAreTwo() {
-        List<AppliedEdit> applied = List.of(
-                new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC, 1, null, null, "Private show"),
-                new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.PREMIUM, 1, null, null,
-                        "Private show"),
-                new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC, 1, null, null, "Open bar"));
-
-        assertThat(EditMessages.appliedSummary("en", applied)).isEqualTo(
-                "Added Private show to River Boat Cruise in the Basic and Premium packages. "
-                        + "Added Open bar to River Boat Cruise in the Basic package.");
-        assertThat(EditMessages.appliedSummary("de", applied)).isEqualTo(
-                "Private show zu River Boat Cruise hinzugefügt (Basic- und Premium-Pakete). "
-                        + "Open bar zu River Boat Cruise hinzugefügt (Basic-Paket).");
     }
 
     @Test

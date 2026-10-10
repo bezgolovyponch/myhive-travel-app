@@ -859,6 +859,8 @@ class PackageEditorTest {
             assertThat(applied.op()).isEqualTo(EditOp.ADD_EXTRA);
             assertThat(applied.activityName()).isEqualTo(boat.name());
             assertThat(applied.extraName()).isEqualTo(expectedExtra);
+            assertThat(applied.extraPrice()).isEqualByComparingTo("250");
+            assertThat(applied.extraPricing()).isEqualTo(ExtraPricing.PER_GROUP);
             assertThat(applied.packageKey()).isEqualTo(Tier.BASIC);
             assertThat(applied.dayNumber()).isEqualTo(1);
             assertThat(applied.slot()).isEqualTo(Slot.AFTERNOON);

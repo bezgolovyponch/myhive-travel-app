@@ -7,7 +7,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
-/** Persists a list as one JSON TEXT column; null, empty and blank columns all read back as "none" (null). */
+/**
+ * Persists a list as one JSON TEXT column. A null or empty list is written as a null column; a null or blank
+ * column reads back as null, while a stored {@code []} reads back as an empty list.
+ */
 public abstract class JsonListConverter<T> implements AttributeConverter<List<T>, String> {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();

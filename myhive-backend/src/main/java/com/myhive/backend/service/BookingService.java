@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.BookingDTO;
 import com.myhive.backend.dto.BookingItemDTO;
+import com.myhive.backend.dto.BookingItemExtraDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
 import com.myhive.backend.dto.TripExportRequest;
@@ -514,7 +515,8 @@ public class BookingService {
         dto.setPackageId(item.getPkg() != null ? item.getPkg().getId() : null);
         dto.setPackageName(item.getPackageName());
         dto.setPackageDiscountPct(item.getPackageDiscountPct());
-        dto.setExtras(item.getExtras() == null ? List.of() : item.getExtras());
+        dto.setExtras(item.getExtras() == null ? List.of()
+                : item.getExtras().stream().map(BookingItemExtraDTO::of).toList());
         return dto;
     }
 

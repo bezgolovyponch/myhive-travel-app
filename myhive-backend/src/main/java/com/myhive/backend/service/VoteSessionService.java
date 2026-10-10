@@ -986,6 +986,7 @@ public class VoteSessionService {
                 activity.getImageUrl(),
                 activity.getSlug(),
                 destinationSlug,
-                dayNumber);
+                dayNumber,
+                ActivityExtras.toDtos(activity.getExtras(), lc));
     }
 }

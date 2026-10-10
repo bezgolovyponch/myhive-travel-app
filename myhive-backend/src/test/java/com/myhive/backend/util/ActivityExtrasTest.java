@@ -49,6 +49,27 @@ class ActivityExtrasTest {
     }
 
     @Test
+    void normalizeRejectsFieldsOverTheirLimitsBlankNamesAndPricesFinerThanCents() {
+        assertThrows(IllegalArgumentException.class, () -> ActivityExtras.normalize(List.of(
+                new ActivityExtra("x", "n".repeat(81), null, BigDecimal.ONE, ExtraPricing.PER_GROUP, null))));
+        assertThrows(IllegalArgumentException.class, () -> ActivityExtras.normalize(List.of(
+                new ActivityExtra("x", "X", "d".repeat(301), BigDecimal.ONE, ExtraPricing.PER_GROUP, null))));
+        assertThrows(IllegalArgumentException.class, () -> ActivityExtras.normalize(List.of(
+                new ActivityExtra("c".repeat(41), "X", null, BigDecimal.ONE, ExtraPricing.PER_GROUP, null))));
+        assertThrows(IllegalArgumentException.class, () -> ActivityExtras.normalize(List.of(
+                new ActivityExtra("x", "X", null, new BigDecimal("1.005"), ExtraPricing.PER_GROUP, null))));
+        assertThrows(IllegalArgumentException.class, () -> ActivityExtras.normalize(List.of(
+                new ActivityExtra("x", "   ", null, BigDecimal.ONE, ExtraPricing.PER_GROUP, null))));
+    }
+
+    @Test
+    void normalizeAcceptsFieldsExactlyAtTheirLimits() {
+        List<ActivityExtra> result = ActivityExtras.normalize(List.of(new ActivityExtra("c".repeat(40), "n".repeat(80),
+                "d".repeat(300), new BigDecimal("1.50"), ExtraPricing.PER_GROUP, null)));
+        assertEquals(1, result.size());
+    }
+
+    @Test
     void parseJsonAndCanonicalJsonRoundTrip() {
         String expectedJson = "[{\"code\":\"private-show\",\"name\":\"Private show\",\"description\":\"15 min\","
                 + "\"price\":250.00,\"pricing\":\"PER_GROUP\",\"translations\":{\"de\":{\"name\":\"Private Show\"}}}]";

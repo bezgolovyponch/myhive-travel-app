@@ -379,8 +379,9 @@ takes its ops with it: nothing was applied, no `EDITED` row exists, and the next
 message starts from the packages that were already on screen. Re-send the text to
 try again — the batch is never applied late.
 
-Six ops: the four below that place, drop, swap or move activities (`MOVE` is
-described with the edits endpoint), and the two extra ops after them. Each names a
+Six ops: the three below that place, drop or swap activities, `MOVE` (which moves
+an activity to another day and is described with the edits endpoint), and the two
+extra ops after them. Each names a
 catalog activity by its display name and optionally a `packageKey`
 (`BASIC`\|`MEDIUM`\|`PREMIUM`) to scope it to one package:
 - **ADD** — put an activity into a package. Left untargeted, it is attempted
@@ -398,6 +399,11 @@ schedule is never re-checked for them:
 - **ADD_EXTRA** — choose the extra on that activity. Left untargeted, it is
   attempted against every package that holds the activity.
 - **REMOVE_EXTRA** — drop a chosen extra. Same untargeted behaviour.
+
+The confirmation line of an applied `ADD_EXTRA` states what the extra costs ("Added
+Private show to River Boat Cruise (+ €250 for the group) in the Basic package." /
+"(+ €15 per person)"; German "(+ 250 € für die Gruppe)"); `edit.applied[]` itself
+carries no amount.
 
 The extra is resolved against the extras **that activity** offers (exact name
 first, then a unique partial match); one it does not offer comes back

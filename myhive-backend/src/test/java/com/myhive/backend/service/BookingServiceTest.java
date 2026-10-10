@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.BookingDTO;
+import com.myhive.backend.dto.BookingItemExtraDTO;
 import com.myhive.backend.dto.BookingStatsDTO;
 import com.myhive.backend.dto.CreateBookingRequest;
 import com.myhive.backend.dto.TripExportRequest;
@@ -13,6 +14,8 @@ import com.myhive.backend.entity.BookingItemExtra;
 import com.myhive.backend.entity.BookingPaymentShare;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.ExtraPricing;
+import com.myhive.backend.entity.Package;
+import com.myhive.backend.entity.PackageActivity;
 import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.PaymentGatewayException;
 import com.myhive.backend.exception.ResourceNotFoundException;
@@ -563,7 +566,7 @@ class BookingServiceTest {
     void packageBookingAppliesDiscountToTotal() {
         Activity a1 = TestDataFactory.activity(destination); a1.setPrice(new BigDecimal("100.00"));
         Activity a2 = TestDataFactory.activity(destination); a2.setPrice(new BigDecimal("200.00"));
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        Package pkg = TestDataFactory.pkg(destination);
         pkg.setDiscountPct(new BigDecimal("10.00"));
 
         when(activityRepository.findById(a1.getId())).thenReturn(Optional.of(a1));
@@ -629,9 +632,9 @@ class BookingServiceTest {
         // The paid flow must apply the persisted catalog discount (10%), never the request value.
         Activity a1 = TestDataFactory.activity(destination);
         a1.setPrice(new BigDecimal("100.00"));
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        Package pkg = TestDataFactory.pkg(destination);
         pkg.setDiscountPct(new BigDecimal("10.00"));
-        com.myhive.backend.entity.PackageActivity pa = new com.myhive.backend.entity.PackageActivity();
+        PackageActivity pa = new PackageActivity();
         pa.setActivity(a1);
         pkg.setPackageActivities(List.of(pa));
 
@@ -685,7 +688,7 @@ class BookingServiceTest {
         // C1: a real activity cannot borrow a different package's discount — membership is verified.
         Activity a1 = TestDataFactory.activity(destination);
         a1.setPrice(new BigDecimal("100.00"));
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination); // empty packageActivities
+        Package pkg = TestDataFactory.pkg(destination); // empty packageActivities
         when(activityRepository.findById(a1.getId())).thenReturn(Optional.of(a1));
         when(packageRepository.findById(pkg.getId())).thenReturn(Optional.of(pkg));
 
@@ -794,8 +797,8 @@ class BookingServiceTest {
 
     @Test
     void verifyChargeablePricing_passes_forPackageBookingMatchingCatalog() {
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination); // catalog discount 15%
-        com.myhive.backend.entity.PackageActivity pa = new com.myhive.backend.entity.PackageActivity();
+        Package pkg = TestDataFactory.pkg(destination); // catalog discount 15%
+        PackageActivity pa = new PackageActivity();
         pa.setActivity(activity);
         pkg.setPackageActivities(List.of(pa));
         BookingItem item = chargeableItem(activity, new BigDecimal("100.00"), 1);
@@ -823,8 +826,8 @@ class BookingServiceTest {
     @Test
     void verifyChargeablePricing_rejectsDiscountSnapshotMismatch() {
         // C1: a crafted lead booking with packageDiscountPct=99 while the catalog says 15 must not be charged.
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
-        com.myhive.backend.entity.PackageActivity pa = new com.myhive.backend.entity.PackageActivity();
+        Package pkg = TestDataFactory.pkg(destination);
+        PackageActivity pa = new PackageActivity();
         pa.setActivity(activity);
         pkg.setPackageActivities(List.of(pa));
         BookingItem item = chargeableItem(activity, new BigDecimal("100.00"), 1);
@@ -841,7 +844,7 @@ class BookingServiceTest {
     @Test
     void verifyChargeablePricing_rejectsActivityNotInPackage() {
         // C1: an activity cannot borrow another package's discount — membership is re-verified.
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination); // empty packageActivities
+        Package pkg = TestDataFactory.pkg(destination); // empty packageActivities
         BookingItem item = chargeableItem(activity, new BigDecimal("100.00"), 1);
         item.setPkg(pkg);
         item.setPackageDiscountPct(pkg.getDiscountPct());
@@ -925,7 +928,7 @@ class BookingServiceTest {
         floored.setMinPrice(new BigDecimal("300.00"));
         Activity regular = TestDataFactory.activity(destination);
         regular.setPrice(new BigDecimal("40.00"));
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        Package pkg = TestDataFactory.pkg(destination);
 
         TripExportRequest request = TestDataFactory.tripExportRequest();
         TripExportRequest.ActivityExport ae1 = new TripExportRequest.ActivityExport();
@@ -994,9 +997,9 @@ class BookingServiceTest {
         activity.setPrice(new BigDecimal("100.00"));
         activity.setExtras(List.of(new ActivityExtra("private-show", "Private show", null,
                 new BigDecimal("50.00"), ExtraPricing.PER_GROUP, null)));
-        com.myhive.backend.entity.Package pkg = TestDataFactory.pkg(destination);
+        Package pkg = TestDataFactory.pkg(destination);
         pkg.setDiscountPct(new BigDecimal("10.00"));
-        com.myhive.backend.entity.PackageActivity membership = new com.myhive.backend.entity.PackageActivity();
+        PackageActivity membership = new PackageActivity();
         membership.setActivity(activity);
         pkg.setPackageActivities(List.of(membership));
         when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
@@ -1085,9 +1088,8 @@ class BookingServiceTest {
         BookingDTO dto = bookingService.createBookingFromExport(
                 extrasRequest(activity.getId(), null, extraRef(expectedCode)));
 
-        assertThat(dto.getItems().getFirst().getExtras())
-                .extracting(BookingItemExtra::code)
-                .containsExactly(expectedCode);
+        assertThat(dto.getItems().getFirst().getExtras()).containsExactly(new BookingItemExtraDTO(expectedCode,
+                "Private show", new BigDecimal("250.00"), ExtraPricing.PER_GROUP));
     }
 
     @Test

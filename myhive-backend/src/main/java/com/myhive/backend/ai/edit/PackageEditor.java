@@ -12,9 +12,11 @@ import com.myhive.backend.ai.plan.PlanDrafts;
 import com.myhive.backend.ai.plan.PlanValidator;
 import com.myhive.backend.ai.plan.Violation;
 import com.myhive.backend.ai.plan.ViolationCode;
+import com.myhive.backend.entity.ExtraPricing;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -298,7 +300,8 @@ public class PackageEditor {
             return working;
         }
         applied.add(new AppliedEdit(edit.op(), activity.name(), subjects.replacementName(), target,
-                outcome.dayNumber(), outcome.slot(), outcome.placedActivityId(), subjects.extraName()));
+                outcome.dayNumber(), outcome.slot(), outcome.placedActivityId(), subjects.extraName(),
+                subjects.extraPrice(), subjects.extraPricing()));
         return PlanDrafts.replacePackage(working, outcome.pkg());
     }
 
@@ -767,6 +770,14 @@ public class PackageEditor {
 
         String extraName() {
             return extra == null ? null : extra.name();
+        }
+
+        BigDecimal extraPrice() {
+            return extra == null ? null : extra.price();
+        }
+
+        ExtraPricing extraPricing() {
+            return extra == null ? null : extra.pricing();
         }
     }
 
