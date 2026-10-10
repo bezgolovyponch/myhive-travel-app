@@ -2,6 +2,7 @@ package com.myhive.backend.util;
 
 import com.myhive.backend.dto.ActivityExtraDTO;
 import com.myhive.backend.entity.ActivityExtra;
+import com.myhive.backend.exception.BadRequestException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -50,6 +51,9 @@ public final class ActivityExtras {
     }
 
     private static ActivityExtra normalizeOne(ActivityExtra extra) {
+        if (extra == null) {
+            throw new IllegalArgumentException("extra must not be null");
+        }
         String name = trimToNull(extra.name());
         if (name == null) {
             throw new IllegalArgumentException("extra name is required");
@@ -62,7 +66,7 @@ public final class ActivityExtras {
             throw new IllegalArgumentException("extra description must be at most " + MAX_DESCRIPTION + " characters");
         }
         String rawCode = trimToNull(extra.code());
-        String code = SlugUtils.generateSlug(rawCode == null ? name : rawCode);
+        String code = slugOf(rawCode == null ? name : rawCode);
         if (code.length() > MAX_CODE) {
             throw new IllegalArgumentException("extra code must be at most " + MAX_CODE + " characters");
         }
@@ -82,6 +86,14 @@ public final class ActivityExtras {
                 extra.pricing(), translations);
     }
 
+    private static String slugOf(String source) {
+        try {
+            return SlugUtils.generateSlug(source);
+        } catch (BadRequestException e) {
+            throw new IllegalArgumentException("extra '" + source + "' needs a code of letters or digits", e);
+        }
+    }
+
     private static String trimToNull(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -95,7 +107,7 @@ public final class ActivityExtras {
             return null;
         }
         List<ActivityExtra> extras = dtos.stream()
-                .map(dto -> new ActivityExtra(dto.getCode(), dto.getName(), dto.getDescription(), dto.getPrice(),
+                .map(dto -> dto == null ? null : new ActivityExtra(dto.getCode(), dto.getName(), dto.getDescription(), dto.getPrice(),
                         dto.getPricing(), dto.getTranslations()))
                 .toList();
         return normalize(extras);
@@ -116,12 +128,16 @@ public final class ActivityExtras {
     }
 
     public static List<ActivityExtra> parseJson(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        List<ActivityExtra> parsed;
         try {
-            List<ActivityExtra> parsed = MAPPER.readValue(json, new TypeReference<List<ActivityExtra>>() {});
-            return normalize(parsed);
+            parsed = MAPPER.readValue(json, new TypeReference<List<ActivityExtra>>() {});
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("extras is not a JSON array of extras: " + e.getMessage(), e);
         }
+        return parsed == null ? List.of() : normalize(parsed);
     }
 
     /** Stable text form (used by the CSV round trip); empty string when there are no extras. */
