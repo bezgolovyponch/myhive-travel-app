@@ -1,0 +1,102 @@
+[
+  {
+    "slug": "guided-bar-crawl",
+    "source": "pexels",
+    "photoId": "5858194",
+    "pageUrl": "https://www.pexels.com/photo/hands-holding-glasses-of-beer-5858194/",
+    "photographer": "Pavel Danilyuk",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/5858194/pexels-photo-5858194.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "classic-beer-bike",
+    "source": "pexels",
+    "photoId": "1102967",
+    "pageUrl": "https://www.pexels.com/photo/photograph-of-people-riding-on-vehicle-1102967/",
+    "photographer": "Brett Sayles",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/1102967/pexels-photo-1102967.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "escape-room-challenge",
+    "source": "pexels",
+    "photoId": "10473517",
+    "pageUrl": "https://www.pexels.com/photo/metal-keys-hanging-in-row-10473517/",
+    "photographer": "Ron Lach",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/10473517/pexels-photo-10473517.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "medieval-sword-fighting",
+    "source": "pexels",
+    "photoId": "13172739",
+    "pageUrl": "https://www.pexels.com/photo/knight-during-reenactment-13172739/",
+    "photographer": "Kostiantyn Klymovets",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/13172739/pexels-photo-13172739.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "segway-tour",
+    "source": "pexels",
+    "photoId": "29358493",
+    "pageUrl": "https://www.pexels.com/photo/exploring-alicante-on-segways-in-summer-29358493/",
+    "photographer": "Ana Hidalgo Burgos Burgos",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/29358493/pexels-photo-29358493.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "brewery-tour",
+    "source": "pexels",
+    "photoId": "19691954",
+    "pageUrl": "https://www.pexels.com/photo/interior-of-brewery-museum-19691954/",
+    "photographer": "Rasmus Andersen",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/19691954/pexels-photo-19691954.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "ice-bar",
+    "source": "pexels",
+    "photoId": "35775285",
+    "pageUrl": "https://www.pexels.com/photo/enchanting-ice-hall-in-kiruna-sweden-35775285/",
+    "photographer": "Tobias",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/35775285/pexels-photo-35775285.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "rage-room",
+    "source": "pexels",
+    "photoId": "6110252",
+    "pageUrl": "https://www.pexels.com/photo/white-and-black-stick-on-brown-sand-6110252/",
+    "photographer": "cottonbro studio",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/6110252/pexels-photo-6110252.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "summer-bobsled",
+    "source": "pexels",
+    "photoId": "33675423",
+    "pageUrl": "https://www.pexels.com/photo/exhilarating-mountain-coaster-ride-in-brazil-33675423/",
+    "photographer": "Luana Scorsoni",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/33675423/pexels-photo-33675423.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  },
+  {
+    "slug": "football-match-tickets",
+    "source": "pexels",
+    "photoId": "30651230",
+    "pageUrl": "https://www.pexels.com/photo/illuminated-soccer-stadium-at-night-with-crowd-30651230/",
+    "photographer": "George Zografidis",
+    "licenseUrl": "https://www.pexels.com/license/",
+    "imageUrl": "https://images.pexels.com/photos/30651230/pexels-photo-30651230.jpeg?auto=compress&cs=tinysrgb&w=1200&h=900&fit=crop",
+    "fetchedAt": "2026-10-10"
+  }
+]
