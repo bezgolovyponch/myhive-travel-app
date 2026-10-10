@@ -8,8 +8,10 @@ import com.myhive.backend.dto.VoteResultResponse;
 import com.myhive.backend.dto.VoteSessionCreateRequest;
 import com.myhive.backend.dto.VoteSessionResponse;
 import com.myhive.backend.entity.Activity;
+import com.myhive.backend.entity.ActivityExtra;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.entity.VoteActivityLike;
 import com.myhive.backend.entity.VoteSession;
 import com.myhive.backend.exception.ResultNotReadyException;
@@ -28,6 +30,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -143,6 +146,29 @@ class VoteSessionGetResultTest {
         // 2 travelers × €50 = €100 < €300 -> the estimate uses the group minimum,
         // matching what the Trip Builder will compute after hydration.
         assertThat(response.getTotalPrice()).isEqualByComparingTo(expectedGroupMinimum);
+    }
+
+    @Test
+    void getResult_listsTheActivityExtrasLocalised() {
+        String expectedGermanName = "Private Show";
+        Destination destination = saveDest();
+        Category nightlife = saveCat("Nightlife", "nightlife", true);
+        attachCat(destination, nightlife);
+        Activity activity = saveAct(destination, "Boat Rental", new BigDecimal("50.00"), 5, Set.of(nightlife));
+        activity.setExtras(List.of(new ActivityExtra("private-show", "Private show", null, new BigDecimal("250.00"),
+                ExtraPricing.PER_GROUP, Map.of("de", Map.of("name", expectedGermanName)))));
+        activityRepository.save(activity);
+
+        VoteSession session = createAndPopulate(destination, null, List.of(activity.getId()), List.of(), 2);
+        like(session, activity, true);
+        voteSessionService.closeSession(session.getShareToken(), session.getManagerToken());
+        VoteResultResponse response = voteSessionService.getResult(session.getShareToken(), "de");
+
+        ResultActivityDTO row = response.getResult().getFirst();
+        assertThat(row.getExtras()).hasSize(1);
+        assertThat(row.getExtras().getFirst().getName()).isEqualTo(expectedGermanName);
+        // Extras are optional: the vote estimate stays the floored base only.
+        assertThat(response.getTotalPrice()).isEqualByComparingTo("100.00");
     }
 
     // ---- helpers ----
