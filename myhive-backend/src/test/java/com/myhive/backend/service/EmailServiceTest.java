@@ -257,6 +257,29 @@ class EmailServiceTest {
     }
 
     @Test
+    void buildDestinationViews_labelsANamelessExtraByItsCodeAndSkipsOneWithNoLabel() {
+        String expectedLabel = "photographer";
+        TripExportRequest.ActivityExport karting = new TripExportRequest.ActivityExport();
+        karting.setActivityName("Karting");
+        karting.setPrice(40.0);
+        karting.setExtras(List.of(
+                new TripExportRequest.ExtraExport(expectedLabel, " ", new BigDecimal("15.00"), ExtraPricing.PER_PERSON),
+                new TripExportRequest.ExtraExport(null, null, new BigDecimal("50.00"), ExtraPricing.PER_GROUP)));
+        TripExportRequest.DestinationExport dest = new TripExportRequest.DestinationExport();
+        dest.setDestinationName("Prague");
+        dest.setActivities(List.of(karting));
+        TripExportRequest req = new TripExportRequest();
+        req.setNumberOfTravelers(2);
+        req.setDestinations(List.of(dest));
+
+        List<EmailService.DestinationView> views = emailService.buildDestinationViews(req);
+
+        assertThat(views.getFirst().standaloneActivities.getFirst().extras)
+                .extracting(extra -> extra.name)
+                .containsExactly(expectedLabel);
+    }
+
+    @Test
     void sendContactNotification_sendsSynchronouslyViaMailSender() {
         ContactRequest request = new ContactRequest();
         request.setName("Bob");

@@ -1090,6 +1090,62 @@ class BookingServiceTest {
                 .containsExactly(expectedCode);
     }
 
+    @Test
+    void createBookingFromExport_emailsItemiseTheBookedSnapshotNotTheRequest() {
+        // Lenient flow: the forged name/price/pricing and the unknown code must not reach either email.
+        TripExportRequest.ExtraExport expectedExtra = new TripExportRequest.ExtraExport(
+                "private-show", "Private show", new BigDecimal("250.00"), ExtraPricing.PER_GROUP);
+        activity.setExtras(List.of(privateShow()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        TripExportRequest request = extrasRequest(activity.getId(), null,
+                new TripExportRequest.ExtraExport("private-show", "Free show", BigDecimal.ONE, ExtraPricing.PER_PERSON),
+                new TripExportRequest.ExtraExport("nope", "Ghost extra", new BigDecimal("99.00"), ExtraPricing.PER_GROUP));
+
+        bookingService.createBookingFromExport(request);
+
+        ArgumentCaptor<TripExportRequest> confirmation = ArgumentCaptor.forClass(TripExportRequest.class);
+        verify(emailService).sendItineraryConfirmation(any(), any(), confirmation.capture(), any());
+        ArgumentCaptor<TripExportRequest> notification = ArgumentCaptor.forClass(TripExportRequest.class);
+        verify(emailService).sendBookingNotification(any(), notification.capture());
+        for (TripExportRequest emailed : List.of(confirmation.getValue(), notification.getValue())) {
+            assertThat(emailed.getDestinations().getFirst().getActivities().getFirst().getExtras())
+                    .containsExactly(expectedExtra);
+        }
+    }
+
+    @Test
+    void createBookingFromExport_codesOnlyRequestStillEmailsTheExtras() {
+        String expectedName = "Private show";
+        activity.setExtras(List.of(privateShow()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        bookingService.createBookingFromExport(extrasRequest(activity.getId(), null, extraRef("private-show")));
+
+        ArgumentCaptor<TripExportRequest> confirmation = ArgumentCaptor.forClass(TripExportRequest.class);
+        verify(emailService).sendItineraryConfirmation(any(), any(), confirmation.capture(), any());
+        TripExportRequest.ExtraExport emailed =
+                confirmation.getValue().getDestinations().getFirst().getActivities().getFirst().getExtras().getFirst();
+        assertThat(emailed.getName()).isEqualTo(expectedName);
+        assertThat(emailed.getPrice()).isEqualByComparingTo("250.00");
+    }
+
+    @Test
+    void paddedExtraCodeResolvesUnderTrustedPricing() {
+        String expectedCode = "private-show";
+        activity.setExtras(List.of(privateShow()));
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking booking = bookingService.createBookingEntity(
+                extrasRequest(activity.getId(), null, extraRef("  private-show ")), true);
+
+        assertThat(booking.getBookingItems().getFirst().getExtras())
+                .extracting(BookingItemExtra::code)
+                .containsExactly(expectedCode);
+    }
+
     private static ActivityExtra privateShow() {
         return new ActivityExtra("private-show", "Private show", null, new BigDecimal("250.00"),
                 ExtraPricing.PER_GROUP, null);

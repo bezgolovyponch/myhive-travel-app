@@ -673,23 +673,31 @@ public class EmailService {
         return views;
     }
 
-    /** The line's extras priced for the group; an entry without a price or pricing mode is not shown. */
+    /**
+     * The line's extras priced for the group. A nameless extra is labelled by its code; one without a label, a
+     * price or a pricing mode is not shown.
+     */
     private static List<ExtraLineView> extraLines(List<TripExportRequest.ExtraExport> extras, int travelers) {
         List<ExtraLineView> lines = new ArrayList<>();
         if (extras == null) {
             return lines;
         }
         for (TripExportRequest.ExtraExport extra : extras) {
-            if (extra.getPrice() == null || extra.getPricing() == null) {
+            String label = isBlank(extra.getName()) ? extra.getCode() : extra.getName();
+            if (isBlank(label) || extra.getPrice() == null || extra.getPricing() == null) {
                 continue;
             }
             ExtraLineView line = new ExtraLineView();
-            line.name = extra.getName();
+            line.name = label;
             line.amount = extra.getPricing().amount(extra.getPrice(), travelers);
             line.perPerson = extra.getPricing() == ExtraPricing.PER_PERSON;
             lines.add(line);
         }
         return lines;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /** True when price × travelers < minPrice — the booked total for this line is the group minimum. */

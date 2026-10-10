@@ -247,11 +247,13 @@ public class BookingService {
         }
         Map<String, BookingItemExtra> resolved = new LinkedHashMap<>();
         for (TripExportRequest.ExtraExport wanted : requested) {
-            Optional<ActivityExtra> extra = ActivityExtras.byCode(activity.getExtras(), wanted.getCode());
+            // Stripped like PriceQuoteService.Line does, so a code the quote priced is never a 400 here.
+            String code = wanted.getCode() == null ? null : wanted.getCode().strip();
+            Optional<ActivityExtra> extra = ActivityExtras.byCode(activity.getExtras(), code);
             if (extra.isEmpty()) {
                 if (enforceTrustedPricing) {
                     throw new BadRequestException(
-                            "Unknown extra '" + wanted.getCode() + "' for activity " + activity.getId());
+                            "Unknown extra '" + code + "' for activity " + activity.getId());
                 }
                 continue;
             }
@@ -354,6 +356,23 @@ public class BookingService {
         return request;
     }
 
+    /**
+     * The emails render the request, so its extras are replaced by what was booked: the catalog snapshot, never
+     * the client's names or prices, and without the codes the lenient flow dropped. createBookingEntity makes
+     * exactly one item per request activity, in request order, which is how they are matched here.
+     */
+    private static void itemiseBookedExtras(TripExportRequest request, Booking saved) {
+        List<BookingItem> items = saved.getBookingItems();
+        int index = 0;
+        for (TripExportRequest.DestinationExport dest : request.getDestinations()) {
+            for (TripExportRequest.ActivityExport activity : dest.getActivities()) {
+                List<BookingItemExtra> booked = index < items.size() ? items.get(index).getExtras() : null;
+                activity.setExtras(toExtraExports(booked));
+                index++;
+            }
+        }
+    }
+
     private static List<TripExportRequest.ExtraExport> toExtraExports(List<BookingItemExtra> extras) {
         if (extras == null) {
             return List.of();
@@ -366,6 +385,7 @@ public class BookingService {
     @Transactional
     public BookingDTO createBookingFromExport(TripExportRequest request) {
         Booking saved = createBookingEntity(request);
+        itemiseBookedExtras(request, saved);
 
         try {
             emailService.sendItineraryConfirmation(saved.getUserEmail(), saved.getCustomerName(), request, saved.getTripId());
