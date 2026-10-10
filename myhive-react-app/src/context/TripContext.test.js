@@ -243,6 +243,52 @@ describe('reducer — trip builder, items and packages', () => {
         expect(state.tripItems).toEqual([packagedWinner]);
     });
 
+    it('SET_ITEM_EXTRAS replaces the ticked extras on that item only', () => {
+        const expectedCodes = ['show'];
+        const other = {id: '2', name: 'Pub', price: 20, selectedExtras: ['photo']};
+        const prev = {...initialState, tripItems: [{id: '1', name: 'Karting', price: 40, selectedExtras: []}, other]};
+        const state = reducer(prev, {type: 'SET_ITEM_EXTRAS', id: '1', selectedExtras: expectedCodes});
+        expect(state.tripItems[0].selectedExtras).toEqual(expectedCodes);
+        expect(state.tripItems[1]).toBe(other);
+    });
+
+    it('SET_TRIP_ITEMS_FROM_VOTE keeps the extras the organizer ticked before the vote', () => {
+        const expectedExtras = [{code: 'show', name: 'Show', price: 250, pricing: 'PER_GROUP'}];
+        const expectedCodes = ['show'];
+        const prev = {
+            ...initialState,
+            tripItems: [{id: '3', name: 'Diving', price: 50, extras: expectedExtras, selectedExtras: expectedCodes}],
+        };
+        const state = reducer(prev, {
+            type: 'SET_TRIP_ITEMS_FROM_VOTE',
+            winners: [{id: '3', name: 'Diving', price: 50, extras: []}],
+        });
+        expect(state.tripItems[0].extras).toEqual(expectedExtras);
+        expect(state.tripItems[0].selectedExtras).toEqual(expectedCodes);
+    });
+
+    it('SET_TRIP_ITEMS_FROM_VOTE prefers the winner\'s fresh extras list', () => {
+        const expectedExtras = [{code: 'photo', name: 'Photo', price: 15, pricing: 'PER_PERSON'}];
+        const prev = {
+            ...initialState,
+            tripItems: [{id: '3', name: 'Diving', price: 50,
+                extras: [{code: 'show', name: 'Show', price: 250, pricing: 'PER_GROUP'}], selectedExtras: ['photo']}],
+        };
+        const state = reducer(prev, {
+            type: 'SET_TRIP_ITEMS_FROM_VOTE',
+            winners: [{id: '3', name: 'Diving', price: 50, extras: expectedExtras}],
+        });
+        expect(state.tripItems[0].extras).toEqual(expectedExtras);
+        expect(state.tripItems[0].selectedExtras).toEqual(['photo']);
+    });
+
+    it('RESTORE_FROM_STORAGE leaves extras fields of a legacy cart undefined', () => {
+        const legacyItem = {id: '1', name: 'Karting', price: 40};
+        const state = reducer(initialState, {type: 'RESTORE_FROM_STORAGE', saved: {tripItems: [legacyItem]}});
+        expect(state.tripItems[0].extras).toBeUndefined();
+        expect(state.tripItems[0].selectedExtras).toBeUndefined();
+    });
+
     it('REMOVE_PACKAGE_FROM_TRIP removes all items belonging to a package', () => {
         const prev = {
             ...initialState,

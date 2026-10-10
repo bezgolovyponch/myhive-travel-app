@@ -627,6 +627,29 @@ test('A19: createBookingFromTrip includes ref: null when getRef returns null', a
     expect(bookingData.ref).toBeNull();
 });
 
+test('the booking carries the ticked extras of each activity, without their descriptions', async () => {
+    const user = userEvent.setup();
+    const expectedExtra = { code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP' };
+    const item = {
+        ...activity1,
+        extras: [
+            { ...expectedExtra, description: 'Just your group' },
+            { code: 'photo', name: 'Photos', description: 'A photographer', price: 15, pricing: 'PER_PERSON' },
+        ],
+        selectedExtras: ['show'],
+    };
+    renderTripBuilder(buildTripState({ tripItems: [item] }));
+
+    await user.click(screen.getByRole('button', {name: /Complete Booking/i}));
+    await fillAndSubmitContactForm(user);
+
+    await waitFor(() => {
+        expect(api.createBookingFromTrip).toHaveBeenCalledTimes(1);
+    });
+    const [bookingData] = api.createBookingFromTrip.mock.calls[0];
+    expect(bookingData.destinations[0].activities[0].extras).toEqual([expectedExtra]);
+});
+
 // ---------------------------------------------------------------------------
 // A19 — multi-activity trip: value uses computeTripTotal
 // ---------------------------------------------------------------------------
@@ -782,7 +805,7 @@ describe('plan price', () => {
 
         expect(await screen.findByText('from €1,161')).toBeInTheDocument();
         expect(screen.getByText('Your plan')).toBeInTheDocument();
-        expect(pricingApi.quote).toHaveBeenCalledWith({ items: [{ activityId: 'a1', packageId: null }], travelers: 4 });
+        expect(pricingApi.quote).toHaveBeenCalledWith({ items: [{ activityId: 'a1', packageId: null, extraCodes: [] }], travelers: 4 });
         expect(screen.queryByText(/€50|× 4|person/)).not.toBeInTheDocument();
     });
 
@@ -1624,7 +1647,8 @@ describe('vote button after a completed QUIZ vote', () => {
 describe('QUIZ vote result replaces the cart', () => {
     const winner = { activityId: 'a-win', name: 'Bar Crawl', price: 45, minPrice: 180,
         slug: 'bar-crawl', destinationSlug: 'prague', imageUrl: 'bar.jpg',
-        duration: '3h', description: 'Pubs.', includes: 'Guide' };
+        duration: '3h', description: 'Pubs.', includes: 'Guide',
+        extras: [{ code: 'vip', name: 'VIP entry', description: 'Skip the queue', price: 60, pricing: 'PER_GROUP' }] };
     const quizResult = {
         voteMode: 'QUIZ', participantCount: 2, numberOfTravelers: 2,
         result: [winner], suggestions: [],
@@ -1667,6 +1691,7 @@ describe('QUIZ vote result replaces the cart', () => {
                     id: 'a-win', name: 'Bar Crawl', price: 45, minPrice: 180,
                     slug: 'bar-crawl', destinationSlug: 'prague', imageUrl: 'bar.jpg',
                     duration: '3h', description: 'Pubs.', includes: 'Guide',
+                    extras: [{ code: 'vip', name: 'VIP entry', description: 'Skip the queue', price: 60, pricing: 'PER_GROUP' }],
                 }],
             });
         });

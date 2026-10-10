@@ -1,4 +1,51 @@
-import {computeTripTotal, groupTripItems, lineTotal, groupMinApplied} from './tripPricing';
+import {
+    baseLineTotal,
+    computeTripTotal,
+    extraAmount,
+    extrasOf,
+    extrasTotal,
+    groupMinApplied,
+    groupTripItems,
+    lineTotal,
+} from './tripPricing';
+
+describe('extras', () => {
+    test('extras are added on top of the floored base and never discounted', () => {
+        const item = {id: 'a', price: 40, minPrice: 120, extras: [
+            {code: 'show', name: 'Show', price: 250, pricing: 'PER_GROUP'},
+            {code: 'photo', name: 'Photo', price: 15, pricing: 'PER_PERSON'}], selectedExtras: ['show', 'photo']};
+        expect(lineTotal(item, 2)).toBe(400);          // 120 + 250 + 30
+        expect(groupMinApplied(item, 2)).toBe(true);
+        const packaged = {...item, id: 'b', packageId: 'p', packageDiscountPct: 50, minPrice: 0, price: 100};
+        expect(computeTripTotal([packaged], 2)).toBe(380); // 200 × 50 % + 250 + 30
+    });
+
+    test('a legacy cart item without extras fields prices as before', () => {
+        expect(lineTotal({id: 'a', price: 50}, 3)).toBe(150);
+    });
+
+    test('only the ticked extras count', () => {
+        const expectedExtra = {code: 'show', name: 'Show', price: 250, pricing: 'PER_GROUP'};
+        const item = {id: 'a', price: 40, extras: [
+            expectedExtra,
+            {code: 'photo', name: 'Photo', price: 15, pricing: 'PER_PERSON'}], selectedExtras: ['show']};
+        expect(extrasOf(item)).toEqual([expectedExtra]);
+        expect(extrasTotal(item, 4)).toBe(250);
+        expect(extrasTotal({...item, selectedExtras: []}, 4)).toBe(0);
+    });
+
+    test('a per-person extra is multiplied by the travellers, a per-group one is flat', () => {
+        expect(extraAmount({price: 15, pricing: 'PER_PERSON'}, 4)).toBe(60);
+        expect(extraAmount({price: 250, pricing: 'PER_GROUP'}, 4)).toBe(250);
+    });
+
+    test('the group minimum is judged on the base alone', () => {
+        const item = {id: 'a', price: 50, minPrice: 120, extras: [
+            {code: 'show', name: 'Show', price: 250, pricing: 'PER_GROUP'}], selectedExtras: ['show']};
+        expect(baseLineTotal(item, 3)).toBe(150);
+        expect(groupMinApplied(item, 3)).toBe(false);
+    });
+});
 
 describe('groupTripItems', () => {
     test('splits standalone items from package groups', () => {

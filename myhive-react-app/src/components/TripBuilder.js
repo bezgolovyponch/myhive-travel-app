@@ -4,7 +4,7 @@ import {useTrip} from '../context/TripContext';
 import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice} from '../utils/format';
-import {computeTripTotal, groupTripItems} from '../utils/tripPricing';
+import {computeTripTotal, extrasOf, groupTripItems} from '../utils/tripPricing';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
@@ -57,6 +57,7 @@ function voteWinnersAsTripItems(result) {
     duration: row.duration,
     description: row.description,
     includes: row.includes,
+    extras: row.extras || [],
   }));
 }
 
@@ -584,6 +585,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           packageId: item.packageId || null,
           packageName: item.packageName || null,
           packageDiscountPct: item.packageDiscountPct || null,
+          extras: extrasOf(item).map(e => ({code: e.code, name: e.name, price: e.price, pricing: e.pricing})),
         }))
       }],
       notes: `Full Name: ${contactData.fullName} | Special requirements: ${contactData.specialRequirements || 'None'} | Contact method: ${contactData.contactMethod} | Number of travelers: ${contactData.numberOfTravelers}`,

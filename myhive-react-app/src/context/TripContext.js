@@ -64,6 +64,18 @@ export const initialState = {
     restored: false,
 };
 
+// A winner is a fresh row built from the vote result; the extras the organizer ticked before the vote
+// belong to the activity, not to the ballot, so they ride over from the cart entry it replaces.
+function withExtrasFrom(previousItems, winner) {
+    const previous = previousItems.find(item => item.id === winner.id);
+    if (!previous) {
+        return winner;
+    }
+    return {...winner,
+        extras: winner.extras && winner.extras.length > 0 ? winner.extras : (previous.extras || []),
+        selectedExtras: previous.selectedExtras || []};
+}
+
 export function reducer(state, action) {
     switch (action.type) {
         case 'ADD_TO_TRIP':
@@ -135,10 +147,14 @@ export function reducer(state, action) {
             // one keeps its packaged copy rather than gaining a standalone
             // duplicate (the mirror of ADD_PACKAGE_TO_TRIP above).
             const packageItems = state.tripItems.filter(item => item.packageId);
-            const standaloneWinners = action.winners.filter(
-                winner => !packageItems.some(item => item.id === winner.id));
+            const standaloneWinners = action.winners
+                .filter(winner => !packageItems.some(item => item.id === winner.id))
+                .map(winner => withExtrasFrom(state.tripItems, winner));
             return {...state, tripItems: [...packageItems, ...standaloneWinners]};
         }
+        case 'SET_ITEM_EXTRAS':
+            return {...state, tripItems: state.tripItems.map(item => (
+                item.id === action.id ? {...item, selectedExtras: action.selectedExtras} : item))};
         case 'REMOVE_PACKAGE_FROM_TRIP':
             return {...state, tripItems: state.tripItems.filter(i => i.packageId !== action.packageId)};
         case 'SET_TRIP_ID':
@@ -231,7 +247,8 @@ export function TripProvider({children}) {
                 return;
             }
             const relocalized = items.map((item, i) => (fresh[i]
-                ? {...item, name: fresh[i].name, description: fresh[i].description, includes: fresh[i].includes}
+                ? {...item, name: fresh[i].name, description: fresh[i].description, includes: fresh[i].includes,
+                    extras: fresh[i].extras ?? item.extras}
                 : item));
             dispatch({type: 'SET_TRIP_ITEMS', tripItems: relocalized});
         });

@@ -259,7 +259,9 @@ function AiPlannerPage({pollIntervalMs}) {
     // The trim on screen replaces the cart, so the Trip Builder shows the same plan.
     const pickIntoCart = async () => {
         const picked = await planner.select(generation.id, activeKey);
-        dispatch({type: 'SET_TRIP_ITEMS', tripItems: picked.tripItems.map((a) => ({...a, id: a.activityId}))});
+        dispatch({type: 'SET_TRIP_ITEMS', tripItems: picked.tripItems.map((a) => ({
+            ...a, id: a.activityId, extras: a.extras || [], selectedExtras: a.selectedExtras || [],
+        }))});
         dispatch({type: 'UPDATE_TRIP_TRAVELERS', travelers: picked.groupSize});
         return picked;
     };
