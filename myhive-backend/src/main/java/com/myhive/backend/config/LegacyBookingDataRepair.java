@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +18,13 @@ import org.springframework.stereotype.Component;
  * <p>2. Booking items created while the Trip Builder's "Custom Travel Package" placeholder
  * was snapshotted as the destination name carry that label instead of the activity's real
  * catalog destination, which breaks the admin bookings destination filter.
+ *
+ * <p>The one write a start makes on its own, so {@code app.startup-repairs.enabled} (env
+ * {@code STARTUP_REPAIRS_ENABLED}) switches it off where a second process shares the database
+ * (the {@code proddb} profile); absent means on.
  */
 @Component
+@ConditionalOnProperty(name = "app.startup-repairs.enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
 public class LegacyBookingDataRepair implements ApplicationRunner {

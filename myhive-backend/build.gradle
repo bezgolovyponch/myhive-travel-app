@@ -112,14 +112,43 @@ tasks.named('test') {
 }
 
 tasks.named('bootRun') {
-    def envFile = file('.env')
-    if (envFile.exists()) {
-        envFile.readLines().each { line ->
-            line = line.trim()
-            if (line && !line.startsWith('#') && line.contains('=')) {
-                def (key, value) = line.split('=', 2)
-                environment key.trim(), value.trim()
+    // -Penv=proddb loads .env.proddb instead of .env (the prod database from this machine, see
+    // application-proddb.properties); without it bootRun loads the H2 dev setup in .env, if present.
+    // The suffix rather than the file name on purpose: Windows PowerShell splits "-PenvFile=.env.proddb"
+    // at the dot and Gradle then looks for a task called ".env.proddb".
+    def envName = project.findProperty('env')
+    def envFile = file(envName ? ".env.${envName}" : '.env')
+    // Checked and read when bootRun actually runs: a missing file or a profile override must stop the
+    // app from starting, not an IDE sync or `gradle tasks` that merely realizes the task.
+    doFirst {
+        if (envName && !envFile.exists()) {
+            // A typo would otherwise boot the H2 dev seed under the impression of real data.
+            throw new GradleException("env file not found: ${envFile}")
+        }
+        if (envName && (args + jvmArgs).any { it.contains('spring.profiles.active') }) {
+            // The documented dev command carries --args='--spring.profiles.active=dev'; pasted next to
+            // -Penv it would boot H2 with the prod database password and R2 keys exported into the process,
+            // since a command-line argument (or a -D system property) outranks the SPRING_PROFILES_ACTIVE
+            // the env file sets.
+            throw new GradleException("-Penv=${envName} takes the profiles from ${envFile.name}; "
+                    + "drop spring.profiles.active from --args and jvmArgs")
+        }
+        def values = [:]
+        if (envFile.exists()) {
+            envFile.readLines().each { line ->
+                line = line.trim()
+                if (line && !line.startsWith('#') && line.contains('=')) {
+                    def (key, value) = line.split('=', 2)
+                    values[key.trim()] = value.trim()
+                }
             }
         }
+        if (envName && !(values['SPRING_PROFILES_ACTIVE'] ?: '').contains(envName)) {
+            // .env.<name> is the file that activates the <name> profile. A copy of the dev .env with the
+            // prod credentials added, SPRING_PROFILES_ACTIVE=dev still in it, would boot the H2 seed with
+            // the prod keys exported and read as real data.
+            throw new GradleException("${envFile.name} must set SPRING_PROFILES_ACTIVE to include '${envName}'")
+        }
+        values.each { key, value -> environment key, value }
     }
 }

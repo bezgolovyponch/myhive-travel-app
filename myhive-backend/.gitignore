@@ -41,6 +41,9 @@ out/
 .env.local
 .env.*.local
 *.env
+# .env.<name> variants (.env.proddb holds the prod database password); only the .env*.example templates are tracked
+.env.*
+!.env*.example
 secrets/
 credentials/
 
