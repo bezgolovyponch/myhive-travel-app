@@ -24,6 +24,31 @@ one or the other.
 
 Dev uses H2 in-memory database with sample data (5 destinations, activities, bookings).
 
+### Hybrid mode: local backend on the production database (`proddb`)
+
+For debugging against real data, the backend can run from this machine on the Render Postgres
+(profiles `prod,proddb`). `-Penv=<name>` makes `bootRun` load `.env.<name>` instead of `.env`:
+
+```bash
+cd myhive-backend
+cp .env.proddb.example .env.proddb        # fill in the external DB URL (sslmode=require), TEST Stripe keys, R2, OpenRouter
+./gradlew bootRun -Penv=proddb            # no --spring.profiles.active here: the env file sets prod,proddb
+```
+
+The `proddb` overlay (`src/main/resources/application-proddb.properties`) pins email, every
+scheduled job, the startup data repair and Flyway **off**, serves at the root on 8080 (so the Next
+dev server's `BACKEND_URL=http://localhost:8080` works unchanged) and accepts the shared Auth0
+tenant's admin logins. Everything the UI writes lands on prod and the mail prod would have sent is
+skipped forever — read real data here, reproduce vote/booking/contact/deposit flows on `dev`.
+
+Schema rule: prod validates the schema at startup, so a branch with a new migration cannot run in
+hybrid mode until that migration is on prod. Apply it with one start that re-enables Flyway (the
+same files the deploy would run), then go back to the default:
+
+```bash
+./gradlew bootRun -Penv=proddb --args='--spring.flyway.enabled=true'
+```
+
 ## Project Structure
 
 ```

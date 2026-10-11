@@ -74,6 +74,37 @@ Branch `worktree-activity-extras` (base `main` @ 4216d6e). Spec:
 4. Before `AI_ENABLED=true` for the public: cap the extras-catalogue line in the chat prompt
    (`PackagesView.extrasCatalog`) and re-measure prompt tokens on the prod catalogue.
 
+## Hybrid mode: local backend on the production database (`proddb`)
+
+Cherry-picked onto this branch from `wip/planner-trim-and-proddb` (commit f358599). What it is and
+how it is run is documented in `myhive-backend/src/main/resources/application-proddb.properties`
+and `myhive-backend/.env.proddb.example`; the short form:
+
+- `cd myhive-backend && ./gradlew bootRun -Penv=proddb [--args='--server.port=8080']` — `-Penv=<name>`
+  makes `bootRun` load `.env.<name>` instead of `.env`; the file must set
+  `SPRING_PROFILES_ACTIVE=prod,proddb` and must not be combined with `--spring.profiles.active`
+  (Gradle refuses both, to stop the H2 seed from booting with prod credentials exported).
+- `.env.proddb` (gitignored) holds the Render **external** Postgres URL with `sslmode=require`,
+  the DB user/password, Stripe **test** keys, the R2 keys, the OpenRouter key and models.
+- The `proddb` overlay pins, as literals that an env value cannot flip: `app.email.enabled=false`,
+  `app.scheduling.enabled=false` (no vote closing, reminders, digest, nightly cleanups, planner sweep
+  from a laptop), `app.startup-repairs.enabled=false`, `spring.flyway.enabled=false`; root path on
+  8080, local frontend URL, the shared Auth0 tenant, Cloudflare's always-pass Turnstile secret,
+  DEBUG logging without bound parameters.
+- **Every write lands on prod** (bookings, contacts, vote sessions, AI sessions, catalogue edits,
+  CSV imports, R2 uploads) and the email that prod would send is skipped forever: do not close or
+  start votes, book, submit the contact form or pay a deposit from here. AI sessions created here
+  checkpoint in this branch's state shape; do not open their tokens on prod before the deploy.
+- **Schema rule:** prod keeps `ddl-auto=validate`, so a branch whose entities are ahead of the
+  prod schema does not start. This branch adds `activities.extras` and `booking_items.extras`
+  (`V14__activity_extras.sql`, two additive nullable TEXT columns). Before the first hybrid run
+  the migration has to be on prod: one start with Flyway switched back on applies exactly what the
+  deploy would — `./gradlew bootRun -Penv=proddb --args='--spring.flyway.enabled=true --server.port=8080'` —
+  and later starts go back to the default (Flyway off). The old prod code ignores the new columns.
+- Local frontend: the running Next dev (`BACKEND_URL=http://localhost:8080`) and an admin login on
+  the shared tenant work unchanged; the catalogue CSV can be imported for real through the local
+  admin UI in this mode (images re-host to the real R2 bucket).
+
 ## Dev notes
 - Windows dev: start the backend with `--spring.sql.init.encoding=UTF-8` (seed text garbles
   otherwise; pre-existing) and `CORS_ALLOWED_ORIGINS=http://localhost:<cra-port>` when the
