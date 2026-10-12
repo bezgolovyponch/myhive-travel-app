@@ -1,15 +1,14 @@
 import {useT} from '../i18n';
-import {formatAmount} from '../utils/format';
-import {extraAmount, extrasOf} from '../utils/tripPricing';
+import {extrasOf} from '../utils/tripPricing';
 
 /**
- * The extras of one Trip Builder row, under its title: a chip per chosen extra
- * with what it adds to the line for this many travellers (× drops it), and a
+ * The extras of one Trip Builder row, under its title: a chip per chosen extra,
+ * by name (what it costs is part of the plan's one "from" price; × drops it), and a
  * button that opens the activity's card - the one place extras are ticked and
  * confirmed (`onOpen`). Nothing for an activity without extras. `onChange`
  * gets the row's new codes when a chip is dropped.
  */
-function ItemExtrasRow({item, travelers, onChange, onOpen}) {
+function ItemExtrasRow({item, onChange, onOpen}) {
     const t = useT('extras');
     const extras = item.extras || [];
     if (extras.length === 0) {
@@ -26,7 +25,7 @@ function ItemExtrasRow({item, travelers, onChange, onOpen}) {
                 <ul className="itinerary-item-extras-chips">
                     {chosen.map(extra => (
                         <li key={extra.code} className="itinerary-item-extras-chip">
-                            <span>{`${extra.name} · +${formatAmount(extraAmount(extra, travelers))}`}</span>
+                            <span>{extra.name}</span>
                             <button
                                 type="button"
                                 className="itinerary-item-extras-remove"

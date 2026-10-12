@@ -1949,20 +1949,20 @@ describe('extras on an itinerary row', () => {
 
         // Ticked, not confirmed: the plan has not heard of it.
         expect(onDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_ITEM_EXTRAS' }));
-        expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Remove Private show' })).not.toBeInTheDocument();
 
         await user.click(update);
 
         expect(onDispatch).toHaveBeenCalledWith(
             expect.objectContaining({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-        expect(screen.getByText('Private show · +€250')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Remove Private show' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Edit extras' })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Remove Private show' }));
 
         expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: [] });
-        expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Remove Private show' })).not.toBeInTheDocument();
     });
 
     test('the row’s name opens the same card', async () => {
@@ -1974,17 +1974,17 @@ describe('extras on an itinerary row', () => {
         expect(within(screen.getByRole('dialog')).getByRole('checkbox', { name: /Private show/ })).toBeChecked();
     });
 
-    test('a per-person chip shows what it adds for the whole group', async () => {
+    test('a chosen extra is a chip with its name and no amount: its cost is part of the plan’s one price', async () => {
         const user = userEvent.setup();
-        // buildTripState: 2 travellers, so €15 per person adds €30 to the line.
-        const expectedChip = 'Photos · +€30';
         render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={jest.fn()} />);
 
         await user.click(screen.getByRole('button', { name: 'Add extras' }));
         await user.click(screen.getByRole('checkbox', { name: /Photos/ }));
         await user.click(screen.getByRole('button', { name: 'Update' }));
 
-        expect(screen.getByText(expectedChip)).toBeInTheDocument();
+        const chip = screen.getByRole('button', { name: 'Remove Photos' }).closest('li');
+        expect(chip).toHaveTextContent('Photos');
+        expect(chip).not.toHaveTextContent('€');
     });
 
     test('removing a chip also drops a code the activity no longer offers', async () => {
@@ -2013,7 +2013,7 @@ describe('extras on an itinerary row', () => {
 
         expect(onDispatch).toHaveBeenCalledWith(
             expect.objectContaining({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] }));
-        expect(screen.getByText('Private show · +€250')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Remove Private show' })).toBeInTheDocument();
     });
 
     test('closing the card without Update leaves the plan as it was', async () => {
@@ -2027,7 +2027,7 @@ describe('extras on an itinerary row', () => {
 
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(onDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_ITEM_EXTRAS' }));
-        expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Remove Private show' })).not.toBeInTheDocument();
     });
 
     test('a row whose activity has no extras offers none', async () => {

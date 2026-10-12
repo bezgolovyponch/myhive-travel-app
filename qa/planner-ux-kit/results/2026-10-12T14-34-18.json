@@ -1,9 +1,9 @@
 {
   "base": "http://localhost:3000",
-  "at": "2026-10-12T14:06:03.166Z",
+  "at": "2026-10-12T14:34:18.093Z",
   "tally": {
-    "FLAW": 9,
-    "PASS": 50,
+    "PASS": 57,
+    "FLAW": 3,
     "INFO": 14,
     "FAIL": 2
   },
@@ -11,10 +11,10 @@
     {
       "id": "B01",
       "flow": "browse",
-      "rule": "A listing card shows a price with its unit",
-      "source": "Baymard, product listing information (price \"must be permanently visible\"); stored study P1(b)",
-      "status": "FLAW",
-      "detail": "card shows no price: Wellness | River Boat Cruise | Optional extras · Private show on board, Topless hostess +3 more | More info | Add to trip"
+      "rule": "A listing card shows no price for the single activity",
+      "source": "owner rule 2026-10-12: one \"from\" price for the plan; no price per activity, no exact total",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B02",
@@ -75,10 +75,10 @@
     {
       "id": "B08",
       "flow": "browse",
-      "rule": "The card states the activity's own price next to the button that adds it",
-      "source": "Baymard, product page UX (67% omit the total near the buy section)",
-      "status": "FLAW",
-      "detail": "the card shows extras' prices but not the activity's"
+      "rule": "The card prices the extras and nothing else",
+      "source": "owner rule 2026-10-12: one \"from\" price for the plan; no price per activity, no exact total; extras are priced on the card only",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B09",
@@ -123,18 +123,18 @@
     {
       "id": "B14",
       "flow": "browse",
-      "rule": "The cart panel totals the activity plus the extra for the group",
-      "source": "Baymard, price per unit; pricing rule line = max(price x N, minimum) + extras",
+      "rule": "The cart panel shows one price, the plan's \"from\", with the extra in it",
+      "source": "FromPrice: (max(price x N, minimum) + extras) x 0.90, whole euros",
       "status": "PASS",
       "detail": ""
     },
     {
       "id": "B15",
       "flow": "browse",
-      "rule": "The cart row's price says what it is for (per person)",
-      "source": "Baymard, price per unit (86% of sites omit it)",
-      "status": "FLAW",
-      "detail": "row reads: River Boat Cruise | €37 | + €160 extras | Edit extras | ×"
+      "rule": "A cart row names the activity and its extras, with no price of its own",
+      "source": "owner rule 2026-10-12: one \"from\" price for the plan; no price per activity, no exact total",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B16",
@@ -155,16 +155,16 @@
     {
       "id": "B18",
       "flow": "browse",
-      "rule": "The panel total follows the second extra",
-      "source": "pricing rule",
+      "rule": "The panel's price follows the second extra",
+      "source": "FromPrice",
       "status": "PASS",
       "detail": ""
     },
     {
       "id": "B19",
       "flow": "browse",
-      "rule": "The Trip Builder row shows each chosen extra with its amount",
-      "source": "stored study P1(a): extras as sub-lines with their own maths",
+      "rule": "The Trip Builder row names each chosen extra, with no amount",
+      "source": "owner rule 2026-10-12: one \"from\" price for the plan; no price per activity, no exact total",
       "status": "PASS",
       "detail": ""
     },
@@ -179,10 +179,10 @@
     {
       "id": "B21",
       "flow": "browse",
-      "rule": "Cart panel and Trip Builder state the same price, or say why they differ",
-      "source": "CMA209: a price must not need working out",
-      "status": "FLAW",
-      "detail": "the cart panel said €690, the Trip Builder says \"from €621\", and nothing on the page explains the difference"
+      "rule": "Cart panel and Trip Builder state the same price",
+      "source": "CMA209: a price must not need working out; one price for the plan",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B22",
@@ -227,10 +227,10 @@
     {
       "id": "B27",
       "flow": "browse",
-      "rule": "The detail page shows the group total for the ticked extras",
-      "source": "Baymard: total near the buy section; stored study P1(a)",
-      "status": "FLAW",
-      "detail": "per-unit sums only (\"+€160 per group\"), no total though the trip has 10 travellers"
+      "rule": "The detail page states its price as \"from\", never as one bare number",
+      "source": "owner rule 2026-10-12: all prices are shaped \"from x\"",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B28",
@@ -243,16 +243,16 @@
     {
       "id": "B29",
       "flow": "browse",
-      "rule": "\"Add to trip\" on the card of an activity with extras offers them",
-      "source": "GetYourGuide / Klook / Headout: extras chosen at the moment of adding; Baymard: dismissible, never a forced step",
-      "status": "FLAW",
-      "detail": "added silently; the only way on is the small \"Add extras\" in the cart row (present: true)"
+      "rule": "\"Add to trip\" on a card just adds: nothing opens, nothing is asked",
+      "source": "owner rule 2026-10-12: nothing happens unexpectedly; extras are added by opening the card",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B30",
       "flow": "browse",
-      "rule": "Removing an activity takes its extras out of the total",
-      "source": "pricing rule",
+      "rule": "Removing an activity takes it and its extras out of the plan's price",
+      "source": "FromPrice",
       "status": "PASS",
       "detail": ""
     },
@@ -342,7 +342,15 @@
       "rule": "The plan is on screen within 10 s, or progress is shown while it builds",
       "source": "Nielsen response-time limits: 10 s is the limit of attention; beyond it, a progress indicator",
       "status": "INFO",
-      "detail": "10 s to the plan; a \"building\" status was shown meanwhile"
+      "detail": "12 s to the plan; a \"building\" status was shown meanwhile"
+    },
+    {
+      "id": "A03b",
+      "flow": "ai",
+      "rule": "The plan states its price as \"from ... / person\", and no row carries a price",
+      "source": "owner rule 2026-10-12",
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "A04",
@@ -494,7 +502,7 @@
       "rule": "After an undo, a reload shows the plan the undo left",
       "source": "NN/g: preserve the user's work; the page and the server must hold one plan",
       "status": "FAIL",
-      "detail": "before the reload: total 3850, 2 extras shown; after: total 3690, 1 extras shown - the undone change is back on screen"
+      "detail": "before the reload: total 3560, 2 extras shown; after: total 3400, 1 extras shown - the undone change is back on screen"
     },
     {
       "id": "A22b",
@@ -526,7 +534,7 @@
       "rule": "Typed: \"add the Beer Spa\" - the activity goes in and the chat asks which extra",
       "source": "prompt rule: \"put the beer bike in\" is a command to ADD; owner rule 2026-10-12",
       "status": "INFO",
-      "detail": "applied [ADD] rejected [] recommendations 0 extras question true 5825 ms; said: \"Added Beer Spa to your trip plan.\""
+      "detail": "applied [ADD] rejected [] recommendations 0 extras question true 5855 ms; said: \"Added Beer Spa to your trip plan.\""
     },
     {
       "id": "T02",
@@ -534,7 +542,7 @@
       "rule": "Typed: \"add 30-minute massage to the Beer Spa\" - the extra goes on, no price in the reply, no second question",
       "source": "prompt rule: ADD_EXTRA; owner rule 2026-10-12",
       "status": "INFO",
-      "detail": "applied [ADD_EXTRA] rejected [] recommendations 0 extras question false 5546 ms; said: \"Added 30-minute massage to Beer Spa in your trip plan.\""
+      "detail": "applied [ADD_EXTRA] rejected [] recommendations 0 extras question false 5556 ms; said: \"Added 30-minute massage to Beer Spa in your trip plan.\""
     },
     {
       "id": "T03",
@@ -542,7 +550,7 @@
       "rule": "Typed: \"how much is the Transfer from your hotel on the Beer Spa?\" - the reply names no price and changes nothing",
       "source": "owner rule 2026-10-12: extras are priced on the card only",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 0 extras question false 4060 ms; said: \"Its price is on the activity's card.\""
+      "detail": "applied [] rejected [] recommendations 0 extras question false 5081 ms; said: \"The price is shown on the plan.\""
     },
     {
       "id": "T04",
@@ -550,15 +558,15 @@
       "rule": "Typed: \"no 30-minute massage on the Beer Spa after all\" - the extra comes off",
       "source": "prompt rule: \"no photographer\" is REMOVE_EXTRA",
       "status": "INFO",
-      "detail": "applied [REMOVE_EXTRA] rejected [] recommendations 0 extras question false 5560 ms; said: \"Removed 30-minute massage from Beer Spa in your trip plan.\""
+      "detail": "applied [REMOVE_EXTRA] rejected [] recommendations 0 extras question false 5769 ms; said: \"Removed 30-minute massage from Beer Spa in your trip plan.\""
     },
     {
       "id": "T05",
       "flow": "ai-live",
-      "rule": "Typed: \"Bubble Football with Extra 30 minutes of play\" - activity and extra in one turn, no extras question after it",
+      "rule": "Typed: \"Casino Night with VIP table and bottle at a club afterwards\" - activity and extra in one turn, no extras question after it",
       "source": "bug S56 (2026-10-09): \"river cruise with private show\"; prompt rule: two edits",
       "status": "FAIL",
-      "detail": "expected ops to include [ADD,ADD_EXTRA]  ::  applied [] rejected [NOT_IN_PACKAGE] recommendations 0 extras question false 6846 ms; said: \"Bubble Football is not in your trip plan, so there was nothing to change.\""
+      "detail": "expected ops to include [ADD,ADD_EXTRA]  ::  applied [] rejected [NOT_IN_PACKAGE] recommendations 0 extras question false 6577 ms; said: \"Casino Night is not in your trip plan, so there was nothing to change.\""
     },
     {
       "id": "T06",
@@ -566,7 +574,7 @@
       "rule": "Typed: \"we want to shoot kalashnikov\" - activities are offered, nothing is changed",
       "source": "prompt rule: a wish for a kind of activity is not an edit",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 3 extras question false 4848 ms; said: \"Here is what fits - tap a name to see it, or add it.\""
+      "detail": "applied [] rejected [] recommendations 4 extras question false 5821 ms; said: \"Here is what fits - tap a name to see it, or add it.\""
     },
     {
       "id": "T07",
@@ -574,7 +582,7 @@
       "rule": "Typed: \"what else can we add?\" - a question back, no list of activities, nothing changed",
       "source": "prompt rule: an open question that names no kind",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 0 extras question false 4805 ms; said: \"Sure - which kind?\""
+      "detail": "applied [] rejected [] recommendations 0 extras question false 4551 ms; said: \"Sure - which kind?\""
     },
     {
       "id": "T08",
@@ -582,7 +590,7 @@
       "rule": "Typed: \"add a jetpack flight\" - not on offer: nothing added that was not asked for",
       "source": "prompt rule: something not in the catalog is never silently substituted",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 2 extras question false 5560 ms; said: \"Here is what comes closest to \"jetpack flight\" - tap a name to see it, or add it.\""
+      "detail": "applied [] rejected [] recommendations 3 extras question false 5832 ms; said: \"Here is what comes closest to \"jetpack flight\" - tap a name to see it, or add it.\""
     },
     {
       "id": "T09",
@@ -590,7 +598,7 @@
       "rule": "Typed: \"remove the Beer Spa\" - the activity is removed",
       "source": "staff prompt: \"Remove the karting from all packages.\"",
       "status": "INFO",
-      "detail": "applied [REMOVE] rejected [] recommendations 0 extras question false 5059 ms; said: \"Dropped Beer Spa from your trip plan.\""
+      "detail": "applied [REMOVE] rejected [] recommendations 0 extras question false 5064 ms; said: \"Dropped Beer Spa from your trip plan.\""
     },
     {
       "id": "T10",
@@ -598,7 +606,7 @@
       "rule": "Typed: \"actually we are 12 people now\" - the brief changes; the reply names no extra price",
       "source": "staff prompt: \"Actually we are 12 people now.\"",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 0 extras question false 5055 ms; said: \"For 2 days and 12 people I rebuild the plan from scratch - what you changed in it is lost. Your plan stays as it is for now. Shall I rebuild\""
+      "detail": "applied [] rejected [] recommendations 0 extras question false 5576 ms; said: \"For 2 days and 12 people I rebuild the plan from scratch - what you changed in it is lost. Your plan stays as it is for now. Shall I rebuild\""
     },
     {
       "id": "A24",

@@ -966,7 +966,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                           </button>
                           <ItemExtrasRow
                             item={item}
-                            travelers={state.tripTravelers || 1}
                             onChange={codes => setItemExtras(item.id, codes)}
                             onOpen={() => setPreviewActivity(item)}
                           />
@@ -992,7 +991,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     </button>
                     <ItemExtrasRow
                       item={item}
-                      travelers={state.tripTravelers || 1}
                       onChange={codes => setItemExtras(item.id, codes)}
                       onOpen={() => setPreviewActivity(item)}
                     />

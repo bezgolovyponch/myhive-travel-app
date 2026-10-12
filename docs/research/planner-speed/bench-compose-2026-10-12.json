@@ -1,0 +1,219 @@
+[
+ {
+  "name": "V1 max, full catalog, current shape",
+  "n": 5,
+  "ttft_s": 1.46,
+  "total_s": 5.9,
+  "min_s": 5.6,
+  "max_s": 6.15,
+  "out_tokens": 284,
+  "in_tokens": 8203,
+  "cached": 8064,
+  "valid_shape": 3,
+  "provider": [
+   "Alibaba"
+  ],
+  "errors": 0,
+  "violations": [
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   [],
+   [],
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   []
+  ]
+ },
+ {
+  "name": "V2 max + provider sort=throughput",
+  "n": 5,
+  "ttft_s": 1.51,
+  "total_s": 5.98,
+  "min_s": 5.7,
+  "max_s": 6.51,
+  "out_tokens": 297,
+  "in_tokens": 8203,
+  "cached": 8064,
+  "valid_shape": 1,
+  "provider": [
+   "Alibaba"
+  ],
+  "errors": 0,
+  "violations": [
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   []
+  ]
+ },
+ {
+  "name": "V3 max, catalog without about/includes",
+  "n": 5,
+  "ttft_s": 1.56,
+  "total_s": 6.24,
+  "min_s": 5.17,
+  "max_s": 7.13,
+  "out_tokens": 298,
+  "in_tokens": 3496,
+  "cached": 3456,
+  "valid_shape": 3,
+  "provider": [
+   "Alibaba"
+  ],
+  "errors": 0,
+  "violations": [
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   [
+    "WRONG_DAY_COUNT/BASIC=2",
+    "WRONG_DAY_COUNT/MEDIUM=2",
+    "WRONG_DAY_COUNT/PREMIUM=2"
+   ],
+   [],
+   [],
+   []
+  ]
+ },
+ {
+  "name": "V4 max, compact answer shape",
+  "n": 5,
+  "ttft_s": 1.42,
+  "total_s": 2.56,
+  "min_s": 2.37,
+  "max_s": 3.3,
+  "out_tokens": 64,
+  "in_tokens": 8189,
+  "cached": 8064,
+  "valid_shape": 4,
+  "provider": [
+   "Alibaba"
+  ],
+  "errors": 0,
+  "violations": [
+   [],
+   [],
+   [],
+   [
+    "SLOT_TAKEN/PREMIUM/d2"
+   ],
+   []
+  ]
+ },
+ {
+  "name": "V5 plus, current shape",
+  "n": 5,
+  "ttft_s": 1.33,
+  "total_s": 7.31,
+  "min_s": 6.67,
+  "max_s": 8.34,
+  "out_tokens": 342,
+  "in_tokens": 8203,
+  "cached": 8064,
+  "valid_shape": 5,
+  "provider": [
+   "Alibaba"
+  ],
+  "errors": 0,
+  "violations": [
+   [],
+   [],
+   [],
+   [],
+   []
+  ]
+ },
+ {
+  "name": "V6 plus, compact shape",
+  "n": 5,
+  "ttft_s": 1.33,
+  "total_s": 2.58,
+  "min_s": 2.41,
+  "max_s": 3.72,
+  "out_tokens": 66,
+  "in_tokens": 8189,
+  "cached": 8064,
+  "valid_shape": 1,
+  "provider": [
+   "Alibaba"
+  ],
+  "errors": 0,
+  "violations": [
+   [
+    "SLOT_WINDOW/MEDIUM/d3",
+    "WRONG_DAY_COUNT/PREMIUM=4"
+   ],
+   [
+    "SLOT_WINDOW/MEDIUM/d3",
+    "WRONG_DAY_COUNT/PREMIUM=4"
+   ],
+   [
+    "SLOT_WINDOW/MEDIUM/d3",
+    "WRONG_DAY_COUNT/PREMIUM=4"
+   ],
+   [
+    "SLOT_WINDOW/MEDIUM/d3",
+    "WRONG_DAY_COUNT/PREMIUM=4"
+   ],
+   []
+  ]
+ },
+ {
+  "name": "V7 3.8-flash, compact shape",
+  "n": 5,
+  "ttft_s": 1.27,
+  "total_s": 3.14,
+  "min_s": 2.29,
+  "max_s": 5.17,
+  "out_tokens": 74,
+  "in_tokens": 8189,
+  "cached": 7936,
+  "valid_shape": 1,
+  "provider": [
+   "Alibaba"
+  ],
+  "errors": 0,
+  "violations": [
+   [
+    "WRONG_DAY_COUNT/PREMIUM=4"
+   ],
+   [
+    "SLOT_TAKEN/PREMIUM/d2"
+   ],
+   [
+    "OVER_MINUTES/MEDIUM/d2",
+    "SLOT_TAKEN/PREMIUM/d2",
+    "OVER_MINUTES/PREMIUM/d2"
+   ],
+   [
+    "SLOT_TAKEN/PREMIUM/d2"
+   ],
+   []
+  ]
+ }
+]

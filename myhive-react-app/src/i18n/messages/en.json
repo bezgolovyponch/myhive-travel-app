@@ -123,8 +123,6 @@
     "removeAria": "Remove {name}",
     "emptyState": "No activities added yet. Browse and add activities to build your trip!",
     "voteTogether": "Vote together & build a trip",
-    "totalOne": "Total ({count} person)",
-    "totalOther": "Total ({count} people)",
     "continue": "Continue",
     "backToTripBuilder": "Back to Trip Builder"
   },
@@ -295,7 +293,6 @@
     "perPerson": "per person",
     "add": "Add extras",
     "removeAria": "Remove {name}",
-    "selectedSummary": "+ {amount} extras",
     "update": "Update",
     "edit": "Edit extras"
   },

@@ -113,8 +113,8 @@ async function browseFlow(cat) {
     await p.getByText('DECLINE ALL').first().click({ timeout: 1500 }).catch(() => {});
     const card = await openCard(p, carrier.name);
 
-    await check('B01', 'browse', 'A listing card shows a price with its unit', 'Baymard, product listing information (price "must be permanently visible"); stored study P1(b)', async () =>
-        (/€\s?\d/.test(await card.innerText()) ? undefined : flaw('card shows no price: ' + flat(await card.innerText()))));
+    await check('B01', 'browse', 'A listing card shows no price for the single activity', 'owner rule 2026-10-12: one "from" price for the plan; no price per activity, no exact total', async () =>
+        (/€\s?\d/.test(await card.innerText()) ? 'the card shows a price: ' + flat(await card.innerText()) : undefined));
     await check('B02', 'browse', 'The extras hint on a card is one scannable line', 'Baymard, list item design (hard-to-scan list info)', async () => {
         const chip = card.locator('.activity-extras-chip');
         const m = await chip.evaluate((e) => ({ h: e.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(e).lineHeight) || 20 }));
@@ -155,8 +155,10 @@ async function browseFlow(cat) {
         const inside = await dlg.evaluate((d) => d.contains(document.activeElement));
         return modal === 'true' && inside ? undefined : flaw(`aria-modal=${modal}, focus inside=${inside}`);
     });
-    await check('B08', 'browse', 'The card states the activity\'s own price next to the button that adds it', 'Baymard, product page UX (67% omit the total near the buy section)', async () =>
-        (new RegExp(`€\\s?${carrier.price}\\b`).test(await dlg.innerText()) ? undefined : flaw('the card shows extras\' prices but not the activity\'s')));
+    await check('B08', 'browse', 'The card prices the extras and nothing else', 'owner rule 2026-10-12: one "from" price for the plan; no price per activity, no exact total; extras are priced on the card only', async () => {
+        const outside = await dlg.evaluate((d) => { const c = d.cloneNode(true); c.querySelectorAll('.item-extras-picker').forEach((e) => e.remove()); return c.innerText; });
+        return /€\s?\d/.test(outside) ? 'a price outside the extras list: ' + (outside.match(/[^\n]*€\s?\d[^\n]*/) || [''])[0] : undefined;
+    });
     await check('B09', 'browse', 'Nothing in the card overflows sideways', 'WCAG 2.2 SC 1.4.10 Reflow', async () => {
         const o = await dlg.evaluate((d) => [...d.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1).length);
         return o === 0 ? undefined : `${o} elements past the right edge`;
@@ -192,13 +194,16 @@ async function browseFlow(cat) {
     });
     const panel = p.locator('.trip-builder-dropdown');
     const expect1 = () => lineBase(carrier, n) + extraAmount(x0, n);
-    await check('B14', 'browse', 'The cart panel totals the activity plus the extra for the group', 'Baymard, price per unit; pricing rule line = max(price x N, minimum) + extras', async () => {
-        const total = euros(await panel.locator('.trip-modal-total-price').innerText());
-        return eq(total, expect1()) ? undefined : `shows ${total}, expected ${expect1()}`;
+    const panelPrice = async () => euros(await panel.locator('.trip-modal-total-price').innerText());
+    await check('B14', 'browse', 'The cart panel shows one price, the plan\'s "from", with the extra in it', 'FromPrice: (max(price x N, minimum) + extras) x 0.90, whole euros', async () => {
+        await p.waitForTimeout(1200);
+        const text = await panel.locator('.trip-modal-total').innerText();
+        const shown = await panelPrice();
+        return /from/i.test(text) && eq(shown, fromPrice(expect1())) ? undefined : `shows "${flat(text)}", expected from ${fromPrice(expect1())}`;
     });
-    await check('B15', 'browse', 'The cart row\'s price says what it is for (per person)', 'Baymard, price per unit (86% of sites omit it)', async () => {
+    await check('B15', 'browse', 'A cart row names the activity and its extras, with no price of its own', 'owner rule 2026-10-12: one "from" price for the plan; no price per activity, no exact total', async () => {
         const row = await panel.locator('.trip-modal-item').first().innerText();
-        return /person|pp|\/\s?p/i.test(row) ? undefined : flaw('row reads: ' + flat(row));
+        return /€/.test(row) ? 'row reads: ' + flat(row) : (row.includes(x0.name) ? undefined : 'the chosen extra is not named: ' + flat(row));
     });
     await check('B16', 'browse', 'The cart row opens the same card: its tick is there, "Update" is off', 'feature rule: one card everywhere', async () => {
         await panel.locator('.trip-modal-item-extras-btn').first().click();
@@ -218,29 +223,28 @@ async function browseFlow(cat) {
         return before === 1 && after === 2 ? undefined : `before ${before}, after ${after}`;
     });
     const expect2 = () => expect1() + extraAmount(x1, n);
-    await check('B18', 'browse', 'The panel total follows the second extra', 'pricing rule', async () => {
-        const total = euros(await panel.locator('.trip-modal-total-price').innerText());
-        return eq(total, expect2()) ? undefined : `shows ${total}, expected ${expect2()}`;
+    let panelSaid = null;
+    await check('B18', 'browse', 'The panel\'s price follows the second extra', 'FromPrice', async () => {
+        await p.waitForTimeout(1200);
+        panelSaid = await panelPrice();
+        return eq(panelSaid, fromPrice(expect2())) ? undefined : `shows ${panelSaid}, expected ${fromPrice(expect2())}`;
     });
     await panel.locator('.trip-builder-complete-btn').click();
     await p.waitForSelector('.itinerary-item');
     await p.waitForTimeout(2500);
     const row = p.locator('.itinerary-item').first();
     const planPrice = async () => euros(await p.locator('.itinerary-plan-price').first().innerText());
-    await check('B19', 'browse', 'The Trip Builder row shows each chosen extra with its amount', 'stored study P1(a): extras as sub-lines with their own maths', async () => {
+    await check('B19', 'browse', 'The Trip Builder row names each chosen extra, with no amount', 'owner rule 2026-10-12: one "from" price for the plan; no price per activity, no exact total', async () => {
         const chips = await row.locator('.itinerary-item-extras-chip').allInnerTexts();
-        const want = [x0, x1].map((e) => String(extraAmount(e, n)));
-        return chips.length === 2 && want.every((w) => chips.some((c) => c.replace(/,/g, '').includes(w))) ? undefined : 'chips: ' + chips.join(' / ');
+        return chips.length === 2 && [x0, x1].every((e) => chips.some((c) => c.includes(e.name))) && !chips.some((c) => /€/.test(c)) ? undefined : 'chips: ' + chips.join(' / ');
     });
     await check('B20', 'browse', 'The plan price is the group total less the package margin', 'FromPrice: total x 0.90, whole euros', async () => {
         const shown = await planPrice();
         return eq(shown, fromPrice(expect2())) ? undefined : `shows ${shown}, expected ${fromPrice(expect2())}`;
     });
-    await check('B21', 'browse', 'Cart panel and Trip Builder state the same price, or say why they differ', 'CMA209: a price must not need working out', async () =>
-        {
-        const text = await p.locator('.trip-builder, main').first().innerText();
-        return /10\s?%|discount|save/i.test(text) ? undefined
-            : flaw(`the cart panel said €${expect2()}, the Trip Builder says "from €${fromPrice(expect2())}", and nothing on the page explains the difference`);
+    await check('B21', 'browse', 'Cart panel and Trip Builder state the same price', 'CMA209: a price must not need working out; one price for the plan', async () => {
+        const shown = await planPrice();
+        return eq(shown, panelSaid) ? undefined : `the cart panel said ${panelSaid}, the Trip Builder says ${shown}`;
     });
     await check('B22', 'browse', 'A chip\'s x drops that extra at once and the price follows', 'removal is not a purchase: no confirmation needed (NN/g: undo over confirm)', async () => {
         await row.locator('.itinerary-item-extras-remove').first().click();
@@ -285,9 +289,9 @@ async function browseFlow(cat) {
         const after = (await cart(p))[0].selectedExtras.length;
         return startsOff && /Update/.test(label) && held === 0 && after === 1 ? undefined : `startsOff=${startsOff} label="${label}" held=${held} after=${after}`;
     });
-    await check('B27', 'browse', 'The detail page shows the group total for the ticked extras', 'Baymard: total near the buy section; stored study P1(a)', async () => {
-        const panelText = await p.locator('.activity-detail-add-panel').first().innerText();
-        return /total|for \d+/i.test(panelText) ? undefined : flaw('per-unit sums only ("' + flat(await p.locator('.activity-detail-extras-summary').first().innerText().catch(() => '')) + '"), no total though the trip has ' + n + ' travellers');
+    await check('B27', 'browse', 'The detail page states its price as "from", never as one bare number', 'owner rule 2026-10-12: all prices are shaped "from x"', async () => {
+        const line = flat(await p.locator('.activity-detail-price-line').first().innerText());
+        return /from/i.test(line) ? undefined : flaw(`the price line reads "${line}"`);
     });
 
     // an activity without extras
@@ -306,27 +310,24 @@ async function browseFlow(cat) {
         const items = await cart(p);
         return boxes === 0 && btn === 1 && items.length === 2 ? undefined : `boxes ${boxes}, button ${btn}, cart ${items.length}`;
     });
-    await check('B29', 'browse', '"Add to trip" on the card of an activity with extras offers them', 'GetYourGuide / Klook / Headout: extras chosen at the moment of adding; Baymard: dismissible, never a forced step', async () => {
+    await check('B29', 'browse', '"Add to trip" on a card just adds: nothing opens, nothing is asked', 'owner rule 2026-10-12: nothing happens unexpectedly; extras are added by opening the card', async () => {
         const second = cat.carrier2;
         const c = await openCard(p, second.name);
         await p.locator('.trip-builder-dropdown .app-modal-close-btn').click({ timeout: 1500 }).catch(() => {});
         await c.locator('.add-to-trip-btn').click();
         await p.waitForTimeout(800);
-        const offered = (await p.locator('[role=dialog] input[type=checkbox]').count()) > 0
-            || (await p.locator('[role=status], [class*=toast]').filter({ hasText: /extra/i }).count()) > 0;
-        const row2 = p.locator('.trip-builder-dropdown .trip-modal-item', { hasText: second.name });
-        const hasBtn = await row2.locator('.trip-modal-item-extras-btn').count();
-        return offered ? undefined : flaw(`added silently; the only way on is the small "Add extras" in the cart row (present: ${hasBtn === 1})`);
+        const opened = (await p.locator('[role=dialog] input[type=checkbox]').count()) + (await p.locator('[role=status], [class*=toast]').filter({ hasText: /extra/i }).count());
+        const item = (await cart(p)).find((i) => i.id === second.id);
+        return opened === 0 && item && !(item.selectedExtras || []).length ? undefined : `something opened (${opened}) or the cart is wrong`;
     });
-    await check('B30', 'browse', 'Removing an activity takes its extras out of the total', 'pricing rule', async () => {
+    await check('B30', 'browse', 'Removing an activity takes it and its extras out of the plan\'s price', 'FromPrice', async () => {
         const pn = p.locator('.trip-builder-dropdown');
         if (!(await pn.count())) await p.locator('.cart-btn').click();
-        const before = euros(await pn.locator('.trip-modal-total-price').innerText());
         await pn.locator('.trip-modal-item', { hasText: carrier.name }).locator('.trip-modal-item-remove').click();
-        await p.waitForTimeout(400);
+        await p.waitForTimeout(1500);
         const after = euros(await pn.locator('.trip-modal-total-price').innerText());
-        const want = before - (lineBase(carrier, n) + extraAmount(x0, n));
-        return eq(after, want) ? undefined : `before ${before}, after ${after}, expected ${want}`;
+        const want = fromPrice(lineBase(plain, n) + lineBase(cat.carrier2, n));
+        return eq(after, want) ? undefined : `shows ${after}, expected ${want}`;
     });
     await check('B31', 'browse', 'No script error on any page of the flow', 'baseline', async () =>
         (p.pageErrors.length ? p.pageErrors.slice(0, 3).join(' | ') : undefined));
@@ -346,6 +347,7 @@ async function browseFlow(cat) {
             const withExtras = cat.pkg.activities.filter((a) => (a.extras || []).length);
             const buttons = await pn.locator('.trip-modal-item--indented .trip-modal-item-extras-btn').count();
             if (buttons !== withExtras.length) return `extras buttons ${buttons}, activities with extras ${withExtras.length}`;
+            await q.waitForTimeout(1200);
             const before = euros(await pn.locator('.trip-modal-total-price').innerText());
             await pn.locator('.trip-modal-item--indented .trip-modal-item-extras-btn').first().click();
             const d = dialog(q);
@@ -353,10 +355,11 @@ async function browseFlow(cat) {
             await d.getByRole('checkbox').first().waitFor();
             await d.getByRole('checkbox').first().check();
             await d.getByRole('button', { name: 'Update' }).click();
-            await q.waitForTimeout(500);
+            await q.waitForTimeout(1500);
             const after = euros(await pn.locator('.trip-modal-total-price').innerText());
-            const want = before + extraAmount(withExtras[0].extras[0], n);
-            return eq(after, want) ? undefined : `before ${before}, after ${after}, expected ${want}`;
+            // the plan's "from" is rounded to whole euros twice, so the step is the extra x 0.90, give or take one
+            const want = extraAmount(withExtras[0].extras[0], n) * 0.9;
+            return Math.abs(after - before - want) <= 1 ? undefined : `before ${before}, after ${after}, expected a step of about ${want}`;
         });
         await q.context().close();
     }
@@ -466,6 +469,14 @@ async function aiFlow(cat) {
     workingKey = (await p.locator('[role=tab][aria-selected=true]').first().innerText().catch(() => 'MEDIUM')).toUpperCase().includes('BASIC') ? 'BASIC'
         : (await p.locator('[role=tab][aria-selected=true]').first().innerText().catch(() => '')).toUpperCase().includes('PREMIUM') ? 'PREMIUM' : 'MEDIUM';
 
+    await check('A03b', 'ai', 'The plan states its price as "from ... / person", and no row carries a price', 'owner rule 2026-10-12', async () => {
+        const text = await p.locator('.aip-canvas').innerText();
+        const priced = (text.match(/[^\n]*€\s?\d[^\n]*/g) || []);
+        const rows = await p.locator('.aip-item-body').allInnerTexts();
+        const bare = priced.filter((l) => !/from/i.test(l));
+        if (rows.some((r) => /€/.test(r))) return 'a plan row shows a price';
+        return bare.length ? flaw('a price without "from": ' + bare.slice(0, 2).map(flat).join(' ; ')) : undefined;
+    });
     await check('A04', 'ai', 'Every plan row opens the one card: checkboxes for its extras, "Update" off', 'feature rule: one card everywhere', async () => {
         await dockOpen(false);
         const rows = p.locator('.aip-item-name .activity-open');

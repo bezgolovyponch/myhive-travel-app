@@ -2,8 +2,9 @@ import {useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
-import {DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice} from '../utils/format';
-import {computeTripTotal, extrasTotal, groupTripItems} from '../utils/tripPricing';
+import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
+import {extrasOf, groupTripItems} from '../utils/tripPricing';
+import {usePlanFromPrice} from '../hooks/usePlanFromPrice';
 import TripSetupModal from './TripSetupModal';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
@@ -29,21 +30,22 @@ function TripBuilderDropdown({voteHref = null}) {
     const t = useT('tripDropdown');
     const tExtras = useT('extras');
     const tCards = useT('cards');
+    const tPlan = useT('tripBuilder');
+    // One price for the whole plan, the same "from" the Trip Builder shows: no price per activity, no
+    // exact total. Asked for only while the panel is open.
+    const planQuote = usePlanFromPrice(state.tripBuilderModalOpen ? state.tripItems : [], state.tripTravelers || 1);
     // The row whose card is open: its extras are ticked and confirmed there.
     const [openId, setOpenId] = useState(null);
 
     if (!state.tripBuilderModalOpen) return null;
     const opened = state.tripItems.find(item => item.id === openId) || null;
 
-    const travelers = state.tripTravelers || 1;
-
     const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
-    const totalPrice = computeTripTotal(state.tripItems, travelers);
-
+    // The extras chosen on a row, by name: what they cost is part of the plan's one price.
     const extrasSummary = (item) => {
-        const amount = extrasTotal(item, travelers);
-        return amount > 0 && (
-            <span className="trip-modal-item-extras">{tExtras('selectedSummary', {amount: formatAmount(amount)})}</span>
+        const chosen = extrasOf(item);
+        return chosen.length > 0 && (
+            <span className="trip-modal-item-extras">+ {chosen.map(extra => extra.name).join(', ')}</span>
         );
     };
 
@@ -130,7 +132,6 @@ function TripBuilderDropdown({voteHref = null}) {
                                                  className="trip-modal-item-image"/>
                                             <div className="trip-modal-item-info">
                                                 {rowName(item)}
-                                                <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
                                                 {extrasSummary(item)}
                                                 {extrasButton(item)}
                                             </div>
@@ -144,7 +145,6 @@ function TripBuilderDropdown({voteHref = null}) {
                                          className="trip-modal-item-image"/>
                                     <div className="trip-modal-item-info">
                                         {rowName(item)}
-                                        <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
                                         {extrasSummary(item)}
                                         {extrasButton(item)}
                                     </div>
@@ -191,10 +191,14 @@ function TripBuilderDropdown({voteHref = null}) {
                 : card)}
             {state.tripItems.length > 0 && (
                 <div className="trip-builder-dropdown-footer">
-                    <div className="trip-modal-total">
-                        <span>{travelers === 1 ? t('totalOne', {count: travelers}) : t('totalOther', {count: travelers})}</span>
-                        <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
-                    </div>
+                    {planQuote?.fromPrice != null && (
+                        <div className="trip-modal-total">
+                            <span>{tPlan('price.plan')}</span>
+                            <span className="trip-modal-total-price">
+                                {tPlan('price.from', {price: formatPrice(Number(planQuote.fromPrice))})}
+                            </span>
+                        </div>
+                    )}
                     <button className="trip-builder-complete-btn" onClick={handleComplete}>
                         {organizerVote ? t('backToTripBuilder') : t('continue')}
                     </button>

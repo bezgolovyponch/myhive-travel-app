@@ -7,6 +7,12 @@ import {TripContext, initialState as tripInitialState} from '../context/TripCont
 
 // Vote setup UI is exercised in TripSetupModal.test.js — keep it out of scope here.
 jest.mock('./TripSetupModal', () => () => null);
+jest.mock('../services/pricingApi', () => ({__esModule: true, default: {quote: jest.fn()}}));
+const pricingApi = require('../services/pricingApi').default;
+
+beforeEach(() => {
+    pricingApi.quote.mockResolvedValue({fromPrice: null});
+});
 
 const activity = {
     id: 'act-1',
@@ -68,18 +74,28 @@ describe('TripBuilderDropdown with extras ticked', () => {
         {code: 'photo', name: 'Photos', price: 15, pricing: 'PER_PERSON'},
     ];
 
-    it('sums the ticked extras under the price, a per-person one for every traveller', () => {
-        // 250 for the group + 15 × 4.
-        const expectedSummary = '+ €310 extras';
+    it('names the ticked extras on the row, with no amount and no price per activity', () => {
         renderDropdown({tripItems: [{...activity, extras, selectedExtras: ['show', 'photo']}], tripTravelers: 4});
 
-        expect(screen.getByText(expectedSummary)).toBeInTheDocument();
+        const row = screen.getByText('+ Private show, Photos').closest('.trip-modal-item');
+        expect(row).not.toHaveTextContent('€');
+    });
+
+    it('shows one price for the plan, the Trip Builder’s own "from", and no total', async () => {
+        pricingApi.quote.mockResolvedValue({fromPrice: 621});
+        renderDropdown({tripItems: [{...activity, extras, selectedExtras: ['show']}], tripTravelers: 10});
+
+        expect(await screen.findByText('from €621')).toBeInTheDocument();
+        expect(screen.getByText('Your plan')).toBeInTheDocument();
+        expect(screen.queryByText(/Total/)).not.toBeInTheDocument();
+        expect(pricingApi.quote).toHaveBeenCalledWith(
+            {items: [{activityId: activity.id, packageId: null, extraCodes: ['show']}], travelers: 10});
     });
 
     it('says nothing about extras when none is ticked', () => {
         renderDropdown({tripItems: [{...activity, extras, selectedExtras: []}]});
 
-        expect(screen.queryByText(/^\+ .* extras$/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^\+ /)).not.toBeInTheDocument();
     });
 
     it('opens the activity’s card from the row; the ticked extra reaches the plan with Update', async () => {
