@@ -1038,6 +1038,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     <strong>{t('price.from', {price: formatPrice(Number(planFromPrice))})}</strong>
                   </div>
               )}
+              {/* Said where the one price is: why it is lower than the activities booked one by one. */}
+              {planFromPrice != null && <p className="plan-discount-note">{t('price.packageDiscount')}</p>}
               <button
                   className="btn btn--primary btn--full-width confirm-btn"
                   onClick={handleConfirmTrip}

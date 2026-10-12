@@ -199,6 +199,9 @@ function TripBuilderDropdown({voteHref = null}) {
                             </span>
                         </div>
                     )}
+                    {planQuote?.fromPrice != null && (
+                        <p className="plan-discount-note">{tPlan('price.packageDiscount')}</p>
+                    )}
                     <button className="trip-builder-complete-btn" onClick={handleComplete}>
                         {organizerVote ? t('backToTripBuilder') : t('continue')}
                     </button>

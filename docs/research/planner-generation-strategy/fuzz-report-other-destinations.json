@@ -1,0 +1,172 @@
+{
+  "athens" : {
+    "catalog" : 16,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "baku" : {
+    "catalog" : 17,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 296,
+    "rules" : {
+      "TIER_PRICE_ORDER days=1" : 296
+    }
+  },
+  "batumi" : {
+    "catalog" : 17,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "belgrade" : {
+    "catalog" : 21,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "bratislava" : {
+    "catalog" : 18,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "cyprus" : {
+    "catalog" : 17,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "dubai" : {
+    "catalog" : 13,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "gdansk" : {
+    "catalog" : 18,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "gyor" : {
+    "catalog" : 16,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "istanbul" : {
+    "catalog" : 18,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "krakow" : {
+    "catalog" : 38,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "lisbon" : {
+    "catalog" : 19,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "ljubljana" : {
+    "catalog" : 18,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "plzen" : {
+    "catalog" : 14,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "riga" : {
+    "catalog" : 19,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "szczecin" : {
+    "catalog" : 16,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "tallinn" : {
+    "catalog" : 20,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "tel-aviv" : {
+    "catalog" : 17,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "tenerife" : {
+    "catalog" : 20,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "timisoara" : {
+    "catalog" : 16,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "tirana" : {
+    "catalog" : 15,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "trieste" : {
+    "catalog" : 16,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "wroclav" : {
+    "catalog" : 16,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  },
+  "yerevan" : {
+    "catalog" : 17,
+    "presets" : 0,
+    "runs" : 5075,
+    "broken" : 0,
+    "rules" : { }
+  }
+}

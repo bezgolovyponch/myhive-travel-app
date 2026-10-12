@@ -87,6 +87,7 @@ describe('TripBuilderDropdown with extras ticked', () => {
 
         expect(await screen.findByText('from €621')).toBeInTheDocument();
         expect(screen.getByText('Your plan')).toBeInTheDocument();
+        expect(screen.getByText('Package price: 10% off')).toBeInTheDocument();
         expect(screen.queryByText(/Total/)).not.toBeInTheDocument();
         expect(pricingApi.quote).toHaveBeenCalledWith(
             {items: [{activityId: activity.id, packageId: null, extraCodes: ['show']}], travelers: 10});

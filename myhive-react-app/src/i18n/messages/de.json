@@ -581,7 +581,8 @@
     },
     "price": {
       "plan": "Euer Plan",
-      "from": "ab {price}"
+      "from": "ab {price}",
+      "packageDiscount": "Paketpreis: 10 % Rabatt"
     },
     "emptyState": "Füge Aktivitäten hinzu und stell dir deinen Trip zusammen!",
     "footer": {
@@ -1237,7 +1238,8 @@
       "daySlot": "Tag {n} · {slot}",
       "added": "Drin ✓",
       "addAria": "{name} zum Entwurf hinzufügen",
-      "updateDraft": "Plan aktualisieren"
+      "updateDraft": "Plan aktualisieren",
+      "packageDiscount": "Paketpreis: 10 % Rabatt"
     },
     "dock": {
       "title": "JGA-KI",

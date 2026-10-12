@@ -1,5 +1,7 @@
 # Planner UX kit
 
+Part of the pre-merge audit: see `qa/PRE-MERGE-AUDIT.md` for when to run it.
+
 A repeatable test of the two ways an organizer builds a trip: browsing the catalogue into the cart, and
 the AI chat. It drives a real browser at phone size (390x844) against a running site and checks every
 way an activity or an extra can be added, changed or removed, plus the chat's error messages.
@@ -57,8 +59,8 @@ listings UX.md`; their paid reports were not read.
 
 ## Verified run: 2026-10-12, local, `feat/extras-sheet-and-chat-offer`
 
-76 checks: **57 pass, 2 fail, 3 flaws, 14 informational** (`results/2026-10-12T14-34-18.json`). The AI part
-was run four times; the two failures appeared on every run in which their precondition held.
+79 checks: **60 pass, 2 fail, 3 flaws, 14 informational** (`results/2026-10-12T15-01-10.json`). The AI part
+was run six times; the two failures appeared on every run in which their precondition held.
 
 The price checks follow the owner's rule of 2026-10-12: **one "from" price for the plan; no price per
 activity, no exact total; extras are priced on the card only; a plain "Add to trip" just adds.** An earlier
@@ -87,6 +89,7 @@ detail page, an "add extras?" prompt after adding); those checks were rewritten 
 | B02 | The extras hint on a card wraps to five lines in a dashed oval | one line: "5 extras" |
 | B06 | Extras' descriptions and prices are 3.85:1 on the card's background | lighten the muted text to reach 4.5:1 |
 | E04 | A refused first message shows a sentence with no button | "Try again" that re-sends the text |
+| A15 | An activity with five extras: the chat offers the first four and does not say there is a fifth (shows only when such an activity is the one added) | a last tag "More on the card" that opens it |
 
 ### Measurements
 
@@ -102,6 +105,7 @@ detail page, an "add extras?" prompt after adding); those checks were rewritten 
 
 - Nothing is pre-ticked anywhere; a tick reaches the plan only through "Add to trip" or "Update", in the
   catalogue card, the cart, the Trip Builder, the detail page, a package's activities, a landing, and the AI plan.
+- "Package price: 10% off" is said under the plan's price in the cart panel, the Trip Builder and the AI plan.
 - The cart panel and the Trip Builder show the same single price, "from EUR X", and it matched the pricing
   rule to the euro after every tick, untick and removal. No card, cart row or plan row carries a price of its own.
 - "Add to trip" on a card adds and nothing else happens.

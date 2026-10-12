@@ -201,6 +201,10 @@ async function browseFlow(cat) {
         const shown = await panelPrice();
         return /from/i.test(text) && eq(shown, fromPrice(expect1())) ? undefined : `shows "${flat(text)}", expected from ${fromPrice(expect1())}`;
     });
+    await check('B14b', 'browse', 'The cart panel says the discount under its price', 'owner decision 2026-10-12 (placement 1)', async () => {
+        const text = (await panel.locator('.plan-discount-note').innerText().catch(() => '')).trim();
+        return /10\s?%/.test(text) ? undefined : `note "${text}"`;
+    });
     await check('B15', 'browse', 'A cart row names the activity and its extras, with no price of its own', 'owner rule 2026-10-12: one "from" price for the plan; no price per activity, no exact total', async () => {
         const row = await panel.locator('.trip-modal-item').first().innerText();
         return /€/.test(row) ? 'row reads: ' + flat(row) : (row.includes(x0.name) ? undefined : 'the chosen extra is not named: ' + flat(row));
@@ -241,6 +245,12 @@ async function browseFlow(cat) {
     await check('B20', 'browse', 'The plan price is the group total less the package margin', 'FromPrice: total x 0.90, whole euros', async () => {
         const shown = await planPrice();
         return eq(shown, fromPrice(expect2())) ? undefined : `shows ${shown}, expected ${fromPrice(expect2())}`;
+    });
+    await check('B20b', 'browse', 'The discount is said in words right under the plan\'s price, in the cart panel and the Trip Builder', 'owner decision 2026-10-12 (placement 1); CMA209: a price must not need working out', async () => {
+        const note = p.locator('.plan-discount-note:visible').first();
+        const text = (await note.innerText().catch(() => '')).trim();
+        const below = await p.evaluate(() => { const n = document.querySelector('.plan-discount-note'); const pr = document.querySelector('.itinerary-plan-price'); return n && pr ? n.getBoundingClientRect().top >= pr.getBoundingClientRect().top : false; });
+        return /10\s?%/.test(text) && below ? undefined : `note "${text}", under the price=${below}`;
     });
     await check('B21', 'browse', 'Cart panel and Trip Builder state the same price', 'CMA209: a price must not need working out; one price for the plan', async () => {
         const shown = await planPrice();
@@ -476,6 +486,10 @@ async function aiFlow(cat) {
         const bare = priced.filter((l) => !/from/i.test(l));
         if (rows.some((r) => /€/.test(r))) return 'a plan row shows a price';
         return bare.length ? flaw('a price without "from": ' + bare.slice(0, 2).map(flat).join(' ; ')) : undefined;
+    });
+    await check('A03c', 'ai', 'The AI plan says the discount under its price', 'owner decision 2026-10-12 (placement 1)', async () => {
+        const text = (await p.locator('.aip-canvas .plan-discount-note').first().innerText().catch(() => '')).trim();
+        return /10\s?%/.test(text) ? undefined : `note "${text}"`;
     });
     await check('A04', 'ai', 'Every plan row opens the one card: checkboxes for its extras, "Update" off', 'feature rule: one card everywhere', async () => {
         await dockOpen(false);

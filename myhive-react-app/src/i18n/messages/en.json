@@ -591,7 +591,8 @@
     },
     "price": {
       "plan": "Your plan",
-      "from": "from {price}"
+      "from": "from {price}",
+      "packageDiscount": "Package price: 10% off"
     },
     "emptyState": "Start building your trip by adding activities!",
     "footer": {
@@ -1247,7 +1248,8 @@
       "daySlot": "Day {n} · {slot}",
       "added": "Added ✓",
       "addAria": "Add {name} to the trip draft",
-      "updateDraft": "Update plan"
+      "updateDraft": "Update plan",
+      "packageDiscount": "Package price: 10% off"
     },
     "dock": {
       "title": "Stag Do AI",
