@@ -87,7 +87,8 @@ public class PriceQuoteService {
                     ? group.getValue()
                     : MoneyMath.applyDiscountPct(group.getValue(), packagesById.get(group.getKey()).getDiscountPct()));
         }
-        return new PriceQuoteResponse(FromPrice.of(total), FromPrice.perPerson(total, travelers));
+        // The margin is on the activities; the extras go on top at their full price.
+        return new PriceQuoteResponse(FromPrice.of(total, extras), FromPrice.perPerson(total, extras, travelers));
     }
 
     private static Set<Line> linesOf(PriceQuoteRequest request) {

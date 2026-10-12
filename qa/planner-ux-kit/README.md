@@ -51,45 +51,27 @@ assembled from the staff test prompts, the examples the chat's own prompt gives,
 | Nielsen response-time limits (1 s, 10 s) and heuristics 1 and 9 | first feedback, time to the plan, status, error wording |
 | Baymard: hard-to-scan list items; dismissible, relevant cross-sell | the extras hint on cards, the extras question in the chat |
 | EU CRD Art. 22 and CMA 2025 guidance: no pre-ticked extras; CMA209 price transparency | checklist defaults, prices with units, cart vs plan price |
-| Owner rules of 2026-10-12 | tick then confirm; one card everywhere; no extra price in the chat; one "from" price for the plan, no price per activity, no total; a plain add just adds |
-| Pricing rule of the code | plan "from" = (sum of max(price x N, group minimum) + extras) x 0.90, whole euros |
+| Owner rules of 2026-10-12 | tick then confirm; one card everywhere; no extra price in the chat, which suggests only three kinds of extra; one "from" price for the plan, no price per activity, no total, no discount notice; a plain add just adds |
+| Pricing rule of the code | plan "from" = sum of max(price x N, group minimum) x 0.90 + extras in full, whole euros |
 
 Baymard and NN/g are cited from their public articles and from `docs/research/reports/Prague stag activity
 listings UX.md`; their paid reports were not read.
 
-## Verified run: 2026-10-12, local, `feat/extras-sheet-and-chat-offer`
+## Verified run: 2026-10-12, local, `fix/open-items`
 
-79 checks: **60 pass, 2 fail, 3 flaws, 14 informational** (`results/2026-10-12T15-01-10.json`). The AI part
-was run six times; the two failures appeared on every run in which their precondition held.
+78 checks: **63 pass, 0 fail, 0 flaws, 15 informational** (`results/2026-10-12T15-31-50.json`).
 
-The price checks follow the owner's rule of 2026-10-12: **one "from" price for the plan; no price per
-activity, no exact total; extras are priced on the card only; a plain "Add to trip" just adds.** An earlier
-run of this kit had held the same screens to the opposite standard (price on every card, a group total on the
-detail page, an "add extras?" prompt after adding); those checks were rewritten and their suggestions withdrawn.
+The checks follow the owner's decisions of 2026-10-12:
 
-### Errors (open)
+- one "from" price for the plan; no price per activity, no exact total; a plain "Add to trip" just adds;
+- the 10% margin stays in the background: nothing on any screen announces it;
+- extras are never discounted: "from" = activities x 0.90 + extras in full; an extra's own price is on the card only;
+- the chat suggests only a private show, a topless hostess or more bullets, and never a price;
+- tick, then confirm, on one card that is the same everywhere.
 
-1. **Undo is lost on reload, and the page and the server then hold different plans (A22).** After "Undo last
-   change" a reload shows the undone change again, while the next edit is applied to the plan the undo
-   restored. Cause: the session answer serves the newest READY generation (`AiSessionService` ->
-   `findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc`), but an undo moves the chat's state back to an
-   older one. Fix: serve the generation the chat state points at.
-2. **"Casino Night with VIP table ..." adds nothing (T05).** For an activity that is not in the plan, the model
-   sends only the extra; the editor refuses it ("is not in your trip plan, so there was nothing to change").
-   Every run. Fix in code, not in the prompt: an extra asked for on an activity the plan lacks adds the activity first.
-3. **Pages show an old catalogue for up to an hour.** Seen during this test: the card offered 4 extras while the
-   catalogue had 5, and a package's activities had no extras button until the cache was cleared. Cause:
-   `revalidate = 3600` on the catalogue pages. Fix: revalidate them when an activity or package is saved or
-   imported. The kit checks this as B03b.
-
-### Flaws (open)
-
-| Check | What | Suggestion |
-|---|---|---|
-| B02 | The extras hint on a card wraps to five lines in a dashed oval | one line: "5 extras" |
-| B06 | Extras' descriptions and prices are 3.85:1 on the card's background | lighten the muted text to reach 4.5:1 |
-| E04 | A refused first message shows a sentence with no button | "Try again" that re-sends the text |
-| A15 | An activity with five extras: the chat offers the first four and does not say there is a fifth (shows only when such an activity is the one added) | a last tag "More on the card" that opens it |
+Fixed since the first run of this kit, each now a passing check: undo lost on reload (A22); "X with an extra"
+for an activity not in the plan (T05); the extras hint wrapping to five lines (B02); 3.85:1 small text on the
+card (B06); no "Try again" on a refused first message (E04); cart and Trip Builder stating different prices (B21).
 
 ### Measurements
 
@@ -100,20 +82,6 @@ detail page, an "add extras?" prompt after adding); those checks were rewritten 
   37 px high. All pass AA (24 px); none reaches 44 px.
 - With the chat open the plan rows are behind it; a card can only be opened from a row with the chat down.
 - Taps never refuse an activity for lack of room: a day reached 5 activities and the page said nothing.
-
-### What passed and matters
-
-- Nothing is pre-ticked anywhere; a tick reaches the plan only through "Add to trip" or "Update", in the
-  catalogue card, the cart, the Trip Builder, the detail page, a package's activities, a landing, and the AI plan.
-- "Package price: 10% off" is said under the plan's price in the cart panel, the Trip Builder and the AI plan.
-- The cart panel and the Trip Builder show the same single price, "from EUR X", and it matched the pricing
-  rule to the euro after every tick, untick and removal. No card, cart row or plan row carries a price of its own.
-- "Add to trip" on a card adds and nothing else happens.
-- The chat asks which extra after a plain add, once, with no prices; a tap applies it with no model call;
-  "No extras" changes nothing; an add confirmed on the card is not asked about again.
-- No chat line named the price of an extra, including when asked directly.
-- The three error messages that were wrong on 2026-10-12 are right: a refused request is not "expired", a
-  gateway error is not "no connection", a dead stored chat is dropped quietly.
 
 ### Not covered
 

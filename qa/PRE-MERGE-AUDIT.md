@@ -66,9 +66,12 @@ It checks, among others, the rules the owner set on 2026-10-12:
 - "Add to trip" on a card just adds, nothing opens;
 - one price for the plan, shaped "from X"; no price per activity, no exact total; extras named, not priced,
   outside the card;
-- "Package price: 10% off" is said under that price in the cart panel, the Trip Builder and the AI plan;
-- the chat never names what an extra costs, asks which extra once after a plain add, and is not asked again
-  after an add confirmed on the card.
+- the 10% margin stays in the background: no notice, banner or percentage anywhere;
+- extras are never discounted: the plan's "from" is the activities x 0.90 plus the extras in full;
+- the chat never names what an extra costs; after a plain add it suggests only a private show, a topless
+  hostess or more bullets (where the activity has one), once, and not at all after an add confirmed on the card;
+- an extra asked for on an activity the plan lacks adds the activity first; "Undo" survives a reload;
+- every failed send can be sent again with one tap.
 
 ### 4. The same site from a phone on the network
 
@@ -145,18 +148,16 @@ stays under the limits in the postmortem. A build that ends `STALE` means the pr
 
 ## Open on 2026-10-12 (a merge must not add to this list)
 
+The kit and the fuzz gate have no open failure and no open flaw: any `FAIL`, `ERROR` or `FLAW` is new.
+
 | What | Seen by |
 |---|---|
-| Undo is lost on reload; the page and the server then hold different plans | kit A22 |
-| "X with an extra" for an activity not in the plan adds nothing | kit T05 |
-| The extras hint on a listing card wraps to five lines | kit B02 |
-| Extras' small text on the card is 3.85:1 | kit B06 |
-| A refused first message has no "Try again" | kit E04 |
-| An activity with five extras: the chat offers four and does not mention the fifth | kit A15 (only when such an activity is the one added) |
-| Baku, one-day trips: 296 brief shapes have no valid fallback | fuzz, other destinations |
+| Baku, one-day trips: 296 brief shapes have no valid fallback (the planner is not offered for Baku today) | fuzz, other destinations |
 | Titles, descriptions and "why" lines are model text nobody verifies | `docs/research/planner-generation-strategy/` |
-| The backend runs on a 512 MiB instance | audit 8 |
-| "10% off" is now stated: whether it is guaranteed, and against which reference price, is the owner's call | discount proposal, 2026-10-12 |
+| The backend runs on a 512 MiB instance; since 2026-10-12 it builds one plan at a time, caps request threads at 50 and restarts a lost build by itself, which lowers the risk and does not remove it | audit 8 |
+| Catalogue pages are cached for an hour after a catalogue change | audit 6 |
+| "Topless hostess" exists in the local catalogue only; production has no such extra until its price is given and imported | audit 7 |
+| Compose still answers in the long shape (5.9 s against 2.6 s measured for the compact one) | `docs/research/planner-speed/` |
 
 ## Keeping this file true
 

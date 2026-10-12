@@ -85,13 +85,13 @@ test('a card in a list shows no per-person price or group minimum', () => {
   expect(screen.queryByText(/€50|€300|person|Group minimum/)).not.toBeInTheDocument();
 });
 
-test('a card names the optional extras, the first two and a count, still without a price', () => {
+test('a card says how many optional extras there are, on one line, still without a price', () => {
   renderCard({...activity, extras: [
     {code: 'show', name: 'Private show', price: 250, pricing: 'PER_GROUP'},
     {code: 'photo', name: 'Photos', price: 15, pricing: 'PER_PERSON'},
     {code: 'beer', name: 'Beer', price: 5, pricing: 'PER_PERSON'},
   ]});
-  expect(screen.getByText('Optional extras · Private show, Photos +1 more')).toBeInTheDocument();
+  expect(screen.getByText('3 optional extras')).toBeInTheDocument();
   expect(screen.queryByText(/€/)).not.toBeInTheDocument();
 });
 

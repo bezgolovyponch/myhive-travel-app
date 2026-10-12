@@ -284,8 +284,8 @@
     "previousPhoto": "Previous photo",
     "nextPhoto": "Next photo",
     "goToPhoto": "Go to photo {num}",
-    "extrasChip": "Optional extras · {names}",
-    "extrasMore": "+{count} more"
+    "extrasOne": "1 optional extra",
+    "extrasCount": "{count} optional extras"
   },
   "extras": {
     "title": "Optional extras",
@@ -591,8 +591,7 @@
     },
     "price": {
       "plan": "Your plan",
-      "from": "from {price}",
-      "packageDiscount": "Package price: 10% off"
+      "from": "from {price}"
     },
     "emptyState": "Start building your trip by adding activities!",
     "footer": {
@@ -1248,8 +1247,7 @@
       "daySlot": "Day {n} · {slot}",
       "added": "Added ✓",
       "addAria": "Add {name} to the trip draft",
-      "updateDraft": "Update plan",
-      "packageDiscount": "Package price: 10% off"
+      "updateDraft": "Update plan"
     },
     "dock": {
       "title": "Stag Do AI",

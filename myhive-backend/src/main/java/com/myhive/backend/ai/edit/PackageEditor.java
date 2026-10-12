@@ -217,6 +217,18 @@ public class PackageEditor {
                 return working;
             }
         }
+        // "The bubble football with thirty more minutes": an extra asked for on an activity the plan does
+        // not hold is a wish for both. The model sends only the extra about as often as not, and refusing
+        // it ("is not in your trip plan, so there was nothing to change") answered a request with a
+        // technicality. The activity goes in first, like any ADD; if it cannot, that refusal is the answer.
+        if (edit.op() == EditOp.ADD_EXTRA && lacksActivity(working, edit, activity)) {
+            int appliedBefore = applied.size();
+            working = applyResolved(working, new EditRequest(EditOp.ADD, activity.name(), null, edit.packageKey(),
+                    edit.dayNumber(), null, List.of(), activity.id()), brief, catalog, applied, rejected);
+            if (applied.size() == appliedBefore) {
+                return working;
+            }
+        }
         List<Tier> targets = targets(working, edit, activity);
         if (targets.isEmpty() && edit.op() != EditOp.ADD) {
             rejected.add(new RejectedEdit(edit.op(), activity.name(), null, EditRejectionReason.NOT_IN_PACKAGE,
@@ -675,6 +687,16 @@ public class PackageEditor {
             }
         }
         return targets;
+    }
+
+    /** True when the package the edit names - or, naming none, every package - is without the activity. */
+    private static boolean lacksActivity(PlanDraft working, EditRequest edit, CatalogActivity activity) {
+        for (PlanDraft.PackageDraft pkg : working.packages()) {
+            if ((edit.packageKey() == null || pkg.key() == edit.packageKey()) && contains(pkg, activity.id())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean contains(PlanDraft.PackageDraft pkg, UUID activityId) {

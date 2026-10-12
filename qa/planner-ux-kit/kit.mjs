@@ -47,7 +47,11 @@ async function getJson(pathname) {
 }
 const extraAmount = (extra, n) => (extra.pricing === 'PER_PERSON' ? extra.price * n : extra.price);
 const lineBase = (a, n) => Math.max(a.price * n, a.minPrice || 0);
-const fromPrice = (total) => Math.round(total * 0.9);
+// The plan's "from": the margin is taken from the activities only, extras go on top in full (owner, 2026-10-12).
+const fromPrice = (base, extras = 0) => Math.round(base * 0.9 + extras);
+// The only extras the chat suggests: a private show, a topless hostess, more bullets.
+const CHAT_EXTRAS = [/private[\s-]?show/i, /topless[\s-]?hostess/i, /\b(bullets?|rounds?|ammo)\b/i];
+const chatExtras = (a) => (a.extras || []).filter((e) => CHAT_EXTRAS.some((k) => k.test(`${e.code || ''} ${e.name || ''}`.replace(/-/g, ' '))));
 
 async function launch() {
     if (process.env.KIT_CHROMIUM) return chromium.launch({ executablePath: process.env.KIT_CHROMIUM });
@@ -193,17 +197,17 @@ async function browseFlow(cat) {
         return items.length === 1 && String(items[0].selectedExtras) === x0.code ? undefined : 'cart: ' + JSON.stringify(items.map((i) => i.selectedExtras));
     });
     const panel = p.locator('.trip-builder-dropdown');
-    const expect1 = () => lineBase(carrier, n) + extraAmount(x0, n);
+    const expect1 = () => fromPrice(lineBase(carrier, n), extraAmount(x0, n));
     const panelPrice = async () => euros(await panel.locator('.trip-modal-total-price').innerText());
-    await check('B14', 'browse', 'The cart panel shows one price, the plan\'s "from", with the extra in it', 'FromPrice: (max(price x N, minimum) + extras) x 0.90, whole euros', async () => {
+    await check('B14', 'browse', 'The cart panel shows one price, the plan\'s "from", with the extra in it', 'FromPrice: max(price x N, minimum) x 0.90 + extras in full, whole euros', async () => {
         await p.waitForTimeout(1200);
         const text = await panel.locator('.trip-modal-total').innerText();
         const shown = await panelPrice();
-        return /from/i.test(text) && eq(shown, fromPrice(expect1())) ? undefined : `shows "${flat(text)}", expected from ${fromPrice(expect1())}`;
+        return /from/i.test(text) && eq(shown, expect1()) ? undefined : `shows "${flat(text)}", expected from ${expect1()}`;
     });
-    await check('B14b', 'browse', 'The cart panel says the discount under its price', 'owner decision 2026-10-12 (placement 1)', async () => {
-        const text = (await panel.locator('.plan-discount-note').innerText().catch(() => '')).trim();
-        return /10\s?%/.test(text) ? undefined : `note "${text}"`;
+    await check('B14b', 'browse', 'The cart panel announces no discount', 'owner decision 2026-10-12: the 10% stays in the background, no notice, no banner', async () => {
+        const text = await panel.innerText();
+        return /\d\s?%|discount|\boff\b|save/i.test(text) ? 'the panel says: ' + (text.match(/[^\n]*(\d\s?%|discount|\boff\b|save)[^\n]*/i) || [''])[0] : undefined;
     });
     await check('B15', 'browse', 'A cart row names the activity and its extras, with no price of its own', 'owner rule 2026-10-12: one "from" price for the plan; no price per activity, no exact total', async () => {
         const row = await panel.locator('.trip-modal-item').first().innerText();
@@ -226,12 +230,12 @@ async function browseFlow(cat) {
         const after = (await cart(p))[0].selectedExtras.length;
         return before === 1 && after === 2 ? undefined : `before ${before}, after ${after}`;
     });
-    const expect2 = () => expect1() + extraAmount(x1, n);
+    const expect2 = () => fromPrice(lineBase(carrier, n), extraAmount(x0, n) + extraAmount(x1, n));
     let panelSaid = null;
     await check('B18', 'browse', 'The panel\'s price follows the second extra', 'FromPrice', async () => {
         await p.waitForTimeout(1200);
         panelSaid = await panelPrice();
-        return eq(panelSaid, fromPrice(expect2())) ? undefined : `shows ${panelSaid}, expected ${fromPrice(expect2())}`;
+        return eq(panelSaid, expect2()) ? undefined : `shows ${panelSaid}, expected ${expect2()}`;
     });
     await panel.locator('.trip-builder-complete-btn').click();
     await p.waitForSelector('.itinerary-item');
@@ -242,15 +246,13 @@ async function browseFlow(cat) {
         const chips = await row.locator('.itinerary-item-extras-chip').allInnerTexts();
         return chips.length === 2 && [x0, x1].every((e) => chips.some((c) => c.includes(e.name))) && !chips.some((c) => /€/.test(c)) ? undefined : 'chips: ' + chips.join(' / ');
     });
-    await check('B20', 'browse', 'The plan price is the group total less the package margin', 'FromPrice: total x 0.90, whole euros', async () => {
+    await check('B20', 'browse', 'The plan price is the group total less the package margin', 'FromPrice: activities x 0.90 + extras in full', async () => {
         const shown = await planPrice();
-        return eq(shown, fromPrice(expect2())) ? undefined : `shows ${shown}, expected ${fromPrice(expect2())}`;
+        return eq(shown, expect2()) ? undefined : `shows ${shown}, expected ${expect2()}`;
     });
-    await check('B20b', 'browse', 'The discount is said in words right under the plan\'s price, in the cart panel and the Trip Builder', 'owner decision 2026-10-12 (placement 1); CMA209: a price must not need working out', async () => {
-        const note = p.locator('.plan-discount-note:visible').first();
-        const text = (await note.innerText().catch(() => '')).trim();
-        const below = await p.evaluate(() => { const n = document.querySelector('.plan-discount-note'); const pr = document.querySelector('.itinerary-plan-price'); return n && pr ? n.getBoundingClientRect().top >= pr.getBoundingClientRect().top : false; });
-        return /10\s?%/.test(text) && below ? undefined : `note "${text}", under the price=${below}`;
+    await check('B20b', 'browse', 'The Trip Builder announces no discount next to its price', 'owner decision 2026-10-12: no notice, no banner', async () => {
+        const text = await p.locator('.itinerary-footer').first().innerText();
+        return /\d\s?%|discount|\boff\b|save/i.test(text) || (await p.locator('.plan-discount-note').count()) ? 'the price block says: ' + flat(text) : undefined;
     });
     await check('B21', 'browse', 'Cart panel and Trip Builder state the same price', 'CMA209: a price must not need working out; one price for the plan', async () => {
         const shown = await planPrice();
@@ -261,7 +263,7 @@ async function browseFlow(cat) {
         await p.waitForTimeout(2500);
         const left = (await cart(p))[0].selectedExtras;
         const shown = await planPrice();
-        const want = fromPrice(lineBase(carrier, n) + extraAmount(x1, n));
+        const want = fromPrice(lineBase(carrier, n), extraAmount(x1, n));
         return String(left) === x1.code && eq(shown, want) ? undefined : `left ${left}, shows ${shown}, expected ${want}`;
     });
     await check('B23', 'browse', 'The extras button on the row is a real target', 'WCAG 2.2 SC 2.5.8', async () => {
@@ -367,8 +369,8 @@ async function browseFlow(cat) {
             await d.getByRole('button', { name: 'Update' }).click();
             await q.waitForTimeout(1500);
             const after = euros(await pn.locator('.trip-modal-total-price').innerText());
-            // the plan's "from" is rounded to whole euros twice, so the step is the extra x 0.90, give or take one
-            const want = extraAmount(withExtras[0].extras[0], n) * 0.9;
+            // extras are outside the margin: the plan's price rises by the extra itself (whole-euro rounding: +-1)
+            const want = extraAmount(withExtras[0].extras[0], n);
             return Math.abs(after - before - want) <= 1 ? undefined : `before ${before}, after ${after}, expected a step of about ${want}`;
         });
         await q.context().close();
@@ -487,9 +489,9 @@ async function aiFlow(cat) {
         if (rows.some((r) => /€/.test(r))) return 'a plan row shows a price';
         return bare.length ? flaw('a price without "from": ' + bare.slice(0, 2).map(flat).join(' ; ')) : undefined;
     });
-    await check('A03c', 'ai', 'The AI plan says the discount under its price', 'owner decision 2026-10-12 (placement 1)', async () => {
-        const text = (await p.locator('.aip-canvas .plan-discount-note').first().innerText().catch(() => '')).trim();
-        return /10\s?%/.test(text) ? undefined : `note "${text}"`;
+    await check('A03c', 'ai', 'The AI plan announces no discount', 'owner decision 2026-10-12: no notice, no banner', async () => {
+        const text = await p.locator('.aip-canvas').innerText();
+        return /\d\s?%|discount|\boff\b/i.test(text) ? 'the plan says: ' + (text.match(/[^\n]*(\d\s?%|discount|\boff\b)[^\n]*/i) || [''])[0] : undefined;
     });
     await check('A04', 'ai', 'Every plan row opens the one card: checkboxes for its extras, "Update" off', 'feature rule: one card everywhere', async () => {
         await dockOpen(false);
@@ -546,16 +548,17 @@ async function aiFlow(cat) {
     });
 
     let direct = null;
-    await check('A09', 'ai', 'A plain "Add" of an activity with extras: the chat asks which, as tags without prices', 'owner rule 2026-10-12; Google conversation design: offer a short list of choices', async () => {
-        direct = await findOffer((a) => (a.extras || []).length > 0);
+    await check('A09', 'ai', 'A plain "Add" of an activity with a private show, a topless hostess or more bullets: the chat asks which, as tags without prices', 'owner rule 2026-10-12: those three and no other extra in the chat', async () => {
+        direct = await findOffer((a) => chatExtras(a).length > 0);
         await waitEdit(() => offerRow(direct).locator('.aip-offer-add').click());
         const offer = p.locator('.aip-extra-offer');
         await offer.waitFor({ timeout: 10000 });
         const tags = (await offer.locator('button').allInnerTexts()).map((x) => x.trim());
-        const want = Math.min(4, direct.extras.length) + 1;
+        const want = chatExtras(direct).length + 1;
         const asked = (await chatTail(3)).some((l) => l.includes(`${direct.name} is in.`));
         const priced = noPrice(tags);
-        return tags.length === want && asked && !priced.length && tags[tags.length - 1] === 'No extras' ? undefined : `tags ${JSON.stringify(tags)}, asked=${asked}`;
+        const only = tags.slice(0, -1).every((t) => CHAT_EXTRAS.some((k) => k.test(t)));
+        return tags.length === want && only && asked && !priced.length && tags[tags.length - 1] === 'No extras' ? undefined : `tags ${JSON.stringify(tags)}, asked=${asked}`;
     });
     await check('A10', 'ai', 'While the question is open it is the only thing asked', 'NN/g chatbots: one question at a time', async () =>
         ((await p.locator('.aip-themes').count()) === 0 ? undefined : 'the "what next" tags are shown with it'));
@@ -568,7 +571,7 @@ async function aiFlow(cat) {
         const messagesBefore = seen.posts.filter((x) => /\/messages$/.test(x.url)).length;
         const edit = await waitEdit(() => p.locator('.aip-extra-offer button').first().click());
         const ops = edit.edit.applied.map((e) => e.op).join('+');
-        const want = before + extraAmount(direct.extras[0], n);
+        const want = before + extraAmount(chatExtras(direct)[0], n);
         const modelCalls = seen.posts.filter((x) => /\/messages$/.test(x.url)).length - messagesBefore;
         return ops === 'ADD_EXTRA' && eq(total(), want) && modelCalls === 0 ? undefined : `ops ${ops}, total ${total()} expected ${want}, model calls ${modelCalls}`;
     });
@@ -583,12 +586,10 @@ async function aiFlow(cat) {
         const priced = noPrice(seen.edits[seen.edits.length - 1].messages.map((m) => m.content));
         return priced.length ? priced[0] : undefined;
     });
-    await check('A15', 'ai', 'The chat offers every extra the activity has, or says there are more', 'no silent truncation', async () =>
-        (direct.extras.length <= 4 ? undefined : flaw(`${direct.name} has ${direct.extras.length} extras; the chat offers the first 4 and does not say there is another`)));
 
     let declined = null;
     await check('A16', 'ai', '"No extras" closes the question and changes nothing', 'Baymard: a cross-sell must be dismissible in one tap', async () => {
-        declined = await findOffer((a) => (a.extras || []).length > 0);
+        declined = await findOffer((a) => chatExtras(a).length > 0);
         await waitEdit(() => offerRow(declined).locator('.aip-offer-add').click());
         await p.locator('.aip-extra-offer').waitFor({ timeout: 10000 });
         const posts = seen.posts.length;
@@ -598,8 +599,8 @@ async function aiFlow(cat) {
         return seen.posts.length === posts && eq(total(), before) && (await p.locator('.aip-extra-offer').count()) === 0 && (await p.locator('.aip-themes').count()) === 1
             ? undefined : `requests sent ${seen.posts.length - posts}, total ${total()} was ${before}`;
     });
-    await check('A17', 'ai', 'An activity without extras goes in with no question', 'no irrelevant question (Baymard: one questionable offer poisons the rest)', async () => {
-        const plain = await findOffer((a) => !(a.extras || []).length);
+    await check('A17', 'ai', 'An activity whose extras are none of the three goes in with no question', 'owner rule 2026-10-12: no other extras in the chat', async () => {
+        const plain = await findOffer((a) => chatExtras(a).length === 0);
         await waitEdit(() => offerRow(plain).locator('.aip-offer-add').click());
         await p.waitForTimeout(1500);
         return (await p.locator('.aip-extra-offer').count()) === 0 ? undefined : 'asked about extras that do not exist';
@@ -679,10 +680,11 @@ async function aiFlow(cat) {
         await dockOpen(true);
         // Two activities with extras that the plan does not hold, so "add", "with an extra" and "remove"
         // mean the same thing on every run whatever the model composed.
-        const absent = cat.activities.filter((x) => (x.extras || []).length >= 2 && !inPlan().has(x.id));
+        const absent = cat.activities.filter((x) => (x.extras || []).length >= 2 && chatExtras(x).length > 0 && !inPlan().has(x.id));
         const [A, B] = absent;
-        const fill = (text) => text.replaceAll('{A.extra}', A.extras[0].name).replaceAll('{A.other}', A.extras[A.extras.length - 1].name)
-            .replaceAll('{B.extra}', B.extras[0].name).replaceAll('{A}', A.name).replaceAll('{B}', B.name);
+        const other = (x) => x.extras.find((e) => !chatExtras(x).includes(e)) || x.extras[x.extras.length - 1];
+        const fill = (text) => text.replaceAll('{A.extra}', chatExtras(A)[0].name).replaceAll('{A.other}', other(A).name)
+            .replaceAll('{B.extra}', chatExtras(B)[0].name).replaceAll('{A}', A.name).replaceAll('{B}', B.name);
         for (const raw of SCENARIOS.typed) {
             const s = { ...raw, say: fill(raw.say) };
             await check(s.id, 'ai-live', `Typed: "${s.say}" - ${s.expect}`, s.source, async () => {
@@ -756,9 +758,9 @@ async function errorPaths() {
         const r = await start((route) => route.abort('internetdisconnected'));
         return /No connection/i.test(r.text) && r.buttons.some((b) => /Try again/i.test(b)) ? undefined : `shown: "${r.text}"`;
     });
-    await check('E04', 'errors', 'A refused request tells the organizer what to do next', 'Nielsen heuristic 9: constructively suggest a solution', async () => {
+    await check('E04', 'errors', 'A refused request can be sent again with one tap', 'Nielsen heuristic 9: constructively suggest a solution', async () => {
         const r = await start((route) => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Bad Request' }) }));
-        return r.buttons.length ? undefined : flaw(`"${r.text}" - a sentence, no button: the message has to be typed again`);
+        return r.buttons.some((b) => /Try again/i.test(b)) ? undefined : `"${r.text}" - no "Try again": the message has to be typed again`;
     });
     await check('E05', 'errors', 'A stored chat the backend no longer knows is dropped quietly and the start screen shows', 'graceful recovery', async () => {
         const p = await phone({ fn: () => { try { localStorage.setItem('myhive-ai-session', '00000000-0000-4000-8000-000000000000'); } catch (e) { /* blocked */ } } });

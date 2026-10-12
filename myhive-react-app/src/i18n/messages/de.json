@@ -274,8 +274,8 @@
     "previousPhoto": "Vorheriges Foto",
     "nextPhoto": "Nächstes Foto",
     "goToPhoto": "Zu Foto {num}",
-    "extrasChip": "Optionale Extras · {names}",
-    "extrasMore": "+{count} weitere"
+    "extrasOne": "1 optionales Extra",
+    "extrasCount": "{count} optionale Extras"
   },
   "extras": {
     "title": "Optionale Extras",
@@ -581,8 +581,7 @@
     },
     "price": {
       "plan": "Euer Plan",
-      "from": "ab {price}",
-      "packageDiscount": "Paketpreis: 10 % Rabatt"
+      "from": "ab {price}"
     },
     "emptyState": "Füge Aktivitäten hinzu und stell dir deinen Trip zusammen!",
     "footer": {
@@ -1238,8 +1237,7 @@
       "daySlot": "Tag {n} · {slot}",
       "added": "Drin ✓",
       "addAria": "{name} zum Entwurf hinzufügen",
-      "updateDraft": "Plan aktualisieren",
-      "packageDiscount": "Paketpreis: 10 % Rabatt"
+      "updateDraft": "Plan aktualisieren"
     },
     "dock": {
       "title": "JGA-KI",

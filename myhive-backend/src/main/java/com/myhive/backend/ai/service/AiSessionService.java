@@ -629,10 +629,18 @@ public class AiSessionService {
 
     private SessionView view(AiSession session, String firstTurnErrorCode) {
         PlannerGraph.PlannerStateSnapshot snapshot = graph.snapshot(session.getToken());
+        // The plan to show is the one the chat state holds, not the newest row: "Undo last change" moves
+        // the state back to an older generation, and serving the newest one put the undone change back
+        // on screen after a reload while every edit went to the plan without it.
+        Optional<AiGeneration> held = snapshot.state().resultGenerationId()
+                .flatMap(generationRepository::findById)
+                .filter(generation -> generation.getStatus() == AiGenerationStatus.READY
+                        && generation.getSession().getId().equals(session.getId()));
         return new SessionView(session, snapshot.state(), snapshot.next(),
                 generationRepository.findFirstBySessionIdOrderByCreatedAtDescIdDesc(session.getId()),
-                generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(session.getId(),
-                        AiGenerationStatus.READY),
+                held.isPresent() ? held
+                        : generationRepository.findFirstBySessionIdAndStatusOrderByCreatedAtDescIdDesc(session.getId(),
+                                AiGenerationStatus.READY),
                 firstTurnErrorCode);
     }
 

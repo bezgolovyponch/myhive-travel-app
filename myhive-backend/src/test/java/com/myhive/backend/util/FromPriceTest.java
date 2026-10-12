@@ -33,4 +33,16 @@ class FromPriceTest {
         assertThat(FromPrice.perPerson(new BigDecimal("2140.00"), null)).isNull();
         assertThat(FromPrice.perPerson(new BigDecimal("2140.00"), 0)).isNull();
     }
+
+    /** Extras are never discounted: the margin is taken from the activities, the extras go on top in full. */
+    @Test
+    void of_withExtras_takesTheMarginFromTheActivitiesOnly() {
+        BigDecimal total = new BigDecimal("530.00");
+        BigDecimal extras = new BigDecimal("160.00");
+
+        // (530 - 160) x 0.90 + 160 = 493, against 477 when the extra was inside the margin
+        assertThat(FromPrice.of(total, extras)).isEqualByComparingTo("493");
+        assertThat(FromPrice.perPerson(total, extras, 10)).isEqualByComparingTo("50");
+        assertThat(FromPrice.of(total, null)).isEqualByComparingTo(FromPrice.of(total));
+    }
 }

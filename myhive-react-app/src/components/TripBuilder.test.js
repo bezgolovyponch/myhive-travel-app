@@ -806,8 +806,8 @@ describe('plan price', () => {
 
         expect(await screen.findByText('from €1,161')).toBeInTheDocument();
         expect(screen.getByText('Your plan')).toBeInTheDocument();
-        // Why the one price is what it is, said right under it.
-        expect(screen.getByText('Package price: 10% off')).toBeInTheDocument();
+        // The margin is not announced: no line about a discount.
+        expect(screen.queryByText(/10\s?%|discount/i)).not.toBeInTheDocument();
         expect(pricingApi.quote).toHaveBeenCalledWith({ items: [{ activityId: 'a1', packageId: null, extraCodes: [] }], travelers: 4 });
         expect(screen.queryByText(/€50|× 4|person/)).not.toBeInTheDocument();
     });

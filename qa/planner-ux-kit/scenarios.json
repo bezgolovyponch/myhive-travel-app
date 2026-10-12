@@ -52,7 +52,7 @@
       ],
       "asksExtras": false,
       "noPrice": true,
-      "source": "bug S56 (2026-10-09): \"river cruise with private show\"; prompt rule: two edits"
+      "source": "bug S56 (2026-10-09) and kit run 2026-10-12: an extra asked for on an activity the plan lacks adds the activity first (PackageEditor)"
     },
     {
       "id": "T06",
@@ -95,5 +95,5 @@
       "source": "staff prompt: \"Actually we are 12 people now.\""
     }
   ],
-  "placeholders": "{A} and {B} are two activities with extras that are NOT in the plan when the typed part starts (first two by name); {A.extra} is A's first extra, {A.other} its last, {B.extra} B's first. Resolved by the kit at run time so the outcome does not depend on what the model put in the plan."
+  "placeholders": "{A} and {B} are two activities NOT in the plan when the typed part starts that offer one of the extras the chat suggests (private show, topless hostess, more bullets); {A.extra} / {B.extra} is that extra, {A.other} another extra of A. Resolved by the kit at run time so the outcome does not depend on what the model put in the plan."
 }

@@ -341,10 +341,16 @@ public class AiDtoMapper {
                 !NON_RETRYABLE_ERROR_CODE.equals(generation.getErrorCode()));
     }
 
+    /** What the package's chosen extras come to for the group: the part of its total no margin is taken from. */
+    public static BigDecimal extrasOf(ComposedPlan.PackageResult result) {
+        return result.days().stream().flatMap(day -> day.items().stream()).flatMap(item -> item.extras().stream())
+                .map(ComposedPlan.ItemExtra::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private static PackageDTO plannedPackage(ComposedPlan.PackageResult result, Integer groupSize) {
         return new PackageDTO(result.key().name(), result.title(), result.tagline(), result.description(),
-                result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice()),
-                FromPrice.perPerson(result.totalPrice(), groupSize), result.currency(),
+                result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice(), extrasOf(result)),
+                FromPrice.perPerson(result.totalPrice(), extrasOf(result), groupSize), result.currency(),
                 result.totalDurationMinutes(),
                 result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights());
     }
