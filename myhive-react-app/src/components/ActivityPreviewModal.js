@@ -91,8 +91,9 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
     const tickedCodes = extras.filter((extra) => ticked.includes(extra.code)).map((extra) => extra.code);
     const unchanged = tickedCodes.join('|') === extras
         .filter((extra) => (confirm?.selected || []).includes(extra.code)).map((extra) => extra.code).join('|');
-    // In the plan with nothing to tick, there is nothing to confirm.
-    const confirmable = Boolean(confirm) && !loading && (!confirm.inPlan || extras.length > 0);
+    // The card is the same wherever it opens: the button is always there - "Add" for an activity that is
+    // not in the plan, "Update" for one that is (off until a tick differs from what the plan holds).
+    const confirmable = Boolean(confirm) && !loading;
 
     return (
         <AppModal

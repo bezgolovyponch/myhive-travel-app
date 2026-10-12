@@ -371,7 +371,7 @@ test('once packages land the trip draft fills the page and the chat docks open u
     expect(within(dock).getByRole('button', {name: 'Collapse chat'})).toHaveAttribute('aria-expanded', 'true');
 });
 
-test('a name in the draft opens the activity card over the page, and "Back to the draft" closes it', async () => {
+test('a name in the draft opens the same activity card as everywhere else: Update, off until a tick differs', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
     api.getActivity.mockResolvedValue({
@@ -386,9 +386,10 @@ test('a name in the draft opens the activity card over the page, and "Back to th
     const card = await screen.findByRole('dialog', {name: 'Karting'});
     expect(await within(card).findByText('Ten laps on an indoor track.')).toBeInTheDocument();
     expect(api.getActivity).toHaveBeenCalledWith('id-Karting');
-    // Already in the draft: nothing to add, only the way back.
-    expect(within(card).queryByRole('button', {name: 'Add to the draft'})).not.toBeInTheDocument();
-    await userEvent.click(within(card).getByRole('button', {name: 'Back to the draft'}));
+    // Already in the plan: the card's button is "Update", with nothing ticked differently yet.
+    expect(within(card).queryByRole('button', {name: 'Add to trip'})).not.toBeInTheDocument();
+    expect(within(card).getByRole('button', {name: 'Update'})).toBeDisabled();
+    await userEvent.click(within(card).getByRole('button', {name: 'Close'}));
     expect(screen.queryByRole('dialog', {name: 'Karting'})).not.toBeInTheDocument();
     expect(within(draft).getByText('Karting')).toBeInTheDocument();
 });

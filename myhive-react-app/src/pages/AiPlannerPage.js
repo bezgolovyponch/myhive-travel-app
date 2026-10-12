@@ -92,6 +92,8 @@ function writeSaid(token, lines) {
 // other options?").
 function AiPlannerPage({pollIntervalMs}) {
     const t = useT('aiPlanner');
+    const tCards = useT('cards');
+    const tExtras = useT('extras');
     const tHome = useT('home');
     const navigate = useNavigate();
     const locale = useLocale();
@@ -658,13 +660,13 @@ function AiPlannerPage({pollIntervalMs}) {
                 }}
                 activityId={preview?.activityId}
                 onClose={() => setPreview(null)}
-                closeLabel={t('result.backToDraft')}
                 confirm={preview && activePkg ? {
                     inPlan: inDraft.has(preview.activityId),
                     selected: (activePkg.days.flatMap((day) => day.items)
                         .find((item) => item.activityId === preview.activityId)?.extras || []).map((e) => e.code),
-                    addLabel: t('result.addToDraft'),
-                    updateLabel: t('result.updateDraft'),
+                    // The same card, the same two buttons as in the catalogue and the cart.
+                    addLabel: tCards('addToTrip'),
+                    updateLabel: tExtras('update'),
                     disabled: busy,
                     onConfirm: confirmCard,
                 } : undefined}
