@@ -1953,7 +1953,8 @@ describe('extras on an itinerary row', () => {
 
         await user.click(update);
 
-        expect(onDispatch).toHaveBeenCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] });
+        expect(onDispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(screen.getByText('Private show · +€250')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Edit extras' })).toBeInTheDocument();
@@ -1997,6 +1998,22 @@ describe('extras on an itinerary row', () => {
         await user.click(screen.getByRole('button', { name: 'Remove Private show' }));
 
         expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: expectedCodes });
+    });
+
+    test('an activity inside a package opens the same card and takes extras', async () => {
+        const user = userEvent.setup();
+        const onDispatch = jest.fn();
+        const packaged = { ...activity1, extras, selectedExtras: [], packageId: 'pkg-1', packageName: 'Classic', packageDiscountPct: 10 };
+        render(<CartHarness initialItems={[packaged]} onDispatch={onDispatch} />);
+
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        const card = screen.getByRole('dialog');
+        await user.click(within(card).getByRole('checkbox', { name: /Private show/ }));
+        await user.click(within(card).getByRole('button', { name: 'Update' }));
+
+        expect(onDispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] }));
+        expect(screen.getByText('Private show · +€250')).toBeInTheDocument();
     });
 
     test('closing the card without Update leaves the plan as it was', async () => {

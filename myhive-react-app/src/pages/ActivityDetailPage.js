@@ -30,9 +30,10 @@ function ActivityDetailPage({activity: injectedActivity}) {
     const {state, dispatch} = useTrip();
     const {data: activity, loading, error} = useFetchBySlug(api.getActivityBySlug, slug, injectedActivity);
     const [moreActivities, setMoreActivities] = useState([]);
-    // Extras ticked before the activity is in the trip, tied to that activity: the page stays
-    // mounted when "More activities" opens a sibling, and codes like "photos" repeat across
-    // activities, so unscoped ticks would arrive pre-selected on the next one.
+    // Extras as ticked on the page, tied to that activity: the page stays mounted when "More
+    // activities" opens a sibling, and codes like "photos" repeat across activities, so unscoped
+    // ticks would arrive pre-selected on the next one. Ticks reach the trip only through the
+    // button - "Add to trip", or "Update" once the activity is in it.
     const [pending, setPending] = useState({activityId: null, codes: []});
 
     const destinationId = activity?.destinationId;
@@ -110,9 +111,12 @@ function ActivityDetailPage({activity: injectedActivity}) {
         || t('facts.cancellationDefault');
 
     const extras = activity.extras || [];
-    // Once the activity is in the trip, the checklist shows and edits the trip's own selection.
-    const pendingCodes = pending.activityId === activity.id ? pending.codes : [];
-    const selectedExtras = cartItem ? (cartItem.selectedExtras || []) : pendingCodes;
+    // Until something is ticked here the checklist shows what the trip holds for this activity.
+    const inTrip = cartItem ? (cartItem.selectedExtras || []) : [];
+    const selectedExtras = pending.activityId === activity.id ? pending.codes : inTrip;
+    const offered = extras.map(extra => extra.code);
+    const sameAsTrip = offered.filter(code => selectedExtras.includes(code)).join('|')
+        === offered.filter(code => inTrip.includes(code)).join('|');
     // The page has no group size, so the ticked extras are summed per unit, never as one line amount.
     const tickedExtras = extrasOf({...activity, selectedExtras});
     const extrasSummary = ['PER_GROUP', 'PER_PERSON']
@@ -126,25 +130,28 @@ function ActivityDetailPage({activity: injectedActivity}) {
         .join(' · ');
 
     const handleExtrasChange = (codes) => {
-        if (cartItem) {
-            dispatch({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras: codes});
-        } else {
-            setPending({activityId: activity.id, codes});
-        }
+        setPending({activityId: activity.id, codes});
     };
 
     const handleAddToTrip = () => {
-        dispatch({type: 'ADD_TO_TRIP', activity: {...activity, selectedExtras}});
+        if (cartItem) {
+            dispatch({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras});
+        } else {
+            dispatch({type: 'ADD_TO_TRIP', activity: {...activity, selectedExtras}});
+        }
+        setPending({activityId: null, codes: []});
     };
+    // In the trip with other extras ticked than it holds: the button confirms the change.
+    const canUpdate = isAdded && !sameAsTrip;
 
     const addButton = (
         <button
             className="activity-detail-add-btn"
             onClick={handleAddToTrip}
-            disabled={isAdded}
+            disabled={isAdded && !canUpdate}
         >
-            <i className={`ph ${isAdded ? 'ph-check-circle' : 'ph-plus-circle'}`} aria-hidden="true"/>
-            {isAdded ? t('addedToTrip') : t('addToTrip')}
+            <i className={`ph ${isAdded && !canUpdate ? 'ph-check-circle' : 'ph-plus-circle'}`} aria-hidden="true"/>
+            {canUpdate ? tExtras('update') : isAdded ? t('addedToTrip') : t('addToTrip')}
         </button>
     );
 

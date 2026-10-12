@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {createPortal} from 'react-dom';
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import {DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice} from '../utils/format';
@@ -45,6 +46,38 @@ function TripBuilderDropdown({voteHref = null}) {
             <span className="trip-modal-item-extras">{tExtras('selectedSummary', {amount: formatAmount(amount)})}</span>
         );
     };
+
+    // A row's name opens the activity's card, where its extras are ticked and confirmed - standalone
+    // rows and a package's alike.
+    const rowName = (item) => (
+        <button type="button" className="trip-modal-item-name trip-modal-item-open"
+                aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
+            {item.name || item.title}
+        </button>
+    );
+    const extrasButton = (item) => (item.extras || []).length > 0 && (
+        <button type="button" className="trip-modal-item-extras-btn"
+                aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
+            {(item.selectedExtras || []).length > 0 ? tExtras('edit') : tExtras('add')}
+        </button>
+    );
+
+    const card = opened && (
+                <ActivityPreviewModal
+                    activity={opened}
+                    activityId={opened.id}
+                    onClose={() => setOpenId(null)}
+                    confirm={{
+                        inPlan: true,
+                        selected: opened.selectedExtras || [],
+                        addLabel: tCards('addToTrip'),
+                        updateLabel: tExtras('update'),
+                        onConfirm: (codes, activity) => dispatch({
+                            type: 'SET_ITEM_EXTRAS', id: opened.id, selectedExtras: codes, extras: activity.extras || [],
+                        }),
+                    }}
+                />
+    );
 
     // The organiser of a running vote (opened "Browse all" from the dashboard)
     // goes back to the Trip Builder dashboard, where what they added joins the vote.
@@ -96,9 +129,10 @@ function TripBuilderDropdown({voteHref = null}) {
                                             <img src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE} alt={item.name}
                                                  className="trip-modal-item-image"/>
                                             <div className="trip-modal-item-info">
-                                                <span className="trip-modal-item-name">{item.name}</span>
+                                                {rowName(item)}
                                                 <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
                                                 {extrasSummary(item)}
+                                                {extrasButton(item)}
                                             </div>
                                         </div>
                                     ))}
@@ -109,23 +143,10 @@ function TripBuilderDropdown({voteHref = null}) {
                                     <img src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE} alt={item.name}
                                          className="trip-modal-item-image"/>
                                     <div className="trip-modal-item-info">
-                                        {/* On a landing the header traps a dialog (see voteHref): the name stays text. */}
-                                        {voteHref ? (
-                                            <span className="trip-modal-item-name">{item.name || item.title}</span>
-                                        ) : (
-                                            <button type="button" className="trip-modal-item-name trip-modal-item-open"
-                                                    aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
-                                                {item.name || item.title}
-                                            </button>
-                                        )}
+                                        {rowName(item)}
                                         <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
                                         {extrasSummary(item)}
-                                        {!voteHref && (item.extras || []).length > 0 && (
-                                            <button type="button" className="trip-modal-item-extras-btn"
-                                                    aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
-                                                {(item.selectedExtras || []).length > 0 ? tExtras('edit') : tExtras('add')}
-                                            </button>
-                                        )}
+                                        {extrasButton(item)}
                                     </div>
                                     <button
                                         type="button"
@@ -162,20 +183,12 @@ function TripBuilderDropdown({voteHref = null}) {
                     </div>
                 )}
             </div>
-            {opened && (
-                <ActivityPreviewModal
-                    activity={opened}
-                    activityId={opened.id}
-                    onClose={() => setOpenId(null)}
-                    confirm={{
-                        inPlan: true,
-                        selected: opened.selectedExtras || [],
-                        addLabel: tCards('addToTrip'),
-                        updateLabel: tExtras('update'),
-                        onConfirm: (codes) => dispatch({type: 'SET_ITEM_EXTRAS', id: opened.id, selectedExtras: codes}),
-                    }}
-                />
-            )}
+            {/* On a landing this dropdown sits in a header with a backdrop-filter, which would be the
+                containing block of the card's fixed overlay and trap it in the header bar. There the card
+                is mounted on the landing's root instead - still under .tl, whose styles it needs. */}
+            {opened && (voteHref && typeof document !== 'undefined'
+                ? createPortal(card, document.querySelector('.tl') || document.body)
+                : card)}
             {state.tripItems.length > 0 && (
                 <div className="trip-builder-dropdown-footer">
                     <div className="trip-modal-total">

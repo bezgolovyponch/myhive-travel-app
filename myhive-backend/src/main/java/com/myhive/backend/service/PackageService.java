@@ -2,6 +2,7 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.dto.PackageActivityRefDTO;
+import com.myhive.backend.util.ActivityExtras;
 import com.myhive.backend.dto.PackageDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
@@ -132,7 +133,7 @@ public class PackageService {
             refs.add(new PackageActivityRefDTO(
                     a.getId(), pa.getPosition(),
                     a.getSlug(), Translations.pick(a.getTranslations(), lc, "name", a.getName()),
-                    a.getPrice(), a.getDuration(), a.getImageUrl()));
+                    a.getPrice(), a.getDuration(), a.getImageUrl(), ActivityExtras.toDtos(a.getExtras(), lc)));
         }
         dto.setActivities(refs);
 

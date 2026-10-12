@@ -35,6 +35,12 @@ const toEntry = (m) => ({
 });
 
 const errorCode = (e) => e?.body?.error || null;
+// What to tell the organizer. "No connection" is only for a request that got no answer at all: a
+// server that answered without a code of its own (a proxy's 403 or 502) is something going wrong
+// on our side, and telling them to check their internet sends them looking in the wrong place.
+const shownCode = (e) => errorCode(e) || (e?.status ? `HTTP_${e.status}` : 'NETWORK');
+// The server is there but could not take it (a restart, a bad gateway): the same text can be sent again.
+const serverSide = (e) => e?.status >= 500;
 const hasPackages = (generation) => Boolean(generation?.packages?.length);
 
 /**
@@ -126,7 +132,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
             .catch((e) => {
                 if (cancelled) return;
                 if (e.status === 404 || DEAD_TOKEN_CODES.has(errorCode(e))) writeToken(null);
-                else setError({code: errorCode(e) || 'NETWORK'});
+                else setError({code: shownCode(e)});
             })
             .finally(() => {
                 if (!cancelled) setRestoring(false);
@@ -186,12 +192,12 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                     : api.sendMessage(tokenRef.current, content)));
             }
         } catch (e) {
-            const code = errorCode(e) || 'NETWORK';
+            const code = shownCode(e);
             if (DEAD_TOKEN_CODES.has(code) || e.status === 404) {
                 reset();
                 setError({code: 'SESSION_NOT_FOUND'});
             } else {
-                setError({code, retryText: RETRYABLE_CODES.has(code) || code === 'NETWORK' ? content : null, retryPreset: preset});
+                setError({code, retryText: RETRYABLE_CODES.has(code) || code === 'NETWORK' || serverSide(e) ? content : null, retryPreset: preset});
             }
         } finally {
             setSending(false);
@@ -274,7 +280,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
             if (extras) edit.extras = extras;
             await applyTurn(await api.editDraft(tokenRef.current, edit));
         } catch (e) {
-            setError({code: errorCode(e) || 'NETWORK'});
+            setError({code: shownCode(e)});
         } finally {
             setEditing(null);
         }
@@ -288,7 +294,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
             await api.selectPackage(parent.id, packageKey);
             setGeneration(parent);
         } catch (e) {
-            setError({code: errorCode(e) || 'NETWORK'});
+            setError({code: shownCode(e)});
         }
     }, [api, generation]);
 

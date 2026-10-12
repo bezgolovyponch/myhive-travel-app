@@ -91,7 +91,8 @@ describe('TripBuilderDropdown with extras ticked', () => {
         await user.click(within(card).getAllByRole('checkbox')[0]);
         await user.click(await within(card).findByRole('button', {name: 'Update'}));
 
-        expect(dispatch).toHaveBeenCalledWith({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras: [extras[0].code]});
+        expect(dispatch).toHaveBeenCalledWith(
+            expect.objectContaining({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras: [extras[0].code]}));
     });
 });
 

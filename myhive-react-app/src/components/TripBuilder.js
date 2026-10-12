@@ -955,7 +955,21 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                         <img src={item.imageUrl} alt={item.name}
                              className="itinerary-item-image" loading="lazy"/>
                         <div className="itinerary-item-content">
-                          <div className="itinerary-item-title">{item.name}</div>
+                          {/* A package's activity has a card and extras like any other. */}
+                          <button
+                            type="button"
+                            className="itinerary-item-title itinerary-item-open"
+                            aria-haspopup="dialog"
+                            onClick={() => setPreviewActivity(item)}
+                          >
+                            {item.name}
+                          </button>
+                          <ItemExtrasRow
+                            item={item}
+                            travelers={state.tripTravelers || 1}
+                            onChange={codes => setItemExtras(item.id, codes)}
+                            onOpen={() => setPreviewActivity(item)}
+                          />
                         </div>
                       </div>
                     ))}
@@ -1291,7 +1305,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
             addLabel: tCards('addToTrip'),
             updateLabel: tExtras('update'),
             onConfirm: (codes, activity) => (previewInPlan
-                ? setItemExtras(previewInPlan.id, codes)
+                ? dispatch({type: 'SET_ITEM_EXTRAS', id: previewInPlan.id, selectedExtras: codes,
+                  extras: activity.extras || []})
                 : handleAddActivity({
                   ...activity,
                   id: previewActivity.id,

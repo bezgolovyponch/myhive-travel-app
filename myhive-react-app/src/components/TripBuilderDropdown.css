@@ -266,7 +266,8 @@
     text-decoration: underline;
 }
 
-.trip-modal-item-extras-btn {
+/* Under the dropdown so the landings' `.tl button` reset does not strip its border. */
+.trip-builder-dropdown .trip-modal-item-extras-btn {
     align-self: flex-start;
     min-height: 2rem;
     padding: 0 var(--gap-sm);
