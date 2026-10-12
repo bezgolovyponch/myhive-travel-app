@@ -12,8 +12,9 @@ const POLL_GIVE_UP_MS = 240000;
 // A stored token the backend no longer knows, or cannot even read (a 400): drop it and offer a fresh
 // chat. Only for a token read back from storage - see `send` for one that is in use.
 const DEAD_TOKEN_CODES = new Set(['SESSION_NOT_FOUND', 'Bad Request']);
-// A reply that failed while the user's message was saved: re-send the same text.
-const RETRYABLE_CODES = new Set(['LLM_UNAVAILABLE', 'LLM_TIMEOUT', 'SESSION_BUSY', 'AI_BUSY']);
+// Sending the same text again cannot help: the chat or the day has run out, or the planner is off.
+const NO_RETRY_CODES = new Set(['SESSION_TURN_LIMIT', 'GENERATION_LIMIT', 'SESSION_DAILY_LIMIT', 'AI_DISABLED',
+    'SESSION_NOT_FOUND']);
 
 const readToken = () => {
     try {
@@ -117,6 +118,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setSuggestions({});
         setShowRequest(null);
         setLastEdit(null);
+        autoRebuilt.current = false;
         setBuilding(false);
         setWatchedId(null);
         setError(null);
@@ -207,7 +209,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                 reset();
                 setError({code: 'SESSION_NOT_FOUND'});
             } else {
-                setError({code, retryText: RETRYABLE_CODES.has(code) || code === 'NETWORK' || serverSide(e) ? content : null, retryPreset: preset});
+                // Whatever went wrong, the text is still theirs: one tap sends it again, nothing is retyped.
+                setError({code, retryText: NO_RETRY_CODES.has(code) ? null : content, retryPreset: preset});
             }
         } finally {
             setSending(false);
@@ -232,6 +235,10 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         if (error?.retryGeneration) rebuild();
         else if (error?.retryText) send(error.retryText, error.retryPreset);
     }, [error, send, rebuild]);
+
+    // A build lost to a server restart (STALE) is started again without being asked, once per chat: the
+    // organizer did nothing wrong and should not have to notice. A second loss is shown, with "Try again".
+    const autoRebuilt = useRef(false);
 
     // Poll the generation a turn started until it is READY or FAILED.
     useEffect(() => {
@@ -266,6 +273,16 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                     return;
                 }
                 if (gen.status === 'FAILED') {
+                    if (gen.error?.code === 'STALE' && !autoRebuilt.current && tokenRef.current) {
+                        autoRebuilt.current = true;
+                        try {
+                            const again = await api.startGeneration(tokenRef.current);
+                            if (!stopped) setWatchedId(again.id);
+                            return;
+                        } catch (e) {
+                            // could not start it again: fall through and say so
+                        }
+                    }
                     setBuilding(false);
                     setWatchedId(null);
                     setError({code: gen.error?.code || 'INTERNAL', failedGeneration: true,

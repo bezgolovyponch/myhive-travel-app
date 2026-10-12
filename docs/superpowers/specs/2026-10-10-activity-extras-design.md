@@ -53,6 +53,11 @@ This spec covers item 2 (the feature) and the data contract that items 3–4 dep
 
 ## Semantics
 
+> **2026-10-12, owner:** extras are never discounted, and that now holds for the plan's "from" price too:
+> `FromPrice` takes its 10% margin from the activities only and adds the extras in full. The margin is
+> illustrative and is announced nowhere. The chat suggests only a private show, a topless hostess or more
+> bullets, and never a price; every other extra is chosen on the activity's card.
+
 - An **extra** belongs to exactly one activity and has a stable `code` (slug, unique within the
   activity), a `name`, an optional one-line `description`, a `price` and a `pricing` unit:
   - `PER_GROUP`: one flat amount for the whole group ("Private show, €250 per group");

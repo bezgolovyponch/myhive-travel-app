@@ -1,11 +1,9 @@
 {
   "base": "http://localhost:3000",
-  "at": "2026-10-12T15:01:10.318Z",
+  "at": "2026-10-12T15:31:50.305Z",
   "tally": {
-    "PASS": 60,
-    "FLAW": 3,
-    "INFO": 14,
-    "FAIL": 2
+    "PASS": 63,
+    "INFO": 15
   },
   "results": [
     {
@@ -21,8 +19,8 @@
       "flow": "browse",
       "rule": "The extras hint on a card is one scannable line",
       "source": "Baymard, list item design (hard-to-scan list info)",
-      "status": "FLAW",
-      "detail": "the chip wraps to about 5 lines (87px high)"
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B03",
@@ -61,8 +59,8 @@
       "flow": "browse",
       "rule": "Small text in the card meets 4.5:1 contrast",
       "source": "WCAG 2.2 SC 1.4.3",
-      "status": "FLAW",
-      "detail": "description 3.85:1, price 3.85:1"
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "B07",
@@ -124,15 +122,15 @@
       "id": "B14",
       "flow": "browse",
       "rule": "The cart panel shows one price, the plan's \"from\", with the extra in it",
-      "source": "FromPrice: (max(price x N, minimum) + extras) x 0.90, whole euros",
+      "source": "FromPrice: max(price x N, minimum) x 0.90 + extras in full, whole euros",
       "status": "PASS",
       "detail": ""
     },
     {
       "id": "B14b",
       "flow": "browse",
-      "rule": "The cart panel says the discount under its price",
-      "source": "owner decision 2026-10-12 (placement 1)",
+      "rule": "The cart panel announces no discount",
+      "source": "owner decision 2026-10-12: the 10% stays in the background, no notice, no banner",
       "status": "PASS",
       "detail": ""
     },
@@ -180,15 +178,15 @@
       "id": "B20",
       "flow": "browse",
       "rule": "The plan price is the group total less the package margin",
-      "source": "FromPrice: total x 0.90, whole euros",
+      "source": "FromPrice: activities x 0.90 + extras in full",
       "status": "PASS",
       "detail": ""
     },
     {
       "id": "B20b",
       "flow": "browse",
-      "rule": "The discount is said in words right under the plan's price, in the cart panel and the Trip Builder",
-      "source": "owner decision 2026-10-12 (placement 1); CMA209: a price must not need working out",
+      "rule": "The Trip Builder announces no discount next to its price",
+      "source": "owner decision 2026-10-12: no notice, no banner",
       "status": "PASS",
       "detail": ""
     },
@@ -323,10 +321,10 @@
     {
       "id": "E04",
       "flow": "errors",
-      "rule": "A refused request tells the organizer what to do next",
+      "rule": "A refused request can be sent again with one tap",
       "source": "Nielsen heuristic 9: constructively suggest a solution",
-      "status": "FLAW",
-      "detail": "\"Something went wrong. Please try again.\" - a sentence, no button: the message has to be typed again"
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "E05",
@@ -371,8 +369,8 @@
     {
       "id": "A03c",
       "flow": "ai",
-      "rule": "The AI plan says the discount under its price",
-      "source": "owner decision 2026-10-12 (placement 1)",
+      "rule": "The AI plan announces no discount",
+      "source": "owner decision 2026-10-12: no notice, no banner",
       "status": "PASS",
       "detail": ""
     },
@@ -419,8 +417,8 @@
     {
       "id": "A09",
       "flow": "ai",
-      "rule": "A plain \"Add\" of an activity with extras: the chat asks which, as tags without prices",
-      "source": "owner rule 2026-10-12; Google conversation design: offer a short list of choices",
+      "rule": "A plain \"Add\" of an activity with a private show, a topless hostess or more bullets: the chat asks which, as tags without prices",
+      "source": "owner rule 2026-10-12: those three and no other extra in the chat",
       "status": "PASS",
       "detail": ""
     },
@@ -465,14 +463,6 @@
       "detail": ""
     },
     {
-      "id": "A15",
-      "flow": "ai",
-      "rule": "The chat offers every extra the activity has, or says there are more",
-      "source": "no silent truncation",
-      "status": "PASS",
-      "detail": ""
-    },
-    {
       "id": "A16",
       "flow": "ai",
       "rule": "\"No extras\" closes the question and changes nothing",
@@ -483,8 +473,8 @@
     {
       "id": "A17",
       "flow": "ai",
-      "rule": "An activity without extras goes in with no question",
-      "source": "no irrelevant question (Baymard: one questionable offer poisons the rest)",
+      "rule": "An activity whose extras are none of the three goes in with no question",
+      "source": "owner rule 2026-10-12: no other extras in the chat",
       "status": "PASS",
       "detail": ""
     },
@@ -525,8 +515,8 @@
       "flow": "ai",
       "rule": "After an undo, a reload shows the plan the undo left",
       "source": "NN/g: preserve the user's work; the page and the server must hold one plan",
-      "status": "FAIL",
-      "detail": "before the reload: total 3560, 2 extras shown; after: total 3400, 1 extras shown - the undone change is back on screen"
+      "status": "PASS",
+      "detail": ""
     },
     {
       "id": "A22b",
@@ -555,42 +545,42 @@
     {
       "id": "T01",
       "flow": "ai-live",
-      "rule": "Typed: \"add the Beer Spa\" - the activity goes in and the chat asks which extra",
+      "rule": "Typed: \"add the Clay Pigeon Shooting\" - the activity goes in and the chat asks which extra",
       "source": "prompt rule: \"put the beer bike in\" is a command to ADD; owner rule 2026-10-12",
       "status": "INFO",
-      "detail": "applied [ADD] rejected [] recommendations 0 extras question true 6076 ms; said: \"Added Beer Spa to your trip plan.\""
+      "detail": "applied [ADD] rejected [] recommendations 0 extras question true 5815 ms; said: \"Added Clay Pigeon Shooting to your trip plan.\""
     },
     {
       "id": "T02",
       "flow": "ai-live",
-      "rule": "Typed: \"add 30-minute massage to the Beer Spa\" - the extra goes on, no price in the reply, no second question",
+      "rule": "Typed: \"add Extra round of 12 clays to the Clay Pigeon Shooting\" - the extra goes on, no price in the reply, no second question",
       "source": "prompt rule: ADD_EXTRA; owner rule 2026-10-12",
       "status": "INFO",
-      "detail": "applied [ADD_EXTRA] rejected [] recommendations 0 extras question false 5559 ms; said: \"Added 30-minute massage to Beer Spa in your trip plan.\""
+      "detail": "applied [ADD_EXTRA] rejected [] recommendations 0 extras question false 6214 ms; said: \"Added Extra round of 12 clays to Clay Pigeon Shooting in your trip plan.\""
     },
     {
       "id": "T03",
       "flow": "ai-live",
-      "rule": "Typed: \"how much is the Transfer from your hotel on the Beer Spa?\" - the reply names no price and changes nothing",
+      "rule": "Typed: \"how much is the Photographer on the Clay Pigeon Shooting?\" - the reply names no price and changes nothing",
       "source": "owner rule 2026-10-12: extras are priced on the card only",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 0 extras question false 4813 ms; said: \"The price is shown on the plan.\""
+      "detail": "applied [] rejected [] recommendations 0 extras question false 4817 ms; said: \"The price is shown on the plan.\""
     },
     {
       "id": "T04",
       "flow": "ai-live",
-      "rule": "Typed: \"no 30-minute massage on the Beer Spa after all\" - the extra comes off",
+      "rule": "Typed: \"no Extra round of 12 clays on the Clay Pigeon Shooting after all\" - the extra comes off",
       "source": "prompt rule: \"no photographer\" is REMOVE_EXTRA",
       "status": "INFO",
-      "detail": "applied [REMOVE_EXTRA] rejected [] recommendations 0 extras question false 5814 ms; said: \"Removed 30-minute massage from Beer Spa in your trip plan.\""
+      "detail": "applied [REMOVE_EXTRA] rejected [] recommendations 0 extras question false 6422 ms; said: \"Removed Extra round of 12 clays from Clay Pigeon Shooting in your trip plan.\""
     },
     {
       "id": "T05",
       "flow": "ai-live",
-      "rule": "Typed: \"Casino Night with VIP table and bottle at a club afterwards\" - activity and extra in one turn, no extras question after it",
-      "source": "bug S56 (2026-10-09): \"river cruise with private show\"; prompt rule: two edits",
-      "status": "FAIL",
-      "detail": "expected ops to include [ADD,ADD_EXTRA]  ::  applied [] rejected [NOT_IN_PACKAGE] recommendations 0 extras question false 6570 ms; said: \"Casino Night is not in your trip plan, so there was nothing to change.\""
+      "rule": "Typed: \"Czech dinner with national show with Private show after dinner\" - activity and extra in one turn, no extras question after it",
+      "source": "bug S56 (2026-10-09) and kit run 2026-10-12: an extra asked for on an activity the plan lacks adds the activity first (PackageEditor)",
+      "status": "INFO",
+      "detail": "applied [ADD,ADD_EXTRA] rejected [] recommendations 0 extras question false 5584 ms; said: \"Added Czech dinner with national show to your trip plan. Added Private show after dinner to Czech dinner with national show in your trip pla\""
     },
     {
       "id": "T06",
@@ -598,7 +588,7 @@
       "rule": "Typed: \"we want to shoot kalashnikov\" - activities are offered, nothing is changed",
       "source": "prompt rule: a wish for a kind of activity is not an edit",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 4 extras question false 4806 ms; said: \"Here is what fits - tap a name to see it, or add it.\""
+      "detail": "applied [] rejected [] recommendations 3 extras question false 5317 ms; said: \"Here is what fits - tap a name to see it, or add it.\""
     },
     {
       "id": "T07",
@@ -606,7 +596,7 @@
       "rule": "Typed: \"what else can we add?\" - a question back, no list of activities, nothing changed",
       "source": "prompt rule: an open question that names no kind",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 0 extras question false 4801 ms; said: \"Sure - which kind?\""
+      "detail": "applied [] rejected [] recommendations 0 extras question false 5341 ms; said: \"Sure - which kind?\""
     },
     {
       "id": "T08",
@@ -614,15 +604,15 @@
       "rule": "Typed: \"add a jetpack flight\" - not on offer: nothing added that was not asked for",
       "source": "prompt rule: something not in the catalog is never silently substituted",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 3 extras question false 6062 ms; said: \"Here is what comes closest to \"jetpack flight\" - tap a name to see it, or add it.\""
+      "detail": "applied [] rejected [] recommendations 3 extras question false 6177 ms; said: \"Here is what comes closest to \"jetpack flight\" - tap a name to see it, or add it.\""
     },
     {
       "id": "T09",
       "flow": "ai-live",
-      "rule": "Typed: \"remove the Beer Spa\" - the activity is removed",
+      "rule": "Typed: \"remove the Clay Pigeon Shooting\" - the activity is removed",
       "source": "staff prompt: \"Remove the karting from all packages.\"",
       "status": "INFO",
-      "detail": "applied [REMOVE] rejected [] recommendations 0 extras question false 5563 ms; said: \"Dropped Beer Spa from your trip plan.\""
+      "detail": "applied [REMOVE] rejected [] recommendations 0 extras question false 5314 ms; said: \"Dropped Clay Pigeon Shooting from your trip plan.\""
     },
     {
       "id": "T10",
@@ -630,7 +620,7 @@
       "rule": "Typed: \"actually we are 12 people now\" - the brief changes; the reply names no extra price",
       "source": "staff prompt: \"Actually we are 12 people now.\"",
       "status": "INFO",
-      "detail": "applied [] rejected [] recommendations 0 extras question false 5053 ms; said: \"For 2 days and 12 people I rebuild the plan from scratch - what you changed in it is lost. Your plan stays as it is for now. Shall I rebuild\""
+      "detail": "applied [] rejected [] recommendations 0 extras question false 5855 ms; said: \"For 2 days and 12 people I rebuild the plan from scratch - what you changed in it is lost. Your plan stays as it is for now. Shall I rebuild\""
     },
     {
       "id": "A24",

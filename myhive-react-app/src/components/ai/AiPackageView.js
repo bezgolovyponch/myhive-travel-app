@@ -261,8 +261,6 @@ function AiPackageView({
                     <span>{brief.groupSize ? t('result.people', {count: brief.groupSize}) : ''}</span>
                     {priceFrom(t, pkg) && <strong>{priceFrom(t, pkg)}</strong>}
                 </div>
-                {/* Said where the plan's one price is. */}
-                {priceFrom(t, pkg) && <p className="plan-discount-note">{t('result.packageDiscount')}</p>}
             </section>
 
             {/* What the last change was is said in the chat, with the way back; nothing floats here. */}

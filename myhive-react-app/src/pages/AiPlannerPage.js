@@ -20,6 +20,12 @@ import './AiPlannerPage.css';
 
 const STARTER_KEYS = ['one', 'two', 'three'];
 
+// The extras the chat suggests after an activity goes in (owner's list, 2026-10-12): a private show, a
+// topless hostess, more bullets. Every other extra is on the activity's card and nowhere in the chat.
+const CHAT_EXTRAS = [/private[\s-]?show/i, /topless[\s-]?hostess/i, /\b(bullets?|rounds?|ammo)\b/i];
+export const chatExtras = (extras) => (extras || [])
+    .filter((extra) => CHAT_EXTRAS.some((kind) => kind.test(`${extra.code || ''} ${extra.name || ''}`.replace(/-/g, ' '))));
+
 // The brief the homepage hero handed over, read once (see HeroPlanner).
 function takeDraft() {
     try {
@@ -436,7 +442,7 @@ function AiPlannerPage({pollIntervalMs}) {
             .then(() => api.getActivity(item.activityId))
             .then((full) => {
                 if (!full) return;
-                const extras = (full.extras || []).slice(0, 4);
+                const extras = chatExtras(full.extras);
                 if (!live || extras.length === 0) return;
                 setExtraOffer({activityId: item.activityId, name: item.name, extras});
                 setDockOpen(true);

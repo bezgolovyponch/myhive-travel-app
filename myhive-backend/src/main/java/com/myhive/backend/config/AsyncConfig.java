@@ -49,10 +49,15 @@ public class AsyncConfig {
      * group can simply ask again, whereas draining them would hold the redeploy open for minutes.
      */
     @Bean(name = "aiTaskExecutor")
-    public Executor aiTaskExecutor() {
+    public Executor aiTaskExecutor(
+            // How many plans are built at once. Each build holds a catalog snapshot, three prompts and
+            // their answers on the heap; on the 512 MiB instance production sets this to 1, so a second
+            // organizer waits a few seconds in the queue instead of the two builds sharing a heap that
+            // one of them has already filled.
+            @org.springframework.beans.factory.annotation.Value("${app.ai.concurrent-builds:2}") int concurrentBuilds) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(2);
+        executor.setCorePoolSize(Math.max(1, concurrentBuilds));
+        executor.setMaxPoolSize(Math.max(1, concurrentBuilds));
         executor.setQueueCapacity(20);
         executor.setThreadNamePrefix("ai-plan-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());

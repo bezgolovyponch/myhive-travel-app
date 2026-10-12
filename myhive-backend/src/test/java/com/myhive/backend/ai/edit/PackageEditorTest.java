@@ -885,20 +885,27 @@ class PackageEditorTest {
         assertThat(namesIn(outcome.plan(), Tier.PREMIUM)).isEqualTo(namesIn(plan, Tier.PREMIUM));
     }
 
+    /**
+     * "The boat with a private show", sent by the model as the extra alone: the plan does not hold the boat,
+     * so the boat goes in first and the extra onto it - in every package, as an ADD without a package does.
+     */
     @Test
-    void addExtra_onAnActivityNoPackageHolds_isNotInPackage() {
+    void addExtra_onAnActivityNoPackageHolds_addsTheActivityFirst() {
         CatalogActivity boat = boatWithExtras();
 
         EditOutcome outcome = editor.apply(basePlan(), brief, catalog,
                 List.of(addExtra(boat.name(), "Private show", null)));
 
-        assertThat(outcome.anyApplied()).isFalse();
-        assertThat(outcome.rejected()).singleElement().satisfies(rejected -> {
-            assertThat(rejected.op()).isEqualTo(EditOp.ADD_EXTRA);
-            assertThat(rejected.reason()).isEqualTo(EditRejectionReason.NOT_IN_PACKAGE);
-            assertThat(rejected.packageKey()).isNull();
-            assertThat(rejected.extraName()).isEqualTo("Private show");
-        });
+        assertThat(outcome.rejected()).isEmpty();
+        assertThat(outcome.applied()).extracting(AppliedEdit::op).contains(EditOp.ADD, EditOp.ADD_EXTRA);
+        assertThat(outcome.applied()).filteredOn(edit -> edit.op() == EditOp.ADD_EXTRA)
+                .allSatisfy(edit -> assertThat(edit.extraName()).isEqualTo("Private show"));
+        for (ComposedPlan.PackageResult pkg : outcome.plan().packages()) {
+            assertThat(pkg.days().stream().flatMap(day -> day.items().stream())
+                    .filter(item -> boat.id().equals(item.activityId())).findFirst())
+                    .hasValueSatisfying(item -> assertThat(item.extras()).extracting(ComposedPlan.ItemExtra::name)
+                            .containsExactly("Private show"));
+        }
     }
 
     /** The model writes "a cruise with a show" in either order: the extra still waits for the cruise. */

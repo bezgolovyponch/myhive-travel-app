@@ -100,11 +100,10 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                         {title}
                     </a>
                 </h3>
-                {/* Names only: the card deliberately shows no price, extras included. */}
+                {/* One line, a count: the card deliberately shows no price, and the names are on the card it opens. */}
                 {extraNames.length > 0 && (
                     <span className="activity-extras-chip">
-                        {t('extrasChip', {names: extraNames.slice(0, 2).join(', ')})}
-                        {extraNames.length > 2 && ` ${t('extrasMore', {count: extraNames.length - 2})}`}
+                        {extraNames.length === 1 ? t('extrasOne') : t('extrasCount', {count: extraNames.length})}
                     </span>
                 )}
                 <div className="activity-footer">

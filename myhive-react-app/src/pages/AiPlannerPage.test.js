@@ -267,19 +267,25 @@ test('a first message the backend refuses is not "this chat has expired": there 
     expect(screen.getByText('two nights for ten')).toBeInTheDocument();
 });
 
-test('a build the server lost can be started again with one tap, for the same brief', async () => {
+test('a build the server lost is started again by itself, once; a second loss is shown with "Try again"', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     const lost = {id: 'gen-9', status: 'RUNNING', packages: null};
+    const stale = (id) => ({id, status: 'FAILED', packages: null, error: {code: 'STALE', retryable: true}});
     aiPlannerApi.getSession.mockResolvedValue(session({latestGeneration: lost, status: 'GENERATING'}));
-    aiPlannerApi.getGeneration
-        .mockResolvedValueOnce({id: 'gen-9', status: 'FAILED', packages: null, error: {code: 'STALE', retryable: true}})
-        .mockResolvedValue(readyGeneration({id: 'gen-10'}));
-    aiPlannerApi.startGeneration.mockResolvedValue({id: 'gen-10', status: 'QUEUED', packages: null});
+    aiPlannerApi.getGeneration.mockImplementation((id) => Promise.resolve(
+        id === 'gen-11' ? readyGeneration({id: 'gen-11'}) : stale(id)));
+    aiPlannerApi.startGeneration
+        .mockResolvedValueOnce({id: 'gen-10', status: 'QUEUED', packages: null})
+        .mockResolvedValueOnce({id: 'gen-11', status: 'QUEUED', packages: null});
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Try again'}, {timeout: 4000}));
+    // gen-9 was lost: restarted as gen-10 without a word. gen-10 is lost too: now it is said.
+    const again = await screen.findByRole('button', {name: 'Try again'}, {timeout: 4000});
+    expect(aiPlannerApi.startGeneration).toHaveBeenCalledTimes(1);
 
-    expect(aiPlannerApi.startGeneration).toHaveBeenCalledWith('tok-1');
+    await userEvent.click(again);
+
+    expect(aiPlannerApi.startGeneration).toHaveBeenCalledTimes(2);
     expect(await screen.findByRole('region', {name: 'Trip draft'}, {timeout: 4000})).toBeInTheDocument();
 });
 
@@ -589,7 +595,8 @@ test('an activity with extras goes in: the chat asks which extra, as tags withou
     expect(await screen.findByText('River Boat Cruise is in. Want an extra on it?')).toBeInTheDocument();
     const tags = screen.getByRole('group', {name: 'Extras for River Boat Cruise'});
     expect(within(tags).getByRole('button', {name: '+ Private show'})).toBeInTheDocument();
-    expect(within(tags).getByRole('button', {name: '+ Open bar'})).toBeInTheDocument();
+    // The chat suggests a private show, a topless hostess or more bullets; an open bar is on the card only.
+    expect(within(tags).queryByRole('button', {name: '+ Open bar'})).not.toBeInTheDocument();
     expect(within(tags).getByRole('button', {name: 'No extras'})).toBeInTheDocument();
     expect(tags).not.toHaveTextContent('€');
     // The question is the only thing asked: the "what next" tags wait for the answer.

@@ -56,13 +56,14 @@
 /* Wraps in full: it is often the fine print ("18+ only; tips not included."). */
 .item-extras-picker-desc {
     font-size: 0.75rem;
-    color: var(--text-muted);
+    /* --text-muted is 70% opaque: 3.85:1 on the card. The same grey, solid, is above 4.5:1 (WCAG 1.4.3). */
+    color: rgb(167, 169, 169);
     overflow-wrap: anywhere;
 }
 
 .item-extras-picker-price {
     font-size: 0.8125rem;
-    color: var(--text-muted);
+    color: rgb(167, 169, 169);
     white-space: nowrap;
 }
 

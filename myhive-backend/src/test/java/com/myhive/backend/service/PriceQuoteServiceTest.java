@@ -117,7 +117,7 @@ class PriceQuoteServiceTest {
 
     @Test
     void quote_addsTheSelectedExtrasOnTopOfTheLine() {
-        // 40 × 2 = 80, plus the 250 per-group show = 330
+        // 40 × 2 = 80, plus the 250 per-group show = 330; the margin is on the 80 only: 72 + 250 = 322
         BigDecimal expectedTotal = new BigDecimal("330");
         Activity karting = savedActivityWithExtras(new BigDecimal("40.00"), extra("private-show", "250.00"));
 
@@ -126,12 +126,12 @@ class PriceQuoteServiceTest {
         request.setTravelers(2);
 
         PriceQuoteResponse quote = priceQuoteService.quote(request);
-        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal));
+        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal, new BigDecimal("250")));
     }
 
     @Test
     void quote_sameActivityWithDifferentExtras_isTwoLines() {
-        // 40 × 2 + 250 (with the show) and 40 × 2 again without it = 80 + 250 + 80 = 410
+        // 40 × 2 + 250 (with the show) and 40 × 2 again without it = 80 + 250 + 80 = 410; margin on the 160
         BigDecimal expectedTotal = new BigDecimal("410");
         Activity karting = savedActivityWithExtras(new BigDecimal("40.00"), extra("private-show", "250.00"));
 
@@ -140,7 +140,7 @@ class PriceQuoteServiceTest {
         request.setTravelers(2);
 
         PriceQuoteResponse quote = priceQuoteService.quote(request);
-        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal));
+        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal, new BigDecimal("250")));
     }
 
     @Test
@@ -158,7 +158,7 @@ class PriceQuoteServiceTest {
 
     @Test
     void quote_extraOnAPackageLine_isNotDiscounted() {
-        // Package 50 %: 100 × 2 = 200 → 100; the 50 per-group extra stays 50 → 150
+        // Package 50 %: 100 × 2 = 200 → 100; the 50 per-group extra stays 50 → 150; margin on the 100: 90 + 50
         BigDecimal expectedTotal = new BigDecimal("150");
         Activity karting = savedActivityWithExtras(new BigDecimal("100.00"), extra("private-show", "50.00"));
         Package halfOff = savedPackage(karting.getDestination(), new BigDecimal("50.00"), karting);
@@ -168,7 +168,7 @@ class PriceQuoteServiceTest {
         request.setTravelers(2);
 
         PriceQuoteResponse quote = priceQuoteService.quote(request);
-        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal));
+        assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal, new BigDecimal("50")));
     }
 
     private Activity savedActivityWithExtras(BigDecimal price, ActivityExtra... extras) {

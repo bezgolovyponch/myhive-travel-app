@@ -50,6 +50,7 @@
     border-radius: var(--radius-full);
     padding: var(--gap-xs) var(--gap-sm);
     align-self: flex-start;
+    white-space: nowrap;
     /* Same optical alignment as .activity-category above. */
     margin-left: calc(var(--gap-sm) * -1);
 }
