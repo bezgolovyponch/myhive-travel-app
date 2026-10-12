@@ -1,8 +1,10 @@
+import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import {DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice} from '../utils/format';
 import {computeTripTotal, extrasTotal, groupTripItems} from '../utils/tripPricing';
 import TripSetupModal from './TripSetupModal';
+import ActivityPreviewModal from './ActivityPreviewModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import {managerKey} from '../hooks/useOrganizerVote';
 import {dashboardPath} from '../utils/groupVote';
@@ -25,8 +27,12 @@ function TripBuilderDropdown({voteHref = null}) {
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
     const t = useT('tripDropdown');
     const tExtras = useT('extras');
+    const tCards = useT('cards');
+    // The row whose card is open: its extras are ticked and confirmed there.
+    const [openId, setOpenId] = useState(null);
 
     if (!state.tripBuilderModalOpen) return null;
+    const opened = state.tripItems.find(item => item.id === openId) || null;
 
     const travelers = state.tripTravelers || 1;
 
@@ -103,9 +109,23 @@ function TripBuilderDropdown({voteHref = null}) {
                                     <img src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE} alt={item.name}
                                          className="trip-modal-item-image"/>
                                     <div className="trip-modal-item-info">
-                                        <span className="trip-modal-item-name">{item.name || item.title}</span>
+                                        {/* On a landing the header traps a dialog (see voteHref): the name stays text. */}
+                                        {voteHref ? (
+                                            <span className="trip-modal-item-name">{item.name || item.title}</span>
+                                        ) : (
+                                            <button type="button" className="trip-modal-item-name trip-modal-item-open"
+                                                    aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
+                                                {item.name || item.title}
+                                            </button>
+                                        )}
                                         <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
                                         {extrasSummary(item)}
+                                        {!voteHref && (item.extras || []).length > 0 && (
+                                            <button type="button" className="trip-modal-item-extras-btn"
+                                                    aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
+                                                {(item.selectedExtras || []).length > 0 ? tExtras('edit') : tExtras('add')}
+                                            </button>
+                                        )}
                                     </div>
                                     <button
                                         type="button"
@@ -142,6 +162,20 @@ function TripBuilderDropdown({voteHref = null}) {
                     </div>
                 )}
             </div>
+            {opened && (
+                <ActivityPreviewModal
+                    activity={opened}
+                    activityId={opened.id}
+                    onClose={() => setOpenId(null)}
+                    confirm={{
+                        inPlan: true,
+                        selected: opened.selectedExtras || [],
+                        addLabel: tCards('addToTrip'),
+                        updateLabel: tExtras('update'),
+                        onConfirm: (codes) => dispatch({type: 'SET_ITEM_EXTRAS', id: opened.id, selectedExtras: codes}),
+                    }}
+                />
+            )}
             {state.tripItems.length > 0 && (
                 <div className="trip-builder-dropdown-footer">
                     <div className="trip-modal-total">

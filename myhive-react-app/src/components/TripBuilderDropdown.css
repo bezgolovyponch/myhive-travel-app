@@ -251,3 +251,30 @@
         width: min(18.75rem, calc(100vw - 1rem));
     }
 }
+
+/* A row's name opens the activity's card; its extras are chosen there. */
+.trip-modal-item-open {
+    border: none;
+    background: none;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.trip-modal-item-open:hover {
+    text-decoration: underline;
+}
+
+.trip-modal-item-extras-btn {
+    align-self: flex-start;
+    min-height: 2rem;
+    padding: 0 var(--gap-sm);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm, 6px);
+    background: none;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+}

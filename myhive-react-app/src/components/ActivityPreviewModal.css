@@ -141,3 +141,17 @@
     text-decoration: underline;
     text-underline-offset: 3px;
 }
+
+/* The extras as a choice: roomier rows than the detail page's, since a thumb picks here. */
+.activity-preview-extras--pick .item-extras-picker-list {
+    gap: var(--gap);
+}
+
+.activity-preview-extras--pick .item-extras-picker-row {
+    min-height: 2.75rem;
+}
+
+/* The one button that changes the plan. */
+.activity-preview-confirm {
+    flex: 1 1 auto;
+}

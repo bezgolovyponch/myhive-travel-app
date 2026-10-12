@@ -290,6 +290,19 @@ vote, so the client shows the day of each activity and no hour. Once one option 
 organizer's own (`workingPackage` set), the chat's own lines call it "your trip plan"
 and never name its tier.
 
+**The activity's card, confirmed (2026-10-12).** The same endpoint takes an optional `extras`: the codes of
+every extra ticked on the card (max 10).
+
+- `{"op": "ADD", "activityId", "packageKey", "extras": ["private-show"]}`: the activity goes in with those
+  extras, as one batch (`edit.applied` holds the `ADD` and one `ADD_EXTRA` per code).
+- `{"op": "ADD_EXTRA", "activityId", "packageKey", "extras": [...]}`: the activity is already in the plan
+  and its extras become exactly those; unticked ones come back as `REMOVE_EXTRA`. Nothing to change is a 400.
+- `ADD_EXTRA` without `extras`, and `REMOVE_EXTRA`, stay a 400. A code the activity does not offer is ignored.
+
+The chat never names what an extra costs: the confirmation is "Added Private show to River Boat Cruise in
+your trip plan.", the model's prompt lists extras by name only, and the tags the page offers after an add
+carry names only. An extra's price is read on the card; the package price in the answer is already re-priced.
+
 `POST /ai/sessions/{token}/edits` also takes `{"op": "MOVE", "activityId", "packageKey", "dayNumber"}`:
 a row dragged onto another day in the plan. The activity stays and goes on `dayNumber`, in the slot
 it would normally prefer; it is never refused for lack of room, and leaving its old day empty is

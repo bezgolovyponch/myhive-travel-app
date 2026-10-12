@@ -411,3 +411,15 @@
     font-size: 13px;
     cursor: pointer;
 }
+
+/* The extras of the activity that just went in, as tags under the chat's question. No prices here:
+   the card shows those, and the plan is priced as a whole. */
+.aip-extra-offer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.aip-extra-offer .ai-chip {
+    min-height: 36px;
+}

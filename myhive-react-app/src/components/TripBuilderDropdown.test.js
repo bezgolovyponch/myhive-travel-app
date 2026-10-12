@@ -1,4 +1,4 @@
-import {render, screen} from '@testing-library/react';
+import {render, screen, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter, useLocation} from 'react-router-dom';
 import TripBuilderDropdown from './TripBuilderDropdown';
@@ -79,7 +79,19 @@ describe('TripBuilderDropdown with extras ticked', () => {
     it('says nothing about extras when none is ticked', () => {
         renderDropdown({tripItems: [{...activity, extras, selectedExtras: []}]});
 
-        expect(screen.queryByText(/extras/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/^\+ .* extras$/)).not.toBeInTheDocument();
+    });
+
+    it('opens the activity’s card from the row; the ticked extra reaches the plan with Update', async () => {
+        const user = userEvent.setup();
+        const {mockDispatch: dispatch} = renderDropdown({tripItems: [{...activity, extras, selectedExtras: []}]});
+
+        await user.click(screen.getByRole('button', {name: 'Add extras'}));
+        const card = screen.getByRole('dialog');
+        await user.click(within(card).getAllByRole('checkbox')[0]);
+        await user.click(await within(card).findByRole('button', {name: 'Update'}));
+
+        expect(dispatch).toHaveBeenCalledWith({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras: [extras[0].code]});
     });
 });
 

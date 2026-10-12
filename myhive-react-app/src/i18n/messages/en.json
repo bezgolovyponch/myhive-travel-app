@@ -294,9 +294,10 @@
     "perGroup": "per group",
     "perPerson": "per person",
     "add": "Add extras",
-    "done": "Done",
     "removeAria": "Remove {name}",
-    "selectedSummary": "+ {amount} extras"
+    "selectedSummary": "+ {amount} extras",
+    "update": "Update",
+    "edit": "Edit extras"
   },
   "about": {
     "hero": {
@@ -666,8 +667,6 @@
       "lockText": "Lock it in now — no need to wait for the last votes.",
       "keep": "{keep}/{votes} keep",
       "planTitle": "The plan",
-      "day": "Day {n}",
-      "noDay": "Added later",
       "fromPerPerson": "from {price} / person",
       "recsEmpty": "Nothing yet. What your friends suggest shows up here.",
       "backToPlan": "Back to the plan",
@@ -1250,7 +1249,8 @@
       "suggestions": "Suggested activities",
       "daySlot": "Day {n} · {slot}",
       "added": "Added ✓",
-      "addAria": "Add {name} to the trip draft"
+      "addAria": "Add {name} to the trip draft",
+      "updateDraft": "Update plan"
     },
     "dock": {
       "title": "Stag Do AI",
@@ -1283,7 +1283,10 @@
         "extreme": "adrenaline",
         "wellness": "chill",
         "transfer": "a party ride"
-      }
+      },
+      "extrasAsk": "{name} is in. Want an extra on it?",
+      "noExtras": "No extras",
+      "extrasAria": "Extras for {name}"
     }
   }
 }

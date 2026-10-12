@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AppModal from './AppModal';
 import api from '../services/api';
 import { extraPriceLabel, formatDuration } from '../utils/format';
+import ItemExtrasPicker from './ItemExtrasPicker';
 import { useLocalePath, useT } from '../i18n';
 import './ActivityPreviewModal.css';
 
@@ -14,14 +15,25 @@ import './ActivityPreviewModal.css';
  * @param link        the full page; defaults to the loaded activity's own page
  * @param closeLabel  shows a footer button that closes, labelled with where it goes back to
  * @param action      {label, onClick, disabled}: one thing to do with the activity; doing it closes the dialog
+ * @param confirm     {inPlan, selected, addLabel, updateLabel, disabled, onConfirm}: the card can put the
+ *                    activity into the plan, or change the extras of one that is there. The extras are then
+ *                    a checklist, nothing ticked that the plan does not hold, and ticking changes nothing
+ *                    until the button is pressed: `onConfirm(codes, activity)` gets every ticked code.
  */
-function ActivityPreviewModal({ activity: given, activityId, link, onClose, closeLabel, action }) {
+function ActivityPreviewModal({ activity: given, activityId, link, onClose, closeLabel, action, confirm }) {
     const t = useT('cards');
     const tDuration = useT('activityDetail.duration');
     const tExtras = useT('extras');
     const lp = useLocalePath();
     const [loaded, setLoaded] = useState(null);
     const needsLoad = Boolean(given && activityId && given.description === undefined);
+    // What is ticked on the card right now; the plan only hears of it through the button.
+    const [ticked, setTicked] = useState(() => confirm?.selected || []);
+    const openFor = given ? (given.id || activityId || given.name) : null;
+    const selectedKey = (confirm?.selected || []).join('|');
+    useEffect(() => {
+        setTicked(selectedKey ? selectedKey.split('|') : []);
+    }, [openFor, selectedKey]);
 
     useEffect(() => {
         setLoaded(null);
@@ -75,6 +87,12 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
         .map((item) => item.trim())
         .filter(Boolean);
     const extras = activity.extras || [];
+    // Codes the activity still offers, in its own order: a stale code never reaches the plan.
+    const tickedCodes = extras.filter((extra) => ticked.includes(extra.code)).map((extra) => extra.code);
+    const unchanged = tickedCodes.join('|') === extras
+        .filter((extra) => (confirm?.selected || []).includes(extra.code)).map((extra) => extra.code).join('|');
+    // In the plan with nothing to tick, there is nothing to confirm.
+    const confirmable = Boolean(confirm) && !loading && (!confirm.inPlan || extras.length > 0);
 
     return (
         <AppModal
@@ -83,7 +101,7 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
             title={activity.name}
             overlayClassName="activity-preview-modal"
             closeOnBackdrop
-            footer={(fullPage || closeLabel || action) && (
+            footer={(fullPage || closeLabel || action || confirmable) && (
                 <>
                     {fullPage && (
                         <a
@@ -96,12 +114,25 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
                         </a>
                     )}
                     {closeLabel && (
-                        <button type="button" className={`activity-preview-btn${action ? ' is-quiet' : ''}`}
+                        <button type="button" className={`activity-preview-btn${action || confirmable ? ' is-quiet' : ''}`}
                                 onClick={onClose}>
                             {closeLabel}
                         </button>
                     )}
-                    {action && (
+                    {confirmable && (
+                        <button
+                            type="button"
+                            className="activity-preview-btn activity-preview-confirm"
+                            disabled={confirm.disabled || (confirm.inPlan && unchanged)}
+                            onClick={() => {
+                                confirm.onConfirm(tickedCodes, activity);
+                                onClose();
+                            }}
+                        >
+                            {confirm.inPlan ? confirm.updateLabel : confirm.addLabel}
+                        </button>
+                    )}
+                    {action && !confirmable && (
                         <button
                             type="button"
                             className="activity-preview-btn"
@@ -128,8 +159,14 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
                     </ul>
                 </div>
             )}
-            {/* What can be added, priced; the choice is made on the detail page or in the Trip Builder. */}
-            {extras.length > 0 && (
+            {/* With a plan to put it in, the extras are chosen here: ticked, then confirmed with the button. */}
+            {extras.length > 0 && confirm && (
+                <div className="activity-preview-extras activity-preview-extras--pick">
+                    <ItemExtrasPicker extras={extras} selected={tickedCodes} onChange={setTicked} />
+                </div>
+            )}
+            {/* Without one (a friend looking at a ballot card) they are only listed, priced. */}
+            {extras.length > 0 && !confirm && (
                 <div className="activity-preview-extras">
                     <h3 className="activity-preview-includes-title">{tExtras('title')}</h3>
                     <ul className="activity-preview-extras-list">

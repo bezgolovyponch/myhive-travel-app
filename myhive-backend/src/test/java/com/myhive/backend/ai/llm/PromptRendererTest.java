@@ -67,13 +67,14 @@ class PromptRendererTest {
 
     @Test
     void chatSystem_withPackages_listsTheExtrasPerActivity_andTheExtraRules() {
-        String expectedExtras = "River Boat Cruise -> Private show (EUR 250 per group)";
+        String expectedExtras = "River Boat Cruise -> Private show";
         ChatTurnRequest r = new ChatTurnRequest("en", "Prague", List.of("nightlife"), Brief.empty(), List.of(),
                 "BASIC: day 1 [EVENING River Boat Cruise]", List.of("River Boat Cruise"), expectedExtras);
 
         String prompt = renderer.chatSystem(r);
 
-        assertThat(prompt).contains("Optional extras per activity (activity -> extra (price)): " + expectedExtras)
+        assertThat(prompt).contains("Optional extras per activity (activity -> extras): " + expectedExtras)
+                .contains("Never state what an extra costs")
                 .contains("An extra is an add-on to an activity listed in \"Optional extras\" above, never an "
                         + "activity of its own.")
                 .contains("{\"op\": \"ADD_EXTRA\", \"activity\": the carrier's exact catalog name, \"extra\": the "

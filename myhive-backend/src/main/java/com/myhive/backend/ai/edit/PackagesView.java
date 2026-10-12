@@ -6,11 +6,9 @@ import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PresetThemes;
-import com.myhive.backend.entity.ExtraPricing;
 import com.myhive.backend.util.FromPrice;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
@@ -124,7 +122,8 @@ public final class PackagesView {
 
     /**
      * Every activity's optional extras with their prices, one line for the chat rules:
-     * {@code River Boat Cruise -> Private show (EUR 250 per group), Open bar (EUR 25 per person); Tiki Boat -> ...}.
+     * {@code River Boat Cruise -> Private show, Open bar; Tiki Boat -> ...}. Names only: the chat never
+     * quotes what an extra costs, so the model is not given the number to quote.
      * {@code none} when no activity of the catalog offers any, so the rules about extras have nothing to act on.
      */
     public static String extrasCatalog(List<CatalogActivity> catalog) {
@@ -133,20 +132,10 @@ public final class PackagesView {
             for (CatalogActivity activity : catalog) {
                 if (!activity.extras().isEmpty()) {
                     lines.add(activity.name() + " -> " + String.join(", ",
-                            activity.extras().stream().map(PackagesView::priced).toList()));
+                            activity.extras().stream().map(CatalogExtra::name).toList()));
                 }
             }
         }
         return lines.isEmpty() ? NO_EXTRAS : String.join("; ", lines);
-    }
-
-    /** "Private show (EUR 250 per group)": whole euros without decimals, anything else with two. */
-    private static String priced(CatalogExtra extra) {
-        BigDecimal price = extra.price() == null ? BigDecimal.ZERO : extra.price();
-        String amount = price.stripTrailingZeros().scale() <= 0
-                ? price.setScale(0, RoundingMode.UNNECESSARY).toPlainString()
-                : price.setScale(2, RoundingMode.HALF_UP).toPlainString();
-        String per = extra.pricing() == ExtraPricing.PER_PERSON ? "per person" : "per group";
-        return extra.name() + " (EUR " + amount + " " + per + ")";
     }
 }

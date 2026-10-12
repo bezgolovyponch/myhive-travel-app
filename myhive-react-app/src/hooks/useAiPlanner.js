@@ -61,6 +61,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const [showRequest, setShowRequest] = useState(null);
     // The activity whose draft tap is in flight, if any.
     const [editing, setEditing] = useState(null);
+    // What the latest turn changed in the plan ({applied, at}), so the page can follow an add up.
+    const [lastEdit, setLastEdit] = useState(null);
     // Per package key, the kinds of activity it could take next, each with what it offers:
     // [{categorySlug, name, options: [recommendation]}].
     const [gaps, setGaps] = useState({});
@@ -103,6 +105,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setGaps({});
         setSuggestions({});
         setShowRequest(null);
+        setLastEdit(null);
         setBuilding(false);
         setWatchedId(null);
         setError(null);
@@ -134,6 +137,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     }, [api, adoptSession]);
 
     const applyTurn = useCallback(async (turn) => {
+        if (turn.edit?.applied?.length) setLastEdit({applied: turn.edit.applied, at: Date.now()});
         setRecommendations(turn.recommendations || []);
         if (turn.gaps) setGaps(turn.gaps);
         if (turn.suggestions) setSuggestions(turn.suggestions);
@@ -258,13 +262,16 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
 
     // A tap in the draft: add or remove one activity in `packageKey` with no
     // chat turn. The answer is applied like a chat edit (new draft, one line).
-    const editDraft = useCallback(async (op, activityId, packageKey, dayNumber) => {
+    // `extras` is a confirmed card: every code ticked on it (with ADD the activity goes in with them,
+    // with ADD_EXTRA the activity's extras become exactly those).
+    const editDraft = useCallback(async (op, activityId, packageKey, dayNumber, extras) => {
         if (!tokenRef.current || editing) return;
         setError(null);
         setEditing(activityId);
         try {
             const edit = {op, activityId, packageKey};
             if (dayNumber != null) edit.dayNumber = dayNumber;
+            if (extras) edit.extras = extras;
             await applyTurn(await api.editDraft(tokenRef.current, edit));
         } catch (e) {
             setError({code: errorCode(e) || 'NETWORK'});
@@ -298,6 +305,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setWorkingPackage,
         showRequest,
         editing,
+        lastEdit,
         building,
         error,
         send,

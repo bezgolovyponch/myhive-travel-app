@@ -380,7 +380,7 @@ class ChatTurnNodeTest {
         node.apply(askedWithShows("anything else?"));
 
         assertThat(llm.chatRequests.get(0).extrasCatalog())
-                .isEqualTo(CRUISE_NAME + " -> Private show (EUR 250 per group)");
+                .isEqualTo(CRUISE_NAME + " -> Private show");
     }
 
     /** The organizer's own draft takes every edit, an extra included, and keeps what the extra names. */

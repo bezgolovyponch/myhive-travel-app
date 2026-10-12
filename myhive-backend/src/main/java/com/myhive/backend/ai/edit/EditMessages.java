@@ -4,7 +4,6 @@ import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.entity.ExtraPricing;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -113,6 +112,12 @@ public final class EditMessages {
     private static final Map<EditRejectionReason, String> DE_EXTRA = new EnumMap<>(EditRejectionReason.class);
     private static final String EN_NO_EXTRAS_OFFERED = "%1$s has no '%2$s' — it offers no extras.";
     private static final String DE_NO_EXTRAS_OFFERED = "%1$s hat kein '%2$s' – dafür gibt es keine Extras.";
+    /**
+     * The fifth template argument used to be what an added extra costs. The chat no longer names a price
+     * for an extra: a custom plan is priced as a whole, after its discount, and the card is where an
+     * extra's own price is read.
+     */
+    private static final String NO_AMOUNT = "";
     private static final String EN_UNNAMED_EXTRA = "that extra";
     private static final String DE_UNNAMED_EXTRA = "dieses Extra";
 
@@ -262,34 +267,9 @@ public final class EditMessages {
             Packaged template = templates.get(entry.getKey().op());
             appendSentence(summary, template.template().formatted(entry.getKey().activity(),
                     entry.getKey().replacement(), packages(entry.getValue(), german, template.phrase(), tripPlan),
-                    entry.getKey().extra(), extraAmount(entry.getKey(), german)));
+                    entry.getKey().extra(), NO_AMOUNT));
         }
         return summary.toString();
-    }
-
-    /**
-     * " (+ €250 for the group)" / " (+ 15 € pro Person)": what an added extra costs, so the confirmation
-     * says what the organizer just agreed to pay. Empty for any other op and for an extra without a price.
-     */
-    private static String extraAmount(AppliedKey key, boolean german) {
-        if (key.op() != EditOp.ADD_EXTRA || key.extraPrice() == null || key.extraPricing() == null) {
-            return "";
-        }
-        String amount = euros(key.extraPrice(), german);
-        boolean perPerson = key.extraPricing() == ExtraPricing.PER_PERSON;
-        if (german) {
-            return " (+ " + amount + " € " + (perPerson ? "pro Person" : "für die Gruppe") + ")";
-        }
-        return " (+ €" + amount + " " + (perPerson ? "per person" : "for the group") + ")";
-    }
-
-    /** Whole euros without decimals ("250"), otherwise two ("12.50", in German "12,50"). */
-    private static String euros(BigDecimal price, boolean german) {
-        BigDecimal stripped = price.stripTrailingZeros();
-        String amount = stripped.scale() <= 0
-                ? stripped.setScale(0, RoundingMode.UNNECESSARY).toPlainString()
-                : price.setScale(2, RoundingMode.HALF_UP).toPlainString();
-        return german ? amount.replace('.', ',') : amount;
     }
 
     /**

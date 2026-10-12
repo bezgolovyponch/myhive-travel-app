@@ -516,6 +516,65 @@ test('"we want to shoot": what fits is listed in the chat, one under the other, 
     await waitFor(() => expect(screen.queryByRole('list', {name: 'Suggested activities'})).not.toBeInTheDocument());
 });
 
+test('an activity with extras goes in: the chat asks which extra, as tags without a price, and one tap puts it on', async () => {
+    const cruiseExtras = [
+        {code: 'private-show', name: 'Private show', description: null, price: 160, pricing: 'PER_GROUP'},
+        {code: 'open-bar', name: 'Open bar', description: null, price: 20, pricing: 'PER_PERSON'},
+    ];
+    const withCruise = (extras) => readyGeneration({
+        id: extras.length ? 'gen-3' : 'gen-2', kind: 'EDITED', parentId: 'gen-1',
+        packages: [
+            pkg('BASIC', 125, [item('Bar Crawl')]),
+            pkg('MEDIUM', 195, [item('Bar Crawl'), item('Karting'), item('River Boat Cruise', {extras})]),
+            pkg('PREMIUM', 310, [item('VIP Club')]),
+        ],
+    });
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));
+    aiPlannerApi.sendMessage.mockResolvedValue({
+        messages: [{role: 'ASSISTANT', content: 'Here is what fits.', at}],
+        suggestedReplies: [], generation: null, edit: null, recommendations: [rec('River Boat Cruise')],
+    });
+    aiPlannerApi.editDraft
+        .mockResolvedValueOnce({
+            messages: [{role: 'ASSISTANT', content: 'Added River Boat Cruise to your trip plan.', at}],
+            suggestedReplies: [], generation: withCruise([]), recommendations: [],
+            edit: {applied: [{op: 'ADD', activity: 'River Boat Cruise', packageKey: 'MEDIUM'}], rejected: []},
+        })
+        .mockResolvedValueOnce({
+            messages: [{role: 'ASSISTANT', content: 'Added Private show to River Boat Cruise in your trip plan.', at}],
+            suggestedReplies: [], generation: withCruise([{...cruiseExtras[0], total: 160}]), recommendations: [],
+            edit: {applied: [{op: 'ADD_EXTRA', activity: 'River Boat Cruise', extra: 'Private show', packageKey: 'MEDIUM'}],
+                rejected: []},
+        });
+    api.getActivity.mockResolvedValue({id: 'id-River Boat Cruise', name: 'River Boat Cruise', extras: cruiseExtras});
+    renderPage();
+
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Message Stag Do AI'}), 'something on the water{Enter}');
+    const offered = await screen.findByRole('list', {name: 'Suggested activities'});
+    await userEvent.click(within(offered).getByRole('button', {name: 'Add River Boat Cruise to the trip draft'}));
+
+    // The question, and the extras as tags: names only.
+    expect(await screen.findByText('River Boat Cruise is in. Want an extra on it?')).toBeInTheDocument();
+    const tags = screen.getByRole('group', {name: 'Extras for River Boat Cruise'});
+    expect(within(tags).getByRole('button', {name: '+ Private show'})).toBeInTheDocument();
+    expect(within(tags).getByRole('button', {name: '+ Open bar'})).toBeInTheDocument();
+    expect(within(tags).getByRole('button', {name: 'No extras'})).toBeInTheDocument();
+    expect(tags).not.toHaveTextContent('€');
+    // The question is the only thing asked: the "what next" tags wait for the answer.
+    expect(screen.queryByRole('group', {name: 'What the plan could take next'})).not.toBeInTheDocument();
+
+    await userEvent.click(within(tags).getByRole('button', {name: '+ Private show'}));
+
+    expect(aiPlannerApi.editDraft).toHaveBeenLastCalledWith('tok-1',
+        {op: 'ADD_EXTRA', activityId: 'id-River Boat Cruise', packageKey: 'MEDIUM', extras: ['private-show']});
+    expect(await screen.findByText('Added Private show to River Boat Cruise in your trip plan.')).toBeInTheDocument();
+    // Answered: the tags are gone and the chat does not ask a second time.
+    await waitFor(() => expect(screen.queryByRole('group', {name: 'Extras for River Boat Cruise'})).not.toBeInTheDocument());
+    expect(screen.getAllByText('River Boat Cruise is in. Want an extra on it?')).toHaveLength(1);
+    expect(aiPlannerApi.sendMessage).toHaveBeenCalledTimes(1);
+});
+
 test('the chat brings the trims back ("what were the other options?") and switches to one ("show me Premium")', async () => {
     window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
     aiPlannerApi.getSession.mockResolvedValue(session({latestReadyGeneration: readyGeneration(), status: 'READY'}));

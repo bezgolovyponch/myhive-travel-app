@@ -284,9 +284,10 @@
     "perGroup": "pro Gruppe",
     "perPerson": "pro Person",
     "add": "Extras hinzufügen",
-    "done": "Fertig",
     "removeAria": "{name} entfernen",
-    "selectedSummary": "+ {amount} Extras"
+    "selectedSummary": "+ {amount} Extras",
+    "update": "Aktualisieren",
+    "edit": "Extras ändern"
   },
   "about": {
     "hero": {
@@ -656,8 +657,6 @@
       "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten.",
       "keep": "{keep}/{votes} dafür",
       "planTitle": "Der Plan",
-      "day": "Tag {n}",
-      "noDay": "Später hinzugefügt",
       "fromPerPerson": "ab {price} p. P.",
       "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
       "backToPlan": "Zurück zum Plan",
@@ -1240,7 +1239,8 @@
       "suggestions": "Vorgeschlagene Aktivitäten",
       "daySlot": "Tag {n} · {slot}",
       "added": "Drin ✓",
-      "addAria": "{name} zum Entwurf hinzufügen"
+      "addAria": "{name} zum Entwurf hinzufügen",
+      "updateDraft": "Plan aktualisieren"
     },
     "dock": {
       "title": "JGA-KI",
@@ -1273,7 +1273,10 @@
         "extreme": "Adrenalin",
         "wellness": "Entspannung",
         "transfer": "Partytransfer"
-      }
+      },
+      "extrasAsk": "{name} ist drin. Soll ein Extra dazu?",
+      "noExtras": "Keine Extras",
+      "extrasAria": "Extras für {name}"
     }
   }
 }

@@ -73,8 +73,7 @@ class PackagesViewTest {
 
     @Test
     void extrasCatalog_listsTheExtrasPerActivity_orNone() {
-        String expectedLine = "River Boat Cruise -> Private show (EUR 250 per group), Open bar (EUR 25 per person); "
-                + "Tiki Boat -> Photographer (EUR 12.50 per person)";
+        String expectedLine = "River Boat Cruise -> Private show, Open bar; Tiki Boat -> Photographer";
         CatalogActivity cruise = withExtras("River Boat Cruise",
                 new CatalogExtra("private-show", "Private show", new BigDecimal("250.00"), ExtraPricing.PER_GROUP),
                 new CatalogExtra("open-bar", "Open bar", new BigDecimal("25.00"), ExtraPricing.PER_PERSON));
