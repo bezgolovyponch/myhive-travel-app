@@ -53,10 +53,7 @@ public final class PackagesView {
                 lines.append('\n');
             }
             lines.append(pkg.key()).append(": ").append(days(pkg));
-            BigDecimal extras = pkg.days().stream().flatMap(day -> day.items().stream())
-                    .flatMap(item -> item.extras().stream()).map(ComposedPlan.ItemExtra::total)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal perPerson = FromPrice.perPerson(pkg.totalPrice(), extras, travelers);
+            BigDecimal perPerson = FromPrice.perPerson(pkg.totalPrice(), pkg.extrasTotal(), travelers);
             if (perPerson != null) {
                 lines.append(" - from EUR ").append(perPerson.toPlainString()).append(" per person");
             }

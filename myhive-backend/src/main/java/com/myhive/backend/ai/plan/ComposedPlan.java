@@ -28,6 +28,15 @@ public record ComposedPlan(List<PackageResult> packages, boolean degraded) {
             this(key, title, tagline, description, pricePerPerson, totalPrice, currency, totalDurationMinutes,
                     activityIds, days, null);
         }
+
+        /**
+         * What the chosen extras of every item come to for the group: the part of {@link #totalPrice()} no
+         * margin is taken from. Zero when nothing was chosen.
+         */
+        public BigDecimal extrasTotal() {
+            return days.stream().flatMap(day -> day.items().stream()).flatMap(item -> item.extras().stream())
+                    .map(ItemExtra::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
     }
 
     public record DayResult(int dayNumber, String title, String summary, List<ItemResult> items) {
