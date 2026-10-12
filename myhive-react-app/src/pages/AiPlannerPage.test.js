@@ -253,6 +253,36 @@ test('an expired token is dropped and the visitor starts fresh', async () => {
     expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
 });
 
+test('a first message the backend refuses is not "this chat has expired": there was no chat, and the message stays', async () => {
+    // What a destination the catalog does not have used to come back as.
+    aiPlannerApi.createSession.mockRejectedValue(
+        Object.assign(new Error('Unknown destination: 192'), {status: 400, body: {error: 'Bad Request'}}));
+    renderPage();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Message Stag Do AI'}), 'two nights for ten{Enter}');
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Something went wrong');
+    expect(alert).not.toHaveTextContent('expired');
+    expect(screen.getByText('two nights for ten')).toBeInTheDocument();
+});
+
+test('a build the server lost can be started again with one tap, for the same brief', async () => {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, 'tok-1');
+    const lost = {id: 'gen-9', status: 'RUNNING', packages: null};
+    aiPlannerApi.getSession.mockResolvedValue(session({latestGeneration: lost, status: 'GENERATING'}));
+    aiPlannerApi.getGeneration
+        .mockResolvedValueOnce({id: 'gen-9', status: 'FAILED', packages: null, error: {code: 'STALE', retryable: true}})
+        .mockResolvedValue(readyGeneration({id: 'gen-10'}));
+    aiPlannerApi.startGeneration.mockResolvedValue({id: 'gen-10', status: 'QUEUED', packages: null});
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Try again'}, {timeout: 4000}));
+
+    expect(aiPlannerApi.startGeneration).toHaveBeenCalledWith('tok-1');
+    expect(await screen.findByRole('region', {name: 'Trip draft'}, {timeout: 4000})).toBeInTheDocument();
+});
+
 test('a failed first reply keeps the message and "Try again" re-sends the same text', async () => {
     aiPlannerApi.createSession.mockResolvedValue(session({
         messages: [greeting, {role: 'USER', content: 'hi there', at}],

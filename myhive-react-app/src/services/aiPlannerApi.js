@@ -73,6 +73,12 @@ const aiPlannerApi = {
     }, 'Failed to change the trip draft');
   },
 
+  // Builds the packages again for the brief the chat already has (after a build that failed or was lost).
+  startGeneration(token) {
+    return request(`/ai/sessions/${encodeURIComponent(token)}/generations`, {method: 'POST'},
+        'Failed to start building the packages');
+  },
+
   getGeneration(id) {
     return request(`/ai/generations/${encodeURIComponent(id)}`, {}, 'Failed to load the packages');
   },

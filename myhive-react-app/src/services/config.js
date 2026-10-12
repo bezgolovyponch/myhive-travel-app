@@ -52,8 +52,14 @@ export function resolveDestinationSlugFromHost(hostname) {
     if (host.endsWith('.onrender.com')) {
         return FALLBACK_DESTINATION_SLUG;
     }
+    // An address is not a name: 192.168.0.216 (a phone opening the dev server over Wi-Fi) used to come
+    // out as the destination "192", which no catalog has - the planner could not start a chat on it.
+    if (/^[\d.]+$/.test(host) || host.includes(':') || host.startsWith('[')) {
+        return FALLBACK_DESTINATION_SLUG;
+    }
     const first = host.split('.')[0];
-    if (!first || NON_DESTINATION_HOSTS.has(first)) {
+    // A destination slug starts with a letter; a label that does not is some other kind of host.
+    if (!first || NON_DESTINATION_HOSTS.has(first) || !/^[a-z]/.test(first)) {
         return FALLBACK_DESTINATION_SLUG;
     }
     return first;

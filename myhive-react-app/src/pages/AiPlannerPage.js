@@ -11,6 +11,7 @@ import api from '../services/api';
 import {useTrip} from '../context/TripContext';
 import {useCatalog} from '../context/CatalogContext';
 import {DEFAULT_DESTINATION_SLUG} from '../services/config';
+import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
 import {formatDayRange, nightsBetween, parseISODate} from '../utils/format';
 import {PLANNER_DRAFT_KEY} from '../components/home/HeroPlanner';
@@ -95,11 +96,16 @@ function AiPlannerPage({pollIntervalMs}) {
     const navigate = useNavigate();
     const locale = useLocale();
     const [params] = useSearchParams();
-    const destinationSlug = params.get('destination') || DEFAULT_DESTINATION_SLUG;
-    const planner = useAiPlanner({destinationSlug, locale, pollMs: pollIntervalMs});
     const {state: trip, dispatch} = useTrip();
     const {state: catalog} = useCatalog();
-    const destination = catalog.destinations.find((d) => d.slug === destinationSlug);
+    // The destination asked for, when the catalog has it; otherwise the one the site sells by default.
+    // A slug nobody sells (a mistyped link, a host that is not a destination) must not reach the
+    // planner: it can only answer that with a refusal.
+    const askedSlug = params.get('destination') || DEFAULT_DESTINATION_SLUG;
+    const destination = catalog.destinations.find((d) => d.slug === askedSlug)
+        || getDefaultDestination(catalog.destinations) || undefined;
+    const destinationSlug = destination?.slug || askedSlug;
+    const planner = useAiPlanner({destinationSlug, locale, pollMs: pollIntervalMs});
     const [activeKey, setActiveKey] = useState(AI_PICK_KEY);
     const [dockOpen, setDockOpen] = useState(false);
     // How many messages were said before the packages landed. The docked chat starts after them: what
