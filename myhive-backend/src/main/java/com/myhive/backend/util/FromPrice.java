@@ -5,7 +5,8 @@ import java.math.RoundingMode;
 
 /**
  * The "from €X" a package shows before the organiser asks the group: the group total less a fixed
- * margin, in whole euros. The margin lives only here and is never shown or sent as a percentage.
+ * margin, in whole euros. The margin lives only here; the pages say it in words next to the price
+ * ("Package price: 10% off", i18n {@code price.packageDiscount}) - change the two together.
  */
 public final class FromPrice {
 

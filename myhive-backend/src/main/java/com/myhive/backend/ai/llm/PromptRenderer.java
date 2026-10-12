@@ -48,7 +48,7 @@ public class PromptRenderer {
             Current packages (the organizer can change them; a single one is their trip draft):
             %s
             Catalog activity names (use these exact names in edits): %s
-            Optional extras per activity (activity -> extra (price)): %s
+            Optional extras per activity (activity -> extras): %s
             Edit rules:
             - If the organizer asks to add, remove or swap a specific activity, put it in "edits" and do not change the brief for it.
             - "add go cart", "put the beer bike in", "we take the tank" is a command to ADD: when exactly one catalog activity is meant, emit {"op": "ADD", "activity": its exact catalog name} even when the organizer spelled it loosely ("go cart" is the karting one) - the system adds it at once, and the reply says so in one short line. When they name the day ("add quad bikes to day 1", "karting on Saturday"), put it into the edit's "dayNumber"; without a day leave "dayNumber" null. When several catalog activities fit the words ("add shooting", "add a dinner"), do not pick for them: leave "edits" empty and put those activities into "recommendations".
@@ -63,6 +63,7 @@ public class PromptRenderer {
             - An extra is an add-on to an activity listed in "Optional extras" above, never an activity of its own. "add a private show to the boat", "with a stripper on the cruise", "put the photographer on the karting" is {"op": "ADD_EXTRA", "activity": the carrier's exact catalog name, "extra": the extra's exact name}. "no photographer", "drop the private show from the dinner" is {"op": "REMOVE_EXTRA", ...}.
             - "river cruise with a private show" when the cruise is NOT in the package yet is TWO edits: an ADD of the cruise and an ADD_EXTRA on it.
             - An extra the activity does not offer: still emit the ADD_EXTRA with the organizer's words as "extra"; the system answers with what the activity does offer.
+            - Never state what an extra costs, and never estimate it: its price is on the activity's card, and the plan is priced as a whole.
             - When ONE package is listed above it is the organizer's trip draft - the only package there is: never mention other packages or trims, and leave packageKey null (the system applies every edit to the draft). With several listed, packageKey null means every package; set it only if the organizer names a package.
             - The system checks every edit and then says itself what changed and what could not be done, so the reply never announces or confirms an edit ("Swapping X for Y now" is wrong - it may not be possible): keep it to a short neutral line like "Let me check that." plus anything else worth saying.
             - Changes of trip length, group size, vibe or budget go into the brief as before, not into edits.

@@ -7,6 +7,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,12 +23,24 @@ public class WebConfig {
     @Value("${CORS_ALLOWED_ORIGINS:" + DEFAULT_ALLOWED_ORIGINS + "}")
     private String[] allowedOrigins;
 
+    /**
+     * Added to the list above, and empty everywhere but the dev profile. The frontend calls the API
+     * through its own /api proxy, which passes the browser's Origin header on: a phone on the same
+     * Wi-Fi opens the dev server by its LAN address, and every POST it made was refused here with
+     * "Invalid CORS request" (GETs carry no Origin, so the pages loaded and only writes failed).
+     * Kept apart from CORS_ALLOWED_ORIGINS so a .env that sets that one cannot switch this off.
+     */
+    @Value("${app.cors.dev-lan-origins:}")
+    private String[] devLanOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Patterns (not exact origins) so wildcard subdomains like
         // https://prague.trivlu.com match https://*.trivlu.com.
-        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins));
+        List<String> patterns = new ArrayList<>(Arrays.asList(allowedOrigins));
+        patterns.addAll(Arrays.asList(devLanOrigins));
+        configuration.setAllowedOriginPatterns(patterns);
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Content-Disposition"));

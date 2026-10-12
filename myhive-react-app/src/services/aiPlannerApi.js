@@ -62,13 +62,21 @@ const aiPlannerApi = {
   },
 
   // One tap or drag in the trip draft: {op: 'ADD'|'REMOVE'|'MOVE', activityId, packageKey, dayNumber}
-  // (dayNumber only for a MOVE: the day the activity was dropped on).
+  // (dayNumber only for a MOVE: the day the activity was dropped on). A confirmed activity card adds
+  // `extras`, every code ticked on it: with ADD the activity goes in with them, with ADD_EXTRA the
+  // extras of an activity already in the plan become exactly those.
   // No model call, so no long timeout; the answer is a turn body like sendMessage's.
   editDraft(token, edit) {
     return request(`/ai/sessions/${encodeURIComponent(token)}/edits`, {
       method: 'POST',
       body: edit,
     }, 'Failed to change the trip draft');
+  },
+
+  // Builds the packages again for the brief the chat already has (after a build that failed or was lost).
+  startGeneration(token) {
+    return request(`/ai/sessions/${encodeURIComponent(token)}/generations`, {method: 'POST'},
+        'Failed to start building the packages');
   },
 
   getGeneration(id) {

@@ -101,7 +101,9 @@
     margin-right: auto;
 }
 
-.activity-preview-btn {
+/* Scoped under the dialog: on the landings `.tl button` strips every button's border and
+   background, and a lone class does not outrank it. */
+.activity-preview-modal .activity-preview-btn {
     min-height: 44px;
     padding: 0 18px;
     border: 1px solid var(--brand);
@@ -113,13 +115,13 @@
     cursor: pointer;
 }
 
-.activity-preview-btn.is-quiet {
+.activity-preview-modal .activity-preview-btn.is-quiet {
     background: transparent;
     border-color: var(--border);
     color: var(--text);
 }
 
-.activity-preview-btn:disabled {
+.activity-preview-modal .activity-preview-btn:disabled {
     opacity: 0.5;
     cursor: default;
 }
@@ -140,4 +142,18 @@
 .activity-open:focus-visible {
     text-decoration: underline;
     text-underline-offset: 3px;
+}
+
+/* The extras as a choice: roomier rows than the detail page's, since a thumb picks here. */
+.activity-preview-extras--pick .item-extras-picker-list {
+    gap: var(--gap);
+}
+
+.activity-preview-extras--pick .item-extras-picker-row {
+    min-height: 2.75rem;
+}
+
+/* The one button that changes the plan. */
+.activity-preview-confirm {
+    flex: 1 1 auto;
 }

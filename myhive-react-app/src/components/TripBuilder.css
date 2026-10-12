@@ -562,3 +562,39 @@
     border-radius: 2px;
     background: #7c6cf5;
 }
+
+/* A row's name opens the activity's card. */
+.itinerary-item-open {
+    border: none;
+    background: none;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.itinerary-item-open:hover {
+    text-decoration: underline;
+}
+
+/* "Add extras" is a button a thumb can find, not a caption. */
+.itinerary-item-extras-toggle {
+    align-self: flex-start;
+    min-height: 2.25rem;
+    padding: 0 var(--gap-sm);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.8125rem;
+}
+
+.itinerary-item-extras-toggle:hover {
+    text-decoration: none;
+}
+
+/* "Package price: 10% off", under the plan's one price. The figure is FromPrice.FACTOR on the backend. */
+.plan-discount-note {
+    margin: 0 0 var(--gap-sm);
+    text-align: right;
+    font-size: 0.8125rem;
+    color: #f2c46d;
+}

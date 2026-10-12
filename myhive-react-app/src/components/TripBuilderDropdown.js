@@ -1,8 +1,12 @@
+import {useState} from 'react';
+import {createPortal} from 'react-dom';
 import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
-import {DEFAULT_ACTIVITY_IMAGE, formatAmount, formatPrice} from '../utils/format';
-import {computeTripTotal, extrasTotal, groupTripItems} from '../utils/tripPricing';
+import {DEFAULT_ACTIVITY_IMAGE, formatPrice} from '../utils/format';
+import {extrasOf, groupTripItems} from '../utils/tripPricing';
+import {usePlanFromPrice} from '../hooks/usePlanFromPrice';
 import TripSetupModal from './TripSetupModal';
+import ActivityPreviewModal from './ActivityPreviewModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import {managerKey} from '../hooks/useOrganizerVote';
 import {dashboardPath} from '../utils/groupVote';
@@ -25,20 +29,57 @@ function TripBuilderDropdown({voteHref = null}) {
     const {voteSetupOpen, openVoteSetup, closeVoteSetup, handleVoteConfirm, preselectedDestination} = useStartGroupVote();
     const t = useT('tripDropdown');
     const tExtras = useT('extras');
+    const tCards = useT('cards');
+    const tPlan = useT('tripBuilder');
+    // One price for the whole plan, the same "from" the Trip Builder shows: no price per activity, no
+    // exact total. Asked for only while the panel is open.
+    const planQuote = usePlanFromPrice(state.tripBuilderModalOpen ? state.tripItems : [], state.tripTravelers || 1);
+    // The row whose card is open: its extras are ticked and confirmed there.
+    const [openId, setOpenId] = useState(null);
 
     if (!state.tripBuilderModalOpen) return null;
-
-    const travelers = state.tripTravelers || 1;
+    const opened = state.tripItems.find(item => item.id === openId) || null;
 
     const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
-    const totalPrice = computeTripTotal(state.tripItems, travelers);
-
+    // The extras chosen on a row, by name: what they cost is part of the plan's one price.
     const extrasSummary = (item) => {
-        const amount = extrasTotal(item, travelers);
-        return amount > 0 && (
-            <span className="trip-modal-item-extras">{tExtras('selectedSummary', {amount: formatAmount(amount)})}</span>
+        const chosen = extrasOf(item);
+        return chosen.length > 0 && (
+            <span className="trip-modal-item-extras">+ {chosen.map(extra => extra.name).join(', ')}</span>
         );
     };
+
+    // A row's name opens the activity's card, where its extras are ticked and confirmed - standalone
+    // rows and a package's alike.
+    const rowName = (item) => (
+        <button type="button" className="trip-modal-item-name trip-modal-item-open"
+                aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
+            {item.name || item.title}
+        </button>
+    );
+    const extrasButton = (item) => (item.extras || []).length > 0 && (
+        <button type="button" className="trip-modal-item-extras-btn"
+                aria-haspopup="dialog" onClick={() => setOpenId(item.id)}>
+            {(item.selectedExtras || []).length > 0 ? tExtras('edit') : tExtras('add')}
+        </button>
+    );
+
+    const card = opened && (
+                <ActivityPreviewModal
+                    activity={opened}
+                    activityId={opened.id}
+                    onClose={() => setOpenId(null)}
+                    confirm={{
+                        inPlan: true,
+                        selected: opened.selectedExtras || [],
+                        addLabel: tCards('addToTrip'),
+                        updateLabel: tExtras('update'),
+                        onConfirm: (codes, activity) => dispatch({
+                            type: 'SET_ITEM_EXTRAS', id: opened.id, selectedExtras: codes, extras: activity.extras || [],
+                        }),
+                    }}
+                />
+    );
 
     // The organiser of a running vote (opened "Browse all" from the dashboard)
     // goes back to the Trip Builder dashboard, where what they added joins the vote.
@@ -90,9 +131,9 @@ function TripBuilderDropdown({voteHref = null}) {
                                             <img src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE} alt={item.name}
                                                  className="trip-modal-item-image"/>
                                             <div className="trip-modal-item-info">
-                                                <span className="trip-modal-item-name">{item.name}</span>
-                                                <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
+                                                {rowName(item)}
                                                 {extrasSummary(item)}
+                                                {extrasButton(item)}
                                             </div>
                                         </div>
                                     ))}
@@ -103,9 +144,9 @@ function TripBuilderDropdown({voteHref = null}) {
                                     <img src={item.imageUrl || DEFAULT_ACTIVITY_IMAGE} alt={item.name}
                                          className="trip-modal-item-image"/>
                                     <div className="trip-modal-item-info">
-                                        <span className="trip-modal-item-name">{item.name || item.title}</span>
-                                        <span className="trip-modal-item-price">{formatPrice(item.price)}</span>
+                                        {rowName(item)}
                                         {extrasSummary(item)}
+                                        {extrasButton(item)}
                                     </div>
                                     <button
                                         type="button"
@@ -142,12 +183,25 @@ function TripBuilderDropdown({voteHref = null}) {
                     </div>
                 )}
             </div>
+            {/* On a landing this dropdown sits in a header with a backdrop-filter, which would be the
+                containing block of the card's fixed overlay and trap it in the header bar. There the card
+                is mounted on the landing's root instead - still under .tl, whose styles it needs. */}
+            {opened && (voteHref && typeof document !== 'undefined'
+                ? createPortal(card, document.querySelector('.tl') || document.body)
+                : card)}
             {state.tripItems.length > 0 && (
                 <div className="trip-builder-dropdown-footer">
-                    <div className="trip-modal-total">
-                        <span>{travelers === 1 ? t('totalOne', {count: travelers}) : t('totalOther', {count: travelers})}</span>
-                        <span className="trip-modal-total-price">{formatPrice(totalPrice)}</span>
-                    </div>
+                    {planQuote?.fromPrice != null && (
+                        <div className="trip-modal-total">
+                            <span>{tPlan('price.plan')}</span>
+                            <span className="trip-modal-total-price">
+                                {tPlan('price.from', {price: formatPrice(Number(planQuote.fromPrice))})}
+                            </span>
+                        </div>
+                    )}
+                    {planQuote?.fromPrice != null && (
+                        <p className="plan-discount-note">{tPlan('price.packageDiscount')}</p>
+                    )}
                     <button className="trip-builder-complete-btn" onClick={handleComplete}>
                         {organizerVote ? t('backToTripBuilder') : t('continue')}
                     </button>

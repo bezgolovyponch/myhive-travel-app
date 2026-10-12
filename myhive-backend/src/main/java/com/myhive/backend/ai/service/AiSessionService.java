@@ -312,10 +312,26 @@ public class AiSessionService {
 
     /** {@code dayNumber} is where a {@code MOVE} (a drag in the draft) puts the activity; other ops ignore it. */
     public TurnOutcome editDraft(UUID token, EditOp op, UUID activityId, Tier packageKey, Integer dayNumber) {
+        return editDraft(token, op, activityId, packageKey, dayNumber, null);
+    }
+
+    /**
+     * {@code extras} is what the activity's card was confirmed with - the codes ticked on it, all of them;
+     * null for a plain tap. With ADD the activity goes in with them; with ADD_EXTRA the activity is in the
+     * plan already and its extras become exactly those. Either way it is one batch: the plan is re-priced
+     * once and the chat says once what changed.
+     */
+    public TurnOutcome editDraft(UUID token, EditOp op, UUID activityId, Tier packageKey, Integer dayNumber,
+            List<String> extras) {
         requireEnabled();
+        boolean card = extras != null;
         // A tap names an activity, never an extra, and a swap needs a second activity: neither fits a tap.
-        if (op == EditOp.REPLACE || op.isExtraOp()) {
+        // The card is the one place an extra is chosen from, and it says which by code.
+        if (op == EditOp.REPLACE || op == EditOp.REMOVE_EXTRA || (op == EditOp.ADD_EXTRA && !card)) {
             throw new BadRequestException("Only ADD, REMOVE and MOVE can be applied from the draft");
+        }
+        if (card && op != EditOp.ADD && op != EditOp.ADD_EXTRA) {
+            throw new BadRequestException("Extras are confirmed with ADD or ADD_EXTRA");
         }
         if (op == EditOp.MOVE && dayNumber == null) {
             throw new BadRequestException("A MOVE needs the dayNumber to move to");
@@ -337,9 +353,14 @@ public class AiSessionService {
             Map<String, Object> update = new HashMap<>();
             update.put(PlannerState.RESUME_REASON, ResumeReason.EDIT.name());
             // By id, not by name: the catalog carries pairs of activities with one name, and a tap says which.
-            update.put(PlannerState.EDITS, JsonCodec.write(List.of(
-                    new EditRequest(op, activity.name(), null, packageKey,
-                            op == EditOp.MOVE ? dayNumber : null, null, List.of(), activity.id()))));
+            List<EditRequest> edits = card
+                    ? cardEdits(op, activity, packageKey, extras, state.result().get())
+                    : List.of(new EditRequest(op, activity.name(), null, packageKey,
+                            op == EditOp.MOVE ? dayNumber : null, null, List.of(), activity.id()));
+            if (edits.isEmpty()) {
+                throw new BadRequestException("Nothing to change: " + activity.name() + " has exactly these extras");
+            }
+            update.put(PlannerState.EDITS, JsonCodec.write(edits));
             // The row the tap came from may be the alternatives of a chat edit the catalog could not answer.
             // Those live in the edit report this tap replaces: carry them over as the turn's
             // recommendations, or the row - and the tags next to the one just tapped - is gone after one tap.
@@ -366,6 +387,47 @@ public class AiSessionService {
             touch(session);
             return new TurnOutcome(view(session), Optional.empty(), report, edited, replies);
         });
+    }
+
+    /**
+     * The edits a confirmed card comes to. ADD: the activity, then each ticked extra. ADD_EXTRA: per package
+     * that holds the activity, what has to be chosen and what has to go for its extras to be the ticked
+     * ones - nothing for a package that is there already. A code the activity does not offer is not an
+     * edit: the card can only have sent it from a catalog that has since changed.
+     */
+    private static List<EditRequest> cardEdits(EditOp op, CatalogActivity activity, Tier packageKey,
+            List<String> extras, ComposedPlan plan) {
+        Map<String, String> offered = new LinkedHashMap<>();
+        activity.extras().forEach(extra -> offered.put(extra.code(), extra.name()));
+        List<String> wanted = extras.stream().filter(offered::containsKey).distinct().toList();
+        List<EditRequest> edits = new ArrayList<>();
+        if (op == EditOp.ADD) {
+            edits.add(new EditRequest(EditOp.ADD, activity.name(), null, packageKey, null, null, List.of(),
+                    activity.id()));
+            wanted.forEach(code -> edits.add(extraEdit(EditOp.ADD_EXTRA, activity, packageKey, offered.get(code))));
+            return edits;
+        }
+        for (ComposedPlan.PackageResult pkg : plan.packages()) {
+            if (packageKey != null && pkg.key() != packageKey) {
+                continue;
+            }
+            Optional<ComposedPlan.ItemResult> held = pkg.days().stream().flatMap(day -> day.items().stream())
+                    .filter(item -> activity.id().equals(item.activityId()))
+                    .findFirst();
+            if (held.isEmpty()) {
+                continue;
+            }
+            List<String> chosen = held.get().extras().stream().map(ComposedPlan.ItemExtra::code).toList();
+            wanted.stream().filter(code -> !chosen.contains(code))
+                    .forEach(code -> edits.add(extraEdit(EditOp.ADD_EXTRA, activity, pkg.key(), offered.get(code))));
+            chosen.stream().filter(code -> offered.containsKey(code) && !wanted.contains(code))
+                    .forEach(code -> edits.add(extraEdit(EditOp.REMOVE_EXTRA, activity, pkg.key(), offered.get(code))));
+        }
+        return edits;
+    }
+
+    private static EditRequest extraEdit(EditOp op, CatalogActivity activity, Tier packageKey, String extraName) {
+        return new EditRequest(op, activity.name(), null, packageKey, null, null, List.of(), activity.id(), extraName);
     }
 
     /**

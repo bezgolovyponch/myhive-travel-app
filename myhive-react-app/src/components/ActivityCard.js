@@ -7,9 +7,10 @@ import {useLocalePath, useT} from '../i18n';
 import './ActivityCard.css';
 
 function ActivityCard({ activity, isAdded = false, silent = false }) {
-    const {dispatch} = useTrip();
+    const {state, dispatch} = useTrip();
     const navigate = useNavigate();
     const t = useT('cards');
+    const tExtras = useT('extras');
     const lp = useLocalePath();
     const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -19,6 +20,16 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
     const handleAddToTrip = (e) => {
         e.stopPropagation();
         dispatch({ type: 'ADD_TO_TRIP', activity, silent });
+    };
+
+    // The card's dialog is where extras are chosen: ticked there, then confirmed with its button.
+    const cartItem = (state.tripItems || []).find(item => item.id === activity.id);
+    const confirmExtras = (codes) => {
+        if (cartItem) {
+            dispatch({type: 'SET_ITEM_EXTRAS', id: activity.id, selectedExtras: codes});
+        } else {
+            dispatch({type: 'ADD_TO_TRIP', activity: {...activity, selectedExtras: codes}, silent});
+        }
     };
 
     const handleCardClick = () => {
@@ -123,6 +134,13 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
                 activity={previewActivity}
                 link={activityLink}
                 onClose={() => setPreviewOpen(false)}
+                confirm={{
+                    inPlan: Boolean(cartItem),
+                    selected: cartItem?.selectedExtras || [],
+                    addLabel: t('addToTrip'),
+                    updateLabel: tExtras('update'),
+                    onConfirm: confirmExtras,
+                }}
             />
         )}
         </>

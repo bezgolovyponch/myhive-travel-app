@@ -1,0 +1,7 @@
+{
+  "name": "planner-ux-kit",
+  "private": true,
+  "type": "module",
+  "scripts": { "kit": "node kit.mjs" },
+  "dependencies": { "playwright-core": "^1.50.0" }
+}

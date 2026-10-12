@@ -113,8 +113,6 @@
     "removeAria": "{name} entfernen",
     "emptyState": "Noch keine Aktivitäten hinzugefügt. Stöbere durch die Aktivitäten und stell dir deinen Trip zusammen!",
     "voteTogether": "Stimm gemeinsam ab & plane deinen Trip",
-    "totalOne": "Gesamt ({count} Person)",
-    "totalOther": "Gesamt ({count} Personen)",
     "continue": "Weiter",
     "backToTripBuilder": "Zurück zum Trip Builder"
   },
@@ -284,9 +282,9 @@
     "perGroup": "pro Gruppe",
     "perPerson": "pro Person",
     "add": "Extras hinzufügen",
-    "done": "Fertig",
     "removeAria": "{name} entfernen",
-    "selectedSummary": "+ {amount} Extras"
+    "update": "Aktualisieren",
+    "edit": "Extras ändern"
   },
   "about": {
     "hero": {
@@ -583,7 +581,8 @@
     },
     "price": {
       "plan": "Euer Plan",
-      "from": "ab {price}"
+      "from": "ab {price}",
+      "packageDiscount": "Paketpreis: 10 % Rabatt"
     },
     "emptyState": "Füge Aktivitäten hinzu und stell dir deinen Trip zusammen!",
     "footer": {
@@ -656,8 +655,6 @@
       "lockText": "Mach ihn jetzt fest — du musst nicht auf die letzten Stimmen warten.",
       "keep": "{keep}/{votes} dafür",
       "planTitle": "Der Plan",
-      "day": "Tag {n}",
-      "noDay": "Später hinzugefügt",
       "fromPerPerson": "ab {price} p. P.",
       "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
       "backToPlan": "Zurück zum Plan",
@@ -1240,7 +1237,9 @@
       "suggestions": "Vorgeschlagene Aktivitäten",
       "daySlot": "Tag {n} · {slot}",
       "added": "Drin ✓",
-      "addAria": "{name} zum Entwurf hinzufügen"
+      "addAria": "{name} zum Entwurf hinzufügen",
+      "updateDraft": "Plan aktualisieren",
+      "packageDiscount": "Paketpreis: 10 % Rabatt"
     },
     "dock": {
       "title": "JGA-KI",
@@ -1273,7 +1272,10 @@
         "extreme": "Adrenalin",
         "wellness": "Entspannung",
         "transfer": "Partytransfer"
-      }
+      },
+      "extrasAsk": "{name} ist drin. Soll ein Extra dazu?",
+      "noExtras": "Keine Extras",
+      "extrasAria": "Extras für {name}"
     }
   }
 }

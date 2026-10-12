@@ -806,6 +806,8 @@ describe('plan price', () => {
 
         expect(await screen.findByText('from €1,161')).toBeInTheDocument();
         expect(screen.getByText('Your plan')).toBeInTheDocument();
+        // Why the one price is what it is, said right under it.
+        expect(screen.getByText('Package price: 10% off')).toBeInTheDocument();
         expect(pricingApi.quote).toHaveBeenCalledWith({ items: [{ activityId: 'a1', packageId: null, extraCodes: [] }], travelers: 4 });
         expect(screen.queryByText(/€50|× 4|person/)).not.toBeInTheDocument();
     });
@@ -1933,55 +1935,58 @@ describe('extras on an itinerary row', () => {
         );
     }
 
-    test('ticking an extra in the row shows its chip; the chip’s × takes it off again', async () => {
+    test('the row opens the activity’s card: a ticked extra reaches the plan only with Update; the chip’s × takes it off again', async () => {
         const user = userEvent.setup();
         const onDispatch = jest.fn();
         render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={onDispatch} />);
 
-        const toggle = screen.getByRole('button', { name: 'Add extras' });
-        expect(toggle).toHaveAttribute('aria-expanded', 'false');
-        // Folded away the checklist is not in the document, so nothing to point at.
-        expect(toggle).not.toHaveAttribute('aria-controls');
-        await user.click(toggle);
-        const picker = screen.getByRole('group', { name: 'Optional extras' });
-        expect(toggle).toHaveAttribute('aria-controls', picker.id);
-        expect(document.getElementById(picker.id)).toBe(picker);
-        expect(within(picker).getByRole('checkbox', { name: /Private show/ })).not.toBeChecked();
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        const card = screen.getByRole('dialog');
+        const update = within(card).getByRole('button', { name: 'Update' });
+        expect(within(card).getByRole('checkbox', { name: /Private show/ })).not.toBeChecked();
+        // Nothing ticked that the plan does not hold: nothing to confirm yet.
+        expect(update).toBeDisabled();
 
-        await user.click(within(picker).getByRole('checkbox', { name: /Private show/ }));
+        await user.click(within(card).getByRole('checkbox', { name: /Private show/ }));
 
-        expect(onDispatch).toHaveBeenCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] });
-        expect(screen.getByText('Private show · +€250')).toBeInTheDocument();
+        // Ticked, not confirmed: the plan has not heard of it.
+        expect(onDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_ITEM_EXTRAS' }));
+        expect(screen.queryByRole('button', { name: 'Remove Private show' })).not.toBeInTheDocument();
+
+        await user.click(update);
+
+        expect(onDispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Remove Private show' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Edit extras' })).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Remove Private show' }));
 
         expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: [] });
-        expect(screen.queryByText('Private show · +€250')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Remove Private show' })).not.toBeInTheDocument();
     });
 
-    test('the open checklist spans the whole row, not the title column beside the thumbnail', async () => {
+    test('the row’s name opens the same card', async () => {
         const user = userEvent.setup();
-        render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={jest.fn()} />);
+        render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: ['show'] }]} onDispatch={jest.fn()} />);
 
-        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        await user.click(screen.getByRole('button', { name: activity1.name }));
 
-        const picker = screen.getByRole('group', { name: 'Optional extras' });
-        const row = picker.closest('.itinerary-item');
-        expect(row).not.toBeNull();
-        expect(picker.closest('.itinerary-item-content')).toBeNull();
-        expect(row.querySelector('.itinerary-item-content')).toHaveTextContent(activity1.name);
+        expect(within(screen.getByRole('dialog')).getByRole('checkbox', { name: /Private show/ })).toBeChecked();
     });
 
-    test('a per-person chip shows what it adds for the whole group', async () => {
+    test('a chosen extra is a chip with its name and no amount: its cost is part of the plan’s one price', async () => {
         const user = userEvent.setup();
-        // buildTripState: 2 travellers, so €15 per person adds €30 to the line.
-        const expectedChip = 'Photos · +€30';
         render(<CartHarness initialItems={[{ ...activity1, extras, selectedExtras: [] }]} onDispatch={jest.fn()} />);
 
         await user.click(screen.getByRole('button', { name: 'Add extras' }));
         await user.click(screen.getByRole('checkbox', { name: /Photos/ }));
+        await user.click(screen.getByRole('button', { name: 'Update' }));
 
-        expect(screen.getByText(expectedChip)).toBeInTheDocument();
+        const chip = screen.getByRole('button', { name: 'Remove Photos' }).closest('li');
+        expect(chip).toHaveTextContent('Photos');
+        expect(chip).not.toHaveTextContent('€');
     });
 
     test('removing a chip also drops a code the activity no longer offers', async () => {
@@ -1997,14 +2002,34 @@ describe('extras on an itinerary row', () => {
         expect(onDispatch).toHaveBeenLastCalledWith({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: expectedCodes });
     });
 
-    test('Done folds the checklist away', async () => {
+    test('an activity inside a package opens the same card and takes extras', async () => {
         const user = userEvent.setup();
-        render(<CartHarness initialItems={[{ ...activity1, extras }]} onDispatch={jest.fn()} />);
+        const onDispatch = jest.fn();
+        const packaged = { ...activity1, extras, selectedExtras: [], packageId: 'pkg-1', packageName: 'Classic', packageDiscountPct: 10 };
+        render(<CartHarness initialItems={[packaged]} onDispatch={onDispatch} />);
 
         await user.click(screen.getByRole('button', { name: 'Add extras' }));
-        await user.click(screen.getByRole('button', { name: 'Done' }));
+        const card = screen.getByRole('dialog');
+        await user.click(within(card).getByRole('checkbox', { name: /Private show/ }));
+        await user.click(within(card).getByRole('button', { name: 'Update' }));
 
-        expect(screen.queryByRole('group', { name: 'Optional extras' })).not.toBeInTheDocument();
+        expect(onDispatch).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'SET_ITEM_EXTRAS', id: 'act-1', selectedExtras: ['show'] }));
+        expect(screen.getByRole('button', { name: 'Remove Private show' })).toBeInTheDocument();
+    });
+
+    test('closing the card without Update leaves the plan as it was', async () => {
+        const user = userEvent.setup();
+        const onDispatch = jest.fn();
+        render(<CartHarness initialItems={[{ ...activity1, extras }]} onDispatch={onDispatch} />);
+
+        await user.click(screen.getByRole('button', { name: 'Add extras' }));
+        await user.click(screen.getByRole('checkbox', { name: /Private show/ }));
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(onDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_ITEM_EXTRAS' }));
+        expect(screen.queryByRole('button', { name: 'Remove Private show' })).not.toBeInTheDocument();
     });
 
     test('a row whose activity has no extras offers none', async () => {

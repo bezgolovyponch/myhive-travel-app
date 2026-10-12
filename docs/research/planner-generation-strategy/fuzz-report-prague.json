@@ -1,0 +1,99 @@
+{
+  "catalogSize" : 82,
+  "fallbackGrid" : {
+    "runs" : 40600,
+    "plansBreakingARule" : 1394,
+    "closedChainSteps" : {
+      "1_FALLBACK_PRESETS" : 39206,
+      "3_FALLBACK_FREE" : 1394
+    },
+    "closedChainPlansBreakingARule" : 0,
+    "fallbackNodePlansBreakingARule" : 0,
+    "byRule" : {
+      "TIER_NOT_DISTINCT" : 522,
+      "TIER_PRICE_ORDER" : 1394
+    },
+    "byShape" : {
+      "days=1 presets" : 1094,
+      "days=2 presets" : 50,
+      "days=3 presets" : 50,
+      "days=4 presets" : 50,
+      "days=5 presets" : 50,
+      "days=6 presets" : 50,
+      "days=7 presets" : 50
+    },
+    "examples" : [ "presets=true cats=[] days=1 group=2 arr=MORNING dep=MORNING -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=MORNING dep=null -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=AFTERNOON dep=AFTERNOON -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=AFTERNOON dep=FLEXIBLE -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=EVENING dep=EVENING -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=FLEXIBLE dep=AFTERNOON -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=FLEXIBLE dep=FLEXIBLE -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=null dep=AFTERNOON -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=2 arr=null dep=FLEXIBLE -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=3 arr=MORNING dep=MORNING -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=3 arr=MORNING dep=null -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "presets=true cats=[] days=1 group=3 arr=AFTERNOON dep=AFTERNOON -> [TIER_PRICE_ORDER:37.00/55.00/55.00]" ]
+  },
+  "adversarialModel" : {
+    "runs" : 20000,
+    "outcomes" : {
+      "CORRECTED" : 1485,
+      "FALLBACK" : 18515
+    },
+    "fallbackCausedBy" : {
+      "DAY_OVER_ITEMS" : 17841,
+      "DAY_OVER_MINUTES" : 17661,
+      "DUPLICATE_ACTIVITY" : 14011,
+      "EMPTY_DAY" : 9538,
+      "EMPTY_PACKAGE" : 1186,
+      "MISSING_TIER" : 1720,
+      "SLOT_OUTSIDE_WINDOW" : 18108,
+      "SLOT_TAKEN" : 17299,
+      "TIER_NOT_DISTINCT" : 1290,
+      "TIER_ORDER" : 7,
+      "WRONG_DAY_COUNT" : 1771
+    },
+    "shippedPlansBreakingARule" : 1205,
+    "brokenByOutcome" : {
+      "FALLBACK" : 1205
+    },
+    "brokenByRule" : {
+      "TIER_NOT_DISTINCT" : 435,
+      "TIER_PRICE_ORDER" : 1205
+    },
+    "acceptedByValidatorButRejectedByOracle" : 0,
+    "proposedSteps" : {
+      "B_CORRECTED" : 1485,
+      "C_RESCHEDULED" : 4435,
+      "D_1_FALLBACK_PRESETS" : 12965,
+      "D_3_FALLBACK_FREE" : 1115
+    },
+    "proposedShippedPlansBreakingARule" : 0,
+    "examples" : [ "FALLBACK days=1 group=21 cats=[extreme, guns-and-bullets] -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "FALLBACK days=1 group=21 cats=[food-and-drink, stag-hot-babies-and-pranks, nightlife] -> [TIER_PRICE_ORDER:55.00/55.00/55.00, TIER_NOT_DISTINCT:BASIC, TIER_NOT_DISTINCT:MEDIUM, TIER_NOT_DISTINCT:PREMIUM]", "FALLBACK days=1 group=29 cats=[extreme, guns-and-bullets] -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "FALLBACK days=2 group=2 cats=[wellness, czech-beer, food-and-drink] -> [TIER_PRICE_ORDER:101.00/302.00/220.00]", "FALLBACK days=1 group=3 cats=[food-and-drink, stag-hot-babies-and-pranks, nightlife] -> [TIER_PRICE_ORDER:55.00/55.00/55.00, TIER_NOT_DISTINCT:BASIC, TIER_NOT_DISTINCT:MEDIUM, TIER_NOT_DISTINCT:PREMIUM]", "FALLBACK days=1 group=3 cats=[extreme, guns-and-bullets] -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "FALLBACK days=1 group=3 cats=[wellness, czech-beer, food-and-drink] -> [TIER_PRICE_ORDER:61.00/187.67/164.00]", "FALLBACK days=1 group=23 cats=[food-and-drink, stag-hot-babies-and-pranks, nightlife] -> [TIER_PRICE_ORDER:95.00/102.00/102.00, TIER_NOT_DISTINCT:MEDIUM, TIER_NOT_DISTINCT:PREMIUM]" ]
+  },
+  "plausibleModel" : {
+    "runs" : 20000,
+    "outcomes" : {
+      "ACCEPTED" : 1271,
+      "CORRECTED" : 10091,
+      "FALLBACK" : 8638
+    },
+    "fallbackCausedBy" : {
+      "DAY_OVER_ITEMS" : 3162,
+      "DAY_OVER_MINUTES" : 3416,
+      "DUPLICATE_ACTIVITY" : 4079,
+      "SLOT_OUTSIDE_WINDOW" : 3387,
+      "SLOT_TAKEN" : 5088,
+      "TIER_NOT_DISTINCT" : 17,
+      "TIER_ORDER" : 1227
+    },
+    "shippedPlansBreakingARule" : 1263,
+    "brokenByOutcome" : {
+      "FALLBACK" : 1263
+    },
+    "brokenByRule" : {
+      "TIER_NOT_DISTINCT" : 458,
+      "TIER_PRICE_ORDER" : 1263
+    },
+    "acceptedByValidatorButRejectedByOracle" : 0,
+    "proposedSteps" : {
+      "A_ACCEPTED" : 1271,
+      "B_CORRECTED" : 10091,
+      "C_RESCHEDULED" : 790,
+      "D_1_FALLBACK_PRESETS" : 6622,
+      "D_3_FALLBACK_FREE" : 1226
+    },
+    "proposedShippedPlansBreakingARule" : 0,
+    "examples" : [ "FALLBACK days=1 group=2 cats=[] -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "FALLBACK days=1 group=10 cats=[food-and-drink, stag-hot-babies-and-pranks, nightlife] -> [TIER_PRICE_ORDER:55.00/55.00/55.00, TIER_NOT_DISTINCT:BASIC, TIER_NOT_DISTINCT:MEDIUM, TIER_NOT_DISTINCT:PREMIUM]", "FALLBACK days=1 group=11 cats=[extreme, guns-and-bullets] -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "FALLBACK days=3 group=2 cats=[wellness, czech-beer, food-and-drink] -> [TIER_PRICE_ORDER:101.00/302.00/220.00]", "FALLBACK days=1 group=25 cats=[] -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "FALLBACK days=1 group=19 cats=[extreme, guns-and-bullets] -> [TIER_PRICE_ORDER:37.00/55.00/55.00]", "FALLBACK days=3 group=2 cats=[wellness, czech-beer, food-and-drink] -> [TIER_PRICE_ORDER:101.00/302.00/220.00]", "FALLBACK days=1 group=5 cats=[food-and-drink, stag-hot-babies-and-pranks, nightlife] -> [TIER_PRICE_ORDER:95.00/102.00/102.00, TIER_NOT_DISTINCT:MEDIUM, TIER_NOT_DISTINCT:PREMIUM]" ]
+  }
+}

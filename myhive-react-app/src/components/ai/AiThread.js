@@ -111,7 +111,7 @@ function AiThread({planner, variant = 'full', placeholder, emptyState = null, be
                     {error && (
                         <div className="ai-error" role="alert">
                             <span>{t(`errors.${KNOWN_ERRORS.has(error.code) ? error.code : 'generic'}`)}</span>
-                            {error.retryText && (
+                            {(error.retryText || error.retryGeneration) && (
                                 <button type="button" className="ai-error-retry" onClick={retry}>
                                     {t('retry')}
                                 </button>

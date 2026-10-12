@@ -60,7 +60,8 @@ public class AiPlannerController {
     /** One tap in the trip draft: add or remove an activity without a chat turn. */
     @PostMapping("/sessions/{token}/edits")
     public TurnResponseDTO editDraft(@PathVariable UUID token, @Valid @RequestBody DraftEditRequest request) {
-        return mapper.turn(sessionService.editDraft(token, request.op(), request.activityId(), request.packageKey(), request.dayNumber()));
+        return mapper.turn(sessionService.editDraft(token, request.op(), request.activityId(), request.packageKey(), request.dayNumber(),
+                request.extras()));
     }
 
     @PostMapping("/sessions/{token}/messages")

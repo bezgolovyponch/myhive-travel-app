@@ -85,13 +85,14 @@ public class PlanTrimmer {
 
     /** Empty when there was nothing this class could correct, or when a correction could not be made. */
     public Optional<Trimmed> trim(PlanDraft draft, Brief brief, Map<UUID, CatalogActivity> catalog) {
-        boolean beyondTrimming = validator.validate(draft, brief, catalog).stream()
+        List<String> fixes = new ArrayList<>();
+        PlanDraft working = withMissingDays(draft, brief, fixes);
+        PlanDraft padded = working;
+        boolean beyondTrimming = validator.validate(padded, brief, catalog).stream()
                 .anyMatch(violation -> BEYOND_TRIMMING.contains(violation.code()));
         if (beyondTrimming) {
             return Optional.empty();
         }
-        PlanDraft working = draft;
-        List<String> fixes = new ArrayList<>();
         for (int step = 0; step < MAX_FIXES; step++) {
             Optional<Violation> next = validator.validate(working, brief, catalog).stream()
                     .filter(violation -> FIXABLE.contains(violation.code()))
@@ -111,6 +112,46 @@ public class PlanTrimmer {
             fixes.add(fix.get().note());
         }
         return fixes.isEmpty() ? Optional.empty() : Optional.of(new Trimmed(working, fixes));
+    }
+
+    /**
+     * A day the model left out is a day with nothing on it. It writes "day 3: MORNING" trips as two days
+     * about as often as not - the last day holds nothing, so it does not list it - and the validator then
+     * counts the days and rejects the whole draft ({@code WRONG_DAY_COUNT}), which used to cost a second
+     * planner call of five to six seconds to get the same plan back with an empty day in it. The missing
+     * days are added here, empty; whether an empty day is allowed there is still the validator's call
+     * (an edge day may be empty, a middle day may not). A package with too many days, or a day number the
+     * trip does not have, is left as it is: that is not an omission.
+     */
+    private static PlanDraft withMissingDays(PlanDraft draft, Brief brief, List<String> fixes) {
+        if (brief.days() == null) {
+            return draft;
+        }
+        int dayCount = brief.days();
+        List<PlanDraft.PackageDraft> packages = new ArrayList<>();
+        boolean changed = false;
+        for (PlanDraft.PackageDraft pkg : draft.packages()) {
+            Set<Integer> present = new HashSet<>();
+            boolean plausible = pkg.key() != null && pkg.days().size() < dayCount;
+            for (PlanDraft.DayDraft day : pkg.days()) {
+                plausible &= day.dayNumber() >= 1 && day.dayNumber() <= dayCount && present.add(day.dayNumber());
+            }
+            if (!plausible) {
+                packages.add(pkg);
+                continue;
+            }
+            List<PlanDraft.DayDraft> days = new ArrayList<>(pkg.days());
+            for (int number = 1; number <= dayCount; number++) {
+                if (!present.contains(number)) {
+                    days.add(new PlanDraft.DayDraft(number, null, null, List.of()));
+                    fixes.add("added the empty day " + number + " the model left out of " + pkg.key());
+                }
+            }
+            days.sort(Comparator.comparingInt(PlanDraft.DayDraft::dayNumber));
+            packages.add(new PlanDraft.PackageDraft(pkg.key(), pkg.title(), pkg.tagline(), pkg.description(), days));
+            changed = true;
+        }
+        return changed ? new PlanDraft(packages) : draft;
     }
 
     private Optional<Fix> fix(PlanDraft draft, Violation violation, Brief brief, Map<UUID, CatalogActivity> catalog) {

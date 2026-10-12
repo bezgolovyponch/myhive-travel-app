@@ -7,9 +7,11 @@ import AiOffers from '../components/ai/AiOffers';
 import ActivityPreviewModal from '../components/ActivityPreviewModal';
 import StartGroupVoteModal from '../components/vote/StartGroupVoteModal';
 import {useAiPlanner} from '../hooks/useAiPlanner';
+import api from '../services/api';
 import {useTrip} from '../context/TripContext';
 import {useCatalog} from '../context/CatalogContext';
 import {DEFAULT_DESTINATION_SLUG} from '../services/config';
+import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
 import {formatDayRange, nightsBetween, parseISODate} from '../utils/format';
 import {PLANNER_DRAFT_KEY} from '../components/home/HeroPlanner';
@@ -90,15 +92,22 @@ function writeSaid(token, lines) {
 // other options?").
 function AiPlannerPage({pollIntervalMs}) {
     const t = useT('aiPlanner');
+    const tCards = useT('cards');
+    const tExtras = useT('extras');
     const tHome = useT('home');
     const navigate = useNavigate();
     const locale = useLocale();
     const [params] = useSearchParams();
-    const destinationSlug = params.get('destination') || DEFAULT_DESTINATION_SLUG;
-    const planner = useAiPlanner({destinationSlug, locale, pollMs: pollIntervalMs});
     const {state: trip, dispatch} = useTrip();
     const {state: catalog} = useCatalog();
-    const destination = catalog.destinations.find((d) => d.slug === destinationSlug);
+    // The destination asked for, when the catalog has it; otherwise the one the site sells by default.
+    // A slug nobody sells (a mistyped link, a host that is not a destination) must not reach the
+    // planner: it can only answer that with a refusal.
+    const askedSlug = params.get('destination') || DEFAULT_DESTINATION_SLUG;
+    const destination = catalog.destinations.find((d) => d.slug === askedSlug)
+        || getDefaultDestination(catalog.destinations) || undefined;
+    const destinationSlug = destination?.slug || askedSlug;
+    const planner = useAiPlanner({destinationSlug, locale, pollMs: pollIntervalMs});
     const [activeKey, setActiveKey] = useState(AI_PICK_KEY);
     const [dockOpen, setDockOpen] = useState(false);
     // How many messages were said before the packages landed. The docked chat starts after them: what
@@ -115,6 +124,10 @@ function AiPlannerPage({pollIntervalMs}) {
     // after the planner message count it was said at: [{id, role, content, after}].
     const [said, setSaid] = useState([]);
     const [offersClosed, setOffersClosed] = useState(false); // the list a typed wish got has done its job
+    // The activity that just went into the plan and has extras to offer: {activityId, name, extras}.
+    const [extraOffer, setExtraOffer] = useState(null);
+    // An add confirmed on the activity's card: its extras were on the card, so the chat does not ask again.
+    const askedOnCard = useRef(null);
     const {generation, sending} = planner;
     const hasResult = Boolean(generation?.packages?.length);
 
@@ -231,6 +244,7 @@ function AiPlannerPage({pollIntervalMs}) {
         ...planner,
         messages: transcript,
         send: async (text, preset) => {
+            setExtraOffer(null);
             setChatted(true);
             setShowAll(false);
             setDockOpen(true);
@@ -400,7 +414,41 @@ function AiPlannerPage({pollIntervalMs}) {
     // The list is about the trim on screen: another trim ends it.
     useEffect(() => {
         setAsked(null);
+        setExtraOffer(null);
     }, [workingKey]);
+    // An activity that just went in - tapped or typed - and can take extras: the chat asks which, with
+    // the extras as tags and no prices (the card has those; the plan is priced as a whole). Not when
+    // the add came from the card, where the extras were already on offer, or brought an extra with it.
+    const {lastEdit} = planner;
+    useEffect(() => {
+        if (!lastEdit || !activePkg) return undefined;
+        const added = lastEdit.applied.filter((edit) => edit.op === 'ADD' && edit.packageKey === activePkg.key);
+        const withExtra = new Set(lastEdit.applied.filter((edit) => edit.op === 'ADD_EXTRA').map((edit) => edit.activity));
+        const item = added.filter((edit) => !withExtra.has(edit.activity))
+            .map((edit) => activePkg.days.flatMap((day) => day.items).find((it) => it.name === edit.activity))
+            .find(Boolean);
+        const fromCard = askedOnCard.current;
+        askedOnCard.current = null;
+        if (!item || item.activityId === fromCard) return undefined;
+        let live = true;
+        // Inside the chain, so a lookup that throws is a tag row that never shows, not a broken page.
+        Promise.resolve()
+            .then(() => api.getActivity(item.activityId))
+            .then((full) => {
+                if (!full) return;
+                const extras = (full.extras || []).slice(0, 4);
+                if (!live || extras.length === 0) return;
+                setExtraOffer({activityId: item.activityId, name: item.name, extras});
+                setDockOpen(true);
+                say(['assistant', t('dock.extrasAsk', {name: item.name})]);
+            })
+            .catch(() => {});
+        return () => {
+            live = false;
+        };
+        // Only a new edit asks; the plan it is read against is the one that edit produced.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lastEdit]);
     // Activities on offer in the chat right now: a tapped theme's, or what a typed wish got back.
     // What is in the plan already is not offered again.
     const typedOffers = offersClosed ? [] : planner.recommendations || [];
@@ -420,7 +468,7 @@ function AiPlannerPage({pollIntervalMs}) {
     // The themes the plan could take next, in two rows right over the input - never together with a
     // list of activities: a list is the answer to a theme, and the themes come back once it is done.
     const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1);
-    const tags = gaps.length > 0 && listing.length === 0 && !busy && (
+    const tags = gaps.length > 0 && listing.length === 0 && !busy && !extraOffer && (
         <div className="aip-themes">
             <p className="aip-themes-ask">{t('dock.whatToAdd')}</p>
             <div className="aip-gaps" role="group" aria-label={t('dock.gapsAria')}>
@@ -434,9 +482,40 @@ function AiPlannerPage({pollIntervalMs}) {
             </div>
         </div>
     );
+    // The card's button: the activity goes into the plan with what was ticked, or - already in it - its
+    // extras become what is ticked. One batch either way, and the plan is priced again.
+    const confirmCard = async (codes) => {
+        const activityId = preview.activityId;
+        const inPlan = inDraft.has(activityId);
+        setChatted(true);
+        setShowAll(false);
+        setExtraOffer(null);
+        askedOnCard.current = activityId;
+        await planner.editDraft(inPlan ? 'ADD_EXTRA' : 'ADD', activityId, activePkg.key, null, codes);
+        if (!inPlan) {
+            setAsked(null);
+            setOffersClosed(true);
+        }
+    };
+    // An extra tapped in the chat goes onto the activity next to the ones it has; then the chat is back
+    // to what it says after any add.
+    const takeExtra = async (extra) => {
+        const offer = extraOffer;
+        setExtraOffer(null);
+        say(['user', extra.name]);
+        const chosen = (activePkg.days.flatMap((day) => day.items)
+            .find((item) => item.activityId === offer.activityId)?.extras || []).map((e) => e.code);
+        askedOnCard.current = offer.activityId;
+        await planner.editDraft('ADD_EXTRA', offer.activityId, activePkg.key, null, [...chosen, extra.code]);
+    };
+    const declineExtras = () => {
+        setExtraOffer(null);
+        say(['user', t('dock.noExtras')]);
+    };
     const toggleRecommendation = async (rec, added) => {
         setChatted(true);
         setShowAll(false);
+        setExtraOffer(null);
         await planner.editDraft(added ? 'REMOVE' : 'ADD', rec.activityId, activePkg.key);
         // Added: the list has done its job. The chat says what went in and the themes are back.
         if (!added) {
@@ -474,7 +553,18 @@ function AiPlannerPage({pollIntervalMs}) {
     );
     // The list sits under the line that announced it, with the way back to typing; the way back from
     // the last change is offered there too, not on the page.
-    const offersInChat = listing.length > 0 ? (
+    const offersInChat = extraOffer && !busy ? (
+        <div className="aip-extra-offer" role="group" aria-label={t('dock.extrasAria', {name: extraOffer.name})}>
+            {extraOffer.extras.map((extra) => (
+                <button key={extra.code} type="button" className="ai-chip" onClick={() => takeExtra(extra)}>
+                    + {extra.name}
+                </button>
+            ))}
+            <button type="button" className="ai-chip aip-answer-quiet" onClick={declineExtras}>
+                {t('dock.noExtras')}
+            </button>
+        </div>
+    ) : listing.length > 0 ? (
         <>
             {offerList(listing)}
             <button type="button" className="ai-chip aip-answer-quiet" onClick={keepChatting}>
@@ -562,18 +652,23 @@ function AiPlannerPage({pollIntervalMs}) {
                 startDate={trip.tripStartDate}
                 endDate={trip.tripEndDate}
             />
-            {/* A recommendation's card can add it; a draft row's card only goes back. */}
+            {/* The card puts the activity into the plan, or changes the extras of one that is in it:
+                ticked on the card, confirmed with its button. */}
             <ActivityPreviewModal
                 activity={preview && {
                     name: preview.name, imageUrl: preview.imageUrl, duration: preview.durationMinutes,
                 }}
                 activityId={preview?.activityId}
                 onClose={() => setPreview(null)}
-                closeLabel={t('result.backToDraft')}
-                action={preview && !inDraft.has(preview.activityId) ? {
-                    label: t('result.addToDraft'),
+                confirm={preview && activePkg ? {
+                    inPlan: inDraft.has(preview.activityId),
+                    selected: (activePkg.days.flatMap((day) => day.items)
+                        .find((item) => item.activityId === preview.activityId)?.extras || []).map((e) => e.code),
+                    // The same card, the same two buttons as in the catalogue and the cart.
+                    addLabel: tCards('addToTrip'),
+                    updateLabel: tExtras('update'),
                     disabled: busy,
-                    onClick: () => toggleRecommendation(preview, false),
+                    onConfirm: confirmCard,
                 } : undefined}
             />
         </div>

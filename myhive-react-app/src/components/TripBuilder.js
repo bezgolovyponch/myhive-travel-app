@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useId, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import api from '../services/api';
@@ -24,7 +24,7 @@ import ActiveVoteModal from './vote/ActiveVoteModal';
 import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} from './vote/VoteDashboard';
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
-import ItemExtrasRow, {ItemExtrasPanel} from './ItemExtrasRow';
+import ItemExtrasRow from './ItemExtrasRow';
 import {useLocalePath, useT} from '../i18n';
 import {groupByDay} from '../utils/voteDays';
 import './TripBuilder.css';
@@ -80,12 +80,12 @@ function seedTripSetupFromVote(result, dispatch) {
 
 function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   const t = useT('tripBuilder');
+  const tCards = useT('cards');
+  const tExtras = useT('extras');
   const lp = useLocalePath();
   const {state, dispatch} = useTrip();
   const [browseFilter, setBrowseFilter] = useState('all');
   // Rows whose extras checklist is open; each opens and folds on its own.
-  const [openExtras, setOpenExtras] = useState(() => new Set());
-  const extrasIdBase = useId();
   const [categories, setCategories] = useState([]);
   const [browseActivities, setBrowseActivities] = useState([]);
   const [showAllCategories, setShowAllCategories] = useState(false);
@@ -117,6 +117,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   });
   const [recommended, setRecommended] = useState([]);
   const [previewActivity, setPreviewActivity] = useState(null);
+  // The plan's own row for the activity whose card is open, when it has one: the card then updates it.
+  const previewInPlan = previewActivity ? state.tripItems.find(item => item.id === previewActivity.id) : null;
 
   // Quiz-flow recommendations: the quiz-matched pool for this destination,
   // left-swiped cards included on purpose (second look). In-cart items render
@@ -409,18 +411,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // While the vote runs the plan is the ballot: dropping or adding an activity
   // here changes what the friends who have not voted yet see.
   const setItemExtras = (id, codes) => dispatch({type: 'SET_ITEM_EXTRAS', id, selectedExtras: codes});
-
-  const toggleExtras = (id) => setOpenExtras(previous => {
-    const next = new Set(previous);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    return next;
-  });
-
-  const extrasPickerId = (id) => `${extrasIdBase}-extras-${id}`;
 
   const handleRemoveActivity = (activityId) => {
     dispatch({ type: 'REMOVE_FROM_TRIP', activityId });
@@ -965,7 +955,20 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                         <img src={item.imageUrl} alt={item.name}
                              className="itinerary-item-image" loading="lazy"/>
                         <div className="itinerary-item-content">
-                          <div className="itinerary-item-title">{item.name}</div>
+                          {/* A package's activity has a card and extras like any other. */}
+                          <button
+                            type="button"
+                            className="itinerary-item-title itinerary-item-open"
+                            aria-haspopup="dialog"
+                            onClick={() => setPreviewActivity(item)}
+                          >
+                            {item.name}
+                          </button>
+                          <ItemExtrasRow
+                            item={item}
+                            onChange={codes => setItemExtras(item.id, codes)}
+                            onOpen={() => setPreviewActivity(item)}
+                          />
                         </div>
                       </div>
                     ))}
@@ -977,14 +980,19 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   <img src={item.imageUrl} alt={item.name} className="itinerary-item-image"
                        loading="lazy"/>
                   <div className="itinerary-item-content">
-                    <div className="itinerary-item-title">{item.name}</div>
+                    {/* The row opens the activity's card: what it is, and its extras to tick and confirm. */}
+                    <button
+                      type="button"
+                      className="itinerary-item-title itinerary-item-open"
+                      aria-haspopup="dialog"
+                      onClick={() => setPreviewActivity(item)}
+                    >
+                      {item.name}
+                    </button>
                     <ItemExtrasRow
                       item={item}
-                      travelers={state.tripTravelers || 1}
                       onChange={codes => setItemExtras(item.id, codes)}
-                      open={openExtras.has(item.id)}
-                      onToggle={() => toggleExtras(item.id)}
-                      pickerId={extrasPickerId(item.id)}
+                      onOpen={() => setPreviewActivity(item)}
                     />
                     {voteAnnotation && voteAnnotation.counts[item.id] != null && (
                         <div className="itinerary-item-votes">
@@ -1008,13 +1016,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                   >
                     ×
                   </button>
-                  {openExtras.has(item.id) && (
-                    <ItemExtrasPanel
-                      item={item}
-                      onChange={codes => setItemExtras(item.id, codes)}
-                      pickerId={extrasPickerId(item.id)}
-                    />
-                  )}
                 </div>
               ))}
             </>
@@ -1037,6 +1038,8 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                     <strong>{t('price.from', {price: formatPrice(Number(planFromPrice))})}</strong>
                   </div>
               )}
+              {/* Said where the one price is: why it is lower than the activities booked one by one. */}
+              {planFromPrice != null && <p className="plan-discount-note">{t('price.packageDiscount')}</p>}
               <button
                   className="btn btn--primary btn--full-width confirm-btn"
                   onClick={handleConfirmTrip}
@@ -1296,6 +1299,21 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
           closeLabel={dashboard ? t('dashboard.backToPlan') : undefined}
           link={previewActivity ? getPreviewLink(previewActivity) : null}
           onClose={() => setPreviewActivity(null)}
+          confirm={previewActivity ? {
+            inPlan: Boolean(previewInPlan),
+            selected: previewInPlan?.selectedExtras || [],
+            addLabel: tCards('addToTrip'),
+            updateLabel: tExtras('update'),
+            onConfirm: (codes, activity) => (previewInPlan
+                ? dispatch({type: 'SET_ITEM_EXTRAS', id: previewInPlan.id, selectedExtras: codes,
+                  extras: activity.extras || []})
+                : handleAddActivity({
+                  ...activity,
+                  id: previewActivity.id,
+                  destinationSlug: activity.destinationSlug || destinationSlug,
+                  selectedExtras: codes,
+                })),
+          } : undefined}
       />
     </div>
   );

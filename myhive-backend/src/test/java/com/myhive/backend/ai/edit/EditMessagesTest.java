@@ -228,35 +228,35 @@ class EditMessagesTest {
     }
 
     @Test
-    void anAddedExtra_namesTheExtraTheActivityThePackageAndTheGroupAmount() {
+    void anAddedExtra_namesTheExtraTheActivityAndThePackage_neverItsPrice() {
         List<AppliedEdit> applied = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
                 1, Slot.EVENING, null, "Private show", new BigDecimal("250.00"), ExtraPricing.PER_GROUP));
 
         assertThat(EditMessages.appliedSummary("en", applied))
-                .isEqualTo("Added Private show to River Boat Cruise (+ €250 for the group) in the Basic package.");
+                .isEqualTo("Added Private show to River Boat Cruise in the Basic package.");
         assertThat(EditMessages.appliedSummary("de", applied))
-                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (+ 250 € für die Gruppe) (Basic-Paket).");
+                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (Basic-Paket).");
         assertThat(EditMessages.appliedSummary("en", applied, true))
-                .isEqualTo("Added Private show to River Boat Cruise (+ €250 for the group) in your trip plan.");
+                .isEqualTo("Added Private show to River Boat Cruise in your trip plan.");
         assertThat(EditMessages.appliedSummary("de", applied, true))
-                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (+ 250 € für die Gruppe) (dein Trip-Plan).");
+                .isEqualTo("Private show zu River Boat Cruise hinzugefügt (dein Trip-Plan).");
     }
 
     @Test
-    void anAddedPerPersonExtra_namesThePerPersonAmount_withCentsOnlyWhenPresent() {
+    void anAddedPerPersonExtra_staysWithoutAnAmountToo() {
         List<AppliedEdit> whole = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
                 1, Slot.EVENING, null, "Open bar", new BigDecimal("15.00"), ExtraPricing.PER_PERSON));
         List<AppliedEdit> cents = List.of(new AppliedEdit(EditOp.ADD_EXTRA, "River Boat Cruise", null, Tier.BASIC,
                 1, Slot.EVENING, null, "Open bar", new BigDecimal("12.5"), ExtraPricing.PER_PERSON));
 
         assertThat(EditMessages.appliedSummary("en", whole))
-                .isEqualTo("Added Open bar to River Boat Cruise (+ €15 per person) in the Basic package.");
+                .isEqualTo("Added Open bar to River Boat Cruise in the Basic package.");
         assertThat(EditMessages.appliedSummary("de", whole))
-                .isEqualTo("Open bar zu River Boat Cruise hinzugefügt (+ 15 € pro Person) (Basic-Paket).");
+                .isEqualTo("Open bar zu River Boat Cruise hinzugefügt (Basic-Paket).");
         assertThat(EditMessages.appliedSummary("en", cents))
-                .isEqualTo("Added Open bar to River Boat Cruise (+ €12.50 per person) in the Basic package.");
+                .isEqualTo("Added Open bar to River Boat Cruise in the Basic package.");
         assertThat(EditMessages.appliedSummary("de", cents))
-                .isEqualTo("Open bar zu River Boat Cruise hinzugefügt (+ 12,50 € pro Person) (Basic-Paket).");
+                .isEqualTo("Open bar zu River Boat Cruise hinzugefügt (Basic-Paket).");
     }
 
     @Test

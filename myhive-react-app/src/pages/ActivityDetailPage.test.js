@@ -136,6 +136,26 @@ test('ticked extras are summed per unit in the panel and go into the trip with t
   });
 });
 
+test('once the activity is in the trip, a ticked extra reaches it only through Update', async () => {
+  api.getActivityBySlug.mockResolvedValue({...activity, extras: [privateShow, photos]});
+  await renderLoadedPage();
+  const [panelButton] = screen.getAllByRole('button', {name: /Add to trip/i});
+  await userEvent.click(panelButton);
+  await waitFor(() => expect(JSON.parse(localStorage.getItem('myhive-trip-items'))).toHaveLength(1));
+
+  await userEvent.click(screen.getByRole('checkbox', {name: /Private show/}));
+
+  // Ticked, not confirmed: the trip still holds no extra.
+  expect(JSON.parse(localStorage.getItem('myhive-trip-items'))[0].selectedExtras || []).toEqual([]);
+  const [update] = screen.getAllByRole('button', {name: 'Update'});
+  await userEvent.click(update);
+
+  await waitFor(() => {
+    expect(JSON.parse(localStorage.getItem('myhive-trip-items'))[0].selectedExtras).toEqual(['show']);
+  });
+  screen.getAllByRole('button', {name: /Added to trip/i}).forEach(button => expect(button).toBeDisabled());
+});
+
 test('a per-person extra is summed apart from the per-group ones, never as one amount', async () => {
   const expectedSummary = '+€250 per group · +€15 per person';
   api.getActivityBySlug.mockResolvedValue({...activity, extras: [privateShow, photos]});

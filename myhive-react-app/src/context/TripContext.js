@@ -124,6 +124,9 @@ export function reducer(state, action) {
                 price: a.price,
                 imageUrl: a.imageUrl,
                 duration: a.duration,
+                // A package's activity takes extras like any other; none is chosen when it goes in.
+                extras: a.extras || [],
+                selectedExtras: [],
                 destinationSlug: pkg.destinationSlug,
                 packageId: pkg.id,
                 packageName: pkg.name,
@@ -153,8 +156,12 @@ export function reducer(state, action) {
             return {...state, tripItems: [...packageItems, ...standaloneWinners]};
         }
         case 'SET_ITEM_EXTRAS':
+            // `extras` (what the activity offers) comes along when the card had to look it up: a row
+            // put in the cart before package activities carried their extras has none of its own.
             return {...state, tripItems: state.tripItems.map(item => (
-                item.id === action.id ? {...item, selectedExtras: action.selectedExtras} : item))};
+                item.id === action.id
+                    ? {...item, selectedExtras: action.selectedExtras, ...(action.extras ? {extras: action.extras} : {})}
+                    : item))};
         case 'REMOVE_PACKAGE_FROM_TRIP':
             return {...state, tripItems: state.tripItems.filter(i => i.packageId !== action.packageId)};
         case 'SET_TRIP_ID':

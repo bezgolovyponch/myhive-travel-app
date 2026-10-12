@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -25,4 +27,14 @@ public class PackageActivityRefDTO {
     private BigDecimal price;
     private Integer duration;
     private String imageUrl;
+    /**
+     * The optional extras the activity offers, localised like its name; read-only (ignored on a write).
+     * A package's activity takes extras like any other: the cart needs to know which ones there are.
+     */
+    private List<ActivityExtraDTO> extras = new ArrayList<>();
+
+    public PackageActivityRefDTO(UUID activityId, Integer position, String slug, String name, BigDecimal price,
+                                 Integer duration, String imageUrl) {
+        this(activityId, position, slug, name, price, duration, imageUrl, new ArrayList<>());
+    }
 }

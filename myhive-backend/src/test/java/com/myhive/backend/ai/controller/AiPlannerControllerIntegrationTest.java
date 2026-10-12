@@ -713,6 +713,62 @@ class AiPlannerControllerIntegrationTest {
         assertThat(totalAfter).isEqualByComparingTo(totalBefore.add(expectedExtraPrice));
     }
 
+    /**
+     * The activity's card, confirmed: the activity goes in with the extras ticked on it in one batch, the
+     * package is re-priced, the chat line names the extra and never what it costs - and confirming the same
+     * card with nothing ticked takes the extra off again.
+     */
+    @Test
+    void draftEdit_fromTheCard_addsTheActivityWithItsTickedExtras_thenSetsThemAgain() throws Exception {
+        String expectedExtra = "Private show";
+        BigDecimal expectedExtraPrice = new BigDecimal("250.00");
+        Activity carrier = activities.get(REPLACEMENT_INDEX);
+        carrier.setExtras(List.of(new ActivityExtra("private-show", expectedExtra, null, expectedExtraPrice,
+                ExtraPricing.PER_GROUP, null)));
+        activities.set(REPLACEMENT_INDEX, activityRepository.save(carrier));
+        String cardBody = """
+                {"op": "%s", "activityId": "%s", "packageKey": "BASIC", "extras": %s}
+                """;
+        String token = createSession();
+        queueReadyTurn("Building it!");
+        sendMessage(token, "1 day, 4 of us, bars");
+        awaitGeneration(latestGenerationId(token));
+        int chatCallsBefore = llm.chatRequests.size();
+
+        MvcResult added = mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cardBody.formatted("ADD", carrier.getId(), "[\"private-show\"]")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(2)))
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.ADD.name())))
+                .andExpect(jsonPath("$.edit.applied[1].op", is(EditOp.ADD_EXTRA.name())))
+                .andExpect(jsonPath("$.edit.applied[1].extra", is(expectedExtra)))
+                .andReturn();
+        String addedBody = added.getResponse().getContentAsString();
+        List<String> extraNames = JsonPath.read(addedBody, "$.generation.packages[0].days[*].items[*].extras[*].name");
+        assertThat(extraNames).containsExactly(expectedExtra);
+        List<String> lines = JsonPath.read(addedBody, "$.messages[*].content");
+        assertThat(String.join(" ", lines)).contains(expectedExtra).doesNotContain("€").doesNotContain("250");
+        BigDecimal withExtra = new BigDecimal(JsonPath.read(addedBody, "$.generation.packages[0].totalPrice").toString());
+
+        MvcResult cleared = mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cardBody.formatted("ADD_EXTRA", carrier.getId(), "[]")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edit.applied", hasSize(1)))
+                .andExpect(jsonPath("$.edit.applied[0].op", is(EditOp.REMOVE_EXTRA.name())))
+                .andReturn();
+        String clearedBody = cleared.getResponse().getContentAsString();
+        BigDecimal without = new BigDecimal(JsonPath.read(clearedBody, "$.generation.packages[0].totalPrice").toString());
+        assertThat(without).isEqualByComparingTo(withExtra.subtract(expectedExtraPrice));
+        // The card says the same thing twice: nothing to change, and nothing changes.
+        mockMvc.perform(post("/ai/sessions/" + token + "/edits").header("CF-Connecting-IP", testClientIp)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cardBody.formatted("ADD_EXTRA", carrier.getId(), "[]")))
+                .andExpect(status().isBadRequest());
+        assertThat(llm.chatRequests).hasSize(chatCallsBefore);
+    }
+
     /** Asking for a swap before there is anything to swap is answered in chat, never with an HTTP error. */
     @Test
     void editTurn_beforeAnyGeneration_returnsNoPackagesYet() throws Exception {

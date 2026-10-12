@@ -32,7 +32,11 @@
 }
 
 .item-extras-picker-check {
-    margin-top: 0.1875rem;
+    /* A box a thumb can hit: the browser's own is 13px. */
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0.0625rem 0 0;
+    flex-shrink: 0;
     accent-color: var(--purple);
 }
 

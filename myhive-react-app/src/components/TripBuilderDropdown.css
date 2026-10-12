@@ -251,3 +251,39 @@
         width: min(18.75rem, calc(100vw - 1rem));
     }
 }
+
+/* A row's name opens the activity's card; its extras are chosen there. */
+.trip-modal-item-open {
+    border: none;
+    background: none;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.trip-modal-item-open:hover {
+    text-decoration: underline;
+}
+
+/* Under the dropdown so the landings' `.tl button` reset does not strip its border. */
+.trip-builder-dropdown .trip-modal-item-extras-btn {
+    align-self: flex-start;
+    min-height: 2rem;
+    padding: 0 var(--gap-sm);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm, 6px);
+    background: none;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* "Package price: 10% off", under the plan's one price. The figure is FromPrice.FACTOR on the backend. */
+.plan-discount-note {
+    margin: 0 0 var(--gap-sm);
+    text-align: right;
+    font-size: 0.8125rem;
+    color: #f2c46d;
+}

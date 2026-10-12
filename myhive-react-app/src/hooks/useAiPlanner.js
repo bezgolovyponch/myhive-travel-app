@@ -4,8 +4,13 @@ import aiPlannerApi from '../services/aiPlannerApi';
 // Where the contract asks the token to live (docs/api/ai-planner-api.md, Basics).
 export const SESSION_STORAGE_KEY = 'myhive-ai-session';
 const POLL_MS = 2000;
-const POLL_GIVE_UP_MS = 90000;
-// A token the backend no longer knows: drop it and offer a fresh chat.
+// The backend itself closes every build: a run that has not reported back after three minutes is failed
+// by its sweep (STALE). Polling stops a little after that, never before - a build with a repair call and
+// the copy can honestly take longer than a minute and a half, and giving up at 90 s told the organizer
+// "took too long" while their packages were still being made.
+const POLL_GIVE_UP_MS = 240000;
+// A stored token the backend no longer knows, or cannot even read (a 400): drop it and offer a fresh
+// chat. Only for a token read back from storage - see `send` for one that is in use.
 const DEAD_TOKEN_CODES = new Set(['SESSION_NOT_FOUND', 'Bad Request']);
 // A reply that failed while the user's message was saved: re-send the same text.
 const RETRYABLE_CODES = new Set(['LLM_UNAVAILABLE', 'LLM_TIMEOUT', 'SESSION_BUSY', 'AI_BUSY']);
@@ -35,6 +40,12 @@ const toEntry = (m) => ({
 });
 
 const errorCode = (e) => e?.body?.error || null;
+// What to tell the organizer. "No connection" is only for a request that got no answer at all: a
+// server that answered without a code of its own (a proxy's 403 or 502) is something going wrong
+// on our side, and telling them to check their internet sends them looking in the wrong place.
+const shownCode = (e) => errorCode(e) || (e?.status ? `HTTP_${e.status}` : 'NETWORK');
+// The server is there but could not take it (a restart, a bad gateway): the same text can be sent again.
+const serverSide = (e) => e?.status >= 500;
 const hasPackages = (generation) => Boolean(generation?.packages?.length);
 
 /**
@@ -61,6 +72,8 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     const [showRequest, setShowRequest] = useState(null);
     // The activity whose draft tap is in flight, if any.
     const [editing, setEditing] = useState(null);
+    // What the latest turn changed in the plan ({applied, at}), so the page can follow an add up.
+    const [lastEdit, setLastEdit] = useState(null);
     // Per package key, the kinds of activity it could take next, each with what it offers:
     // [{categorySlug, name, options: [recommendation]}].
     const [gaps, setGaps] = useState({});
@@ -103,6 +116,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setGaps({});
         setSuggestions({});
         setShowRequest(null);
+        setLastEdit(null);
         setBuilding(false);
         setWatchedId(null);
         setError(null);
@@ -123,7 +137,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
             .catch((e) => {
                 if (cancelled) return;
                 if (e.status === 404 || DEAD_TOKEN_CODES.has(errorCode(e))) writeToken(null);
-                else setError({code: errorCode(e) || 'NETWORK'});
+                else setError({code: shownCode(e)});
             })
             .finally(() => {
                 if (!cancelled) setRestoring(false);
@@ -134,6 +148,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
     }, [api, adoptSession]);
 
     const applyTurn = useCallback(async (turn) => {
+        if (turn.edit?.applied?.length) setLastEdit({applied: turn.edit.applied, at: Date.now()});
         setRecommendations(turn.recommendations || []);
         if (turn.gaps) setGaps(turn.gaps);
         if (turn.suggestions) setSuggestions(turn.suggestions);
@@ -182,21 +197,41 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                     : api.sendMessage(tokenRef.current, content)));
             }
         } catch (e) {
-            const code = errorCode(e) || 'NETWORK';
-            if (DEAD_TOKEN_CODES.has(code) || e.status === 404) {
+            const code = shownCode(e);
+            // "This chat has expired" only when there was a chat and the backend says it is gone. A request
+            // that opens one has no chat to expire, and a 400 is the request being refused, not the
+            // chat: both used to wipe the conversation and blame its age - which is how a destination
+            // the catalog does not have read as an expired chat in a browser that had never had one.
+            const hadChat = Boolean(tokenRef.current);
+            if (hadChat && (code === 'SESSION_NOT_FOUND' || e.status === 404)) {
                 reset();
                 setError({code: 'SESSION_NOT_FOUND'});
             } else {
-                setError({code, retryText: RETRYABLE_CODES.has(code) || code === 'NETWORK' ? content : null, retryPreset: preset});
+                setError({code, retryText: RETRYABLE_CODES.has(code) || code === 'NETWORK' || serverSide(e) ? content : null, retryPreset: preset});
             }
         } finally {
             setSending(false);
         }
     }, [sending, api, destinationSlug, locale, adoptSession, applyTurn, reset]);
 
+    // A build that failed or was lost (the server restarted under it) is started again for the same
+    // brief: nothing has to be typed twice.
+    const rebuild = useCallback(async () => {
+        if (!tokenRef.current) return;
+        setError(null);
+        try {
+            const gen = await api.startGeneration(tokenRef.current);
+            setBuilding(true);
+            setWatchedId(gen.id);
+        } catch (e) {
+            setError({code: shownCode(e), retryGeneration: serverSide(e) || !e?.status});
+        }
+    }, [api]);
+
     const retry = useCallback(() => {
-        if (error?.retryText) send(error.retryText, error.retryPreset);
-    }, [error, send]);
+        if (error?.retryGeneration) rebuild();
+        else if (error?.retryText) send(error.retryText, error.retryPreset);
+    }, [error, send, rebuild]);
 
     // Poll the generation a turn started until it is READY or FAILED.
     useEffect(() => {
@@ -204,10 +239,14 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         let timer = null;
         let stopped = false;
         const startedAt = Date.now();
+        // Why the latest poll got no generation back, if it did not: said at the end instead of "took
+        // too long" when the backend was unreachable the whole time.
+        let unreachable = null;
         const tick = async () => {
             try {
                 const gen = await api.getGeneration(watchedId);
                 if (stopped) return;
+                unreachable = null;
                 if (gen.status === 'READY') {
                     setGeneration(gen);
                     setBuilding(false);
@@ -229,17 +268,19 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
                 if (gen.status === 'FAILED') {
                     setBuilding(false);
                     setWatchedId(null);
-                    setError({code: gen.error?.code || 'INTERNAL', failedGeneration: true});
+                    setError({code: gen.error?.code || 'INTERNAL', failedGeneration: true,
+                        retryGeneration: gen.error?.retryable !== false});
                     return;
                 }
                 if (hasPackages(gen)) setGeneration(gen);
             } catch (e) {
                 // a dropped poll is not fatal; the next tick tries again
+                unreachable = shownCode(e);
             }
             if (Date.now() - startedAt > POLL_GIVE_UP_MS) {
                 setBuilding(false);
                 setWatchedId(null);
-                setError({code: 'LLM_TIMEOUT', failedGeneration: true});
+                setError({code: unreachable || 'LLM_TIMEOUT', failedGeneration: true, retryGeneration: true});
                 return;
             }
             timer = setTimeout(tick, pollInterval);
@@ -258,16 +299,19 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
 
     // A tap in the draft: add or remove one activity in `packageKey` with no
     // chat turn. The answer is applied like a chat edit (new draft, one line).
-    const editDraft = useCallback(async (op, activityId, packageKey, dayNumber) => {
+    // `extras` is a confirmed card: every code ticked on it (with ADD the activity goes in with them,
+    // with ADD_EXTRA the activity's extras become exactly those).
+    const editDraft = useCallback(async (op, activityId, packageKey, dayNumber, extras) => {
         if (!tokenRef.current || editing) return;
         setError(null);
         setEditing(activityId);
         try {
             const edit = {op, activityId, packageKey};
             if (dayNumber != null) edit.dayNumber = dayNumber;
+            if (extras) edit.extras = extras;
             await applyTurn(await api.editDraft(tokenRef.current, edit));
         } catch (e) {
-            setError({code: errorCode(e) || 'NETWORK'});
+            setError({code: shownCode(e)});
         } finally {
             setEditing(null);
         }
@@ -281,7 +325,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
             await api.selectPackage(parent.id, packageKey);
             setGeneration(parent);
         } catch (e) {
-            setError({code: errorCode(e) || 'NETWORK'});
+            setError({code: shownCode(e)});
         }
     }, [api, generation]);
 
@@ -298,6 +342,7 @@ export function useAiPlanner({destinationSlug, locale, api = aiPlannerApi, pollM
         setWorkingPackage,
         showRequest,
         editing,
+        lastEdit,
         building,
         error,
         send,

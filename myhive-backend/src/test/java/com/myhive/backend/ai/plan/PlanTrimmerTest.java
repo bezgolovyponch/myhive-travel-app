@@ -41,6 +41,36 @@ class PlanTrimmerTest {
     /** Friday evening to Sunday afternoon: day 1 EVENING-NIGHT, day 2 all four slots, day 3 MORNING-AFTERNOON. */
     private final Brief brief = briefWanting();
 
+    /**
+     * The model lists only the days that hold something: a last day with nothing on it is simply missing
+     * from two of every five live answers. That is an empty day, not a broken plan.
+     */
+    @Test
+    void aDayTheModelLeftOut_isAddedEmpty_insteadOfCostingARepairCall() {
+        PlanDraft draft = plan(
+                pkg(Tier.BASIC, day(1, item(Slot.EVENING, tasting)), day(2, item(Slot.MORNING, bowling))),
+                pkg(Tier.MEDIUM, day(1, item(Slot.EVENING, pubCrawl)), day(2, item(Slot.MORNING, olympics))),
+                pkg(Tier.PREMIUM, day(1, item(Slot.EVENING, limo)), day(2, item(Slot.MORNING, tank))));
+        assertThat(validator.validate(draft, brief, catalog)).extracting(Violation::code)
+                .containsOnly(ViolationCode.WRONG_DAY_COUNT);
+
+        PlanTrimmer.Trimmed trimmed = trimmer.trim(draft, brief, catalog).orElseThrow();
+
+        assertThat(validator.validate(trimmed.draft(), brief, catalog)).isEmpty();
+        assertThat(trimmed.draft().packages()).allSatisfy(p -> assertThat(p.days()).hasSize(3));
+        assertThat(namesOn(trimmed.draft(), Tier.PREMIUM, 3)).isEmpty();
+        assertThat(trimmed.fixes()).hasSize(3).allMatch(fix -> fix.startsWith("added the empty day 3"));
+    }
+
+    /** Too many days is not an omission: nothing is guessed about which one to drop. */
+    @Test
+    void aPackageWithADayTooMany_isStillTheModelsToRepair() {
+        PlanDraft draft = plan(basic(), medium(), pkg(Tier.PREMIUM, day(1, item(Slot.EVENING, limo)),
+                day(2, item(Slot.MORNING, tank)), day(3, item(Slot.MORNING, breakfast)), day(4, item(Slot.MORNING, walk))));
+
+        assertThat(trimmer.trim(draft, brief, catalog)).isEmpty();
+    }
+
     /** The day the model got wrong in every live run: four activities, 780 minutes, a cap of 540. */
     @Test
     void aDayOverItsMinutes_losesActivitiesUntilItFits_andKeepsWhatTheBriefAskedFor() {
