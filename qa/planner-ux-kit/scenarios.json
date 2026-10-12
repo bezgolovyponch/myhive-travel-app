@@ -1,0 +1,99 @@
+{
+  "about": "What the kit types into the chat. No scenario list had been stored before 2026-10-12; this one is assembled from the repo: the staff test prompts (AdminAiPlanner QUICK_PROMPTS), the examples the chat prompt itself gives (PromptRenderer PACKAGES_BLOCK), the homepage and /plan starters, and the chat bugs reported on 2026-10-07..09 (river cruise with a private show, shooting kalashnikov, what else can we add). Each entry states the outcome to expect, never the wording.",
+  "brief": "Plan 2 nights for 10 of us — nightlife first",
+  "typed": [
+    {
+      "id": "T01",
+      "say": "add the {A}",
+      "expect": "the activity goes in and the chat asks which extra",
+      "appliedIncludes": [
+        "ADD"
+      ],
+      "asksExtras": true,
+      "noPrice": true,
+      "source": "prompt rule: \"put the beer bike in\" is a command to ADD; owner rule 2026-10-12"
+    },
+    {
+      "id": "T02",
+      "say": "add {A.extra} to the {A}",
+      "expect": "the extra goes on, no price in the reply, no second question",
+      "appliedIncludes": [
+        "ADD_EXTRA"
+      ],
+      "asksExtras": false,
+      "noPrice": true,
+      "source": "prompt rule: ADD_EXTRA; owner rule 2026-10-12"
+    },
+    {
+      "id": "T03",
+      "say": "how much is the {A.other} on the {A}?",
+      "expect": "the reply names no price and changes nothing",
+      "noEdit": true,
+      "noPrice": true,
+      "source": "owner rule 2026-10-12: extras are priced on the card only"
+    },
+    {
+      "id": "T04",
+      "say": "no {A.extra} on the {A} after all",
+      "expect": "the extra comes off",
+      "appliedIncludes": [
+        "REMOVE_EXTRA"
+      ],
+      "noPrice": true,
+      "source": "prompt rule: \"no photographer\" is REMOVE_EXTRA"
+    },
+    {
+      "id": "T05",
+      "say": "{B} with {B.extra}",
+      "expect": "activity and extra in one turn, no extras question after it",
+      "appliedIncludes": [
+        "ADD",
+        "ADD_EXTRA"
+      ],
+      "asksExtras": false,
+      "noPrice": true,
+      "source": "bug S56 (2026-10-09): \"river cruise with private show\"; prompt rule: two edits"
+    },
+    {
+      "id": "T06",
+      "say": "we want to shoot kalashnikov",
+      "expect": "activities are offered, nothing is changed",
+      "noEdit": true,
+      "recommendations": true,
+      "source": "prompt rule: a wish for a kind of activity is not an edit"
+    },
+    {
+      "id": "T07",
+      "say": "what else can we add?",
+      "expect": "a question back, no list of activities, nothing changed",
+      "noEdit": true,
+      "noRecommendations": true,
+      "replyIsQuestion": true,
+      "source": "prompt rule: an open question that names no kind"
+    },
+    {
+      "id": "T08",
+      "say": "add a jetpack flight",
+      "expect": "not on offer: nothing added that was not asked for",
+      "rejected": true,
+      "source": "prompt rule: something not in the catalog is never silently substituted"
+    },
+    {
+      "id": "T09",
+      "say": "remove the {A}",
+      "expect": "the activity is removed",
+      "appliedIncludes": [
+        "REMOVE"
+      ],
+      "source": "staff prompt: \"Remove the karting from all packages.\""
+    },
+    {
+      "id": "T10",
+      "say": "actually we are 12 people now",
+      "expect": "the brief changes; the reply names no extra price",
+      "noPrice": true,
+      "source": "staff prompt: \"Actually we are 12 people now.\""
+    }
+  ],
+  "placeholders": "{A} and {B} are two activities with extras that are NOT in the plan when the typed part starts (first two by name); {A.extra} is A's first extra, {A.other} its last, {B.extra} B's first. Resolved by the kit at run time so the outcome does not depend on what the model put in the plan."
+}

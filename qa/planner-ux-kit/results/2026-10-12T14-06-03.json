@@ -1,0 +1,612 @@
+{
+  "base": "http://localhost:3000",
+  "at": "2026-10-12T14:06:03.166Z",
+  "tally": {
+    "FLAW": 9,
+    "PASS": 50,
+    "INFO": 14,
+    "FAIL": 2
+  },
+  "results": [
+    {
+      "id": "B01",
+      "flow": "browse",
+      "rule": "A listing card shows a price with its unit",
+      "source": "Baymard, product listing information (price \"must be permanently visible\"); stored study P1(b)",
+      "status": "FLAW",
+      "detail": "card shows no price: Wellness | River Boat Cruise | Optional extras · Private show on board, Topless hostess +3 more | More info | Add to trip"
+    },
+    {
+      "id": "B02",
+      "flow": "browse",
+      "rule": "The extras hint on a card is one scannable line",
+      "source": "Baymard, list item design (hard-to-scan list info)",
+      "status": "FLAW",
+      "detail": "the chip wraps to about 5 lines (87px high)"
+    },
+    {
+      "id": "B03",
+      "flow": "browse",
+      "rule": "The card's extras are checkboxes and none is ticked",
+      "source": "EU CRD Art. 22 / CMA 2025: no pre-ticked extras",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B03b",
+      "flow": "browse",
+      "rule": "The page offers the extras the catalogue has right now",
+      "source": "data freshness: the listing is cached for an hour (lib/api.ts revalidate)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B04",
+      "flow": "browse",
+      "rule": "Each extra shows its price and unit before it is ticked",
+      "source": "CMA209 price transparency; stored study P1(a)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B05",
+      "flow": "browse",
+      "rule": "Checkbox and its row are big enough for a thumb (24px AA, 44px row)",
+      "source": "WCAG 2.2 SC 2.5.8 (AA 24x24), SC 2.5.5 (AAA 44x44)",
+      "status": "INFO",
+      "detail": "box 20px, row 118px (the whole row is the target)"
+    },
+    {
+      "id": "B06",
+      "flow": "browse",
+      "rule": "Small text in the card meets 4.5:1 contrast",
+      "source": "WCAG 2.2 SC 1.4.3",
+      "status": "FLAW",
+      "detail": "description 3.85:1, price 3.85:1"
+    },
+    {
+      "id": "B07",
+      "flow": "browse",
+      "rule": "The dialog is announced as one, and focus moves into it",
+      "source": "WAI-ARIA Authoring Practices, dialog (modal) pattern",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B08",
+      "flow": "browse",
+      "rule": "The card states the activity's own price next to the button that adds it",
+      "source": "Baymard, product page UX (67% omit the total near the buy section)",
+      "status": "FLAW",
+      "detail": "the card shows extras' prices but not the activity's"
+    },
+    {
+      "id": "B09",
+      "flow": "browse",
+      "rule": "Nothing in the card overflows sideways",
+      "source": "WCAG 2.2 SC 1.4.10 Reflow",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B10",
+      "flow": "browse",
+      "rule": "Ticking and closing the card (x) changes nothing",
+      "source": "NN/g, confirmation: nothing committed without the labelled action",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B11",
+      "flow": "browse",
+      "rule": "Escape closes the card and focus goes back to what opened it",
+      "source": "WAI-ARIA dialog pattern",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B12",
+      "flow": "browse",
+      "rule": "A reopened card starts unticked (the earlier unconfirmed tick is gone)",
+      "source": "no stale state between openings",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B13",
+      "flow": "browse",
+      "rule": "\"Add to trip\" in the card puts the activity in with the ticked extra",
+      "source": "feature rule (2026-10-12): tick, then confirm",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B14",
+      "flow": "browse",
+      "rule": "The cart panel totals the activity plus the extra for the group",
+      "source": "Baymard, price per unit; pricing rule line = max(price x N, minimum) + extras",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B15",
+      "flow": "browse",
+      "rule": "The cart row's price says what it is for (per person)",
+      "source": "Baymard, price per unit (86% of sites omit it)",
+      "status": "FLAW",
+      "detail": "row reads: River Boat Cruise | €37 | + €160 extras | Edit extras | ×"
+    },
+    {
+      "id": "B16",
+      "flow": "browse",
+      "rule": "The cart row opens the same card: its tick is there, \"Update\" is off",
+      "source": "feature rule: one card everywhere",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B17",
+      "flow": "browse",
+      "rule": "A second tick reaches the cart only with \"Update\"",
+      "source": "feature rule: tick, then confirm",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B18",
+      "flow": "browse",
+      "rule": "The panel total follows the second extra",
+      "source": "pricing rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B19",
+      "flow": "browse",
+      "rule": "The Trip Builder row shows each chosen extra with its amount",
+      "source": "stored study P1(a): extras as sub-lines with their own maths",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B20",
+      "flow": "browse",
+      "rule": "The plan price is the group total less the package margin",
+      "source": "FromPrice: total x 0.90, whole euros",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B21",
+      "flow": "browse",
+      "rule": "Cart panel and Trip Builder state the same price, or say why they differ",
+      "source": "CMA209: a price must not need working out",
+      "status": "FLAW",
+      "detail": "the cart panel said €690, the Trip Builder says \"from €621\", and nothing on the page explains the difference"
+    },
+    {
+      "id": "B22",
+      "flow": "browse",
+      "rule": "A chip's x drops that extra at once and the price follows",
+      "source": "removal is not a purchase: no confirmation needed (NN/g: undo over confirm)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B23",
+      "flow": "browse",
+      "rule": "The extras button on the row is a real target",
+      "source": "WCAG 2.2 SC 2.5.8",
+      "status": "INFO",
+      "detail": "85x36: AA yes, below the 44px AAA / platform guideline"
+    },
+    {
+      "id": "B24",
+      "flow": "browse",
+      "rule": "The row's name opens the card; unticking and \"Update\" clears the extra",
+      "source": "feature rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B25",
+      "flow": "browse",
+      "rule": "The cart survives a reload",
+      "source": "NN/g: preserve user input",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B26",
+      "flow": "browse",
+      "rule": "Detail page, activity already in the trip: a tick waits for \"Update\"",
+      "source": "feature rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B27",
+      "flow": "browse",
+      "rule": "The detail page shows the group total for the ticked extras",
+      "source": "Baymard: total near the buy section; stored study P1(a)",
+      "status": "FLAW",
+      "detail": "per-unit sums only (\"+€160 per group\"), no total though the trip has 10 travellers"
+    },
+    {
+      "id": "B28",
+      "flow": "browse",
+      "rule": "An activity without extras has the same card: no checklist, \"Add to trip\"",
+      "source": "feature rule: one card everywhere",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B29",
+      "flow": "browse",
+      "rule": "\"Add to trip\" on the card of an activity with extras offers them",
+      "source": "GetYourGuide / Klook / Headout: extras chosen at the moment of adding; Baymard: dismissible, never a forced step",
+      "status": "FLAW",
+      "detail": "added silently; the only way on is the small \"Add extras\" in the cart row (present: true)"
+    },
+    {
+      "id": "B30",
+      "flow": "browse",
+      "rule": "Removing an activity takes its extras out of the total",
+      "source": "pricing rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B31",
+      "flow": "browse",
+      "rule": "No script error on any page of the flow",
+      "source": "baseline",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B32",
+      "flow": "browse",
+      "rule": "Activities inside a package take extras through the same card",
+      "source": "feature rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B33",
+      "flow": "browse",
+      "rule": "On a landing the card opens full screen from the cart, with a styled button",
+      "source": "feature rule; the header must not trap the dialog",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "E01",
+      "flow": "errors",
+      "rule": "A refused first message (400) is not \"this chat has expired\", and the message stays",
+      "source": "Nielsen heuristic 9: error messages say what went wrong; 2026-10-12 incident",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "E02",
+      "flow": "errors",
+      "rule": "A gateway error (502) is not \"no connection\", and can be retried",
+      "source": "Nielsen heuristic 9; 2026-10-12 production incident",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "E03",
+      "flow": "errors",
+      "rule": "A request that gets no answer says \"no connection\" and can be retried",
+      "source": "Nielsen heuristic 9",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "E04",
+      "flow": "errors",
+      "rule": "A refused request tells the organizer what to do next",
+      "source": "Nielsen heuristic 9: constructively suggest a solution",
+      "status": "FLAW",
+      "detail": "\"Something went wrong. Please try again.\" - a sentence, no button: the message has to be typed again"
+    },
+    {
+      "id": "E05",
+      "flow": "errors",
+      "rule": "A stored chat the backend no longer knows is dropped quietly and the start screen shows",
+      "source": "graceful recovery",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A01",
+      "flow": "ai",
+      "rule": "Something answers the first message within a second",
+      "source": "Nielsen response-time limits: 1 s keeps the flow of thought",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A02",
+      "flow": "ai",
+      "rule": "The first message leads to a plan with no error on screen",
+      "source": "baseline; 2026-10-12 regressions (LAN origin, destination \"192\", false \"expired\")",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A03",
+      "flow": "ai",
+      "rule": "The plan is on screen within 10 s, or progress is shown while it builds",
+      "source": "Nielsen response-time limits: 10 s is the limit of attention; beyond it, a progress indicator",
+      "status": "INFO",
+      "detail": "10 s to the plan; a \"building\" status was shown meanwhile"
+    },
+    {
+      "id": "A04",
+      "flow": "ai",
+      "rule": "Every plan row opens the one card: checkboxes for its extras, \"Update\" off",
+      "source": "feature rule: one card everywhere",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A05",
+      "flow": "ai",
+      "rule": "Offer card: tick an extra, \"Add to trip\": activity and extra land in one batch, priced exactly",
+      "source": "feature rule; pricing rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A06",
+      "flow": "ai",
+      "rule": "The chat confirms the add without naming a price",
+      "source": "owner rule 2026-10-12: extras are priced on the card only",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A07",
+      "flow": "ai",
+      "rule": "After an add confirmed on the card the chat does not ask about extras again",
+      "source": "Baymard: no repeated cross-sell; the choice was just made",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A08",
+      "flow": "ai",
+      "rule": "The plan row shows the chosen extra",
+      "source": "visibility of system status (Nielsen heuristic 1)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A09",
+      "flow": "ai",
+      "rule": "A plain \"Add\" of an activity with extras: the chat asks which, as tags without prices",
+      "source": "owner rule 2026-10-12; Google conversation design: offer a short list of choices",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A10",
+      "flow": "ai",
+      "rule": "While the question is open it is the only thing asked",
+      "source": "NN/g chatbots: one question at a time",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A11",
+      "flow": "ai",
+      "rule": "The extra tags are thumb-sized",
+      "source": "WCAG 2.2 SC 2.5.8",
+      "status": "INFO",
+      "detail": "37px high: AA yes, below 44px"
+    },
+    {
+      "id": "A12",
+      "flow": "ai",
+      "rule": "A tapped tag puts that extra on, priced exactly, with no model call",
+      "source": "pricing rule; deterministic edit",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A13",
+      "flow": "ai",
+      "rule": "After the answer the chat is back to its usual \"what next\" tags, and asks only once",
+      "source": "owner rule 2026-10-12",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A14",
+      "flow": "ai",
+      "rule": "The chat's line for the tapped extra names no price",
+      "source": "owner rule 2026-10-12",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A15",
+      "flow": "ai",
+      "rule": "The chat offers every extra the activity has, or says there are more",
+      "source": "no silent truncation",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A16",
+      "flow": "ai",
+      "rule": "\"No extras\" closes the question and changes nothing",
+      "source": "Baymard: a cross-sell must be dismissible in one tap",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A17",
+      "flow": "ai",
+      "rule": "An activity without extras goes in with no question",
+      "source": "no irrelevant question (Baymard: one questionable offer poisons the rest)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A18",
+      "flow": "ai",
+      "rule": "A plan with many activities still says what a full day means",
+      "source": "visibility of system status",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A19",
+      "flow": "ai",
+      "rule": "Plan row card: untick and \"Update\" removes the extra, priced exactly",
+      "source": "feature rule; pricing rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A20",
+      "flow": "ai",
+      "rule": "The confirm button is not covered by the docked chat",
+      "source": "the primary action must be reachable",
+      "status": "INFO",
+      "detail": "with the chat open the plan rows are behind it; the card is opened with the chat down"
+    },
+    {
+      "id": "A21",
+      "flow": "ai",
+      "rule": "\"Undo last change\" brings the extra back, and the price with it",
+      "source": "NN/g: undo beats confirmation; Amazon batch-undo pattern",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A22",
+      "flow": "ai",
+      "rule": "After an undo, a reload shows the plan the undo left",
+      "source": "NN/g: preserve the user's work; the page and the server must hold one plan",
+      "status": "FAIL",
+      "detail": "before the reload: total 3850, 2 extras shown; after: total 3690, 1 extras shown - the undone change is back on screen"
+    },
+    {
+      "id": "A22b",
+      "flow": "ai",
+      "rule": "The chat's lines survive a reload",
+      "source": "NN/g: preserve the user's work",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A23",
+      "flow": "ai",
+      "rule": "Removing an activity (x) takes it and its extras out, and the total is the sum of what is left",
+      "source": "pricing rule",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A23b",
+      "flow": "ai",
+      "rule": "An edit after undo + reload is applied to the plan that is on screen",
+      "source": "the page and the server must hold one plan",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T01",
+      "flow": "ai-live",
+      "rule": "Typed: \"add the Beer Spa\" - the activity goes in and the chat asks which extra",
+      "source": "prompt rule: \"put the beer bike in\" is a command to ADD; owner rule 2026-10-12",
+      "status": "INFO",
+      "detail": "applied [ADD] rejected [] recommendations 0 extras question true 5825 ms; said: \"Added Beer Spa to your trip plan.\""
+    },
+    {
+      "id": "T02",
+      "flow": "ai-live",
+      "rule": "Typed: \"add 30-minute massage to the Beer Spa\" - the extra goes on, no price in the reply, no second question",
+      "source": "prompt rule: ADD_EXTRA; owner rule 2026-10-12",
+      "status": "INFO",
+      "detail": "applied [ADD_EXTRA] rejected [] recommendations 0 extras question false 5546 ms; said: \"Added 30-minute massage to Beer Spa in your trip plan.\""
+    },
+    {
+      "id": "T03",
+      "flow": "ai-live",
+      "rule": "Typed: \"how much is the Transfer from your hotel on the Beer Spa?\" - the reply names no price and changes nothing",
+      "source": "owner rule 2026-10-12: extras are priced on the card only",
+      "status": "INFO",
+      "detail": "applied [] rejected [] recommendations 0 extras question false 4060 ms; said: \"Its price is on the activity's card.\""
+    },
+    {
+      "id": "T04",
+      "flow": "ai-live",
+      "rule": "Typed: \"no 30-minute massage on the Beer Spa after all\" - the extra comes off",
+      "source": "prompt rule: \"no photographer\" is REMOVE_EXTRA",
+      "status": "INFO",
+      "detail": "applied [REMOVE_EXTRA] rejected [] recommendations 0 extras question false 5560 ms; said: \"Removed 30-minute massage from Beer Spa in your trip plan.\""
+    },
+    {
+      "id": "T05",
+      "flow": "ai-live",
+      "rule": "Typed: \"Bubble Football with Extra 30 minutes of play\" - activity and extra in one turn, no extras question after it",
+      "source": "bug S56 (2026-10-09): \"river cruise with private show\"; prompt rule: two edits",
+      "status": "FAIL",
+      "detail": "expected ops to include [ADD,ADD_EXTRA]  ::  applied [] rejected [NOT_IN_PACKAGE] recommendations 0 extras question false 6846 ms; said: \"Bubble Football is not in your trip plan, so there was nothing to change.\""
+    },
+    {
+      "id": "T06",
+      "flow": "ai-live",
+      "rule": "Typed: \"we want to shoot kalashnikov\" - activities are offered, nothing is changed",
+      "source": "prompt rule: a wish for a kind of activity is not an edit",
+      "status": "INFO",
+      "detail": "applied [] rejected [] recommendations 3 extras question false 4848 ms; said: \"Here is what fits - tap a name to see it, or add it.\""
+    },
+    {
+      "id": "T07",
+      "flow": "ai-live",
+      "rule": "Typed: \"what else can we add?\" - a question back, no list of activities, nothing changed",
+      "source": "prompt rule: an open question that names no kind",
+      "status": "INFO",
+      "detail": "applied [] rejected [] recommendations 0 extras question false 4805 ms; said: \"Sure - which kind?\""
+    },
+    {
+      "id": "T08",
+      "flow": "ai-live",
+      "rule": "Typed: \"add a jetpack flight\" - not on offer: nothing added that was not asked for",
+      "source": "prompt rule: something not in the catalog is never silently substituted",
+      "status": "INFO",
+      "detail": "applied [] rejected [] recommendations 2 extras question false 5560 ms; said: \"Here is what comes closest to \"jetpack flight\" - tap a name to see it, or add it.\""
+    },
+    {
+      "id": "T09",
+      "flow": "ai-live",
+      "rule": "Typed: \"remove the Beer Spa\" - the activity is removed",
+      "source": "staff prompt: \"Remove the karting from all packages.\"",
+      "status": "INFO",
+      "detail": "applied [REMOVE] rejected [] recommendations 0 extras question false 5059 ms; said: \"Dropped Beer Spa from your trip plan.\""
+    },
+    {
+      "id": "T10",
+      "flow": "ai-live",
+      "rule": "Typed: \"actually we are 12 people now\" - the brief changes; the reply names no extra price",
+      "source": "staff prompt: \"Actually we are 12 people now.\"",
+      "status": "INFO",
+      "detail": "applied [] rejected [] recommendations 0 extras question false 5055 ms; said: \"For 2 days and 12 people I rebuild the plan from scratch - what you changed in it is lost. Your plan stays as it is for now. Shall I rebuild\""
+    },
+    {
+      "id": "A24",
+      "flow": "ai",
+      "rule": "No script error anywhere in the chat flow",
+      "source": "baseline",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
