@@ -100,7 +100,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         // A plan the organizer has made their own is not rebuilt because the talk about it shifted the
         // taste: a rebuild starts again from the ready-made packages and would throw away everything
         // they added, removed and moved. Only what changes the shape of the trip - its length, the
-        // head-count the prices hang on - still rebuilds it.
+        // head-count the prices hang on, the budget they must fit - still rebuilds it.
         boolean keepsTheirPlan = packages.isPresent() && state.workingPackage().isPresent()
                 && sameTripShape(merged, state.lastGeneratedBrief().orElse(null));
         boolean wouldRebuild = merged.isReady() && changedSinceLastGeneration && !keepsTheirPlan;
@@ -110,7 +110,7 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         boolean warnsFirst = wouldRebuild && packages.isPresent() && state.workingPackage().isPresent()
                 && !state.rebuildWarned();
         if (warnsFirst) {
-            merged = merged.withShape(before.days(), before.groupSize());
+            merged = merged.withShape(before.days(), before.groupSize()).withBudgetLimit(before.budgetLimit());
             mergedJson = JsonCodec.write(merged);
         }
         boolean readyToBuild = wouldRebuild && !warnsFirst;
@@ -288,14 +288,15 @@ public class ChatTurnNode implements NodeAction<PlannerState> {
         return update;
     }
 
-    /** Same number of days and people as the brief the current packages were built from. */
+    /** Same number of days, people and budget in euros as the brief the current packages were built from. */
     private static boolean sameTripShape(Brief merged, String lastGeneratedJson) {
         if (lastGeneratedJson == null || lastGeneratedJson.isBlank()) {
             return false;
         }
         Brief built = JsonCodec.read(lastGeneratedJson, Brief.class);
         return built != null && java.util.Objects.equals(built.days(), merged.days())
-                && java.util.Objects.equals(built.groupSize(), merged.groupSize());
+                && java.util.Objects.equals(built.groupSize(), merged.groupSize())
+                && java.util.Objects.equals(built.budgetLimit(), merged.budgetLimit());
     }
 
     /**

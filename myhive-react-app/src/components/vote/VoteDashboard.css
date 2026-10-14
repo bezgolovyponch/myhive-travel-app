@@ -113,6 +113,17 @@
     color: #fff;
 }
 
+.vd-plan-budget {
+    margin: -0.25rem 0 0.625rem;
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.vd-plan-budget.is-over {
+    color: #ff5459;
+    font-weight: 600;
+}
+
 .vd-rows {
     list-style: none;
     margin: 0;

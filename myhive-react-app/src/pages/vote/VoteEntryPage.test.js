@@ -38,6 +38,7 @@ test('a setup in the query string continues straight into the quiz, replacing th
         endDate: '2026-09-06',
         destination: destinations[0],
         budget: null,
+        budgetBasis: null,
       },
     },
     replace: true,

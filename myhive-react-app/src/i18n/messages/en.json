@@ -114,7 +114,13 @@
     "confirm": "Confirm",
     "travelersLabel": "Number of Travelers *",
     "decreaseAria": "Decrease travelers",
-    "increaseAria": "Increase travelers"
+    "increaseAria": "Increase travelers",
+    "budgetLabel": "Budget in € (optional)",
+    "budgetPlaceholder": "e.g. 150",
+    "budgetPerPerson": "per person",
+    "budgetTotal": "for the group",
+    "budgetBasisAria": "Budget is per person or for the whole group",
+    "budgetHint": "We fit the plan to it."
   },
   "tripDropdown": {
     "title": "Trip Builder",
@@ -626,7 +632,11 @@
     "budget": {
       "spent": "Spent",
       "budget": "Budget",
-      "remaining": "Remaining"
+      "remaining": "Remaining",
+      "plan": "Plan",
+      "perPerson": "{price} / person",
+      "total": "{price} for the group",
+      "over": "The plan is above your budget."
     },
     "restore": {
       "title": "Replace your current trip?",
@@ -665,6 +675,8 @@
       "keep": "{keep}/{votes} keep",
       "planTitle": "The plan",
       "fromPerPerson": "from {price} / person",
+      "budget": "Budget: {budget}",
+      "budgetOver": "Above your budget of {budget}",
       "rowPerPerson": "{price} / person",
       "recsEmpty": "Nothing yet. What your friends suggest shows up here.",
       "backToPlan": "Back to the plan",
@@ -1236,6 +1248,10 @@
       "completeBooking": "Complete booking",
       "bookWithoutVote": "Don't want to ask your friends? Book it right away!",
       "priceFromPerPerson": "from {price} / person",
+      "budgetPerPerson": "{price} / person",
+      "budgetTotal": "{price} for the group",
+      "budgetFits": "Fits your budget of {budget}",
+      "budgetOver": "Above your budget of {budget}",
       "perPerson": "per person",
       "sendToPlanner": "Ask the group",
       "title": "{destination} stag",

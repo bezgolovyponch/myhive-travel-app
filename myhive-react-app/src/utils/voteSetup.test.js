@@ -11,6 +11,7 @@ const setup = {
     endDate: '2026-09-06',
     destination: destinations[0],
     budget: null,
+    budgetBasis: null,
 };
 
 test('voteEntryUrlWithSetup encodes the whole setup into /vote/new', () => {
@@ -23,6 +24,14 @@ test('parseVoteSetupParams round-trips what voteEntryUrlWithSetup wrote', () => 
     const url = voteEntryUrlWithSetup(setup);
     const search = url.slice(url.indexOf('?'));
     expect(parseVoteSetupParams(search, destinations)).toEqual(setup);
+});
+
+test('a budget rides along: the group total and how it was put', () => {
+    const withBudget = {...setup, budget: 1200, budgetBasis: 'PER_PERSON'};
+    const url = voteEntryUrlWithSetup(withBudget);
+
+    expect(url).toBe('/vote/new?travelers=8&start=2026-09-04&end=2026-09-06&dest=prague&budget=1200&basis=PER_PERSON');
+    expect(parseVoteSetupParams(url.slice(url.indexOf('?')), destinations)).toEqual(withBudget);
 });
 
 test('parseVoteSetupParams resolves the destination against the catalog', () => {

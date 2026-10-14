@@ -372,18 +372,33 @@ test('A9: vote mode never includes email, regardless of ad_storage consent', asy
 // Budget question removed from the vote setup
 // ---------------------------------------------------------------------------
 
-test('vote setup has no budget field', () => {
-  renderVoteModal(singleDestCatalogState);
-  expect(screen.queryByLabelText(/budget/i)).not.toBeInTheDocument();
-});
-
-test('confirm sends budget: null in the vote payload', async () => {
+test('confirm without a budget sends budget: null in the vote payload', async () => {
   const onVoteConfirm = jest.fn();
   renderVoteModal(singleDestCatalogState, baseTripState, { onVoteConfirm });
 
   await fillVoteFormAndSubmit();
 
-  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ budget: null }));
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ budget: null, budgetBasis: null }));
+});
+
+test('a budget per person goes to the vote as the group total, with how it was put', async () => {
+  const onVoteConfirm = jest.fn();
+  renderVoteModal(singleDestCatalogState, { ...baseTripState, tripTravelers: 4 }, { onVoteConfirm });
+
+  await userEvent.type(screen.getByRole('spinbutton', { name: /budget/i }), '150');
+  await fillVoteFormAndSubmit();
+
+  expect(onVoteConfirm).toHaveBeenCalledWith(expect.objectContaining({ budget: 600, budgetBasis: 'PER_PERSON' }));
+});
+
+test('a budget for the group is kept as it is', async () => {
+  const { mockDispatch } = renderTripModal(singleDestCatalogState, { tripTravelers: 4 });
+
+  await userEvent.type(screen.getByRole('spinbutton', { name: /budget/i }), '1200');
+  await userEvent.click(screen.getByRole('radio', { name: /for the group/i }));
+  await userEvent.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+  expect(mockDispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_BUDGET', budget: 1200, basis: 'TOTAL' });
 });
 
 // ---------------------------------------------------------------------------

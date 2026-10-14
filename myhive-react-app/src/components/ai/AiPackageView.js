@@ -21,6 +21,15 @@ export function priceFrom(t, pkg, perPersonKey = 'result.priceFromPerPerson') {
     return shown(pkg.fromPricePerPerson, perPersonKey) || shown(pkg.fromPrice, 'result.priceFrom');
 }
 
+// "€150 / person" or "€1,200 for the group": the budget as the organizer put it, or null without one.
+function budgetText(t, brief) {
+    const limit = brief?.budgetLimit;
+    const amount = Number(limit?.amount);
+    if (!limit || !(amount > 0)) return null;
+    const price = formatAmount(Math.round(amount));
+    return limit.basis === 'TOTAL' ? t('result.budgetTotal', {price}) : t('result.budgetPerPerson', {price});
+}
+
 // useT has no plurals: count keys are {one, other} objects.
 export const plural = (t, key, count) => t(`${key}.${count === 1 ? 'one' : 'other'}`, {count});
 
@@ -261,6 +270,12 @@ function AiPackageView({
                     <span>{brief.groupSize ? t('result.people', {count: brief.groupSize}) : ''}</span>
                     {priceFrom(t, pkg) && <strong>{priceFrom(t, pkg)}</strong>}
                 </div>
+                {budgetText(t, brief) && (
+                    // The budget the plan was fitted to; said plainly when this package could not get under it.
+                    <p className={`aip-budget${pkg.overBudget ? ' is-over' : ''}`}>
+                        {t(pkg.overBudget ? 'result.budgetOver' : 'result.budgetFits', {budget: budgetText(t, brief)})}
+                    </p>
+                )}
             </section>
 
             {/* What the last change was is said in the chat, with the way back; nothing floats here. */}

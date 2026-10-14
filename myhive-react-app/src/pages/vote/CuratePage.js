@@ -85,7 +85,7 @@ function CurateContent() {
       startDate: setup.startDate ?? '',
       endDate: setup.endDate ?? '',
     });
-    dispatch({ type: 'UPDATE_TRIP_BUDGET', budget: setup.budget ?? null });
+    dispatch({ type: 'UPDATE_TRIP_BUDGET', budget: setup.budget ?? null, basis: setup.budgetBasis ?? null });
     picked.forEach(a => {
       dispatch({
         type: 'ADD_TO_TRIP',

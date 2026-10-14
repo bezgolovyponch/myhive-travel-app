@@ -159,7 +159,8 @@ packages are built from scratch.
 { "destinationSlug": "prague", "locale": "en",
   "initialMessage": "optional first user message",
   "days": 3, "groupSize": 8,                   // optional, from the entry screen's pickers (1..7, 2..30)
-  "arrival": "EVENING", "departure": "MORNING" } // optional, MORNING | AFTERNOON | EVENING
+  "arrival": "EVENING", "departure": "MORNING", // optional, MORNING | AFTERNOON | EVENING
+  "budgetLimit": { "amount": 150, "basis": "PER_PERSON" } } // optional, from the trip form; basis PER_PERSON | TOTAL
 ```
 
 `201` → `SessionState` (below). When `initialMessage` is given the response already
@@ -311,8 +312,8 @@ with "Moved X to day N." The chat can move too: "put karting on Saturday" comes 
 
 A plan the organizer has made their own (`workingPackage` set) is not rebuilt when a message only
 shifts the taste (vibe, categories, dislikes, budget): a rebuild starts from the ready-made packages
-and would discard what they added, removed and moved. A different number of days or people still
-rebuilds it.
+and would discard what they added, removed and moved. A different number of days or people, or a
+different `budgetLimit`, still rebuilds it (after the same one-turn warning).
 
 `recommendations` now holds up to 6 activities: as many as the organizer asked for when they gave a
 number, otherwise three, and a lone match is filled up to three with related ones. The client lists
@@ -906,7 +907,14 @@ With days and group size preset by the pickers, the first message (the line the 
 for the organizer) is not taken as the answer to the taste question: the chat asks it once
 and builds on the reply.
 
-`budget`: `LOW` | `MID` | `HIGH` | null. `arrival`/`departure`: `MORNING` |
+`budgetLimit`: the budget in euros, `{ "amount": 150, "basis": "PER_PERSON" }` or `"basis": "TOTAL"` for
+the whole group; null without one. Every package of a build is held to it on `fromPricePerPerson`: the
+planner is told it, and what is still above it after the build is brought under it by dropping a chosen
+extra, swapping an activity for a cheaper one of the same kind, or taking one out - never what was asked
+for by name, never the last activity of a package. A package that cannot get under it comes back with
+`overBudget: true`. The chat takes "150 each" / "1200 for all of us" into it; an amount of 0 clears it.
+
+`budget`: `LOW` | `MID` | `HIGH` | null (a budget without a figure). `arrival`/`departure`: `MORNING` |
 `AFTERNOON` | `EVENING`. Fields are null until the agent learns them. `missingFields`
 can contain `days`, `groupSize`, `preferences`, `arrival`, `departure` — all five must be
 known before `readyToGenerate` turns true; `budget` never blocks generation.
@@ -925,6 +933,7 @@ known before `readyToGenerate` turns true; `budget` never blocks generation.
                                                // This is the price the planner shows ("from €221 / person"), never the total.
   "totalDurationMinutes": 780,
   "nights": 2,                                 // days - 1; null on packages stored before it existed
+  "overBudget": false,                         // true when brief.budgetLimit is set and fromPricePerPerson is above it
   "activityIds": ["…", "…"],
   "days": [
     { "dayNumber": 1, "title": "Landing night", "summary": "…",

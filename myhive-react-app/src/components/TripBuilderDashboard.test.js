@@ -149,6 +149,19 @@ test('shows who has voted, the invite link, the plan with keep counts and the gr
     expect(voteApi.getTally).toHaveBeenCalledWith('tok-1', {managerToken: 'mgr-1'});
 });
 
+test('each activity in the plan shows its own price per person, and the budget is said against the plan', async () => {
+    pricingApi.quote.mockResolvedValue({fromPrice: 1161, fromPricePerPerson: 117, lines: [
+        {activityId: 'act-1', packageId: null, fromPricePerPerson: 81},
+        {activityId: 'act-2', packageId: null, fromPricePerPerson: 54},
+    ]});
+    renderDashboard({state: tripState({tripBudget: 1000, tripBudgetBasis: 'PER_PERSON'})});
+
+    const plan = await screen.findByRole('region', {name: 'The plan'});
+    expect(await within(plan).findByText('€81 / person')).toBeInTheDocument();
+    expect(within(plan).getByText('€54 / person')).toBeInTheDocument();
+    expect(within(plan).getByText('Above your budget of €100 / person')).toBeInTheDocument();
+});
+
 test('a name in the plan opens the activity card, and "Back to the plan" closes it', async () => {
     api.getActivity.mockResolvedValue({
         id: 'act-1', name: 'AK-47 shooting', description: 'Five guns on an indoor range.', slug: 'ak-47',

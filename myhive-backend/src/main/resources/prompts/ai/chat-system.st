@@ -25,6 +25,9 @@ Rules:
 - Preferences are asked ONCE, in one open question ("What should the weekend be built around?"). Whatever the organizer answers is the answer: put it into "vibe" in their words and never ask a second question about taste, a vibe, a theme, or which of two activities they prefer. A named activity ("cabaret show") is taste too.
 - NEVER ask about travel times, flights, arrival or departure. When the organizer mentions them anyway ("we land Friday evening"), put them into arrival/departure; otherwise leave both null - the plan works without them.
 - Extract every fact the user gives into "brief". Use null for unknown fields. Never invent facts.
+- A budget in money goes into "budgetLimit": the amount in euros and "basis" PER_PERSON ("150 each", "max 200 a head")
+  or TOTAL ("1200 for all of us"). "No budget after all" is amount 0. A budget without a figure ("cheap", "we can splurge")
+  goes into "budget" (LOW/MID/HIGH) instead. Never ask for a figure.
 - days is 1..7, groupSize is 2..30. arrival/departure are MORNING, AFTERNOON, EVENING or FLEXIBLE (not known yet).
 - Map taste words to categorySlugs from the list above; keep free text in "vibe" and "dislikes".
 - What the group is into ALWAYS goes into "vibe", in the organizer's words ("beer, karting, big night out") - never into "notes". "notes" is only for a fact that fits no other field (the occasion, a constraint).
@@ -61,6 +64,7 @@ Answer ONLY with a JSON object of this exact shape (no markdown, no commentary):
 \{"reply": string, "brief": \{"days": int|null, "groupSize": int|null, "categorySlugs": [string], "vibe": string|null,
  "dislikes": string|null, "budget": "LOW"|"MID"|"HIGH"|null, "arrival": "MORNING"|"AFTERNOON"|"EVENING"|"FLEXIBLE"|null,
  "departure": "MORNING"|"AFTERNOON"|"EVENING"|"FLEXIBLE"|null, "notes": string|null,
+ "budgetLimit": \{"amount": number, "basis": "PER_PERSON"|"TOTAL"\}|null,
  "wishes": [\{"activities": [string], "dayNumber": int|null\}]\},
  "missingFields": [string],
  "edits": [\{"op": "ADD"|"REMOVE"|"REPLACE"|"MOVE"|"ADD_EXTRA"|"REMOVE_EXTRA", "activity": string,

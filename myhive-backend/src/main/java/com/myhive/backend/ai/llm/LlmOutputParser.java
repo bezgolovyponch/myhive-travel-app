@@ -66,7 +66,7 @@ public class LlmOutputParser {
         if (reply == null || !reply.isTextual() || reply.asText().isBlank()) {
             throw new LlmOutputException("chat turn: 'reply' is missing or empty");
         }
-        Brief brief = convert(root.path("brief"), Brief.class, "brief");
+        Brief brief = convert(withReadableBudget(root.path("brief")), Brief.class, "brief");
         List<String> missing = root.path("missingFields").isArray()
                 ? mapper.convertValue(root.get("missingFields"), mapper.getTypeFactory().constructCollectionType(List.class, String.class))
                 : List.of();
@@ -357,6 +357,28 @@ public class LlmOutputParser {
         } catch (JsonProcessingException e) {
             throw new LlmOutputException("model output is not valid JSON: " + e.getOriginalMessage(), e);
         }
+    }
+
+    /**
+     * The budget in euros is the one brief field the model writes as an object, and it does not always: a bare
+     * number is read as per person ("150"), and anything else that is not {amount: number} - "€150", a word -
+     * is dropped, as an unknown enum value is, instead of costing the turn.
+     */
+    private static JsonNode withReadableBudget(JsonNode brief) {
+        if (!(brief instanceof ObjectNode object) || !object.has("budgetLimit")) {
+            return brief;
+        }
+        ObjectNode copy = object.deepCopy();
+        JsonNode limit = copy.get("budgetLimit");
+        if (limit.isNumber()) {
+            ObjectNode perPerson = copy.objectNode();
+            perPerson.set("amount", limit);
+            perPerson.put("basis", "PER_PERSON");
+            copy.set("budgetLimit", perPerson);
+        } else if (!limit.isObject() || !limit.path("amount").isNumber()) {
+            copy.remove("budgetLimit");
+        }
+        return copy;
     }
 
     private <T> T convert(JsonNode node, Class<T> type, String field) {

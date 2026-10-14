@@ -38,6 +38,7 @@ function readSavedTrip() {
             saved.tripStartDate = parsed.startDate || '';
             saved.tripEndDate = parsed.endDate || '';
             saved.tripBudget = parsed.budget ?? null;
+            saved.tripBudgetBasis = parsed.budgetBasis ?? null;
         }
     } catch (e) { /* ignore corrupt storage */ }
     return saved;
@@ -52,6 +53,8 @@ export const initialState = {
     tripStartDate: '',
     tripEndDate: '',
     tripBudget: null,
+    // How the budget was put: 'PER_PERSON' or 'TOTAL' (null reads as TOTAL). tripBudget is the group total either way.
+    tripBudgetBasis: null,
     tripSetupModalOpen: false,
     tripBuilderModalOpen: false,
     // True while the inline Complete Booking form is open, so the destination
@@ -74,6 +77,15 @@ function withExtrasFrom(previousItems, winner) {
     return {...winner,
         extras: winner.extras && winner.extras.length > 0 ? winner.extras : (previous.extras || []),
         selectedExtras: previous.selectedExtras || []};
+}
+
+// A budget put per person follows the head-count: 150 each stays 150 each when two more join.
+function rescaledBudget(state, travelers) {
+    if (state.tripBudgetBasis !== 'PER_PERSON' || state.tripBudget == null || !(travelers >= 1)) {
+        return state.tripBudget;
+    }
+    const before = Math.max(1, Number(state.tripTravelers) || 1);
+    return Number(state.tripBudget) / before * travelers;
 }
 
 export function reducer(state, action) {
@@ -100,6 +112,7 @@ export function reducer(state, action) {
         case 'SET_TRIP_SETUP':
             return {
                 ...state,
+                tripBudget: rescaledBudget(state, action.travelers),
                 tripTravelers: action.travelers,
                 tripStartDate: action.startDate,
                 tripEndDate: action.endDate,
@@ -107,15 +120,20 @@ export function reducer(state, action) {
                 tripBuilderModalOpen: true
             };
         case 'UPDATE_TRIP_TRAVELERS':
-            return {...state, tripTravelers: action.travelers};
+            return {...state, tripBudget: rescaledBudget(state, action.travelers), tripTravelers: action.travelers};
         case 'UPDATE_TRIP_DATES':
             return {...state, tripStartDate: action.startDate, tripEndDate: action.endDate};
-        case 'UPDATE_TRIP_BUDGET':
-            return {...state, tripBudget: action.budget};
+        case 'UPDATE_TRIP_BUDGET': {
+            // A total read back from the server (a vote, a lead) carries no basis: the same total keeps the one
+            // this browser was given, anything else reads as a total.
+            const sameTotal = action.budget != null && Number(action.budget) === Number(state.tripBudget);
+            const basis = action.basis !== undefined ? action.basis : (sameTotal ? state.tripBudgetBasis : null);
+            return {...state, tripBudget: action.budget, tripBudgetBasis: action.budget == null ? null : basis};
+        }
         case 'CLOSE_TRIP_SETUP_MODAL':
             return {...state, tripSetupModalOpen: false};
         case 'CANCEL_TRIP_SETUP':
-            return {...state, tripItems: [], tripBudget: null, tripSetupModalOpen: false};
+            return {...state, tripItems: [], tripBudget: null, tripBudgetBasis: null, tripSetupModalOpen: false};
         case 'ADD_PACKAGE_TO_TRIP': {
             const pkg = action.pkg;
             const newItems = pkg.activities.map(a => ({
@@ -277,9 +295,11 @@ export function TripProvider({children}) {
             travelers: state.tripTravelers,
             startDate: state.tripStartDate,
             endDate: state.tripEndDate,
-            budget: state.tripBudget
+            budget: state.tripBudget,
+            budgetBasis: state.tripBudgetBasis
         }));
-    }, [state.restored, state.tripTravelers, state.tripStartDate, state.tripEndDate, state.tripBudget]);
+    }, [state.restored, state.tripTravelers, state.tripStartDate, state.tripEndDate, state.tripBudget,
+        state.tripBudgetBasis]);
 
     return (
         <TripContext.Provider value={{state, dispatch}}>

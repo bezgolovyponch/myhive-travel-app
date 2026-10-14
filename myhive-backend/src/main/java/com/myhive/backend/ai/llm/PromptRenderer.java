@@ -11,6 +11,7 @@ import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.PlanPricer;
 import com.myhive.backend.ai.plan.PlanValidator;
 import com.myhive.backend.ai.plan.Violation;
+import com.myhive.backend.util.FromPrice;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -120,7 +121,25 @@ public class PromptRenderer {
                 "departure", r.brief().departureOrDefault().slot().name(),
                 "dayWindows", dayWindows(r.brief()),
                 "maxTierSpread", String.valueOf(PlanAssembler.MAX_TIER_SPREAD),
-                "presetRules", r.presets().isEmpty() ? "" : PRESET_RULES.stripTrailing()));
+                "presetRules", r.presets().isEmpty() ? "" : PRESET_RULES.stripTrailing(),
+                "budgetRule", budgetRule(r.brief())));
+    }
+
+    /**
+     * The organizer's budget in euros as the planner can hold a package to it: a price per person at catalog
+     * prices, group minimums included - the number the ready-made packages are listed with. The shown "from"
+     * price is lower than that by the margin, so the limit is raised by it; extras are never chosen here.
+     */
+    static String budgetRule(Brief brief) {
+        BigDecimal perPerson = brief.budgetPerPerson();
+        if (perPerson == null) {
+            return "";
+        }
+        return "- Budget (hard): every package must cost at most " + FromPrice.beforeMargin(perPerson)
+                + " EUR per person - the sum of its activities' price per person, group minimums included, as the"
+                + " ready-made packages are priced. Where a ready-made package costs more, take out its least important"
+                + " activities or pick the ready-made package below it. PREMIUM may use the whole budget; BASIC stays"
+                + " well under it.";
     }
 
     /**

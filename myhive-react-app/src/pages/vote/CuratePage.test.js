@@ -71,7 +71,7 @@ test('last swipe seeds the trip, stores the quiz-flow context, and lands in the 
 
   expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_TRAVELERS', travelers: 2 });
   expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_DATES', startDate: '2026-08-01', endDate: '2026-08-10' });
-  expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_BUDGET', budget: 3000 });
+  expect(dispatch).toHaveBeenCalledWith({ type: 'UPDATE_TRIP_BUDGET', budget: 3000, basis: null });
 
   const addCalls = dispatch.mock.calls.filter(c => c[0].type === 'ADD_TO_TRIP');
   expect(addCalls).toHaveLength(1);

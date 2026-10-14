@@ -13,10 +13,12 @@ import java.util.UUID;
  * {@code nights} is days - 1, null for packages stored before it existed; an item's {@code includes} is
  * the catalog's "what is included" text, null when it has none. An item's {@code extras} are the add-ons the
  * organizer chose for it (never null), and its {@code lineTotal} already includes them.
+ * {@code overBudget} is true when the organizer named a budget in euros and {@code fromPricePerPerson} is
+ * still above it: the planner could not get the package under it without taking out what was asked for.
  */
 public record PackageDTO(String key, String title, String tagline, String description, BigDecimal pricePerPerson,
                          BigDecimal totalPrice, BigDecimal fromPrice, BigDecimal fromPricePerPerson, String currency, int totalDurationMinutes,
-                         List<UUID> activityIds, List<DayDTO> days, Integer nights) {
+                         List<UUID> activityIds, List<DayDTO> days, Integer nights, boolean overBudget) {
 
     public record DayDTO(int dayNumber, String title, String summary, List<ItemDTO> items) {
     }

@@ -6,13 +6,18 @@
 // location state the quiz flow runs on. Inside the SPA the same URL is a
 // client-side hop and the state arrives as well, so nothing is re-derived.
 
-export function voteEntryUrlWithSetup({travelers, startDate, endDate, destination}) {
+export function voteEntryUrlWithSetup({travelers, startDate, endDate, destination, budget, budgetBasis}) {
     const params = new URLSearchParams({
         travelers: String(travelers),
         start: startDate,
         end: endDate,
         dest: destination.slug,
     });
+    // The budget is optional: the group total, and how it was put.
+    if (Number(budget) > 0) {
+        params.set('budget', String(budget));
+        if (budgetBasis) params.set('basis', budgetBasis);
+    }
     return `/vote/new?${params}`;
 }
 
@@ -32,5 +37,9 @@ export function parseVoteSetupParams(search, destinations) {
     if (!destination) {
         return null;
     }
-    return {travelers, startDate, endDate, destination, budget: null};
+    const budget = Number(params.get('budget'));
+    const basis = params.get('basis');
+    return {travelers, startDate, endDate, destination,
+        budget: budget > 0 ? budget : null,
+        budgetBasis: budget > 0 && (basis === 'PER_PERSON' || basis === 'TOTAL') ? basis : null};
 }

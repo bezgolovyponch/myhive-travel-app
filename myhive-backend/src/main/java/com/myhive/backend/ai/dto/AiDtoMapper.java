@@ -14,6 +14,7 @@ import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.llm.LlmOutputParser;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.AttemptDiagnostic;
+import com.myhive.backend.ai.plan.BudgetFitter;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.DraftGaps;
@@ -262,7 +263,7 @@ public class AiDtoMapper {
         Integer groupSize = brief == null ? null : brief.groupSize();
         List<PackageDTO> packages = ready || skeleton
                 ? JsonCodec.read(generation.getResult(), ComposedPlan.class).packages().stream()
-                        .map(result -> plannedPackage(result, groupSize))
+                        .map(result -> plannedPackage(result, brief))
                         .toList()
                 : null;
         return new GenerationDTO(generation.getId(), sessionToken, generation.getStatus().name(),
@@ -341,13 +342,15 @@ public class AiDtoMapper {
                 !NON_RETRYABLE_ERROR_CODE.equals(generation.getErrorCode()));
     }
 
-    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result, Integer groupSize) {
+    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result, Brief brief) {
+        Integer groupSize = brief == null ? null : brief.groupSize();
         BigDecimal extras = result.extrasTotal();
         return new PackageDTO(result.key().name(), result.title(), result.tagline(), result.description(),
                 result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice(), extras),
                 FromPrice.perPerson(result.totalPrice(), extras, groupSize), result.currency(),
                 result.totalDurationMinutes(),
-                result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights());
+                result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights(),
+                BudgetFitter.overBudget(result, brief));
     }
 
     private static PackageDTO.DayDTO plannedDay(ComposedPlan.DayResult result) {

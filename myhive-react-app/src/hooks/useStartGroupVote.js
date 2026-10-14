@@ -30,8 +30,8 @@ export function useStartGroupVote() {
 
     // Rebuilt object, not the raw argument: state must never carry extras a
     // caller's payload happens to hold (email, most of all).
-    const cleanSetup = ({travelers, startDate, endDate, destination, budget}) =>
-        ({travelers, startDate, endDate, destination, budget});
+    const cleanSetup = ({travelers, startDate, endDate, destination, budget, budgetBasis}) =>
+        ({travelers, startDate, endDate, destination, budget, budgetBasis});
 
     const handleVoteConfirm = (setup) => {
         setVoteSetupOpen(false);
