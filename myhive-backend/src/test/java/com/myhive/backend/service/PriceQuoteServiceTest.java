@@ -171,6 +171,30 @@ class PriceQuoteServiceTest {
         assertThat(quote.fromPrice()).isEqualByComparingTo(FromPrice.of(expectedTotal, new BigDecimal("50")));
     }
 
+    @Test
+    void quote_pricesEachLinePerPersonTheWayThePlanIsPriced() {
+        Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
+        Activity shooting = activityRepository.saveAndFlush(TestDataFactory.activity(prague, "Shooting", new BigDecimal("89.00")));
+        Activity boat = TestDataFactory.activity(prague, "Boat", new BigDecimal("20.00"));
+        boat.setMinPrice(new BigDecimal("400.00"));
+        boat.setExtras(List.of(extra("private-show", "160.00")));
+        boat = activityRepository.saveAndFlush(boat);
+        Package classic = savedPackage(prague, new BigDecimal("15.00"), shooting);
+
+        PriceQuoteRequest request = new PriceQuoteRequest();
+        request.setItems(List.of(item(shooting, classic), item(boat, null, "private-show")));
+        request.setTravelers(10);
+
+        // Shooting in the package: 890 × 0.85 = 756.50, less the margin = 681 → 68.1 each, rounded up;
+        // the boat: its group minimum 400 less the margin = 360, plus the 160 show in full = 520 → 52 each
+        PriceQuoteResponse quote = priceQuoteService.quote(request);
+        assertThat(quote.lines()).extracting(PriceQuoteResponse.LinePrice::activityId)
+                .containsExactly(shooting.getId(), boat.getId());
+        assertThat(quote.lines().get(0).packageId()).isEqualTo(classic.getId());
+        assertThat(quote.lines().get(0).fromPricePerPerson()).isEqualByComparingTo("69");
+        assertThat(quote.lines().get(1).fromPricePerPerson()).isEqualByComparingTo("52");
+    }
+
     private Activity savedActivityWithExtras(BigDecimal price, ActivityExtra... extras) {
         Destination prague = destinationRepository.save(TestDataFactory.destination("Prague"));
         Activity activity = TestDataFactory.activity(prague, "Karting", price);

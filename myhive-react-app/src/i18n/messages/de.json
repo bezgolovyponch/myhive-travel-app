@@ -655,6 +655,7 @@
       "keep": "{keep}/{votes} dafür",
       "planTitle": "Der Plan",
       "fromPerPerson": "ab {price} p. P.",
+      "rowPerPerson": "{price} / Person",
       "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
       "backToPlan": "Zurück zum Plan",
       "browseAll": "Alle Aktivitäten ansehen"

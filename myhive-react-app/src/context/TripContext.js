@@ -235,29 +235,32 @@ export function TripProvider({children}) {
         localStorage.setItem(TRIP_LOCALE_KEY, currentLocale());
     }, [state.restored, state.tripItems]);
 
-    // A cart saved under another locale carries that locale's names and
-    // descriptions. Re-read those fields from the API (which localizes for the
-    // current page) once per restore; prices, packages and order are kept as
-    // saved. Best-effort: a failed lookup leaves that item's text as is.
+    // A saved cart carries the extras the catalogue offered when it was saved, and a cart saved under
+    // another locale carries that locale's names and descriptions. Re-read both from the API once per
+    // restore: an extra the catalogue has since retired drops out of the cart (and of the quote and the
+    // booking, which would refuse its code), and the text follows the current page. Prices, packages and
+    // order are kept as saved. Best-effort: a failed lookup leaves that item as is.
     useEffect(() => {
         if (!state.restored || state.tripItems.length === 0) {
             return undefined;
         }
-        const locale = currentLocale();
-        if ((savedLocaleRef.current || 'en') === locale) {
-            return undefined;
-        }
+        const relocalize = (savedLocaleRef.current || 'en') !== currentLocale();
         let cancelled = false;
         const items = state.tripItems;
         Promise.all(items.map((item) => api.getActivity(item.id).catch(() => null))).then((fresh) => {
             if (cancelled) {
                 return;
             }
-            const relocalized = items.map((item, i) => (fresh[i]
-                ? {...item, name: fresh[i].name, description: fresh[i].description, includes: fresh[i].includes,
-                    extras: fresh[i].extras ?? item.extras}
-                : item));
-            dispatch({type: 'SET_TRIP_ITEMS', tripItems: relocalized});
+            const refreshed = items.map((item, i) => {
+                if (!fresh[i]) {
+                    return item;
+                }
+                const withExtras = {...item, extras: fresh[i].extras ?? item.extras};
+                return relocalize
+                    ? {...withExtras, name: fresh[i].name, description: fresh[i].description, includes: fresh[i].includes}
+                    : withExtras;
+            });
+            dispatch({type: 'SET_TRIP_ITEMS', tripItems: refreshed});
         });
         return () => {
             cancelled = true;

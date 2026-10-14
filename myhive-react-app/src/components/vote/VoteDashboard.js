@@ -67,9 +67,9 @@ export function KeepBar({row}) {
 /**
  * One line of the plan: the activity, its keep bar, and × to drop it from the
  * vote — or, once dropped, struck through with Restore. With onOpen the name
- * opens the activity's card.
+ * opens the activity's card; price is the line's per-person share of the plan's "from" price.
  */
-export function PlanRow({name, row, dropped = false, onOpen, onRemove, onRestore}) {
+export function PlanRow({name, row, price, dropped = false, onOpen, onRemove, onRestore}) {
     const t = useT('tripBuilder');
     return (
         <li className={`vd-row${dropped ? ' is-dropped' : ''}`}>
@@ -83,6 +83,9 @@ export function PlanRow({name, row, dropped = false, onOpen, onRemove, onRestore
                 </div>
                 <KeepBar row={row}/>
             </div>
+            {price != null && !dropped && (
+                <span className="vd-row-price">{t('dashboard.rowPerPerson', {price})}</span>
+            )}
             {dropped ? (
                 onRestore && (
                     <button type="button" className="vd-restore-btn" onClick={onRestore}>

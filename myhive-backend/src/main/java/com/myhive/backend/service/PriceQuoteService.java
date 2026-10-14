@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
  * each line is price × travelers with the activity's group minimum as the floor, the lines of one package
  * are then discounted together by the package's catalog percentage, the selected extras of every line are
  * added at list price (never floored, never discounted), and the plan shows the {@link FromPrice} of the
- * sum, in total and per traveller.
+ * sum, in total and per traveller, and per traveller for each line (the organiser's dashboard shows those).
  */
 @Service
 @RequiredArgsConstructor
@@ -69,6 +70,7 @@ public class PriceQuoteService {
         // package id with null for the standalone lines. Extras are summed apart: no discount touches them.
         Map<UUID, BigDecimal> basesByPackage = new LinkedHashMap<>();
         BigDecimal extras = BigDecimal.ZERO;
+        List<PriceQuoteResponse.LinePrice> linePrices = new ArrayList<>();
         for (Line line : lines) {
             Activity activity = activitiesById.get(line.activityId());
             if (line.packageId() != null && !packagesById.get(line.packageId()).containsActivity(activity.getId())) {
@@ -78,8 +80,14 @@ public class PriceQuoteService {
             }
             BigDecimal base = PlanPricer.lineTotal(activity.getPrice(), activity.getMinPrice(), travelers);
             basesByPackage.merge(line.packageId(), base, BigDecimal::add);
-            extras = extras.add(MoneyMath.extrasTotal(
-                    ActivityExtras.select(activity.getExtras(), line.extraCodes()), travelers));
+            BigDecimal lineExtras = MoneyMath.extrasTotal(
+                    ActivityExtras.select(activity.getExtras(), line.extraCodes()), travelers);
+            extras = extras.add(lineExtras);
+            // The line's share of the plan's price: its package's discount on its own base, then the margin.
+            BigDecimal discounted = line.packageId() == null ? base
+                    : MoneyMath.applyDiscountPct(base, packagesById.get(line.packageId()).getDiscountPct());
+            linePrices.add(new PriceQuoteResponse.LinePrice(line.activityId(), line.packageId(),
+                    FromPrice.perPerson(discounted.add(lineExtras), lineExtras, travelers)));
         }
         BigDecimal total = extras;
         for (Map.Entry<UUID, BigDecimal> group : basesByPackage.entrySet()) {
@@ -88,7 +96,8 @@ public class PriceQuoteService {
                     : MoneyMath.applyDiscountPct(group.getValue(), packagesById.get(group.getKey()).getDiscountPct()));
         }
         // The margin is on the activities; the extras go on top at their full price.
-        return new PriceQuoteResponse(FromPrice.of(total, extras), FromPrice.perPerson(total, extras, travelers));
+        return new PriceQuoteResponse(FromPrice.of(total, extras), FromPrice.perPerson(total, extras, travelers),
+                linePrices);
     }
 
     private static Set<Line> linesOf(PriceQuoteRequest request) {
