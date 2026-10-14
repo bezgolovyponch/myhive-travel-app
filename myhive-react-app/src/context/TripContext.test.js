@@ -95,24 +95,6 @@ describe('reducer — trip setup actions', () => {
             expect(state.tripStartDate).toBe('2026-06-01');
         });
 
-        it('keeps how the budget was put, and a total read back unchanged keeps it too', () => {
-            const put = reducer(initialState, {type: 'UPDATE_TRIP_BUDGET', budget: 600, basis: 'PER_PERSON'});
-            const readBack = reducer(put, {type: 'UPDATE_TRIP_BUDGET', budget: 600});
-            const another = reducer(put, {type: 'UPDATE_TRIP_BUDGET', budget: 900});
-
-            expect(put.tripBudgetBasis).toBe('PER_PERSON');
-            expect(readBack.tripBudgetBasis).toBe('PER_PERSON');
-            expect(another.tripBudgetBasis).toBeNull();
-        });
-
-        it('a budget put per person follows the head-count', () => {
-            const prev = {...initialState, tripTravelers: 4, tripBudget: 600, tripBudgetBasis: 'PER_PERSON'};
-
-            expect(reducer(prev, {type: 'UPDATE_TRIP_TRAVELERS', travelers: 6}).tripBudget).toBe(900);
-            expect(reducer({...prev, tripBudgetBasis: 'TOTAL'}, {type: 'UPDATE_TRIP_TRAVELERS', travelers: 6})
-                .tripBudget).toBe(600);
-        });
-
         it('accepts null to clear the budget', () => {
             const prev = {...initialState, tripBudget: 3000};
             const state = reducer(prev, {type: 'UPDATE_TRIP_BUDGET', budget: null});

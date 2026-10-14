@@ -20,81 +20,72 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 /**
- * Holds freshly built packages to the organizer's budget in euros. The planner is told the limit, and a
- * model that is told a number still misses it now and then; the deterministic fallback does not read it at
- * all. Here every package whose "from" price per person is over the limit is brought under it with the same
- * edits a chat turn uses, one at a time, so the schedule rules and the prices stay the editor's and the
- * assembler's: a chosen extra is dropped first, then an activity is swapped for a cheaper one of the same kind,
- * and only then is one taken out. What was asked for by name is never touched, and a package keeps at least
- * one activity. A package that cannot get under the limit that way is left as close to it as it got.
- *
- * <p>Of the edits that bring a package under the limit, the one that leaves it dearest is made - the least
- * is given up. When none does on its own, the gentlest kind that is left is made (an extra before a swap,
- * a swap before a removal) and the next round goes on. The tiers are fitted from the bottom up, an edit that
- * keeps a package dearer than the one below is preferred, and a second pass from the top down then lowers a
- * tier that is still as dear as the one above it, so the three read as three sizes of the trip.
+ * Brings freshly built packages to the budget the organizer named in the chat: BASIC is the budget, MEDIUM and
+ * PREMIUM cost more as they always do (owner's rule, 2026-10-14). The planner is told it, and a model that is
+ * told a number still misses it now and then; the deterministic fallback does not read it at all. Here BASIC's
+ * "from" price per person is moved to within {@link #TOLERANCE} of the budget with the same edits a chat turn
+ * uses, one at a time, so the schedule rules and the prices stay the editor's and the assembler's:
+ * <ul>
+ *   <li>too dear: a chosen extra is dropped, an activity is swapped for a cheaper one of the same kind, or one is
+ *       taken out;</li>
+ *   <li>too cheap: an activity is swapped for a dearer one of the same kind.</li>
+ * </ul>
+ * Each round makes the edit that lands nearest the budget. What was asked for by name is never touched, and a
+ * package keeps at least one activity. Then MEDIUM and PREMIUM are made at least {@link #STEP_UP} times as dear as
+ * the tier below where they are not (dearer swaps), and as a last resort a tier below is made cheaper than the
+ * one above it.
  */
 @Slf4j
 public final class BudgetFitter {
 
+    /** "About the budget": BASIC within 10 % of it either way is left as it is. */
+    static final BigDecimal TOLERANCE = new BigDecimal("0.10");
+
+    /**
+     * A tier that has to be raised over the one below goes at least this far over it: one euro more reads as the
+     * same package. The live plans the planner builds on its own rise by about half from tier to tier.
+     */
+    static final BigDecimal STEP_UP = new BigDecimal("1.20");
+
     /** Every round makes one edit; a package has at most a dozen activities and their extras. */
     private static final int MAX_ROUNDS = 16;
 
-    /** Swaps tried per activity: the dearest few that are still cheaper than it. */
+    /** Swaps tried per activity: the nearest few in price on the side that is needed. */
     private static final int SWAPS_PER_ACTIVITY = 3;
+
+    private static final int DROP_EXTRA = 0;
+    private static final int SWAP = 1;
+    private static final int REMOVE = 2;
 
     private BudgetFitter() {
     }
 
-    /** The plan with every package within {@code brief}'s budget where it can be; the plan itself without one. */
+    /** The plan with BASIC at about {@code brief}'s budget and the tiers rising; the plan itself without one. */
     public static ComposedPlan fit(PackageEditor editor, ComposedPlan plan, Brief brief, List<CatalogActivity> catalog) {
-        BigDecimal limit = brief == null ? null : brief.budgetPerPerson();
-        if (editor == null || plan == null || limit == null || catalog == null || catalog.isEmpty()
-                || brief.groupSize() == null) {
+        BigDecimal budget = brief == null ? null : brief.budgetPerPerson();
+        if (editor == null || plan == null || budget == null || catalog == null || catalog.isEmpty()
+                || brief.groupSize() == null || packageOf(plan, Tier.BASIC).isEmpty()) {
             return plan;
         }
-        Set<UUID> wished = wishedIds(brief, catalog);
-        List<Tier> bottomUp = plan.packages().stream().map(ComposedPlan.PackageResult::key).sorted().toList();
-        int[] edits = {0};
-        ComposedPlan working = plan;
-        // Every package under the budget, from the bottom up...
-        for (Tier tier : bottomUp) {
-            working = lower(editor, working, tier, limit, brief, catalog, wished, edits);
+        Context ctx = new Context(editor, brief, catalog, wishedIds(brief, catalog));
+        ComposedPlan working = towardBudget(ctx, plan, budget);
+        List<Tier> bottomUp = working.packages().stream().map(ComposedPlan.PackageResult::key).sorted().toList();
+        // A tier that is not clearly dearer than the one below it is made so...
+        for (int i = 1; i < bottomUp.size(); i++) {
+            BigDecimal floor = priceOf(working, bottomUp.get(i - 1), brief).multiply(STEP_UP);
+            working = move(ctx, working, bottomUp.get(i), false, price -> price.compareTo(floor) >= 0);
         }
-        // ...then the order back: a tier that ended up dearer than the one above it gives up what it must.
+        // ...and where it could not be, the tier below gives way, from the top down.
         for (int i = bottomUp.size() - 1; i > 0; i--) {
-            ComposedPlan.PackageResult above = packageOf(working, bottomUp.get(i)).orElse(null);
-            if (above != null) {
-                BigDecimal under = fromPerPerson(above, brief).subtract(BigDecimal.ONE);
-                working = lower(editor, working, bottomUp.get(i - 1), under, brief, catalog, wished, edits);
-            }
+            BigDecimal ceiling = priceOf(working, bottomUp.get(i), brief);
+            working = move(ctx, working, bottomUp.get(i - 1), true, price -> price.compareTo(ceiling) < 0);
         }
-        if (edits[0] > 0) {
-            log.info("planner budget fitted edits={} limit={} fromPerPerson={}", edits[0], limit,
+        if (ctx.edits > 0) {
+            log.info("planner budget fitted edits={} budget={} fromPerPerson={}", ctx.edits, budget,
                     working.packages().stream().map(pkg -> pkg.key() + ":" + fromPerPerson(pkg, brief)).toList());
-        }
-        return working;
-    }
-
-    /** The package of {@code tier} brought to {@code target} or under, one edit a round, as far as it goes. */
-    private static ComposedPlan lower(PackageEditor editor, ComposedPlan plan, Tier tier, BigDecimal target, Brief brief,
-            List<CatalogActivity> catalog, Set<UUID> wished, int[] edits) {
-        ComposedPlan working = plan;
-        for (int round = 0; round < MAX_ROUNDS; round++) {
-            ComposedPlan.PackageResult pkg = packageOf(working, tier).orElse(null);
-            if (pkg == null || fromPerPerson(pkg, brief).compareTo(target) <= 0) {
-                break;
-            }
-            Optional<ComposedPlan> next = bestStep(editor, working, pkg, brief, catalog, wished, target);
-            if (next.isEmpty()) {
-                log.info("planner budget not met tier={} fromPerPerson={} target={}", tier,
-                        fromPerPerson(pkg, brief), target);
-                break;
-            }
-            working = next.get();
-            edits[0]++;
         }
         return working;
     }
@@ -105,83 +96,141 @@ public final class BudgetFitter {
         return from == null ? BigDecimal.ZERO : from;
     }
 
-    /** Whether the package's "from" price is over the brief's budget; false without a budget. */
-    public static boolean overBudget(ComposedPlan.PackageResult pkg, Brief brief) {
-        BigDecimal limit = brief == null ? null : brief.budgetPerPerson();
-        return limit != null && brief.groupSize() != null && fromPerPerson(pkg, brief).compareTo(limit) > 0;
+    private static final class Context {
+        final PackageEditor editor;
+        final Brief brief;
+        final List<CatalogActivity> catalog;
+        final Set<UUID> wished;
+        int edits;
+
+        Context(PackageEditor editor, Brief brief, List<CatalogActivity> catalog, Set<UUID> wished) {
+            this.editor = editor;
+            this.brief = brief;
+            this.catalog = catalog;
+            this.wished = wished;
+        }
     }
 
-    private record Step(int kind, ComposedPlan plan, BigDecimal price, boolean fits, boolean keepsOrder) {
+    private record Step(int kind, ComposedPlan plan, BigDecimal price) {
     }
 
-    private static Optional<ComposedPlan> bestStep(PackageEditor editor, ComposedPlan plan,
-            ComposedPlan.PackageResult pkg, Brief brief, List<CatalogActivity> catalog, Set<UUID> wished,
-            BigDecimal limit) {
-        BigDecimal floor = packageBelow(plan, pkg.key()).map(below -> fromPerPerson(below, brief)).orElse(null);
+    /** BASIC moved, one edit a round, to within the tolerance of the budget; each edit the one landing nearest it. */
+    private static ComposedPlan towardBudget(Context ctx, ComposedPlan plan, BigDecimal budget) {
+        BigDecimal slack = budget.multiply(TOLERANCE);
+        ComposedPlan working = plan;
+        for (int round = 0; round < MAX_ROUNDS; round++) {
+            BigDecimal price = priceOf(working, Tier.BASIC, ctx.brief);
+            BigDecimal off = price.subtract(budget).abs();
+            if (off.compareTo(slack) <= 0) {
+                break;
+            }
+            boolean tooDear = price.compareTo(budget) > 0;
+            Optional<Step> next = steps(ctx, working, Tier.BASIC, tooDear).stream()
+                    .filter(step -> step.price().subtract(budget).abs().compareTo(off) < 0)
+                    .min(Comparator.comparing((Step step) -> step.price().subtract(budget).abs())
+                            .thenComparingInt(Step::kind));
+            if (next.isEmpty()) {
+                log.info("planner budget not met fromPerPerson={} budget={}", price, budget);
+                break;
+            }
+            working = next.get().plan();
+            ctx.edits++;
+        }
+        return working;
+    }
+
+    /**
+     * Edits on one tier, cheaper or dearer, until {@code done}: of the edits that get there, the gentlest kind
+     * that changes the price least; when none does, the gentlest kind that gets closest.
+     */
+    private static ComposedPlan move(Context ctx, ComposedPlan plan, Tier tier, boolean cheaper,
+            Predicate<BigDecimal> done) {
+        ComposedPlan working = plan;
+        for (int round = 0; round < MAX_ROUNDS; round++) {
+            Optional<ComposedPlan.PackageResult> pkg = packageOf(working, tier);
+            if (pkg.isEmpty() || done.test(fromPerPerson(pkg.get(), ctx.brief))) {
+                break;
+            }
+            List<Step> steps = steps(ctx, working, tier, cheaper);
+            Comparator<Step> least = cheaper ? Comparator.comparing(Step::price, Comparator.reverseOrder())
+                    : Comparator.comparing(Step::price);
+            Optional<Step> next = steps.stream().filter(step -> done.test(step.price()))
+                    .min(Comparator.comparingInt(Step::kind).thenComparing(least))
+                    .or(() -> steps.stream().min(Comparator.comparingInt(Step::kind).thenComparing(least.reversed())));
+            if (next.isEmpty()) {
+                break;
+            }
+            working = next.get().plan();
+            ctx.edits++;
+        }
+        return working;
+    }
+
+    /** Every single edit of the package that moves its price the way asked, applied and priced. */
+    private static List<Step> steps(Context ctx, ComposedPlan plan, Tier tier, boolean cheaper) {
+        ComposedPlan.PackageResult pkg = packageOf(plan, tier).orElseThrow();
+        BigDecimal before = fromPerPerson(pkg, ctx.brief);
         List<Step> steps = new ArrayList<>();
-        List<List<EditRequest>> byKind = candidates(pkg, catalog, wished);
-        for (int kind = 0; kind < byKind.size(); kind++) {
-            for (EditRequest edit : byKind.get(kind)) {
-                EditOutcome outcome = editor.apply(plan, brief, catalog, List.of(edit));
-                if (!outcome.anyApplied()) {
-                    continue;
-                }
-                ComposedPlan.PackageResult after = packageOf(outcome.plan(), pkg.key()).orElse(null);
-                if (after == null || after.activityIds().isEmpty()) {
-                    continue;
-                }
-                BigDecimal price = fromPerPerson(after, brief);
-                if (price.compareTo(fromPerPerson(pkg, brief)) >= 0) {
-                    continue;
-                }
-                steps.add(new Step(kind, outcome.plan(), price, price.compareTo(limit) <= 0,
-                        floor == null || price.compareTo(floor) > 0));
+        for (Candidate candidate : candidates(pkg, ctx, cheaper)) {
+            EditOutcome outcome = ctx.editor.apply(plan, ctx.brief, ctx.catalog, List.of(candidate.edit()));
+            if (!outcome.anyApplied()) {
+                continue;
+            }
+            Optional<ComposedPlan.PackageResult> after = packageOf(outcome.plan(), tier);
+            if (after.isEmpty() || after.get().activityIds().isEmpty()) {
+                continue;
+            }
+            BigDecimal price = fromPerPerson(after.get(), ctx.brief);
+            if (cheaper ? price.compareTo(before) < 0 : price.compareTo(before) > 0) {
+                steps.add(new Step(candidate.kind(), outcome.plan(), price));
             }
         }
-        Comparator<Step> order = Comparator.comparing((Step step) -> !step.keepsOrder());
-        Optional<Step> fitting = steps.stream().filter(Step::fits)
-                .min(order.thenComparingInt(Step::kind).thenComparing(Step::price, Comparator.reverseOrder()));
-        if (fitting.isPresent()) {
-            return Optional.of(fitting.get().plan());
-        }
-        // Nothing gets there in one: the gentlest kind of edit goes first (an extra, then a swap, then a removal),
-        // the one of that kind that saves most - so a package loses its dearest activity only when nothing else is left.
-        return steps.stream().min(order.thenComparingInt(Step::kind).thenComparing(Step::price)).map(Step::plan);
+        return steps;
     }
 
-    /** Extras to drop, activities to swap for cheaper ones, activities to take out - each kind in its own list. */
-    private static List<List<EditRequest>> candidates(ComposedPlan.PackageResult pkg, List<CatalogActivity> catalog,
-            Set<UUID> wished) {
-        List<EditRequest> dropExtras = new ArrayList<>();
-        List<EditRequest> swaps = new ArrayList<>();
-        List<EditRequest> removals = new ArrayList<>();
+    private record Candidate(int kind, EditRequest edit) {
+    }
+
+    /**
+     * Cheaper: chosen extras to drop, cheaper activities of the same kind to swap in, activities to take out.
+     * Dearer: dearer activities of the same kind to swap in. Never what was asked for by name.
+     */
+    private static List<Candidate> candidates(ComposedPlan.PackageResult pkg, Context ctx, boolean cheaper) {
+        List<Candidate> candidates = new ArrayList<>();
         Set<UUID> inPackage = new HashSet<>(pkg.activityIds());
         for (ComposedPlan.DayResult day : pkg.days()) {
             for (ComposedPlan.ItemResult item : day.items()) {
-                for (ComposedPlan.ItemExtra extra : item.extras()) {
-                    dropExtras.add(new EditRequest(EditOp.REMOVE_EXTRA, item.name(), null, pkg.key(), null, null,
-                            List.of(), item.activityId(), extra.name()));
+                if (cheaper) {
+                    for (ComposedPlan.ItemExtra extra : item.extras()) {
+                        candidates.add(new Candidate(DROP_EXTRA, new EditRequest(EditOp.REMOVE_EXTRA, item.name(), null,
+                                pkg.key(), null, null, List.of(), item.activityId(), extra.name())));
+                    }
                 }
-                if (wished.contains(item.activityId())) {
+                if (ctx.wished.contains(item.activityId())) {
                     continue;
                 }
-                CatalogActivity current = catalog.stream().filter(a -> a.id().equals(item.activityId()))
+                CatalogActivity current = ctx.catalog.stream().filter(a -> a.id().equals(item.activityId()))
                         .findFirst().orElse(null);
                 if (current != null) {
-                    catalog.stream()
+                    Comparator<CatalogActivity> nearest = Comparator.comparing(CatalogActivity::price);
+                    ctx.catalog.stream()
                             .filter(a -> !inPackage.contains(a.id()))
-                            .filter(a -> a.price().compareTo(current.price()) < 0)
+                            .filter(a -> cheaper ? a.price().compareTo(current.price()) < 0
+                                    : a.price().compareTo(current.price()) > 0)
                             .filter(a -> a.categorySlugs().stream().anyMatch(current.categorySlugs()::contains))
-                            .sorted(Comparator.comparing(CatalogActivity::price).reversed())
+                            .sorted(cheaper ? nearest.reversed() : nearest)
                             .limit(SWAPS_PER_ACTIVITY)
-                            .forEach(cheaper -> swaps.add(new EditRequest(EditOp.REPLACE, item.name(), cheaper.name(),
-                                    pkg.key(), day.dayNumber(), null, List.of(), item.activityId())));
+                            .forEach(other -> candidates.add(new Candidate(SWAP, new EditRequest(EditOp.REPLACE,
+                                    item.name(), other.name(), pkg.key(), day.dayNumber(), null, List.of(),
+                                    item.activityId()))));
                 }
-                removals.add(new EditRequest(EditOp.REMOVE, item.name(), null, pkg.key(), day.dayNumber(), null,
-                        List.of(), item.activityId()));
+                if (cheaper) {
+                    candidates.add(new Candidate(REMOVE, new EditRequest(EditOp.REMOVE, item.name(), null, pkg.key(),
+                            day.dayNumber(), null, List.of(), item.activityId())));
+                }
             }
         }
-        return List.of(dropExtras, swaps, removals);
+        return candidates;
     }
 
     private static Set<UUID> wishedIds(Brief brief, List<CatalogActivity> catalog) {
@@ -196,13 +245,11 @@ public final class BudgetFitter {
         return ids;
     }
 
-    private static Optional<ComposedPlan.PackageResult> packageOf(ComposedPlan plan, Tier tier) {
-        return plan.packages().stream().filter(pkg -> pkg.key() == tier).findFirst();
+    private static BigDecimal priceOf(ComposedPlan plan, Tier tier, Brief brief) {
+        return packageOf(plan, tier).map(pkg -> fromPerPerson(pkg, brief)).orElse(BigDecimal.ZERO);
     }
 
-    private static Optional<ComposedPlan.PackageResult> packageBelow(ComposedPlan plan, Tier tier) {
-        return plan.packages().stream()
-                .filter(pkg -> pkg.key().compareTo(tier) < 0)
-                .max(Comparator.comparing(ComposedPlan.PackageResult::key));
+    private static Optional<ComposedPlan.PackageResult> packageOf(ComposedPlan plan, Tier tier) {
+        return plan.packages().stream().filter(pkg -> pkg.key() == tier).findFirst();
     }
 }

@@ -339,12 +339,12 @@ class PromptRendererTest {
     }
 
     @Test
-    void budgetRule_raisesTheShownLimitByTheMargin_andIsEmptyWithoutABudget() {
+    void budgetRule_aimsBasicAtTheBudgetRaisedByTheMargin_andIsEmptyWithoutABudget() {
         Brief perPerson = new Brief(2, 4, List.of(), "beer", null, null, null, null, null, List.of(),
                 new BudgetLimit(new BigDecimal("135"), BudgetLimit.Basis.PER_PERSON));
         Brief none = new Brief(2, 4, List.of(), "beer", null, null, null, null, null);
 
-        assertThat(PromptRenderer.budgetRule(perPerson)).contains("at most 150.00 EUR per person");
+        assertThat(PromptRenderer.budgetRule(perPerson)).contains("BASIC should cost about 150 EUR per person");
         assertThat(PromptRenderer.budgetRule(none)).isEmpty();
     }
 }

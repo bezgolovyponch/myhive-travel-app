@@ -35,7 +35,7 @@ test('success page clears the trip so paid activities are not booked twice', () 
     renderSuccessPage();
 
     expect(JSON.parse(localStorage.getItem('myhive-trip-items'))).toEqual([]);
-    const expectedSetup = {travelers: 1, startDate: '', endDate: '', budget: null, budgetBasis: null};
+    const expectedSetup = {travelers: 1, startDate: '', endDate: '', budget: null};
     expect(JSON.parse(localStorage.getItem('myhive-trip-setup'))).toEqual(expectedSetup);
 });
 

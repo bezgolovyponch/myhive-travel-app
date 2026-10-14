@@ -14,7 +14,6 @@ import com.myhive.backend.ai.llm.ChatMessage;
 import com.myhive.backend.ai.llm.LlmOutputParser;
 import com.myhive.backend.ai.model.Brief;
 import com.myhive.backend.ai.plan.AttemptDiagnostic;
-import com.myhive.backend.ai.plan.BudgetFitter;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.model.Tier;
 import com.myhive.backend.ai.plan.DraftGaps;
@@ -349,8 +348,7 @@ public class AiDtoMapper {
                 result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice(), extras),
                 FromPrice.perPerson(result.totalPrice(), extras, groupSize), result.currency(),
                 result.totalDurationMinutes(),
-                result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights(),
-                BudgetFitter.overBudget(result, brief));
+                result.activityIds(), result.days().stream().map(AiDtoMapper::plannedDay).toList(), result.nights());
     }
 
     private static PackageDTO.DayDTO plannedDay(ComposedPlan.DayResult result) {

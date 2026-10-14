@@ -104,13 +104,7 @@
     "confirm": "Bestätigen",
     "travelersLabel": "Anzahl der Reisenden *",
     "decreaseAria": "Weniger Reisende",
-    "increaseAria": "Mehr Reisende",
-    "budgetLabel": "Budget in € (optional)",
-    "budgetPlaceholder": "z. B. 150",
-    "budgetPerPerson": "pro Person",
-    "budgetTotal": "für die Gruppe",
-    "budgetBasisAria": "Budget pro Person oder für die ganze Gruppe",
-    "budgetHint": "Wir passen den Plan daran an."
+    "increaseAria": "Mehr Reisende"
   },
   "tripDropdown": {
     "title": "Trip-Planer",
@@ -622,11 +616,7 @@
     "budget": {
       "spent": "Ausgegeben",
       "budget": "Budget",
-      "remaining": "Übrig",
-      "plan": "Plan",
-      "perPerson": "{price} / Person",
-      "total": "{price} für die Gruppe",
-      "over": "Der Plan liegt über eurem Budget."
+      "remaining": "Übrig"
     },
     "restore": {
       "title": "Aktuellen Trip ersetzen?",
@@ -665,8 +655,6 @@
       "keep": "{keep}/{votes} dafür",
       "planTitle": "Der Plan",
       "fromPerPerson": "ab {price} p. P.",
-      "budget": "Budget: {budget}",
-      "budgetOver": "Über eurem Budget von {budget}",
       "rowPerPerson": "{price} / Person",
       "recsEmpty": "Noch nichts. Was deine Freunde vorschlagen, erscheint hier.",
       "backToPlan": "Zurück zum Plan",
@@ -1238,10 +1226,6 @@
       "completeBooking": "Buchung abschließen",
       "bookWithoutVote": "Keine Lust auf Abstimmung? Buch direkt!",
       "priceFromPerPerson": "ab {price} p. P.",
-      "budgetPerPerson": "{price} / Person",
-      "budgetTotal": "{price} für die Gruppe",
-      "budgetFits": "Passt in euer Budget von {budget}",
-      "budgetOver": "Über eurem Budget von {budget}",
       "perPerson": "pro Person",
       "sendToPlanner": "Frag die Gruppe",
       "title": "{destination}-JGA",

@@ -10,7 +10,6 @@ export interface VoteSetup {
   endDate: string;
   destination: { id: string; slug: string; name: string };
   budget: number | null;
-  budgetBasis: 'PER_PERSON' | 'TOTAL' | null;
 }
 
 const TripSetupModal = LegacyTripSetupModal as ComponentType<{

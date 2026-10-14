@@ -14,7 +14,6 @@ import {DEFAULT_DESTINATION_SLUG} from '../services/config';
 import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
 import {formatDayRange, nightsBetween, parseISODate} from '../utils/format';
-import {budgetLimitOf} from '../utils/tripBudget';
 import {PLANNER_DRAFT_KEY} from '../components/home/HeroPlanner';
 import {useLocale, useT} from '../i18n';
 import './AiPlannerPage.css';
@@ -171,9 +170,6 @@ function AiPlannerPage({pollIntervalMs}) {
         const preset = {};
         if (draft.days) preset.days = draft.days;
         if (draft.groupSize) preset.groupSize = draft.groupSize;
-        // The budget the trip form took: every package is fitted to it.
-        const budgetLimit = budgetLimitOf(trip);
-        if (budgetLimit) preset.budgetLimit = budgetLimit;
         planner.send(draft.message, preset);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [planner, trip.restored]);

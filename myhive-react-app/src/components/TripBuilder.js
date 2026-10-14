@@ -5,7 +5,6 @@ import api from '../services/api';
 import voteApi from '../services/voteApi';
 import {capitalizeFirst, formatDate, formatPrice} from '../utils/format';
 import {computeTripTotal, extrasOf, groupTripItems} from '../utils/tripPricing';
-import {PER_PERSON, budgetBasisOf, budgetPerPerson} from '../utils/tripBudget';
 import {pushEvent} from '../utils/analytics';
 import {resolveUserRole} from '../utils/userRole';
 import {getAttribution, getRef} from '../utils/attribution';
@@ -683,13 +682,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // server; activity lines and lists carry none.
   const planQuote = usePlanFromPrice(state.tripItems, travelers);
   const planFromPrice = planQuote?.fromPrice ?? null;
-  // The budget as the organizer put it, and whether the plan's "from" price per person is above it.
-  const budgetEach = budgetPerPerson(state);
-  const budgetLabel = state.tripBudget == null ? null : (budgetBasisOf(state) === PER_PERSON
-      ? t('budget.perPerson', {price: formatPrice(budgetEach)})
-      : t('budget.total', {price: formatPrice(Number(state.tripBudget))}));
-  const planOverBudget = budgetEach != null && planQuote?.fromPricePerPerson != null
-      && Number(planQuote.fromPricePerPerson) > budgetEach;
   // The organiser's dashboard prices each line per person, from the same quote as the plan's "from" price.
   const linePrice = item => {
     const line = planQuote?.lines?.find(l => l.activityId === item.id && (l.packageId ?? null) === (item.packageId || null));
@@ -848,11 +840,6 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                 </span>
             )}
           </div>
-          {budgetLabel && (
-              <p className={`vd-plan-budget${planOverBudget ? ' is-over' : ''}`}>
-                {t(planOverBudget ? 'dashboard.budgetOver' : 'dashboard.budget', {budget: budgetLabel})}
-              </p>
-          )}
           {state.tripItems.length === 0 && droppedRows.length === 0 ? (
               <p className="vd-muted">{t('emptyState')}</p>
           ) : (
@@ -1227,19 +1214,19 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
       {railVisible && (
           <aside className="trip-builder-rail">
             {state.tripBudget != null && (
-                // The budget against the plan's "from" price, both per person: no exact totals (owner's rule).
-                <div className={`trip-vote-budget${planOverBudget ? ' trip-vote-budget--over' : ''}`}>
+                <div className="trip-vote-budget">
+                  <div className="trip-vote-budget-row">
+                    <span>{t('budget.spent')}</span>
+                    <span>{formatPrice(totalPrice)}</span>
+                  </div>
                   <div className="trip-vote-budget-row">
                     <span>{t('budget.budget')}</span>
-                    <span>{budgetLabel}</span>
+                    <span>{formatPrice(state.tripBudget)}</span>
                   </div>
-                  {planQuote?.fromPricePerPerson != null && (
-                      <div className={`trip-vote-budget-row ${planOverBudget ? 'trip-vote-budget-over' : ''}`}>
-                        <span>{t('budget.plan')}</span>
-                        <span>{t('dashboard.fromPerPerson', {price: formatPrice(Number(planQuote.fromPricePerPerson))})}</span>
-                      </div>
-                  )}
-                  {planOverBudget && <p className="trip-vote-budget-note">{t('budget.over')}</p>}
+                  <div className={`trip-vote-budget-row ${state.tripBudget - totalPrice < 0 ? 'trip-vote-budget-over' : ''}`}>
+                    <span>{t('budget.remaining')}</span>
+                    <span>{formatPrice(state.tripBudget - totalPrice)}</span>
+                  </div>
                 </div>
             )}
             {voteCtaVisible && (

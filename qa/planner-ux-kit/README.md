@@ -72,7 +72,8 @@ The checks follow the owner's decisions of 2026-10-12:
 Owner's decision of 2026-10-14, outside what the kit drives: once the vote link exists, the organiser's
 dashboard shows each activity's own share of the plan's "from" price, per person (activities x 0.90 after
 any package discount, plus that activity's extras in full). Nowhere else does an activity carry a price.
-A budget, when one was given, is said against the plan's "from" price per person, never as an exact total.
+A budget named in the AI chat sets BASIC's "from" price per person (about it, within 10 %); MEDIUM and PREMIUM
+stay dearer. The budget is never shown or mentioned anywhere.
 
 Fixed since the first run of this kit, each now a passing check: undo lost on reload (A22); "X with an extra"
 for an activity not in the plan (T05); the extras hint wrapping to five lines (B02); 3.85:1 small text on the

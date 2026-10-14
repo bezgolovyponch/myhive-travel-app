@@ -475,12 +475,6 @@
   font-weight: 600;
 }
 
-.trip-vote-budget-note {
-  margin: 6px 0 0;
-  font-size: 0.8125rem;
-  color: #dc3545;
-}
-
 /* Vote-session suggestions — flow inline in the main column, above the
    "Browse More Activities" list. */
 .trip-vote-suggestions {

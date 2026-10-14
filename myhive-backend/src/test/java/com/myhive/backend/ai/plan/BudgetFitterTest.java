@@ -37,64 +37,58 @@ class BudgetFitterTest {
     private final CatalogActivity paintball = activity("Paintball", "30.00", 120, "adrenaline");
 
     @Test
-    void packageOverTheBudget_swapsAnActivityForACheaperOneOfTheSameKind_andKeepsTheTiersInOrder() {
-        // PREMIUM: 145 per person at catalog prices -> from 131. Shooting for paintball: 115 -> from 104, still
-        // above MEDIUM's 99; taking anything out would fit too but drop PREMIUM under MEDIUM.
-        Brief brief = brief(new BudgetLimit(new BigDecimal("110"), BudgetLimit.Basis.PER_PERSON), List.of());
-        ComposedPlan plan = basePlan(brief);
-
-        ComposedPlan fitted = BudgetFitter.fit(editor, plan, brief, catalog);
-
-        assertThat(namesIn(fitted, Tier.PREMIUM)).contains(paintball.name()).doesNotContain(shootingRange.name());
-        assertThat(BudgetFitter.fromPerPerson(packageOf(fitted, Tier.PREMIUM), brief)).isEqualByComparingTo("104");
-        assertThat(namesIn(fitted, Tier.BASIC)).isEqualTo(namesIn(plan, Tier.BASIC));
-        assertThat(namesIn(fitted, Tier.MEDIUM)).isEqualTo(namesIn(plan, Tier.MEDIUM));
-        assertThat(fitted.packages()).noneMatch(pkg -> BudgetFitter.overBudget(pkg, brief));
-    }
-
-    @Test
-    void aTightBudget_stillLeavesTheTiersRisingInPrice() {
+    void basicTooCheapForTheBudget_swapsUpToADearerActivityOfTheSameKind_andTheTiersStillRise() {
+        // BASIC from 41 against a budget of 60: the River Cruise (25) for the Beer Bike (45), both sightseeing,
+        // makes it 65 per person at catalog prices -> from 59.
         Brief brief = brief(new BudgetLimit(new BigDecimal("60"), BudgetLimit.Basis.PER_PERSON), List.of());
 
         ComposedPlan fitted = BudgetFitter.fit(editor, basePlan(brief), brief, catalog);
 
-        List<BigDecimal> prices = fitted.packages().stream().map(pkg -> BudgetFitter.fromPerPerson(pkg, brief)).toList();
-        assertThat(prices).allSatisfy(price -> assertThat(price).isLessThanOrEqualTo(new BigDecimal("60")));
-        assertThat(prices.get(0)).isLessThan(prices.get(1));
-        assertThat(prices.get(1)).isLessThan(prices.get(2));
+        assertThat(namesIn(fitted, Tier.BASIC)).containsExactlyInAnyOrder(beerBike.name(), escapeRoom.name());
+        assertThat(priceOf(fitted, Tier.BASIC, brief)).isEqualByComparingTo("59");
+        assertThat(priceOf(fitted, Tier.BASIC, brief).multiply(BudgetFitter.STEP_UP))
+                .isLessThanOrEqualTo(priceOf(fitted, Tier.MEDIUM, brief));
+        assertThat(priceOf(fitted, Tier.MEDIUM, brief)).isLessThan(priceOf(fitted, Tier.PREMIUM, brief));
     }
 
     @Test
-    void aBudgetForTheWholeGroup_isHeldPerPerson() {
-        Brief brief = brief(new BudgetLimit(new BigDecimal("440"), BudgetLimit.Basis.TOTAL), List.of());
+    void basicTooDearForTheBudget_givesUpWhatLandsItNearest() {
+        // BASIC from 41 against 25: without the Escape Room it is from 23, without the cruise from 18.
+        Brief brief = brief(new BudgetLimit(new BigDecimal("25"), BudgetLimit.Basis.PER_PERSON), List.of());
 
         ComposedPlan fitted = BudgetFitter.fit(editor, basePlan(brief), brief, catalog);
 
-        assertThat(brief.budgetPerPerson()).isEqualByComparingTo("110");
-        assertThat(fitted.packages()).noneMatch(pkg -> BudgetFitter.overBudget(pkg, brief));
+        assertThat(namesIn(fitted, Tier.BASIC)).containsExactly(riverCruise.name());
+        assertThat(priceOf(fitted, Tier.BASIC, brief)).isEqualByComparingTo("23");
     }
 
     @Test
     void whatWasAskedForByName_isNeverWhatGoes() {
-        Brief brief = brief(new BudgetLimit(new BigDecimal("110"), BudgetLimit.Basis.PER_PERSON),
-                List.of(new Wish(List.of(shootingRange.name()), null)));
+        Brief brief = brief(new BudgetLimit(new BigDecimal("25"), BudgetLimit.Basis.PER_PERSON),
+                List.of(new Wish(List.of(escapeRoom.name()), null)));
 
         ComposedPlan fitted = BudgetFitter.fit(editor, basePlan(brief), brief, catalog);
 
-        assertThat(namesIn(fitted, Tier.PREMIUM)).contains(shootingRange.name());
-        assertThat(BudgetFitter.overBudget(packageOf(fitted, Tier.PREMIUM), brief)).isFalse();
+        assertThat(namesIn(fitted, Tier.BASIC)).containsExactly(escapeRoom.name());
     }
 
     @Test
-    void aBudgetNothingCanMeet_leavesEveryPackageWithAnActivity_andSaysItIsOver() {
-        Brief brief = brief(new BudgetLimit(new BigDecimal("5"), BudgetLimit.Basis.PER_PERSON), List.of());
+    void aBudgetForTheWholeGroup_isAimedAtPerPerson() {
+        Brief brief = brief(new BudgetLimit(new BigDecimal("240"), BudgetLimit.Basis.TOTAL), List.of());
 
         ComposedPlan fitted = BudgetFitter.fit(editor, basePlan(brief), brief, catalog);
 
-        assertThat(fitted.packages()).allSatisfy(pkg -> {
-            assertThat(pkg.activityIds()).isNotEmpty();
-            assertThat(BudgetFitter.overBudget(pkg, brief)).isTrue();
-        });
+        assertThat(brief.budgetPerPerson()).isEqualByComparingTo("60");
+        assertThat(priceOf(fitted, Tier.BASIC, brief)).isEqualByComparingTo("59");
+    }
+
+    @Test
+    void basicAlreadyAboutTheBudget_isLeftAsItIs() {
+        Brief brief = brief(new BudgetLimit(new BigDecimal("44"), BudgetLimit.Basis.PER_PERSON), List.of());
+        ComposedPlan plan = basePlan(brief);
+
+        assertThat(namesIn(BudgetFitter.fit(editor, plan, brief, catalog), Tier.BASIC))
+                .isEqualTo(namesIn(plan, Tier.BASIC));
     }
 
     @Test
@@ -103,7 +97,6 @@ class BudgetFitterTest {
         ComposedPlan plan = basePlan(brief);
 
         assertThat(BudgetFitter.fit(editor, plan, brief, catalog)).isSameAs(plan);
-        assertThat(plan.packages()).noneMatch(pkg -> BudgetFitter.overBudget(pkg, brief));
     }
 
     private static Brief brief(BudgetLimit limit, List<Wish> wishes) {
@@ -149,6 +142,10 @@ class BudgetFitterTest {
 
     private static ComposedPlan.PackageResult packageOf(ComposedPlan plan, Tier tier) {
         return plan.packages().stream().filter(pkg -> pkg.key() == tier).findFirst().orElseThrow();
+    }
+
+    private static BigDecimal priceOf(ComposedPlan plan, Tier tier, Brief brief) {
+        return BudgetFitter.fromPerPerson(packageOf(plan, tier), brief);
     }
 
     private static List<String> namesIn(ComposedPlan plan, Tier tier) {

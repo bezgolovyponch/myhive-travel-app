@@ -137,18 +137,6 @@
     color: var(--aip-text);
 }
 
-/* The budget the plan was fitted to, under the price; red only when this package is above it. */
-.aip-budget {
-    margin: 6px 0 0;
-    text-align: right;
-    font-size: 12px;
-    color: var(--aip-muted);
-}
-
-.aip-budget.is-over {
-    color: var(--error, #ff5459);
-}
-
 /* One section per day: the date (or "Day N") and the planner's name for it, the
    count, then the rows. An empty day stays on the page - a two-day trip must
    never read as one. */
