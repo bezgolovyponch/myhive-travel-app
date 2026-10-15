@@ -262,7 +262,7 @@ public class AiDtoMapper {
         Integer groupSize = brief == null ? null : brief.groupSize();
         List<PackageDTO> packages = ready || skeleton
                 ? JsonCodec.read(generation.getResult(), ComposedPlan.class).packages().stream()
-                        .map(result -> plannedPackage(result, groupSize))
+                        .map(result -> plannedPackage(result, brief))
                         .toList()
                 : null;
         return new GenerationDTO(generation.getId(), sessionToken, generation.getStatus().name(),
@@ -341,7 +341,8 @@ public class AiDtoMapper {
                 !NON_RETRYABLE_ERROR_CODE.equals(generation.getErrorCode()));
     }
 
-    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result, Integer groupSize) {
+    private static PackageDTO plannedPackage(ComposedPlan.PackageResult result, Brief brief) {
+        Integer groupSize = brief == null ? null : brief.groupSize();
         BigDecimal extras = result.extrasTotal();
         return new PackageDTO(result.key().name(), result.title(), result.tagline(), result.description(),
                 result.pricePerPerson(), result.totalPrice(), FromPrice.of(result.totalPrice(), extras),

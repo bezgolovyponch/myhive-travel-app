@@ -682,6 +682,11 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
   // server; activity lines and lists carry none.
   const planQuote = usePlanFromPrice(state.tripItems, travelers);
   const planFromPrice = planQuote?.fromPrice ?? null;
+  // The organiser's dashboard prices each line per person, from the same quote as the plan's "from" price.
+  const linePrice = item => {
+    const line = planQuote?.lines?.find(l => l.activityId === item.id && (l.packageId ?? null) === (item.packageId || null));
+    return line?.fromPricePerPerson != null ? formatPrice(Number(line.fromPricePerPerson)) : null;
+  };
 
   const {standalone, groups: groupsArray} = groupTripItems(state.tripItems);
   // Display-only ranking for a completed CART vote — ties/unballoted items keep
@@ -859,6 +864,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                                   key={item.id}
                                   name={item.name}
                                   row={tallyById[item.id]}
+                                  price={linePrice(item)}
                                   onOpen={() => setPreviewActivity(item)}
                                   onRemove={() => handleRemoveActivity(item.id)}
                               />

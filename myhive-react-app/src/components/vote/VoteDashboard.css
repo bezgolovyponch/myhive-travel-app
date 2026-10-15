@@ -133,6 +133,13 @@
     border: 1px solid #2e2b3a;
 }
 
+.vd-row-price {
+    flex: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .vd-row-body {
     flex: 1;
     min-width: 0;

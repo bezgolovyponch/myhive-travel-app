@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.llm;
 
+import com.myhive.backend.ai.model.BudgetLimit;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.edit.EditOp;
 import com.myhive.backend.ai.edit.EditRequest;
@@ -420,5 +421,19 @@ class LlmOutputParserTest {
         assertThat(parser.parseChatTurn("{\"reply\": \"Here.\", \"brief\": {}, \"showPackage\": \"GOLD\"}")
                 .showPackage()).isNull();
         assertThat(parser.parseChatTurn("{\"reply\": \"Hi\", \"brief\": {}}").showPackage()).isNull();
+    }
+
+    @Test
+    void budgetInEuros_isReadAsAnObject_aBareNumberAsPerPerson_andAnythingElseIsDropped() {
+        String object = "{\"reply\":\"ok\",\"brief\":{\"budgetLimit\":{\"amount\":1200,\"basis\":\"TOTAL\"}}}";
+        String number = "{\"reply\":\"ok\",\"brief\":{\"budgetLimit\":150}}";
+        String words = "{\"reply\":\"ok\",\"brief\":{\"days\":2,\"budgetLimit\":\"about 150 euros\"}}";
+
+        assertThat(parser.parseChatTurn(object).briefUpdate().budgetLimit())
+                .isEqualTo(new BudgetLimit(new BigDecimal("1200"), BudgetLimit.Basis.TOTAL));
+        assertThat(parser.parseChatTurn(number).briefUpdate().budgetLimit())
+                .isEqualTo(new BudgetLimit(new BigDecimal("150"), BudgetLimit.Basis.PER_PERSON));
+        assertThat(parser.parseChatTurn(words).briefUpdate().budgetLimit()).isNull();
+        assertThat(parser.parseChatTurn(words).briefUpdate().days()).isEqualTo(2);
     }
 }

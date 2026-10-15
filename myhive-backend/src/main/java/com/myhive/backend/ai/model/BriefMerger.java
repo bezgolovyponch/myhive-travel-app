@@ -21,7 +21,16 @@ public final class BriefMerger {
                 pick(update.departure(), current.departure()),
                 trim(pick(update.notes(), current.notes())),
                 // Like the categories: a turn that names no wish keeps the ones already made.
-                update.wishes().isEmpty() ? current.wishes() : update.wishes());
+                update.wishes().isEmpty() ? current.wishes() : update.wishes(),
+                budgetLimit(update.budgetLimit(), current.budgetLimit()));
+    }
+
+    /** Not mentioned keeps the budget; a non-positive amount ("no budget after all") clears it. */
+    private static BudgetLimit budgetLimit(BudgetLimit update, BudgetLimit current) {
+        if (update == null) {
+            return current;
+        }
+        return update.isLimit() ? update : null;
     }
 
     private static <T> T pick(T update, T current) {

@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.model;
 
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -93,5 +94,18 @@ class BriefMergerTest {
 
         assertThat(b.arrivalOrDefault()).isEqualTo(expectedArrival);
         assertThat(b.departureOrDefault()).isEqualTo(expectedDeparture);
+    }
+
+    @Test
+    void budgetInEuros_isKeptWhenNotMentioned_andClearedByZero() {
+        BudgetLimit expected = new BudgetLimit(new BigDecimal("150"), BudgetLimit.Basis.PER_PERSON);
+        Brief withBudget = Brief.empty().withBudgetLimit(expected);
+
+        Brief silent = BriefMerger.merge(withBudget, Brief.empty());
+        Brief dropped = BriefMerger.merge(withBudget,
+                Brief.empty().withBudgetLimit(new BudgetLimit(BigDecimal.ZERO, BudgetLimit.Basis.PER_PERSON)));
+
+        assertThat(silent.budgetLimit()).isEqualTo(expected);
+        assertThat(dropped.budgetLimit()).isNull();
     }
 }

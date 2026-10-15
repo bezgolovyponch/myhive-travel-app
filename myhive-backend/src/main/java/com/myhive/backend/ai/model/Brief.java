@@ -7,7 +7,14 @@ import java.util.List;
 
 public record Brief(Integer days, Integer groupSize, List<String> categorySlugs, String vibe,
                     String dislikes, BudgetHint budget, DayEdge arrival, DayEdge departure, String notes,
-                    List<Wish> wishes) {
+                    List<Wish> wishes, BudgetLimit budgetLimit) {
+
+    /** A brief with no budget named in euros. */
+    public Brief(Integer days, Integer groupSize, List<String> categorySlugs, String vibe,
+                 String dislikes, BudgetHint budget, DayEdge arrival, DayEdge departure, String notes,
+                 List<Wish> wishes) {
+        this(days, groupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes, wishes, null);
+    }
 
     /** A brief with nothing asked for by name. */
     public Brief(Integer days, Integer groupSize, List<String> categorySlugs, String vibe,
@@ -41,20 +48,23 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
     }
 
     public Brief withCategorySlugs(List<String> slugs) {
-        return new Brief(days, groupSize, slugs, vibe, dislikes, budget, arrival, departure, notes, wishes);
+        return new Brief(days, groupSize, slugs, vibe, dislikes, budget, arrival, departure, notes, wishes,
+                budgetLimit);
     }
 
     public Brief withVibe(String newVibe) {
-        return new Brief(days, groupSize, categorySlugs, newVibe, dislikes, budget, arrival, departure, notes, wishes);
+        return new Brief(days, groupSize, categorySlugs, newVibe, dislikes, budget, arrival, departure, notes, wishes,
+                budgetLimit);
     }
 
     public Brief withWishes(List<Wish> newWishes) {
-        return new Brief(days, groupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes, newWishes);
+        return new Brief(days, groupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes, newWishes,
+                budgetLimit);
     }
 
     public Brief withShape(Integer newDays, Integer newGroupSize) {
         return new Brief(newDays, newGroupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes,
-                wishes);
+                wishes, budgetLimit);
     }
 
     @JsonIgnore
@@ -98,7 +108,19 @@ public record Brief(Integer days, Integer groupSize, List<String> categorySlugs,
         if (!onlyTasteMissing || notes == null || notes.isBlank()) {
             return this;
         }
-        return new Brief(days, groupSize, categorySlugs, notes, dislikes, budget, arrival, departure, null, wishes);
+        return new Brief(days, groupSize, categorySlugs, notes, dislikes, budget, arrival, departure, null, wishes,
+                budgetLimit);
+    }
+
+    public Brief withBudgetLimit(BudgetLimit limit) {
+        return new Brief(days, groupSize, categorySlugs, vibe, dislikes, budget, arrival, departure, notes, wishes,
+                limit);
+    }
+
+    /** What one traveller's "from" price may come to; null when no budget was named in euros. */
+    @JsonIgnore
+    public java.math.BigDecimal budgetPerPerson() {
+        return budgetLimit == null ? null : budgetLimit.perPerson(groupSize);
     }
 
     @JsonIgnore

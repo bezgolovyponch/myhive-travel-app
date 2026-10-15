@@ -1,5 +1,6 @@
 package com.myhive.backend.ai.llm;
 
+import com.myhive.backend.ai.model.BudgetLimit;
 import com.myhive.backend.ai.catalog.CatalogActivity;
 import com.myhive.backend.ai.catalog.CatalogPreset;
 import com.myhive.backend.ai.model.Brief;
@@ -335,5 +336,15 @@ class PromptRendererTest {
 
         assertThat(renderer.plannerSystem(request)).doesNotContain("READY-MADE");
         assertThat(renderer.plannerUser(request)).doesNotContain("READY-MADE");
+    }
+
+    @Test
+    void budgetRule_aimsBasicAtTheBudgetRaisedByTheMargin_andIsEmptyWithoutABudget() {
+        Brief perPerson = new Brief(2, 4, List.of(), "beer", null, null, null, null, null, List.of(),
+                new BudgetLimit(new BigDecimal("135"), BudgetLimit.Basis.PER_PERSON));
+        Brief none = new Brief(2, 4, List.of(), "beer", null, null, null, null, null);
+
+        assertThat(PromptRenderer.budgetRule(perPerson)).contains("BASIC should cost about 150 EUR per person");
+        assertThat(PromptRenderer.budgetRule(none)).isEmpty();
     }
 }

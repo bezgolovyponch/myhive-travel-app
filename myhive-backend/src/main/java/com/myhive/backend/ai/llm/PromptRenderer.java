@@ -11,7 +11,9 @@ import com.myhive.backend.ai.plan.PlanDraft;
 import com.myhive.backend.ai.plan.PlanPricer;
 import com.myhive.backend.ai.plan.PlanValidator;
 import com.myhive.backend.ai.plan.Violation;
+import com.myhive.backend.util.FromPrice;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -120,7 +122,25 @@ public class PromptRenderer {
                 "departure", r.brief().departureOrDefault().slot().name(),
                 "dayWindows", dayWindows(r.brief()),
                 "maxTierSpread", String.valueOf(PlanAssembler.MAX_TIER_SPREAD),
-                "presetRules", r.presets().isEmpty() ? "" : PRESET_RULES.stripTrailing()));
+                "presetRules", r.presets().isEmpty() ? "" : PRESET_RULES.stripTrailing(),
+                "budgetRule", budgetRule(r.brief())));
+    }
+
+    /**
+     * The organizer's budget in euros, as the planner can aim at it: it is what BASIC should cost, per person at
+     * catalog prices with group minimums included - the number the ready-made packages are listed with. The
+     * shown "from" price is lower than that by the margin, so the figure is raised by it; MEDIUM and PREMIUM
+     * stay dearer as always. Approximate on purpose: the packages are fitted to it afterwards.
+     */
+    static String budgetRule(Brief brief) {
+        BigDecimal perPerson = brief.budgetPerPerson();
+        if (perPerson == null) {
+            return "";
+        }
+        return "- Budget: BASIC should cost about " + FromPrice.beforeMargin(perPerson).setScale(0, RoundingMode.HALF_UP)
+                + " EUR per person - the sum of its activities' price per person, group minimums included, as the"
+                + " ready-made packages are priced. MEDIUM and PREMIUM cost more than BASIC, as always. Where the"
+                + " ready-made BASIC is far from it, swap its activities for dearer or cheaper ones of the same kind.";
     }
 
     /**

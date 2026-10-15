@@ -3,6 +3,7 @@ package com.myhive.backend.ai.graph.nodes;
 import com.myhive.backend.ai.edit.PackageEditor;
 import com.myhive.backend.ai.graph.JsonCodec;
 import com.myhive.backend.ai.graph.PlannerState;
+import com.myhive.backend.ai.plan.BudgetFitter;
 import com.myhive.backend.ai.plan.ComposedPlan;
 import com.myhive.backend.ai.plan.PlanTextWriter;
 import com.myhive.backend.ai.plan.WishApplier;
@@ -54,7 +55,9 @@ public class PublishSkeletonNode implements NodeAction<PlannerState> {
         // What was asked for by name is in every package, on the day that was named, before the copy is
         // written for it and before the first poll shows it.
         ComposedPlan wished = WishApplier.apply(editor, result.get(), state.brief(), state.catalog());
-        ComposedPlan plan = PlanTextWriter.placeholders(wished, state.locale());
+        // Then the budget: after the wishes, so what was asked for by name is in and is never what goes.
+        ComposedPlan fitted = BudgetFitter.fit(editor, wished, state.brief(), state.catalog());
+        ComposedPlan plan = PlanTextWriter.placeholders(fitted, state.locale());
         Optional<UUID> generationId = state.generationId();
         PersistResultNode.GenerationResultSink sink = sinks.get();
         if (generationId.isPresent() && sink != null) {

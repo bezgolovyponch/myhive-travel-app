@@ -311,8 +311,8 @@ with "Moved X to day N." The chat can move too: "put karting on Saturday" comes 
 
 A plan the organizer has made their own (`workingPackage` set) is not rebuilt when a message only
 shifts the taste (vibe, categories, dislikes, budget): a rebuild starts from the ready-made packages
-and would discard what they added, removed and moved. A different number of days or people still
-rebuilds it.
+and would discard what they added, removed and moved. A different number of days or people, or a
+different `budgetLimit`, still rebuilds it (after the same one-turn warning).
 
 `recommendations` now holds up to 6 activities: as many as the organizer asked for when they gave a
 number, otherwise three, and a lone match is filled up to three with related ones. The client lists
@@ -906,7 +906,14 @@ With days and group size preset by the pickers, the first message (the line the 
 for the organizer) is not taken as the answer to the taste question: the chat asks it once
 and builds on the reply.
 
-`budget`: `LOW` | `MID` | `HIGH` | null. `arrival`/`departure`: `MORNING` |
+`budgetLimit`: the budget the organizer named in the chat, in euros: `{ "amount": 150, "basis": "PER_PERSON" }`,
+or `"basis": "TOTAL"` for the whole group; null without one. It is what BASIC should cost: the planner is told,
+and after the build BASIC's `fromPricePerPerson` is moved to within 10 % of it (a chosen extra dropped, an
+activity swapped for a cheaper or dearer one of the same kind, or one taken out - never what was asked for by
+name). MEDIUM and PREMIUM stay dearer than BASIC. The chat never asks for it and never mentions it; "0"
+clears it, and a changed budget rebuilds the packages.
+
+`budget`: `LOW` | `MID` | `HIGH` | null (a budget without a figure). `arrival`/`departure`: `MORNING` |
 `AFTERNOON` | `EVENING`. Fields are null until the agent learns them. `missingFields`
 can contain `days`, `groupSize`, `preferences`, `arrival`, `departure` — all five must be
 known before `readyToGenerate` turns true; `budget` never blocks generation.

@@ -14,6 +14,7 @@ Scheduling rules (hard):
 - Per day: BASIC max 2 activities and 360 minutes, MEDIUM max 3 and 480, PREMIUM max 4 and 540, counting 30 minutes between activities. Add the minutes up before you place a third activity.
 - Refer to activities ONLY by their catalog codes (A1, A2, ...) in "activityId". Never repeat an activity inside a package. Every middle day needs at least one activity.
 - Pick activities that fit the brief (vibe, categories, dislikes, budget). Use each activity's duration to keep days realistic.
+{budgetRule}
 - Put nightlife-type activities in EVENING/NIGHT and daytime tours in MORNING/AFTERNOON.
 
 Answer ONLY with a compact JSON object of this exact shape - one line, no indentation, no spaces after commas or colons:

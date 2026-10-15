@@ -34,6 +34,14 @@ public final class FromPrice {
     }
 
     /**
+     * The most the activities may cost at catalog prices for their "from" price to stay within {@code from}:
+     * {@code 135 -> 150.00}. What the planner is told to stay under, since it reads catalog prices.
+     */
+    public static BigDecimal beforeMargin(BigDecimal from) {
+        return from.divide(FACTOR, 2, RoundingMode.DOWN);
+    }
+
+    /**
      * One traveller's share of {@link #of}, rounded up to a whole euro so the shares never add up to
      * less than the group's "from" price; null when there is no "from" price or no head-count.
      */
