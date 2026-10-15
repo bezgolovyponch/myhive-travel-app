@@ -176,7 +176,7 @@ test('nothing but the dashboard: no trip summary, no pictures, no catalogue', as
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.queryByText('Beer spa')).not.toBeInTheDocument();
     const browse = screen.getByRole('link', {name: /Browse all activities/});
-    expect(browse).toHaveAttribute('href', '/destination/prague?tab=activities');
+    expect(browse).toHaveAttribute('href', '/prague-stag-do?tab=activities');
     expect(browse).toHaveAttribute('target', '_blank');
 });
 

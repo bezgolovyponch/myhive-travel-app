@@ -39,6 +39,7 @@ function renderAt(entry) {
             <Routes>
                 <Route path="/vote/:shareToken/activities" element={<ActivityVotePage/>}/>
                 <Route path="/destination/:slug" element={<div>organiser dashboard</div>}/>
+                <Route path="/prague-stag-do" element={<div>organiser dashboard</div>}/>
                 <Route path="/vote/:shareToken/result" element={<div>result page</div>}/>
             </Routes>
         </MemoryRouter>

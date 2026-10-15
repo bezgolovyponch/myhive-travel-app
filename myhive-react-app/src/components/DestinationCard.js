@@ -1,6 +1,6 @@
 import {useNavigate} from 'react-router-dom';
 import {useDestinationModal} from '../context/DestinationModalContext';
-import {useT} from '../i18n';
+import {destinationPath, routePath, useT} from '../i18n';
 import './DestinationCard.css';
 
 function DestinationCard({ destination }) {
@@ -17,7 +17,7 @@ function DestinationCard({ destination }) {
 
   const handleClick = () => {
     if (hasActivities) {
-      navigate(`/destination/${destination.slug || destination.id}`);
+      navigate(routePath(destinationPath(destination.slug || destination.id)));
     } else {
       dispatch({type: 'OPEN_DESTINATION_MODAL', destination});
     }

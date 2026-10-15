@@ -50,7 +50,7 @@ test('renders all homepage sections', async () => {
   expect(screen.getByText('Stag Do Specialists')).toBeInTheDocument();
   expect(screen.getByText('Let the group decide. You just book it.')).toBeInTheDocument();
   expect(await screen.findByText('Go-Karting')).toBeInTheDocument();
-  expect(screen.getByText('View All Activities')).toHaveAttribute('href', '/destination/prague');
+  expect(screen.getByText('View All Activities')).toHaveAttribute('href', '/prague-stag-do');
   expect(screen.getByText('What the Lads Say')).toBeInTheDocument();
   expect(screen.getByText("We're just a message away")).toBeInTheDocument();
 });
@@ -146,7 +146,7 @@ test('Browse activities CTA links to the destination activities catalog', async 
   const cta = screen.getByRole('link', {name: /Browse activities/i});
   // Routes to the default destination's activities tab (the catalog page),
   // not an on-page anchor scroll.
-  expect(cta).toHaveAttribute('href', '/destination/prague?tab=activities');
+  expect(cta).toHaveAttribute('href', '/prague-stag-do?tab=activities');
   await userEvent.click(cta);
   expect(pushEvent).toHaveBeenCalledWith('cta_click', {cta_label: 'Browse activities', block: 'hero'});
 });

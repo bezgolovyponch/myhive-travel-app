@@ -1,6 +1,6 @@
 import {Link, useNavigate} from 'react-router-dom';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
-import {useLocalePath, useT} from '../i18n';
+import {blogIndexPath, routePath, useLocalePath, useT} from '../i18n';
 import './Footer.css';
 
 function Footer() {
@@ -17,7 +17,7 @@ function Footer() {
                 <nav className="footer-nav">
                     <a href={lp('/') + '#activities'} onClick={(e) => { e.preventDefault(); scrollToHomeSection(navigate, 'activities'); }}>{t('nav.activities')}</a>
                     <Link to="/about">{t('nav.about')}</Link>
-                    <Link to="/blog">{t('nav.blog')}</Link>
+                    <Link to={routePath(blogIndexPath())}>{t('nav.blog')}</Link>
                     <Link to="/contact">{t('nav.contact')}</Link>
                 </nav>
             </div>

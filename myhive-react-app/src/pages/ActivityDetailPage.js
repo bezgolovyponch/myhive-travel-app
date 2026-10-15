@@ -13,19 +13,21 @@ import ActivityGallery from '../components/ActivityGallery';
 import ActivityCard from '../components/ActivityCard';
 import ItemExtrasPicker from '../components/ItemExtrasPicker';
 import {extrasOf} from '../utils/tripPricing';
-import {useT} from '../i18n';
+import {activityPath, destinationPath, localizePath, routePath, useLocale, useT} from '../i18n';
 import './ActivityDetailPage.css';
 
 const MAX_MORE_ACTIVITIES = 4;
 
 // `activity` is supplied by the server renderer (Next.js SSR) so the record is
 // in the initial HTML; omitted in the SPA, which fetches by slug as before.
-function ActivityDetailPage({activity: injectedActivity}) {
+function ActivityDetailPage({activity: injectedActivity, destinationSlug: destinationSlugProp}) {
     const t = useT('activityDetail');
     const tDuration = useT('activityDetail.duration');
     const tMeta = useT('meta');
     const tExtras = useT('extras');
-    const {destinationSlug, slug} = useParams();
+    const {destinationSlug: destinationSlugParam, slug} = useParams();
+    const destinationSlug = destinationSlugProp ?? destinationSlugParam;
+    const locale = useLocale();
     const navigate = useNavigate();
     const {state, dispatch} = useTrip();
     const {data: activity, loading, error} = useFetchBySlug(api.getActivityBySlug, slug, injectedActivity);
@@ -161,13 +163,13 @@ function ActivityDetailPage({activity: injectedActivity}) {
                 <title>{tMeta('activity.title', {name: title, destination: activity.destinationName})}</title>
                 <meta name="description"
                       content={activity.description || tMeta('activity.fallbackDescription', {name: title, destination: activity.destinationName})}/>
-                <link rel="canonical" href={`${SITE_URL}/destination/${destSlug}/activity/${activity.slug}`}/>
+                <link rel="canonical" href={`${SITE_URL}${localizePath(activityPath(destSlug, activity.slug), locale)}`}/>
             </PageHead>
 
             <nav className="activity-detail-breadcrumbs">
                 <Link to="/">{t('breadcrumbHome')}</Link>
                 <span className="sep">&rsaquo;</span>
-                <Link to={`/destination/${destSlug}?tab=activities`}>
+                <Link to={routePath(`${destinationPath(destSlug)}?tab=activities`)}>
                     {activity.destinationName}
                 </Link>
                 <span className="sep">&rsaquo;</span>

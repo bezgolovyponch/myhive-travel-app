@@ -1,13 +1,13 @@
 import {Link} from 'react-router-dom';
 import {formatAmount} from '../utils/format';
-import {useT} from '../i18n';
+import {packagePath, routePath, useT} from '../i18n';
 import './PackageCard.css';
 
 function PackageCard({pkg}) {
     const t = useT('cards');
     const savings = Number(pkg.savings) || 0;
     return (
-        <Link to={`/destination/${pkg.destinationSlug}/package/${pkg.slug}`} className="card package-card">
+        <Link to={routePath(packagePath(pkg.destinationSlug, pkg.slug))} className="card package-card">
             {pkg.imageUrl && (
                 <img src={pkg.imageUrl} alt={pkg.name} className="package-image" loading="lazy"/>
             )}

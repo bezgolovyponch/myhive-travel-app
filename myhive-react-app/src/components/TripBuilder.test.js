@@ -1518,7 +1518,7 @@ describe('quiz mode: Recommended for you', () => {
 
         expect(screen.getByText('Bathe in beer.')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /View full page/i }))
-            .toHaveAttribute('href', '/destination/prague/activity/beer-spa');
+            .toHaveAttribute('href', '/prague-stag-do/activities/beer-spa');
     });
 
     test('no section and no pool fetch outside quiz mode', async () => {

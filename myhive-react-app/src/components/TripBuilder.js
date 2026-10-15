@@ -25,7 +25,7 @@ import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} fro
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
 import ItemExtrasRow from './ItemExtrasRow';
-import {useLocalePath, useT} from '../i18n';
+import {activityPath, destinationPath, routePath, useLocalePath, useT} from '../i18n';
 import {groupByDay} from '../utils/voteDays';
 import './TripBuilder.css';
 
@@ -470,7 +470,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     if (!activity || !activity.slug || !activity.destinationSlug) {
       return null;
     }
-    return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
+    return routePath(activityPath(activity.destinationSlug, activity.slug));
   };
 
   // Used by handleStartVoteClick (both CART and quiz-mode vote modals): true —
@@ -895,7 +895,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
                 duration: rec.duration,
             })}
         />
-        <a className="vd-browse" href={lp(`/destination/${destinationSlug}?tab=activities`)}
+        <a className="vd-browse" href={lp(`${destinationPath(destinationSlug)}?tab=activities`)}
            target="_blank" rel="noopener noreferrer">
           {t('dashboard.browseAll')}
           <span aria-hidden="true">↗</span>

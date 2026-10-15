@@ -163,7 +163,7 @@ test('WhatsApp: opens the group message with the link in the same tap, creates t
   expect(text).toContain('/vote/tok-1/activities?ref=invite');
   expect(appUrl).toMatch(/^whatsapp:\/\/send\?text=/);
   await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
-      '/destination/prague?tab=trip-builder&voteSession=tok-1'));
+      '/prague-stag-do?tab=trip-builder&voteSession=tok-1'));
   expect(voteApi.createCartSession).toHaveBeenCalledWith(expect.objectContaining({
     destinationId: 'd-1',
     initiatorPhone: '+420602123456',
@@ -204,7 +204,7 @@ test('email: creates the vote with the email and opens the dashboard, without op
   await userEvent.click(screen.getByRole('button', { name: START }));
 
   await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
-      '/destination/prague?tab=trip-builder&voteSession=tok-1'));
+      '/prague-stag-do?tab=trip-builder&voteSession=tok-1'));
   expect(openWhatsApp).not.toHaveBeenCalled();
   expect(voteApi.createCartSession).toHaveBeenCalledWith(expect.objectContaining({
     initiatorEmail: 'max@example.com', initiatorPhone: undefined,

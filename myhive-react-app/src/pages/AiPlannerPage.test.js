@@ -336,7 +336,7 @@ test('once packages land the trip draft fills the page and the chat docks open u
     // One price for the whole group at the foot of the draft, none per activity.
     expect(within(draft).getByText('from €176 / person')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /Browse all/}))
-        .toHaveAttribute('href', '/destination/prague?tab=activities');
+        .toHaveAttribute('href', '/prague-stag-do?tab=activities');
     // Each trim shows its starting group total — the same number the cart shows
     // once it is picked; the planner confirms the final price on the call.
     expect(within(screen.getByRole('tab', {name: /Basic/})).getByText('from €113')).toBeInTheDocument();

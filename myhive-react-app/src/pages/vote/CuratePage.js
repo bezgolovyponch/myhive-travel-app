@@ -5,7 +5,7 @@ import SwipeCard from '../../components/SwipeCard';
 import {useTrip} from '../../context/TripContext';
 import { pushEvent } from '../../utils/analytics';
 import { writeQuizFlow } from '../../utils/quizFlow';
-import { useT } from '../../i18n';
+import { activityPath, destinationPath, routePath, useT } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './CuratePage.css';
 
@@ -104,14 +104,14 @@ function CurateContent() {
       });
     });
     writeQuizFlow({ setup, responses });
-    navigate(`/destination/${setup.destination.slug}?tab=trip-builder`, { replace: true });
+    navigate(routePath(`${destinationPath(setup.destination.slug)}?tab=trip-builder`), { replace: true });
   }, [isComplete, pool, setup, responses, dispatch, navigate]);
 
   const getCardLink = (activity) => {
     if (!activity || !activity.slug || !activity.destinationSlug) {
       return null;
     }
-    return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
+    return routePath(activityPath(activity.destinationSlug, activity.slug));
   };
 
   const handleSwipe = (direction, activityId) => {

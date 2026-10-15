@@ -6,7 +6,7 @@ import {useTrip} from '../../context/TripContext';
 import {getDefaultDestination} from '../../utils/defaultDestination';
 import {pushEvent} from '../../utils/analytics';
 import ActivityCard from '../ActivityCard';
-import {useT} from '../../i18n';
+import {destinationPath, routePath, useT} from '../../i18n';
 import './FeaturedActivitiesSection.css';
 
 const MAX_FEATURED = 12;
@@ -75,7 +75,7 @@ function FeaturedActivitiesSection({activities: injected}) {
             </div>
             {mainDestination && (
                 <Link
-                    to={`/destination/${mainDestination.slug}`}
+                    to={routePath(destinationPath(mainDestination.slug))}
                     className="btn btn--lg featured-activities-cta"
                     onClick={() => pushEvent('cta_click', {cta_label: 'View All Activities', block: 'activities'})}
                 >

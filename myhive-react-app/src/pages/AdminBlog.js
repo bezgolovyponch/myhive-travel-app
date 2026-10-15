@@ -186,7 +186,7 @@ function AdminBlog() {
                                 value={form.content}
                                 onChange={e => updateField('content', e.target.value)}
                                 isInvalid={!!fieldErrors.content}
-                                placeholder="Markdown supported: ## headings, [links](/destination/prague), lists, tables. Blank line = new paragraph."
+                                placeholder="Markdown supported: ## headings, [links](/prague-stag-do), lists, tables. Blank line = new paragraph."
                             />
                             <Form.Control.Feedback type="invalid">{fieldErrors.content}</Form.Control.Feedback>
                         </Form.Group>

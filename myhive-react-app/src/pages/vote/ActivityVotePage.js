@@ -10,7 +10,7 @@ import { dashboardPath, tripDates } from '../../utils/groupVote';
 import { dayLabel } from '../../utils/voteDays';
 import { managerKey } from '../../hooks/useOrganizerVote';
 import { pushEvent } from '../../utils/analytics';
-import { useT } from '../../i18n';
+import { activityPath, routePath, useT } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './ActivityVotePage.css';
 
@@ -215,7 +215,7 @@ function ActivityVoteContent() {
 
     const getCardLink = (activity) => {
         if (!activity || !activity.slug || !activity.destinationSlug) return null;
-        return `/destination/${activity.destinationSlug}/activity/${activity.slug}`;
+        return routePath(activityPath(activity.destinationSlug, activity.slug));
     };
 
     return (

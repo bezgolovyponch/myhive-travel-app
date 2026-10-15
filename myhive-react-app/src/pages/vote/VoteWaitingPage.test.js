@@ -49,7 +49,7 @@ test('the organiser goes to the Trip Builder dashboard', async () => {
     renderAt('/vote/tok-1/waiting');
 
     expect(await screen.findByTestId('where'))
-        .toHaveTextContent('/destination/prague?tab=trip-builder&voteSession=tok-1');
+        .toHaveTextContent('/prague-stag-do?tab=trip-builder&voteSession=tok-1');
 });
 
 test('an organiser whose vote has no destination page is sent to the result, not to a broken link', async () => {
@@ -74,5 +74,5 @@ test('an older email link with ?manager= hands the token on to the dashboard', a
     renderAt('/vote/tok-1/waiting?manager=mgr-email');
 
     expect(await screen.findByTestId('where'))
-        .toHaveTextContent('/destination/prague?tab=trip-builder&voteSession=tok-1&manager=mgr-email');
+        .toHaveTextContent('/prague-stag-do?tab=trip-builder&voteSession=tok-1&manager=mgr-email');
 });

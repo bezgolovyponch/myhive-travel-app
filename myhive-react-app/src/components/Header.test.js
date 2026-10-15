@@ -90,3 +90,16 @@ test('hides breadcrumbs on the package detail page (page renders its own)', () =
   const {container} = renderHeader('/destination/prague/package/stag-weekend');
   expect(container.querySelector('.breadcrumbs')).toBeNull();
 });
+
+test('shows the destination breadcrumb on the German hub URL', async () => {
+  window.history.pushState({}, '', '/de/jga-prag');
+  try {
+    api.getDestinations.mockResolvedValue([{id: 'd1', slug: 'prague', name: 'Prague'}]);
+    const {container} = renderHeader('/jga-prag?tab=activities');
+    const crumb = await screen.findByRole('link', {name: 'Prague'});
+    expect(container.querySelector('.breadcrumbs')).toBeInTheDocument();
+    expect(crumb).toHaveAttribute('href', '/jga-prag?tab=activities');
+  } finally {
+    window.history.pushState({}, '', '/');
+  }
+});

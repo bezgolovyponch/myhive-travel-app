@@ -27,7 +27,7 @@ import PaymentSuccessPage from '../pages/PaymentSuccessPage';
 import PaymentCancelledPage from '../pages/PaymentCancelledPage';
 import {useDestinationModal} from '../context/DestinationModalContext';
 import {useTripLeadSync} from '../hooks/useTripLeadSync';
-import {useT} from '../i18n';
+import {DESTINATION_HUBS, SUPPORTED_LOCALES, routePath, useT} from '../i18n';
 import AppModal from './AppModal';
 
 // Stag Do AI pulls in assistant-ui (~120 kB gz) — load it only when /plan is
@@ -40,6 +40,27 @@ const AiPlannerPage = lazy(() => import('../pages/AiPlannerPage').catch(() => ({
         </div>
     ),
 })));
+
+// One <Route> per locale variant of a pattern ('/prague-stag-do' and '/jga-prag'
+// both render the Prague catalog): the SPA's BrowserRouter only strips the
+// locale prefix, the segments stay as the public URL spells them.
+function localizedPaths(pattern) {
+  return [...new Set(SUPPORTED_LOCALES.map((l) => routePath(pattern, l)))];
+}
+
+function hubRoutes() {
+  return Object.entries(DESTINATION_HUBS).flatMap(([destinationSlug, hub]) => [
+    ...localizedPaths(hub).map((p) => (
+      <Route key={p} path={p} element={<DestinationPage destinationSlug={destinationSlug}/>}/>
+    )),
+    ...localizedPaths(hub + "/activities/:slug").map((p) => (
+      <Route key={p} path={p} element={<ActivityDetailPage destinationSlug={destinationSlug}/>}/>
+    )),
+    ...localizedPaths(hub + "/packages/:slug").map((p) => (
+      <Route key={p} path={p} element={<PackageDetailPage destinationSlug={destinationSlug}/>}/>
+    )),
+  ]);
+}
 
 function Layout() {
   useTripLeadSync();
@@ -55,12 +76,13 @@ function Layout() {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
+            {hubRoutes()}
             <Route path="/destination/:slug" element={<DestinationPage/>}/>
             <Route path="/destination/:destinationSlug/activity/:slug" element={<ActivityDetailPage/>}/>
             <Route path="/destination/:destSlug/package/:slug" element={<PackageDetailPage/>}/>
             <Route path="/about" element={<AboutPage/>}/>
-            <Route path="/blog" element={<BlogPage/>}/>
-            <Route path="/blog/:slug" element={<BlogPostPage/>}/>
+            {localizedPaths("/ideas").map((p) => <Route key={p} path={p} element={<BlogPage/>}/>)}
+            {localizedPaths("/ideas/:slug").map((p) => <Route key={p} path={p} element={<BlogPostPage/>}/>)}
             <Route path="/contact" element={<ContactPage/>}/>
             <Route path="/cookie-policy" element={<CookiePolicyPage/>}/>
             <Route path="/privacy-policy" element={<PrivacyPolicyPage/>}/>

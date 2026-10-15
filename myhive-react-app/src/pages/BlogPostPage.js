@@ -4,7 +4,7 @@ import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import MarkdownContent from '../components/MarkdownContent';
-import {useT} from '../i18n';
+import {blogIndexPath, routePath, useT} from '../i18n';
 import './BlogPostPage.css';
 
 // `post` is supplied by the server renderer (Next.js SSR) so the article is in
@@ -30,7 +30,7 @@ function BlogPostPage({post: injectedPost}) {
             <div className="blog-post-page">
                 <div className="blog-post-container">
                     <h1>{t('postNotFound')}</h1>
-                    <Link to="/blog" className="btn btn--primary">{t('backToBlog')}</Link>
+                    <Link to={routePath(blogIndexPath())} className="btn btn--primary">{t('backToBlog')}</Link>
                 </div>
             </div>
         );
@@ -64,7 +64,7 @@ function BlogPostPage({post: injectedPost}) {
                 <MarkdownContent>{post.content}</MarkdownContent>
 
                 <div className="blog-post-back">
-                    <Link to="/blog" className="btn btn--primary">{t('backToBlog')}</Link>
+                    <Link to={routePath(blogIndexPath())} className="btn btn--primary">{t('backToBlog')}</Link>
                 </div>
             </article>
         </div>
