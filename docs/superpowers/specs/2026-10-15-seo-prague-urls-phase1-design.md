@@ -200,10 +200,12 @@ without a hub → 200 on the old URL with no hop; `/blog` → `/ideas` single ho
 
 ## Deploy-day checklist (owner)
 
-1. Deploy backend then frontend (links in emails sent in between redirect fine).
+1. Deploy the FRONTEND first, then the backend. The new frontend 308s the old backend's `/destination/prague?...` email links; a new backend emails `/prague-stag-do?tab=trip-builder&restore=...` and `/de/jga-prag?...`, which the old frontend 404s (its catch-all calls notFound) during the Next build window. Render auto-deploy on merge must not start the backend first: pause backend auto-deploy, or deploy the backend manually once the frontend is live.
 2. Purge the Cloudflare cache.
-3. Rename the blog post slug `how-to-plan-a-stress-free-group-trip` →
+3. Immediately after the frontend is live (until then `/ideas/how-to-plan-a-stag-do` 404s and the old `/blog/...` URL 308s into it), rename the blog post slug `how-to-plan-a-stress-free-group-trip` →
    `how-to-plan-a-stag-do` in the admin.
 4. Run `check-redirects.mjs https://www.trivlu.com`; open hub + two
    activities in both languages by hand.
+   Then check by hand, EN and DE: `curl -sI https://www.trivlu.com/blog/how-to-plan-a-stress-free-group-trip` → 308 → 200.
 5. Submit the sitemap in GSC; the SEO manager watches GSC for four weeks.
+6. Further post-deploy checks: `curl -s https://www.trivlu.com/de/jga-prag/aktivitaeten/<slug> | grep '<h1'` confirms the DE SSR body. If `/api/sitemap.xml` (the superseded backend sitemap, which still lists old URLs) was ever submitted in GSC, remove it there. Review GA4 explorations/audiences keyed on `/destination/` or `/blog` page paths (owner / SEO manager). `check-redirects.mjs` against prod fires ~300 requests and may hit Cloudflare rate rules: run it with a pause or retry on 403/429.

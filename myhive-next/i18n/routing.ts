@@ -22,6 +22,7 @@ export const routing = defineRouting({
   // listed pass through as-is and only get the locale prefix; (b) a request
   // for /de/<internal pathname> gets a 307 redirect to the localized pathname
   // (/de/jga-prag), and with localeDetection: false an unprefixed German path
-  // like /jga-prag is just an unknown English route -> catch-all 404.
+  // like /jga-prag is not rewritten; observed live, next-intl answers it with a
+  // 307 to /prague-stag-do (acceptable).
   pathnames: LOCALIZED_PATHNAMES,
 });
