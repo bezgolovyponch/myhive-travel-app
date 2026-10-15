@@ -22,5 +22,5 @@ export const config = {
   // Skip the backend rewrite (/api), Next internals and anything with a file
   // extension (favicons, images, manifest, sitemap.xml, robots.txt). Public
   // page URLs never contain a dot.
-  matcher: '/((?!api|_next|_vercel|.*\..*).*)',
+  matcher: '/((?!api|_next|_vercel|.*\\..*).*)',
 };
