@@ -231,7 +231,11 @@ needed for phase 1.
 1. Deploy the FRONTEND first, then the backend. The new frontend 308s the old backend's `/destination/prague?...` email links; a new backend emails `/prague-stag-do?tab=trip-builder&restore=...` and `/de/jga-prag?...`, which the old frontend 404s (its catch-all calls notFound) during the Next build window. Render auto-deploy on merge must not start the backend first: pause backend auto-deploy, or deploy the backend manually once the frontend is live.
 2. Purge the Cloudflare cache.
 3. Immediately after the frontend is live (until then `/ideas/how-to-plan-a-stag-do` 404s and the old `/blog/...` URL 308s into it), rename the blog post slug `how-to-plan-a-stress-free-group-trip` to `how-to-plan-a-stag-do`
-   in the admin.
+   in the admin. In the same sitting delete the five retired posts (`top-5-group-travel-destinations-for-2026`,
+   `why-ai-is-changing-the-way-we-travel-together`, `bali-on-a-budget-a-group-travel-guide`,
+   `the-rise-of-multi-traveler-experiences`, `weekend-getaway-ideas-for-large-groups`): their old `/blog/...`
+   URLs answer 410, but while the records exist `/ideas` still lists them and `/ideas/<slug>` serves them
+   (200 + noindex; seen in the local browser check 2026-10-15).
 4. Run `node myhive-next/scripts/check-redirects.mjs https://www.trivlu.com`; open the hub and two
    activities in both languages by hand. On prod also confirm the sitemap contains
    `prague-stag-do` (the one check the dev seed cannot show).
