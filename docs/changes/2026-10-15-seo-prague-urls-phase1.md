@@ -118,7 +118,7 @@ Next runs redirects before middleware, so such a rule would turn the 410s into 3
   regex or path content with Edit/Write, never heredocs.
 - **Local E2E needs `INTERNAL_API_TOKEN` set on both servers** (backend and Next). Without it
   the backend's 100 req/min/IP limiter returns 429 to SSR fetches and Next surfaces it as 500
-  (first `check-redirects` run: 69 FAIL, all of this kind). The script sends `X-Internal-Token`
+  (first `check-redirects` run, before the fix round: 69 FAIL, all of this kind). The script sends `X-Internal-Token`
   from its own env var.
 - **Steam can hold port 8080** (steamwebhelper): the run used the backend on 8081 and
   `BACKEND_URL=http://localhost:8081`.
@@ -145,6 +145,7 @@ e9a07edb feat(next): next-intl pathnames for the German segments, 308 redirects 
 50d55707 fix(next): restore the escaped dot in the middleware matcher and pin it with a test
 f30150ed feat(next): Prague hub, activity and package routes on /prague-stag-do, blog on /ideas; sitemap, landings and legacy wrappers follow the table
 90522a30 test(next): check-redirects.mjs - single-hop 308 / 410 / untouched-city acceptance for the URL move
+0b7d1cec test(next): check-redirects counts its checks, fails on zero coverage, reports aborts and missing Location
 ```
 
 ## Verification
@@ -156,8 +157,8 @@ Local end-to-end run (backend on :8081, Next on :3000, `INTERNAL_API_TOKEN` set 
 
 | Item | Result |
 | --- | --- |
-| `check-redirects.mjs` | PASS, final run `errors: 0` |
-| `smoke.mjs` | PASS except one dev-data failure (description length, see gotchas) |
+| `check-redirects.mjs` | PASS, `checks: 192`, `errors: 0` (hub prague: 72 activities, 9 packages) |
+| `smoke.mjs` | FAIL, 1 failure: pre-existing dev data (escaped description length 160 > 155 on `ak-47-glock-17-shooting`; page code identical to `main`) |
 | `/de/prague-stag-do` | 307, `location: /de/jga-prag` |
 | `/jga-prag` | 307, `location: /prague-stag-do` |
 | `/de/ideas` | 307, `location: /de/ratgeber` |
@@ -170,9 +171,20 @@ Local end-to-end run (backend on :8081, Next on :3000, `INTERNAL_API_TOKEN` set 
 | Browser: activity card | "Bootsfahrt auf der Moldau" -> `/de/jga-prag/aktivitaeten/river-boat-cruise` |
 | Browser: Trip Builder deep link | `/prague-stag-do?tab=trip-builder` renders the itinerary via the SPA shim |
 
+`check-redirects.mjs` behaviour (after fix round `0b7d1cec`): prints the base URL and an ISO
+timestamp first, then per-hub activity/package counts; counts every assertion (`checks: N`
+before `errors: N`). It FAILs when a hub has zero activities, when no hub destination exists, or
+when zero assertions ran (so an empty run can no longer pass as `errors: 0`); a rejected fetch or
+non-JSON body becomes `FAIL script aborted: ...` with errors >= 1; a redirect without `Location`
+is an explicit FAIL. 192 = 2 locales x (2 hub + 72 activity + 9 package) + 2 x (blog 1 + gone 5 +
+404 + landing + not-a-city) + 6 non-hub destination checks.
+
 Verbatim output lines:
 
 ```
+check-redirects base=http://localhost:3000 at 2026-10-15T19:23:32.222Z
+hub prague: 72 activities, 9 packages
+checks: 192
 errors: 0
 
 ## /de/prague-stag-do
