@@ -43,7 +43,7 @@ class TripReminderTemplateRenderTest {
         context.setVariable("lines", List.of());
         context.setVariable("totalPrice", BigDecimal.ZERO);
         context.setVariable("recommendations", List.of());
-        context.setVariable("restoreUrl", "https://trivlu.com/destination/prague?tab=trip-builder&restore=tok-1");
+        context.setVariable("restoreUrl", "https://trivlu.com/prague-stag-do?tab=trip-builder&restore=tok-1");
         context.setVariable("contactUrl", "https://trivlu.com/contact");
         context.setVariable("unsubscribeUrl", "https://trivlu.com/unsubscribe?token=unsub-1");
         context.setVariable("supportEmail", "info@trivlu.com");
@@ -74,7 +74,7 @@ class TripReminderTemplateRenderTest {
                 .contains("Karting")
                 .contains("Shooting Range")
                 .contains("group minimum")
-                .contains("https://trivlu.com/destination/prague?tab=trip-builder&amp;restore=tok-1")
+                .contains("https://trivlu.com/prague-stag-do?tab=trip-builder&amp;restore=tok-1")
                 .contains("https://trivlu.com/unsubscribe?token=unsub-1")
                 .contains("Prague");
     }

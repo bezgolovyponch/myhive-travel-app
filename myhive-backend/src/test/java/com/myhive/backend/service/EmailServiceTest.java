@@ -469,9 +469,69 @@ class EmailServiceTest {
 
         String resultUrl = (String) contextCaptor.getValue().getVariable("resultUrl");
         assertThat(resultUrl)
-                .contains("/destination/prague")
-                .contains("tab=trip-builder")
+                .startsWith("https://trivlu.com/prague-stag-do?tab=trip-builder")
                 .contains("voteSession=" + session.getShareToken());
+    }
+
+    @Test
+    void sendVoteResult_germanQuizSession_linksToTheGermanHub() throws Exception {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setLocale("de");
+        Destination destination = new Destination();
+        destination.setName("Prag");
+        destination.setSlug("prague");
+        session.setDestination(destination);
+        session.setInitiatorEmail("alice@example.com");
+        String expectedUrl = "https://trivlu.com/de/jga-prag?tab=trip-builder&voteSession=" + session.getShareToken();
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-result"), contextCaptor.capture())).thenReturn("<html>test</html>");
+
+        emailService.sendVoteResult(session, List.of(), "https://trivlu.com");
+
+        assertThat(contextCaptor.getValue().getVariable("resultUrl")).isEqualTo(expectedUrl);
+    }
+
+    @Test
+    void sendVoteResult_germanCartSession_keepsTheLocalizedVotePage() throws Exception {
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setVoteMode(VoteMode.CART);
+        session.setLocale("de");
+        Destination destination = new Destination();
+        destination.setName("Prag");
+        destination.setSlug("prague");
+        session.setDestination(destination);
+        session.setInitiatorEmail("alice@example.com");
+        String expectedUrl = "https://trivlu.com/de/vote/" + session.getShareToken() + "/result";
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-result"), contextCaptor.capture())).thenReturn("<html>test</html>");
+
+        emailService.sendVoteResult(session, List.of(), "https://trivlu.com");
+
+        assertThat(contextCaptor.getValue().getVariable("resultUrl")).isEqualTo(expectedUrl);
+    }
+
+    @Test
+    void sendTripReminder_germanLeadRestoreUrlUsesTheGermanHub() throws Exception {
+        TripLead lead = tripLeadWithSource(TripLeadSource.QUIZ);
+        lead.setLocale("de");
+        String expectedUrl = "https://trivlu.com/de/jga-prag?tab=trip-builder&restore=" + lead.getRestoreToken();
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("trip-reminder"), contextCaptor.capture())).thenReturn("<html>ok</html>");
+
+        emailService.sendTripReminder(lead, 1, List.of(), List.of(), "https://trivlu.com");
+
+        assertThat(contextCaptor.getValue().getVariable("restoreUrl")).isEqualTo(expectedUrl);
     }
 
     @Test
@@ -846,7 +906,7 @@ class EmailServiceTest {
         emailService.sendTripReminder(leadWithoutDestination, 1, List.of(), List.of(), "https://trivlu.com");
 
         String expectedRestoreUrl =
-                "https://trivlu.com/destination/prague?tab=trip-builder&restore=" + expectedRestoreToken;
+                "https://trivlu.com/prague-stag-do?tab=trip-builder&restore=" + expectedRestoreToken;
         List<Context> contexts = contextCaptor.getAllValues();
         assertThat(contexts.get(0).getVariable("restoreUrl")).isEqualTo(expectedRestoreUrl);
         assertThat(contexts.get(1).getVariable("restoreUrl")).isEqualTo("https://trivlu.com");
@@ -871,7 +931,7 @@ class EmailServiceTest {
     @Test
     void sendVoteHalfway_passesManagerDashboardUrlAndStandings() throws Exception {
         VoteSession session = halfwaySession("alice@example.com");
-        String expectedDashboardUrl = "https://trivlu.com/destination/prague?tab=trip-builder&voteSession="
+        String expectedDashboardUrl = "https://trivlu.com/prague-stag-do?tab=trip-builder&voteSession="
                 + session.getShareToken() + "&manager=" + session.getManagerToken();
         List<EmailService.VoteStandingView> expectedStandings =
                 List.of(new EmailService.VoteStandingView("Bar Crawl", 4));
@@ -894,7 +954,7 @@ class EmailServiceTest {
     void sendVoteHalfway_germanSessionUsesGermanSubjectAndLocalePrefix() throws Exception {
         VoteSession session = halfwaySession("alice@example.com");
         session.setLocale("de");
-        String expectedDashboardUrl = "https://trivlu.com/de/destination/prague?tab=trip-builder&voteSession="
+        String expectedDashboardUrl = "https://trivlu.com/de/jga-prag?tab=trip-builder&voteSession="
                 + session.getShareToken() + "&manager=" + session.getManagerToken();
 
         MimeMessage realMessage = new MimeMessage((Session) null);
