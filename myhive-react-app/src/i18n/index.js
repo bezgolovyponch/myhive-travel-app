@@ -11,7 +11,11 @@ import { createContext, useCallback, useContext } from 'react';
 import en from './messages/en.json';
 import { DEFAULT_LOCALE, bindSsrLocale, localizePath } from './routes';
 
-export { DEFAULT_LOCALE, SUPPORTED_LOCALES, localizePath, localizeHref, splitLocale } from './routes';
+export {
+  DEFAULT_LOCALE, SUPPORTED_LOCALES, DESTINATION_HUBS, LOCALIZED_PATHNAMES,
+  localizePath, localizeHref, splitLocale, localizeSegments, delocalizeSegments, routePath,
+  destinationPath, activityPath, packagePath, blogIndexPath, blogPostPath, matchCatalogPath,
+} from './routes';
 
 const LocaleContext = createContext({ locale: DEFAULT_LOCALE, messages: en });
 
