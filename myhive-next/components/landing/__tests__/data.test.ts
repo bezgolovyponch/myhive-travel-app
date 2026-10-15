@@ -5,6 +5,9 @@ import {
   buildDeck,
   hydratePool,
   PER_ROW,
+  builderUrl,
+  activityLink,
+  categoryLink,
 } from '../data';
 import type { Activity } from '../../../lib/api';
 
@@ -143,6 +146,19 @@ describe('hydratePool', () => {
     const pool = hydratePool([]);
     expect(pool.day[0].p).toBeGreaterThan(0);
     expect(pool.day[0].i).toMatch(/^https:\/\/img\.trivlu\.com\//);
+  });
+});
+
+describe('landing links', () => {
+  it('builds Prague links on the hub scheme', () => {
+    expect(builderUrl('prague')).toBe('/prague-stag-do?tab=trip-builder');
+    expect(activityLink('prague', 'beer-spa')).toBe('/prague-stag-do/activities/beer-spa');
+    expect(categoryLink('prague', 'beer')).toBe('/prague-stag-do?tab=activities&category=beer');
+  });
+
+  it('keeps other cities on the /destination scheme', () => {
+    expect(builderUrl('krakow')).toBe('/destination/krakow?tab=trip-builder');
+    expect(activityLink('krakow', 'x')).toBe('/destination/krakow/activity/x');
   });
 });
 

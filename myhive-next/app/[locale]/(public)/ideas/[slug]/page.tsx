@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api, type BlogPost } from '@/lib/api';
 import { SITE_URL, canonical, breadcrumbJsonLd, jsonLd, pageMetadata } from '@/lib/seo';
+import { blogIndexPath, blogPostPath } from '../../../../../legacy-src/i18n/routes';
 import LegacyBlogPost from '@/components/site/legacy/LegacyBlogPost';
 
 export const revalidate = 3600;
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return pageMetadata({
     title: t('title', { title: post.title }),
     description: summarize(post),
-    path: `/blog/${post.slug || slug}`,
+    path: blogPostPath(post.slug || slug),
     locale,
     image: post.imageUrl || undefined,
     ogType: 'article',
@@ -63,14 +64,14 @@ export default async function Page({ params }: Props) {
       name: 'Trivlu',
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo-trivlu.png` },
     },
-    mainEntityOfPage: canonical(`/blog/${post.slug || slug}`, locale),
+    mainEntityOfPage: canonical(blogPostPath(post.slug || slug), locale),
   };
 
   const breadcrumbs = breadcrumbJsonLd(
     [
       [t('home'), '/'],
-      [t('blog'), '/blog'],
-      [post.title, `/blog/${post.slug || slug}`],
+      [t('blog'), blogIndexPath()],
+      [post.title, blogPostPath(post.slug || slug)],
     ],
     locale
   );

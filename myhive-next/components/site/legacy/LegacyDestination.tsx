@@ -3,8 +3,10 @@
 // Client boundary for the canonical CRA destination catalog. RouteMatch
 // re-declares the CRA route so useParams() resolves the slug; `initial` seeds
 // destination, categories, page 0 of activities and packages so the catalog is in
-// the initial HTML. Only the bare /destination/:slug URL reaches here — ?tab= and
+// the initial HTML. Only the bare catalog URL (hub or /destination/:slug) reaches here — ?tab= and
 // ?voteSession= are handed to the full SPA by the server page.
+import { useLocale } from '../../../legacy-src/i18n';
+import { DESTINATION_HUBS, routePath } from '../../../legacy-src/i18n/routes';
 import DestinationPage from '../../../legacy-src/pages/DestinationPage';
 import RouteMatch from './RouteMatch';
 
@@ -17,10 +19,21 @@ export interface DestinationInitial {
   last: boolean;
 }
 
-export default function LegacyDestination({ initial }: { initial: DestinationInitial }) {
+export default function LegacyDestination({
+  initial,
+  destinationSlug,
+}: {
+  initial: DestinationInitial;
+  destinationSlug: string;
+}) {
+  const locale = useLocale();
+  const hub = (DESTINATION_HUBS as Record<string, string>)[destinationSlug];
+  // The bridge feeds the PUBLIC path (/jga-prag on DE), so the pattern must be
+  // spelled in this locale's segments or <Routes> renders nothing.
+  const pattern = routePath(hub ?? '/destination/:slug', locale);
   return (
-    <RouteMatch pattern="/destination/:slug">
-      <DestinationPage initial={initial} />
+    <RouteMatch pattern={pattern}>
+      <DestinationPage initial={initial} destinationSlug={destinationSlug} />
     </RouteMatch>
   );
 }

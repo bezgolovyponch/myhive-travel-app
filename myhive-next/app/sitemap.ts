@@ -2,6 +2,13 @@ import type { MetadataRoute } from 'next';
 import { api } from '../lib/api';
 import { SITE_URL, canonical } from '../lib/seo';
 import { routing } from '../i18n/routing';
+import {
+  activityPath,
+  blogIndexPath,
+  blogPostPath,
+  destinationPath,
+  packagePath,
+} from '../legacy-src/i18n/routes';
 
 // Single sitemap owner (spec §2): replaces the backend SitemapController at
 // cutover. Fetches the same catalog/blog data the pages render, so URLs and
@@ -40,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/refund-policy`, priority: 0.2 },
   ];
   pushLocalized(urls, '/', 1);
-  pushLocalized(urls, '/blog', 0.8);
+  pushLocalized(urls, blogIndexPath(), 0.8);
   pushLocalized(urls, '/about', 0.5);
   pushLocalized(urls, '/contact', 0.5);
 
@@ -50,23 +57,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Per-record SEO gate: unready records are excluded, and a destination
       // that is not indexable excludes ALL of its children (parent rule).
       if (!dest.seoIndexable) continue;
-      pushLocalized(urls, `/destination/${dest.slug}`, 0.9);
+      pushLocalized(urls, destinationPath(dest.slug), 0.9);
       const [activities, packages] = await Promise.all([
         api.getActivities(dest.id).catch(() => null),
         api.getPackages(dest.id).catch(() => null),
       ]);
       for (const a of activities ?? []) {
         if (!a.seoIndexable) continue;
-        pushLocalized(urls, `/destination/${dest.slug}/activity/${a.slug}`, 0.7);
+        pushLocalized(urls, activityPath(dest.slug, a.slug), 0.7);
       }
       for (const p of packages ?? []) {
         if (!p.seoIndexable) continue;
-        pushLocalized(urls, `/destination/${dest.slug}/package/${p.slug}`, 0.6);
+        pushLocalized(urls, packagePath(dest.slug, p.slug), 0.6);
       }
     }
     const posts = (await api.getBlogPosts()) ?? [];
     for (const post of posts.filter((p) => p.seoIndexable)) {
-      pushLocalized(urls, `/blog/${post.slug}`, 0.7, post.date || post.createdAt || undefined);
+      pushLocalized(urls, blogPostPath(post.slug), 0.7, post.date || post.createdAt || undefined);
     }
   } catch {
     // Backend unreachable: serve the static core rather than erroring —

@@ -58,11 +58,11 @@ await check('/', {
   title: 'Trivlu — Prague Stag Do. Planned in 10 Minutes.',
   needles: ['Prague Stag Do. Planned in 10 minutes.', 'application/ld+json', 'activity-card'],
 });
-await check('/destination/prague', {
+await check('/prague-stag-do', {
   title: 'Prague Stag Do — Activities & Packages | Trivlu',
   needles: ['Prague Stag Do', 'application/ld+json', 'activity-card'],
 });
-await check('/blog', { title: 'Stag Do Planning Guides & Ideas | Trivlu Blog', needles: ['The Stag Do Playbook'] });
+await check('/ideas', { title: 'Stag Do Planning Guides & Ideas | Trivlu Blog', needles: ['The Stag Do Playbook'] });
 await check('/about', { title: 'About Trivlu — Group Travel Made Easy', needles: ['About Trivlu'] });
 await check('/contact', { title: 'Contact Trivlu — Talk to the Team', needles: ['info@trivlu.com'] });
 await check('/terms', { needles: ['Terms'] });
@@ -71,18 +71,35 @@ await check('/cookie-policy', { needles: ['Cookie'] });
 await check('/refund-policy', { needles: ['Refund'] });
 
 // detail pages (slugs discovered from live data)
-const { html: destHtml } = await fetchPage('/destination/prague');
-const aslug = destHtml.match(/href="\/destination\/prague\/activity\/([a-z0-9-]+)"/)?.[1];
-if (aslug) await check(`/destination/prague/activity/${aslug}`, { needles: ['BreadcrumbList'] });
-else fails.push('no activity links found on /destination/prague');
-const { html: blogHtml } = await fetchPage('/blog');
-const pslug = blogHtml.match(/href="\/blog\/([a-z0-9-]+)"/)?.[1];
-if (pslug) await check(`/blog/${pslug}`, { needles: ['Article'] });
-else fails.push('no post links found on /blog');
+const { html: destHtml } = await fetchPage('/prague-stag-do');
+const aslug = destHtml.match(/href="\/prague-stag-do\/activities\/([a-z0-9-]+)"/)?.[1];
+if (aslug) await check(`/prague-stag-do/activities/${aslug}`, { needles: ['BreadcrumbList'] });
+else fails.push('no activity links found on /prague-stag-do');
+const { html: blogHtml } = await fetchPage('/ideas');
+const pslug = blogHtml.match(/href="\/ideas\/([a-z0-9-]+)"/)?.[1];
+if (pslug) await check(`/ideas/${pslug}`, { needles: ['Article'] });
+else fails.push('no post links found on /ideas');
+
+// German spelling of the hub: same page, localized segments, canonical + hreflang
+// pointing at the right scheme on both sides.
+const { code: deCode, html: deHub } = await fetchPage('/de/jga-prag');
+console.log(`== /de/jga-prag [${deCode}]`);
+if (deCode !== 200) fails.push(`/de/jga-prag: HTTP ${deCode}`);
+if (!/<link rel="canonical" href="[^"]*\/de\/jga-prag"/.test(deHub)) {
+  fails.push('/de/jga-prag: canonical is not /de/jga-prag');
+}
+if (aslug) {
+  const dePath = `/de/jga-prag/aktivitaeten/${aslug}`;
+  const { code: deActCode, html: deAct } = await fetchPage(dePath);
+  console.log(`== ${dePath} [${deActCode}]`);
+  if (deActCode !== 200) fails.push(`${dePath}: HTTP ${deActCode}`);
+  const enAlt = new RegExp(`<link rel="alternate" hrefLang="en" href="[^"]*/prague-stag-do/activities/${aslug}"`, 'i');
+  if (!enAlt.test(deAct)) fails.push(`${dePath}: hreflang="en" does not point at /prague-stag-do/activities/${aslug}`);
+}
 
 await expect404('/destination/atlantis');
-await expect404('/blog/not-a-real-post');
-await expect404('/destination/prague/activity/not-a-real-activity');
+await expect404('/ideas/not-a-real-post');
+await expect404('/prague-stag-do/activities/not-a-real-activity');
 
 const { code: rc, html: robots } = await fetchPage('/robots.txt');
 console.log(`== /robots.txt [${rc}]: ${robots.trim().split('\n').slice(0, 2).join(' | ')}`);

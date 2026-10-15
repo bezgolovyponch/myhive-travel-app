@@ -4,6 +4,7 @@
 // price/image as a fallback so the sections render even when the API record
 // moved or the backend is unreachable, but live API data wins when it matches.
 import type { Activity, Category } from '../../lib/api';
+import { activityPath, destinationPath } from '../../legacy-src/i18n/routes';
 import type { Pool, PoolItem, Kind } from './engine';
 
 export const IMG_BASE = 'https://img.trivlu.com/';
@@ -12,7 +13,7 @@ export const IMG_BASE = 'https://img.trivlu.com/';
 // place the main header's cart continues to. The homepage ignores ?tab=, so
 // landing CTAs must never point there.
 export function builderUrl(destinationSlug: string): string {
-  return `/destination/${destinationSlug}?tab=trip-builder`;
+  return `${destinationPath(destinationSlug)}?tab=trip-builder`;
 }
 
 // Landing selections ride along as query params: TripBuilder.js consumes
@@ -24,7 +25,7 @@ export function builderUrlWithPicks(destinationSlug: string, picked: string[]): 
 }
 
 export function activityLink(destinationSlug: string, activitySlug: string): string {
-  return `/destination/${destinationSlug}/activity/${activitySlug}`;
+  return activityPath(destinationSlug, activitySlug);
 }
 export const PHONE_DISPLAY = '+420 795 518 597';
 export const PHONE_HREF = 'tel:+420795518597';
@@ -108,7 +109,7 @@ export const ROW_ORDER: string[] = [
 export const PER_ROW = 6;
 
 export function categoryLink(destinationSlug: string, categorySlug: string): string {
-  return `/destination/${destinationSlug}?tab=activities&category=${categorySlug}`;
+  return `${destinationPath(destinationSlug)}?tab=activities&category=${categorySlug}`;
 }
 
 export interface ActivityRow {

@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
+import { blogIndexPath } from '../../../../legacy-src/i18n/routes';
 import LegacyBlog from '@/components/site/legacy/LegacyBlog';
 
 export const revalidate = 3600;
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return pageMetadata({
     title: t('title'),
     description: t('description'),
-    path: '/blog',
+    path: blogIndexPath(),
     locale,
   });
 }
