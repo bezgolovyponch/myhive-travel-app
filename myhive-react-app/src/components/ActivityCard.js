@@ -15,7 +15,7 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
     const [previewOpen, setPreviewOpen] = useState(false);
 
     const destSlug = activity.destinationSlug || activity.destinationId;
-    const activityLink = routePath(activityPath(destSlug, activity.slug || activity.id));
+    const activityLink = activityPath(destSlug, activity.slug || activity.id);
 
     const handleAddToTrip = (e) => {
         e.stopPropagation();
@@ -33,7 +33,7 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
     };
 
     const handleCardClick = () => {
-        navigate(activityLink);
+        navigate(routePath(activityLink));
     };
 
     const handleMoreInfo = (e) => {

@@ -54,7 +54,7 @@
   },
   "common": {
     "home": "Home",
-    "blog": "Blog",
+    "blog": "Ideas",
     "close": "Close"
   },
   "chrome": {
@@ -69,7 +69,7 @@
     "nav": {
       "activities": "Activities",
       "about": "About",
-      "blog": "Blog",
+      "blog": "Ideas",
       "contact": "Contact"
     },
     "breadcrumb": {
@@ -92,7 +92,7 @@
     "nav": {
       "activities": "Activities",
       "about": "About",
-      "blog": "Blog",
+      "blog": "Ideas",
       "contact": "Contact"
     },
     "legal": {
@@ -513,7 +513,7 @@
     "emptyState": "No blog posts yet. Check back soon!",
     "loading": "Loading...",
     "postNotFound": "Post not found",
-    "backToBlog": "Back to Blog"
+    "backToBlog": "Back to Ideas"
   },
   "voteComponents": {
     "start": {
@@ -849,7 +849,7 @@
       "exampleWeekend": "Example weekend",
       "rules": "The 2026 rules",
       "about": "About",
-      "blog": "Blog",
+      "blog": "Ideas",
       "contact": "Contact",
       "terms": "Terms",
       "refund": "Refund policy",

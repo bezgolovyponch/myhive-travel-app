@@ -11,11 +11,17 @@ export const DEFAULT_LOCALE = 'en';
 // mirror — the backend's email deep links (util/PublicPaths.java).
 // Destination slug -> EN-internal hub path. Cities absent here keep the old
 // /destination/{slug} routes untouched.
+/** @type {Record<string, string>} */
 export const DESTINATION_HUBS = { prague: '/prague-stag-do' };
+
+function hubOf(destSlug) {
+  return Object.hasOwn(DESTINATION_HUBS, destSlug) ? DESTINATION_HUBS[destSlug] : undefined;
+}
 
 // next-intl `pathnames` shape. EN is the internal form (= the Next route
 // folder name); other locales are the public form the middleware rewrites.
 // Paths not listed here are identical in every locale.
+/** @type {Record<string, Record<string, string>>} */
 export const LOCALIZED_PATHNAMES = {
   '/prague-stag-do': { en: '/prague-stag-do', de: '/jga-prag' },
   '/prague-stag-do/activities/[slug]': {
@@ -32,18 +38,18 @@ export const LOCALIZED_PATHNAMES = {
 
 /** EN-internal path of a destination's catalog page. */
 export function destinationPath(destSlug) {
-  return DESTINATION_HUBS[destSlug] ?? `/destination/${destSlug}`;
+  return hubOf(destSlug) ?? `/destination/${destSlug}`;
 }
 
 /** EN-internal path of an activity detail page. */
 export function activityPath(destSlug, slug) {
-  const hub = DESTINATION_HUBS[destSlug];
+  const hub = hubOf(destSlug);
   return hub ? `${hub}/activities/${slug}` : `/destination/${destSlug}/activity/${slug}`;
 }
 
 /** EN-internal path of a package detail page. */
 export function packagePath(destSlug, slug) {
-  const hub = DESTINATION_HUBS[destSlug];
+  const hub = hubOf(destSlug);
   return hub ? `${hub}/packages/${slug}` : `/destination/${destSlug}/package/${slug}`;
 }
 
@@ -68,9 +74,8 @@ function fillPattern(pattern, captures) {
   return pattern.replace(/\[[^\]]+\]/g, () => captures[i++]);
 }
 
-// Longest pattern first so '/x/activities/[slug]' is tried before '/x'.
+// Every regex is anchored (^...$), so the order of these entries cannot change a result.
 const TRANSLATIONS = Object.entries(LOCALIZED_PATHNAMES)
-  .sort(([a], [b]) => b.length - a.length)
   .map(([internal, perLocale]) => ({
     internal,
     perLocale,
@@ -133,8 +138,12 @@ export function matchCatalogPath(pathname, locale = currentLocale()) {
   if (legacy) return { destinationSlug: legacy[1], kind: legacy[2] ?? 'hub' };
   for (const [destinationSlug, hub] of Object.entries(DESTINATION_HUBS)) {
     if (internal === hub) return { destinationSlug, kind: 'hub' };
-    if (internal.startsWith(`${hub}/activities/`)) return { destinationSlug, kind: 'activity' };
-    if (internal.startsWith(`${hub}/packages/`)) return { destinationSlug, kind: 'package' };
+    if (patternToRegex(`${hub}/activities/[slug]`).test(internal)) {
+      return { destinationSlug, kind: 'activity' };
+    }
+    if (patternToRegex(`${hub}/packages/[slug]`).test(internal)) {
+      return { destinationSlug, kind: 'package' };
+    }
   }
   return null;
 }

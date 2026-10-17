@@ -3,7 +3,7 @@ import AppModal from './AppModal';
 import api from '../services/api';
 import { extraPriceLabel, formatDuration } from '../utils/format';
 import ItemExtrasPicker from './ItemExtrasPicker';
-import { activityPath, routePath, useLocalePath, useT } from '../i18n';
+import { activityPath, useLocalePath, useT } from '../i18n';
 import './ActivityPreviewModal.css';
 
 /**
@@ -68,7 +68,7 @@ function ActivityPreviewModal({ activity: given, activityId, link, onClose, clos
     };
     const fullPage = link
         || (activity.slug && activity.destinationSlug
-            ? routePath(activityPath(activity.destinationSlug, activity.slug)) : null);
+            ? activityPath(activity.destinationSlug, activity.slug) : null);
 
     // No per-person price: the plan shows one "from" price for the group.
     const meta = [];

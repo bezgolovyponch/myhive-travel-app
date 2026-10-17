@@ -53,10 +53,10 @@ function hubRoutes() {
     ...localizedPaths(hub).map((p) => (
       <Route key={p} path={p} element={<DestinationPage destinationSlug={destinationSlug}/>}/>
     )),
-    ...localizedPaths(hub + "/activities/:slug").map((p) => (
+    ...localizedPaths(`${hub}/activities/:slug`).map((p) => (
       <Route key={p} path={p} element={<ActivityDetailPage destinationSlug={destinationSlug}/>}/>
     )),
-    ...localizedPaths(hub + "/packages/:slug").map((p) => (
+    ...localizedPaths(`${hub}/packages/:slug`).map((p) => (
       <Route key={p} path={p} element={<PackageDetailPage destinationSlug={destinationSlug}/>}/>
     )),
   ]);
@@ -81,8 +81,8 @@ function Layout() {
             <Route path="/destination/:destinationSlug/activity/:slug" element={<ActivityDetailPage/>}/>
             <Route path="/destination/:destSlug/package/:slug" element={<PackageDetailPage/>}/>
             <Route path="/about" element={<AboutPage/>}/>
-            {localizedPaths("/ideas").map((p) => <Route key={p} path={p} element={<BlogPage/>}/>)}
-            {localizedPaths("/ideas/:slug").map((p) => <Route key={p} path={p} element={<BlogPostPage/>}/>)}
+            {localizedPaths('/ideas').map((p) => <Route key={p} path={p} element={<BlogPage/>}/>)}
+            {localizedPaths('/ideas/:slug').map((p) => <Route key={p} path={p} element={<BlogPostPage/>}/>)}
             <Route path="/contact" element={<ContactPage/>}/>
             <Route path="/cookie-policy" element={<CookiePolicyPage/>}/>
             <Route path="/privacy-policy" element={<PrivacyPolicyPage/>}/>

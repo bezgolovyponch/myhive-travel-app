@@ -19,6 +19,8 @@ describe('path builders', () => {
     expect(DESTINATION_HUBS.prague).toBe('/prague-stag-do');
     expect(destinationPath('prague')).toBe('/prague-stag-do');
     expect(destinationPath('krakow')).toBe('/destination/krakow');
+    expect(destinationPath('constructor')).toBe('/destination/constructor');
+    expect(activityPath('constructor', 'x')).toBe('/destination/constructor/activity/x');
     expect(activityPath('prague', 'beer-spa')).toBe('/prague-stag-do/activities/beer-spa');
     expect(activityPath('krakow', 'beer-spa')).toBe('/destination/krakow/activity/beer-spa');
     expect(packagePath('prague', 'weekend')).toBe('/prague-stag-do/packages/weekend');
@@ -55,6 +57,7 @@ describe('localizeSegments / delocalizeSegments', () => {
     expect(localizeSegments('/destination/krakow/activity/x', 'de')).toBe('/destination/krakow/activity/x');
     expect(localizeSegments('/jga-prag/aktivitaeten/beer-spa', 'de')).toBe('/jga-prag/aktivitaeten/beer-spa');
     expect(localizeSegments('/prague-stag-do/packages', 'de')).toBe('/prague-stag-do/packages');
+    expect(localizeSegments('/ideas/', 'de')).toBe('/ideas/');
   });
 
   it('keeps query and hash and react-router params', () => {
@@ -90,6 +93,7 @@ describe('localizePath / localizeHref', () => {
     expect(localizeHref('/de/jga-prag', 'de')).toBe('/de/jga-prag');
     expect(localizeHref('/prague-stag-do?tab=trip-builder#top', 'de')).toBe('/de/jga-prag?tab=trip-builder#top');
     expect(localizeHref('/jga-prag', 'de')).toBe('/de/jga-prag');
+    expect(localizeHref('/de?x=1', 'de')).toBe('/de?x=1');
   });
 });
 
@@ -107,5 +111,14 @@ describe('matchCatalogPath', () => {
     expect(matchCatalogPath('/about', 'en')).toBeNull();
     expect(matchCatalogPath('/ideas/how-to', 'en')).toBeNull();
     expect(matchCatalogPath('/', 'de')).toBeNull();
+    expect(matchCatalogPath('', 'en')).toBeNull();
+  });
+
+  it('returns null for empty and nested hub children', () => {
+    expect(matchCatalogPath('/prague-stag-do/activities/', 'en')).toBeNull();
+    expect(matchCatalogPath('/prague-stag-do/activities/a/b', 'en')).toBeNull();
+    expect(matchCatalogPath('/prague-stag-do/packages/', 'en')).toBeNull();
+    expect(matchCatalogPath('/prague-stag-do/packages/a/b', 'en')).toBeNull();
+    expect(matchCatalogPath('/jga-prag/aktivitaeten/a/b', 'de')).toBeNull();
   });
 });
