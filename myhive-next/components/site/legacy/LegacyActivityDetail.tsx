@@ -16,7 +16,7 @@ export default function LegacyActivityDetail({
   destinationSlug: string;
 }) {
   const locale = useLocale();
-  const hub = (DESTINATION_HUBS as Record<string, string>)[destinationSlug];
+  const hub = DESTINATION_HUBS[destinationSlug];
   const pattern = routePath(
     hub ? `${hub}/activities/:slug` : '/destination/:destinationSlug/activity/:slug',
     locale

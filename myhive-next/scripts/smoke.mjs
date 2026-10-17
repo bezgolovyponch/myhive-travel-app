@@ -18,6 +18,14 @@ async function fetchPage(path) {
   return { code: res.status, html: await res.text() };
 }
 
+// Every <link ...> tag as { rel, hreflang, href }, whatever the attribute order or casing.
+function linkTags(html) {
+  return [...html.matchAll(/<link\b[^>]*>/gi)].map(([tag]) => {
+    const attr = (name) => tag.match(new RegExp(`\\s${name}="([^"]*)"`, 'i'))?.[1];
+    return { rel: attr('rel'), hreflang: attr('hreflang'), href: attr('href') };
+  });
+}
+
 function meta(html) {
   const title = html.match(/<title>([^<]*)<\/title>/)?.[1]?.replace(/&amp;/g, '&') ?? '';
   const desc = html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? '';
@@ -93,8 +101,8 @@ if (aslug) {
   const { code: deActCode, html: deAct } = await fetchPage(dePath);
   console.log(`== ${dePath} [${deActCode}]`);
   if (deActCode !== 200) fails.push(`${dePath}: HTTP ${deActCode}`);
-  const enAlt = new RegExp(`<link rel="alternate" hrefLang="en" href="[^"]*/prague-stag-do/activities/${aslug}"`, 'i');
-  if (!enAlt.test(deAct)) fails.push(`${dePath}: hreflang="en" does not point at /prague-stag-do/activities/${aslug}`);
+  const enAlt = linkTags(deAct).find((l) => l.rel === 'alternate' && l.hreflang === 'en');
+  if (!enAlt || !new RegExp(`/prague-stag-do/activities/${aslug}$`).test(enAlt.href ?? '')) fails.push(`${dePath}: hreflang="en" does not point at /prague-stag-do/activities/${aslug}`);
 }
 
 await expect404('/destination/atlantis');

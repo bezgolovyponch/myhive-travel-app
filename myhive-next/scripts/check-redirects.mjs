@@ -23,11 +23,20 @@ function fail(message) {
   console.log(`FAIL ${message}`);
 }
 
+// fetch that names the URL in its failure, so "script aborted" says what was unreachable.
+async function fetchUrl(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch (e) {
+    throw new Error(`fetch ${url} failed: ${e.cause?.code ?? e.message}`);
+  }
+}
+
 async function follow(path) {
   const hops = [];
   let url = base + path;
   for (let i = 0; i < 5; i += 1) {
-    const res = await fetch(url, { redirect: 'manual' });
+    const res = await fetchUrl(url, { redirect: 'manual' });
     if (res.status >= 300 && res.status < 400) {
       hops.push(res.status);
       const location = res.headers.get('location');
@@ -61,7 +70,7 @@ async function expectDirect(path, status) {
 
 async function getJson(path) {
   const token = process.env.INTERNAL_API_TOKEN; // lets the catalog reads skip the 100 req/min/IP limiter
-  const res = await fetch(`${base}${path}`, token ? { headers: { 'X-Internal-Token': token } } : {});
+  const res = await fetchUrl(`${base}${path}`, token ? { headers: { 'X-Internal-Token': token } } : {});
   if (!res.ok) {
     throw new Error(`${path} answered ${res.status}`);
   }
@@ -91,6 +100,9 @@ async function run() {
     fail('no hub destination in /api/destinations, nothing to exercise');
   }
 
+  // Expected checks, per locale: each hub destination = 1 (bare) + 1 (query kept)
+  // + one per activity + one per package; each non-hub destination = 1; then
+  // blog 1 + 5 gone + 1 not-a-post + 1 landing + 1 not-a-city.
   for (const dest of destinations) {
     for (const locale of SUPPORTED_LOCALES) {
       const old = (p) => localizePath(p, locale);

@@ -9,6 +9,9 @@ scoped down to what needs no backend schema change.
 **This is phase 1 only.** Phase 2 (9 single categories + category pages) and phase 3 (German
 slugs, `slug_de`) are NOT done and are separate specs.
 
+The section label changed from "Blog" to "Ideas" (DE "Ratgeber") in the header, footer, landing
+footer, breadcrumb and back-link; the page title/H1 are untouched (content plan).
+
 ## What moved
 
 The Prague catalog left `/destination/prague/...` for keyword URLs, with German path
@@ -245,24 +248,23 @@ needed for phase 1.
 
 ## Open items
 
-Deferred minors from the review ledger (none blocks the merge):
+The deferred minors from the review ledger were addressed on 2026-10-17:
 
-- `routes.js`: the `TRANSLATIONS` sort is a no-op (regexes are anchored); `matchCatalogPath` hub
-  branch uses `startsWith` (accepts empty/nested slug) while the legacy branch is strict;
-  `DESTINATION_HUBS[destSlug]` sees inherited props (use `Object.hasOwn` or a Map); edge-case
-  tests are thin (`localizeHref('/de?x=1')`, `'/ideas/'`, nested child).
-- `PublicPaths`: `PublicPathsTest` pins `/destination/null` for a null slug and uses JUnit
-  `assertEquals` where the suite uses AssertJ; the literal `'en'` check could reuse
-  `Translations.normalize` like `EmailService.localePrefix`.
-- CRA: `ActivityCard.js` and `ActivityPreviewModal.js` double-localize
-  (`lp(routePath(...))`, safe through idempotence); `Layout.js` style drift and a dropped
-  rationale comment above `localizedPaths`.
-- Next: `legacyUrlRedirects()` is untested (unexported in `next.config.ts`); `isGone` ignores
-  double slashes; `ActivityDetail.tsx`/`PackageDetail.tsx` duplicate `capitalizeFirst`,
-  `destinationNameFromSlug`, `truncate` (lift into `components/site/catalog/text.ts`); the
-  `(DESTINATION_HUBS as Record<string,string>)` cast x3 in the legacy wrappers; `smoke.mjs`
-  hreflang regex assumes attribute order; stale "cannot drift" header comments in the shared
-  catalog modules.
+- CRA `a79626f1`: `routes.js` strictness, `Object.hasOwn` for the hub lookup, JSDoc types,
+  single localization (no double `lp(routePath(...))`), `Layout.js` style.
+- Backend `b6f2ff5e`: `PublicPaths` reuses `Translations.normalize`, a null slug is a
+  programming error (NPE), `PublicPathsTest` uses AssertJ.
+- Next (the commit carrying this note): `legacyUrlRedirects()` moved to `lib/redirects.ts` with an
+  exact-rule test, plus single-hop rules for `/en/`-prefixed old URLs; `isGone` collapses repeated
+  slashes; shared `components/site/catalog/text.ts`; the `DESTINATION_HUBS` casts are gone;
+  `smoke.mjs` parses hreflang link tags in any attribute order; `check-redirects.mjs` names the
+  failing URL when it aborts.
+
+Deliberately still open:
+
+- The kept-post redirect (`/blog/how-to-plan-a-stress-free-group-trip`) can only be checked live
+  after the slug is renamed in the admin.
+- `check-redirects.mjs` has no rate-limit delay (see step 6 above).
 - Docs pending owner approval (workflow rule 3): README, CLAUDE.md (URL scheme, `routes.js` as
   owner, `PublicPaths` mirror) and memory updates.
 - **Phase 2:** 9 single categories + category pages, package overview page, article texts for

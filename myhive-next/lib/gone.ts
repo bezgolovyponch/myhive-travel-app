@@ -1,3 +1,5 @@
+// scripts/check-redirects.mjs carries a copy of GONE_BLOG_SLUGS (node cannot
+// import .ts): keep both lists in sync.
 // Retired seed posts (ТЗ 2026-10: "410, not 404 and not a redirect to the
 // homepage"). next.config redirects() cannot emit 410, so middleware does.
 export const GONE_BLOG_SLUGS = [
@@ -11,5 +13,6 @@ export const GONE_BLOG_SLUGS = [
 const GONE = new Set<string>(GONE_BLOG_SLUGS.flatMap((s) => [`/blog/${s}`, `/de/blog/${s}`]));
 
 export function isGone(pathname: string): boolean {
-  return GONE.has(pathname.replace(/\/+$/, '') || '/');
+  // Collapse repeated slashes so /blog//slug cannot dodge the lookup.
+  return GONE.has(pathname.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/');
 }

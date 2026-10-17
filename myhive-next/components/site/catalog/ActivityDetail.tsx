@@ -1,8 +1,8 @@
-// SSR activity detail (shared by the hub routes and /destination/[slug]) —
-// a thin server shell: metadata, JSON-LD, the record fetch
-// and the city-match guard. The markup is the canonical CRA page
-// (legacy-src/pages/ActivityDetailPage.js), so this route cannot drift from what
-// the SPA renders, and its Add-to-trip CTA is the real one rather than a link.
+// SSR activity detail: a thin server shell (metadata, JSON-LD, the record fetch
+// and the city-match guard) around the canonical CRA page
+// (legacy-src/pages/ActivityDetailPage.js). Shared server module rendered by both
+// the hub route (app/[locale]/(public)/prague-stag-do/...) and the legacy
+// destination/[slug]/... route.
 // Record fields arrive already localized for `locale` (backend translations
 // column, English fallback per field).
 import type { Metadata } from 'next';
@@ -12,28 +12,12 @@ import { api } from '@/lib/api';
 import { breadcrumbJsonLd, pageMetadata, jsonLd } from '@/lib/seo';
 import { activityPath, destinationPath } from '../../../legacy-src/i18n/routes';
 import LegacyActivityDetail from '@/components/site/legacy/LegacyActivityDetail';
+import { destinationNameFromSlug, truncate } from './text';
 
 interface Args {
   destinationSlug: string;
   activitySlug: string;
   locale: string;
-}
-
-function capitalizeFirst(s: string) {
-  if (!s) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function destinationNameFromSlug(slug: string) {
-  return slug
-    .split('-')
-    .map((part) => capitalizeFirst(part))
-    .join(' ');
-}
-
-function truncate(text: string, limit = 155) {
-  if (text.length <= limit) return text;
-  return `${text.slice(0, limit - 1).trimEnd()}…`;
 }
 
 export async function activityMetadata({ destinationSlug, activitySlug, locale }: Args): Promise<Metadata> {

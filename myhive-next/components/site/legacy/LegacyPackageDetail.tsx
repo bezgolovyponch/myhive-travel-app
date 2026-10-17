@@ -16,7 +16,7 @@ export default function LegacyPackageDetail({
   destinationSlug: string;
 }) {
   const locale = useLocale();
-  const hub = (DESTINATION_HUBS as Record<string, string>)[destinationSlug];
+  const hub = DESTINATION_HUBS[destinationSlug];
   const pattern = routePath(
     hub ? `${hub}/packages/:slug` : '/destination/:destSlug/package/:slug',
     locale
