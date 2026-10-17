@@ -1,6 +1,7 @@
 package com.myhive.backend.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -8,19 +9,26 @@ class PublicPathsTest {
 
     @Test
     void hubDestinationGetsKeywordPathPerLocale() {
-        assertEquals("/prague-stag-do", PublicPaths.destinationPath("prague", null));
-        assertEquals("/prague-stag-do", PublicPaths.destinationPath("prague", "en"));
-        assertEquals("/de/jga-prag", PublicPaths.destinationPath("prague", "de"));
+        String expectedEnglishHub = "/prague-stag-do";
+        String expectedGermanHub = "/de/jga-prag";
+
+        assertThat(PublicPaths.destinationPath("prague", null)).isEqualTo(expectedEnglishHub);
+        assertThat(PublicPaths.destinationPath("prague", "en")).isEqualTo(expectedEnglishHub);
+        assertThat(PublicPaths.destinationPath("prague", "de")).isEqualTo(expectedGermanHub);
     }
 
     @Test
     void otherDestinationsKeepTheLegacyRoute() {
-        assertEquals("/destination/krakow", PublicPaths.destinationPath("krakow", ""));
-        assertEquals("/de/destination/krakow", PublicPaths.destinationPath("krakow", "de"));
+        String expectedEnglishRoute = "/destination/krakow";
+        String expectedGermanRoute = "/de/destination/krakow";
+
+        assertThat(PublicPaths.destinationPath("krakow", "")).isEqualTo(expectedEnglishRoute);
+        assertThat(PublicPaths.destinationPath("krakow", "de")).isEqualTo(expectedGermanRoute);
     }
 
     @Test
-    void nullSlugDoesNotThrow() {
-        assertEquals("/destination/null", PublicPaths.destinationPath(null, "en"));
+    void nullSlugIsAProgrammingError() {
+        assertThatThrownBy(() -> PublicPaths.destinationPath(null, "en"))
+                .isInstanceOf(NullPointerException.class);
     }
 }

@@ -1,6 +1,7 @@
 package com.myhive.backend.util;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Public (frontend) URL paths the backend has to build itself, i.e. in emails.
@@ -19,11 +20,13 @@ public final class PublicPaths {
 
     /** Locale-prefixed catalog path: "/prague-stag-do", "/de/jga-prag", "/de/destination/krakow". */
     public static String destinationPath(String destinationSlug, String localeCode) {
-        String locale = localeCode == null || localeCode.isBlank() ? DEFAULT_LOCALE : localeCode;
-        String prefix = DEFAULT_LOCALE.equals(locale) ? "" : "/" + locale;
-        Map<String, String> hub = destinationSlug == null ? null : HUBS.get(destinationSlug);
+        Objects.requireNonNull(destinationSlug, "destinationSlug");
+        String locale = Translations.normalize(localeCode);
+        String prefix = locale == null ? "" : "/" + locale;
+        String hubKey = locale == null ? DEFAULT_LOCALE : locale;
+        Map<String, String> hub = HUBS.get(destinationSlug);
         if (hub != null) {
-            return prefix + hub.getOrDefault(locale, hub.get(DEFAULT_LOCALE));
+            return prefix + hub.getOrDefault(hubKey, hub.get(DEFAULT_LOCALE));
         }
         return prefix + "/destination/" + destinationSlug;
     }

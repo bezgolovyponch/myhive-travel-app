@@ -709,6 +709,7 @@ class EmailServiceTest {
     void sendVoteCreatedConfirmation_setsRecipientAndSubjectNamingDestination() throws Exception {
         Destination destination = new Destination();
         destination.setName("Bali");
+        destination.setSlug("bali");
 
         VoteSession session = new VoteSession();
         session.setShareToken(UUID.randomUUID());
