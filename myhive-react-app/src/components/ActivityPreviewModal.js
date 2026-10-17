@@ -12,7 +12,7 @@ import './ActivityPreviewModal.css';
  *
  * @param activity    what the caller already has; a row with no `description` key is completed by id
  * @param activityId  the id to load the rest by, for rows that carry only a name and a picture
- * @param link        the full page; defaults to the loaded activity's own page
+ * @param link        `link`: the activity page path, either EN-internal (`activityPath(...)`) or already localized (`routePath(...)`); the modal runs it through `lp()` (localizePath), which is idempotent on localized input. Defaults to the loaded activity's own page.
  * @param closeLabel  shows a footer button that closes, labelled with where it goes back to
  * @param action      {label, onClick, disabled}: one thing to do with the activity; doing it closes the dialog
  * @param confirm     {inPlan, selected, addLabel, updateLabel, disabled, onConfirm}: the card can put the

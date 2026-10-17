@@ -41,9 +41,7 @@ const AiPlannerPage = lazy(() => import('../pages/AiPlannerPage').catch(() => ({
     ),
 })));
 
-// One <Route> per locale variant of a pattern ('/prague-stag-do' and '/jga-prag'
-// both render the Prague catalog): the SPA's BrowserRouter only strips the
-// locale prefix, the segments stay as the public URL spells them.
+// One <Route> per locale variant: '/prague-stag-do' and '/jga-prag' both render the Prague catalog — the SPA's BrowserRouter only strips the locale prefix, the segments stay as the public URL spells them.
 function localizedPaths(pattern) {
   return [...new Set(SUPPORTED_LOCALES.map((l) => routePath(pattern, l)))];
 }

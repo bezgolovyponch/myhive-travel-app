@@ -418,7 +418,11 @@ public class EmailService {
      * page adopts so the organiser can manage the vote from any device.
      */
     private static String dashboardUrlFor(VoteSession session, String frontendUrl) {
-        return frontendUrl + PublicPaths.destinationPath(session.getDestination().getSlug(), session.getLocale())
+        String destinationSlug = session.getDestination().getSlug();
+        if (destinationSlug == null) {
+            return frontendUrl + localePrefix(session.getLocale());
+        }
+        return frontendUrl + PublicPaths.destinationPath(destinationSlug, session.getLocale())
                 + "?tab=trip-builder&voteSession=" + session.getShareToken()
                 + "&manager=" + session.getManagerToken();
     }

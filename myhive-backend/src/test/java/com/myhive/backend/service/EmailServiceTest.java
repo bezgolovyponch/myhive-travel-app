@@ -574,6 +574,36 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendVoteCreatedConfirmation_destinationWithoutSlugDashboardFallsBackToLocaleHome() throws Exception {
+        String expectedDashboardUrl = "https://trivlu.com/de";
+
+        Destination destination = new Destination();
+        destination.setName("Bali");
+
+        VoteSession session = new VoteSession();
+        session.setShareToken(UUID.randomUUID());
+        session.setManagerToken(UUID.randomUUID());
+        session.setInitiatorEmail("alice@example.com");
+        session.setNumberOfTravelers(2);
+        session.setStartDate(LocalDate.of(2026, 8, 1));
+        session.setEndDate(LocalDate.of(2026, 8, 10));
+        session.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(24));
+        session.setDestination(destination);
+        session.setLocale("de");
+
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+        when(templateEngine.process(eq("vote-created"), contextCaptor.capture()))
+                .thenReturn("<html>ok</html>");
+
+        emailService.sendVoteCreatedConfirmation(session, "https://trivlu.com");
+
+        assertThat(contextCaptor.getValue().getVariable("dashboardUrl")).isEqualTo(expectedDashboardUrl);
+        verify(asyncMailSender).send(eq(mimeMessage), anyString());
+    }
+
+    @Test
     void sendItineraryConfirmation_includesTripIdInTemplateContext() throws Exception {
         TripExportRequest request = new TripExportRequest();
         request.setTripName("Bali Adventure");
