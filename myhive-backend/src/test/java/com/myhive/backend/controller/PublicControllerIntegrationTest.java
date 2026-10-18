@@ -242,31 +242,16 @@ class PublicControllerIntegrationTest {
     // --- Sitemap ---
 
     @Test
-    void sitemap_returnsValidXml() throws Exception {
-        mockMvc.perform(get("/sitemap.xml"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/xml"))
-                .andExpect(content().string(containsString("<urlset")))
-                .andExpect(content().string(containsString("/destination/tokyo")))
-                .andExpect(content().string(containsString("/destination/tokyo/activity/temple-visit")))
-                .andExpect(content().string(containsString("/blog/tokyo-guide")));
-    }
-
-    @Test
-    void sitemapIncludesPackageUrls() throws Exception {
-        Destination dest = destinationRepository.findById(destinationId).orElseThrow();
-        Activity act = activityRepository.findById(activityId).orElseThrow();
-        Package pkg = new Package();
-        pkg.setSlug("sitemap-pkg");
-        pkg.setName("Sitemap Package");
-        pkg.setDestination(dest);
-        pkg.setDiscountPct(new BigDecimal("5.00"));
-        pkg.getPackageActivities().add(new PackageActivity(pkg, act, 0));
-        packageRepository.save(pkg);
+    void sitemap_isGoneWithLongCache() throws Exception {
+        int expectedStatus = 410;
+        String expectedBody = "Gone";
+        String expectedCacheControl = "max-age=86400, public";
 
         mockMvc.perform(get("/sitemap.xml"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("/destination/" + dest.getSlug() + "/package/sitemap-pkg")));
+                .andExpect(status().is(expectedStatus))
+                .andExpect(content().contentTypeCompatibleWith("text/plain"))
+                .andExpect(content().string(expectedBody))
+                .andExpect(header().string("Cache-Control", expectedCacheControl));
     }
 
     @Test
