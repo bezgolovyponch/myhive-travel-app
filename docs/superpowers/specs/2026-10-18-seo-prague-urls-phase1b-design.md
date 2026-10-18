@@ -362,8 +362,8 @@ switch is a dashboard action for the owner (deploy checklist).
 1. Before merging: set `STATIC_PAGES_LASTMOD` in `myhive-next/lib/sitemaps.ts` to the release date.
 2. Pause the FRONTEND auto-deploy on Render; merge. Backend deploys first: Flyway V15 runs
    (columns, table, seed, `updated_at = now()`).
-3. Run `myhive-backend/prod-migration-seo-prague-urls.sql` on the prod database (psql / Render
-   shell). Window: old frontend keeps working (its links now carry the new slugs under the old
+3. Run `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f myhive-backend/prod-migration-seo-prague-urls.sql`
+   on the prod database (Render shell); the script carries a preflight and a post-check that abort it. Window: old frontend keeps working (its links now carry the new slugs under the old
    scheme, which it resolves), only bookmarked old-slug URLs 404 for a few minutes.
 4. Deploy the frontend. Purge the Cloudflare cache. Turn off Cloudflare "Block AI bots".
 5. `node myhive-next/scripts/check-redirects.mjs https://www.trivlu.com --legacy-sitemap

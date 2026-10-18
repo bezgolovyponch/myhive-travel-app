@@ -114,6 +114,7 @@ category pages ship.
   the ТЗ, builder order).
 - The `/en/` single-hop rules are an addition the ТЗ did not ask for.
 - `check-redirects` in legacy mode reports prod-only records as warnings on dev data.
+- German and English slugs share one URL space: a `slug_de` cannot equal another row's `slug`, and a `slug` (admin form, CSV create) cannot equal another row's `slug_de`; the services reject it with a 400, the CSV importer suffixes a colliding generated slug.
 
 ## Gotchas
 
@@ -170,8 +171,8 @@ Replaces phase 1's checklist. Spec §8:
 1. Before merging: set `STATIC_PAGES_LASTMOD` in `myhive-next/lib/sitemaps.ts` to the release date.
 2. Pause the FRONTEND auto-deploy on Render; merge. Backend deploys first: Flyway V15 runs
    (columns, table, seed, `updated_at = now()`).
-3. Run `myhive-backend/prod-migration-seo-prague-urls.sql` on the prod database (psql / Render
-   shell). Window: old frontend keeps working (its links now carry the new slugs under the old
+3. Run `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f myhive-backend/prod-migration-seo-prague-urls.sql`
+   on the prod database (Render shell). The script aborts and rolls back on a slug collision or a wrong count. Window: old frontend keeps working (its links now carry the new slugs under the old
    scheme, which it resolves), only bookmarked old-slug URLs 404 for a few minutes.
 4. Deploy the frontend. Purge the Cloudflare cache. Turn off Cloudflare "Block AI bots".
 5. `node myhive-next/scripts/check-redirects.mjs https://www.trivlu.com --legacy-sitemap
@@ -190,7 +191,7 @@ Exact commands:
 # before merge: set STATIC_PAGES_LASTMOD in myhive-next/lib/sitemaps.ts to the release date
 # 1. Render: pause FRONTEND auto-deploy, merge, wait for the backend deploy (Flyway V15)
 # 2. data script (Render shell, or local psql with the external URL)
-psql "$DATABASE_URL" -f myhive-backend/prod-migration-seo-prague-urls.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f myhive-backend/prod-migration-seo-prague-urls.sql
 # 3. deploy the frontend; purge Cloudflare; turn off Cloudflare "Block AI bots"
 # 4. acceptance
 cd myhive-next && npm run sync-legacy

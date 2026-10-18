@@ -187,3 +187,23 @@ test('blogUpdates_renamesKeptPostAndDeletesRetired', () => {
   assert.match(sql, /WHERE slug IN \('how-to-plan-a-stress-free-group-trip', 'how-to-plan-a-stag-do'\)/);
   assert.equal(sql.match(/DELETE FROM blog_posts WHERE slug IN \(([^)]*)\)/)[1].split(', ').length, 5);
 });
+
+test('prodSql_hasPreflightAndPostCheck', () => {
+  const sql = prodSql(realRows());
+  const begin = sql.indexOf('BEGIN;');
+  const preflight = sql.indexOf("RAISE EXCEPTION 'seo-map preflight");
+  const firstUpdate = sql.indexOf('UPDATE activities ');
+  const postCheck = sql.indexOf("RAISE EXCEPTION 'seo-map post-check: expected 72 Prague");
+  const commit = sql.lastIndexOf('COMMIT;');
+  assert.ok(begin >= 0 && begin < preflight, 'preflight follows BEGIN');
+  assert.ok(preflight < firstUpdate, 'preflight runs before the updates');
+  assert.ok(firstUpdate < postCheck && postCheck < commit, 'post-check runs after the updates, before COMMIT');
+  assert.ok(sql.includes('AND slug NOT IN ('), 'preflight excludes the new EN slugs');
+  assert.ok(sql.includes('<> 72 THEN'), 'expected count is derived from the rows');
+});
+
+test('devBlock_hasNoDoBlocks', () => {
+  const block = devBlock(realRows());
+  assert.ok(!block.includes('DO $$'));
+  assert.ok(!block.includes('RAISE'));
+});
