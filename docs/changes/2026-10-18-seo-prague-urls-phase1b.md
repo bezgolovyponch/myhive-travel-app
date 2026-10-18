@@ -214,13 +214,26 @@ throttles; retry on 403/429).
 - CSV import/export columns for `slug_de` and primary category.
 - Map rows (slug_en, slug_de, category) for the 10 unmapped activities, from the SEO manager.
 - Docs pending owner approval (workflow rule 3): README, CLAUDE.md, memory.
-- Deferred review minors:
+- Deferred review minors (the final review triaged all of them as "can wait"; the
+  `loadCatalog` one was fixed in `cd865f58`):
   - `applySlugDe` twin in two services
-  - `editingRef` written during render in `AdminActivities`
-  - `mapByNew` keyed by slug only in `check-redirects`
+  - `editingRef` written during render in `AdminActivities` (cleaner: `validate(form, editing)`)
+  - `mapByNew` keyed by slug only in `check-redirects` (fix before a second city enters the map)
   - unguarded `.json()` in `smoke.mjs`
-  - swallowed catalog fetch failure in `loadCatalog`
   - legal pages / x-default polish
+- Residual notes from the final review, parked with the owner's call pending:
+  - an English request on a German slug (`/prague-stag-do/activities/bierbad`) answers 404; a
+    308 to the English slug would be friendlier, the spec is silent
+  - the 94 stale-cart guards have no `/en/` variants (two hops, never-published URLs)
+  - `app/sitemaps/[name]` and `app/de/sitemaps/[name]` accept any name; a random
+    `/sitemaps/x.xml` 404 gets its own ISR cache entry (`dynamicParams = false` would close it)
+  - an unknown `primaryCategoryId` in an admin write answers 404, not 400
+  - re-running the data script moves `updated_at` (sitemap `lastmod`) on all 72 rows even
+    when nothing changes
+  - `?locale=<anything but en>` triggers the DE-first slug lookup (`Translations.normalize`
+    folds only `en`); only `en`/`de` are ever sent
+  - the slug-collision preflight in the prod script is not scoped to Prague and does not
+    exclude the old EN slugs of renamed rows (fail-closed; cannot trigger on the current map)
 
 ## Commits
 
