@@ -70,7 +70,7 @@ await check('/prague-stag-do', {
   title: 'Prague Stag Do — Activities & Packages | Trivlu',
   needles: ['Prague Stag Do', 'application/ld+json', 'activity-card'],
 });
-await check('/ideas', { title: 'Stag Do Planning Guides & Ideas | Trivlu Blog', needles: ['The Stag Do Playbook'] });
+await check('/ideas', { title: 'Stag Do Planning Guides & Ideas | Trivlu Blog', needles: ['Stag Do Tips, Ideas and Planning Advice for the Best Man'] });
 await check('/about', { title: 'About Trivlu — Group Travel Made Easy', needles: ['About Trivlu'] });
 await check('/contact', { title: 'Contact Trivlu — Talk to the Team', needles: ['info@trivlu.com'] });
 await check('/terms', { needles: ['Terms'] });
@@ -97,7 +97,10 @@ if (!/<link rel="canonical" href="[^"]*\/de\/jga-prag"/.test(deHub)) {
   fails.push('/de/jga-prag: canonical is not /de/jga-prag');
 }
 if (aslug) {
-  const dePath = `/de/jga-prag/aktivitaeten/${aslug}`;
+  // The DE segment carries the activity's own German slug when it has one.
+  const activityRes = await fetch(`${BASE}/api/activities/slug/${aslug}`);
+  const deSlug = (activityRes.ok ? (await activityRes.json()).slugDe : null) || aslug;
+  const dePath = `/de/jga-prag/aktivitaeten/${deSlug}`;
   const { code: deActCode, html: deAct } = await fetchPage(dePath);
   console.log(`== ${dePath} [${deActCode}]`);
   if (deActCode !== 200) fails.push(`${dePath}: HTTP ${deActCode}`);
