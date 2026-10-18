@@ -4,7 +4,7 @@ import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import MarkdownContent from '../components/MarkdownContent';
-import {blogIndexPath, blogPostPath, localizePath, routePath, useLocale, useT} from '../i18n';
+import {blogIndexPath, blogPostPath, entitySlug, localizePath, routePath, useLocale, useT} from '../i18n';
 import './BlogPostPage.css';
 
 // `post` is supplied by the server renderer (Next.js SSR) so the article is in
@@ -42,7 +42,7 @@ function BlogPostPage({post: injectedPost}) {
             <PageHead>
                 <title>{tMeta('blogPost.title', {title: post.title})}</title>
                 <meta name="description" content={post.excerpt || post.title}/>
-                <link rel="canonical" href={`${SITE_URL}${localizePath(blogPostPath(post.slug), locale)}`}/>
+                <link rel="canonical" href={`${SITE_URL}${localizePath(blogPostPath(entitySlug(post, locale)), locale)}`}/>
             </PageHead>
             {post.imageUrl && (
                 <div className="blog-post-hero" style={{backgroundImage: `url(${post.imageUrl})`}}>

@@ -5,7 +5,7 @@ import SwipeCard from '../../components/SwipeCard';
 import {useTrip} from '../../context/TripContext';
 import { pushEvent } from '../../utils/analytics';
 import { writeQuizFlow } from '../../utils/quizFlow';
-import { activityPath, destinationPath, routePath, useT } from '../../i18n';
+import { activityPath, destinationPath, entitySlug, routePath, useT } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './CuratePage.css';
 
@@ -111,7 +111,7 @@ function CurateContent() {
     if (!activity || !activity.slug || !activity.destinationSlug) {
       return null;
     }
-    return routePath(activityPath(activity.destinationSlug, activity.slug));
+    return routePath(activityPath(activity.destinationSlug, entitySlug(activity)));
   };
 
   const handleSwipe = (direction, activityId) => {

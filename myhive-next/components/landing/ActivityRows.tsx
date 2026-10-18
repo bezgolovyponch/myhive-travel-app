@@ -5,7 +5,7 @@
 // toggles the activity into the shared cart without leaving the page.
 // Activity names/categories arrive already localized from the backend
 // (?locale= on the server fetch); UI strings come from the landing dictionary.
-import { useT, useLocalePath } from '../../legacy-src/i18n';
+import { useT, useLocale, useLocalePath } from '../../legacy-src/i18n';
 import { formatDuration } from '../../legacy-src/utils/format';
 import type { ActivityRow, LandingActivity } from './data';
 import { activityLink, categoryLink } from './data';
@@ -26,7 +26,8 @@ function ActivityCard({
   const t = useT('landing.activities');
   const tDuration = useT('activityDetail.duration');
   const lp = useLocalePath();
-  const activityHref = lp(activityLink(destinationSlug, a.slug));
+  const locale = useLocale();
+  const activityHref = lp(activityLink(destinationSlug, a, locale));
   return (
     <article className={`acard${picked ? ' is-picked' : ''}`}>
       <div className="acard__ph">

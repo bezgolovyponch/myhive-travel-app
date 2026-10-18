@@ -3,7 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {useTrip} from '../context/TripContext';
 import {capitalizeFirst, DEFAULT_ACTIVITY_IMAGE} from '../utils/format';
 import ActivityPreviewModal from './ActivityPreviewModal';
-import {activityPath, routePath, useLocalePath, useT} from '../i18n';
+import {activityPath, entitySlug, routePath, useLocale, useLocalePath, useT} from '../i18n';
 import './ActivityCard.css';
 
 function ActivityCard({ activity, isAdded = false, silent = false }) {
@@ -12,10 +12,11 @@ function ActivityCard({ activity, isAdded = false, silent = false }) {
     const t = useT('cards');
     const tExtras = useT('extras');
     const lp = useLocalePath();
+    const locale = useLocale();
     const [previewOpen, setPreviewOpen] = useState(false);
 
     const destSlug = activity.destinationSlug || activity.destinationId;
-    const activityLink = activityPath(destSlug, activity.slug || activity.id);
+    const activityLink = activityPath(destSlug, entitySlug(activity, locale) || activity.id);
 
     const handleAddToTrip = (e) => {
         e.stopPropagation();

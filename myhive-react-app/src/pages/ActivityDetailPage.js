@@ -13,7 +13,7 @@ import ActivityGallery from '../components/ActivityGallery';
 import ActivityCard from '../components/ActivityCard';
 import ItemExtrasPicker from '../components/ItemExtrasPicker';
 import {extrasOf} from '../utils/tripPricing';
-import {activityPath, destinationPath, localizePath, routePath, useLocale, useT} from '../i18n';
+import {activityPath, destinationPath, entitySlug, localizePath, routePath, useLocale, useT} from '../i18n';
 import './ActivityDetailPage.css';
 
 const MAX_MORE_ACTIVITIES = 4;
@@ -163,7 +163,7 @@ function ActivityDetailPage({activity: injectedActivity, destinationSlug: destin
                 <title>{tMeta('activity.title', {name: title, destination: activity.destinationName})}</title>
                 <meta name="description"
                       content={activity.description || tMeta('activity.fallbackDescription', {name: title, destination: activity.destinationName})}/>
-                <link rel="canonical" href={`${SITE_URL}${localizePath(activityPath(destSlug, activity.slug), locale)}`}/>
+                <link rel="canonical" href={`${SITE_URL}${localizePath(activityPath(destSlug, entitySlug(activity, locale)), locale)}`}/>
             </PageHead>
 
             <nav className="activity-detail-breadcrumbs">

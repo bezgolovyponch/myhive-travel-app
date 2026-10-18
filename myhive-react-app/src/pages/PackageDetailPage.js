@@ -5,7 +5,7 @@ import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import {DEFAULT_ACTIVITY_IMAGE, formatAmount} from '../utils/format';
-import {activityPath, destinationPath, localizePath, packagePath, routePath, useLocale, useT} from '../i18n';
+import {activityPath, destinationPath, entitySlug, localizePath, packagePath, routePath, useLocale, useT} from '../i18n';
 import './PackageDetailPage.css';
 
 // `pkg` is supplied by the server renderer (Next.js SSR) so the record is in the
@@ -88,7 +88,7 @@ function PackageDetailPage({pkg: injectedPkg, destinationSlug: destinationSlugPr
                                 {sortedActivities.map(activity => (
                                     <Link
                                         key={activity.activityId}
-                                        to={routePath(activityPath(resolvedDestSlug, activity.slug))}
+                                        to={routePath(activityPath(resolvedDestSlug, entitySlug(activity)))}
                                         className="package-detail-activity"
                                     >
                                         <img

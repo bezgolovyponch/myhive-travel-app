@@ -25,7 +25,7 @@ import {GroupRecommendations, PlanRow, VoteDashboardHeader, VoteInvitePanel} fro
 import ActivityPreviewModal from './ActivityPreviewModal';
 import AppModal from './AppModal';
 import ItemExtrasRow from './ItemExtrasRow';
-import {activityPath, destinationPath, routePath, useLocalePath, useT} from '../i18n';
+import {activityPath, destinationPath, entitySlug, routePath, useLocalePath, useT} from '../i18n';
 import {groupByDay} from '../utils/voteDays';
 import './TripBuilder.css';
 
@@ -470,7 +470,7 @@ function TripBuilder({ destinationId, destinationSlug, destinationName }) {
     if (!activity || !activity.slug || !activity.destinationSlug) {
       return null;
     }
-    return routePath(activityPath(activity.destinationSlug, activity.slug));
+    return routePath(activityPath(activity.destinationSlug, entitySlug(activity)));
   };
 
   // Used by handleStartVoteClick (both CART and quiz-mode vote modals): true —
