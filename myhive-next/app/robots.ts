@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
   }
   // Production rules, per SEO план v3 + the CRA robots.txt it replaces:
   // public pages open; service flows (admin, voting steps, payment) closed.
-  // Next owns the sitemap (app/sitemap.ts) — single implementation, spec §2.
+  // Next owns the sitemap (app/sitemap.xml/route.ts + lib/sitemaps.ts) — single implementation, spec §2.
   const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trivlu.com';
   // Service flows exist under every locale prefix too (/de/vote/...).
   const serviceFlows = ['/admin', '/vote', '/payment'];

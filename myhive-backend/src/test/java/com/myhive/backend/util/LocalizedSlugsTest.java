@@ -32,4 +32,16 @@ class LocalizedSlugsTest {
         assertThatThrownBy(() -> LocalizedSlugs.normalize("axt werfen"))
                 .isInstanceOf(BadRequestException.class);
     }
+
+    @Test
+    void normalize_rejectsLeadingTrailingOrDoubleHyphens() {
+        assertThatThrownBy(() -> LocalizedSlugs.normalize("-"))
+                .isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> LocalizedSlugs.normalize("-axt"))
+                .isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> LocalizedSlugs.normalize("axt-"))
+                .isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> LocalizedSlugs.normalize("axt--werfen"))
+                .isInstanceOf(BadRequestException.class);
+    }
 }

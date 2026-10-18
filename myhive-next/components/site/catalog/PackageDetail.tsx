@@ -1,7 +1,7 @@
 // SSR package detail: a thin server shell (metadata, JSON-LD, the record fetch
 // and the city-match guard) around the canonical CRA page
 // (legacy-src/pages/PackageDetailPage.js). Shared server module rendered by both
-// the hub route (app/[locale]/(public)/prague-stag-do/...) and the legacy
+// the hub route (app/[locale]/prague-stag-do/packages/[pslug]/page.tsx) and the legacy
 // destination/[slug]/... route.
 // Record fields arrive already localized for `locale` (backend translations
 // column, English fallback per field).

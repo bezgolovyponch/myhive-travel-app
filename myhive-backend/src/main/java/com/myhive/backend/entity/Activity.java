@@ -38,7 +38,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = {"destination", "categories"})
+@ToString(exclude = {"destination", "categories", "primaryCategory"})
 public class Activity implements Slugged {
 
     @Id
