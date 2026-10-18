@@ -53,6 +53,17 @@ describe('legacyUrlRedirects', () => {
     expect(guards.filter((g) => live.has(g.source))).toEqual([]);
   });
 
+  it('legacyUrlRedirects_guardDestinationsPerLocale', () => {
+    const guards = legacyUrlRedirects().slice(231);
+
+    expect(guards).toContainEqual(
+      permanent('/prague-stag-do/activities/ak-47-glock-17-shooting', '/prague-stag-do/activities/ak47-shooting'),
+    );
+    expect(guards).toContainEqual(
+      permanent('/de/jga-prag/aktivitaeten/ak-47-glock-17-shooting', '/de/jga-prag/aktivitaeten/kalaschnikow-schiessen'),
+    );
+  });
+
   it('legacyUrlRedirects_landingRowProducesNoRule', () => {
     const sources = legacyUrlRedirects().map((r) => r.source);
 
