@@ -167,18 +167,18 @@ and needs `packages` and `categories` to exist, which prod has).
 
 Replaces phase 1's checklist. Spec §8:
 
-1. Pause the FRONTEND auto-deploy on Render; merge. Backend deploys first: Flyway V15 runs
+1. Before merging: set `STATIC_PAGES_LASTMOD` in `myhive-next/lib/sitemaps.ts` to the release date.
+2. Pause the FRONTEND auto-deploy on Render; merge. Backend deploys first: Flyway V15 runs
    (columns, table, seed, `updated_at = now()`).
-2. Run `myhive-backend/prod-migration-seo-prague-urls.sql` on the prod database (psql / Render
+3. Run `myhive-backend/prod-migration-seo-prague-urls.sql` on the prod database (psql / Render
    shell). Window: old frontend keeps working (its links now carry the new slugs under the old
    scheme, which it resolves), only bookmarked old-slug URLs 404 for a few minutes.
-3. Deploy the frontend. Purge the Cloudflare cache. Turn off Cloudflare "Block AI bots".
-4. `node myhive-next/scripts/check-redirects.mjs https://www.trivlu.com --legacy-sitemap
-   docs/seo/legacy-api-sitemap-2026-10-18.xml`; `node scripts/smoke.mjs https://www.trivlu.com`;
+4. Deploy the frontend. Purge the Cloudflare cache. Turn off Cloudflare "Block AI bots".
+5. `node myhive-next/scripts/check-redirects.mjs https://www.trivlu.com --legacy-sitemap
+   docs/seo/legacy-api-sitemap-2026-10-18.xml`; `node myhive-next/scripts/smoke.mjs https://www.trivlu.com`;
    open the hub and two activities in both languages; flip the switcher on five activities.
-5. SEO manager: GSC domain property + `/de/` property, submit `/sitemap.xml` and
+6. SEO manager: GSC domain property + `/de/` property, submit `/sitemap.xml` and
    `/sitemaps/legacy-prague.xml`, remove `/api/sitemap.xml`, Bing, annotation in GA4.
-6. Set `STATIC_PAGES_LASTMOD` to the release date before merging (checklist item).
 7. 2026-11-24: delete `legacy-prague.xml` (code + GSC).
 
 If single addresses are wrong: fix the rule, redeploy, never roll the move back (Google saw
