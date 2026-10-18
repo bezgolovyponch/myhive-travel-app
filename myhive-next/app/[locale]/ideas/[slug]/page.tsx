@@ -6,11 +6,13 @@
 // Post fields arrive already localized for `locale` (backend translations
 // column, English fallback per field).
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api, type BlogPost } from '@/lib/api';
 import { SITE_URL, canonical, breadcrumbJsonLd, jsonLd, pageMetadata } from '@/lib/seo';
-import { blogIndexPath, blogPostPath } from '../../../../../legacy-src/i18n/routes';
+import { wrongSlugTarget } from '@/lib/slug-redirect';
+import { blogIndexPath, blogPostPath, entitySlug, localizePath } from '../../../../legacy-src/i18n/routes';
+import PublicChrome from '@/components/site/PublicChrome';
 import LegacyBlogPost from '@/components/site/legacy/LegacyBlogPost';
 
 export const revalidate = 3600;
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return pageMetadata({
     title: t('title', { title: post.title }),
     description: summarize(post),
-    path: blogPostPath(post.slug || slug),
+    path: { en: blogPostPath(post.slug || slug), de: blogPostPath(post.slugDe ?? post.slug ?? slug) },
     locale,
     image: post.imageUrl || undefined,
     ogType: 'article',
@@ -49,6 +51,11 @@ export default async function Page({ params }: Props) {
   setRequestLocale(locale);
   const post = await api.getBlogPostBySlug(slug, locale);
   if (!post) notFound();
+
+  const target = wrongSlugTarget(slug, post, blogPostPath, locale);
+  if (target) {
+    permanentRedirect(target);
+  }
 
   const t = await getTranslations({ locale, namespace: 'common' });
 
@@ -64,20 +71,26 @@ export default async function Page({ params }: Props) {
       name: 'Trivlu',
       logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo-trivlu.png` },
     },
-    mainEntityOfPage: canonical(blogPostPath(post.slug || slug), locale),
+    mainEntityOfPage: canonical(blogPostPath(entitySlug(post, locale)), locale),
   };
 
   const breadcrumbs = breadcrumbJsonLd(
     [
       [t('home'), '/'],
       [t('blog'), blogIndexPath()],
-      [post.title, blogPostPath(post.slug || slug)],
+      [post.title, blogPostPath(entitySlug(post, locale))],
     ],
     locale
   );
 
   return (
-    <>
+    <PublicChrome
+      locale={locale}
+      alternates={{
+        en: localizePath(blogPostPath(post.slug), 'en'),
+        de: localizePath(blogPostPath(post.slugDe ?? post.slug), 'de'),
+      }}
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(articleJsonLd) }}
@@ -87,6 +100,6 @@ export default async function Page({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbs) }}
       />
       <LegacyBlogPost post={post} />
-    </>
+    </PublicChrome>
   );
 }

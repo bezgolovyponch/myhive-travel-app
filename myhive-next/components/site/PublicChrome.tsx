@@ -24,12 +24,15 @@ async function loadDestinations(locale: string): Promise<LegacyDestination[]> {
 
 export default async function PublicChrome({
   locale,
+  alternates,
   children,
 }: {
   locale: string;
+  /** Per-locale URL of this page when its slug differs by language. */
+  alternates?: Record<string, string>;
   children: React.ReactNode;
 }) {
   const destinations = await loadDestinations(locale);
 
-  return <LegacyChrome destinations={destinations}>{children}</LegacyChrome>;
+  return <LegacyChrome destinations={destinations} alternates={alternates}>{children}</LegacyChrome>;
 }

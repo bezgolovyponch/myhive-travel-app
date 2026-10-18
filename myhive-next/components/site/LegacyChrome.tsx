@@ -27,13 +27,16 @@ import Header from '../../legacy-src/components/Header';
 import Footer from '../../legacy-src/components/Footer';
 import WhatsAppWidget from '../../legacy-src/components/WhatsAppWidget';
 import AppModal from '../../legacy-src/components/AppModal';
-import { useT } from '../../legacy-src/i18n';
+import { PageAlternatesContext, useT } from '../../legacy-src/i18n';
 import { useTripLeadSync } from '../../legacy-src/hooks/useTripLeadSync';
 import LegacyProviders, { type LegacyDestination } from './LegacyProviders';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../legacy-src/styles/global.css';
 
 export type { LegacyDestination };
+
+// Stable identity for pages without alternates (keeps context consumers quiet).
+const EMPTY: Record<string, string> = {};
 
 // Hooks that must run inside the providers, so they cannot live in the root.
 function ChromeInner({ children }: { children: React.ReactNode }) {
@@ -75,9 +78,11 @@ function ChromeInner({ children }: { children: React.ReactNode }) {
 export default function LegacyChrome({
   children,
   destinations,
+  alternates,
 }: {
   children: React.ReactNode;
   destinations: LegacyDestination[];
+  alternates?: Record<string, string>;
 }) {
   return (
     // Next's per-route `metadata` owns the head here, so the CRA pages' PageHead
@@ -90,7 +95,9 @@ export default function LegacyChrome({
       <LegacyProviders destinations={destinations}>
         <DestinationModalProvider>
           <AttributionCapture />
-          <ChromeInner>{children}</ChromeInner>
+          <PageAlternatesContext.Provider value={alternates ?? EMPTY}>
+            <ChromeInner>{children}</ChromeInner>
+          </PageAlternatesContext.Provider>
         </DestinationModalProvider>
       </LegacyProviders>
     </HelmetProvider>

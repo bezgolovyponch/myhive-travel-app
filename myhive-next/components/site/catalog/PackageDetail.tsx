@@ -11,6 +11,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api } from '@/lib/api';
 import { breadcrumbJsonLd, pageMetadata, jsonLd } from '@/lib/seo';
 import { packagePath, destinationPath } from '../../../legacy-src/i18n/routes';
+import PublicChrome from '@/components/site/PublicChrome';
 import LegacyPackageDetail from '@/components/site/legacy/LegacyPackageDetail';
 import { destinationNameFromSlug, truncate } from './text';
 
@@ -69,12 +70,12 @@ export async function PackageDetailPage({ destinationSlug, packageSlug, locale }
   );
 
   return (
-    <>
+    <PublicChrome locale={locale}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }}
       />
       <LegacyPackageDetail pkg={pkg} destinationSlug={destinationSlug} />
-    </>
+    </PublicChrome>
   );
 }
