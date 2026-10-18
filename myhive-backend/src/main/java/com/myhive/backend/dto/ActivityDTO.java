@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,10 @@ public class ActivityDTO {
     private UUID id;
     @Size(max = 280, message = "Slug must be at most 280 characters")
     private String slug;
+
+    /** Hand-written German URL slug. On admin write: null = unchanged, blank = cleared. */
+    @Size(max = 280, message = "German slug must be at most 280 characters")
+    private String slugDe;
 
     @NotNull(message = "Destination ID is required")
     private UUID destinationId;
@@ -59,6 +64,14 @@ public class ActivityDTO {
     private String includes;
 
     private Boolean seoIndexable;
+
+    /** The SEO hub this activity belongs to. On admin write: null = unchanged. */
+    private UUID primaryCategoryId;
+
+    /** Read-only, localized; ignored on write. */
+    private PrimaryCategoryDTO primaryCategory;
+
+    private LocalDateTime updatedAt;
 
     /** Raw per-locale overrides — present on the admin (no-locale) view only; localized reads fold them into the fields above. */
     @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/activities/**").permitAll()
                         .requestMatchers("/packages/**").permitAll()
                         .requestMatchers("/categories/**").permitAll()
+                        .requestMatchers("/primary-categories").permitAll()
                         .requestMatchers("/blog/**").permitAll()
                         .requestMatchers("/bookings/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/contact").permitAll()

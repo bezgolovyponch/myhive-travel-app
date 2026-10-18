@@ -178,4 +178,44 @@ class BlogPostServiceTest {
         assertThatThrownBy(() -> blogPostService.deleteBlogPost(id))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
+
+    @Test
+    void getBlogPostBySlug_germanLocalePrefersGermanSlug() {
+        String expectedSlugDe = "junggesellenabschied-prag";
+        BlogPost bp = TestDataFactory.blogPost();
+        bp.setSlugDe(expectedSlugDe);
+        when(blogPostRepository.findBySlugDe(expectedSlugDe)).thenReturn(Optional.of(bp));
+
+        BlogPostDTO result = blogPostService.getBlogPostBySlug(expectedSlugDe, "de");
+
+        assertThat(result.getId()).isEqualTo(bp.getId());
+        assertThat(result.getSlugDe()).isEqualTo(expectedSlugDe);
+        assertThat(result.getSlug()).isEqualTo("test-blog-post");
+    }
+
+    @Test
+    void getBlogPostBySlug_germanLocaleFallsBackToEnglishSlug() {
+        BlogPost bp = TestDataFactory.blogPost();
+        when(blogPostRepository.findBySlugDe("test-blog-post")).thenReturn(Optional.empty());
+        when(blogPostRepository.findBySlug("test-blog-post")).thenReturn(Optional.of(bp));
+
+        BlogPostDTO result = blogPostService.getBlogPostBySlug("test-blog-post", "de");
+
+        assertThat(result.getId()).isEqualTo(bp.getId());
+    }
+
+    @Test
+    void updateBlogPost_storesSlugDe() {
+        String expectedSlugDe = "junggesellenabschied-prag";
+        BlogPost existing = TestDataFactory.blogPost();
+        BlogPostDTO dto = TestDataFactory.blogPostDTO();
+        dto.setSlugDe(" Junggesellenabschied-Prag ");
+        when(blogPostRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BlogPostDTO result = blogPostService.updateBlogPost(existing.getId(), dto);
+
+        assertThat(result.getSlugDe()).isEqualTo(expectedSlugDe);
+        assertThat(existing.getSlugDe()).isEqualTo(expectedSlugDe);
+    }
 }

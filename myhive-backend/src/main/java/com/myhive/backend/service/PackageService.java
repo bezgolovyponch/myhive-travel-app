@@ -123,6 +123,7 @@ public class PackageService {
         dto.setDiscountPct(p.getDiscountPct());
         dto.setTier(p.getTier());
         dto.setSeoIndexable(p.isSeoIndexable());
+        dto.setUpdatedAt(p.getUpdatedAt());
         if (locale == null) {
             dto.setTranslations(tr);
         }

@@ -7,11 +7,13 @@ import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.Package;
 import com.myhive.backend.entity.PackageActivity;
+import com.myhive.backend.entity.PrimaryCategory;
 import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.BlogPostRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.repository.PrimaryCategoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -54,6 +57,9 @@ class PublicControllerIntegrationTest {
 
     @Autowired
     private PackageRepository packageRepository;
+
+    @Autowired
+    private PrimaryCategoryRepository primaryCategoryRepository;
 
     private UUID destinationId;
     private UUID activityId;
@@ -309,5 +315,34 @@ class PublicControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slug").value("public-pkg"))
                 .andExpect(jsonPath("$.activities", hasSize(1)));
+    }
+
+    // --- Primary categories ---
+
+    @Test
+    void primaryCategories_arePublicAndOrdered() throws Exception {
+        String expectedFirstSlug = "shooting";
+        String expectedGermanName = "Schießen";
+        PrimaryCategory boats = new PrimaryCategory();
+        boats.setSlug("boats");
+        boats.setSlugDe("boote");
+        boats.setName("Boats");
+        boats.setSortOrder(2);
+        primaryCategoryRepository.save(boats);
+        PrimaryCategory shooting = new PrimaryCategory();
+        shooting.setSlug(expectedFirstSlug);
+        shooting.setSlugDe("schiessen");
+        shooting.setName("Shooting");
+        shooting.setTranslations(Map.of("de", Map.of("name", expectedGermanName)));
+        shooting.setSortOrder(1);
+        primaryCategoryRepository.save(shooting);
+
+        mockMvc.perform(get("/primary-categories").param("locale", "de"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].slug", is(expectedFirstSlug)))
+                .andExpect(jsonPath("$[0].slugDe", is("schiessen")))
+                .andExpect(jsonPath("$[0].name", is(expectedGermanName)))
+                .andExpect(jsonPath("$[1].slug", is("boats")));
     }
 }
