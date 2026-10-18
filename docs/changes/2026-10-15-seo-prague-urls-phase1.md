@@ -1,5 +1,9 @@
 # 2026-10-15 — SEO URL restructure, phase 1: Prague hub URLs, 308 redirects, /ideas
 
+> **Superseded by `2026-10-18-seo-prague-urls-phase1b.md`.** Its deploy checklist no longer
+> applies, items 1 and 3 in particular: the backend now deploys first, and the post rename and
+> the deletion of the retired posts happen in the SQL script.
+
 Branch `feat/seo-prague-urls` (base `main`). Spec:
 `docs/superpowers/specs/2026-10-15-seo-prague-urls-phase1-design.md`; plan:
 `docs/superpowers/plans/2026-10-15-seo-prague-urls-phase1.md`. Source: the SEO manager's ТЗ
