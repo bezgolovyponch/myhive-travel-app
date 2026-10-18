@@ -12,6 +12,7 @@ import SaveErrorAlert from '../components/admin/SaveErrorAlert';
 const EMPTY_FORM = {
     title: '',
     slug: '',
+    slugDe: '',
     excerpt: '',
     content: '',
     category: '',
@@ -43,6 +44,7 @@ function AdminBlog() {
         mapItemToForm: (post) => ({
             title: post.title || '',
             slug: post.slug || '',
+            slugDe: post.slugDe || '',
             excerpt: post.excerpt || '',
             content: post.content || '',
             category: post.category || '',
@@ -58,8 +60,12 @@ function AdminBlog() {
             if (content) errors.content = content;
             const slug = slugFormat(form.slug);
             if (slug) errors.slug = slug;
+            const slugDe = slugFormat(form.slugDe);
+            if (slugDe) errors.slugDe = slugDe;
             return errors;
         },
+        // Empty string clears the German slug; null would mean "leave unchanged".
+        buildPayload: (form) => ({...form, slugDe: form.slugDe.trim()}),
     });
 
     const openCreate = () => {
@@ -167,6 +173,16 @@ function AdminBlog() {
                                 placeholder="Leave blank to auto-generate from title"
                             />
                             <Form.Control.Feedback type="invalid">{fieldErrors.slug}</Form.Control.Feedback>
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="blog-slug-de">
+                            <Form.Label className="small fw-semibold text-white">German slug (optional)</Form.Label>
+                            <Form.Control
+                                value={form.slugDe}
+                                onChange={e => updateField('slugDe', e.target.value)}
+                                isInvalid={!!fieldErrors.slugDe}
+                                placeholder="ae, oe, ue, ss — no umlauts"
+                            />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.slugDe}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Excerpt</Form.Label>

@@ -68,4 +68,17 @@ describe('createAdminApi', () => {
         expect(opts.method).toBe('POST');
         expect(JSON.parse(opts.body)).toEqual({amountCents: 2800});
     });
+
+    it('getPrimaryCategories_hitsPublicEndpointWithToken', async () => {
+        const expectedList = [{id: 'p1', slug: 'stag-do', slugDe: 'jga', name: 'Stag do'}];
+        global.fetch = jest.fn().mockResolvedValue(stubResponse({body: expectedList}));
+        const api = createAdminApi(getAccessToken);
+
+        const result = await api.getPrimaryCategories();
+
+        expect(result).toEqual(expectedList);
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toMatch(/\/primary-categories$/);
+        expect(opts.headers.Authorization).toBe('Bearer test-token');
+    });
 });

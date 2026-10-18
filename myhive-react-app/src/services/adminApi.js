@@ -265,6 +265,15 @@ export function createAdminApi(getAccessToken) {
             return response.json();
         },
 
+        // Public endpoint; the token is sent like every other admin call.
+        async getPrimaryCategories() {
+            const response = await fetch(`${API_BASE_URL}/primary-categories`, {
+                headers: await authHeaders(),
+            });
+            await handleError(response, 'Failed to fetch primary categories');
+            return response.json();
+        },
+
         async getCategoriesPaged(page = 0, size = 10) {
             const response = await fetch(`${API_BASE_URL}/admin/categories/paged?page=${page}&size=${size}`, {
                 headers: await authHeaders(),
