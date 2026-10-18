@@ -8,9 +8,9 @@ import { routing } from '../i18n/routing';
 // would have shipped Disallow-all to production unless someone remembered to
 // delete it (SEO plan v3: SSR migration exists to GET indexed).
 
-// AI crawlers blocked outright. Decision 2026-10-18 (SEO manager): assistants
-// must be able to read and cite the site, so every AI bot is open except
-// Bytespider. The training opt-outs (GPTBot, CCBot, Google-Extended,
+// AI crawlers: only Bytespider is blocked (owner decision 2026-10-18, relayed
+// from the SEO manager): assistants must be able to read and cite the site, so
+// every other AI bot is open. The training opt-outs (GPTBot, CCBot, Google-Extended,
 // Applebot-Extended, ClaudeBot, anthropic-ai, Meta-ExternalAgent) were dropped
 // on purpose. The Cloudflare "Block AI bots" switch stays off (deploy checklist).
 const BLOCKED_BOTS = ['Bytespider'];
