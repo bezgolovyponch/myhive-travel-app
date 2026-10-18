@@ -61,6 +61,18 @@ export function blogPostPath(slug) {
   return `/ideas/${slug}`;
 }
 
+/**
+ * The slug to link an entity (activity, package, blog post, ...) by in a locale:
+ * the German slug when the locale is not the default and the entity has one,
+ * the English `slug` otherwise.
+ * @param {{slug: string, slugDe?: string|null}} entity
+ * @param {string} [locale]
+ * @returns {string}
+ */
+export function entitySlug(entity, locale = currentLocale()) {
+  return locale !== DEFAULT_LOCALE && entity.slugDe ? entity.slugDe : entity.slug;
+}
+
 // '/a/[slug]' -> /^\/a\/([^/]+)$/ ; a react-router ':slug' is one segment too.
 function patternToRegex(pattern) {
   const escaped = pattern

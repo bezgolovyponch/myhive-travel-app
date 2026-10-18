@@ -14,10 +14,19 @@ import { DEFAULT_LOCALE, bindSsrLocale, localizePath } from './routes';
 export {
   DEFAULT_LOCALE, SUPPORTED_LOCALES, DESTINATION_HUBS, LOCALIZED_PATHNAMES,
   localizePath, localizeHref, splitLocale, localizeSegments, delocalizeSegments, routePath,
-  destinationPath, activityPath, packagePath, blogIndexPath, blogPostPath, matchCatalogPath,
+  destinationPath, activityPath, packagePath, blogIndexPath, blogPostPath, matchCatalogPath, entitySlug,
 } from './routes';
 
 const LocaleContext = createContext({ locale: DEFAULT_LOCALE, messages: en });
+
+// Locale-prefixed counterpart URLs of the current page, {de: '/de/...'}, supplied
+// by the Next server pages for the language switcher. The standalone CRA never
+// provides one, so the switcher falls back to translating the path segments.
+export const PageAlternatesContext = createContext({});
+
+export function usePageAlternates() {
+  return useContext(PageAlternatesContext);
+}
 
 export function LocaleProvider({ locale, messages, children }) {
   // Server renders have no URL to read the locale from — bind it for the

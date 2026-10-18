@@ -6,6 +6,7 @@ import {
   blogPostPath,
   delocalizeSegments,
   destinationPath,
+  entitySlug,
   localizeHref,
   localizePath,
   localizeSegments,
@@ -120,5 +121,22 @@ describe('matchCatalogPath', () => {
     expect(matchCatalogPath('/prague-stag-do/packages/', 'en')).toBeNull();
     expect(matchCatalogPath('/prague-stag-do/packages/a/b', 'en')).toBeNull();
     expect(matchCatalogPath('/jga-prag/aktivitaeten/a/b', 'de')).toBeNull();
+  });
+});
+
+describe('entitySlug', () => {
+  const entity = {slug: 'ak47-shooting', slugDe: 'kalaschnikow-schiessen'};
+
+  it('entitySlug_prefersGermanSlugForDe', () => {
+    expect(entitySlug(entity, 'de')).toBe('kalaschnikow-schiessen');
+  });
+
+  it('entitySlug_fallsBackToEnglishSlug', () => {
+    expect(entitySlug({slug: 'beer-spa'}, 'de')).toBe('beer-spa');
+    expect(entitySlug({slug: 'beer-spa', slugDe: ''}, 'de')).toBe('beer-spa');
+  });
+
+  it('entitySlug_englishIgnoresGermanSlug', () => {
+    expect(entitySlug(entity, 'en')).toBe('ak47-shooting');
   });
 });
