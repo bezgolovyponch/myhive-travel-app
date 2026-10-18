@@ -197,19 +197,16 @@ async function checkHubQuery(rows) {
 }
 
 // Activities that are not in the map and every package: the pattern fallbacks, EN / DE / explicit /en.
-async function checkPatternFallbacks(destSlug, activities, packages, mapByOld) {
+// An activity is mapped when its current slug is the new slug of a 301 row (their old URLs are
+// covered by the explicit row checks) or, before the slug import, when its old URL is a row.
+async function checkPatternFallbacks(destSlug, activities, packages, mapByOld, mapByNew) {
   for (const a of activities) {
     const old = `/destination/${destSlug}/activity/${a.slug}`;
-    if (mapByOld.has(old)) {
+    if (mapByNew.has(a.slug) || mapByOld.has(old)) {
       continue;
     }
     await expectSingle308(old, activityPath(destSlug, a.slug));
-    // A catalog that already carries a distinct DE slug adds the wrong-slug 308 after the fallback.
-    if (a.slugDe && a.slugDe !== a.slug) {
-      await expectAtMostTwoHops(localizePath(old, 'de'), localizePath(activityPath(destSlug, a.slugDe), 'de'));
-    } else {
-      await expectSingle308(localizePath(old, 'de'), localizePath(activityPath(destSlug, a.slug), 'de'));
-    }
+    await expectSingle308(localizePath(old, 'de'), localizePath(activityPath(destSlug, a.slug), 'de'));
     await expectSingle308(`/en${old}`, activityPath(destSlug, a.slug));
   }
   for (const p of packages) {
@@ -243,8 +240,7 @@ async function checkNotFounds() {
 // Data-driven: "mapped" Prague activities are those whose slug is a new EN slug of the map.
 // Each must carry the DE slug and primary category of its row; per-category counts must match
 // the brief; the rest ("unmapped") must have no DE slug, and are counted exactly only on prod.
-function checkCatalog(activities, mapRows) {
-  const mapByNewSlug = new Map(mapRows.filter((r) => r.type === 'activity' && r.note === '301').map((r) => [slugOf(r.newEn), r]));
+function checkCatalog(activities, mapByNewSlug) {
   const counts = {};
   let mapped = 0;
   let unmapped = 0;
@@ -356,6 +352,8 @@ const USAGE = 'Usage: node scripts/check-redirects.mjs <base-url> [--legacy-site
 async function run(args, mapRows) {
   const mapByOld = new Map(mapRows.filter((r) => r.note === '301').map((r) => [r.oldEn, r]));
 
+  const mapByNew = new Map(mapRows.filter((r) => r.type === 'activity' && r.note === '301').map((r) => [slugOf(r.newEn), r]));
+
   await checkMovedRows(mapRows);
   await checkGoneRows(mapRows);
   await checkLandingRows(mapRows);
@@ -377,9 +375,9 @@ async function run(args, mapRows) {
     const packages = await getJson(`/api/packages?destinationId=${encodeURIComponent(dest.id)}`);
     console.log(`hub ${dest.slug}: ${activities.length} activities, ${packages.length} packages`);
     check(activities.length > 0, `hub ${dest.slug}: /api/activities returned no activities, nothing to exercise`);
-    await checkPatternFallbacks(dest.slug, activities, packages, mapByOld);
+    await checkPatternFallbacks(dest.slug, activities, packages, mapByOld, mapByNew);
     if (dest.slug === 'prague') {
-      checkCatalog(activities, mapRows);
+      checkCatalog(activities, mapByNew);
     }
   }
   check(hubCount > 0, 'no hub destination in /api/destinations, nothing to exercise');
