@@ -46,6 +46,7 @@ export function useTripLeadRestore(onQuizFlowRestored) {
                     imageUrl: item.imageUrl,
                     duration: item.duration,
                     slug: item.slug,
+                    slugDe: item.slugDe,
                     destinationSlug: item.destinationSlug,
                     description: item.description,
                     includes: item.includes,

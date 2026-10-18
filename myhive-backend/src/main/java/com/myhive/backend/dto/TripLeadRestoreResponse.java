@@ -28,6 +28,7 @@ public record TripLeadRestoreResponse(
             String slug,
             String destinationSlug,
             String description,
-            String includes) {
+            String includes,
+            String slugDe) {
     }
 }

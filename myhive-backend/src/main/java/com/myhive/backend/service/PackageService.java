@@ -134,7 +134,8 @@ public class PackageService {
             refs.add(new PackageActivityRefDTO(
                     a.getId(), pa.getPosition(),
                     a.getSlug(), Translations.pick(a.getTranslations(), lc, "name", a.getName()),
-                    a.getPrice(), a.getDuration(), a.getImageUrl(), ActivityExtras.toDtos(a.getExtras(), lc)));
+                    a.getPrice(), a.getDuration(), a.getImageUrl(), ActivityExtras.toDtos(a.getExtras(), lc),
+                    a.getSlugDe()));
         }
         dto.setActivities(refs);
 

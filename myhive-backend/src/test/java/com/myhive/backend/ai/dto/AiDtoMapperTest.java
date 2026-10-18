@@ -366,4 +366,18 @@ class AiDtoMapperTest {
         assertThat(staffMapper.generation(older).diagnostics()).singleElement()
                 .satisfies(attempt -> assertThat(attempt.fixes()).isEmpty());
     }
+
+    @Test
+    void tripItems_carryTheGermanSlug() {
+        String expectedSlugDe = "kreuzfahrt";
+        ActivityRepository activityRepository = mock(ActivityRepository.class);
+        Activity cruise = TestDataFactory.activity(TestDataFactory.destination());
+        cruise.setSlugDe(expectedSlugDe);
+        Mockito.when(activityRepository.findAllById(List.of(cruise.getId()))).thenReturn(List.of(cruise));
+
+        List<VotePoolActivityDTO> items = new AiDtoMapper(activityRepository).tripItems(
+                List.of(cruise.getId()), Map.of(), "de");
+
+        assertThat(items.getFirst().getSlugDe()).isEqualTo(expectedSlugDe);
+    }
 }

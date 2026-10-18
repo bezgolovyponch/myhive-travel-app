@@ -386,7 +386,8 @@ public class AiDtoMapper {
                 activity.getDuration(), ActivityExtras.toDtos(activity.getExtras(), lc),
                 chosen.stream()
                         .filter(code -> ActivityExtras.byCode(activity.getExtras(), code).isPresent())
-                        .toList());
+                        .toList(),
+                activity.getSlugDe());
     }
 
     private static MessageDTO lastAssistantMessage(PlannerState state) {

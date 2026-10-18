@@ -57,14 +57,14 @@ describe('useTripLeadRestore', () => {
             budget: null,
             quizResponsesJson: null,
             items: [{ activityId: 'act-1', name: 'Karting', price: 50, minPrice: null,
-                      imageUrl: 'img', duration: 60, slug: 'karting', destinationSlug: 'prague',
+                      imageUrl: 'img', duration: 60, slug: 'karting', slugDe: 'kart-fahren', destinationSlug: 'prague',
                       description: '', includes: '' }],
         });
 
         renderAt('/destination/prague?tab=trip-builder&restore=tok-1');
 
         await waitFor(() => expect(latestTripState.tripItems).toHaveLength(1));
-        expect(latestTripState.tripItems[0]).toEqual(expect.objectContaining({ id: 'act-1', name: 'Karting' }));
+        expect(latestTripState.tripItems[0]).toEqual(expect.objectContaining({ id: 'act-1', name: 'Karting', slugDe: 'kart-fahren' }));
         expect(latestTripState.tripTravelers).toBe(6);
         expect(JSON.parse(localStorage.getItem('myhive-trip-lead'))).toEqual(
             { id: 'lead-1', restoreToken: 'tok-1' });

@@ -118,4 +118,16 @@ class PackageServiceTest {
         assertThatThrownBy(() -> packageService.deletePackage(id))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
+
+    @Test
+    void getBySlugCarriesEachActivitysGermanSlug() {
+        String expectedSlugDe = "kart-fahren";
+        activity1.setSlugDe(expectedSlugDe);
+        when(packageRepository.findBySlug("test-package")).thenReturn(Optional.of(pkg));
+
+        PackageDTO dto = packageService.getPackageBySlug("test-package");
+
+        assertThat(dto.getActivities().get(0).getSlugDe()).isEqualTo(expectedSlugDe);
+        assertThat(dto.getActivities().get(1).getSlugDe()).isNull();
+    }
 }
