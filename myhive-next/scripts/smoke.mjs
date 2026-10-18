@@ -101,8 +101,23 @@ if (aslug) {
   const { code: deActCode, html: deAct } = await fetchPage(dePath);
   console.log(`== ${dePath} [${deActCode}]`);
   if (deActCode !== 200) fails.push(`${dePath}: HTTP ${deActCode}`);
-  const enAlt = linkTags(deAct).find((l) => l.rel === 'alternate' && l.hreflang === 'en');
-  if (!enAlt || !new RegExp(`/prague-stag-do/activities/${aslug}$`).test(enAlt.href ?? '')) fails.push(`${dePath}: hreflang="en" does not point at /prague-stag-do/activities/${aslug}`);
+  // The EN counterpart can carry a different slug now: trust the page's own alternate,
+  // require that it answers 200 and that the page's de alternate is its canonical.
+  const deLinks = linkTags(deAct);
+  const enAlt = deLinks.find((l) => l.rel === 'alternate' && l.hreflang === 'en');
+  const deAlt = deLinks.find((l) => l.rel === 'alternate' && l.hreflang === 'de');
+  const deCanonical = deLinks.find((l) => l.rel === 'canonical');
+  if (!enAlt?.href) {
+    fails.push(`${dePath}: no hreflang="en" alternate`);
+  } else {
+    const enPath = new URL(enAlt.href, BASE).pathname;
+    const { code: enCode } = await fetchPage(enPath);
+    console.log(`== ${enPath} [${enCode}] (en alternate of ${dePath})`);
+    if (enCode !== 200) fails.push(`${dePath}: hreflang="en" ${enAlt.href} answers ${enCode}`);
+  }
+  if (!deAlt?.href || deAlt.href !== deCanonical?.href) {
+    fails.push(`${dePath}: hreflang="de" (${deAlt?.href}) is not the canonical (${deCanonical?.href})`);
+  }
 }
 
 await expect404('/destination/atlantis');
@@ -111,13 +126,39 @@ await expect404('/prague-stag-do/activities/not-a-real-activity');
 
 const { code: rc, html: robots } = await fetchPage('/robots.txt');
 console.log(`== /robots.txt [${rc}]: ${robots.trim().split('\n').slice(0, 2).join(' | ')}`);
+if (rc !== 200) fails.push(`/robots.txt: HTTP ${rc}`);
+if (!robots.includes('Bytespider')) fails.push('/robots.txt: Bytespider is not blocked');
+if (robots.includes('GPTBot')) fails.push('/robots.txt: GPTBot must not be listed');
+
+// /sitemap.xml is an index of per-locale sitemaps (non-empty maps only).
 const { code: sc, html: sm } = await fetchPage('/sitemap.xml');
-const urls = (sm.match(/<url>/g) ?? []).length;
-console.log(`== /sitemap.xml [${sc}]: ${urls} urls`);
-// 8 = the static pages, always present. Catalog/blog URLs join only for
-// records with seoIndexable=true (per-record gate) — against a backend
-// without the flag columns (or before editorial flagging) 8 is correct.
-if (sc !== 200 || urls < 8) fails.push(`sitemap: HTTP ${sc}, ${urls} urls`);
+const sitemaps = (sm.match(/<sitemap>/g) ?? []).length;
+console.log(`== /sitemap.xml [${sc}]: ${sitemaps} sitemaps`);
+if (sc !== 200 || !sm.includes('<sitemapindex') || sitemaps < 2) fails.push(`sitemap index: HTTP ${sc}, ${sitemaps} <sitemap> entries`);
+
+// Each entry names its EN, DE and x-default alternates.
+function urlEntries(xml) {
+  return [...xml.matchAll(/<url>[\s\S]*?<\/url>/g)].map(([entry]) => entry);
+}
+
+for (const p of ['/sitemaps/pages.xml', '/de/sitemaps/pages.xml']) {
+  const { code, html } = await fetchPage(p);
+  const entries = urlEntries(html);
+  console.log(`== ${p} [${code}]: ${entries.length} urls`);
+  if (code !== 200 || entries.length < 5) fails.push(`${p}: HTTP ${code}, ${entries.length} urls (< 5)`);
+  const lacking = entries.filter((e) => (e.match(/hreflang=/g) ?? []).length !== 3);
+  if (lacking.length > 0) fails.push(`${p}: ${lacking.length} <url> entries without exactly three hreflang links`);
+}
+
+// The old API sitemap's 150 URLs, EN only; the retired API endpoint is gone for good.
+const { code: lc, html: legacy } = await fetchPage('/sitemaps/legacy-prague.xml');
+const legacyUrls = urlEntries(legacy).length;
+console.log(`== /sitemaps/legacy-prague.xml [${lc}]: ${legacyUrls} urls`);
+if (lc !== 200 || legacyUrls !== 150) fails.push(`legacy-prague sitemap: HTTP ${lc}, ${legacyUrls} urls (expected 150)`);
+await expect404('/de/sitemaps/legacy-prague.xml');
+const { code: apiCode } = await fetchPage('/api/sitemap.xml');
+console.log(`== /api/sitemap.xml -> ${apiCode}${apiCode === 410 ? '' : '  EXPECTED 410'}`);
+if (apiCode !== 410) fails.push(`/api/sitemap.xml: expected 410, got ${apiCode}`);
 
 for (const p of ['/admin', '/vote/new']) {
   const { code, html } = await fetchPage(p);
