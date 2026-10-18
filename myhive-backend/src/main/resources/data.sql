@@ -47,6 +47,19 @@ VALUES ('91111111-0000-0000-0000-000000000001', 'Nightlife', 'nightlife', CURREN
        ('91111111-0000-0000-0000-00000000001a', 'Water', 'water', CURRENT_TIMESTAMP),
        ('91111111-0000-0000-0000-00000000001b', 'Wellness', 'wellness', CURRENT_TIMESTAMP);
 
+-- Insert the ten SEO primary categories (mirrors Flyway V15 on prod)
+INSERT INTO primary_categories (id, slug, slug_de, name, translations, sort_order, created_at)
+VALUES ('92222222-0000-0000-0000-000000000001', 'shooting', 'schiessen', 'Shooting', '{"de":{"name":"Schießen"}}', 1, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000002', 'driving', 'panzer-motorsport', 'Tanks & Motorsport', '{"de":{"name":"Panzer & Motorsport"}}', 2, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000003', 'action', 'action-sport', 'Action & Sport', '{"de":{"name":"Action & Sport"}}', 3, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000004', 'beer', 'bier', 'Beer & Drinks', '{"de":{"name":"Bier & Drinks"}}', 4, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000005', 'food', 'essen', 'Food', '{"de":{"name":"Essen"}}', 5, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000006', 'boats', 'boote', 'Boats', '{"de":{"name":"Boote"}}', 6, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000007', 'nightlife', 'nachtleben', 'Nightlife', '{"de":{"name":"Nachtleben"}}', 7, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000008', 'strippers', 'stripper', 'Strip Clubs (18+)', '{"de":{"name":"Stripclubs (18+)"}}', 8, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000009', 'pranks', 'streiche', 'Pranks & Shows', '{"de":{"name":"Streiche & Shows"}}', 9, CURRENT_TIMESTAMP),
+       ('92222222-0000-0000-0000-000000000010', 'transfers', 'transfers', 'Transfers', '{"de":{"name":"Transfers"}}', 10, CURRENT_TIMESTAMP);
+
 -- Insert sample activities for Tenerife
 INSERT INTO activities (id, slug, destination_id, name, description, price, duration, image_url, includes,
                         created_at)

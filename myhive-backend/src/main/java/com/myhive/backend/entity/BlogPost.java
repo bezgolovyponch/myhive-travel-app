@@ -4,6 +4,7 @@ import com.myhive.backend.util.TranslationsConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,6 +26,10 @@ public class BlogPost implements Slugged {
 
     @Column(unique = true, length = 300)
     private String slug;
+
+    /** German URL slug; null until the DE slug import fills it (the DE routes then fall back to {@link #slug}). */
+    @Column(name = "slug_de", unique = true, length = 300)
+    private String slugDe;
 
     @Column(nullable = false, length = 300)
     private String title;
@@ -55,4 +60,8 @@ public class BlogPost implements Slugged {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }
