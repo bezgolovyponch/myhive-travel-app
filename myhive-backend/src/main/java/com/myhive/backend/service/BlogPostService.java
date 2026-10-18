@@ -73,6 +73,7 @@ public class BlogPostService {
         BlogPost blogPost = new BlogPost();
         applyDtoToEntity(dto, blogPost);
         SlugAssigner.assignOnCreate(blogPost, dto.getSlug(), dto.getTitle(), blogPostRepository);
+        rejectEnglishSlugUsedAsGerman(blogPost);
         applySlugDe(dto, blogPost);
         return convertToDTO(blogPostRepository.save(blogPost));
     }
@@ -82,7 +83,11 @@ public class BlogPostService {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BlogPost", id));
 
+        String previousSlug = blogPost.getSlug();
         SlugAssigner.assignOnUpdate(blogPost, dto.getSlug(), dto.getTitle(), blogPost.getTitle(), blogPostRepository);
+        if (!Objects.equals(previousSlug, blogPost.getSlug())) {
+            rejectEnglishSlugUsedAsGerman(blogPost);
+        }
         applyDtoToEntity(dto, blogPost);
         applySlugDe(dto, blogPost);
 
@@ -109,7 +114,22 @@ public class BlogPostService {
                         .isPresent()) {
             throw new BadRequestException("slugDe: already in use");
         }
+        if (slugDe != null
+                && blogPostRepository.findBySlug(slugDe)
+                        .filter(other -> !Objects.equals(other.getId(), blogPost.getId()))
+                        .isPresent()) {
+            throw new BadRequestException("slugDe: already in use as an English slug");
+        }
         blogPost.setSlugDe(slugDe);
+    }
+
+    /** German and English slugs share one URL space: another post's German slug cannot become this slug. */
+    private void rejectEnglishSlugUsedAsGerman(BlogPost blogPost) {
+        if (blogPostRepository.findBySlugDe(blogPost.getSlug())
+                .filter(other -> !Objects.equals(other.getId(), blogPost.getId()))
+                .isPresent()) {
+            throw new BadRequestException("slug: already in use as a German slug");
+        }
     }
 
     private void applyDtoToEntity(BlogPostDTO dto, BlogPost blogPost) {

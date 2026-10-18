@@ -177,6 +177,7 @@ public class ActivityService {
         activity.setDestination(destination);
         applyDtoToEntity(dto, activity);
         SlugAssigner.assignOnCreate(activity, dto.getSlug(), dto.getName(), activityRepository);
+        rejectEnglishSlugUsedAsGerman(activity);
         applySlugDe(dto, activity);
         return convertToDTO(activityRepository.save(activity));
     }
@@ -192,7 +193,11 @@ public class ActivityService {
             activity.setDestination(destination);
         }
 
+        String previousSlug = activity.getSlug();
         SlugAssigner.assignOnUpdate(activity, dto.getSlug(), dto.getName(), activity.getName(), activityRepository);
+        if (!Objects.equals(previousSlug, activity.getSlug())) {
+            rejectEnglishSlugUsedAsGerman(activity);
+        }
         applyDtoToEntity(dto, activity);
         applySlugDe(dto, activity);
 
@@ -229,7 +234,22 @@ public class ActivityService {
                         .isPresent()) {
             throw new BadRequestException("slugDe: already in use");
         }
+        if (slugDe != null
+                && activityRepository.findBySlug(slugDe)
+                        .filter(other -> !Objects.equals(other.getId(), activity.getId()))
+                        .isPresent()) {
+            throw new BadRequestException("slugDe: already in use as an English slug");
+        }
         activity.setSlugDe(slugDe);
+    }
+
+    /** German and English slugs share one URL space: another activity's German slug cannot become this slug. */
+    private void rejectEnglishSlugUsedAsGerman(Activity activity) {
+        if (activityRepository.findBySlugDe(activity.getSlug())
+                .filter(other -> !Objects.equals(other.getId(), activity.getId()))
+                .isPresent()) {
+            throw new BadRequestException("slug: already in use as a German slug");
+        }
     }
 
     private void applyDtoToEntity(ActivityDTO dto, Activity activity) {

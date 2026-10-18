@@ -3,6 +3,7 @@ package com.myhive.backend.service;
 import com.myhive.backend.TestDataFactory;
 import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.entity.BlogPost;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.BlogPostRepository;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -217,5 +219,55 @@ class BlogPostServiceTest {
 
         assertThat(result.getSlugDe()).isEqualTo(expectedSlugDe);
         assertThat(existing.getSlugDe()).isEqualTo(expectedSlugDe);
+    }
+
+    @Test
+    void createBlogPost_rejectsSlugDeEqualToAnotherEnglishSlug() {
+        String expectedSlugDe = "prag-guide";
+        BlogPost other = TestDataFactory.blogPost();
+        other.setSlug(expectedSlugDe);
+        BlogPostDTO dto = TestDataFactory.blogPostDTO();
+        dto.setSlugDe(expectedSlugDe);
+        when(blogPostRepository.findBySlug(expectedSlugDe)).thenReturn(Optional.of(other));
+
+        assertThatThrownBy(() -> blogPostService.createBlogPost(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("slugDe: already in use as an English slug");
+
+        verify(blogPostRepository, never()).save(any());
+    }
+
+    @Test
+    void createBlogPost_rejectsEnglishSlugEqualToAnotherGermanSlug() {
+        String expectedSlug = "new-blog-post";
+        BlogPost other = TestDataFactory.blogPost();
+        other.setSlugDe(expectedSlug);
+        BlogPostDTO dto = TestDataFactory.blogPostDTO();
+        when(blogPostRepository.findBySlugDe(expectedSlug)).thenReturn(Optional.of(other));
+
+        assertThatThrownBy(() -> blogPostService.createBlogPost(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("slug: already in use as a German slug");
+
+        verify(blogPostRepository, never()).save(any());
+    }
+
+    @Test
+    void updateBlogPost_allowsOwnSlugEqualToOwnSlugDe() {
+        BlogPost existing = TestDataFactory.blogPost();
+        String expectedSlug = existing.getSlug();
+        existing.setSlugDe(expectedSlug);
+        BlogPostDTO dto = TestDataFactory.blogPostDTO();
+        dto.setTitle(existing.getTitle());
+        dto.setSlugDe(expectedSlug);
+        when(blogPostRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
+        when(blogPostRepository.findBySlugDe(expectedSlug)).thenReturn(Optional.of(existing));
+        when(blogPostRepository.findBySlug(expectedSlug)).thenReturn(Optional.of(existing));
+        when(blogPostRepository.save(any(BlogPost.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BlogPostDTO result = blogPostService.updateBlogPost(existing.getId(), dto);
+
+        assertThat(result.getSlug()).isEqualTo(expectedSlug);
+        assertThat(result.getSlugDe()).isEqualTo(expectedSlug);
     }
 }

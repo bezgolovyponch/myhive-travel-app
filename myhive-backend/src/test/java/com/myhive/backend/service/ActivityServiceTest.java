@@ -616,6 +616,7 @@ class ActivityServiceTest {
         dto.setSlugDe(expectedSlugDe);
         when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
         when(activityRepository.findBySlugDe(expectedSlugDe)).thenReturn(Optional.of(other));
+        when(activityRepository.findBySlugDe("new-activity")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> activityService.createActivity(dto))
                 .isInstanceOf(BadRequestException.class)
@@ -632,6 +633,7 @@ class ActivityServiceTest {
         dto.setSlugDe(expectedSlugDe);
         when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
         when(activityRepository.findBySlugDe(expectedSlugDe)).thenReturn(Optional.of(activity));
+        when(activityRepository.findBySlugDe("new-activity")).thenReturn(Optional.empty());
         when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ActivityDTO result = activityService.updateActivity(activity.getId(), dto);
@@ -710,5 +712,56 @@ class ActivityServiceTest {
         assertThat(result.getPrimaryCategory().getName()).isEqualTo("Schießen");
         assertThat(result.getSlug()).isEqualTo("ak47-shooting");
         assertThat(result.getSlugDe()).isEqualTo("kalaschnikow-schiessen");
+    }
+
+    @Test
+    void createActivity_rejectsSlugDeEqualToAnotherEnglishSlug() {
+        String expectedSlugDe = "rafting";
+        Activity other = TestDataFactory.activity(destination);
+        other.setSlug(expectedSlugDe);
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setSlugDe(expectedSlugDe);
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(activityRepository.findBySlug(expectedSlugDe)).thenReturn(Optional.of(other));
+
+        assertThatThrownBy(() -> activityService.createActivity(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("slugDe: already in use as an English slug");
+
+        verify(activityRepository, never()).save(any());
+    }
+
+    @Test
+    void createActivity_rejectsEnglishSlugEqualToAnotherGermanSlug() {
+        String expectedSlug = "new-activity";
+        Activity other = TestDataFactory.activity(destination);
+        other.setSlugDe(expectedSlug);
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        when(destinationRepository.findById(destination.getId())).thenReturn(Optional.of(destination));
+        when(activityRepository.findBySlugDe(expectedSlug)).thenReturn(Optional.of(other));
+
+        assertThatThrownBy(() -> activityService.createActivity(dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("slug: already in use as a German slug");
+
+        verify(activityRepository, never()).save(any());
+    }
+
+    @Test
+    void updateActivity_allowsOwnSlugEqualToOwnSlugDe() {
+        String expectedSlug = activity.getSlug();
+        activity.setSlugDe(expectedSlug);
+        ActivityDTO dto = TestDataFactory.activityDTO(destination.getId());
+        dto.setName(activity.getName());
+        dto.setSlugDe(expectedSlug);
+        when(activityRepository.findById(activity.getId())).thenReturn(Optional.of(activity));
+        when(activityRepository.findBySlugDe(expectedSlug)).thenReturn(Optional.of(activity));
+        when(activityRepository.findBySlug(expectedSlug)).thenReturn(Optional.of(activity));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ActivityDTO result = activityService.updateActivity(activity.getId(), dto);
+
+        assertThat(result.getSlug()).isEqualTo(expectedSlug);
+        assertThat(result.getSlugDe()).isEqualTo(expectedSlug);
     }
 }
