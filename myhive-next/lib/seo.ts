@@ -1,6 +1,6 @@
 // Shared SEO constants/helpers for the public (SSR) pages.
 import type { Metadata } from 'next';
-import { routing } from '@/i18n/routing';
+import { routing } from '../i18n/routing';
 import { localizePath } from '../legacy-src/i18n/routes';
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trivlu.com';
