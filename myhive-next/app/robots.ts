@@ -8,25 +8,12 @@ import { routing } from '../i18n/routing';
 // would have shipped Disallow-all to production unless someone remembered to
 // delete it (SEO plan v3: SSR migration exists to GET indexed).
 
-// AI model-TRAINING crawlers, blocked outright. This replaces the Cloudflare
-// "managed robots.txt" block disabled on 2026-08-18 (cutover checklist B5) —
-// same opt-out, but the rules live in our code instead of being injected by a
-// third party. Deliberately NOT listed: AI search/assistant fetchers
-// (OAI-SearchBot, ChatGPT-User, PerplexityBot, Meta-ExternalFetcher…) — those
-// cite the site and refer real visitors. Google-Extended and Applebot-Extended
-// are control tokens rather than crawlers: listing them in robots.txt IS the
-// documented way to opt out of Gemini/Apple AI training without touching
-// Googlebot/Applebot search crawling.
-const AI_TRAINING_BOTS = [
-  'GPTBot', // OpenAI training
-  'CCBot', // Common Crawl — feeds many training corpora
-  'Google-Extended', // Gemini training opt-out token
-  'Applebot-Extended', // Apple AI training opt-out token
-  'ClaudeBot', // Anthropic crawler
-  'anthropic-ai', // legacy Anthropic token
-  'Bytespider', // ByteDance training crawler
-  'Meta-ExternalAgent', // Meta AI training crawler
-];
+// AI crawlers blocked outright. Decision 2026-10-18 (SEO manager): assistants
+// must be able to read and cite the site, so every AI bot is open except
+// Bytespider. The training opt-outs (GPTBot, CCBot, Google-Extended,
+// Applebot-Extended, ClaudeBot, anthropic-ai, Meta-ExternalAgent) were dropped
+// on purpose. The Cloudflare "Block AI bots" switch stays off (deploy checklist).
+const BLOCKED_BOTS = ['Bytespider'];
 
 export default function robots(): MetadataRoute.Robots {
   if (process.env.ALLOW_INDEXING !== 'true') {
@@ -45,7 +32,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       { userAgent: '*', disallow },
-      { userAgent: AI_TRAINING_BOTS, disallow: '/' },
+      { userAgent: BLOCKED_BOTS, disallow: '/' },
     ],
     sitemap: `${site}/sitemap.xml`,
   };
