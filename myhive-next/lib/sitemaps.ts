@@ -45,7 +45,9 @@ interface IndexItem {
 
 // Same data and seoIndexable gates the old app/sitemap.ts used, incl. the
 // parent rule: a non-indexable destination excludes all of its children.
-// Backend unreachable -> whatever was collected (an empty catalog at worst).
+// A failed backend fetch throws on purpose: Next keeps serving the last good
+// response (ISR) and a cold first render 500s so crawlers retry, instead of
+// caching an empty urlset for an hour.
 export async function loadCatalog(): Promise<Catalog> {
   const catalog: Catalog = {
     destinations: [],
@@ -53,21 +55,14 @@ export async function loadCatalog(): Promise<Catalog> {
     packagesByDestination: {},
     posts: [],
   };
-  try {
-    const destinations = ((await api.getDestinations()) ?? []).filter((d) => d.seoIndexable);
-    for (const dest of destinations) {
-      const [activities, packages] = await Promise.all([
-        api.getActivities(dest.id).catch(() => null),
-        api.getPackages(dest.id).catch(() => null),
-      ]);
-      catalog.destinations.push(dest);
-      catalog.activitiesByDestination[dest.id] = (activities ?? []).filter((a) => a.seoIndexable);
-      catalog.packagesByDestination[dest.id] = (packages ?? []).filter((p) => p.seoIndexable);
-    }
-    catalog.posts = ((await api.getBlogPosts()) ?? []).filter((p) => p.seoIndexable);
-  } catch {
-    // Backend unreachable: serve what was collected; the hourly revalidate refills it.
+  const destinations = ((await api.getDestinations()) ?? []).filter((d) => d.seoIndexable);
+  for (const dest of destinations) {
+    const [activities, packages] = await Promise.all([api.getActivities(dest.id), api.getPackages(dest.id)]);
+    catalog.destinations.push(dest);
+    catalog.activitiesByDestination[dest.id] = (activities ?? []).filter((a) => a.seoIndexable);
+    catalog.packagesByDestination[dest.id] = (packages ?? []).filter((p) => p.seoIndexable);
   }
+  catalog.posts = ((await api.getBlogPosts()) ?? []).filter((p) => p.seoIndexable);
   return catalog;
 }
 
