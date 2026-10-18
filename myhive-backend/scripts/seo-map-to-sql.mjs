@@ -194,6 +194,12 @@ export function renameMap(rows) {
   return renames;
 }
 
+// Re-encodes LF text with the EOL of the file it replaces (CRLF when there is none: repo default).
+export function withEol(text, existingText) {
+  const eol = existingText !== null && !existingText.includes('\r\n') && existingText.includes('\n') ? '\n' : '\r\n';
+  return text.replace(/\r\n/g, '\n').replace(/\n/g, eol);
+}
+
 export function replaceBlock(fileText, block) {
   const eol = fileText.includes('\r\n') ? '\r\n' : '\n';
   const text = fileText.replace(/\r\n/g, '\n');
@@ -223,7 +229,7 @@ function main() {
   }
 
   const prodFile = path.join(root, 'prod-migration-seo-prague-urls.sql');
-  writeFileSync(prodFile, prodSql(rows));
+  writeFileSync(prodFile, withEol(prodSql(rows), existsSync(prodFile) ? readFileSync(prodFile, 'utf8') : null));
   console.log(`${prodFile}: ${activities.length} activity updates + blog statements`);
 
   const pragueFile = path.join(root, 'src', 'main', 'resources', 'data-prague.sql');

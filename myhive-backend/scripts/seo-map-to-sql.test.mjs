@@ -4,7 +4,20 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { activityUpdate, parseMap, prodSql, rekey, validateRows } from './seo-map-to-sql.mjs';
+import {
+  activityUpdate,
+  BEGIN_MARKER,
+  blogUpdates,
+  devBlock,
+  END_MARKER,
+  parseMap,
+  prodSql,
+  rekey,
+  renameMap,
+  replaceBlock,
+  validateRows,
+  withEol,
+} from './seo-map-to-sql.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const csvPath = path.resolve(here, '..', '..', 'myhive-next', 'seo', 'redirect-map.csv');
@@ -87,4 +100,90 @@ test('rekey_renamesOnlyMappedKeys', () => {
   assert.deepEqual(Object.keys(out.blog), ['newPost', 'other']);
   assert.deepEqual(Object.keys(out.categories), ['old']);
   assert.deepEqual(Object.keys(input.activities), ['old', 'keep']);
+});
+
+const activitiesOf = (rows) => rows.filter((r) => r.type === 'activity');
+
+test('validateRows_rejectsWrongActivityCount', () => {
+  const rows = realRows();
+  rows.splice(rows.findIndex((r) => r.type === 'activity'), 1);
+  assert.throws(() => validateRows(rows), /72 activity rows/);
+});
+
+test('validateRows_rejectsDuplicateNewDeSlug', () => {
+  const rows = realRows();
+  const activities = activitiesOf(rows);
+  activities[1].newDe = activities[0].newDe;
+  assert.throws(() => validateRows(rows), /duplicate new DE slug/);
+});
+
+test('validateRows_rejectsDeSlugEqualToADifferentRowsEnSlug', () => {
+  const rows = realRows();
+  const activities = activitiesOf(rows);
+  activities[1].newDe = activities[0].newEn;
+  assert.throws(() => validateRows(rows), /different row's new EN slug/);
+});
+
+test('validateRows_rejectsUnknownCategory', () => {
+  const rows = realRows();
+  activitiesOf(rows)[0].categoryEn = 'museums';
+  assert.throws(() => validateRows(rows), /unknown category_en "museums"/);
+});
+
+test('validateRows_rejectsWrongCategoryCount', () => {
+  const rows = realRows();
+  const activities = activitiesOf(rows);
+  const from = activities.find((r) => r.categoryEn === 'shooting');
+  from.categoryEn = 'driving';
+  assert.throws(() => validateRows(rows), /category (shooting|driving): expected \d+ activities/);
+});
+
+test('devBlock_hasMarkersAndDestinationLineWithoutTransaction', () => {
+  const block = devBlock(realRows());
+  assert.ok(block.startsWith(`${BEGIN_MARKER}\n`));
+  assert.ok(block.endsWith(END_MARKER));
+  assert.ok(block.includes("UPDATE destinations SET seo_indexable = TRUE WHERE slug = 'prague';"));
+  assert.doesNotMatch(block, /^(BEGIN|COMMIT);$/m);
+  assert.equal(block.match(/^UPDATE activities /gm).length, 72);
+});
+
+test('replaceBlock_replacesInPlaceAndIsIdempotent', () => {
+  const original = 'INSERT 1;\r\nINSERT 2;\r\n';
+  const appended = replaceBlock(original, `${BEGIN_MARKER}\nold\n${END_MARKER}`);
+  assert.ok(appended.startsWith(original.trimEnd()));
+  const replaced = replaceBlock(`${appended}-- tail\r\n`, `${BEGIN_MARKER}\nnew\n${END_MARKER}`);
+  assert.ok(replaced.includes('\r\nnew\r\n'));
+  assert.ok(!replaced.includes('old'));
+  assert.ok(replaced.endsWith('-- tail\r\n'));
+  assert.equal(replaced.split(BEGIN_MARKER).length, 2);
+  assert.equal(replaceBlock(replaced, `${BEGIN_MARKER}\nnew\n${END_MARKER}`), replaced);
+});
+
+test('replaceBlock_appendsWhenAbsentAndKeepsEol', () => {
+  const block = devBlock(realRows());
+  const crlf = replaceBlock('a;\r\n', block);
+  assert.ok(crlf.includes(BEGIN_MARKER));
+  assert.equal(crlf.replace(/\r\n/g, '').includes('\n'), false);
+  const lf = replaceBlock('a;\n', block);
+  assert.equal(lf.includes('\r'), false);
+  assert.equal(replaceBlock(crlf, block), crlf);
+});
+
+test('withEol_defaultsToCrlfAndFollowsExistingFile', () => {
+  assert.equal(withEol('a\nb\n', null), 'a\r\nb\r\n');
+  assert.equal(withEol('a\nb\n', 'x\ny\n'), 'a\nb\n');
+  assert.equal(withEol('a\nb\n', 'x\r\ny\r\n'), 'a\r\nb\r\n');
+});
+
+test('renameMap_mapsActivitiesAndTheKeptPost', () => {
+  const renames = renameMap(realRows());
+  assert.equal(renames.get('ak-47-glock-17-shooting'), 'ak47-shooting');
+  assert.equal(renames.get('how-to-plan-a-stress-free-group-trip'), 'how-to-plan-a-stag-do');
+});
+
+test('blogUpdates_renamesKeptPostAndDeletesRetired', () => {
+  const sql = blogUpdates();
+  assert.match(sql, /slug = 'how-to-plan-a-stag-do', slug_de = 'jga-planen', updated_at = CURRENT_TIMESTAMP/);
+  assert.match(sql, /WHERE slug IN \('how-to-plan-a-stress-free-group-trip', 'how-to-plan-a-stag-do'\)/);
+  assert.equal(sql.match(/DELETE FROM blog_posts WHERE slug IN \(([^)]*)\)/)[1].split(', ').length, 5);
 });
