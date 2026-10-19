@@ -250,7 +250,22 @@ throttles; retry on 403/429).
   old "Block AI bots" switch); Search and Agent were already "Allow", Training was "Disallow" and
   is now "Allow (do not block)" (saved 2026-10-19, after the owner logged in). "Bot Preference
   Sync" stays off so Cloudflare does not prepend its own rules to our `robots.txt`.
-- Still with people: GSC/Bing/GA4 steps (SEO manager).
+- Search Console (done from the owner's Chrome, Google account "Trivlu Consultant"
+  `consultanttrivlu@gmail.com`, the one that owns GA4): none of the owner's three Google accounts
+  had a property, so a Domain property `trivlu.com` was added (auto-verified through the DNS
+  record that was already there) and a URL-prefix property `https://www.trivlu.com/de/`
+  (auto-verified under the domain). The domain property already listed
+  `https://www.trivlu.com/sitemap.xml` (submitted 18 Aug, 158 URLs); it was resubmitted so Google
+  re-reads it as an index, and `https://www.trivlu.com/sitemaps/legacy-prague.xml` was added
+  (read at once: Success, 150 URLs). In the `/de/` property: `sitemaps/pages.xml` (5) and
+  `sitemaps/activities.xml` (72), both Success. `/api/sitemap.xml` is not listed in these
+  properties; if the SEO manager's own property has it, he removes it there (it answers 410).
+- GA4 (property `trivlu.com`, same account): annotation "SEO URL restructure: /prague-stag-do +
+  DE slugs" on 19 Oct 2026 (Admin → Data display → Annotations).
+- Bing Webmaster Tools: no signed-in account in the owner's browser, and signing in (Google SSO)
+  creates one, so this stays with the owner: sign in with the same Google account at
+  bing.com/webmasters, use "Import from Google Search Console", then submit
+  `https://www.trivlu.com/sitemap.xml` there.
 
 ## Open items
 
