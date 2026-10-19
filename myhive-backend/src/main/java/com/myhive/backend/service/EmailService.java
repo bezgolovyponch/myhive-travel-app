@@ -14,6 +14,7 @@ import com.myhive.backend.exception.EmailSendException;
 import com.myhive.backend.model.TripLeadSource;
 import com.myhive.backend.model.VoteMode;
 import com.myhive.backend.util.MoneyMath;
+import com.myhive.backend.util.PublicPaths;
 import com.myhive.backend.util.Translations;
 import jakarta.mail.internet.MimeMessage;
 import lombok.Builder;
@@ -326,7 +327,7 @@ public class EmailService {
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("session", session);
         variables.put("resultActivities", resultActivities);
-        variables.put("resultUrl", resultUrlFor(session, frontendUrl + localePrefix(session.getLocale())));
+        variables.put("resultUrl", resultUrlFor(session, frontendUrl));
 
         send(EmailSpec.builder()
                 .to(session.getInitiatorEmail())
@@ -344,7 +345,7 @@ public class EmailService {
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("session", session);
         variables.put("inviteUrl", inviteUrlFor(session, base));
-        variables.put("dashboardUrl", dashboardUrlFor(session, base));
+        variables.put("dashboardUrl", dashboardUrlFor(session, frontendUrl));
         variables.put("supportEmail", SUPPORT_EMAIL);
         variables.put("startDate", formatDate(session.getStartDate(), locale));
         variables.put("endDate", formatDate(session.getEndDate(), locale));
@@ -368,7 +369,7 @@ public class EmailService {
         variables.put("voters", voters);
         variables.put("travelers", session.getNumberOfTravelers());
         variables.put("standings", standings);
-        variables.put("dashboardUrl", dashboardUrlFor(session, base));
+        variables.put("dashboardUrl", dashboardUrlFor(session, frontendUrl));
         variables.put("expiresAt", formatDateTime(session.getExpiresAt(), locale));
         variables.put("supportEmail", SUPPORT_EMAIL);
 
@@ -393,7 +394,7 @@ public class EmailService {
         variables.put("travelers", session.getNumberOfTravelers());
         variables.put("pasteText", msg(locale, "email.voteReminder.paste", missing, destinationName, inviteUrl));
         variables.put("inviteUrl", inviteUrl);
-        variables.put("dashboardUrl", dashboardUrlFor(session, base));
+        variables.put("dashboardUrl", dashboardUrlFor(session, frontendUrl));
         variables.put("supportEmail", SUPPORT_EMAIL);
 
         String subjectKey = missing == 1 ? "email.voteReminder.subject.one" : "email.voteReminder.subject";
@@ -416,9 +417,14 @@ public class EmailService {
      * The organiser's dashboard: the Trip Builder tab with the vote and the manager token, which the
      * page adopts so the organiser can manage the vote from any device.
      */
-    private static String dashboardUrlFor(VoteSession session, String base) {
-        return base + "/destination/" + session.getDestination().getSlug() + "?tab=trip-builder&voteSession="
-                + session.getShareToken() + "&manager=" + session.getManagerToken();
+    private static String dashboardUrlFor(VoteSession session, String frontendUrl) {
+        String destinationSlug = session.getDestination().getSlug();
+        if (destinationSlug == null) {
+            return frontendUrl + localePrefix(session.getLocale());
+        }
+        return frontendUrl + PublicPaths.destinationPath(destinationSlug, session.getLocale())
+                + "?tab=trip-builder&voteSession=" + session.getShareToken()
+                + "&manager=" + session.getManagerToken();
     }
 
     public void sendPaymentReceived(String toEmail, String customerName, String tripId,
@@ -500,7 +506,7 @@ public class EmailService {
         variables.put("lines", lines);
         variables.put("totalPrice", totalPrice);
         variables.put("recommendations", recommendations);
-        variables.put("restoreUrl", restoreUrlFor(lead, base));
+        variables.put("restoreUrl", restoreUrlFor(lead, frontendUrl));
         variables.put("contactUrl", base + "/contact");
         variables.put("unsubscribeUrl", base + "/unsubscribe?token=" + lead.getUnsubscribeToken());
         variables.put("supportEmail", SUPPORT_EMAIL);
@@ -531,9 +537,9 @@ public class EmailService {
     private static String restoreUrlFor(TripLead lead, String frontendUrl) {
         String destinationSlug = lead.getDestination() == null ? null : lead.getDestination().getSlug();
         if (destinationSlug == null) {
-            return frontendUrl;
+            return frontendUrl + localePrefix(lead.getLocale());
         }
-        return frontendUrl + "/destination/" + destinationSlug
+        return frontendUrl + PublicPaths.destinationPath(destinationSlug, lead.getLocale())
                 + "?tab=trip-builder&restore=" + lead.getRestoreToken();
     }
 
@@ -613,9 +619,10 @@ public class EmailService {
     private static String resultUrlFor(VoteSession session, String frontendUrl) {
         String destinationSlug = session.getDestination().getSlug();
         if (session.getVoteMode() == VoteMode.CART || destinationSlug == null) {
-            return frontendUrl + "/vote/" + session.getShareToken() + "/result";
+            return frontendUrl + localePrefix(session.getLocale()) + "/vote/" + session.getShareToken() + "/result";
         }
-        return frontendUrl + "/destination/" + destinationSlug + "?tab=trip-builder&voteSession=" + session.getShareToken();
+        return frontendUrl + PublicPaths.destinationPath(destinationSlug, session.getLocale())
+                + "?tab=trip-builder&voteSession=" + session.getShareToken();
     }
 
     private String maskEmail(String email) {

@@ -7,7 +7,7 @@ import {WhatsAppButton} from './WhatsAppWidget';
 import TripBuilderDropdown from './TripBuilderDropdown';
 import TripSetupModal from './TripSetupModal';
 import {scrollToHomeSection} from '../utils/scrollToHomeSection';
-import {useLocalePath, useT} from '../i18n';
+import {blogIndexPath, destinationPath, matchCatalogPath, routePath, useLocalePath, useT} from '../i18n';
 import './Header.css';
 
 function Header() {
@@ -37,14 +37,14 @@ function Header() {
       setMobileNavOpen(!mobileNavOpen);
   };
 
-  const destinationMatch = location.pathname.match(/^\/destination\/([^/?]+)/);
-  const destinationSlug = destinationMatch ? destinationMatch[1] : null;
+  const catalogMatch = matchCatalogPath(location.pathname);
+  const destinationSlug = catalogMatch?.destinationSlug ?? null;
   const destination = destinationSlug
       ? catalog.destinations.find((item) => item.slug === destinationSlug)
       : null;
   // Activity/package detail pages render their own richer breadcrumbs (with the
   // actual item name), so the header only shows breadcrumbs on destination pages.
-  const isDetailPage = /^\/destination\/[^/?]+\/(activity|package)\//.test(location.pathname);
+  const isDetailPage = catalogMatch != null && catalogMatch.kind !== 'hub';
   const showBreadcrumbs = Boolean(destinationSlug) && !isDetailPage;
   const tabValue = new URLSearchParams(location.search).get('tab') || 'activities';
   const currentTabLabel = ['activities', 'trip-builder', 'packages'].includes(tabValue)
@@ -81,7 +81,7 @@ function Header() {
             {t('nav.activities')}
           </a>
           <Link to="/about" onClick={() => setMobileNavOpen(false)}>{t('nav.about')}</Link>
-          <Link to="/blog" onClick={() => setMobileNavOpen(false)}>{t('nav.blog')}</Link>
+          <Link to={routePath(blogIndexPath())} onClick={() => setMobileNavOpen(false)}>{t('nav.blog')}</Link>
           <Link to="/contact" onClick={() => setMobileNavOpen(false)}>{t('nav.contact')}</Link>
         </nav>
         <TripSetupModal/>
@@ -91,7 +91,7 @@ function Header() {
             <div className="breadcrumbs-content">
               <Link className="breadcrumb-item" to="/">{t('breadcrumb.home')}</Link>
               <span className="breadcrumb-separator">&gt;</span>
-              <Link className="breadcrumb-item" to={`/destination/${destinationSlug}?tab=activities`}>
+              <Link className="breadcrumb-item" to={routePath(`${destinationPath(destinationSlug)}?tab=activities`)}>
                 {destination?.name || t('breadcrumb.destination')}
               </Link>
               <span className="breadcrumb-separator">&gt;</span>

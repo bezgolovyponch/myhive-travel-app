@@ -4,6 +4,8 @@ import com.myhive.backend.entity.Slugged;
 import com.myhive.backend.repository.SluggedRepository;
 import com.myhive.backend.util.SlugUtils;
 
+import java.util.function.Predicate;
+
 /**
  * Shared slug assignment for create/update flows of slugged entities.
  * Centralizes the uniqueness check and the exclude-self predicate that were
@@ -16,7 +18,19 @@ public final class SlugAssigner {
 
     public static <T extends Slugged> void assignOnCreate(
             T entity, String requestedSlug, String fallbackName, SluggedRepository<T> repository) {
-        entity.setSlug(SlugUtils.resolveSlug(requestedSlug, fallbackName, repository::existsBySlug));
+        assignOnCreate(entity, requestedSlug, fallbackName, repository, slug -> false);
+    }
+
+    /**
+     * Same as {@link #assignOnCreate(Slugged, String, String, SluggedRepository)}, but a candidate is
+     * also suffixed when {@code alsoTaken} says another URL namespace already uses it
+     * (e.g. a German slug that must not equal an English one).
+     */
+    public static <T extends Slugged> void assignOnCreate(
+            T entity, String requestedSlug, String fallbackName, SluggedRepository<T> repository,
+            Predicate<String> alsoTaken) {
+        entity.setSlug(SlugUtils.resolveSlug(requestedSlug, fallbackName,
+                slug -> repository.existsBySlug(slug) || alsoTaken.test(slug)));
     }
 
     /**

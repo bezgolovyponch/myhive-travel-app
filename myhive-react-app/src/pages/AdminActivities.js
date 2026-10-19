@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner} from 'react-bootstrap';
 import {formatAmount, truncateText} from '../utils/format';
 import {toggleArrayItem} from '../utils/toggleArrayItem';
@@ -14,6 +14,8 @@ import SaveErrorAlert from '../components/admin/SaveErrorAlert';
 const EMPTY_FORM = {
     name: '',
     slug: '',
+    slugDe: '',
+    primaryCategoryId: '',
     description: '',
     price: '',
     minPrice: '',
@@ -44,6 +46,10 @@ const COLUMNS = [
 function AdminActivities() {
     const [destinations, setDestinations] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [primaryCategories, setPrimaryCategories] = useState([]);
+    // validate() only receives the form; this mirrors the hook's `editing` so
+    // the primary category can be required on create but not on edit.
+    const editingRef = useRef(null);
     const [filterDestination, setFilterDestination] = useState('');
     const [showImportModal, setShowImportModal] = useState(false);
 
@@ -83,6 +89,12 @@ function AdminActivities() {
             }
             const slug = slugFormat(form.slug);
             if (slug) errors.slug = slug;
+            const slugDe = slugFormat(form.slugDe);
+            if (slugDe) errors.slugDe = slugDe;
+            if (!editingRef.current) {
+                const primaryCategoryId = required(form.primaryCategoryId, 'Primary category is required');
+                if (primaryCategoryId) errors.primaryCategoryId = primaryCategoryId;
+            }
             if (form.extras.some(extra => required(extra.name) || required(extra.price))) {
                 errors.extras = 'Each extra needs a name and a price.';
             } else if (form.extras.some(extra => Number(extra.price) < 0)) {
@@ -93,6 +105,8 @@ function AdminActivities() {
         mapItemToForm: (a) => ({
             name: a.name || '',
             slug: a.slug || '',
+            slugDe: a.slugDe || '',
+            primaryCategoryId: a.primaryCategoryId || '',
             description: a.description || '',
             price: a.price ?? '',
             minPrice: a.minPrice ?? '',
@@ -108,6 +122,8 @@ function AdminActivities() {
         }),
         buildPayload: (form) => ({
             ...form,
+            slugDe: form.slugDe.trim(),
+            primaryCategoryId: form.primaryCategoryId || null,
             price: form.price !== '' ? Number(form.price) : null,
             minPrice: form.minPrice !== '' ? Number(form.minPrice) : null,
             duration: form.duration !== '' ? Number(form.duration) : null,
@@ -117,6 +133,8 @@ function AdminActivities() {
             extras: form.extras.map(extra => ({...extra, price: Number(extra.price)})),
         }),
     });
+
+    editingRef.current = editing;
 
     const handleExport = async () => {
         setError('');
@@ -131,6 +149,8 @@ function AdminActivities() {
         adminApi.getDestinations().then(setDestinations).catch(() => {
         });
         adminApi.getCategories().then(setCategories).catch(() => {
+        });
+        adminApi.getPrimaryCategories().then(setPrimaryCategories).catch(() => {
         });
     }, [adminApi]);
 
@@ -252,7 +272,7 @@ function AdminActivities() {
                 <Modal.Body data-bs-theme="dark">
                     <SaveErrorAlert error={saveError} onClose={() => setSaveError('')}/>
                     <Form>
-                        <Form.Group className="mb-3">
+                        <Form.Group className="mb-3" controlId="activity-destination">
                             <Form.Label className="small fw-semibold text-white">Destination</Form.Label>
                             <Form.Select
                                 value={form.destinationId}
@@ -285,6 +305,30 @@ function AdminActivities() {
                                 placeholder="Leave blank to auto-generate from name"
                             />
                             <Form.Control.Feedback type="invalid">{fieldErrors.slug}</Form.Control.Feedback>
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="activity-slug-de">
+                            <Form.Label className="small fw-semibold text-white">German slug (optional)</Form.Label>
+                            <Form.Control
+                                value={form.slugDe}
+                                onChange={e => updateField('slugDe', e.target.value)}
+                                isInvalid={!!fieldErrors.slugDe}
+                                placeholder="ae, oe, ue, ss — no umlauts"
+                            />
+                            <Form.Control.Feedback type="invalid">{fieldErrors.slugDe}</Form.Control.Feedback>
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="activity-primary-category">
+                            <Form.Label className="small fw-semibold text-white">Primary category</Form.Label>
+                            <Form.Select
+                                value={form.primaryCategoryId}
+                                onChange={e => updateField('primaryCategoryId', e.target.value)}
+                                isInvalid={!!fieldErrors.primaryCategoryId}
+                            >
+                                <option value=""></option>
+                                {primaryCategories.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </Form.Select>
+                            <Form.Control.Feedback type="invalid">{fieldErrors.primaryCategoryId}</Form.Control.Feedback>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="small fw-semibold text-white">Description</Form.Label>

@@ -65,6 +65,18 @@ class SlugAssignerTest {
     }
 
     @Test
+    void assignOnCreate_slugTakenInOtherNamespace_appendsSuffix() {
+        String expectedSlug = "rafting-2";
+        TestEntity entity = new TestEntity();
+        when(repository.existsBySlug("rafting")).thenReturn(false);
+        when(repository.existsBySlug(expectedSlug)).thenReturn(false);
+
+        SlugAssigner.assignOnCreate(entity, null, "Rafting", repository, "rafting"::equals);
+
+        assertThat(entity.getSlug()).isEqualTo(expectedSlug);
+    }
+
+    @Test
     void assignOnCreate_customSlug_sanitizesAndUses() {
         String expectedSlug = "best-of-prague";
         TestEntity entity = new TestEntity();

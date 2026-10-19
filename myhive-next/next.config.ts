@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { legacyUrlRedirects } from './lib/redirects';
 
 // Server-only backend base, INCLUDING its path prefix: local Spring serves at
 // root (http://localhost:8080), prod behind the container that strips /api
@@ -22,6 +23,9 @@ const BACKEND_URL = (process.env.BACKEND_URL ?? 'http://localhost:8080').replace
 console.log(`[next.config] /api rewrite target: ${BACKEND_URL}`);
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return legacyUrlRedirects();
+  },
   async rewrites() {
     return [
       {

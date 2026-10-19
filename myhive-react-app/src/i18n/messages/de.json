@@ -44,7 +44,7 @@
   },
   "common": {
     "home": "Startseite",
-    "blog": "Blog",
+    "blog": "Ratgeber",
     "close": "Schließen"
   },
   "chrome": {
@@ -59,7 +59,7 @@
     "nav": {
       "activities": "Aktivitäten",
       "about": "Über uns",
-      "blog": "Blog",
+      "blog": "Ratgeber",
       "contact": "Kontakt"
     },
     "breadcrumb": {
@@ -82,7 +82,7 @@
     "nav": {
       "activities": "Aktivitäten",
       "about": "Über uns",
-      "blog": "Blog",
+      "blog": "Ratgeber",
       "contact": "Kontakt"
     },
     "legal": {
@@ -498,12 +498,12 @@
     "addToTrip": "Hinzufügen"
   },
   "blog": {
-    "listTitle": "Das JGA-Playbook",
+    "listTitle": "JGA-Ratgeber: Tipps, Ideen und Planung für den Junggesellenabschied",
     "loadingPosts": "Beiträge werden geladen...",
     "emptyState": "Noch keine Blogbeiträge. Schau bald wieder vorbei!",
     "loading": "Wird geladen...",
     "postNotFound": "Beitrag nicht gefunden",
-    "backToBlog": "Zurück zum Blog"
+    "backToBlog": "Zurück zum Ratgeber"
   },
   "voteComponents": {
     "start": {
@@ -839,7 +839,7 @@
       "exampleWeekend": "Beispiel-Wochenende",
       "rules": "Die Regeln 2026",
       "about": "Über uns",
-      "blog": "Blog",
+      "blog": "Ratgeber",
       "contact": "Kontakt",
       "terms": "AGB",
       "refund": "Erstattungsrichtlinie",

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +30,7 @@ public class DestinationDTO {
     private Integer activityCount;
     private List<CategoryDTO> assignedCategories;
     private Boolean seoIndexable;
+    private LocalDateTime updatedAt;
 
     /** Raw per-locale overrides — present on the admin (no-locale) view only; localized reads fold them into the fields above. */
     @JsonInclude(JsonInclude.Include.NON_NULL)

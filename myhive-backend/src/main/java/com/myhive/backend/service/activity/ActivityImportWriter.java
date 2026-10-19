@@ -82,9 +82,10 @@ public class ActivityImportWriter {
         applyMutableFields(row, activity);
         activity.setImageUrl(imageUrl);
         // Same slug rules as the admin form: custom slug if given (already normalised by the
-        // validator), otherwise from the name, suffixed on collision. The uniqueness check
+        // validator), otherwise from the name, suffixed on collision (also against German slugs, which share the URL space). The uniqueness check
         // auto-flushes earlier rows of this import, so in-file duplicates get suffixed too.
-        SlugAssigner.assignOnCreate(activity, row.csvSlug(), row.name(), activityRepository);
+        SlugAssigner.assignOnCreate(activity, row.csvSlug(), row.name(), activityRepository,
+                activityRepository::existsBySlugDe);
         return activityRepository.save(activity);
     }
 

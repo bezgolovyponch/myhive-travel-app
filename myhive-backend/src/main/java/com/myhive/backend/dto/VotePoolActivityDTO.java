@@ -25,4 +25,6 @@ public class VotePoolActivityDTO {
     private Integer duration;
     private List<ActivityExtraDTO> extras;
     private List<String> selectedExtras;
+    /** The activity's German slug (null when it has none); German pages link to it instead of the English slug. */
+    private String slugDe;
 }

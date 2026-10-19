@@ -166,6 +166,7 @@ public class DestinationService {
         dto.setRating(destination.getRating());
         dto.setActivityCount(destination.getActivities() != null ? destination.getActivities().size() : 0);
         dto.setSeoIndexable(destination.isSeoIndexable());
+        dto.setUpdatedAt(destination.getUpdatedAt());
         if (locale == null) {
             dto.setTranslations(tr);
         }

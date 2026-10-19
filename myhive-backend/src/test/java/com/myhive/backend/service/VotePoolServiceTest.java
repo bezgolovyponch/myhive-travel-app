@@ -229,4 +229,20 @@ class VotePoolServiceTest {
         // Return the just-persisted child (last in the list).
         return saved.getAnswers().get(saved.getAnswers().size() - 1);
     }
+
+    @Test
+    void buildPool_carriesTheActivitysGermanSlug() {
+        String expectedSlugDe = "klub-tour";
+        Destination destination = saveDestination("Prague");
+        Category nightlife = saveCategory("Nightlife", "nightlife", true);
+        attachCategoryToDestination(destination, nightlife);
+        Activity club = saveActivity(destination, "Club", new BigDecimal("100"), 5, Set.of(nightlife));
+        club.setSlugDe(expectedSlugDe);
+        activityRepository.saveAndFlush(club);
+
+        VotePoolResponse response = votePoolService.buildPool(
+                new VotePoolRequest(destination.getId(), List.of()));
+
+        assertThat(response.getPool().getFirst().getSlugDe()).isEqualTo(expectedSlugDe);
+    }
 }

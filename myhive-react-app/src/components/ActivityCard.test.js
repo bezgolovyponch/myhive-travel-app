@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import ActivityCard from './ActivityCard';
 import {TripProvider} from '../context/TripContext';
+import {LocaleProvider} from '../i18n';
+import de from '../i18n/messages/de.json';
 
 const activity = {
   id: 'a1',
@@ -98,4 +100,19 @@ test('a card says how many optional extras there are, on one line, still without
 test('a card without extras shows no extras chip', () => {
   renderCard({...activity, extras: []});
   expect(screen.queryByText(/Optional extras/)).not.toBeInTheDocument();
+});
+
+test('linksToGermanSlugUnderDe', () => {
+  const expectedSlugDe = 'go-kart-fahren';
+  render(
+    <LocaleProvider locale="de" messages={de}>
+      <MemoryRouter>
+        <TripProvider>
+          <ActivityCard activity={{...activity, slugDe: expectedSlugDe}} />
+        </TripProvider>
+      </MemoryRouter>
+    </LocaleProvider>
+  );
+  const link = document.querySelector('a.activity-title-link');
+  expect(link.getAttribute('href')).toBe('/de/jga-prag/aktivitaeten/' + expectedSlugDe);
 });

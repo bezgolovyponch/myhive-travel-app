@@ -28,3 +28,9 @@ test('renders posts without a page-hero or Blog heading', async () => {
   expect(container.querySelector('.page-hero')).toBeNull();
   expect(screen.queryByRole('heading', {name: 'Blog'})).toBeNull();
 });
+
+test('rendersTheSeoH1', async () => {
+  const expectedH1 = 'Stag Do Tips, Ideas and Planning Advice for the Best Man';
+  renderBlog();
+  expect(await screen.findByRole('heading', {level: 1, name: expectedH1})).toBeInTheDocument();
+});

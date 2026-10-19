@@ -13,6 +13,7 @@ import com.myhive.backend.entity.BookingItem;
 import com.myhive.backend.entity.Category;
 import com.myhive.backend.entity.Destination;
 import com.myhive.backend.entity.Package;
+import com.myhive.backend.entity.PrimaryCategory;
 import com.myhive.backend.model.BookingStatus;
 
 import java.math.BigDecimal;
@@ -38,6 +39,15 @@ public final class TestDataFactory {
         c.setSlug(name.toLowerCase().replace(' ', '-'));
         c.setCreatedAt(LocalDateTime.now());
         return c;
+    }
+
+    public static PrimaryCategory primaryCategory(String slug) {
+        PrimaryCategory pc = new PrimaryCategory();
+        pc.setSlug(slug);
+        pc.setSlugDe(slug + "-de");
+        pc.setName(slug);
+        pc.setSortOrder(1);
+        return pc;
     }
 
     public static CategoryDTO categoryDTO() {

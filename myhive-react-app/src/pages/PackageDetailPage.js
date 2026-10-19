@@ -5,15 +5,17 @@ import api from '../services/api';
 import {useFetchBySlug} from '../hooks/useFetchBySlug';
 import {SITE_URL} from '../services/config';
 import {DEFAULT_ACTIVITY_IMAGE, formatAmount} from '../utils/format';
-import {useT} from '../i18n';
+import {activityPath, destinationPath, entitySlug, localizePath, packagePath, routePath, useLocale, useT} from '../i18n';
 import './PackageDetailPage.css';
 
 // `pkg` is supplied by the server renderer (Next.js SSR) so the record is in the
 // initial HTML; omitted in the SPA, which fetches by slug as before.
-function PackageDetailPage({pkg: injectedPkg}) {
+function PackageDetailPage({pkg: injectedPkg, destinationSlug: destinationSlugProp}) {
     const t = useT('packageDetail');
     const tMeta = useT('meta');
-    const {destSlug, slug} = useParams();
+    const {destSlug: destSlugParam, slug} = useParams();
+    const destSlug = destinationSlugProp ?? destSlugParam;
+    const locale = useLocale();
     const navigate = useNavigate();
     const {dispatch} = useTrip();
     const {data: pkg, loading, error} = useFetchBySlug(api.getPackageBySlug, slug, injectedPkg);
@@ -55,13 +57,13 @@ function PackageDetailPage({pkg: injectedPkg}) {
             <PageHead>
                 <title>{tMeta('package.title', {name: pkg.name, destination: pkg.destinationName})}</title>
                 <meta name="description" content={metaDescription}/>
-                <link rel="canonical" href={`${SITE_URL}/destination/${resolvedDestSlug}/package/${pkg.slug}`}/>
+                <link rel="canonical" href={`${SITE_URL}${localizePath(packagePath(resolvedDestSlug, pkg.slug), locale)}`}/>
             </PageHead>
 
             <nav className="package-detail-breadcrumbs">
                 <Link to="/">{t('breadcrumbHome')}</Link>
                 <span>&rsaquo;</span>
-                <Link to={`/destination/${resolvedDestSlug}`}>{pkg.destinationName}</Link>
+                <Link to={routePath(destinationPath(resolvedDestSlug))}>{pkg.destinationName}</Link>
                 <span>&rsaquo;</span>
                 <span>{pkg.name}</span>
             </nav>
@@ -86,7 +88,7 @@ function PackageDetailPage({pkg: injectedPkg}) {
                                 {sortedActivities.map(activity => (
                                     <Link
                                         key={activity.activityId}
-                                        to={`/destination/${resolvedDestSlug}/activity/${activity.slug}`}
+                                        to={routePath(activityPath(resolvedDestSlug, entitySlug(activity)))}
                                         className="package-detail-activity"
                                     >
                                         <img

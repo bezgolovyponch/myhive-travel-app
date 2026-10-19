@@ -1,4 +1,5 @@
 import {formatShortRange, parseISODate} from './format';
+import {destinationPath, routePath} from '../i18n';
 
 // What the organiser's contact modal and dashboard share: the invite link, the
 // message for the group chat, the WhatsApp links that carry it, and the
@@ -70,5 +71,5 @@ export function whatsappShareUrls(message, link) {
 
 /** The organiser's dashboard: the Trip Builder tab, live with the vote. */
 export function dashboardPath(destinationSlug, shareToken) {
-    return `/destination/${destinationSlug}?tab=trip-builder&voteSession=${shareToken}`;
+    return routePath(`${destinationPath(destinationSlug)}?tab=trip-builder&voteSession=${shareToken}`);
 }

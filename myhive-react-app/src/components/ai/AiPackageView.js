@@ -1,5 +1,5 @@
 import {useRef, useState} from 'react';
-import {useLocalePath, useT} from '../../i18n';
+import {destinationPath, useLocalePath, useT} from '../../i18n';
 import {addDays, formatAmount, formatDayLabel, formatDayRange, formatDuration} from '../../utils/format';
 import './AiPackageView.css';
 
@@ -130,7 +130,7 @@ function AiPackageView({
                     </div>
                 </div>
                 {destinationSlug && (
-                    <a className="aip-browse" href={lp(`/destination/${destinationSlug}?tab=activities`)}
+                    <a className="aip-browse" href={lp(`${destinationPath(destinationSlug)}?tab=activities`)}
                        target="_blank" rel="noopener noreferrer">
                         {t('result.browseAll')} <span aria-hidden="true">↗</span>
                     </a>

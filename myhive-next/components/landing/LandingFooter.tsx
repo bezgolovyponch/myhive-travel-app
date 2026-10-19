@@ -4,6 +4,7 @@
 // the landing dictionary. The Trips column is in-page anchors (per page);
 // Company and legal links go to the locale-prefixed real routes.
 import { useT, useLocalePath } from '../../legacy-src/i18n';
+import { blogIndexPath } from '../../legacy-src/i18n/routes';
 import TrivluLogo from './TrivluLogo';
 import { PHONE_DISPLAY, PHONE_HREF } from './data';
 
@@ -48,7 +49,7 @@ export default function LandingFooter({
               <a href={lp('/about')}>{t('about')}</a>
             </li>
             <li>
-              <a href={lp('/blog')}>{t('blog')}</a>
+              <a href={lp(blogIndexPath())}>{t('blog')}</a>
             </li>
             <li>
               <a href={lp('/contact')}>{t('contact')}</a>

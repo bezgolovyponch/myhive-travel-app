@@ -4,6 +4,7 @@
 // price/image as a fallback so the sections render even when the API record
 // moved or the backend is unreachable, but live API data wins when it matches.
 import type { Activity, Category } from '../../lib/api';
+import { activityPath, destinationPath, entitySlug } from '../../legacy-src/i18n/routes';
 import type { Pool, PoolItem, Kind } from './engine';
 
 export const IMG_BASE = 'https://img.trivlu.com/';
@@ -12,7 +13,7 @@ export const IMG_BASE = 'https://img.trivlu.com/';
 // place the main header's cart continues to. The homepage ignores ?tab=, so
 // landing CTAs must never point there.
 export function builderUrl(destinationSlug: string): string {
-  return `/destination/${destinationSlug}?tab=trip-builder`;
+  return `${destinationPath(destinationSlug)}?tab=trip-builder`;
 }
 
 // Landing selections ride along as query params: TripBuilder.js consumes
@@ -23,8 +24,12 @@ export function builderUrlWithPicks(destinationSlug: string, picked: string[]): 
   return picked.length ? `${base}&picks=${picked.join(',')}` : base;
 }
 
-export function activityLink(destinationSlug: string, activitySlug: string): string {
-  return `/destination/${destinationSlug}/activity/${activitySlug}`;
+export function activityLink(
+  destinationSlug: string,
+  activity: Pick<LandingActivity, 'slug' | 'slugDe'>,
+  locale: string,
+): string {
+  return activityPath(destinationSlug, entitySlug(activity, locale));
 }
 export const PHONE_DISPLAY = '+420 795 518 597';
 export const PHONE_HREF = 'tel:+420795518597';
@@ -36,6 +41,7 @@ export interface LandingActivity {
   // toCartItem. The rest of the landing addresses activities by slug.
   id: string;
   slug: string;
+  slugDe: string | null; // German slug where the API provides one
   name: string;
   category: string | null; // primary category name, localized by the backend (photo chip)
   categories: string[]; // localized names
@@ -78,6 +84,7 @@ export function toLandingActivity(a: Activity): LandingActivity {
   return {
     id: a.id,
     slug: a.slug,
+    slugDe: a.slugDe ?? null,
     name: a.name,
     category: cats[0] ?? null,
     categories: cats,
@@ -108,7 +115,7 @@ export const ROW_ORDER: string[] = [
 export const PER_ROW = 6;
 
 export function categoryLink(destinationSlug: string, categorySlug: string): string {
-  return `/destination/${destinationSlug}?tab=activities&category=${categorySlug}`;
+  return `${destinationPath(destinationSlug)}?tab=activities&category=${categorySlug}`;
 }
 
 export interface ActivityRow {
@@ -145,15 +152,15 @@ export function buildRows(
 }
 
 // The hero swipe deck: eight signature activities in the mockup's order.
-const DECK_SLUGS = [
-  'ak-47-glock-17-shooting',
-  'army-tank-experience',
+export const DECK_SLUGS = [
+  'ak47-shooting',
+  'tank-driving',
   'beer-spa',
-  'go-karting-experience',
-  'rafting-extreme',
-  'river-boat-cruise',
-  'live-music-irish-dinner',
-  'car-demolition-in-prague',
+  'go-karting',
+  'rafting',
+  'river-cruise',
+  'irish-pub-dinner',
+  'car-demolition',
 ];
 const DECK_NAMES = [
   'AK-47 and Glock 17 Shooting',
@@ -184,41 +191,41 @@ export function buildDeck(activities: LandingActivity[]): LandingActivity[] {
 // The calculator's curated pools, split by the part of the day they suit.
 // Prices/images are the mockup export; live catalogue values override by slug.
 type CuratedEntry = PoolItem & { slug?: string };
-const CURATED_POOL: Record<Kind, CuratedEntry[]> = {
+export const CURATED_POOL: Record<Kind, CuratedEntry[]> = {
   day: [
     { slug: 'axe-throwing', n: 'Axe Throwing', p: 33, i: '07b184b8-27e7-463e-8053-fee0c7153896.jpg' },
-    { slug: 'unlimited-paintball-experience', n: 'Unlimited Rubber Paintball', p: 35, i: 'db1b954e-cb38-4ea7-a507-1892cd2c9e3b.png' },
+    { slug: 'unlimited-paintball', n: 'Unlimited Rubber Paintball', p: 35, i: 'db1b954e-cb38-4ea7-a507-1892cd2c9e3b.png' },
     { slug: 'bubble-football', n: 'Bubble Football', p: 37, i: '24a0aeb0-b3d5-43b2-848a-0f70bb68f4a1.jpg' },
-    { slug: 'river-boat-cruise', n: 'River Boat Cruise', p: 37, i: '613cdcc2-18d6-4d98-8e46-0cf64bd26253.webp' },
-    { slug: 'go-karting-experience', n: 'Go-Karting Experience', p: 54, i: '2825b389-7ff5-47cf-a7f9-4a7885ff8932.png' },
-    { slug: 'ak-47-glock-17-shooting', n: 'AK-47 and Glock 17 Shooting', p: 55, i: 'ba3c0544-bb2f-4649-9025-47e0865bf133.jpg' },
-    { slug: 'army-tank-experience', n: 'Army Tank Experience', p: 55, i: '7444f6b8-0ddb-4d0e-9021-0652effc529e.webp' },
-    { slug: 'quad-bikes', n: 'Quad Bikes', p: 78, i: '63d9882b-22ca-446f-bb26-3069cdfa1e27.jpg' },
-    { slug: 'rafting-extreme', n: 'Rafting Extreme', p: 109, i: '15d22f9b-646a-46d0-b62a-3f6d271276d8.jpg' },
-    { slug: 'car-demolition-in-prague', n: 'Car Demolition in Prague', p: 151, i: '27fbd072-bba7-4823-ad38-d1aece1065d2.jpg' },
+    { slug: 'river-cruise', n: 'River Boat Cruise', p: 37, i: '613cdcc2-18d6-4d98-8e46-0cf64bd26253.webp' },
+    { slug: 'go-karting', n: 'Go-Karting Experience', p: 54, i: '2825b389-7ff5-47cf-a7f9-4a7885ff8932.png' },
+    { slug: 'ak47-shooting', n: 'AK-47 and Glock 17 Shooting', p: 55, i: 'ba3c0544-bb2f-4649-9025-47e0865bf133.jpg' },
+    { slug: 'tank-driving', n: 'Army Tank Experience', p: 55, i: '7444f6b8-0ddb-4d0e-9021-0652effc529e.webp' },
+    { slug: 'quad-biking', n: 'Quad Bikes', p: 78, i: '63d9882b-22ca-446f-bb26-3069cdfa1e27.jpg' },
+    { slug: 'rafting', n: 'Rafting Extreme', p: 109, i: '15d22f9b-646a-46d0-b62a-3f6d271276d8.jpg' },
+    { slug: 'car-demolition', n: 'Car Demolition in Prague', p: 151, i: '27fbd072-bba7-4823-ad38-d1aece1065d2.jpg' },
   ],
   dinner: [
-    { slug: 'live-music-irish-dinner', n: 'Live Music Irish Dinner', p: 41, i: '2fb4449f-7f8f-40ae-b9e2-b9fc19ebf699.webp' },
-    { slug: 'succulent-bbq-ribs', n: 'Succulent BBQ Ribs', p: 43, i: '14cf0df2-de9b-41c7-aeee-85532b54bbdd.jpg' },
-    { slug: 'grilled-suckling-pig', n: 'Grilled Suckling Pig', p: 51, i: 'ade3509b-8617-419d-91b4-a05f10ca94fa.jpg' },
-    { slug: 'whiskey-tasting', n: 'Whiskey Tasting', p: 56, i: '886ed0da-6914-42a2-8ee8-d178fa731517.jpg' },
-    { slug: 'czech-dinner-with-national-show', n: 'Czech Dinner with a Show', p: 78, i: 'eb5aedfd-04d7-42ff-b5c3-96ed4e80cffd.png' },
+    { slug: 'irish-pub-dinner', n: 'Live Music Irish Dinner', p: 41, i: '2fb4449f-7f8f-40ae-b9e2-b9fc19ebf699.webp' },
+    { slug: 'bbq-ribs', n: 'Succulent BBQ Ribs', p: 43, i: '14cf0df2-de9b-41c7-aeee-85532b54bbdd.jpg' },
+    { slug: 'suckling-pig', n: 'Grilled Suckling Pig', p: 51, i: 'ade3509b-8617-419d-91b4-a05f10ca94fa.jpg' },
+    { slug: 'whisky-tasting', n: 'Whiskey Tasting', p: 56, i: '886ed0da-6914-42a2-8ee8-d178fa731517.jpg' },
+    { slug: 'czech-folklore-dinner', n: 'Czech Dinner with a Show', p: 78, i: 'eb5aedfd-04d7-42ff-b5c3-96ed4e80cffd.png' },
     { slug: 'medieval-dinner', n: 'Medieval Dinner', p: 89, i: '7be4a643-e1cc-4965-b048-ed97223ded25.jpg' },
     { slug: 'wine-tasting', n: 'Wine Tasting', p: 95, i: '6734a461-db35-42d6-81f3-004374c5a940.avif' },
   ],
   night: [
     { slug: 'casino-night', n: 'Casino Night', p: 26, i: '198dd86b-0ed5-47c2-a17b-2591a9883e35.jpg' },
-    { slug: 'cocktails-karaoke-night', n: 'Cocktails and Karaoke', p: 35, i: 'd09b4df1-9b1f-4333-b9c3-5b9309ff05a0.webp' },
-    { slug: 'vip-club-entrance', n: 'VIP Club Entrance', p: 60, i: '0f8081cf-cd96-4eab-972c-79772ddf7792.jpeg' },
+    { slug: 'karaoke-night', n: 'Cocktails and Karaoke', p: 35, i: 'd09b4df1-9b1f-4333-b9c3-5b9309ff05a0.webp' },
+    { slug: 'vip-club-entry', n: 'VIP Club Entrance', p: 60, i: '0f8081cf-cd96-4eab-972c-79772ddf7792.jpeg' },
   ],
   // The two categories groups book most, so every day gets one.
   signature: [
     { slug: 'stripper', n: 'Stripper', p: 20, i: '036ff6c6-3040-4ca9-b12c-fdbd01e2000d.jpg' },
-    { slug: 'bowling-and-beers', n: 'Bowling and Beers', p: 27, i: '45f2c4a2-b865-42a9-a20d-c4633ed42343.jpg' },
-    { slug: 'beer-tasting-experience', n: 'Beer Tasting Experience', p: 30, i: '4fa58b74-08cc-46ff-b3b7-51e7e2f75a4b.jpg' },
+    { slug: 'bowling', n: 'Bowling and Beers', p: 27, i: '45f2c4a2-b865-42a9-a20d-c4633ed42343.jpg' },
+    { slug: 'beer-tasting', n: 'Beer Tasting Experience', p: 30, i: '4fa58b74-08cc-46ff-b3b7-51e7e2f75a4b.jpg' },
     { slug: 'xxl-roly-poly-show', n: 'XXL Roly-Poly Show', p: 39, i: '2cf99c79-d108-47d6-8153-fad53db5fb5a.webp' },
     { slug: 'burger-and-strip', n: 'Burger and Strip', p: 40, i: '417d31e3-412d-42a9-8a08-6c4828ac2b84.jpg' },
-    { slug: 'stag-challenge', n: 'Self Tapping Pub', p: 40, i: 'ddce1cbf-44ec-4267-9dbf-313bf82f184c.png' },
+    { slug: 'self-tap-pub', n: 'Self Tapping Pub', p: 40, i: 'ddce1cbf-44ec-4267-9dbf-313bf82f184c.png' },
     { slug: 'jelly-wrestling', n: 'Jelly Wrestling', p: 40, i: 'b4e17a6d-895c-4d11-b006-d537ece86a38.jpg' },
     { slug: 'steak-and-strip', n: 'Steak and Strip', p: 45, i: 'e58ff74a-ee07-419c-99e6-9a2b15f33dc7.png' },
     { slug: 'strip-limo', n: 'Strip Limo', p: 47, i: '5bcd6622-50f3-4cb0-9ee9-53a10311e174.jpg' },

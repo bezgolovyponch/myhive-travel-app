@@ -10,6 +10,7 @@ import { useMemo, useReducer } from 'react';
 import './landing.css';
 import './home.css';
 import { useT, useLocalePath } from '../../legacy-src/i18n';
+import { destinationPath } from '../../legacy-src/i18n/routes';
 import { useTrip } from '../../legacy-src/context/TripContext';
 import { useStartGroupVote } from '../../legacy-src/hooks/useStartGroupVote';
 import { inter } from './fonts';
@@ -347,7 +348,7 @@ export default function VoteLanding({
           <div className="grid__more">
             <a
               className="btn btn--ghost btn--lg"
-              href={lp(`/destination/${destinationSlug}?tab=activities`)}
+              href={lp(`${destinationPath(destinationSlug)}?tab=activities`)}
               onClick={() => trackCta('View all activities', 'activities')}
             >
               {tAct('viewAll', { count: totalActivities })}

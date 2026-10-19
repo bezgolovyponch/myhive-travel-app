@@ -1,6 +1,6 @@
 // Shared SEO constants/helpers for the public (SSR) pages.
 import type { Metadata } from 'next';
-import { routing } from '@/i18n/routing';
+import { routing } from '../i18n/routing';
 import { localizePath } from '../legacy-src/i18n/routes';
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trivlu.com';
@@ -34,8 +34,12 @@ export function formatPricePerPerson(price: number) {
 interface PageMeta {
   title: string;
   description: string;
-  /** Absolute-relative path WITHOUT locale prefix, e.g. '/about'. */
-  path: string;
+  /**
+   * Absolute-relative path WITHOUT locale prefix, e.g. '/about'. An object maps
+   * a locale to that locale's own EN-internal path (pages whose slug differs per
+   * language); a missing locale falls back to the default locale's path.
+   */
+  path: string | Partial<Record<string, string>>;
   /** Locale of this render; localizes the canonical URL. */
   locale?: string;
   /** Absolute image URL; falls back to the brand og-image. */
@@ -51,6 +55,14 @@ interface PageMeta {
   translated?: boolean;
 }
 
+/** The EN-internal path to use for `locale`. */
+export function pathForLocale(path: PageMeta['path'], locale: string): string {
+  if (typeof path === 'string') {
+    return path;
+  }
+  return path[locale] ?? path[routing.defaultLocale] ?? '/';
+}
+
 /** Uniform metadata: Next merges `openGraph` shallowly (a page-level object
  *  REPLACES the root one), so every page must emit a complete OG set or lose
  *  og:image/og:type. This is the single place that guarantees completeness. */
@@ -64,7 +76,8 @@ export function pageMetadata({
   noindex = false,
   translated = true,
 }: PageMeta): Metadata {
-  const url = canonical(path, translated ? locale : routing.defaultLocale);
+  const urlLocale = translated ? locale : routing.defaultLocale;
+  const url = canonical(pathForLocale(path, urlLocale), urlLocale);
   return {
     title,
     description,
@@ -76,9 +89,9 @@ export function pageMetadata({
         ? {
             languages: {
               ...Object.fromEntries(
-                routing.locales.map((l) => [l, canonical(path, l)])
+                routing.locales.map((l) => [l, canonical(pathForLocale(path, l), l)])
               ),
-              'x-default': canonical(path),
+              'x-default': canonical(pathForLocale(path, routing.defaultLocale)),
             },
           }
         : {}),

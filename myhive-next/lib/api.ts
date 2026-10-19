@@ -30,6 +30,7 @@ export interface Destination {
   rating: number;
   activityCount: number;
   seoIndexable?: boolean | null;
+  updatedAt?: string | null;
 }
 
 export interface Category {
@@ -53,7 +54,10 @@ export interface Activity {
   /** Localized like every other field when the request carries a locale. */
   destinationName?: string | null;
   categories?: ({ name: string; slug?: string } | string)[] | null;
+  slugDe?: string | null;
+  primaryCategory?: { id: string; slug: string; slugDe?: string | null; name: string } | null;
   seoIndexable?: boolean | null;
+  updatedAt?: string | null;
 }
 
 export interface TripPackage {
@@ -71,6 +75,7 @@ export interface TripPackage {
   destinationName?: string | null;
   activities?: Activity[] | null;
   seoIndexable?: boolean | null;
+  updatedAt?: string | null;
 }
 
 export interface BlogPost {
@@ -87,7 +92,9 @@ export interface BlogPost {
   // the row's insert timestamp, misreporting publication dates.
   date?: string | null;
   createdAt?: string | null;
+  slugDe?: string | null;
   seoIndexable?: boolean | null;
+  updatedAt?: string | null;
 }
 
 // Shape of the backend's paged activity response, as CRA's DestinationPage

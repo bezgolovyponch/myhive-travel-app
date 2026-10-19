@@ -1,10 +1,17 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import { parseRedirectMap, slugOf } from '../../../lib/redirect-map';
 import {
   toLandingActivity,
   buildRows,
   buildDeck,
   hydratePool,
   PER_ROW,
+  builderUrl,
+  activityLink,
+  categoryLink,
+  DECK_SLUGS,
+  CURATED_POOL,
 } from '../data';
 import type { Activity } from '../../../lib/api';
 
@@ -146,6 +153,19 @@ describe('hydratePool', () => {
   });
 });
 
+describe('landing links', () => {
+  it('builds Prague links on the hub scheme', () => {
+    expect(builderUrl('prague')).toBe('/prague-stag-do?tab=trip-builder');
+    expect(activityLink('prague', {slug: 'beer-spa', slugDe: null}, 'en')).toBe('/prague-stag-do/activities/beer-spa');
+    expect(categoryLink('prague', 'beer')).toBe('/prague-stag-do?tab=activities&category=beer');
+  });
+
+  it('keeps other cities on the /destination scheme', () => {
+    expect(builderUrl('krakow')).toBe('/destination/krakow?tab=trip-builder');
+    expect(activityLink('krakow', {slug: 'x', slugDe: null}, 'en')).toBe('/destination/krakow/activity/x');
+  });
+});
+
 describe('landing dictionary', () => {
   it('en and de carry the identical landing key structure', async () => {
     const en = (await import('../../../legacy-src/i18n/messages/en.json')).default as Record<
@@ -177,5 +197,28 @@ describe('landing dictionary', () => {
       expect(en.landing.rows[slug], `en label for ${slug}`).toBeTruthy();
       expect(de.landing.rows[slug], `de label for ${slug}`).toBeTruthy();
     }
+  });
+});
+
+describe('final slugs', () => {
+  it('activityLink_usesGermanSlugForDe', () => {
+    const activity = { slug: 'beer-spa', slugDe: 'bier-spa' };
+    expect(activityLink('prague', activity, 'de')).toBe('/prague-stag-do/activities/bier-spa');
+    expect(activityLink('prague', activity, 'en')).toBe('/prague-stag-do/activities/beer-spa');
+    expect(activityLink('prague', { slug: 'beer-spa', slugDe: null }, 'de')).toBe('/prague-stag-do/activities/beer-spa');
+  });
+
+  it('deckAndCuratedSlugsAreNeverRenamedOldSlugs', () => {
+    const rows = parseRedirectMap(fs.readFileSync('seo/redirect-map.csv', 'utf8'));
+    const renamedOldSlugs = new Set(
+      rows
+        .filter((r) => r.type === 'activity' && slugOf(r.oldEn) !== slugOf(r.newEn))
+        .map((r) => slugOf(r.oldEn)),
+    );
+    const used = [
+      ...DECK_SLUGS,
+      ...Object.values(CURATED_POOL).flatMap((entries) => entries.map((e) => e.slug)),
+    ].filter((s): s is string => Boolean(s));
+    expect(used.filter((s) => renamedOldSlugs.has(s))).toEqual([]);
   });
 });

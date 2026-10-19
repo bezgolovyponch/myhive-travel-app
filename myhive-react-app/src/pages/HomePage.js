@@ -12,7 +12,7 @@ import ContactCtaSection from '../components/home/ContactCtaSection';
 import HeroPlanner from '../components/home/HeroPlanner';
 import StickyVoteCta from '../components/home/StickyVoteCta';
 import {SITE_URL, STICKY_VOTE_CTA_ENABLED} from '../services/config';
-import {useT} from '../i18n';
+import {destinationPath, routePath, useT} from '../i18n';
 import './HomePage.css';
 
 // `featuredActivities` exists only for the server-rendered copy of this page
@@ -46,7 +46,7 @@ function HomePage({featuredActivities}) {
                 <div className="hero-content">
                     <div className="hero-text">
                         {/* v3 landing 2a: dates and head-count, then the planner chat. */}
-                        <HeroPlanner explorePath={`/destination/${exploreActivitiesSlug}?tab=activities`}/>
+                        <HeroPlanner explorePath={routePath(`${destinationPath(exploreActivitiesSlug)}?tab=activities`)}/>
                     </div>
                 </div>
             </section>

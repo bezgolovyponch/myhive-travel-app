@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
-import {SUPPORTED_LOCALES, localizeHref, useLocale, useT} from '../i18n';
+import {SUPPORTED_LOCALES, delocalizeSegments, localizeHref, useLocale, usePageAlternates, useT} from '../i18n';
 import './LanguageSwitcher.css';
 
 // Native names, not translations: a German user lost on the English site must
@@ -11,6 +11,7 @@ function LanguageSwitcher() {
     const t = useT('header');
     const locale = useLocale();
     const location = useLocation();
+    const alternates = usePageAlternates();
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
 
@@ -38,7 +39,7 @@ function LanguageSwitcher() {
     // prefix on the Next side, and the standalone CRA never has one. Plain <a>
     // on purpose — switching locale must be a full load so the server renders
     // the other language (and SPA-owned paths simply stay unprefixed).
-    const path = location.pathname + location.search;
+    const path = delocalizeSegments(location.pathname, locale) + location.search;
 
     return (
         <div className="lang-switcher" ref={rootRef}>
@@ -64,7 +65,7 @@ function LanguageSwitcher() {
                             <a
                                 key={l}
                                 className="lang-switcher-item"
-                                href={localizeHref(path, l)}
+                                href={alternates[l] ?? localizeHref(path, l)}
                                 lang={l}
                                 hrefLang={l}
                             >

@@ -187,4 +187,23 @@ class TripLeadServiceTest {
         tripLeadService.unsubscribe(UUID.randomUUID());
         // No exception — idempotent, token validity is never leaked.
     }
+
+    @Test
+    void restore_itemsCarryTheGermanSlug() {
+        String expectedSlugDe = "kart-fahren";
+        karting.setSlugDe(expectedSlugDe);
+        activityRepository.saveAndFlush(karting);
+        TripLeadCreateResponse lead = tripLeadService.create(createRequest("restore-de@example.com"));
+        TripLeadSyncRequest.SyncItem item = new TripLeadSyncRequest.SyncItem();
+        item.setActivityId(karting.getId());
+        item.setSortOrder(0);
+        TripLeadSyncRequest sync = new TripLeadSyncRequest();
+        sync.setRestoreToken(lead.restoreToken());
+        sync.setItems(List.of(item));
+        tripLeadService.sync(lead.id(), sync);
+
+        TripLeadRestoreResponse response = tripLeadService.restore(lead.restoreToken());
+
+        assertThat(response.items().getFirst().slugDe()).isEqualTo(expectedSlugDe);
+    }
 }

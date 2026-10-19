@@ -3,12 +3,13 @@ import {useEffect, useState} from 'react';
 import {Link} from 'react-router-dom';
 import api from '../services/api';
 import {SITE_URL} from '../services/config';
-import {useT} from '../i18n';
+import {blogIndexPath, blogPostPath, entitySlug, localizePath, routePath, useLocale, useT} from '../i18n';
 import './BlogPage.css';
 
 // `posts` is supplied by the server renderer (Next.js SSR) so the listing is in
 // the initial HTML; omitted in the SPA, which fetches on mount as before.
 function BlogPage({posts: injectedPosts}) {
+    const locale = useLocale();
     const t = useT('blog');
     const tMeta = useT('meta');
     const seeded = Array.isArray(injectedPosts);
@@ -30,7 +31,7 @@ function BlogPage({posts: injectedPosts}) {
             <PageHead>
                 <title>{tMeta('blog.title')}</title>
                 <meta name="description" content={tMeta('blog.description')}/>
-                <link rel="canonical" href={`${SITE_URL}/blog`}/>
+                <link rel="canonical" href={`${SITE_URL}${localizePath(blogIndexPath(), locale)}`}/>
             </PageHead>
             <section className="blog-section">
                 {/* The listing had no h1 at all, which the SSR smoke checks flag
@@ -44,7 +45,7 @@ function BlogPage({posts: injectedPosts}) {
                 ) : (
                     <div className="blog-grid">
                         {posts.map(post => (
-                            <Link key={post.id} to={`/blog/${post.slug || post.id}`} className="card blog-card">
+                            <Link key={post.id} to={routePath(blogPostPath(entitySlug(post) || post.id))} className="card blog-card">
                                 {post.imageUrl && (
                                     <img src={post.imageUrl} alt={post.title} className="blog-card-image"/>
                                 )}

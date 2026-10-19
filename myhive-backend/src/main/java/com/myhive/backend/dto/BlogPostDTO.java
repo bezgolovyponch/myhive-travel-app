@@ -20,6 +20,10 @@ public class BlogPostDTO {
     @Size(max = 280, message = "Slug must be at most 280 characters")
     private String slug;
 
+    /** Hand-written German URL slug. On admin write: null = unchanged, blank = cleared. */
+    @Size(max = 280, message = "German slug must be at most 280 characters")
+    private String slugDe;
+
     @NotBlank(message = "Title is required")
     @Size(max = 300, message = "Title must be at most 300 characters")
     private String title;
@@ -36,6 +40,7 @@ public class BlogPostDTO {
 
     private LocalDate date;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private Boolean seoIndexable;
 
     /** Raw per-locale overrides — present on the admin (no-locale) view only; localized reads fold them into the fields above. */

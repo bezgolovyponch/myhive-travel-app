@@ -64,7 +64,7 @@ describe('TripBuilderDropdown with items in the cart', () => {
         await user.click(screen.getByRole('button', {name: 'Continue'}));
 
         expect(mockDispatch).toHaveBeenCalledWith({type: 'CLOSE_TRIP_BUILDER_MODAL'});
-        expect(screen.getByTestId('location')).toHaveTextContent('/destination/prague?tab=trip-builder');
+        expect(screen.getByTestId('location')).toHaveTextContent('/prague-stag-do?tab=trip-builder');
     });
 });
 
@@ -125,7 +125,7 @@ describe('TripBuilderDropdown for the organiser of a running vote', () => {
         await user.click(screen.getByRole('button', {name: 'Back to Trip Builder'}));
 
         expect(screen.getByTestId('location')).toHaveTextContent(
-            '/destination/prague?tab=trip-builder&voteSession=tok-1');
+            '/prague-stag-do?tab=trip-builder&voteSession=tok-1');
     });
 
     it('a friend\'s vote (no manager token) keeps Continue', () => {

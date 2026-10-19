@@ -10,7 +10,7 @@ import ActivityPreviewModal from './ActivityPreviewModal';
 import {useStartGroupVote} from '../hooks/useStartGroupVote';
 import {managerKey} from '../hooks/useOrganizerVote';
 import {dashboardPath} from '../utils/groupVote';
-import {useT} from '../i18n';
+import {destinationPath, routePath, useT} from '../i18n';
 // Imported here rather than inherited from global.css, so this component paints
 // the same on the landings, which cannot load global.css. AppModal.css is for
 // the close button below, which reuses .app-modal-close-btn.
@@ -95,7 +95,7 @@ function TripBuilderDropdown({voteHref = null}) {
         const destSlug = state.tripItems.find(i => i.destinationSlug)?.destinationSlug;
         dispatch({type: 'CLOSE_TRIP_BUILDER_MODAL'});
         if (destSlug) {
-            navigate(organizerVote ? dashboardPath(destSlug, organizerVote) : `/destination/${destSlug}?tab=trip-builder`);
+            navigate(organizerVote ? dashboardPath(destSlug, organizerVote) : routePath(`${destinationPath(destSlug)}?tab=trip-builder`));
         }
     };
 

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -20,6 +21,10 @@ public interface ActivityRepository extends SluggedRepository<Activity> {
     void deleteCategoryLinks(@Param("categoryId") UUID categoryId);
 
     List<Activity> findByDestinationId(UUID destinationId);
+
+    Optional<Activity> findBySlugDe(String slugDe);
+
+    boolean existsBySlugDe(String slugDe);
 
     /** CSV import duplicate guard: does this destination already have an activity with this name? */
     boolean existsByDestinationSlugAndNameIgnoreCase(String destinationSlug, String name);

@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useT, useLocale, splitLocale, localizeHref, SUPPORTED_LOCALES } from '../../legacy-src/i18n';
+import { delocalizeSegments } from '../../legacy-src/i18n/routes';
 
 // Native names, not translations: a German user lost on the English site must
 // still recognize "Deutsch".
@@ -47,7 +48,7 @@ export default function LandingLanguageSwitcher() {
   // landing URLs carry no query state worth preserving. Plain <a> on purpose —
   // switching locale must be a full load so the server renders the other
   // language.
-  const path = splitLocale(pathname).pathname;
+  const path = delocalizeSegments(splitLocale(pathname).pathname, locale);
 
   return (
     <div className="lang-switcher" ref={rootRef}>

@@ -15,7 +15,7 @@ import {getDefaultDestination} from '../utils/defaultDestination';
 import {pushEvent} from '../utils/analytics';
 import {formatDayRange, nightsBetween, parseISODate} from '../utils/format';
 import {PLANNER_DRAFT_KEY} from '../components/home/HeroPlanner';
-import {useLocale, useT} from '../i18n';
+import {destinationPath, routePath, useLocale, useT} from '../i18n';
 import './AiPlannerPage.css';
 
 const STARTER_KEYS = ['one', 'two', 'three'];
@@ -317,7 +317,7 @@ function AiPlannerPage({pollIntervalMs}) {
         pushEvent('cta_click', {cta_label: 'Complete Booking', block: 'ai_planner'});
         try {
             await pickIntoCart();
-            navigate(`/destination/${destination.slug}?tab=trip-builder&book=1`);
+            navigate(routePath(`${destinationPath(destination.slug)}?tab=trip-builder&book=1`));
         } catch (e) {
             setHandoffError(true);
         } finally {

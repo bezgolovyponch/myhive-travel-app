@@ -9,7 +9,7 @@ import { pushEvent } from '../../utils/analytics';
 import { getAttribution, getRef } from '../../utils/attribution';
 import { resolveUserRole } from '../../utils/userRole';
 import PaymentActions from '../../components/PaymentActions';
-import { useT } from '../../i18n';
+import { destinationPath, routePath, useT } from '../../i18n';
 import VoteMeta from './VoteMeta';
 import './VoteResultPage.css';
 
@@ -92,7 +92,7 @@ function VoteResultContent() {
                 endDate: data.endDate ?? '',
             });
         }
-        navigate(`/destination/${data.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`);
+        navigate(routePath(`${destinationPath(data.destinationSlug)}?tab=trip-builder&voteSession=${shareToken}`));
     };
 
     useEffect(() => {
@@ -152,7 +152,7 @@ function VoteResultContent() {
                             type="button"
                             className="result-open-trip-btn"
                             onClick={() => navigate(
-                                `/destination/${data.destinationSlug}?tab=trip-builder&voteSession=${shareToken}`)}
+                                routePath(`${destinationPath(data.destinationSlug)}?tab=trip-builder&voteSession=${shareToken}`))}
                         >
                             {t('result.proceedToCheckout')}
                         </button>

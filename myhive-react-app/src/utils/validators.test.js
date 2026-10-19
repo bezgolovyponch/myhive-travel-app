@@ -30,6 +30,13 @@ describe('slugFormat', () => {
         expect(slugFormat('bali-beach-2')).toBeUndefined();
     });
 
+    it('rejects leading, trailing and doubled hyphens', () => {
+        expect(slugFormat('-')).toBeTruthy();
+        expect(slugFormat('-bali')).toBeTruthy();
+        expect(slugFormat('bali-')).toBeTruthy();
+        expect(slugFormat('bali--beach')).toBeTruthy();
+    });
+
     it('rejects spaces, uppercase and other characters', () => {
         expect(slugFormat('Bali Beach')).toBeTruthy();
         expect(slugFormat('Bali')).toBeTruthy();

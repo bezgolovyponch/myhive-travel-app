@@ -9,7 +9,7 @@ import api from '../services/api';
 import {SITE_URL} from '../services/config';
 import {capitalizeFirst} from '../utils/format';
 import useTripDeepLink from '../hooks/useTripDeepLink';
-import {useT} from '../i18n';
+import {destinationPath, localizePath, useLocale, useT} from '../i18n';
 import './DestinationPage.css';
 
 const PAGE_SIZE = 12;
@@ -20,10 +20,12 @@ const VISIBLE_CATEGORY_COUNT = 12;
 // so the catalog reaches the initial HTML instead of arriving in the effect
 // below, which no crawler runs. Filtering and Show More still page on the client
 // from there. Omitted in the SPA, which fetches on mount exactly as before.
-function DestinationPage({initial}) {
+function DestinationPage({initial, destinationSlug}) {
     const t = useT('destination');
     const tMeta = useT('meta');
-    const {slug} = useParams();
+    const {slug: slugParam} = useParams();
+    const slug = destinationSlug ?? slugParam;
+    const locale = useLocale();
     const {state: trip} = useTrip();
   const location = useLocation();
   const navigate = useNavigate();
@@ -230,7 +232,7 @@ function DestinationPage({initial}) {
             <title>{destination.name} — Trivlu</title>
             <meta name="description"
                   content={destination.description || tMeta('destination.description', {name: destination.name})}/>
-            <link rel="canonical" href={`${SITE_URL}/destination/${destination.slug}`}/>
+            <link rel="canonical" href={`${SITE_URL}${localizePath(destinationPath(destination.slug), locale)}`}/>
         </PageHead>
       {/* The catalog carried no h1 outside its loading/error states, which the SSR
           smoke checks flag (exactly one per page) and which cost the highest-

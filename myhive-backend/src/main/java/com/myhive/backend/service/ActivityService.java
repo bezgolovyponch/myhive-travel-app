@@ -4,6 +4,7 @@ import com.myhive.backend.dto.ActivityDTO;
 import com.myhive.backend.dto.CategoryDTO;
 import com.myhive.backend.entity.Activity;
 import com.myhive.backend.entity.Destination;
+import com.myhive.backend.entity.PrimaryCategory;
 import com.myhive.backend.exception.ActivityInUseException;
 import com.myhive.backend.exception.ActivityInUseInSessionException;
 import com.myhive.backend.exception.BadRequestException;
@@ -13,8 +14,10 @@ import com.myhive.backend.repository.ActivityRepository;
 import com.myhive.backend.repository.CategoryRepository;
 import com.myhive.backend.repository.DestinationRepository;
 import com.myhive.backend.repository.PackageRepository;
+import com.myhive.backend.repository.PrimaryCategoryRepository;
 import com.myhive.backend.repository.VoteSessionActivityRepository;
 import com.myhive.backend.util.ActivityExtras;
+import com.myhive.backend.util.LocalizedSlugs;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -48,6 +53,7 @@ public class ActivityService {
     private final ActivityRepository activityRepository;
     private final DestinationRepository destinationRepository;
     private final CategoryRepository categoryRepository;
+    private final PrimaryCategoryRepository primaryCategoryRepository;
     private final PackageRepository packageRepository;
     private final VoteSessionActivityRepository voteSessionActivityRepository;
 
@@ -87,7 +93,12 @@ public class ActivityService {
     }
 
     public ActivityDTO getActivityBySlug(String slug, String locale) {
-        Activity activity = activityRepository.findBySlug(slug)
+        // German visitors arrive on the German slug; an English slug under /de still resolves.
+        // The English locale never matches a German slug.
+        Activity activity = (Translations.normalize(locale) == null
+                ? Optional.<Activity>empty()
+                : activityRepository.findBySlugDe(slug))
+                .or(() -> activityRepository.findBySlug(slug))
                 .orElseThrow(() -> new ResourceNotFoundException("Activity", slug));
         return convertToDTO(activity, locale);
     }
@@ -166,6 +177,8 @@ public class ActivityService {
         activity.setDestination(destination);
         applyDtoToEntity(dto, activity);
         SlugAssigner.assignOnCreate(activity, dto.getSlug(), dto.getName(), activityRepository);
+        rejectEnglishSlugUsedAsGerman(activity);
+        applySlugDe(dto, activity);
         return convertToDTO(activityRepository.save(activity));
     }
 
@@ -180,8 +193,13 @@ public class ActivityService {
             activity.setDestination(destination);
         }
 
+        String previousSlug = activity.getSlug();
         SlugAssigner.assignOnUpdate(activity, dto.getSlug(), dto.getName(), activity.getName(), activityRepository);
+        if (!Objects.equals(previousSlug, activity.getSlug())) {
+            rejectEnglishSlugUsedAsGerman(activity);
+        }
         applyDtoToEntity(dto, activity);
+        applySlugDe(dto, activity);
 
         return convertToDTO(activityRepository.save(activity));
     }
@@ -204,6 +222,36 @@ public class ActivityService {
         activityRepository.deleteById(id);
     }
 
+    /** null = unchanged, blank = cleared, otherwise a validated slug that no other activity uses. */
+    private void applySlugDe(ActivityDTO dto, Activity activity) {
+        if (dto.getSlugDe() == null) {
+            return;
+        }
+        String slugDe = LocalizedSlugs.normalize(dto.getSlugDe());
+        if (slugDe != null
+                && activityRepository.findBySlugDe(slugDe)
+                        .filter(other -> !Objects.equals(other.getId(), activity.getId()))
+                        .isPresent()) {
+            throw new BadRequestException("slugDe: already in use");
+        }
+        if (slugDe != null
+                && activityRepository.findBySlug(slugDe)
+                        .filter(other -> !Objects.equals(other.getId(), activity.getId()))
+                        .isPresent()) {
+            throw new BadRequestException("slugDe: already in use as an English slug");
+        }
+        activity.setSlugDe(slugDe);
+    }
+
+    /** German and English slugs share one URL space: another activity's German slug cannot become this slug. */
+    private void rejectEnglishSlugUsedAsGerman(Activity activity) {
+        if (activityRepository.findBySlugDe(activity.getSlug())
+                .filter(other -> !Objects.equals(other.getId(), activity.getId()))
+                .isPresent()) {
+            throw new BadRequestException("slug: already in use as a German slug");
+        }
+    }
+
     private void applyDtoToEntity(ActivityDTO dto, Activity activity) {
         activity.setName(dto.getName());
         activity.setDescription(dto.getDescription());
@@ -216,6 +264,11 @@ public class ActivityService {
         activity.setFeatured(Boolean.TRUE.equals(dto.getFeatured()));
         activity.setSeoIndexable(Boolean.TRUE.equals(dto.getSeoIndexable()));
         activity.setCategories(CategoryResolver.resolve(dto.getCategoryIds(), categoryRepository));
+        // null = "unchanged" (the CSV import and older forms must not clear the hub).
+        if (dto.getPrimaryCategoryId() != null) {
+            activity.setPrimaryCategory(primaryCategoryRepository.findById(dto.getPrimaryCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("PrimaryCategory", dto.getPrimaryCategoryId())));
+        }
         // null = "unchanged": the admin forms that don't know about translations
         // yet must not wipe them on every save. Send {} to clear.
         if (dto.getTranslations() != null) {
@@ -241,6 +294,8 @@ public class ActivityService {
         ActivityDTO dto = new ActivityDTO();
         dto.setId(activity.getId());
         dto.setSlug(activity.getSlug());
+        dto.setSlugDe(activity.getSlugDe());
+        dto.setUpdatedAt(activity.getUpdatedAt());
         dto.setDestinationId(destination.getId());
         dto.setDestinationName(Translations.pick(destination.getTranslations(), lc, "name", destination.getName()));
         dto.setDestinationSlug(destination.getSlug());
@@ -257,6 +312,12 @@ public class ActivityService {
         dto.setExtras(ActivityExtras.toDtos(activity.getExtras(), lc));
         if (locale == null) {
             dto.setTranslations(activity.getTranslations());
+        }
+
+        PrimaryCategory primaryCategory = activity.getPrimaryCategory();
+        if (primaryCategory != null) {
+            dto.setPrimaryCategoryId(primaryCategory.getId());
+            dto.setPrimaryCategory(PrimaryCategoryService.toDTO(primaryCategory, lc));
         }
 
         List<CategoryDTO> categoryDtos = CategoryResolver.toDTOs(activity.getCategories(), lc);

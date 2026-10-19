@@ -2,7 +2,7 @@
 // A thin server shell: locale-aware metadata and the localized catalogue
 // fetch; the landing carries its own header and footer, so it lives outside
 // the PublicChrome route group. The catalogue itself stays at
-// /destination/prague.
+// /prague-stag-do.
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { api, type Activity, type Category } from '@/lib/api';

@@ -137,3 +137,24 @@ describe('?category= deep link', () => {
         expect(filtered).toHaveLength(0);
     });
 });
+
+test('uses the destinationSlug prop when the hub route carries no param', async () => {
+    mockHappyPathApi();
+
+    render(
+        <HelmetProvider>
+            <CatalogContext.Provider value={catalogValue}>
+                <TripContext.Provider value={{state: tripState, dispatch: jest.fn()}}>
+                    <MemoryRouter initialEntries={['/prague-stag-do']}>
+                        <Routes>
+                            <Route path="/prague-stag-do" element={<DestinationPage destinationSlug="prague"/>}/>
+                        </Routes>
+                    </MemoryRouter>
+                </TripContext.Provider>
+            </CatalogContext.Provider>
+        </HelmetProvider>
+    );
+
+    expect(await screen.findByRole('button', {name: 'Activities'})).toBeInTheDocument();
+    expect(api.getDestinationBySlug).toHaveBeenCalledWith('prague');
+});

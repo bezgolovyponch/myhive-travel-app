@@ -55,6 +55,10 @@ function renderPage() {
               path="/destination/:destinationSlug/activity/:slug"
               element={<ActivityDetailPage />}
             />
+            <Route
+              path="/prague-stag-do/activities/:slug"
+              element={<ActivityDetailPage destinationSlug="prague" />}
+            />
           </Routes>
         </TripProvider>
       </MemoryRouter>

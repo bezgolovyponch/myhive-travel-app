@@ -2,8 +2,10 @@ package com.myhive.backend.service;
 
 import com.myhive.backend.dto.BlogPostDTO;
 import com.myhive.backend.entity.BlogPost;
+import com.myhive.backend.exception.BadRequestException;
 import com.myhive.backend.exception.ResourceNotFoundException;
 import com.myhive.backend.repository.BlogPostRepository;
+import com.myhive.backend.util.LocalizedSlugs;
 import com.myhive.backend.util.Translations;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -55,7 +59,11 @@ public class BlogPostService {
     }
 
     public BlogPostDTO getBlogPostBySlug(String slug, String locale) {
-        BlogPost blogPost = blogPostRepository.findBySlug(slug)
+        // Same DE-first lookup as ActivityService.getActivityBySlug.
+        BlogPost blogPost = (Translations.normalize(locale) == null
+                ? Optional.<BlogPost>empty()
+                : blogPostRepository.findBySlugDe(slug))
+                .or(() -> blogPostRepository.findBySlug(slug))
                 .orElseThrow(() -> new ResourceNotFoundException("Blog post not found"));
         return convertToDTO(blogPost, locale);
     }
@@ -65,6 +73,8 @@ public class BlogPostService {
         BlogPost blogPost = new BlogPost();
         applyDtoToEntity(dto, blogPost);
         SlugAssigner.assignOnCreate(blogPost, dto.getSlug(), dto.getTitle(), blogPostRepository);
+        rejectEnglishSlugUsedAsGerman(blogPost);
+        applySlugDe(dto, blogPost);
         return convertToDTO(blogPostRepository.save(blogPost));
     }
 
@@ -73,8 +83,13 @@ public class BlogPostService {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BlogPost", id));
 
+        String previousSlug = blogPost.getSlug();
         SlugAssigner.assignOnUpdate(blogPost, dto.getSlug(), dto.getTitle(), blogPost.getTitle(), blogPostRepository);
+        if (!Objects.equals(previousSlug, blogPost.getSlug())) {
+            rejectEnglishSlugUsedAsGerman(blogPost);
+        }
         applyDtoToEntity(dto, blogPost);
+        applySlugDe(dto, blogPost);
 
         return convertToDTO(blogPostRepository.save(blogPost));
     }
@@ -85,6 +100,36 @@ public class BlogPostService {
             throw new ResourceNotFoundException("BlogPost", id);
         }
         blogPostRepository.deleteById(id);
+    }
+
+    /** null = unchanged, blank = cleared, otherwise a validated slug that no other post uses. */
+    private void applySlugDe(BlogPostDTO dto, BlogPost blogPost) {
+        if (dto.getSlugDe() == null) {
+            return;
+        }
+        String slugDe = LocalizedSlugs.normalize(dto.getSlugDe());
+        if (slugDe != null
+                && blogPostRepository.findBySlugDe(slugDe)
+                        .filter(other -> !Objects.equals(other.getId(), blogPost.getId()))
+                        .isPresent()) {
+            throw new BadRequestException("slugDe: already in use");
+        }
+        if (slugDe != null
+                && blogPostRepository.findBySlug(slugDe)
+                        .filter(other -> !Objects.equals(other.getId(), blogPost.getId()))
+                        .isPresent()) {
+            throw new BadRequestException("slugDe: already in use as an English slug");
+        }
+        blogPost.setSlugDe(slugDe);
+    }
+
+    /** German and English slugs share one URL space: another post's German slug cannot become this slug. */
+    private void rejectEnglishSlugUsedAsGerman(BlogPost blogPost) {
+        if (blogPostRepository.findBySlugDe(blogPost.getSlug())
+                .filter(other -> !Objects.equals(other.getId(), blogPost.getId()))
+                .isPresent()) {
+            throw new BadRequestException("slug: already in use as a German slug");
+        }
     }
 
     private void applyDtoToEntity(BlogPostDTO dto, BlogPost blogPost) {
@@ -111,6 +156,8 @@ public class BlogPostService {
         BlogPostDTO dto = new BlogPostDTO();
         dto.setId(blogPost.getId());
         dto.setSlug(blogPost.getSlug());
+        dto.setSlugDe(blogPost.getSlugDe());
+        dto.setUpdatedAt(blogPost.getUpdatedAt());
         dto.setTitle(Translations.pick(tr, lc, "title", blogPost.getTitle()));
         dto.setExcerpt(Translations.pick(tr, lc, "excerpt", blogPost.getExcerpt()));
         dto.setContent(Translations.pick(tr, lc, "content", blogPost.getContent()));

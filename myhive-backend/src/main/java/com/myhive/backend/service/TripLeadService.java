@@ -266,7 +266,7 @@ public class TripLeadService {
         return new TripLeadRestoreResponse.RestoreItem(
                 activity.getId(), activity.getName(), activity.getPrice(), activity.getMinPrice(),
                 activity.getImageUrl(), activity.getDuration(), activity.getSlug(), destinationSlug,
-                activity.getDescription(), activity.getIncludes());
+                activity.getDescription(), activity.getIncludes(), activity.getSlugDe());
     }
 
     @Transactional

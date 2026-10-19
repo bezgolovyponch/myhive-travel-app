@@ -80,6 +80,6 @@ public class VotePoolService {
                 activity.getPrice(), activity.getMinPrice(), activity.getImageUrl(),
                 activity.getSlug(), destinationSlug, categories,
                 Translations.pick(tr, lc, "description", activity.getDescription()), activity.getDuration(),
-                ActivityExtras.toDtos(activity.getExtras(), lc), null);
+                ActivityExtras.toDtos(activity.getExtras(), lc), null, activity.getSlugDe());
     }
 }

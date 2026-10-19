@@ -10,7 +10,7 @@ export function required(value, message = 'This field is required.') {
 export function slugFormat(value, message = 'Use lowercase letters, numbers and hyphens only.') {
     // Slug is optional (auto-generated when blank); only validate when present.
     if (value === null || value === undefined || value === '') return undefined;
-    return /^[a-z0-9-]+$/.test(value) ? undefined : message;
+    return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value) ? undefined : message;
 }
 
 export function discountRange(value, message = 'Discount must be between 0 and 100.') {

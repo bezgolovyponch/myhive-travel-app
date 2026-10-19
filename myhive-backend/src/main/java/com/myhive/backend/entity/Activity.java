@@ -21,6 +21,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,7 +38,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = {"destination", "categories"})
+@ToString(exclude = {"destination", "categories", "primaryCategory"})
 public class Activity implements Slugged {
 
     @Id
@@ -50,6 +51,14 @@ public class Activity implements Slugged {
 
     @Column(unique = true, length = 300)
     private String slug;
+
+    /** German URL slug; null until the DE slug import fills it (the DE routes then fall back to {@link #slug}). */
+    @Column(name = "slug_de", unique = true, length = 300)
+    private String slugDe;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "primary_category_id")
+    private PrimaryCategory primaryCategory;
 
     @Column(nullable = false)
     private String name;
@@ -103,4 +112,8 @@ public class Activity implements Slugged {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

@@ -6,6 +6,7 @@ const mockApi = {
     getActivitiesPaged: jest.fn(),
     getDestinations: jest.fn(),
     getCategories: jest.fn(),
+    getPrimaryCategories: jest.fn(),
     createActivity: jest.fn(),
     updateActivity: jest.fn(),
 };
@@ -18,7 +19,7 @@ jest.mock('../hooks/useAuthErrorHandler', () => {
 
 const karting = {
     id: 'a1', name: 'Karting', slug: 'karting', price: 40, destinationId: 'd1', destinationName: 'Prague',
-    categories: [],
+    categories: [], primaryCategoryId: 'pc1', slugDe: 'kartfahren',
     extras: [{code: 'show', name: 'Private show', description: '', price: 250, pricing: 'PER_GROUP'}],
 };
 
@@ -26,6 +27,7 @@ beforeEach(() => {
     mockApi.getActivitiesPaged.mockResolvedValue({content: [karting], totalPages: 1, totalElements: 1});
     mockApi.getDestinations.mockResolvedValue([{id: 'd1', name: 'Prague'}]);
     mockApi.getCategories.mockResolvedValue([]);
+    mockApi.getPrimaryCategories.mockResolvedValue([{id: 'pc1', slug: 'stag-do', slugDe: 'jga', name: 'Stag do'}]);
     mockApi.createActivity.mockResolvedValue({});
     mockApi.updateActivity.mockResolvedValue({});
 });
@@ -93,4 +95,36 @@ test('an extra without a name or a price is not saved', async () => {
 
     expect(await within(dialog).findByText('Each extra needs a name and a price.')).toBeInTheDocument();
     expect(mockApi.updateActivity).not.toHaveBeenCalled();
+});
+
+test('createRequiresPrimaryCategory', async () => {
+    const user = userEvent.setup();
+    render(<AdminActivities/>);
+    await screen.findByRole('row', {name: /Karting/});
+    await user.click(screen.getByRole('button', {name: '+ Add Activity'}));
+    const dialog = await screen.findByRole('dialog');
+
+    await user.selectOptions(within(dialog).getByRole('combobox', {name: 'Destination'}), 'd1');
+    await user.type(within(dialog).getByPlaceholderText('Activity name'), 'Paintball');
+    await user.type(within(dialog).getByPlaceholderText('0.00'), '30');
+    await user.click(within(dialog).getByRole('button', {name: 'Create'}));
+
+    expect(await within(dialog).findByText('Primary category is required')).toBeInTheDocument();
+    expect(mockApi.createActivity).not.toHaveBeenCalled();
+});
+
+test('editSendsSlugDeAndPrimaryCategory', async () => {
+    const user = userEvent.setup();
+    const expectedSlugDe = 'gokart';
+    const dialog = await openEdit(user);
+
+    const slugDe = within(dialog).getByLabelText('German slug (optional)');
+    await user.clear(slugDe);
+    await user.type(slugDe, expectedSlugDe);
+    await user.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(mockApi.updateActivity).toHaveBeenCalledWith('a1', expect.objectContaining({
+        slugDe: expectedSlugDe,
+        primaryCategoryId: 'pc1',
+    })));
 });

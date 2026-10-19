@@ -8,25 +8,12 @@ import { routing } from '../i18n/routing';
 // would have shipped Disallow-all to production unless someone remembered to
 // delete it (SEO plan v3: SSR migration exists to GET indexed).
 
-// AI model-TRAINING crawlers, blocked outright. This replaces the Cloudflare
-// "managed robots.txt" block disabled on 2026-08-18 (cutover checklist B5) —
-// same opt-out, but the rules live in our code instead of being injected by a
-// third party. Deliberately NOT listed: AI search/assistant fetchers
-// (OAI-SearchBot, ChatGPT-User, PerplexityBot, Meta-ExternalFetcher…) — those
-// cite the site and refer real visitors. Google-Extended and Applebot-Extended
-// are control tokens rather than crawlers: listing them in robots.txt IS the
-// documented way to opt out of Gemini/Apple AI training without touching
-// Googlebot/Applebot search crawling.
-const AI_TRAINING_BOTS = [
-  'GPTBot', // OpenAI training
-  'CCBot', // Common Crawl — feeds many training corpora
-  'Google-Extended', // Gemini training opt-out token
-  'Applebot-Extended', // Apple AI training opt-out token
-  'ClaudeBot', // Anthropic crawler
-  'anthropic-ai', // legacy Anthropic token
-  'Bytespider', // ByteDance training crawler
-  'Meta-ExternalAgent', // Meta AI training crawler
-];
+// AI crawlers: only Bytespider is blocked (owner decision 2026-10-18, relayed
+// from the SEO manager): assistants must be able to read and cite the site, so
+// every other AI bot is open. The training opt-outs (GPTBot, CCBot, Google-Extended,
+// Applebot-Extended, ClaudeBot, anthropic-ai, Meta-ExternalAgent) were dropped
+// on purpose. The Cloudflare "Block AI bots" switch stays off (deploy checklist).
+const BLOCKED_BOTS = ['Bytespider'];
 
 export default function robots(): MetadataRoute.Robots {
   if (process.env.ALLOW_INDEXING !== 'true') {
@@ -34,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
   }
   // Production rules, per SEO план v3 + the CRA robots.txt it replaces:
   // public pages open; service flows (admin, voting steps, payment) closed.
-  // Next owns the sitemap (app/sitemap.ts) — single implementation, spec §2.
+  // Next owns the sitemap (app/sitemap.xml/route.ts + lib/sitemaps.ts) — single implementation, spec §2.
   const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trivlu.com';
   // Service flows exist under every locale prefix too (/de/vote/...).
   const serviceFlows = ['/admin', '/vote', '/payment'];
@@ -45,7 +32,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       { userAgent: '*', disallow },
-      { userAgent: AI_TRAINING_BOTS, disallow: '/' },
+      { userAgent: BLOCKED_BOTS, disallow: '/' },
     ],
     sitemap: `${site}/sitemap.xml`,
   };

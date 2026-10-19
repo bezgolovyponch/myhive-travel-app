@@ -32,9 +32,11 @@ public class PackageActivityRefDTO {
      * A package's activity takes extras like any other: the cart needs to know which ones there are.
      */
     private List<ActivityExtraDTO> extras = new ArrayList<>();
+    /** The activity's German slug (null when it has none); German pages link to it instead of the English slug. */
+    private String slugDe;
 
     public PackageActivityRefDTO(UUID activityId, Integer position, String slug, String name, BigDecimal price,
                                  Integer duration, String imageUrl) {
-        this(activityId, position, slug, name, price, duration, imageUrl, new ArrayList<>());
+        this(activityId, position, slug, name, price, duration, imageUrl, new ArrayList<>(), null);
     }
 }
