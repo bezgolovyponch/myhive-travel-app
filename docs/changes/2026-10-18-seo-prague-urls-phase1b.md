@@ -246,13 +246,16 @@ throttles; retry on 403/429).
 - `smoke` also reported `/contact` without `info@trivlu.com`: through Cloudflare the address is
   rewritten by "Email Address Obfuscation" (`/cdn-cgi/l/email-protection`, `data-cfemail`). The
   page is fine; the script now accepts the obfuscated form.
-- Still with people: Cloudflare "Block AI bots" switch (owner), GSC/Bing/GA4 steps (SEO manager).
+- Cloudflare: the AI-bot block lives in Security → Settings → "Configure AI bot policies" (the
+  old "Block AI bots" switch); Search and Agent were already "Allow", Training was "Disallow" and
+  is now "Allow (do not block)" (saved 2026-10-19, after the owner logged in). "Bot Preference
+  Sync" stays off so Cloudflare does not prepend its own rules to our `robots.txt`.
+- Still with people: GSC/Bing/GA4 steps (SEO manager).
 
 ## Open items
 
 - Phase 2: category pages (need the SEO texts); the sitemap grows from 154 to 174 URLs.
 - German texts for the 10 new activities and the 10 packages.
-- Cloudflare "Block AI bots" off (owner; robots.txt already allows the AI crawlers).
 - 2026-11-24: remove `legacy-prague.xml` (code + GSC entry).
 - CSV import/export columns for `slug_de` and primary category.
 - Map rows (slug_en, slug_de, category) for the 10 unmapped activities, from the SEO manager.
