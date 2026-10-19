@@ -258,8 +258,12 @@ throttles; retry on 403/429).
   `https://www.trivlu.com/sitemap.xml` (submitted 18 Aug, 158 URLs); it was resubmitted so Google
   re-reads it as an index, and `https://www.trivlu.com/sitemaps/legacy-prague.xml` was added
   (read at once: Success, 150 URLs). In the `/de/` property: `sitemaps/pages.xml` (5) and
-  `sitemaps/activities.xml` (72), both Success. `/api/sitemap.xml` is not listed in these
-  properties; if the SEO manager's own property has it, he removes it there (it answers 410).
+  `sitemaps/activities.xml` (72), both Success. `/api/sitemap.xml` was never submitted to Search
+  Console: the domain property's sitemap list (shared by all its owners) only ever had
+  `/sitemap.xml`. Google knew the backend sitemap from the CRA-era `robots.txt`
+  (`Sitemap: https://trivlu.com/api/sitemap.xml`, commit `a1c5701d`) until the Next cutover
+  replaced that line in August; URL inspection on 2026-10-19 says "URL is unknown to Google".
+  Nothing to remove; it answers 410 anyway.
 - GA4 (property `trivlu.com`, same account): annotation "SEO URL restructure: /prague-stag-do +
   DE slugs" on 19 Oct 2026 (Admin → Data display → Annotations).
 - Bing Webmaster Tools: no signed-in account in the owner's browser, and signing in (Google SSO)
