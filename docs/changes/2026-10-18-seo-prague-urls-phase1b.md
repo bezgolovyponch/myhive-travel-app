@@ -259,7 +259,8 @@ throttles; retry on 403/429).
 - 2026-11-24: remove `legacy-prague.xml` (code + GSC entry).
 - CSV import/export columns for `slug_de` and primary category.
 - Map rows (slug_en, slug_de, category) for the 10 unmapped activities, from the SEO manager.
-- Docs pending owner approval (workflow rule 3): README, CLAUDE.md, memory.
+- Composite slug uniqueness (destination + slug): the Riga collision shows the global unique
+  `activities.slug` bites with every new city; the Ф3 trigger ("second city") has fired.
 - Deferred review minors (the final review triaged all of them as "can wait"; the
   `loadCatalog` one was fixed in `cd865f58`):
   - `applySlugDe` twin in two services
