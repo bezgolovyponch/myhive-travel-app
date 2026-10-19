@@ -169,12 +169,20 @@ and needs `packages` and `categories` to exist, which prod has).
 Replaces phase 1's checklist. Spec §8:
 
 1. Before merging: set `STATIC_PAGES_LASTMOD` in `myhive-next/lib/sitemaps.ts` to the release date.
-2. Pause the FRONTEND auto-deploy on Render; merge. Backend deploys first: Flyway V15 runs
+2. Pause the FRONTEND auto-deploy on Render, or put `[skip render]` in the merge commit message
+   (Render's documented skip phrase; both services log a `commit_ignored` event) and trigger the
+   two deploys by hand in order; merge. Backend deploys first: Flyway V15 runs
    (columns, table, seed, `updated_at = now()`).
 3. Run `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f myhive-backend/prod-migration-seo-prague-urls.sql`
    on the prod database (Render shell). The script aborts and rolls back on a slug collision or a wrong count. Window: old frontend keeps working (its links now carry the new slugs under the old
    scheme, which it resolves), only bookmarked old-slug URLs 404 for a few minutes.
-4. Deploy the frontend. Purge the Cloudflare cache. Turn off Cloudflare "Block AI bots".
+   Before it, check that no activity of another city sits on a new EN or DE slug:
+   `activities.slug` is globally unique and the script's `WHERE slug IN (old, new)` would update
+   that foreign row too. On 2026-10-19 Riga's `stag-arrest-prank` (noindex) had to become
+   `stag-arrest-prank-riga` first.
+4. Deploy the frontend **with "Clear build cache & deploy"** (Render restores the previous build's
+   `.next/cache/fetch-cache`, and the build-time prerender of `/ideas`, `/`, legal pages would
+   embed pre-migration catalog data). Purge the Cloudflare cache. Turn off Cloudflare "Block AI bots".
 5. `node myhive-next/scripts/check-redirects.mjs https://www.trivlu.com --legacy-sitemap
    docs/seo/legacy-api-sitemap-2026-10-18.xml`; `node myhive-next/scripts/smoke.mjs https://www.trivlu.com`;
    open the hub and two activities in both languages; flip the switcher on five activities.
@@ -189,7 +197,7 @@ Exact commands:
 
 ```
 # before merge: set STATIC_PAGES_LASTMOD in myhive-next/lib/sitemaps.ts to the release date
-# 1. Render: pause FRONTEND auto-deploy, merge, wait for the backend deploy (Flyway V15)
+# 1. Render: pause FRONTEND auto-deploy (or merge with "[skip render]" and deploy by hand), wait for the backend deploy (Flyway V15)
 # 2. data script (Render shell, or local psql with the external URL)
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f myhive-backend/prod-migration-seo-prague-urls.sql
 # 3. deploy the frontend; purge Cloudflare; turn off Cloudflare "Block AI bots"
@@ -205,11 +213,46 @@ with `noindex`; `/api/sitemap.xml` is 410; `/robots.txt` shows only the `Bytespi
 Prod `check-redirects` fires many requests and may hit Cloudflare rate rules (the script
 throttles; retry on 403/429).
 
+## Release log 2026-10-19
+
+- `STATIC_PAGES_LASTMOD` set to `2026-10-19` (`04dd4f3c`); merge commit `14b8f439` on `main` carries
+  `[skip render]`, both Render services logged `commit_ignored`, deploys were triggered through the
+  Render API in order.
+- Read-only pre-checks on prod before anything moved: Flyway at V14, 82 Prague activities, all 72
+  mapped rows on their old slugs, the 10 unmapped ones `noindex`, 6 posts (all `noindex`, all with
+  German text). One collision: Riga's `stag-arrest-prank` on a slug Prague moves to (see step 3).
+- Backend deploy `dep-dbb3h9vavr4c738js25g` live 15:37 UTC; V15 applied (10 primary categories,
+  `updated_at` on all 552 activities).
+- Data script run from a laptop with `psql` (the Riga rename first, in its own transaction):
+  73 `UPDATE 1`, `DELETE 5`, post-check passed, 72 Prague rows with `slug_de` and a primary
+  category, one post left (`how-to-plan-a-stag-do` / `jga-planen`).
+- Frontend deploy `dep-dbb3jijbc2fs73dd9al0` live about three minutes later; old-slug URLs were
+  404 for that window only.
+- Hand checks through Cloudflare all as expected (hub 200 both languages, every old URL one 308
+  hop including `?tab=` query strings, `/de/jga-prag/aktivitaeten/ak47-shooting` → the German slug,
+  retired post 410, `/api/sitemap.xml` 410, sitemap index with four maps, robots with only
+  `Bytespider`, `noindex` on the kept DE post, canonical + three hreflang links on a DE activity).
+  Cloudflare served the new `robots.txt` straight away (`cf-cache-status: EXPIRED`, revalidated) and
+  does not cache the sitemaps (`DYNAMIC`), so no purge was needed.
+- `check-redirects` on prod: 1177 checks, 0 errors, 1 warning (the Riga activity's old legacy-sitemap
+  URL answers 404 after its rename; it was `noindex`, accepted). `smoke` found `/ideas` and
+  `/de/ratgeber` still listing the six old posts although `/api/blog` had one: the pages are
+  prerendered at build time (`revalidate = 3600`) and Render restored the previous build's
+  cache (544 MB), which carries Next's persisted fetch cache (`.next/cache/fetch-cache`); an
+  expired entry is served stale to the prerender and only revalidated in the background. Fixed by
+  a second frontend deploy with "Clear build cache" (`dep-dbb3qbigjjms73ctg28g`). Rule for the
+  next data migration: deploy the frontend with the build cache cleared, or expect prerendered
+  pages to show pre-migration catalog data for up to two ISR cycles.
+- `smoke` also reported `/contact` without `info@trivlu.com`: through Cloudflare the address is
+  rewritten by "Email Address Obfuscation" (`/cdn-cgi/l/email-protection`, `data-cfemail`). The
+  page is fine; the script now accepts the obfuscated form.
+- Still with people: Cloudflare "Block AI bots" switch (owner), GSC/Bing/GA4 steps (SEO manager).
+
 ## Open items
 
 - Phase 2: category pages (need the SEO texts); the sitemap grows from 154 to 174 URLs.
 - German texts for the 10 new activities and the 10 packages.
-- Bump `STATIC_PAGES_LASTMOD` to the release date before merge.
+- Cloudflare "Block AI bots" off (owner; robots.txt already allows the AI crawlers).
 - 2026-11-24: remove `legacy-prague.xml` (code + GSC entry).
 - CSV import/export columns for `slug_de` and primary category.
 - Map rows (slug_en, slug_de, category) for the 10 unmapped activities, from the SEO manager.

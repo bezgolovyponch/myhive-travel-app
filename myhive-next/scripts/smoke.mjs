@@ -47,7 +47,9 @@ async function check(path, { needles = [], title: expectedTitle } = {}) {
   if (expectedTitle && title !== expectedTitle)
     fails.push(`${path}: title "${title}" != SEO-v3 "${expectedTitle}"`);
   for (const n of needles) {
-    if (!html.includes(n)) fails.push(`${path}: raw HTML missing ${JSON.stringify(n)}`);
+    // A needle may be a list of alternatives: any one of them satisfies the check.
+    const alternatives = Array.isArray(n) ? n : [n];
+    if (!alternatives.some((a) => html.includes(a))) fails.push(`${path}: raw HTML missing ${JSON.stringify(n)}`);
   }
 }
 
@@ -72,7 +74,9 @@ await check('/prague-stag-do', {
 });
 await check('/ideas', { title: 'Stag Do Planning Guides & Ideas | Trivlu Blog', needles: ['Stag Do Tips, Ideas and Planning Advice for the Best Man'] });
 await check('/about', { title: 'About Trivlu — Group Travel Made Easy', needles: ['About Trivlu'] });
-await check('/contact', { title: 'Contact Trivlu — Talk to the Team', needles: ['info@trivlu.com'] });
+// Through Cloudflare the address arrives obfuscated (Email Address Obfuscation rewrites it to
+// /cdn-cgi/l/email-protection + data-cfemail); the origin serves it in clear.
+await check('/contact', { title: 'Contact Trivlu — Talk to the Team', needles: [['info@trivlu.com', 'data-cfemail=']] });
 await check('/terms', { needles: ['Terms'] });
 await check('/privacy-policy', { needles: ['Privacy'] });
 await check('/cookie-policy', { needles: ['Cookie'] });

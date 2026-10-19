@@ -60,9 +60,9 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
 
 | Package       | Purpose                                                                                         |
 |---------------|-------------------------------------------------------------------------------------------------|
-| `controller/` | REST endpoints (Destination, Activity, Category, Package, Booking, Blog, Contact, Vote, VoteSession, UserInfo, Admin, Sitemap, Home) |
+| `controller/` | REST endpoints (Destination, Activity, Category, PrimaryCategory, Package, Booking, Blog, Contact, Vote, VoteSession, UserInfo, Admin, Sitemap (410 stub), Home) |
 | `service/`    | Business logic + EmailService                                                                   |
-| `entity/`     | JPA entities (UUID PKs; slug field on Destination, Activity, Category, BlogPost, Package): Destination, Activity, Category, Booking, BookingItem, BlogPost, Package, PackageActivity, plus vote/quiz entities (VoteSession, VoteSessionActivity, VoteActivityLike, QuizQuestion, QuizAnswer, …) |
+| `entity/`     | JPA entities (UUID PKs; slug field on Destination, Activity, Category, BlogPost, Package; `slug_de` on Activity and BlogPost): Destination, Activity, Category, PrimaryCategory, Booking, BookingItem, BlogPost, Package, PackageActivity, plus vote/quiz entities (VoteSession, VoteSessionActivity, VoteActivityLike, QuizQuestion, QuizAnswer, …) |
 | `dto/`        | Request/response objects                                                                        |
 | `config/`     | Security (Auth0 OIDC), CORS, rate limiting, R2, email templates, async email executor (`AsyncConfig`) |
 | `util/`       | SlugUtils (slug generation via Slugify + ICU4J transliteration)                                 |
@@ -78,13 +78,15 @@ myhive-react-app/        React 19, CRA, BrowserRouter, Bootstrap 5
   per-person pricing, selectable on the detail page, in the Trip Builder and through the AI planner chat, and
   editable in bulk via the optional `extras` column of the admin CSV import/export (Flyway `V14`).
 - `GET /categories`, `GET /categories/{id}`, `GET /categories/slug/{slug}`
+- `GET /primary-categories` — the ten SEO categories (one per activity, `primaryCategoryId` on the activity)
 - `GET /packages`, `GET /packages/{id}`, `GET /packages/slug/{slug}`
-- `GET /blog`, `GET /blog/{id}`, `GET /blog/slug/{slug}`
+- `GET /blog`, `GET /blog/{id}`, `GET /blog/slug/{slug}` (every `/slug/{slug}` read with `?locale=de` resolves the
+  German slug `slug_de` first, then the English one)
 - `POST /bookings`, `POST /bookings/trip` (PATCH `/bookings/{id}/status` requires ADMIN). The public
   read endpoints (`GET /bookings/{id}`, `GET /bookings?email=`) were removed — booking detail is served
   only from the JWT-gated `/admin/bookings/**`.
 - `POST /contact`
-- `GET /sitemap.xml` — XML sitemap (1h cache)
+- `GET /sitemap.xml` — 410 Gone since 2026-10-19 (sitemaps are served by the Next app, see SEO below)
 - **Vote sessions** (share-token based, no auth): `POST /vote/sessions`, `GET /vote/sessions/{shareToken}`
   (+ `/activities`, `/votes`, `/votes/batch`, `/participant-count`, `/close`, `/result`, `/quiz`),
   `GET /vote/destinations/{destinationId}/quiz`, `POST /vote/pool`
@@ -345,14 +347,26 @@ Dev docker-compose available: `docker-compose -f docker-compose.dev.yml up`
 
 ## SEO
 
-- **Slug-based URLs**: `/destination/prague`, `/destination/tenerife/activity/sunset-boat-party`,
-  `/blog/top-5-group-travel-destinations-for-2026`
-- **Slug generation**: Slugify library + ICU4J for full unicode transliteration (Cyrillic, CJK, accents, German ß)
-- **Custom slugs**: Admins can set custom slugs via the admin panel; leave blank to auto-generate from name/title
-- **Meta tags**: react-helmet-async for per-page `<title>`, `<meta description>`, `<link canonical>`
-- **Sitemap**: `GET /sitemap.xml` — auto-generated, 1h HTTP cache, Cloudflare CDN cache
-- **Open Graph**: Default OG tags in index.html
-- **robots.txt**: Disallow `/admin/`, Sitemap directive
+- **Prague URLs (since 2026-10-19)**: hub `/prague-stag-do` (`/de/jga-prag`), activities
+  `/prague-stag-do/activities/{slug}` (`/de/jga-prag/aktivitaeten/{slug_de}`), packages
+  `/prague-stag-do/packages/{slug}` (`/de/jga-prag/pakete/`), guides `/ideas/{slug}` (`/de/ratgeber/{slug_de}`).
+  Other destinations keep `/destination/{slug}` and `/destination/{destSlug}/activity|package/{slug}`.
+- **Redirects**: `myhive-next/seo/redirect-map.csv` is the single source of old → new URLs; `next.config.ts`
+  builds 325 one-hop 308 rules from it (`lib/redirects.ts`), the backend generator
+  `myhive-backend/scripts/seo-map-to-sql.mjs` writes the prod data script, and the map also produces
+  `/sitemaps/legacy-prague.xml` (remove on 2026-11-24). Five retired seed posts answer 410. Acceptance:
+  `node myhive-next/scripts/check-redirects.mjs https://www.trivlu.com --legacy-sitemap docs/seo/legacy-api-sitemap-2026-10-18.xml`.
+- **Slugs**: globally unique `slug` (Slugify + ICU4J transliteration, custom slugs in the admin panel) plus a
+  German `slug_de` on activities and posts (admin "German slug" field; `?locale=de` reads resolve it first).
+  Activities carry one of ten primary categories (`GET /primary-categories`) for the upcoming category pages.
+- **Meta tags**: `lib/seo.ts` `pageMetadata()` — title, description, canonical, EN/DE/x-default hreflang, Open Graph.
+- **Sitemap**: `/sitemap.xml` is an index over `/sitemaps/{pages,activities,guides,articles}.xml` and the
+  `/de/sitemaps/*` twins; `lastmod` = the record's `updated_at`, static pages use `STATIC_PAGES_LASTMOD`
+  (`lib/sitemaps.ts`, set to the release date before a merge). Legal pages are not listed. The backend
+  `/api/sitemap.xml` answers 410.
+- **robots.txt**: `app/robots.ts` — Disallow-all unless `ALLOW_INDEXING=true`; otherwise disallows `/admin`,
+  `/vote`, `/payment` (+ `/de/*`), blocks only `Bytespider`, and points to the sitemap index. Keep Cloudflare's
+  "Block AI bots" switch off to match.
 
 ## Analytics
 
