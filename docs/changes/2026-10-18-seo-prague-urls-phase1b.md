@@ -80,7 +80,7 @@ Still no generic `/blog/:slug` rule (the 410s live in middleware, `lib/gone.ts`)
 `/sitemaps/{pages,activities,guides,articles}.xml` and `/de/sitemaps/...`; empty maps (guides)
 are left out of the index. Entries carry `xhtml:link` en/de/x-default (x-default = EN), no
 `priority`/`changefreq`. `lastmod` comes from `updated_at`; static pages use the constant
-`STATIC_PAGES_LASTMOD = '2026-10-21'` in `lib/sitemaps.ts` (a placeholder, see deploy order).
+`STATIC_PAGES_LASTMOD = '2026-10-19'` in `lib/sitemaps.ts` (the release date).
 `/sitemaps/legacy-prague.xml` lists 150 URLs (old EN and DE paths of the `301` rows), EN route
 only, not in the index; remove it on 2026-11-24.
 

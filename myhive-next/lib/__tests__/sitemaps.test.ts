@@ -117,7 +117,8 @@ describe('sitemaps', () => {
       ].sort(),
     );
     const pages = items.find((i) => i.loc.endsWith('/sitemaps/pages.xml'));
-    expect(pages?.lastmod).toBe('2026-10-21');
+    // newest entry wins: the hub's updatedAt (2026-10-20) is later than STATIC_PAGES_LASTMOD
+    expect(pages?.lastmod).toBe('2026-10-20');
   });
 
   it('legacyPragueEntries_excludes410Rows', () => {

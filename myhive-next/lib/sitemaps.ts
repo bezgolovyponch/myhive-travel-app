@@ -17,7 +17,7 @@ import {
 
 // Release date of the static pages; bump by hand when their content changes
 // (deploy checklist: set it to the release date before merging).
-export const STATIC_PAGES_LASTMOD = '2026-10-21';
+export const STATIC_PAGES_LASTMOD = '2026-10-19';
 
 export type SitemapName = 'pages' | 'activities' | 'guides' | 'articles';
 export const SITEMAP_NAMES: readonly SitemapName[] = ['pages', 'activities', 'guides', 'articles'];
